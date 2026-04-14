@@ -26,3 +26,14 @@ Bundle multiple Azure assessment tools into a single, portable runner. Output un
 ## Permissions
 - Azure tools need Reader only — NO write permissions
 - See PERMISSIONS.md for full breakdown per tool
+
+## Documentation rules — ALWAYS required
+
+Every PR that changes code, queries, or configuration MUST include a docs update in the same commit:
+
+- ✅ `README.md` — update feature list, supported tools, permissions summary if changed
+- ✅ `PERMISSIONS.md` — update if new Azure/Graph/GitHub API scopes are added
+- ✅ `CHANGELOG.md` — add an entry for every user-visible change (feature, fix, breaking)
+- ✅ Inline comments in new PowerShell modules if the logic is non-obvious
+
+**No code PR merges without a matching docs update. This is not optional.**
