@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Added
+- Phase 6: full README with prerequisites, quick-start, output and permissions tables
 - CI failure analysis workflow: auto-creates issues with bug+squad labels when any workflow fails
 - Phase 4: `modules/Invoke-Azqr.ps1` — azqr CLI wrapper (graceful degradation)
 - Phase 4: `modules/Invoke-PSRule.ps1` — PSRule for Azure wrapper
@@ -16,4 +17,5 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
+
 
