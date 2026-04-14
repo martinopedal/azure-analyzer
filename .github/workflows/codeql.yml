@@ -21,11 +21,11 @@ jobs:
       matrix:
         language: [python, actions]
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: github/codeql-action/init@ce28f5bb42b49b1f6a7b031fc87e7b2f3ce5c9c8 # v3.29.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: github/codeql-action/init@5c8a8a642e79153f5d047b10ec1cba1d1cc65699 # v3.35.1
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@ce28f5bb42b49b1f6a7b031fc87e7b2f3ce5c9c8 # v3.29.0
-      - uses: github/codeql-action/analyze@ce28f5bb42b49b1f6a7b031fc87e7b2f3ce5c9c8 # v3.29.0
+      - uses: github/codeql-action/autobuild@5c8a8a642e79153f5d047b10ec1cba1d1cc65699 # v3.35.1
+      - uses: github/codeql-action/analyze@5c8a8a642e79153f5d047b10ec1cba1d1cc65699 # v3.35.1
         with:
           category: "/language:${{matrix.language}}"
