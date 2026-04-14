@@ -12,12 +12,12 @@ Bundle multiple Azure assessment tools into a single, portable runner. Output un
 - Signed commits NOT required (breaks Dependabot and GitHub API commits)
 - 0 required reviewers (solo-maintained)
 - enforce_admins = true, linear history, no force push
-- Required status checks: CodeQL Analyze (actions), CodeQL Analyze (python), Validate Queries
+- ✅ Required status checks: `Analyze (actions)` only (Python removed — repo is PowerShell)
 
 ## CodeQL policy
-- This repo has Python + GitHub Actions workflows — both are scanned
-- Actions scanning covers workflow injection risks
-- Python scanning covers the tool wrappers and orchestrator
+- This repo scans GitHub Actions workflows only — `language: [actions]`
+- PowerShell is NOT scanned by CodeQL (no supported CodeQL extractor for PS)
+- Actions scanning covers workflow injection risks (expression injection, untrusted input)
 
 ## SHA-pinning
 - All GitHub Actions MUST use SHA-pinned versions, not tags

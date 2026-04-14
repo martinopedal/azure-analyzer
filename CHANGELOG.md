@@ -4,6 +4,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed
+- Update branch protection to require `Analyze (actions)` only
+
 ### Added
 - Phase 6: full README with prerequisites, quick-start, output and permissions tables
 - CI failure analysis workflow: auto-creates issues with bug+squad labels when any workflow fails
