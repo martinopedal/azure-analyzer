@@ -37,3 +37,10 @@ Every PR that changes code, queries, or configuration MUST include a docs update
 - ✅ Inline comments in new PowerShell modules if the logic is non-obvious
 
 **No code PR merges without a matching docs update. This is not optional.**
+
+## Issue conventions
+
+- ✅ Every new issue MUST have the `squad` label — this is how Ralph (squad watch) picks it up for dispatch
+- ✅ The auto-label-issues workflow adds `squad` automatically on open — never remove it
+- ✅ Use labels `enhancement`, `bug`, `documentation` alongside `squad` to signal priority and type
+- ✅ Issue titles must follow: `feat:`, `fix:`, `docs:`, `chore:` prefix
