@@ -1,0 +1,74 @@
+name: CI Failure Analysis
+
+on:
+  workflow_run:
+    workflows: ["*"]
+    types: [completed]
+
+jobs:
+  analyze:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const workflowName = run.name;
+            const branch = run.head_branch;
+            const runUrl = run.html_url;
+            const runId = run.id;
+
+            // Fetch jobs for the failed run
+            const jobsResp = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId,
+            });
+
+            const failedJobs = jobsResp.data.jobs.filter(
+              j => j.conclusion === 'failure'
+            );
+
+            const jobSections = [];
+            for (const job of failedJobs) {
+              let logText = '(log unavailable)';
+              try {
+                const logResp = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  job_id: job.id,
+                });
+                const lines = logResp.data.split('\n');
+                logText = lines.slice(-50).join('\n');
+              } catch (e) {
+                logText = `(could not fetch log: ${e.message})`;
+              }
+
+              jobSections.push(
+                `### ${job.name}\n\`\`\`\n${logText}\n\`\`\``
+              );
+            }
+
+            const failedJobNames = failedJobs.map(j => j.name).join(', ') || 'none';
+            const body = [
+              `**Workflow:** ${workflowName}`,
+              `**Branch:** ${branch}`,
+              `**Run URL:** ${runUrl}`,
+              `**Failed jobs:** ${failedJobNames}`,
+              '',
+              '## Failed job logs (last 50 lines each)',
+              ...jobSections,
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `ci: failure in ${workflowName} on ${branch}`,
+              body,
+              labels: ['bug', 'squad'],
+              assignees: ['martinopedal'],
+            });
