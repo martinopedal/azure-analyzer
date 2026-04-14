@@ -11,6 +11,9 @@ All notable changes to azure-analyzer will be documented here.
 - Phase 4: `modules/Invoke-AzGovViz.ps1` — AzGovViz wrapper
 - Phase 4: `modules/Invoke-AlzQueries.ps1` — alz-graph-queries ARG wrapper
 - Phase 4: `Invoke-AzureAnalyzer.ps1` — orchestrator, merges all findings to output/results.json
+- Phase 5: `New-MdReport.ps1` - Markdown report generator from results.json
+- Phase 5: `New-HtmlReport.ps1` - offline-capable HTML report with severity cards and sortable tables
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
+
