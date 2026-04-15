@@ -4,6 +4,12 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- feat(hybrid): `queries/hybrid_network_queries.json` -- 6 ARG queries for on-premises/hybrid network health (HN-001 through HN-006): ExpressRoute circuit state and SKU, VPN gateway active-active and SKU, VPN connection BGP and status
+- feat(hybrid): `Invoke-AlzQueries.ps1` now auto-discovers all `*.json` files in `queries/` -- add any file to extend checks without code changes
+- feat(hybrid): `Invoke-AlzQueries.ps1` supports both `query` (azure-analyzer format) and `graph` (alz-graph-queries format) KQL field names
+
+
 ### Fixed
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed
 - Update branch protection to require `Analyze (actions)` only

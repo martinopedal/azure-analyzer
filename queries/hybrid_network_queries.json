@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Hybrid connectivity ARG queries for azure-analyzer"
+  },
+  "queries": [
+    {
+      "guid": "HN-001",
+      "category": "Network",
+      "subcategory": "Hybrid Connectivity",
+      "severity": "High",
+      "text": "ExpressRoute circuits should be in a healthy provisioning state",
+      "query": "resources | where type =~ 'microsoft.network/expressroutecircuits' | extend compliant = (properties.circuitProvisioningState =~ 'Enabled' and properties.serviceProviderProvisioningState =~ 'Provisioned') | project id, name, resourceGroup, location, compliant, sku = properties.sku.tier, state = properties.circuitProvisioningState",
+      "not_queryable_reason": null
+    },
+    {
+      "guid": "HN-002",
+      "category": "Network",
+      "subcategory": "Hybrid Connectivity",
+      "severity": "Medium",
+      "text": "ExpressRoute circuits should use Standard or Premium SKU, not Basic",
+      "query": "resources | where type =~ 'microsoft.network/expressroutecircuits' | extend compliant = (properties.sku.tier !~ 'Basic') | project id, name, resourceGroup, compliant, tier = properties.sku.tier",
+      "not_queryable_reason": null
+    },
+    {
+      "guid": "HN-003",
+      "category": "Network",
+      "subcategory": "Hybrid Connectivity",
+      "severity": "Medium",
+      "text": "VPN gateways should be configured in active-active mode for high availability",
+      "query": "resources | where type =~ 'microsoft.network/virtualnetworkgateways' and properties.gatewayType =~ 'Vpn' | extend compliant = (properties.activeActive == true) | project id, name, resourceGroup, location, compliant, sku = properties.sku.name",
+      "not_queryable_reason": null
+    },
+    {
+      "guid": "HN-004",
+      "category": "Network",
+      "subcategory": "Hybrid Connectivity",
+      "severity": "Medium",
+      "text": "VPN gateways should not use the Basic SKU",
+      "query": "resources | where type =~ 'microsoft.network/virtualnetworkgateways' and properties.gatewayType =~ 'Vpn' | extend compliant = (properties.sku.name !~ 'Basic') | project id, name, resourceGroup, compliant, sku = properties.sku.name",
+      "not_queryable_reason": null
+    },
+    {
+      "guid": "HN-005",
+      "category": "Network",
+      "subcategory": "Hybrid Connectivity",
+      "severity": "Low",
+      "text": "VPN connections should have BGP enabled for dynamic routing",
+      "query": "resources | where type =~ 'microsoft.network/connections' and properties.connectionType =~ 'IPsec' | extend compliant = (properties.enableBgp == true) | project id, name, resourceGroup, compliant, connectionType = properties.connectionType",
+      "not_queryable_reason": null
+    },
+    {
+      "guid": "HN-006",
+      "category": "Network",
+      "subcategory": "Hybrid Connectivity",
+      "severity": "High",
+      "text": "VPN connections should be in the Connected state",
+      "query": "resources | where type =~ 'microsoft.network/connections' | extend compliant = (properties.connectionStatus =~ 'Connected') | project id, name, resourceGroup, compliant, connectionStatus = properties.connectionStatus",
+      "not_queryable_reason": null
+    }
+  ]
+}

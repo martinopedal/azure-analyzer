@@ -76,6 +76,45 @@ After a run, `output/` contains:
 - **Track** — Low + Info severity
 - Per-category breakdown with finding counts
 
+
+## Hybrid Network Queries
+
+`queries/hybrid_network_queries.json` contains 6 ARG queries for on-premises/hybrid connectivity health assessment:
+
+| ID | Check | Severity |
+|---|---|---|
+| HN-001 | ExpressRoute circuit provisioning state (Enabled + Provisioned) | High |
+| HN-002 | ExpressRoute circuit SKU (not Basic) | Medium |
+| HN-003 | VPN gateway active-active configuration | Medium |
+| HN-004 | VPN gateway SKU (not Basic) | Medium |
+| HN-005 | VPN connection BGP enablement | Low |
+| HN-006 | VPN connection status (Connected) | High |
+
+**Empty-result semantics**: if no hybrid resources exist in scope (e.g., no VPN gateways), the query returns zero rows and is treated as not applicable -- not non-compliant.
+
+### Extending with custom queries
+
+All `*.json` files in the `queries/` directory are auto-loaded by `Invoke-AlzQueries.ps1`. Add your own file using the azure-analyzer schema:
+
+```json
+{
+  "metadata": { "version": "1.0", "description": "My custom queries" },
+  "queries": [
+    {
+      "guid": "MY-001",
+      "category": "Security",
+      "subcategory": "...",
+      "severity": "High",
+      "text": "Human readable check description",
+      "query": "resources | where ... | extend compliant = (...) | project id, name, resourceGroup, compliant",
+      "not_queryable_reason": null
+    }
+  ]
+}
+```
+
+Every query **must** return a `compliant` boolean column. The `query` field (azure-analyzer format) and `graph` field (alz-graph-queries format) are both supported.
+
 ## Required Azure permissions
 
 | Scope | Role |

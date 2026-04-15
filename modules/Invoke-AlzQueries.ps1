@@ -1,10 +1,12 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Wrapper for alz-graph-queries ARG queries.
+    Wrapper for alz-graph-queries ARG queries and local azure-analyzer queries.
 .DESCRIPTION
     Reads alz_additional_queries.json, runs each queryable item via Search-AzGraph,
     and returns an array of PSObjects with compliance results.
+    Also auto-discovers and runs all *.json files in the queries/ directory
+    (supporting the azure-analyzer query schema with a 'query' field).
     Requires the Az.ResourceGraph module.
     Never throws — skips items that fail individually, warns on module absence.
 .PARAMETER SubscriptionId
@@ -51,7 +53,25 @@ if (-not (Test-Path $QueriesFile)) {
 }
 
 $data = Get-Content $QueriesFile -Raw | ConvertFrom-Json -ErrorAction Stop
-$queryable = $data.queries | Where-Object { $_.queryable -eq $true -and $_.graph }
+$queryable = @($data.queries | Where-Object { $_.queryable -eq $true -and $_.graph })
+
+# Also read local azure-analyzer queries from queries/ directory.
+# These use the 'query' field (not 'graph') and wrap items in { "queries": [...] }.
+# Empty results for a query mean no resources in scope -- not non-compliant.
+$localQueriesDir = Join-Path $PSScriptRoot '..' 'queries'
+if (Test-Path $localQueriesDir) {
+    $localQueryFiles = Get-ChildItem -Path $localQueriesDir -Filter '*.json' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne 'alz_additional_queries.json' }
+    foreach ($qf in $localQueryFiles) {
+        try {
+            $localData = Get-Content $qf.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
+            $localItems = if ($localData.PSObject.Properties['queries']) { $localData.queries } else { $localData }
+            $queryable += @($localItems | Where-Object { $_.PSObject.Properties['query'] -and $_.query -and -not $_.not_queryable_reason })
+        } catch {
+            Write-Warning "Failed to parse $($qf.Name): $_"
+        }
+    }
+}
 
 if ($queryable.Count -eq 0) {
     Write-Warning "No queryable items found in $QueriesFile"
@@ -72,7 +92,13 @@ $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($item in $queryable) {
     try {
-        $rows = Search-AzGraph -Query $item.graph @graphParams -First 1000 -ErrorAction Stop
+        # Support both 'graph' (alz-graph-queries format) and 'query' (azure-analyzer format)
+        $kql = if ($item.PSObject.Properties['graph'] -and $item.graph) { $item.graph }
+               elseif ($item.PSObject.Properties['query'] -and $item.query) { $item.query }
+               else { $null }
+        if (-not $kql) { continue }
+
+        $rows = Search-AzGraph -Query $kql @graphParams -First 1000 -ErrorAction Stop
         # Queries return a 'compliant' boolean column.
         # No rows means no resources in scope — treat as compliant.
         if ($rows.Count -eq 0) {
