@@ -1,26 +1,53 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, the **ALZ Resource Graph queries** from [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries), and **WARA** into a single orchestrated run with unified Markdown and HTML reports.
+Unified Azure compliance assessment orchestrator. Bundles **8 assessment tools** into a single orchestrated run and produces unified Markdown and HTML reports.
 
-## What it does
+## Overview
 
-| Phase | Script | What it runs |
+`Invoke-AzureAnalyzer.ps1` calls every assessment module in sequence, merges all findings into `output/results.json`, and generates reports. Tools that are not installed are skipped gracefully — you get output from whatever is available.
+
+## What It Runs
+
+| # | Tool / Module | Source | Checks |
+|---|---|---|---|
+| 1 | azqr | External CLI | Service-level best practices (~200 rules) |
+| 2 | PSRule for Azure | External module | Azure WAF policy rules |
+| 3 | AzGovViz | External script | Governance hierarchy visualization |
+| 4 | ALZ Queries | [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) | 132+ ALZ checklist KQL queries |
+| 5 | WARA | External module | Well-Architected Reliability Assessment |
+| 6 | Cost Management API | Built-in (`modules/Invoke-CostManagementApi.ps1`) | Budget governance (4 checks) |
+| 7 | Microsoft Graph API | Built-in (`modules/Invoke-GraphApi.ps1`) | Entra ID security posture (5 checks) |
+| 8 | DevOps API | Built-in (`modules/Invoke-DevOpsApi.ps1`) | GitHub / ADO maturity (4 checks) |
+
+## Hybrid Network Queries
+
+`queries/hybrid_network_queries.json` contains 6 ARG queries for on-premises/hybrid connectivity health. They are **auto-loaded** by `modules/Invoke-AlzQueries.ps1` alongside the upstream ALZ queries.
+
+| ID | Check | Severity |
 |---|---|---|
-| 1 — azqr | `modules/Invoke-Azqr.ps1` | Azure Quick Review CLI — compliance posture per resource type |
-| 2 — PSRule | `modules/Invoke-PSRule.ps1` | PSRule for Azure — rule-based policy validation |
-| 3 — AzGovViz | `modules/Invoke-AzGovViz.ps1` | Azure Governance Visualizer — tenant/MG/subscription hierarchy |
-| 4 — ALZ queries | `modules/Invoke-AlzQueries.ps1` | 132 custom ARG queries from alz-graph-queries |
-| 5 — WARA | `modules/Invoke-WARA.ps1` | Well-Architected Reliability Assessment — reliability findings per resource |
-| 6 — Cost Management | `modules/Invoke-CostManagementApi.ps1` | Cost Management API — budgets, anomaly alerts, Advisor cost recommendations |
-| 7 — Graph API | `modules/Invoke-GraphApi.ps1` | Microsoft Graph API — Entra ID security posture (CA policies, PIM, MFA, security defaults, guest access) |
-| 8 — DevOps | `modules/Invoke-DevOpsApi.ps1` | GitHub/ADO DevOps governance — branch protection, CODEOWNERS, secret scanning, Dependabot, ADO pipelines |
-| Report | `New-MdReport.ps1` / `New-HtmlReport.ps1` | Unified Markdown + offline HTML report |
+| HN-001 | ExpressRoute circuit provisioning state (Enabled + Provisioned) | High |
+| HN-002 | ExpressRoute circuit SKU (not Basic) | Medium |
+| HN-003 | VPN gateway active-active configuration | Medium |
+| HN-004 | VPN gateway SKU (not Basic) | Medium |
+| HN-005 | VPN connection BGP enablement | Low |
+| HN-006 | VPN connection status (Connected) | High |
 
-All findings are merged into `output/results.json` using a common schema:
+Any `*.json` file added to `queries/` is automatically picked up — no code changes required.
 
-```json
-{ "source": "azqr", "category": "Security", "severity": "High", "title": "...", "description": "...", "resourceId": "..." }
+## Usage
+
+```powershell
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-landing-zone"
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -TenantId "..."
 ```
+
+| Parameter | Description |
+|---|---|
+| `-SubscriptionId` | Azure subscription to assess (required unless `-ManagementGroupId` set) |
+| `-ManagementGroupId` | Management group scope for AzGovViz and ALZ queries |
+| `-TenantId` | Explicit tenant ID for WARA collector |
+| `-OutputPath` | Output directory (default: `.\output`) |
 
 ## Prerequisites
 
@@ -33,7 +60,6 @@ All findings are merged into `output/results.json` using a common schema:
 | PSRule for Azure | latest | `Install-Module PSRule.Rules.Azure` |
 | AzGovViz | latest | [Download](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) to `tools/AzGovViz/` |
 | WARA | latest | `Install-Module WARA` (auto-installed if missing) |
-| Reader | subscription | All five tools need at minimum `Reader` on subscriptions in scope |
 
 ## Quick Start
 
@@ -49,16 +75,9 @@ Connect-AzAccount -TenantId "<your-tenant-id>"
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
 ```
 
-### Scope options
+Skip tools you don't have installed:
 
 ```powershell
-# Single subscription
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
-
-# Management group
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroup "my-landing-zone"
-
-# Skip tools you don't have installed
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SkipAzGovViz -SkipPSRule
 ```
 
@@ -72,60 +91,49 @@ After a run, `output/` contains:
 | `report.md` | Markdown report — summary table + Fix Now / Plan / Track sections |
 | `report.html` | Offline HTML report — sortable table, severity badges, no CDN dependencies |
 
-### Report structure
+Unified schema for `results.json`:
+
+```json
+{
+  "Id":          "azqr-001",
+  "Source":      "azqr",
+  "Category":    "Security",
+  "Title":       "Storage account allows public blob access",
+  "Severity":    "High",
+  "Compliant":   false,
+  "Detail":      "storageAccountName in rg-prod",
+  "Remediation": "Set allowBlobPublicAccess = false"
+}
+```
+
+### Report sections
 
 - **Fix Now** — High + Critical severity findings
 - **Plan** — Medium severity
 - **Track** — Low + Info severity
-- Per-category breakdown with finding counts
 
+## Report Generation
 
-## Hybrid Network Queries
+Generate reports from an existing `results.json` without re-running all tools:
 
-`queries/hybrid_network_queries.json` contains 6 ARG queries for on-premises/hybrid connectivity health assessment:
-
-| ID | Check | Severity |
-|---|---|---|
-| HN-001 | ExpressRoute circuit provisioning state (Enabled + Provisioned) | High |
-| HN-002 | ExpressRoute circuit SKU (not Basic) | Medium |
-| HN-003 | VPN gateway active-active configuration | Medium |
-| HN-004 | VPN gateway SKU (not Basic) | Medium |
-| HN-005 | VPN connection BGP enablement | Low |
-| HN-006 | VPN connection status (Connected) | High |
-
-**Empty-result semantics**: if no hybrid resources exist in scope (e.g., no VPN gateways), the query returns zero rows and is treated as not applicable -- not non-compliant.
-
-### Extending with custom queries
-
-All `*.json` files in the `queries/` directory are auto-loaded by `Invoke-AlzQueries.ps1`. Add your own file using the azure-analyzer schema:
-
-```json
-{
-  "metadata": { "version": "1.0", "description": "My custom queries" },
-  "queries": [
-    {
-      "guid": "MY-001",
-      "category": "Security",
-      "subcategory": "...",
-      "severity": "High",
-      "text": "Human readable check description",
-      "query": "resources | where ... | extend compliant = (...) | project id, name, resourceGroup, compliant",
-      "not_queryable_reason": null
-    }
-  ]
-}
+```powershell
+.\New-MdReport.ps1  -ResultsPath .\output\results.json -OutputPath .\output\report.md
+.\New-HtmlReport.ps1 -ResultsPath .\output\results.json -OutputPath .\output\report.html
 ```
 
-Every query **must** return a `compliant` boolean column. The `query` field (azure-analyzer format) and `graph` field (alz-graph-queries format) are both supported.
+## Permissions
 
-## Required Azure permissions
+See [PERMISSIONS.md](./PERMISSIONS.md) for full role assignments. Summary:
 
-| Scope | Role |
+| Tool / Module | Minimum permission |
 |---|---|
-| Subscriptions / management groups | `Reader` |
-| Resource groups | `Reader` (inherited) |
+| azqr, PSRule, ALZ Queries, WARA | `Reader` on subscriptions in scope |
+| AzGovViz | `Reader` + `Directory.Read.All` at MG scope |
+| Cost Management API | `Cost Management Reader` on subscription/MG |
+| Microsoft Graph API | `Policy.Read.All`, `RoleManagement.Read.Directory` (admin consent) |
+| DevOps API | `GITHUB_TOKEN` (`contents:read`, `administration:read`); ADO PAT optional |
 
-No write permissions are required. All tools operate read-only.
+No write permissions are required anywhere.
 
 ## CI / Automation
 
