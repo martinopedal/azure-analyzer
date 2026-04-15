@@ -4,6 +4,15 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `queries/alz_additional_queries.json` — 206 ALZ checklist KQL queries bundled directly in azure-analyzer (no separate clone of alz-graph-queries needed).
+
+### Fixed
+
+- `modules/Invoke-AlzQueries.ps1` — SkipToken pagination loop now correctly extracts rows via `$result.Data.Rows` from the `PSResourceGraphResponse` wrapper returned by `Search-AzGraph`.
+- `modules/Invoke-AlzQueries.ps1` — pre-flight Azure context guard: warns and returns empty findings when no `AzContext` is active instead of raising an uninformative error.
+
 ## [1.1.0] - 2026-04-15
 
 ### Added

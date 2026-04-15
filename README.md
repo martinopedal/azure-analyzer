@@ -13,7 +13,7 @@ Unified Azure compliance assessment orchestrator. Bundles **8 assessment tools**
 | 1 | azqr | External CLI | Service-level best practices (~200 rules) |
 | 2 | PSRule for Azure | External module | Azure WAF policy rules |
 | 3 | AzGovViz | External script | Governance hierarchy visualization |
-| 4 | ALZ Queries | [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) | 132+ ALZ checklist KQL queries |
+| 4 | ALZ Queries | Bundled (`queries/alz_additional_queries.json`) | 206 ALZ checklist KQL queries |
 | 5 | WARA | External module | Well-Architected Reliability Assessment |
 | 6 | Cost Management API | Built-in (`modules/Invoke-CostManagementApi.ps1`) | Budget governance (4 checks) |
 | 7 | Microsoft Graph API | Built-in (`modules/Invoke-GraphApi.ps1`) | Entra ID security posture (5 checks) |

@@ -45,7 +45,7 @@ Import-Module Az.ResourceGraph -ErrorAction SilentlyContinue
 
 if (-not (Test-Path $QueriesFile)) {
     Write-Warning "ALZ queries file not found at: $QueriesFile"
-    Write-Warning "Clone https://github.com/martinopedal/alz-graph-queries and run with -QueriesFile path."
+    Write-Warning "The file is bundled with azure-analyzer in queries/alz_additional_queries.json."
     return [PSCustomObject]@{
         Source   = 'alz-queries'
         Findings = @()
@@ -88,6 +88,16 @@ if ($PSCmdlet.ParameterSetName -eq 'ManagementGroup') {
     $graphParams['Subscription'] = $SubscriptionId
 }
 
+# Pre-flight: ensure Azure context is active before running any queries.
+$ctx = Get-AzContext -ErrorAction SilentlyContinue
+if (-not $ctx) {
+    Write-Warning "No Azure context found. Skipping ALZ queries. Run Connect-AzAccount first."
+    return [PSCustomObject]@{
+        Source   = 'alz-queries'
+        Findings = @()
+    }
+}
+
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($item in $queryable) {
@@ -98,7 +108,18 @@ foreach ($item in $queryable) {
                else { $null }
         if (-not $kql) { continue }
 
-        $rows = Search-AzGraph -Query $kql @graphParams -First 1000 -ErrorAction Stop
+        # Paginate via SkipToken; Search-AzGraph returns a PSResourceGraphResponse wrapper.
+        $allRows = [System.Collections.Generic.List[object]]::new()
+        $pageParams = $graphParams.Clone()
+        $skipToken = $null
+        do {
+            if ($skipToken) { $pageParams['SkipToken'] = $skipToken }
+            $result = Search-AzGraph -Query $kql @pageParams -First 1000 -ErrorAction Stop
+            $pageRows = $result.Data.Rows
+            if ($pageRows) { $allRows.AddRange([object[]]$pageRows) }
+            $skipToken = $result.SkipToken
+        } while ($skipToken)
+        $rows = $allRows
         # Queries return a 'compliant' boolean column.
         # No rows means no resources in scope — treat as compliant.
         if ($rows.Count -eq 0) {
