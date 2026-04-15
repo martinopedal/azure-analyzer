@@ -241,9 +241,13 @@ $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
 if (ShouldRunTool 'azqr') {
     if ($subscriptionsToScan.Count -gt 0) {
         Write-Host "`n[1/7] Running azqr..." -ForegroundColor Yellow
+        $azqrWorstStatus = 'Success'; $azqrMessages = @()
         foreach ($subId in $subscriptionsToScan) {
             if ($subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
             $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $subId }
+            $subStatus = if ($azqrResult.PSObject.Properties['Status']) { $azqrResult.Status } else { 'Success' }
+            if ($subStatus -eq 'Failed') { $azqrWorstStatus = 'Failed'; $azqrMessages += "Failed for $subId" }
+            elseif ($subStatus -eq 'Skipped' -and $azqrWorstStatus -ne 'Failed') { $azqrWorstStatus = 'Skipped' }
             foreach ($f in $azqrResult.Findings) {
                 $allResults.Add([PSCustomObject]@{
                     Id           = [guid]::NewGuid().ToString()
@@ -261,7 +265,7 @@ if (ShouldRunTool 'azqr') {
         }
         $azqrTotal = ($allResults | Where-Object { $_.Source -eq 'azqr' }).Count
         Write-Host "  azqr: $azqrTotal findings" -ForegroundColor Gray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'azqr'; Status = if ($azqrResult.Status) { $azqrResult.Status } else { 'Success' }; Message = ''; Findings = $azqrTotal })
+        $toolStatus.Add([PSCustomObject]@{ Tool = 'azqr'; Status = $azqrWorstStatus; Message = ($azqrMessages -join '; '); Findings = $azqrTotal })
     } else {
         Write-Host "`n[1/7] Skipping azqr (no subscriptions to scan)" -ForegroundColor DarkGray
         $toolStatus.Add([PSCustomObject]@{ Tool = 'azqr'; Status = 'Skipped'; Message = 'No subscriptions to scan'; Findings = 0 })
@@ -274,10 +278,14 @@ if (ShouldRunTool 'azqr') {
 # --- PSRule ---
 if (ShouldRunTool 'psrule') {
     Write-Host "`n[2/7] Running PSRule..." -ForegroundColor Yellow
+    $psruleWorstStatus = 'Success'; $psruleMessages = @()
     foreach ($subId in ($subscriptionsToScan.Count -gt 0 ? $subscriptionsToScan : @($null))) {
         $psruleParams = if ($subId) { @{ SubscriptionId = $subId } } else { @{ Path = '.' } }
         if ($subId -and $subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
         $psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
+        $subStatus = if ($psruleResult.PSObject.Properties['Status']) { $psruleResult.Status } else { 'Success' }
+        if ($subStatus -eq 'Failed') { $psruleWorstStatus = 'Failed'; $psruleMessages += "Failed for $subId" }
+        elseif ($subStatus -eq 'Skipped' -and $psruleWorstStatus -ne 'Failed') { $psruleWorstStatus = 'Skipped' }
         foreach ($f in $psruleResult.Findings) {
             # PSRule Outcome: Pass=compliant, Fail=non-compliant, Error=critical
             $psruleSev = switch (Get-Prop $f 'Outcome' 'Pass') {
@@ -301,7 +309,7 @@ if (ShouldRunTool 'psrule') {
     }
     $psruleTotal = ($allResults | Where-Object { $_.Source -eq 'psrule' }).Count
     Write-Host "  PSRule: $psruleTotal findings" -ForegroundColor Gray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'psrule'; Status = if ($psruleResult.Status) { $psruleResult.Status } else { 'Success' }; Message = ''; Findings = $psruleTotal })
+    $toolStatus.Add([PSCustomObject]@{ Tool = 'psrule'; Status = $psruleWorstStatus; Message = ($psruleMessages -join '; '); Findings = $psruleTotal })
 } else {
     Write-Host "`n[2/7] Skipping psrule (excluded)" -ForegroundColor DarkGray
     $toolStatus.Add([PSCustomObject]@{ Tool = 'psrule'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
@@ -371,11 +379,15 @@ $toolStatus.Add([PSCustomObject]@{ Tool = 'alz-queries'; Status = if ($alzResult
 if (ShouldRunTool 'wara') {
     if ($subscriptionsToScan.Count -gt 0) {
         Write-Host "`n[5/7] Running WARA..." -ForegroundColor Yellow
+        $waraWorstStatus = 'Success'; $waraMessages = @()
         foreach ($subId in $subscriptionsToScan) {
             if ($subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
             $waraParams = @{ SubscriptionId = $subId; OutputPath = (Join-Path $OutputPath 'wara') }
             if ($TenantId) { $waraParams['TenantId'] = $TenantId }
             $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
+            $subStatus = if ($waraResult.PSObject.Properties['Status']) { $waraResult.Status } else { 'Success' }
+            if ($subStatus -eq 'Failed') { $waraWorstStatus = 'Failed'; $waraMessages += "Failed for $subId" }
+            elseif ($subStatus -eq 'Skipped' -and $waraWorstStatus -ne 'Failed') { $waraWorstStatus = 'Skipped' }
             foreach ($f in $waraResult.Findings) {
                 $allResults.Add([PSCustomObject]@{
                     Id           = $f.Id ?? [guid]::NewGuid().ToString()
@@ -393,7 +405,7 @@ if (ShouldRunTool 'wara') {
         }
         $waraTotal = ($allResults | Where-Object { $_.Source -eq 'wara' }).Count
         Write-Host "  WARA: $waraTotal findings" -ForegroundColor Gray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'wara'; Status = if ($waraResult.Status) { $waraResult.Status } else { 'Success' }; Message = ''; Findings = $waraTotal })
+        $toolStatus.Add([PSCustomObject]@{ Tool = 'wara'; Status = $waraWorstStatus; Message = ($waraMessages -join '; '); Findings = $waraTotal })
     } else {
         Write-Host "`n[5/7] Skipping WARA (no subscriptions to scan)" -ForegroundColor DarkGray
         $toolStatus.Add([PSCustomObject]@{ Tool = 'wara'; Status = 'Skipped'; Message = 'No subscriptions to scan'; Findings = 0 })
@@ -457,7 +469,7 @@ if (ShouldRunTool 'scorecard') {
     $toolStatus.Add([PSCustomObject]@{ Tool = 'scorecard'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
 }
 
-# --- Deduplicate cross-tool findings ---
+# --- Deduplicate within-tool findings (same Source+ResourceId+Category+Title+Compliant) ---
 $preDedup = $allResults.Count
 $allResults = Remove-DuplicateFindings $allResults
 $dedupRemoved = $preDedup - $allResults.Count

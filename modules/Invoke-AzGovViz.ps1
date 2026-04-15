@@ -27,7 +27,7 @@ function Find-AzGovViz {
     $candidates = @(
         (Join-Path (Get-Location) 'AzGovVizParallel.ps1'),
         (Join-Path (Get-Location) 'tools' 'AzGovViz' 'AzGovVizParallel.ps1'),
-        (Join-Path $PSScriptRoot 'tools' 'AzGovViz' 'AzGovVizParallel.ps1'),
+        (Join-Path (Split-Path $PSScriptRoot -Parent) 'tools' 'AzGovViz' 'AzGovVizParallel.ps1'),
         (Join-Path $env:USERPROFILE 'AzGovViz' 'AzGovVizParallel.ps1'),
         (Join-Path $env:HOME 'AzGovViz' 'AzGovVizParallel.ps1')
     )
