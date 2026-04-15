@@ -178,6 +178,27 @@ if ($SubscriptionId) {
     Write-Host "`n[5/5] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
 }
 
+# --- Cost Management API ---
+if ($SubscriptionId) {
+    Write-Host "`n[6/8] Running Cost Management checks..." -ForegroundColor Yellow
+    $costResult = Invoke-Wrapper -Script 'Invoke-CostManagementApi.ps1' -Params @{ SubscriptionId = $SubscriptionId }
+    foreach ($f in $costResult.Findings) {
+        $allResults.Add([PSCustomObject]@{
+            Id          = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
+            Source      = 'cost-management'
+            Category    = Get-Prop $f 'Category' 'Cost'
+            Title       = Get-Prop $f 'Title' 'Unknown'
+            Severity    = Map-Severity (Get-Prop $f 'Severity' 'Medium')
+            Compliant   = $f.Compliant
+            Detail      = Get-Prop $f 'Detail' ''
+            Remediation = Get-Prop $f 'Remediation' ''
+        })
+    }
+    Write-Host "  Cost: $($costResult.Findings.Count) findings" -ForegroundColor Gray
+} else {
+    Write-Host "`n[6/8] Skipping Cost Management checks (no SubscriptionId provided)" -ForegroundColor DarkGray
+}
+
 # --- Write output ---
 try {
     if (-not (Test-Path $OutputPath)) {

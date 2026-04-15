@@ -9,6 +9,8 @@ All notable changes to azure-analyzer will be documented here.
 - feat(hybrid): `Invoke-AlzQueries.ps1` now auto-discovers all `*.json` files in `queries/` -- add any file to extend checks without code changes
 - feat(hybrid): `Invoke-AlzQueries.ps1` supports both `query` (azure-analyzer format) and `graph` (alz-graph-queries format) KQL field names
 
+- feat(cost): `modules/Invoke-CostManagementApi.ps1` — Cost Management API module (budget existence, alert thresholds ≥80%, anomaly alert rules, Advisor high-impact cost recommendations)
+- feat(cost): orchestrator step 6/8 integration for Cost Management API checks
 
 ### Fixed
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed

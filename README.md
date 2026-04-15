@@ -11,6 +11,7 @@ Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovV
 | 3 — AzGovViz | `modules/Invoke-AzGovViz.ps1` | Azure Governance Visualizer — tenant/MG/subscription hierarchy |
 | 4 — ALZ queries | `modules/Invoke-AlzQueries.ps1` | 132 custom ARG queries from alz-graph-queries |
 | 5 — WARA | `modules/Invoke-WARA.ps1` | Well-Architected Reliability Assessment — reliability findings per resource |
+| 6 — Cost Management | `modules/Invoke-CostManagementApi.ps1` | Cost Management API — budgets, anomaly alerts, Advisor cost recommendations |
 | Report | `New-MdReport.ps1` / `New-HtmlReport.ps1` | Unified Markdown + offline HTML report |
 
 All findings are merged into `output/results.json` using a common schema:
