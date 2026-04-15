@@ -73,7 +73,17 @@ $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 foreach ($item in $queryable) {
     try {
         $rows = Search-AzGraph -Query $item.graph @graphParams -First 1000 -ErrorAction Stop
-        $compliant = $rows.Count -gt 0
+        # Queries return a 'compliant' boolean column.
+        # No rows means no resources in scope — treat as compliant.
+        if ($rows.Count -eq 0) {
+            $compliant = $true
+        } else {
+            $nonCompliantRows = @($rows | Where-Object {
+                $p = $_.PSObject.Properties['compliant']
+                $p -and ($p.Value -eq $false -or $p.Value -eq 0)
+            })
+            $compliant = $nonCompliantRows.Count -eq 0
+        }
 
         $findings.Add([PSCustomObject]@{
             Id       = $item.guid
@@ -81,7 +91,11 @@ foreach ($item in $queryable) {
             Category = $item.category
             Severity = $item.severity
             Compliant = $compliant
-            Detail   = if ($rows.Count -gt 0) { "Found $($rows.Count) resource(s)" } else { "No resources found" }
+            Detail   = if ($compliant) {
+                           if ($rows.Count -eq 0) { 'No resources in scope' } else { "All $($rows.Count) resource(s) compliant" }
+                       } else {
+                           "$($nonCompliantRows.Count) of $($rows.Count) resource(s) non-compliant"
+                       }
         })
     } catch {
         Write-Warning "ALZ query failed for $($item.guid): $_"

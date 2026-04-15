@@ -53,13 +53,22 @@ function Invoke-Wrapper {
 }
 
 function Map-Severity {
-    param ([string]$Input)
-    switch -Regex ($Input.ToLower()) {
-        'high|critical' { return 'High' }
+    param ([string]$Raw)
+    if ([string]::IsNullOrEmpty($Raw)) { return 'Info' }
+    switch -Regex ($Raw.ToLowerInvariant()) {
+        'high|critical'   { return 'High' }
         'medium|moderate' { return 'Medium' }
-        'low' { return 'Low' }
-        default { return 'Info' }
+        'low'             { return 'Low' }
+        default           { return 'Info' }
     }
+}
+
+function Get-Prop {
+    param ($Obj, [string]$Name, $Default = '')
+    if ($null -eq $Obj) { return $Default }
+    $p = $Obj.PSObject.Properties[$Name]
+    if ($null -eq $p -or $null -eq $p.Value) { return $Default }
+    return $p.Value
 }
 
 Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
@@ -74,12 +83,12 @@ if ($SubscriptionId) {
         $allResults.Add([PSCustomObject]@{
             Id          = [guid]::NewGuid().ToString()
             Source      = 'azqr'
-            Category    = $f.Category ?? $f.ServiceCategory ?? 'General'
-            Title       = $f.Recommendation ?? $f.Description ?? ($f | ConvertTo-Json -Compress)
-            Severity    = Map-Severity ($f.Severity ?? $f.Risk ?? 'Info')
-            Compliant   = ($f.Result -eq 'OK') -or ($f.Compliant -eq $true)
-            Detail      = $f.Notes ?? $f.Description ?? ''
-            Remediation = $f.Url ?? ''
+            Category    = Get-Prop $f 'Category' (Get-Prop $f 'ServiceCategory' 'General')
+            Title       = Get-Prop $f 'Recommendation' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
+            Severity    = Map-Severity (Get-Prop $f 'Severity' (Get-Prop $f 'Risk' 'Info'))
+            Compliant   = ((Get-Prop $f 'Result') -eq 'OK') -or ((Get-Prop $f 'Compliant') -eq $true)
+            Detail      = Get-Prop $f 'Notes' (Get-Prop $f 'Description' '')
+            Remediation = Get-Prop $f 'Url' ''
         })
     }
     Write-Host "  azqr: $($azqrResult.Findings.Count) findings" -ForegroundColor Gray
@@ -93,11 +102,11 @@ foreach ($f in $psruleResult.Findings) {
     $allResults.Add([PSCustomObject]@{
         Id          = [guid]::NewGuid().ToString()
         Source      = 'psrule'
-        Category    = $f.RuleName ?? 'PSRule'
-        Title       = $f.RuleName ?? 'Unknown rule'
-        Severity    = Map-Severity ($f.Outcome ?? 'Info')
-        Compliant   = $f.Outcome -eq 'Pass'
-        Detail      = $f.Message ?? $f.TargetName ?? ''
+        Category    = Get-Prop $f 'RuleName' 'PSRule'
+        Title       = Get-Prop $f 'RuleName' 'Unknown rule'
+        Severity    = Map-Severity (Get-Prop $f 'Outcome' 'Info')
+        Compliant   = (Get-Prop $f 'Outcome') -eq 'Pass'
+        Detail      = Get-Prop $f 'Message' (Get-Prop $f 'TargetName' '')
         Remediation = ''
     })
 }
@@ -111,12 +120,12 @@ if ($ManagementGroupId) {
         $allResults.Add([PSCustomObject]@{
             Id          = [guid]::NewGuid().ToString()
             Source      = 'azgovviz'
-            Category    = $f.Category ?? 'Governance'
-            Title       = $f.Title ?? $f.Description ?? ($f | ConvertTo-Json -Compress)
-            Severity    = Map-Severity ($f.Severity ?? 'Info')
-            Compliant   = $f.Compliant ?? $true
-            Detail      = $f.Detail ?? ''
-            Remediation = $f.Remediation ?? ''
+            Category    = Get-Prop $f 'Category' 'Governance'
+            Title       = Get-Prop $f 'Title' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
+            Severity    = Map-Severity (Get-Prop $f 'Severity' 'Info')
+            Compliant   = if ($null -eq $f.PSObject.Properties['Compliant']) { $true } else { (Get-Prop $f 'Compliant') -ne $false }
+            Detail      = Get-Prop $f 'Detail' ''
+            Remediation = Get-Prop $f 'Remediation' ''
         })
     }
     Write-Host "  AzGovViz: $($azgovvizResult.Findings.Count) findings" -ForegroundColor Gray
@@ -134,13 +143,13 @@ $alzParams = if ($ManagementGroupId) {
 $alzResult = Invoke-Wrapper -Script 'Invoke-AlzQueries.ps1' -Params $alzParams
 foreach ($f in $alzResult.Findings) {
     $allResults.Add([PSCustomObject]@{
-        Id          = $f.Id ?? [guid]::NewGuid().ToString()
+        Id          = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
         Source      = 'alz-queries'
-        Category    = $f.Category ?? 'ALZ'
-        Title       = $f.Title ?? 'Unknown'
-        Severity    = Map-Severity ($f.Severity ?? 'Medium')
+        Category    = Get-Prop $f 'Category' 'ALZ'
+        Title       = Get-Prop $f 'Title' 'Unknown'
+        Severity    = Map-Severity (Get-Prop $f 'Severity' 'Medium')
         Compliant   = $f.Compliant
-        Detail      = $f.Detail ?? ''
+        Detail      = Get-Prop $f 'Detail' ''
         Remediation = ''
     })
 }
@@ -170,12 +179,16 @@ if ($SubscriptionId) {
 }
 
 # --- Write output ---
-if (-not (Test-Path $OutputPath)) {
-    $null = New-Item -ItemType Directory -Path $OutputPath -Force
+try {
+    if (-not (Test-Path $OutputPath)) {
+        $null = New-Item -ItemType Directory -Path $OutputPath -Force
+    }
+    $outputFile = Join-Path $OutputPath 'results.json'
+    $allResults | ConvertTo-Json -Depth 5 | Set-Content -Path $outputFile -Encoding UTF8
+} catch {
+    Write-Error "Failed to write output to ${OutputPath}: $_"
+    return
 }
-
-$outputFile = Join-Path $OutputPath 'results.json'
-$allResults | ConvertTo-Json -Depth 5 | Set-Content -Path $outputFile -Encoding UTF8
 
 $high = ($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
 $medium = ($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count

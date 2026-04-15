@@ -23,7 +23,7 @@ if (-not (Test-Path $InputPath)) {
     throw "Results file not found: $InputPath. Run Invoke-AzureAnalyzer.ps1 first."
 }
 
-$findings = Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop
+$findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = $findings.Count
@@ -166,10 +166,14 @@ function sortTable(th) {
 </html>
 "@
 
-$outputDir = Split-Path $OutputPath -Parent
-if (-not (Test-Path $outputDir)) {
-    $null = New-Item -ItemType Directory -Path $outputDir -Force
+try {
+    $outputDir = Split-Path $OutputPath -Parent
+    if (-not (Test-Path $outputDir)) {
+        $null = New-Item -ItemType Directory -Path $outputDir -Force
+    }
+    $html | Set-Content -Path $OutputPath -Encoding UTF8
+} catch {
+    Write-Error "Failed to write HTML report to ${OutputPath}: $_"
+    return
 }
-
-$html | Set-Content -Path $OutputPath -Encoding UTF8
 Write-Host "HTML report written to: $OutputPath" -ForegroundColor Green
