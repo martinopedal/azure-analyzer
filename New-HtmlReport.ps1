@@ -47,9 +47,9 @@ function SeverityClass([string]$s) {
 }
 
 # --- Per-source breakdown data ---
-$allSources = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester')
-$sourceLabels = @{ 'azqr' = 'Azure Quick Review'; 'psrule' = 'PSRule'; 'azgovviz' = 'AzGovViz'; 'alz-queries' = 'ALZ Queries'; 'wara' = 'WARA'; 'maester' = 'Maester' }
-$sourceColors = @{ 'azqr' = '#1565c0'; 'psrule' = '#6a1b9a'; 'azgovviz' = '#00838f'; 'alz-queries' = '#e65100'; 'wara' = '#2e7d32'; 'maester' = '#7b1fa2' }
+$allSources = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
+$sourceLabels = @{ 'azqr' = 'Azure Quick Review'; 'psrule' = 'PSRule'; 'azgovviz' = 'AzGovViz'; 'alz-queries' = 'ALZ Queries'; 'wara' = 'WARA'; 'maester' = 'Maester'; 'scorecard' = 'Scorecard' }
+$sourceColors = @{ 'azqr' = '#1565c0'; 'psrule' = '#6a1b9a'; 'azgovviz' = '#00838f'; 'alz-queries' = '#e65100'; 'wara' = '#2e7d32'; 'maester' = '#7b1fa2'; 'scorecard' = '#ff6f00' }
 $sourceGroups = $findings | Group-Object -Property Source
 $sourceCountMap = @{}
 foreach ($sg in $sourceGroups) { $sourceCountMap[$sg.Name] = $sg.Count }
