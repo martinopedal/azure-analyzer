@@ -24,6 +24,11 @@ All tools run with the minimum permissions required. No write permissions anywhe
 ## Azure DevOps permissions
 No ADO integration currently planned.
 
+## Cost Management API (Invoke-CostManagementApi.ps1)
+| Scope | Justification |
+|-------|---------------|
+| `Cost Management Reader` | Read budgets, alerts, and Advisor recommendations |
+
 ## What we do NOT need
 - No Contributor or Owner roles
 - No write permissions to any Azure resource
