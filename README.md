@@ -16,7 +16,7 @@ Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovV
 All findings are merged into `output/results.json` using a common schema:
 
 ```json
-{ "source": "azqr", "category": "Security", "severity": "High", "title": "...", "description": "...", "resourceId": "..." }
+{ "source": "azqr", "category": "Security", "severity": "High", "title": "...", "description": "...", "resourceId": "...", "learnMoreUrl": "..." }
 ```
 
 ## Prerequisites

@@ -4,6 +4,18 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- Unified schema: add `ResourceId` and `LearnMoreUrl` fields to every finding
+- Orchestrator auto-generates HTML and Markdown reports after writing results.json
+
+### Changed
+- `Invoke-PSRule.ps1` — populate `ResourceId` from `TargetName` when it looks like an ARM resource ID
+- `Invoke-AlzQueries.ps1` — populate `ResourceId` from first non-compliant ARG row
+- `Invoke-WARA.ps1` — populate `ResourceId` from ImpactedResources and `LearnMoreUrl` from LearnMoreLink
+
+### Removed
+- Delete dead Python stubs (`src/run.py`, `src/__init__.py`) — orchestrator is PowerShell only
+
 ### Fixed
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed
 - Update branch protection to require `Analyze (actions)` only

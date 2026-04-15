@@ -85,27 +85,38 @@ foreach ($item in $queryable) {
             $compliant = $nonCompliantRows.Count -eq 0
         }
 
+        # Extract resource ID from first non-compliant row if available
+        $firstId = ''
+        if (-not $compliant -and $nonCompliantRows.Count -gt 0) {
+            $idProp = $nonCompliantRows[0].PSObject.Properties['id']
+            if ($idProp -and $idProp.Value) { $firstId = [string]$idProp.Value }
+        }
+
         $findings.Add([PSCustomObject]@{
-            Id       = $item.guid
-            Title    = $item.text
-            Category = $item.category
-            Severity = $item.severity
-            Compliant = $compliant
-            Detail   = if ($compliant) {
-                           if ($rows.Count -eq 0) { 'No resources in scope' } else { "All $($rows.Count) resource(s) compliant" }
-                       } else {
-                           "$($nonCompliantRows.Count) of $($rows.Count) resource(s) non-compliant"
-                       }
+            Id          = $item.guid
+            Title       = $item.text
+            Category    = $item.category
+            Severity    = $item.severity
+            Compliant   = $compliant
+            Detail      = if ($compliant) {
+                              if ($rows.Count -eq 0) { 'No resources in scope' } else { "All $($rows.Count) resource(s) compliant" }
+                          } else {
+                              "$($nonCompliantRows.Count) of $($rows.Count) resource(s) non-compliant"
+                          }
+            ResourceId   = $firstId
+            LearnMoreUrl = ''
         })
     } catch {
         Write-Warning "ALZ query failed for $($item.guid): $_"
         $findings.Add([PSCustomObject]@{
-            Id       = $item.guid
-            Title    = $item.text
-            Category = $item.category
-            Severity = $item.severity
-            Compliant = $false
-            Detail   = "Query error: $_"
+            Id           = $item.guid
+            Title        = $item.text
+            Category     = $item.category
+            Severity     = $item.severity
+            Compliant    = $false
+            Detail       = "Query error: $_"
+            ResourceId   = ''
+            LearnMoreUrl = ''
         })
     }
 }
