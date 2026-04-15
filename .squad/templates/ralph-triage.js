@@ -358,25 +358,52 @@ function findRoleKeywordMatch(issueText, roster) {
   for (const member of roster) {
     const role = member.role.toLowerCase();
 
+    // Atlas (Azure Resource Graph Engineer)
     if (
-      (role.includes('frontend') || role.includes('ui')) &&
-      (issueText.includes('ui') || issueText.includes('frontend') || issueText.includes('css'))
+      (role.includes('resource graph') || role.includes('arg') || role.includes('atlas')) &&
+      (issueText.includes('atlas') || issueText.includes('arg') || issueText.includes('kql') ||
+       issueText.includes('resource graph') || issueText.includes('query'))
     ) {
-      return { agent: member, reason: 'Matched frontend/UI role keywords' };
+      return { agent: member, reason: 'Matched ARG/KQL role keywords' };
     }
 
+    // Iris (Entra ID & Microsoft Graph Engineer)
     if (
-      (role.includes('backend') || role.includes('api') || role.includes('server')) &&
-      (issueText.includes('api') || issueText.includes('backend') || issueText.includes('database'))
+      (role.includes('entra') || role.includes('identity') || role.includes('graph') || role.includes('iris')) &&
+      (issueText.includes('iris') || issueText.includes('entra') || issueText.includes('identity') ||
+       issueText.includes('graph') || issueText.includes('pim') || issueText.includes('conditional access') ||
+       issueText.includes('mfa'))
     ) {
-      return { agent: member, reason: 'Matched backend/API role keywords' };
+      return { agent: member, reason: 'Matched Entra/Graph role keywords' };
     }
 
+    // Forge (Platform Automation & DevOps Engineer)
     if (
-      (role.includes('test') || role.includes('qa')) &&
-      (issueText.includes('test') || issueText.includes('bug') || issueText.includes('fix'))
+      (role.includes('devops') || role.includes('automation') || role.includes('platform') || role.includes('forge')) &&
+      (issueText.includes('forge') || issueText.includes('devops') || issueText.includes('pipeline') ||
+       issueText.includes('workflow') || issueText.includes('github actions') || issueText.includes('branch') ||
+       issueText.includes('ci'))
     ) {
-      return { agent: member, reason: 'Matched testing/QA role keywords' };
+      return { agent: member, reason: 'Matched DevOps/automation role keywords' };
+    }
+
+    // Sentinel (Security Analyst & Recommendation Engine)
+    if (
+      (role.includes('security') || role.includes('analyst') || role.includes('recommendation') || role.includes('sentinel')) &&
+      (issueText.includes('sentinel') || issueText.includes('security') || issueText.includes('compliance') ||
+       issueText.includes('recommendation') || issueText.includes('azqr') || issueText.includes('psrule') ||
+       issueText.includes('score'))
+    ) {
+      return { agent: member, reason: 'Matched security/compliance role keywords' };
+    }
+
+    // Sage (Research & Discovery Specialist)
+    if (
+      (role.includes('research') || role.includes('discovery') || role.includes('specialist') || role.includes('sage')) &&
+      (issueText.includes('sage') || issueText.includes('research') || issueText.includes('spike') ||
+       issueText.includes('investigation') || issueText.includes('feasibility') || issueText.includes('tool'))
+    ) {
+      return { agent: member, reason: 'Matched research/discovery role keywords' };
     }
   }
 

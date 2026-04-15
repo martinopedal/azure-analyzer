@@ -7,8 +7,11 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed
 - Update branch protection to require `Analyze (actions)` only
+- Update codeql.yml to use actions/checkout v6 SHA (was v4)
+- Fix copilot-instructions.md SHA-pinning example to reference v6 (was v4.2.2)
 
 ### Added
+- Add .editorconfig for consistent formatting across editors
 - feat: add WARA (Well-Architected Reliability Assessment) as 5th assessment source
 - Phase 6: full README with prerequisites, quick-start, output and permissions tables
 - CI failure analysis workflow: auto-creates issues with bug+squad labels when any workflow fails

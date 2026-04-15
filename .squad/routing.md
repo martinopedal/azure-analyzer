@@ -2,17 +2,38 @@
 
 How to decide who handles what.
 
-## Routing Table
+## Work Type → Agent
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
+| ARG KQL queries | Atlas | New checklist item queries, query fixes, EMPTY/ERROR investigation, `alz_additional_queries.json` changes |
+| Entra ID / Microsoft Graph checks | Iris | Conditional Access, PIM, MFA, emergency accounts, Entra Connect, identity RBAC checks |
+| Azure DevOps API checks | Forge | Branch policies, pipelines, service connections, variable groups |
+| GitHub API checks | Forge | Branch protection, secret scanning, Dependabot, CODEOWNERS, Actions workflows |
+| Recommendation aggregation / scoring | Sentinel | Unified output format, severity weighting, azqr integration, report generation |
+| Repository security standards | Sentinel | Secret scanning status, Dependabot alerts, branch protection validation |
+| Pre-build research / tool scouting | Sage | "Does this already exist?", tool bundling candidates, API capability research, breaking-change impact |
+| Issue triage & task decomposition | Lead | All `squad`-labeled issues, design reviews, PR sign-off |
+| Code review | Lead | Review PRs, check quality, enforce conventions |
+| Scope & priorities | Lead | What to build next, trade-offs, cross-agent decisions |
 | Session logging | Scribe | Automatic — never needs routing |
+
+## Module Ownership
+
+| Path | Owner | Notes |
+|------|-------|-------|
+| queries/ | Atlas | KQL queries and alz_additional_queries.json |
+| modules/Invoke-AlzQueries.ps1 | Atlas | ALZ query runner |
+| modules/Invoke-Azqr.ps1 | Sentinel | azqr integration |
+| modules/Invoke-PSRule.ps1 | Sentinel | PSRule integration |
+| modules/Invoke-AzGovViz.ps1 | Sentinel | AzGovViz integration |
+| modules/Invoke-WARA.ps1 | Sentinel | WARA integration |
+| src/ | Forge | Python orchestrator |
+| .github/workflows/ | Forge | CI/CD workflows |
+| PERMISSIONS.md | Iris | Graph API permissions doc |
+| New-HtmlReport.ps1 | Sentinel | Report generation |
+| New-MdReport.ps1 | Sentinel | Report generation |
+| Invoke-AzureAnalyzer.ps1 | Lead | Main entry point |
 
 ## Issue Routing
 

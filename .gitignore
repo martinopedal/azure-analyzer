@@ -3,3 +3,12 @@ output/
 __pycache__/
 *.pyc
 .env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.cert
+*.crt
+secrets.*
+credentials.*

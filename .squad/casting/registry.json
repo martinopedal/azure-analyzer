@@ -1,3 +1,52 @@
 {
-  "agents": {}
+  "agents": {
+    "lead": {
+      "persistent_name": "Lead",
+      "role": "Team Lead",
+      "universe": null,
+      "created_at": "2026-04-15",
+      "legacy_named": true,
+      "status": "active"
+    },
+    "atlas": {
+      "persistent_name": "Atlas",
+      "role": "Azure Resource Graph Engineer",
+      "universe": null,
+      "created_at": "2026-04-15",
+      "legacy_named": true,
+      "status": "active"
+    },
+    "iris": {
+      "persistent_name": "Iris",
+      "role": "Entra ID & Microsoft Graph Engineer",
+      "universe": null,
+      "created_at": "2026-04-15",
+      "legacy_named": true,
+      "status": "active"
+    },
+    "forge": {
+      "persistent_name": "Forge",
+      "role": "Platform Automation & DevOps Engineer",
+      "universe": null,
+      "created_at": "2026-04-15",
+      "legacy_named": true,
+      "status": "active"
+    },
+    "sentinel": {
+      "persistent_name": "Sentinel",
+      "role": "Security Analyst & Recommendation Engine",
+      "universe": null,
+      "created_at": "2026-04-15",
+      "legacy_named": true,
+      "status": "active"
+    },
+    "sage": {
+      "persistent_name": "Sage",
+      "role": "Research & Discovery Specialist",
+      "universe": null,
+      "created_at": "2026-04-15",
+      "legacy_named": true,
+      "status": "active"
+    }
+  }
 }
