@@ -25,6 +25,7 @@ param (
     [string] $SubscriptionId,
     [string] $ManagementGroupId,
     [string] $TenantId,
+    [string] $Repository,
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output')
 )
 
@@ -140,40 +141,71 @@ if ($ManagementGroupId) {
 }
 
 # --- ALZ Queries ---
-Write-Host "`n[4/5] Running ALZ queries..." -ForegroundColor Yellow
-$alzParams = if ($ManagementGroupId) {
-    @{ ManagementGroupId = $ManagementGroupId }
+if (ShouldRunTool 'alz-queries') {
+    Write-Host "`n[4/7] Running ALZ queries..." -ForegroundColor Yellow
+    $alzParams = if ($ManagementGroupId) {
+        @{ ManagementGroupId = $ManagementGroupId }
+    } else {
+        @{ SubscriptionId = $SubscriptionId }
+    }
+    $alzResult = Invoke-Wrapper -Script 'Invoke-AlzQueries.ps1' -Params $alzParams
+    foreach ($f in $alzResult.Findings) {
+        $allResults.Add([PSCustomObject]@{
+            Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
+            Source       = 'alz-queries'
+            Category     = Get-Prop $f 'Category' 'ALZ'
+            Title        = Get-Prop $f 'Title' 'Unknown'
+            Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
+            Compliant    = $f.Compliant
+            Detail       = Get-Prop $f 'Detail' ''
+            Remediation  = ''
+            ResourceId   = Get-Prop $f 'ResourceId' ''
+            LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
+        })
+    }
+    Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundColor Gray
 } else {
-    @{ SubscriptionId = $SubscriptionId }
+    Write-Host "`n[4/7] Skipping ALZ queries (excluded)" -ForegroundColor DarkGray
 }
-$alzResult = Invoke-Wrapper -Script 'Invoke-AlzQueries.ps1' -Params $alzParams
-foreach ($f in $alzResult.Findings) {
-    $allResults.Add([PSCustomObject]@{
-        Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
-        Source       = 'alz-queries'
-        Category     = Get-Prop $f 'Category' 'ALZ'
-        Title        = Get-Prop $f 'Title' 'Unknown'
-        Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
-        Compliant    = $f.Compliant
-        Detail       = Get-Prop $f 'Detail' ''
-        Remediation  = ''
-        ResourceId   = Get-Prop $f 'ResourceId' ''
-        LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
-    })
-}
-Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundColor Gray
 
 # --- WARA ---
-if ($SubscriptionId) {
-    Write-Host "`n[5/5] Running WARA..." -ForegroundColor Yellow
-    $waraParams = @{ SubscriptionId = $SubscriptionId; OutputPath = (Join-Path $OutputPath 'wara') }
-    if ($TenantId) { $waraParams['TenantId'] = $TenantId }
-    $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
-    foreach ($f in $waraResult.Findings) {
+if (ShouldRunTool 'wara') {
+    if ($SubscriptionId) {
+        Write-Host "`n[5/7] Running WARA..." -ForegroundColor Yellow
+        $waraParams = @{ SubscriptionId = $SubscriptionId; OutputPath = (Join-Path $OutputPath 'wara') }
+        if ($TenantId) { $waraParams['TenantId'] = $TenantId }
+        $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
+        foreach ($f in $waraResult.Findings) {
+            $allResults.Add([PSCustomObject]@{
+                Id           = $f.Id ?? [guid]::NewGuid().ToString()
+                Source       = 'wara'
+                Category     = $f.Category ?? 'Reliability'
+                Title        = $f.Title ?? 'Unknown'
+                Severity     = Map-Severity ($f.Severity ?? 'Medium')
+                Compliant    = $f.Compliant
+                Detail       = $f.Detail ?? ''
+                Remediation  = $f.Remediation ?? ''
+                ResourceId   = $f.ResourceId ?? ''
+                LearnMoreUrl = $f.LearnMoreUrl ?? ''
+            })
+        }
+        Write-Host "  WARA: $($waraResult.Findings.Count) findings" -ForegroundColor Gray
+    } else {
+        Write-Host "`n[5/7] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
+    }
+} else {
+    Write-Host "`n[5/7] Skipping WARA (excluded)" -ForegroundColor DarkGray
+}
+
+# --- Maester ---
+if (ShouldRunTool 'maester') {
+    Write-Host "`n[6/7] Running Maester..." -ForegroundColor Yellow
+    $maesterResult = Invoke-Wrapper -Script 'Invoke-Maester.ps1' -Params @{}
+    foreach ($f in $maesterResult.Findings) {
         $allResults.Add([PSCustomObject]@{
             Id           = $f.Id ?? [guid]::NewGuid().ToString()
-            Source       = 'wara'
-            Category     = $f.Category ?? 'Reliability'
+            Source       = 'maester'
+            Category     = $f.Category ?? 'Identity'
             Title        = $f.Title ?? 'Unknown'
             Severity     = Map-Severity ($f.Severity ?? 'Medium')
             Compliant    = $f.Compliant
@@ -183,9 +215,9 @@ if ($SubscriptionId) {
             LearnMoreUrl = $f.LearnMoreUrl ?? ''
         })
     }
-    Write-Host "  WARA: $($waraResult.Findings.Count) findings" -ForegroundColor Gray
+    Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundColor Gray
 } else {
-    Write-Host "`n[5/5] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
+    Write-Host "`n[6/7] Skipping Maester (excluded)" -ForegroundColor DarkGray
 }
 
 # --- Write output ---

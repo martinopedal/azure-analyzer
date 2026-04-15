@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, and **WARA** into a single orchestrated run with unified Markdown and HTML reports.
+Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, and **OpenSSF Scorecard** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, and supply chain security dimensions.
 
 ## Quick Start
 
@@ -38,104 +38,27 @@ After a run, `output/` contains:
 - **Tool coverage badges** — shows which tools ran vs were skipped
 - **Print-friendly CSS** — hides interactive elements, prevents page breaks in rows
 
-<details>
-<summary>📊 Preview: HTML report layout</summary>
+📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub — tables, categories, action plan)
 
-The HTML report is a self-contained single-file dashboard. No CDN dependencies — all CSS is inline, works offline.
+📊 **[Download the sample HTML report →](samples/sample-report.html)** (open in any browser — donut chart, stat cards, filterable tables, works offline)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Azure Analyzer Report                                      │
-│  Generated: 2025-04-15 10:30 UTC                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────┐  Scanned 18 resources across 5 tools.         │
-│  │          │  33% compliant overall.                        │
-│  │   33%    │  5 high-severity findings require              │
-│  │  ◉ donut │  immediate action.                            │
-│  │          │                                                │
-│  └──────────┘                                                │
-│                                                             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ Total    │ │ High     │ │ Medium   │ │ Compliant│       │
-│  │   18     │ │    5     │ │    5     │ │   33%    │       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-│                                                             │
-│  Findings by source                                         │
-│  ├─ Azure Quick Review  ████████████░░░░░  3                │
-│  ├─ PSRule              ████████████████░  4                │
-│  ├─ AzGovViz            ████████████░░░░░  3                │
-│  ├─ ALZ Queries         ████████████████░  4                │
-│  └─ WARA                ████████████████░  4                │
-│                                                             │
-│  Tool coverage                                              │
-│  ✅ Azure Quick Review  ✅ PSRule  ✅ AzGovViz               │
-│  ✅ ALZ Queries         ✅ WARA                              │
-│                                                             │
-│  Findings by category                                       │
-│  ▸ Compute (2)                                              │
-│  ▸ Identity (2)                                             │
-│  ▸ Networking (4)     ← click to expand sortable table      │
-│  ▸ Reliability (4)                                          │
-│  ▸ Security (4)                                             │
-│  ▸ Storage (2)                                              │
-└─────────────────────────────────────────────────────────────┘
-```
+### HTML Report features
 
-Each category expands to a filterable, sortable table with columns: Title, Severity, Source, Compliant, Detail, Remediation, Resource ID, Learn More.
-
-</details>
+- Executive summary with compliance %, resource count, high-severity callout
+- Pure-CSS donut chart (no JavaScript)
+- Per-source horizontal bar chart
+- Search/filter across all finding tables
+- Clickable remediation URLs and Learn More links
+- Tool coverage badges (ran vs skipped)
+- Print-friendly CSS
 
 ### Markdown Report features
 
-- **Executive summary** — GitHub-flavored callouts (WARNING/NOTE/TIP) based on severity
-- **Mermaid pie chart** — compliance breakdown (rendered natively on GitHub)
-- **Severity badges** — per-source emoji indicators (🔴 High, 🟠 Med, 🟡 Low, 🟢 All compliant)
-- **Collapsible sections** — per-category finding tables via `<details>` tags
-- **Tool coverage matrix** — shows which tools ran vs were skipped
-
-<details>
-<summary>📊 Preview: Markdown report output</summary>
-
-The Markdown report renders natively on GitHub with tables, action-plan sections, and per-source breakdowns.
-
-> **Summary**
->
-> | Metric | Count |
-> |---|---|
-> | Total findings | 18 |
-> | Non-compliant | 12 |
-> | Compliant | 6 |
-> | High severity | 5 |
-> | Medium severity | 5 |
-> | Low severity | 2 |
-> | Info | 6 |
->
-> **By source**
->
-> | Source | Findings | Non-compliant |
-> |---|---|---|
-> | azqr | 3 | 2 |
-> | psrule | 4 | 3 |
-> | azgovviz | 3 | 2 |
-> | alz-queries | 4 | 2 |
-> | wara | 4 | 3 |
-
-The report groups findings by category, then prioritizes action:
-
-> **Fix now (High, non-compliant)**
->
-> | Title | Source | Detail |
-> |---|---|---|
-> | NSG has no inbound rules restricting SSH access | azqr | NSG allows SSH from any source |
-> | Key Vault soft delete is disabled | azqr | Risks permanent data loss |
-> | Owner role assigned to external guest user | azgovviz | Guest has Owner on subscription |
-> | Public IPs without DDoS protection | alz-queries | 3 public IPs unprotected |
-> | App Service plan has only 1 instance | wara | Single point of failure |
-
-</details>
-
-> 💡 Full sample reports are available in [`samples/`](samples/) — open `sample-report.html` in a browser or view `sample-report.md` on GitHub.
+- GitHub callouts (WARNING/NOTE/TIP) based on severity
+- Mermaid pie chart (rendered natively on GitHub)
+- Per-source emoji severity badges
+- Collapsible per-category finding tables
+- Tool coverage matrix
 
 ### Report structure
 
@@ -171,15 +94,15 @@ All tools need at minimum **Reader** on subscriptions in scope. See [PERMISSIONS
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SkipAzGovViz -SkipPSRule
 ```
 
-### What it runs
+### What each tool does
 
-| Phase | Tool | What it checks |
-|---|---|---|
-| 1 | azqr | Compliance posture per resource type |
-| 2 | PSRule for Azure | Rule-based policy validation |
-| 3 | AzGovViz | Tenant / management-group / subscription hierarchy |
-| 4 | ALZ queries | 132 custom Azure Resource Graph queries |
-| 5 | WARA | Well-Architected Reliability Assessment |
+| # | Tool | What it assesses | How it works |
+|---|------|-----------------|-------------|
+| 1 | **[azqr](https://azure.github.io/azqr)** | Azure resource compliance — storage encryption, Key Vault config, App Service HTTPS, SQL auditing, 200+ checks | CLI scans a subscription and emits per-resource recommendations with severity |
+| 2 | **[PSRule for Azure](https://azure.github.io/PSRule.Rules.Azure/)** | Infrastructure best practices — managed disks, network isolation, diagnostic settings, WAF alignment | PowerShell module evaluates resources against 400+ rules, returns pass/fail per rule |
+| 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy — management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies |
+| 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance — 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column |
+| 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture — single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
 
 ## Schema reference
 
