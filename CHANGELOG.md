@@ -52,6 +52,7 @@ All notable changes to azure-analyzer will be documented here.
 - Delete dead Python stubs (`src/run.py`, `src/__init__.py`) — orchestrator is PowerShell only
 
 ### Fixed
+- **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.
 - **Prereq behavior**: `Install-Prerequisites` now advise-only by default — lists missing modules with install commands. Add `-InstallMissingModules` switch to opt-in to auto-install. Prevents unexpected writes in shared/CI environments.
