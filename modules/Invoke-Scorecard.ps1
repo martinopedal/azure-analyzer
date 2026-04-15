@@ -34,6 +34,7 @@ if (-not (Test-ScorecardInstalled)) {
     return [PSCustomObject]@{
         Source   = 'scorecard'
         Status   = 'Skipped'
+        Message  = 'scorecard CLI not installed. Download from https://github.com/ossf/scorecard/releases'
         Findings = @()
     }
 }
@@ -98,6 +99,7 @@ try {
     return [PSCustomObject]@{
         Source   = 'scorecard'
         Status   = 'Success'
+        Message  = ''
         Findings = $findings
     }
 } catch {
@@ -105,6 +107,7 @@ try {
     return [PSCustomObject]@{
         Source   = 'scorecard'
         Status   = 'Failed'
+        Message  = "$_"
         Findings = @()
     }
 }
