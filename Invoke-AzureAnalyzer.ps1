@@ -155,12 +155,14 @@ function Invoke-Wrapper {
     for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
         try {
             $result = & $scriptPath @Params
-            # Return immediately on Success or Skipped — only retry on Failed status
             $status = if ($result.PSObject.Properties['Status']) { $result.Status } else { $null }
-            if ($status -in @('Success', 'Skipped')) { return $result }
-            if ($attempt -gt $MaxRetries) { return $result }
-            Write-Warning "$Script returned status '$status' (attempt $attempt/$($MaxRetries+1)), retrying..."
-            Start-Sleep -Seconds $RetryDelaySec
+            # Only retry on explicit 'Failed' status; everything else returns as-is
+            if ($status -eq 'Failed' -and $attempt -le $MaxRetries) {
+                Write-Warning "$Script returned status 'Failed' (attempt $attempt/$($MaxRetries+1)), retrying..."
+                Start-Sleep -Seconds $RetryDelaySec
+                continue
+            }
+            return $result
         } catch {
             if ($attempt -le $MaxRetries) {
                 Write-Warning "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ — retrying in ${RetryDelaySec}s..."
@@ -395,16 +397,16 @@ if (ShouldRunTool 'scorecard') {
         $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository }
         foreach ($f in $scorecardResult.Findings) {
             $allResults.Add([PSCustomObject]@{
-                Id           = $f.Id ?? [guid]::NewGuid().ToString()
+                Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
                 Source       = 'scorecard'
-                Category     = $f.Category ?? 'Supply Chain'
-                Title        = $f.Title ?? 'Unknown'
-                Severity     = Map-Severity ($f.Severity ?? 'Medium')
-                Compliant    = $f.Compliant
-                Detail       = $f.Detail ?? ''
-                Remediation  = $f.Remediation ?? ''
-                ResourceId   = $f.ResourceId ?? ''
-                LearnMoreUrl = $f.LearnMoreUrl ?? ''
+                Category     = Get-Prop $f 'Category' 'Supply Chain'
+                Title        = Get-Prop $f 'Title' 'Unknown'
+                Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
+                Compliant    = (Get-Prop $f 'Compliant') -eq $true
+                Detail       = Get-Prop $f 'Detail' ''
+                Remediation  = Get-Prop $f 'Remediation' ''
+                ResourceId   = Get-Prop $f 'ResourceId' ''
+                LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
             })
         }
         Write-Host "  Scorecard: $($scorecardResult.Findings.Count) findings" -ForegroundColor Gray
