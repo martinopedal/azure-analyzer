@@ -214,5 +214,41 @@
     "Remediation": "",
     "ResourceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-security/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-app-keyvault",
     "LearnMoreUrl": ""
+  },
+  {
+    "Id": "maester-ca-001",
+    "Source": "maester",
+    "Category": "Conditional Access",
+    "Title": "No Conditional Access policy requires MFA for all users",
+    "Severity": "High",
+    "Compliant": false,
+    "Detail": "No policy enforces multi-factor authentication for all users, leaving accounts vulnerable to credential theft",
+    "Remediation": "Create a Conditional Access policy requiring MFA for all users with minimal exclusions",
+    "ResourceId": "",
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa"
+  },
+  {
+    "Id": "maester-auth-002",
+    "Source": "maester",
+    "Category": "Authentication Methods",
+    "Title": "Legacy authentication protocols are not blocked",
+    "Severity": "High",
+    "Compliant": false,
+    "Detail": "Legacy authentication protocols (IMAP, SMTP, POP3) are still permitted, bypassing MFA protections",
+    "Remediation": "Create a Conditional Access policy to block legacy authentication for all users",
+    "ResourceId": "",
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/entra/identity/conditional-access/block-legacy-authentication"
+  },
+  {
+    "Id": "maester-eidsca-003",
+    "Source": "maester",
+    "Category": "EIDSCA",
+    "Title": "Self-service password reset is correctly configured",
+    "Severity": "Info",
+    "Compliant": true,
+    "Detail": "SSPR is enabled for all users with appropriate authentication methods required",
+    "Remediation": "",
+    "ResourceId": "",
+    "LearnMoreUrl": ""
   }
 ]

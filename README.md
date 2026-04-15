@@ -44,6 +44,46 @@ After a run, `output/` contains:
 
 ### HTML Report features
 
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Azure Analyzer Report                                      │
+│  Generated: 2025-04-15 10:30 UTC                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────┐  Scanned 18 resources across 7 tools.         │
+│  │          │  33% compliant overall.                        │
+│  │   33%    │  5 high-severity findings require              │
+│  │  ◉ donut │  immediate action.                            │
+│  │          │                                                │
+│  └──────────┘                                                │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
+│  │ Total    │ │ High     │ │ Medium   │ │ Compliant│       │
+│  │   18     │ │    5     │ │    5     │ │   33%    │       │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
+│                                                             │
+│  Findings by source                                         │
+│  ├─ Azure Quick Review  ████████████░░░░░  3                │
+│  ├─ PSRule              ████████████████░  4                │
+│  ├─ AzGovViz            ████████████░░░░░  3                │
+│  ├─ ALZ Queries         ████████████████░  4                │
+│  └─ WARA                ████████████████░  4                │
+│                                                             │
+│  Tool coverage                                              │
+│  ✅ Azure Quick Review  ✅ PSRule  ✅ AzGovViz               │
+│  ✅ ALZ Queries         ✅ WARA    ✅ Maester                │
+│  ✅ Scorecard                                               │
+│                                                             │
+│  Findings by category                                       │
+│  ▸ Compute (2)                                              │
+│  ▸ Identity (2)                                             │
+│  ▸ Networking (4)     ← click to expand sortable table      │
+│  ▸ Reliability (4)                                          │
+│  ▸ Security (4)                                             │
+│  ▸ Storage (2)                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
 - Executive summary with compliance %, resource count, high-severity callout
 - Pure-CSS donut chart (no JavaScript)
 - Per-source horizontal bar chart
@@ -54,11 +94,56 @@ After a run, `output/` contains:
 
 ### Markdown Report features
 
-- GitHub callouts (WARNING/NOTE/TIP) based on severity
-- Mermaid pie chart (rendered natively on GitHub)
-- Per-source emoji severity badges
-- Collapsible per-category finding tables
-- Tool coverage matrix
+- **Executive summary** — GitHub-flavored callouts (WARNING/NOTE/TIP) based on severity
+- **Mermaid pie chart** — compliance breakdown (rendered natively on GitHub)
+- **Severity badges** — per-source emoji indicators (🔴 High, 🟠 Med, 🟡 Low, 🟢 All compliant)
+- **Collapsible sections** — per-category finding tables via `<details>` tags
+- **Tool coverage matrix** — shows which tools ran vs were skipped
+
+<details>
+<summary>📊 Preview: Markdown report output</summary>
+
+The Markdown report renders natively on GitHub with tables, action-plan sections, and per-source breakdowns.
+
+> **Summary**
+>
+> | Metric | Count |
+> |---|---|
+> | Total findings | 18 |
+> | Non-compliant | 12 |
+> | Compliant | 6 |
+> | High severity | 5 |
+> | Medium severity | 5 |
+> | Low severity | 2 |
+> | Info | 6 |
+>
+> **By source**
+>
+> | Source | Findings | Non-compliant |
+> |---|---|---|
+> | azqr | 3 | 2 |
+> | psrule | 4 | 3 |
+> | azgovviz | 3 | 2 |
+> | alz-queries | 4 | 2 |
+> | wara | 4 | 3 |
+> | maester | 2 | 1 |
+> | scorecard | 1 | 1 |
+
+The report groups findings by category, then prioritizes action:
+
+> **Fix now (High, non-compliant)**
+>
+> | Title | Source | Detail |
+> |---|---|---|
+> | NSG has no inbound rules restricting SSH access | azqr | NSG allows SSH from any source |
+> | Key Vault soft delete is disabled | azqr | Risks permanent data loss |
+> | Owner role assigned to external guest user | azgovviz | Guest has Owner on subscription |
+> | Public IPs without DDoS protection | alz-queries | 3 public IPs unprotected |
+> | App Service plan has only 1 instance | wara | Single point of failure |
+
+</details>
+
+> 💡 Full sample reports are available in [`samples/`](samples/) — open `sample-report.html` in a browser or view `sample-report.md` on GitHub.
 
 ### Report structure
 
@@ -78,8 +163,12 @@ After a run, `output/` contains:
 | PSRule for Azure | latest | `Install-Module PSRule.Rules.Azure` |
 | AzGovViz | latest | [Download](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) to `tools/AzGovViz/` |
 | WARA | latest | `Install-Module WARA` (auto-installed if missing) |
+| Maester | latest | `Install-Module Maester -Scope CurrentUser` |
+| OpenSSF Scorecard | latest | Download from https://github.com/ossf/scorecard/releases |
 
-All tools need at minimum **Reader** on subscriptions in scope. See [PERMISSIONS.md](PERMISSIONS.md) for details.
+**Important notes:**
+- Maester requires `Connect-MgGraph` before running (authenticates to Microsoft Graph for Entra ID assessment)
+- Scorecard analyzes repository security posture; provide `GITHUB_AUTH_TOKEN` environment variable for authenticated API access (optional but recommended for rate limits)
 
 ## Usage
 
@@ -103,6 +192,8 @@ All tools need at minimum **Reader** on subscriptions in scope. See [PERMISSIONS
 | 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy — management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies |
 | 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance — 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column |
 | 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture — single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
+| 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration — EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
+| 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security — branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
 
 ## Schema reference
 
@@ -111,7 +202,7 @@ All findings are merged into `output/results.json` using a unified 10-field sche
 | Field | Type | Description |
 |---|---|---|
 | `Id` | string | Unique finding identifier |
-| `Source` | string | `azqr`, `psrule`, `azgovviz`, `alz-queries`, or `wara` |
+| `Source` | string | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, or `scorecard` |
 | `Category` | string | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | Short finding title |
 | `Severity` | string | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -177,6 +268,8 @@ This tool wraps the following open-source projects. See [THIRD_PARTY_NOTICES.md]
 | PSRule for Azure | [Azure/PSRule.Rules.Azure](https://github.com/Azure/PSRule.Rules.Azure) | MIT |
 | WARA | [Azure/Azure-Proactive-Resiliency-Library-v2](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2) | MIT |
 | ALZ Query Data | [martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) (derived from [Azure/review-checklists](https://github.com/Azure/review-checklists)) | MIT |
+| Maester | [maester365/maester](https://github.com/maester365/maester) | MIT |
+| OpenSSF Scorecard | [ossf/scorecard](https://github.com/ossf/scorecard) | Apache 2.0 |
 
 ## License
 
