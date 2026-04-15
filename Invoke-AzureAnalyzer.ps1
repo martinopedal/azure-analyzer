@@ -35,14 +35,39 @@ param (
     [string] $Repository,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
-    [string] $OutputPath = (Join-Path $PSScriptRoot 'output')
+    [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
+    [string[]] $IncludeTools,
+    [string[]] $ExcludeTools
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-if (-not $SubscriptionId -and -not $ManagementGroupId) {
-    throw "At least one of -SubscriptionId or -ManagementGroupId is required."
+# --- Tool selection validation ---
+$validTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
+$azureScopedTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara')
+
+if ($IncludeTools -and $ExcludeTools) {
+    throw "Cannot use both -IncludeTools and -ExcludeTools. Use one or the other."
+}
+
+foreach ($t in @($IncludeTools) + @($ExcludeTools) | Where-Object { $_ }) {
+    if ($t -notin $validTools) {
+        throw "Unknown tool '$t'. Valid tools: $($validTools -join ', ')"
+    }
+}
+
+function ShouldRunTool {
+    param ([string]$ToolName)
+    if ($IncludeTools) { return $ToolName -in $IncludeTools }
+    if ($ExcludeTools) { return $ToolName -notin $ExcludeTools }
+    return $true
+}
+
+# Only require Azure scope if at least one Azure-scoped tool will run
+$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
+if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
+    throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
 
 $modulesPath = Join-Path $PSScriptRoot 'modules'
