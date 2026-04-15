@@ -1,38 +1,255 @@
 # Permissions Reference — azure-analyzer
 
-## Principle
-All tools run with the minimum permissions required. No write permissions anywhere.
+## Core Principle
 
-## Azure permissions
+All tools operate **read-only** with no write permissions anywhere. Azure-analyzer uses only the minimum permissions required to assess your infrastructure.
 
-| Tool | Scope | Required role | Justification |
-|------|-------|--------------|---------------|
-| azqr | Subscription | Reader | Reads resource configurations for compliance checks |
-| PSRule for Azure | Subscription | Reader | Reads ARM/Bicep resources for rule evaluation |
-| AzGovViz | Management Group | Reader + Directory.Read.All | Enumerates hierarchy, policies, RBAC assignments |
-| ALZ Resource Graph queries | Subscription/Tenant | Reader | ARG queries are read-only |
-| WARA (Start-WARACollector) | Subscription | Reader | Reads resources via ARG for reliability assessment |
-| Maester | Tenant (Entra ID) | Directory.Read.All, Policy.Read.All, Reports.Read.All | Reads Entra ID security configuration via Microsoft Graph; requires `Connect-MgGraph` before running
+---
 
-## GitHub permissions
+## Required permissions by scope
 
-| Action | Required scope | Notes |
-|--------|---------------|-------|
-| Read repo contents | `contents: read` | Checked out source |
-| Write security results | `security-events: write` | CodeQL SARIF upload |
-| Read Actions | `actions: read` | CodeQL workflow scanning |
+### Azure (Reader — all resource tools)
 
-## Supply Chain (Scorecard) permissions
+| Tool | Scope | Role | Why |
+|------|-------|------|-----|
+| **azqr** | Subscription | Reader | Scans resource configurations for compliance checks |
+| **PSRule for Azure** | Subscription | Reader | Evaluates resources against rule-based policies |
+| **AzGovViz** | Management Group | Reader | Crawls governance hierarchy, policies, and RBAC assignments |
+| **ALZ Resource Graph queries** | Subscription or MG | Reader | Runs 132 custom ARG queries for Azure architecture assessment |
+| **WARA** | Subscription | Reader | Collects Well-Architected Framework reliability assessment data |
 
-| Tool | Scope | Required credential | Justification |
-|------|-------|---------------------|---------------|
-| OpenSSF Scorecard | Repository | `GITHUB_AUTH_TOKEN` (optional) | GitHub API token for authenticated scans (recommended to avoid rate limiting); reads repository metadata and branch protection settings |
+**How to grant:**
+```powershell
+# Option 1: Azure CLI
+az role assignment create \
+  --assignee <principal-id-or-email> \
+  --role Reader \
+  --scope /subscriptions/<subscription-id>
 
-## Azure DevOps permissions
-No ADO integration currently planned.
+# Option 2: PowerShell
+New-AzRoleAssignment `
+  -ObjectId <principal-id> `
+  -RoleDefinitionName Reader `
+  -Scope "/subscriptions/<subscription-id>"
+```
+
+**Where to find IDs:**
+- **Object ID (service principal):** `az ad sp show --id <app-id> --query id`
+- **Object ID (user):** `az ad user show --id <email> --query id`
+- **Subscription ID:** `az account show --query id`
+
+---
+
+### Microsoft Graph (Maester — identity security)
+
+Maester requires delegated or application permissions to read Entra ID security configuration.
+
+| Permission | Type | Why |
+|------------|------|-----|
+| **Directory.Read.All** | Application or Delegated | Read Entra ID users, groups, roles, and security configuration |
+| **Policy.Read.All** | Application or Delegated | Read conditional access policies, sign-in risk policies, and other security policies |
+| **Reports.Read.All** | Application or Delegated | Read sign-in reports and audit logs for security assessment |
+| **DirectoryRecommendations.Read.All** | Application or Delegated | Read Entra ID recommendations (preview feature) |
+
+**How to grant:**
+
+For interactive use (delegated):
+```powershell
+# Connect to Graph with required scopes
+$scopes = @(
+  "Directory.Read.All",
+  "Policy.Read.All",
+  "Reports.Read.All",
+  "DirectoryRecommendations.Read.All"
+)
+Connect-MgGraph -Scopes $scopes
+
+# Run Maester
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'maester'
+```
+
+For service principals (application permissions):
+1. Go to **Azure Portal** → **Entra ID** → **App registrations** → **Your app**
+2. Select **API permissions**
+3. Click **Add a permission** → **Microsoft Graph**
+4. Choose **Application permissions**
+5. Search for and select: `Directory.Read.All`, `Policy.Read.All`, `Reports.Read.All`, `DirectoryRecommendations.Read.All`
+6. Click **Grant admin consent** (requires Entra ID admin)
+
+**Important:** Maester does **NOT** modify your tenant. All permissions are read-only.
+
+---
+
+### GitHub (Scorecard — repository security)
+
+OpenSSF Scorecard evaluates repository security practices. Authentication is optional but **strongly recommended** to avoid rate limits.
+
+| Token type | Scopes needed | Rate limit | Cost |
+|------------|--------------|-----------|------|
+| Unauthenticated | None (public repos) | 10 requests/minute | Free; very restrictive |
+| Classic PAT | `repo` (or `public_repo` for public repos only) | 5,000 requests/hour | Free tier with GitHub account |
+| Fine-grained PAT | Repository access: **Read** | 15,000 requests/hour | Free; more secure |
+
+**How to grant:**
+
+**Option 1: Classic PAT (simplest)**
+```powershell
+# 1. Create token at https://github.com/settings/tokens/new
+#    Scopes: repo (or public_repo for public repos only)
+#    Name: azure-analyzer-scorecard
+#    Expiration: 90 days
+
+# 2. Set environment variable
+$env:GITHUB_AUTH_TOKEN = "ghp_..."
+
+# 3. Run Scorecard
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'scorecard' -Repository "github.com/org/repo"
+```
+
+**Option 2: Fine-grained PAT (recommended)**
+```powershell
+# 1. Create token at https://github.com/settings/personal-access-tokens/new
+#    Permissions: Repository permissions → Contents: Read
+#    Resource owner: Select your organization
+#    Repositories: Select the repo(s) to scan
+
+# 2. Set environment variable
+$env:GITHUB_AUTH_TOKEN = (gh auth token)  # or manually paste the token
+
+# 3. Run
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'scorecard' -Repository "github.com/org/repo"
+```
+
+**Option 3: GitHub CLI (automatic)**
+```powershell
+# If you already have GitHub CLI authenticated
+$env:GITHUB_AUTH_TOKEN = (gh auth token)
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'scorecard' -Repository "github.com/org/repo"
+```
+
+---
+
+### Optional: GitHub Copilot SDK (AI triage)
+
+When running with `-EnableAiTriage`, non-compliant findings are sent to GitHub Copilot for AI analysis and remediation suggestions. **This is completely optional.**
+
+| Requirement | Details |
+|-------------|---------|
+| **License** | GitHub Copilot Individual, Business, or Enterprise (if not licensed, AI triage is skipped) |
+| **Token** | PAT with `copilot` scope, or existing `GITHUB_TOKEN` if already authenticated |
+| **Environment variable** | `COPILOT_GITHUB_TOKEN` or `GITHUB_TOKEN` |
+| **Privacy** | No data is sent to Copilot services unless `-EnableAiTriage` flag is used |
+
+**How to grant:**
+
+```powershell
+# 1. Create Copilot-scoped PAT at https://github.com/settings/personal-access-tokens/new
+#    Permissions: Copilot scope only
+#    Name: azure-analyzer-copilot
+#    Expiration: 90 days
+
+# 2. Set environment variable
+$env:COPILOT_GITHUB_TOKEN = "ghp_..."
+
+# 3. Run with AI triage enabled
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -EnableAiTriage
+
+# If you don't have Copilot licensed, the tool skips this step with a warning
+```
+
+**Privacy note:** When Copilot SDK is enabled, only non-compliant finding details (title, severity, remediation) are sent for analysis. No credential or resource data is included.
+
+---
+
+## Permission matrix (quick reference)
+
+| Tool | Azure Reader | Microsoft Graph | GitHub Token | Copilot License |
+|------|-------------|-----------------|-------------|-----------------|
+| **azqr** | ✅ Required | — | — | — |
+| **PSRule** | ✅ Required | — | — | — |
+| **AzGovViz** | ✅ Required | — | — | — |
+| **ALZ Queries** | ✅ Required | — | — | — |
+| **WARA** | ✅ Required | — | — | — |
+| **Maester** | — | ✅ Required | — | — |
+| **Scorecard** | — | — | ⚡ Recommended | — |
+| **AI Triage** | — | — | ⚡ Recommended | ⚠️ Optional |
+
+- ✅ = Required for tool to function
+- ⚡ = Strongly recommended (improves rate limits, feature completeness)
+- ⚠️ = Optional (license required only if you want AI analysis)
+- — = Not required for this tool
+
+---
+
+## Least-privilege principle
+
+Azure-analyzer follows the principle of least privilege:
+
+1. **Read-only everywhere** — No write permissions on any scope (Azure, Graph, GitHub)
+2. **Scoped to subscriptions/tenants** — Not broader than necessary
+3. **Graceful degradation** — Missing permissions don't fail the run; the affected tool is skipped with a warning
+4. **Tool-specific controls** — Use `-IncludeTools` or `-ExcludeTools` to run only what you have access to
+
+**Example: Run only tools you have permissions for**
+```powershell
+# If you don't have Microsoft Graph permissions, just run Azure tools
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ExcludeTools 'maester'
+
+# Or explicitly include only what you need
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -IncludeTools 'azqr','psrule'
+```
+
+---
 
 ## What we do NOT need
-- No Contributor or Owner roles
-- No write permissions to any Azure resource
-- No Key Vault access (no secrets stored in KV by this tool)
-- No network permissions
+
+- ❌ **Contributor** or **Owner** roles — Reader is sufficient
+- ❌ **Write permissions** to any Azure resource
+- ❌ **Key Vault access** — No secrets are read from or stored in Key Vault
+- ❌ **Network permissions** — No virtual network or firewall rules are modified
+- ❌ **Azure DevOps permissions** — No ADO integration planned
+- ❌ **Service Principal Password** — Only object ID is needed for role assignment
+
+---
+
+## Troubleshooting
+
+### Azure authentication
+```powershell
+# Check current Azure context
+Get-AzContext
+
+# Switch subscriptions if needed
+Set-AzContext -SubscriptionId "<subscription-id>"
+
+# Verify Reader permissions on your subscription
+$role = Get-AzRoleAssignment -ObjectId (Get-AzContext).Account.ExtendedProperties.HomeAccountId -RoleDefinitionName Reader
+if ($role) { Write-Host "✅ Reader role confirmed" } else { Write-Host "❌ Reader role not found" }
+```
+
+### Microsoft Graph authentication
+```powershell
+# Check Graph connection
+Get-MgContext
+
+# Re-authenticate with required scopes if needed
+Disconnect-MgGraph
+Connect-MgGraph -Scopes "Directory.Read.All", "Policy.Read.All", "Reports.Read.All"
+```
+
+### GitHub authentication
+```powershell
+# Verify token is set
+if ($env:GITHUB_AUTH_TOKEN) { Write-Host "✅ Token is set" } else { Write-Host "❌ Token not found in env" }
+
+# Test token rate limits
+curl -H "Authorization: token $env:GITHUB_AUTH_TOKEN" https://api.github.com/rate_limit | jq '.rate_limit'
+```
+
+---
+
+## See also
+
+- [README.md](README.md) — Quick start and tool overview
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Development and PR process
+- [SECURITY.md](SECURITY.md) — Security practices and disclosure
