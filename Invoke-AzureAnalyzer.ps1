@@ -57,19 +57,31 @@ if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
 }
 
 $modulesPath = Join-Path $PSScriptRoot 'modules'
+$toolErrors = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 function Invoke-Wrapper {
-    param ([string]$Script, [hashtable]$Params)
+    param ([string]$Script, [hashtable]$Params, [int]$MaxRetries = 2, [int]$RetryDelaySec = 5)
     $scriptPath = Join-Path $modulesPath $Script
     if (-not (Test-Path $scriptPath)) {
         Write-Warning "$Script not found at $scriptPath"
         return [PSCustomObject]@{ Source = $Script; Findings = @() }
     }
-    try {
-        return & $scriptPath @Params
-    } catch {
-        Write-Warning "$Script threw an unexpected error: $_"
-        return [PSCustomObject]@{ Source = $Script; Findings = @() }
+    for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
+        try {
+            $result = & $scriptPath @Params
+            if ($result.Findings.Count -gt 0 -or $attempt -gt $MaxRetries) { return $result }
+            Write-Warning "$Script returned 0 findings (attempt $attempt/$($MaxRetries+1)), retrying..."
+            Start-Sleep -Seconds $RetryDelaySec
+        } catch {
+            if ($attempt -le $MaxRetries) {
+                Write-Warning "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ — retrying in ${RetryDelaySec}s..."
+                Start-Sleep -Seconds $RetryDelaySec
+            } else {
+                Write-Warning "$Script failed after $($MaxRetries+1) attempts: $_"
+                $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = $_.Exception.Message; Timestamp = Get-Date })
+                return [PSCustomObject]@{ Source = $Script; Findings = @() }
+            }
+        }
     }
 }
 
@@ -90,6 +102,27 @@ function Get-Prop {
     $p = $Obj.PSObject.Properties[$Name]
     if ($null -eq $p -or $null -eq $p.Value) { return $Default }
     return $p.Value
+}
+
+function Get-SeverityRank ([string]$Sev) {
+    switch ($Sev) { 'High' { 3 } 'Medium' { 2 } 'Low' { 1 } default { 0 } }
+}
+
+function Remove-DuplicateFindings {
+    param ([System.Collections.Generic.List[PSCustomObject]]$Findings)
+    $deduped = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $groups = $Findings | Group-Object { "$($_.ResourceId)`t$($_.Title)".ToLowerInvariant() }
+    foreach ($g in $groups) {
+        if ($g.Count -eq 1) { $deduped.Add($g.Group[0]); continue }
+        $best = $g.Group | Sort-Object { Get-SeverityRank $_.Severity } -Descending | Select-Object -First 1
+        $mergedSource = ($g.Group | Select-Object -ExpandProperty Source -Unique | Sort-Object) -join ', '
+        $longestDetail = ($g.Group | Sort-Object { ($_.Detail ?? '').Length } -Descending | Select-Object -First 1).Detail
+        $merged = $best.PSObject.Copy()
+        $merged.Source = $mergedSource
+        $merged.Detail = $longestDetail
+        $deduped.Add($merged)
+    }
+    return $deduped
 }
 
 Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
@@ -252,6 +285,15 @@ Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundCol
     Write-Host "`n[6/7] Skipping maester (excluded)" -ForegroundColor DarkGray
 }
 
+
+# --- Deduplicate cross-tool findings ---
+$preDedup = $allResults.Count
+$allResults = Remove-DuplicateFindings $allResults
+$dedupRemoved = $preDedup - $allResults.Count
+if ($dedupRemoved -gt 0) {
+    Write-Host "  Deduplication: removed $dedupRemoved duplicate(s) ($preDedup -> $($allResults.Count))" -ForegroundColor Gray
+}
+
 # --- Write output ---
 try {
     if (-not (Test-Path $OutputPath)) {
@@ -288,3 +330,17 @@ Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 Write-Host "  Total findings: $($allResults.Count)"
 Write-Host "  Non-compliant ÔÇö High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
 Write-Host "  Output: $outputFile" -ForegroundColor Green
+
+# --- Error summary ---
+if ($toolErrors.Count -gt 0) {
+    $errorsFile = Join-Path $OutputPath 'errors.json'
+    try {
+        $toolErrors | ConvertTo-Json -Depth 3 | Set-Content -Path $errorsFile -Encoding UTF8
+    } catch {
+        Write-Warning "Failed to write errors.json: $_"
+    }
+    Write-Host "`n⚠️ $($toolErrors.Count) tool(s) encountered errors:" -ForegroundColor Red
+    foreach ($te in $toolErrors) {
+        Write-Host "  - $($te.Tool): $($te.Error)" -ForegroundColor Red
+    }
+}
