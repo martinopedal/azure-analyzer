@@ -28,7 +28,8 @@ param (
     [string] $TenantId,
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
     [string[]] $IncludeTools,
-    [string[]] $ExcludeTools
+    [string[]] $ExcludeTools,
+    [switch] $SkipPrereqCheck
 )
 
 Set-StrictMode -Version Latest
@@ -55,6 +56,43 @@ $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
+
+# --- Prerequisite auto-install ---
+function Install-Prerequisites {
+    Write-Host "`n[0/7] Checking prerequisites..." -ForegroundColor Yellow
+    $psModules = @(
+        @{ Name = 'Az.ResourceGraph'; Tool = 'alz-queries' },
+        @{ Name = 'PSRule'; Tool = 'psrule' },
+        @{ Name = 'PSRule.Rules.Azure'; Tool = 'psrule' },
+        @{ Name = 'WARA'; Tool = 'wara' },
+        @{ Name = 'Maester'; Tool = 'maester' }
+    )
+    foreach ($mod in $psModules) {
+        if (-not (ShouldRunTool $mod.Tool)) { continue }
+        if (-not (Get-Module -ListAvailable -Name $mod.Name -ErrorAction SilentlyContinue)) {
+            Write-Host "  Installing $($mod.Name)..." -ForegroundColor Yellow
+            try {
+                Install-Module $mod.Name -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+                Write-Host "  ✓ $($mod.Name) installed" -ForegroundColor Green
+            } catch {
+                Write-Warning "Could not install $($mod.Name): $_. $($mod.Tool) may be skipped."
+            }
+        }
+    }
+    $cliTools = @(
+        @{ Cmd = 'azqr'; Tool = 'azqr'; Name = 'Azure Quick Review'; Install = 'winget install azure-quick-review.azqr' },
+        @{ Cmd = 'scorecard'; Tool = 'scorecard'; Name = 'OpenSSF Scorecard'; Install = 'Download from https://github.com/ossf/scorecard/releases' }
+    )
+    foreach ($cli in $cliTools) {
+        if (-not (ShouldRunTool $cli.Tool)) { continue }
+        if (-not (Get-Command $cli.Cmd -ErrorAction SilentlyContinue)) {
+            Write-Host "  ⚠ $($cli.Name) not found. Install: $($cli.Install)" -ForegroundColor DarkYellow
+        }
+    }
+}
+
+if (-not $SkipPrereqCheck) { Install-Prerequisites }
+
 
 $modulesPath = Join-Path $PSScriptRoot 'modules'
 $toolErrors = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -306,18 +344,32 @@ try {
     return
 }
 
+# --- AI triage (optional) ---
+$triageFile = Join-Path $OutputPath 'triage.json'
+if ($EnableAiTriage) {
+    Write-Host "`n[AI] Running Copilot triage..." -ForegroundColor Magenta
+    try {
+        $triageResult = & (Join-Path $modulesPath 'Invoke-CopilotTriage.ps1') `
+            -InputPath $outputFile -OutputPath $triageFile
+        if ($null -eq $triageResult) { Write-Warning "AI triage did not produce results." }
+    } catch { Write-Warning "AI triage failed: $_ — continuing without enrichment." }
+} else {
+    if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
+}
+$triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
+
 # --- Generate reports ---
 $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg
 } catch {
     Write-Warning "HTML report generation failed: $_"
 }
 
 try {
-    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport
+    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg
 } catch {
     Write-Warning "Markdown report generation failed: $_"
 }
