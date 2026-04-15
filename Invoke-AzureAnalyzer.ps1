@@ -30,7 +30,8 @@ param (
     [string[]] $IncludeTools,
     [string[]] $ExcludeTools,
     [switch] $SkipPrereqCheck,
-    [switch] $InstallMissingModules
+    [switch] $InstallMissingModules,
+    [switch] $Recurse
 )
 
 Set-StrictMode -Version Latest
@@ -56,6 +57,35 @@ function ShouldRunTool { param ([string]$ToolName)
 $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
+
+# --- Management group subscription discovery ---
+function Get-ChildSubscriptions {
+    param ([string]$ManagementGroupId)
+    $query = "resourcecontainers | where type == 'microsoft.resources/subscriptions'"
+    try {
+        $subs = Search-AzGraph -Query $query -ManagementGroup $ManagementGroupId -First 1000 -ErrorAction Stop
+        return @($subs | Select-Object -ExpandProperty subscriptionId -Unique)
+    } catch {
+        Write-Warning "Failed to enumerate subscriptions under $ManagementGroupId : $_"
+        return @()
+    }
+}
+
+# Build list of subscriptions to scan
+$subscriptionsToScan = [System.Collections.Generic.List[string]]::new()
+if ($SubscriptionId) { $subscriptionsToScan.Add($SubscriptionId) }
+
+# Recurse into MG by default when ManagementGroupId is provided
+$shouldRecurse = $ManagementGroupId -and (-not $PSBoundParameters.ContainsKey('Recurse') -or $Recurse)
+if ($shouldRecurse) {
+    $childSubs = Get-ChildSubscriptions -ManagementGroupId $ManagementGroupId
+    foreach ($cs in $childSubs) {
+        if ($cs -notin $subscriptionsToScan) { $subscriptionsToScan.Add($cs) }
+    }
+    Write-Host "Discovered $($subscriptionsToScan.Count) subscription(s) under management group '$ManagementGroupId'" -ForegroundColor Cyan
+} elseif ($ManagementGroupId -and -not $shouldRecurse) {
+    Write-Host "Management group '$ManagementGroupId' provided without -Recurse; subscription-scoped tools will only scan explicitly provided subscriptions" -ForegroundColor DarkGray
+}
 }
 
 # --- Prerequisite check ---
@@ -177,55 +207,65 @@ Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
 
 $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+
 # --- azqr ---
 if (ShouldRunTool 'azqr') {
-if ($SubscriptionId) {
-    Write-Host "`n[1/7] Running azqr..." -ForegroundColor Yellow
-    $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $SubscriptionId }
-    foreach ($f in $azqrResult.Findings) {
-        $allResults.Add([PSCustomObject]@{
-            Id           = [guid]::NewGuid().ToString()
-            Source       = 'azqr'
-            Category     = Get-Prop $f 'Category' (Get-Prop $f 'ServiceCategory' 'General')
-            Title        = Get-Prop $f 'Recommendation' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
-            Severity     = Map-Severity (Get-Prop $f 'Severity' (Get-Prop $f 'Risk' 'Info'))
-            Compliant    = ((Get-Prop $f 'Result') -eq 'OK') -or ((Get-Prop $f 'Compliant') -eq $true)
-            Detail       = Get-Prop $f 'Notes' (Get-Prop $f 'Description' '')
-            Remediation  = Get-Prop $f 'Url' ''
-            ResourceId   = Get-Prop $f 'ResourceId' (Get-Prop $f 'Id' '')
-            LearnMoreUrl = Get-Prop $f 'LearnMoreLink' (Get-Prop $f 'Url' '')
-        })
+    if ($subscriptionsToScan.Count -gt 0) {
+        Write-Host "`n[1/7] Running azqr..." -ForegroundColor Yellow
+        foreach ($subId in $subscriptionsToScan) {
+            if ($subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
+            $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $subId }
+            foreach ($f in $azqrResult.Findings) {
+                $allResults.Add([PSCustomObject]@{
+                    Id           = [guid]::NewGuid().ToString()
+                    Source       = 'azqr'
+                    Category     = Get-Prop $f 'Category' (Get-Prop $f 'ServiceCategory' 'General')
+                    Title        = Get-Prop $f 'Recommendation' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
+                    Severity     = Map-Severity (Get-Prop $f 'Severity' (Get-Prop $f 'Risk' 'Info'))
+                    Compliant    = ((Get-Prop $f 'Result') -eq 'OK') -or ((Get-Prop $f 'Compliant') -eq $true)
+                    Detail       = Get-Prop $f 'Notes' (Get-Prop $f 'Description' '')
+                    Remediation  = Get-Prop $f 'Url' ''
+                    ResourceId   = Get-Prop $f 'ResourceId' (Get-Prop $f 'Id' '')
+                    LearnMoreUrl = Get-Prop $f 'LearnMoreLink' (Get-Prop $f 'Url' '')
+                })
+            }
+        }
+        $azqrTotal = ($allResults | Where-Object { $_.Source -eq 'azqr' }).Count
+        Write-Host "  azqr: $azqrTotal findings" -ForegroundColor Gray
+    } else {
+        Write-Host "`n[1/7] Skipping azqr (no subscriptions to scan)" -ForegroundColor DarkGray
     }
-    Write-Host "  azqr: $($azqrResult.Findings.Count) findings" -ForegroundColor Gray
-}
 } else {
     Write-Host "`n[1/7] Skipping azqr (excluded)" -ForegroundColor DarkGray
 }
 
 # --- PSRule ---
 if (ShouldRunTool 'psrule') {
-Write-Host "`n[2/7] Running PSRule..." -ForegroundColor Yellow
-$psruleParams = if ($SubscriptionId) { @{ SubscriptionId = $SubscriptionId } } else { @{ Path = '.' } }
-$psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
-foreach ($f in $psruleResult.Findings) {
-    $allResults.Add([PSCustomObject]@{
-        Id           = [guid]::NewGuid().ToString()
-        Source       = 'psrule'
-        Category     = Get-Prop $f 'RuleName' 'PSRule'
-        Title        = Get-Prop $f 'RuleName' 'Unknown rule'
-        Severity     = Map-Severity (Get-Prop $f 'Outcome' 'Info')
-        Compliant    = (Get-Prop $f 'Outcome') -eq 'Pass'
-        Detail       = Get-Prop $f 'Message' (Get-Prop $f 'TargetName' '')
-        Remediation  = ''
-        ResourceId   = Get-Prop $f 'ResourceId' ''
-        LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
-    })
-}
-Write-Host "  PSRule: $($psruleResult.Findings.Count) findings" -ForegroundColor Gray
+    Write-Host "`n[2/7] Running PSRule..." -ForegroundColor Yellow
+    foreach ($subId in ($subscriptionsToScan.Count -gt 0 ? $subscriptionsToScan : @($null))) {
+        $psruleParams = if ($subId) { @{ SubscriptionId = $subId } } else { @{ Path = '.' } }
+        if ($subId -and $subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
+        $psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
+        foreach ($f in $psruleResult.Findings) {
+            $allResults.Add([PSCustomObject]@{
+                Id           = [guid]::NewGuid().ToString()
+                Source       = 'psrule'
+                Category     = Get-Prop $f 'RuleName' 'PSRule'
+                Title        = Get-Prop $f 'RuleName' 'Unknown rule'
+                Severity     = Map-Severity (Get-Prop $f 'Outcome' 'Info')
+                Compliant    = (Get-Prop $f 'Outcome') -eq 'Pass'
+                Detail       = Get-Prop $f 'Message' (Get-Prop $f 'TargetName' '')
+                Remediation  = ''
+                ResourceId   = Get-Prop $f 'ResourceId' ''
+                LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
+            })
+        }
+    }
+    $psruleTotal = ($allResults | Where-Object { $_.Source -eq 'psrule' }).Count
+    Write-Host "  PSRule: $psruleTotal findings" -ForegroundColor Gray
 } else {
     Write-Host "`n[2/7] Skipping psrule (excluded)" -ForegroundColor DarkGray
 }
-
 # --- AzGovViz ---
 if (ShouldRunTool 'azgovviz') {
 if ($ManagementGroupId) {
@@ -281,35 +321,39 @@ Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundCol
     Write-Host "`n[4/7] Skipping alz-queries (excluded)" -ForegroundColor DarkGray
 }
 
+
 # --- WARA ---
 if (ShouldRunTool 'wara') {
-if ($SubscriptionId) {
-    Write-Host "`n[5/7] Running WARA..." -ForegroundColor Yellow
-    $waraParams = @{ SubscriptionId = $SubscriptionId; OutputPath = (Join-Path $OutputPath 'wara') }
-    if ($TenantId) { $waraParams['TenantId'] = $TenantId }
-    $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
-    foreach ($f in $waraResult.Findings) {
-        $allResults.Add([PSCustomObject]@{
-            Id           = $f.Id ?? [guid]::NewGuid().ToString()
-            Source       = 'wara'
-            Category     = $f.Category ?? 'Reliability'
-            Title        = $f.Title ?? 'Unknown'
-            Severity     = Map-Severity ($f.Severity ?? 'Medium')
-            Compliant    = $f.Compliant
-            Detail       = $f.Detail ?? ''
-            Remediation  = $f.Remediation ?? ''
-            ResourceId   = $f.ResourceId ?? ''
-            LearnMoreUrl = $f.LearnMoreUrl ?? ''
-        })
+    if ($subscriptionsToScan.Count -gt 0) {
+        Write-Host "`n[5/7] Running WARA..." -ForegroundColor Yellow
+        foreach ($subId in $subscriptionsToScan) {
+            if ($subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
+            $waraParams = @{ SubscriptionId = $subId; OutputPath = (Join-Path $OutputPath 'wara') }
+            if ($TenantId) { $waraParams['TenantId'] = $TenantId }
+            $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
+            foreach ($f in $waraResult.Findings) {
+                $allResults.Add([PSCustomObject]@{
+                    Id           = $f.Id ?? [guid]::NewGuid().ToString()
+                    Source       = 'wara'
+                    Category     = $f.Category ?? 'Reliability'
+                    Title        = $f.Title ?? 'Unknown'
+                    Severity     = Map-Severity ($f.Severity ?? 'Medium')
+                    Compliant    = $f.Compliant
+                    Detail       = $f.Detail ?? ''
+                    Remediation  = $f.Remediation ?? ''
+                    ResourceId   = $f.ResourceId ?? ''
+                    LearnMoreUrl = $f.LearnMoreUrl ?? ''
+                })
+            }
+        }
+        $waraTotal = ($allResults | Where-Object { $_.Source -eq 'wara' }).Count
+        Write-Host "  WARA: $waraTotal findings" -ForegroundColor Gray
+    } else {
+        Write-Host "`n[5/7] Skipping WARA (no subscriptions to scan)" -ForegroundColor DarkGray
     }
-    Write-Host "  WARA: $($waraResult.Findings.Count) findings" -ForegroundColor Gray
-} else {
-    Write-Host "`n[5/7] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
-}
 } else {
     Write-Host "`n[5/7] Skipping wara (excluded)" -ForegroundColor DarkGray
 }
-
 # --- Maester ---
 if (ShouldRunTool 'maester') {
 Write-Host "`n[6/7] Running Maester..." -ForegroundColor Yellow
