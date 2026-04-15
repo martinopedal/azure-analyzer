@@ -116,6 +116,18 @@ After a run, `output/` contains:
 
 No write permissions are required. All tools operate read-only.
 
+## Data Sources & Attribution
+
+This tool wraps the following open-source projects. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for full license details.
+
+| Tool | Source | License |
+|------|--------|---------|
+| azqr | [Azure/azqr](https://github.com/Azure/azqr) | MIT |
+| AzGovViz | [JulianHayward/Azure-MG-Sub-Governance-Reporting](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) | MIT |
+| PSRule for Azure | [Azure/PSRule.Rules.Azure](https://github.com/Azure/PSRule.Rules.Azure) | MIT |
+| WARA | [Azure/Azure-Proactive-Resiliency-Library-v2](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2) | MIT |
+| ALZ Query Data | [Azure/review-checklists](https://github.com/Azure/review-checklists) | MIT |
+
 ## CI / Automation
 
 | Workflow | Trigger | What it does |
