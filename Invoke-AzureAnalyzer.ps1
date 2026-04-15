@@ -14,12 +14,16 @@
     Management group ID. Used by AzGovViz and alz-queries.
 .PARAMETER TenantId
     Azure tenant ID. Used by WARA collector. Defaults to current Az context tenant.
+.PARAMETER Repository
+    GitHub repository to scan with OpenSSF Scorecard (e.g., "github.com/org/repo").
+    If not provided, Scorecard is skipped.
 .PARAMETER OutputPath
     Output directory for results.json. Defaults to .\output.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -TenantId "..."
+    .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
 #>
 [CmdletBinding()]
 param (
@@ -209,6 +213,29 @@ foreach ($f in $maesterResult.Findings) {
 }
 Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundColor Gray
 
+
+# --- Scorecard ---
+if ($Repository) {
+    Write-Host "`n[7/7] Running Scorecard..." -ForegroundColor Yellow
+    $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository }
+    foreach ($f in $scorecardResult.Findings) {
+        $allResults.Add([PSCustomObject]@{
+            Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
+            Source       = 'scorecard'
+            Category     = Get-Prop $f 'Category' 'Supply Chain'
+            Title        = Get-Prop $f 'Title' 'Unknown'
+            Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
+            Compliant    = $f.Compliant
+            Detail       = Get-Prop $f 'Detail' ''
+            Remediation  = Get-Prop $f 'Remediation' ''
+            ResourceId   = Get-Prop $f 'ResourceId' ''
+            LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
+        })
+    }
+    Write-Host "  Scorecard: $($scorecardResult.Findings.Count) findings" -ForegroundColor Gray
+} else {
+    Write-Host "`n[7/7] Skipping Scorecard (no -Repository provided)" -ForegroundColor DarkGray
+}
 # --- Write output ---
 try {
     if (-not (Test-Path $OutputPath)) {
