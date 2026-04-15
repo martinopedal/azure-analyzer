@@ -40,6 +40,51 @@ New-AzRoleAssignment `
 
 ---
 
+### Management group recursion
+
+When you provide `-ManagementGroupId`, azure-analyzer automatically discovers all child subscriptions and tailors tool execution based on scope:
+
+| Tool scope | Behavior |
+|------------|----------|
+| **Subscription-scoped** (azqr, PSRule, WARA) | Runs **per discovered subscription** |
+| **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
+| **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
+| **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
+
+**Required permissions for recursion:**
+- `Reader` on the management group (auto-inherited to all child subscriptions)
+- **OR** `Reader` on each individual subscription (if you lack MG-level permissions)
+
+**Discovery behavior:**
+- **Tenant root group:** Include all subscriptions in the tenant
+- **Specific MG:** Include only the MG and its direct children (recursive)
+- **No recursion:** Use `-Recurse:$false` to scan only the specified MG, without discovering child subscriptions
+
+**Examples:**
+
+```powershell
+# Scan entire tenant from root MG
+# Discovers all subscriptions; azqr/PSRule/WARA run per sub
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "00000000-0000-0000-0000-000000000000"
+
+# Scan specific MG subtree
+# E.g., "my-landing-zone" — discovers child subs, runs sub-tools per discovery
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-landing-zone"
+
+# MG-level tools only, skip per-subscription recursion
+# AzGovViz and ALZ Queries run for "prod-mg"; azqr/PSRule/WARA skipped
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "prod-mg" -Recurse:$false
+
+# Combine MG recursion with tool filtering
+# Scan entire MG tree, but only run Maester (Entra ID security)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "tenant-root" -IncludeTools 'maester'
+
+# Scan MG tree for governance + reliability, skip compliance checks
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg" -ExcludeTools 'azqr','psrule'
+```
+
+---
+
 ### Microsoft Graph (Maester — identity security)
 
 Maester requires delegated or application permissions to read Entra ID security configuration.
@@ -209,6 +254,12 @@ Azure-analyzer follows the principle of least privilege:
 - ❌ **Network permissions** — No virtual network or firewall rules are modified
 - ❌ **Azure DevOps permissions** — No ADO integration planned
 - ❌ **Service Principal Password** — Only object ID is needed for role assignment
+
+### AI Triage (optional)
+
+| Credential | Purpose |
+|---|---|
+| `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` | Sends non-compliant finding data to GitHub Copilot API for AI-assisted triage. Only used when `-EnableAiTriage` is set. `ghs_` tokens NOT supported. See [docs/ai-triage.md](docs/ai-triage.md). |
 
 ---
 
