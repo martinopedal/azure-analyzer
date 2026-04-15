@@ -13,10 +13,10 @@ jobs:
     if: github.event.label.name == 'squad'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Triage issue via Lead agent
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');
@@ -146,37 +146,62 @@ jobs:
             if (!assignedMember) {
               for (const member of members) {
                 const role = member.role.toLowerCase();
-                if ((role.includes('frontend') || role.includes('ui')) &&
-                    (issueText.includes('ui') || issueText.includes('frontend') ||
-                     issueText.includes('css') || issueText.includes('component') ||
-                     issueText.includes('button') || issueText.includes('page') ||
-                     issueText.includes('layout') || issueText.includes('design'))) {
+                // Atlas (Azure Resource Graph Engineer)
+                if ((role.includes('resource graph') || role.includes('arg')) &&
+                    (issueText.includes('kql') || issueText.includes('query') ||
+                     issueText.includes('arg') || issueText.includes('resource graph') ||
+                     issueText.includes('alz') || issueText.includes('checklist item') ||
+                     issueText.includes('queries') || issueText.includes('json query') ||
+                     issueText.includes('empty') || issueText.includes('validate') ||
+                     issueText.includes('compliant'))) {
                   assignedMember = member;
-                  triageReason = 'Issue relates to frontend/UI work';
+                  triageReason = 'Issue relates to ARG queries/KQL work';
                   break;
                 }
-                if ((role.includes('backend') || role.includes('api') || role.includes('server')) &&
-                    (issueText.includes('api') || issueText.includes('backend') ||
-                     issueText.includes('database') || issueText.includes('endpoint') ||
-                     issueText.includes('server') || issueText.includes('auth'))) {
+                // Iris (Entra ID & Microsoft Graph Engineer)
+                if ((role.includes('entra') || role.includes('identity') || role.includes('graph')) &&
+                    (issueText.includes('entra') || issueText.includes('identity') ||
+                     issueText.includes('microsoft graph') || issueText.includes('pim') ||
+                     issueText.includes('conditional access') || issueText.includes('mfa') ||
+                     issueText.includes('rbac') || issueText.includes('aad') ||
+                     issueText.includes('azure active directory') || issueText.includes('role assignment') ||
+                     issueText.includes('privileged'))) {
                   assignedMember = member;
-                  triageReason = 'Issue relates to backend/API work';
+                  triageReason = 'Issue relates to Entra ID/identity work';
                   break;
                 }
-                if ((role.includes('test') || role.includes('qa') || role.includes('quality')) &&
-                    (issueText.includes('test') || issueText.includes('bug') ||
-                     issueText.includes('fix') || issueText.includes('regression') ||
-                     issueText.includes('coverage'))) {
+                // Forge (Platform Automation & DevOps Engineer)
+                if ((role.includes('devops') || role.includes('automation') || role.includes('platform')) &&
+                    (issueText.includes('pipeline') || issueText.includes('workflow') ||
+                     issueText.includes('github actions') || issueText.includes('branch protection') ||
+                     issueText.includes('ci') || issueText.includes('ado') ||
+                     issueText.includes('devops') || issueText.includes('secret') ||
+                     issueText.includes('codeowners') || issueText.includes('dependabot') ||
+                     issueText.includes('deploy'))) {
                   assignedMember = member;
-                  triageReason = 'Issue relates to testing/quality work';
+                  triageReason = 'Issue relates to DevOps/automation work';
                   break;
                 }
-                if ((role.includes('devops') || role.includes('infra') || role.includes('ops')) &&
-                    (issueText.includes('deploy') || issueText.includes('ci') ||
-                     issueText.includes('pipeline') || issueText.includes('docker') ||
-                     issueText.includes('infrastructure'))) {
+                // Sentinel (Security Analyst & Recommendation Engine)
+                if ((role.includes('security') || role.includes('analyst') || role.includes('recommendation')) &&
+                    (issueText.includes('security') || issueText.includes('compliance') ||
+                     issueText.includes('recommendation') || issueText.includes('score') ||
+                     issueText.includes('severity') || issueText.includes('azqr') ||
+                     issueText.includes('report') || issueText.includes('finding') ||
+                     issueText.includes('risk') || issueText.includes('posture'))) {
                   assignedMember = member;
-                  triageReason = 'Issue relates to DevOps/infrastructure work';
+                  triageReason = 'Issue relates to security/compliance work';
+                  break;
+                }
+                // Sage (Research & Discovery Specialist)
+                if ((role.includes('research') || role.includes('discovery') || role.includes('specialist')) &&
+                    (issueText.includes('research') || issueText.includes('spike') ||
+                     issueText.includes('investigate') || issueText.includes('feasibility') ||
+                     issueText.includes('tool') || issueText.includes('integration') ||
+                     issueText.includes('bundl') || issueText.includes('prior art') ||
+                     issueText.includes('discovery'))) {
+                  assignedMember = member;
+                  triageReason = 'Issue relates to research/discovery work';
                   break;
                 }
               }

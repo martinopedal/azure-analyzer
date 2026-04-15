@@ -46,7 +46,7 @@ Every PR that changes code, queries, or configuration MUST include a docs update
 - ✅ Issue titles must follow: `feat:`, `fix:`, `docs:`, `chore:` prefix
 
 ## Actions version policy
-- Use actions/checkout@v6 and actions/setup-python@v6 (Node.js 24 compatible)
+- Use SHA-pinned versions of actions/checkout (v6) and actions/setup-python (v6) — always pin by SHA, not tag
 
 ## GitHub-first principle
 Validate changes in GitHub Actions, not locally. Push, trigger workflow, check logs, iterate.
