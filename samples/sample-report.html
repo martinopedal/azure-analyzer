@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Analyzer Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #1a1a1a; background: #f5f5f5; padding: 24px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  h2 { font-size: 16px; margin: 24px 0 12px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  .subtitle { color: #666; font-size: 12px; margin-bottom: 24px; }
+
+  /* Executive summary */
+  .exec-summary { background: #fff; border-radius: 8px; padding: 24px 28px; margin-bottom: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+  .donut { width: 140px; height: 140px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .donut-inner { width: 90px; height: 90px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
+  .exec-text { flex: 1; min-width: 200px; }
+  .exec-text p { font-size: 15px; line-height: 1.6; color: #333; margin-bottom: 6px; }
+  .exec-text .exec-highlight { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+
+  /* Stat cards */
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+  .card { background: #fff; border-radius: 6px; padding: 16px 20px; min-width: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card-value { font-size: 28px; font-weight: 700; margin-top: 2px; }
+  .card-total .card-value { color: #1a1a1a; }
+  .card-high .card-value { color: #d32f2f; }
+  .card-medium .card-value { color: #e65100; }
+  .card-low .card-value { color: #f9a825; }
+  .card-ok .card-value { color: #2e7d32; }
+
+  /* Per-source bars */
+  .source-section { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
+  .bar-label { width: 130px; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 20px; background: #eee; border-radius: 4px; overflow: hidden; margin: 0 10px; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .bar-count { width: 40px; text-align: right; font-size: 13px; font-weight: 600; }
+
+  /* Tool coverage */
+  .tool-coverage { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+  .tool-badge { display: inline-block; padding: 6px 14px; border-radius: 5px; font-size: 13px; font-weight: 500; }
+  .tool-active { background: #e8f5e9; color: #1b5e20; }
+  .tool-skipped { background: #fff3e0; color: #bf360c; }
+
+  /* Findings tables */
+  details { background: #fff; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  summary { padding: 12px 16px; cursor: pointer; user-select: none; font-size: 14px; }
+  summary:hover { background: #f9f9f9; }
+  .cat-count { font-size: 12px; color: #888; font-weight: 400; }
+  .filter-box { padding: 8px 16px 4px; }
+  .filter-input { width: 100%; max-width: 360px; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+  .filter-input:focus { outline: none; border-color: #90caf9; box-shadow: 0 0 0 2px rgba(33,150,243,0.15); }
+  .findings-table { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 13px; }
+  .findings-table th { background: #f0f0f0; padding: 8px 10px; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .findings-table th:hover { background: #e0e0e0; }
+  .findings-table td { padding: 7px 10px; border-top: 1px solid #f0f0f0; vertical-align: top; }
+  .findings-table td a { color: #1565c0; word-break: break-all; }
+  .findings-table td.resource-id { font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .findings-table tr:hover td { background: #fafafa; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .sev-high { background: #fde8e8; color: #c62828; }
+  .sev-medium { background: #fff3e0; color: #bf360c; }
+  .sev-low { background: #fff9c4; color: #827717; }
+  .sev-info { background: #eeeeee; color: #555; }
+  .badge-ok { background: #e8f5e9; color: #1b5e20; }
+  .badge-fail { background: #fce4ec; color: #880e4f; }
+
+  /* Print-friendly styles */
+  @media print {
+    body { background: #fff; padding: 12px; }
+    .no-print, .filter-box, .filter-input { display: none !important; }
+    .findings-table th { cursor: default; }
+    .findings-table th:hover { background: #f0f0f0; }
+    details { break-inside: avoid; }
+    .findings-table tr { page-break-inside: avoid; }
+    .exec-summary, .source-section, .card, details { box-shadow: none; border: 1px solid #ddd; }
+    a { color: #1a1a1a; text-decoration: underline; }
+  }
+</style>
+</head>
+<body>
+<h1>Azure Analyzer Report</h1>
+<p class="subtitle">Generated: 2026-04-15 21:22 UTC</p>
+
+<!-- Executive Summary with Donut Chart -->
+<div class="exec-summary">
+  <div class="donut" style="background:conic-gradient(#2e7d32 0% 33%, #d32f2f 33% 100%);">
+    <div class="donut-inner">33%</div>
+  </div>
+  <div class="exec-text">
+    <p class="exec-highlight">Scanned 18 resources across 5 tools. 33% compliant overall.</p>
+    <p>5 high-severity findings require immediate action.</p>
+    <p>5 medium-severity and 2 low-severity findings also detected across 6 categories.</p>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card card-total"><div class="card-label">Total findings</div><div class="card-value">18</div></div>
+  <div class="card card-high"><div class="card-label">High (non-compliant)</div><div class="card-value">5</div></div>
+  <div class="card card-medium"><div class="card-label">Medium (non-compliant)</div><div class="card-value">5</div></div>
+  <div class="card card-low"><div class="card-label">Low (non-compliant)</div><div class="card-value">2</div></div>
+  <div class="card card-ok"><div class="card-label">Compliant %</div><div class="card-value">33%</div></div>
+</div>
+
+<!-- Per-Source Breakdown -->
+<h2>Findings by source</h2>
+<div class="source-section">
+<div class="bar-row">
+  <span class="bar-label">Azure Quick Review</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:75%;background:#1565c0;"></div>
+  </div>
+  <span class="bar-count">3</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">PSRule</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#6a1b9a;"></div>
+  </div>
+  <span class="bar-count">4</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">AzGovViz</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:75%;background:#00838f;"></div>
+  </div>
+  <span class="bar-count">3</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">ALZ Queries</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#e65100;"></div>
+  </div>
+  <span class="bar-count">4</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">WARA</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#2e7d32;"></div>
+  </div>
+  <span class="bar-count">4</span>
+</div>
+</div>
+
+<!-- Tool Coverage Summary -->
+<h2>Tool coverage</h2>
+<div class="tool-coverage">
+<span class='tool-badge tool-active' title='Produced results'>&#x2705; Azure Quick Review</span>
+<span class='tool-badge tool-active' title='Produced results'>&#x2705; PSRule</span>
+<span class='tool-badge tool-active' title='Produced results'>&#x2705; AzGovViz</span>
+<span class='tool-badge tool-active' title='Produced results'>&#x2705; ALZ Queries</span>
+<span class='tool-badge tool-active' title='Produced results'>&#x2705; WARA</span>
+</div>
+
+<h2>Findings by category</h2>
+<details id="cat-compute">
+  <summary><strong>Compute</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-compute-0')" class="filter-input"></div>
+  <table id="tbl-compute-0" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Virtual machine scale set uses latest OS image</td><td><span class='badge sev-info'>Info</span></td><td>alz-queries</td><td><span class="badge badge-ok">Yes</span></td><td>VMSS is using the latest patched Ubuntu 22.04 LTS image</td><td></td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-compute/providers/Microsoft.Compute/virtualMachineScaleSets/vmss-web-frontend</td><td></td></tr>
+      <tr><td>Virtual machine does not use managed disks</td><td><span class='badge sev-medium'>Medium</span></td><td>psrule</td><td><span class="badge badge-fail">No</span></td><td>VM uses unmanaged disks which lack built-in redundancy and simplified management</td><td>Migrate to managed disks using the Azure portal or PowerShell Convert-AzVMManagedDisk</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-compute/providers/Microsoft.Compute/virtualMachines/vm-app-backend-01</td><td><a href="https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-identity">
+  <summary><strong>Identity</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-identity-1')" class="filter-input"></div>
+  <table id="tbl-identity-1" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Subscription has Owner role assigned to external guest user</td><td><span class='badge sev-high'>High</span></td><td>azgovviz</td><td><span class="badge badge-fail">No</span></td><td>Guest user external-vendor@outlook.com has Owner role on subscription</td><td>Remove Owner from guest accounts; use scoped Contributor or custom roles instead</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444</td><td><a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-external-users" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Managed identity used for Key Vault access</td><td><span class='badge sev-info'>Info</span></td><td>alz-queries</td><td><span class="badge badge-ok">Yes</span></td><td>Application uses managed identity instead of service principal secrets for Key Vault access</td><td></td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-security/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-app-keyvault</td><td></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-networking">
+  <summary><strong>Networking</strong> <span class="cat-count">(4)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-networking-2')" class="filter-input"></div>
+  <table id="tbl-networking-2" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>NSG has no inbound rules restricting SSH access</td><td><span class='badge sev-high'>High</span></td><td>azqr</td><td><span class="badge badge-fail">No</span></td><td>Network Security Group allows SSH (port 22) from any source address</td><td>Restrict SSH access to specific IP ranges or use Azure Bastion. See https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-networking/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend</td><td><a href="https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Public IP addresses found without DDoS protection</td><td><span class='badge sev-high'>High</span></td><td>alz-queries</td><td><span class="badge badge-fail">No</span></td><td>3 public IP addresses are not protected by Azure DDoS Protection Standard</td><td>Enable DDoS Protection Standard on the virtual network or use DDoS IP protection</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-networking/providers/Microsoft.Network/publicIPAddresses/pip-appgw-frontend</td><td><a href="https://learn.microsoft.com/en-us/azure/ddos-protection/ddos-protection-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Load balancer health probe is correctly configured</td><td><span class='badge sev-info'>Info</span></td><td>wara</td><td><span class="badge badge-ok">Yes</span></td><td>Standard Load Balancer has custom health probe on /health endpoint</td><td></td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-networking/providers/Microsoft.Network/loadBalancers/lb-api-prod</td><td></td></tr>
+      <tr><td>AKS cluster does not use Azure CNI networking</td><td><span class='badge sev-medium'>Medium</span></td><td>psrule</td><td><span class="badge badge-fail">No</span></td><td>Cluster uses kubenet instead of Azure CNI, limiting network policy support</td><td>Recreate cluster with Azure CNI or migrate using overlay networking</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-aks/providers/Microsoft.ContainerService/managedClusters/aks-prod-001</td><td><a href="https://learn.microsoft.com/en-us/azure/aks/configure-azure-cni" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-reliability">
+  <summary><strong>Reliability</strong> <span class="cat-count">(4)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-reliability-3')" class="filter-input"></div>
+  <table id="tbl-reliability-3" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>App Service plan has only 1 instance</td><td><span class='badge sev-high'>High</span></td><td>wara</td><td><span class="badge badge-fail">No</span></td><td>Production App Service plan has a single instance, creating a single point of failure</td><td>Scale out to at least 2 instances and enable zone redundancy</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-web/providers/Microsoft.Web/serverFarms/asp-api-prod</td><td><a href="https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Cosmos DB account does not have multi-region writes enabled</td><td><span class='badge sev-low'>Low</span></td><td>wara</td><td><span class="badge badge-fail">No</span></td><td>Cosmos DB account is configured with single-region writes, limiting write availability during regional outages</td><td>Enable multi-region writes in the Cosmos DB account replication settings</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-orders-prod</td><td><a href="https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-multi-master" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Diagnostic settings not configured for App Service</td><td><span class='badge sev-low'>Low</span></td><td>psrule</td><td><span class="badge badge-fail">No</span></td><td>App Service does not have diagnostic settings configured for Log Analytics</td><td>Configure diagnostic settings to send logs to a Log Analytics workspace</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-api-gateway</td><td><a href="https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Azure Cache for Redis has no geo-replication configured</td><td><span class='badge sev-medium'>Medium</span></td><td>wara</td><td><span class="badge badge-fail">No</span></td><td>Redis cache is deployed in a single region without geo-replication for DR</td><td>Configure active or passive geo-replication for cross-region failover</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-cache/providers/Microsoft.Cache/redis/redis-session-prod</td><td><a href="https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-how-to-geo-replication" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-security">
+  <summary><strong>Security</strong> <span class="cat-count">(4)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-security-4')" class="filter-input"></div>
+  <table id="tbl-security-4" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Key Vault soft delete is disabled</td><td><span class='badge sev-high'>High</span></td><td>azqr</td><td><span class="badge badge-fail">No</span></td><td>Key Vault does not have soft delete enabled, risking permanent data loss</td><td>Enable soft delete on the Key Vault via portal or CLI</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-security/providers/Microsoft.KeyVault/vaults/kv-prod-secrets</td><td><a href="https://learn.microsoft.com/en-us/azure/key-vault/general/soft-delete-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr><td>Azure SQL Database TDE is enabled</td><td><span class='badge sev-info'>Info</span></td><td>psrule</td><td><span class="badge badge-ok">Yes</span></td><td>Transparent Data Encryption is enabled on the SQL Database</td><td></td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod-east/databases/db-orders</td><td></td></tr>
+      <tr><td>Tag policy inheritance is correctly configured</td><td><span class='badge sev-info'>Info</span></td><td>azgovviz</td><td><span class="badge badge-ok">Yes</span></td><td>Tag inheritance policy is assigned and enforced across subscriptions</td><td></td><td class="resource-id">/providers/Microsoft.Management/managementGroups/mg-root</td><td></td></tr>
+      <tr><td>No Azure Policy assigned at management group scope</td><td><span class='badge sev-medium'>Medium</span></td><td>azgovviz</td><td><span class="badge badge-fail">No</span></td><td>Management group 'mg-platform' has zero policy assignments, leaving governance gaps</td><td>Assign ALZ default policy set at the management group level</td><td class="resource-id">/providers/Microsoft.Management/managementGroups/mg-platform</td><td><a href="https://learn.microsoft.com/en-us/azure/governance/policy/overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-storage">
+  <summary><strong>Storage</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-storage-5')" class="filter-input"></div>
+  <table id="tbl-storage-5" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Storage account uses HTTPS-only transport</td><td><span class='badge sev-info'>Info</span></td><td>azqr</td><td><span class="badge badge-ok">Yes</span></td><td>Storage account correctly enforces HTTPS-only connections</td><td></td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stproddata001</td><td></td></tr>
+      <tr><td>Storage account allows public blob access</td><td><span class='badge sev-medium'>Medium</span></td><td>alz-queries</td><td><span class="badge badge-fail">No</span></td><td>Storage account has AllowBlobPublicAccess set to true</td><td>Set AllowBlobPublicAccess to false on the storage account</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stprodlogs002</td><td><a href="https://learn.microsoft.com/en-us/azure/storage/blobs/anonymous-read-access-prevent" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+
+<script>
+function sortTable(th) {
+  const table = th.closest('table');
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const idx = Array.from(th.parentNode.children).indexOf(th);
+  const asc = th.dataset.sort !== 'asc';
+  th.dataset.sort = asc ? 'asc' : 'desc';
+  rows.sort((a, b) => {
+    const ta = a.cells[idx].textContent.trim();
+    const tb = b.cells[idx].textContent.trim();
+    return asc ? ta.localeCompare(tb) : tb.localeCompare(ta);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+function filterTable(input, tableId) {
+  var filter = input.value.toLowerCase();
+  var rows = document.getElementById(tableId).getElementsByTagName('tr');
+  for (var i = 1; i < rows.length; i++) {
+    rows[i].style.display = rows[i].textContent.toLowerCase().includes(filter) ? '' : 'none';
+  }
+}
+</script>
+</body>
+</html>

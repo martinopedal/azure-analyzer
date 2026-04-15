@@ -66,7 +66,7 @@ function Linkify([string]$text) {
     $escaped -replace '(https?://[^\s&lt;&quot;]+)', '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
 }
 
-$rowsJson = $findings | ForEach-Object {
+$rowsJson = ($findings | ForEach-Object {
     @"
 {
   id: `"$(HE $_.Id)`",
@@ -81,7 +81,7 @@ $rowsJson = $findings | ForEach-Object {
   learnMoreUrl: `"$(HE $_.LearnMoreUrl)`"
 }
 "@
-} -join ','
+}) -join ','
 
 $byCategory = $findings | Group-Object -Property Category | Sort-Object Name
 $tableIndex = 0
