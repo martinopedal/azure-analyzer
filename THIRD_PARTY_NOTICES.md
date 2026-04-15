@@ -39,7 +39,7 @@ This project invokes, wraps, or depends on the following open-source tools. None
 ## Az PowerShell Modules
 - **Source:** https://github.com/Azure/azure-powershell
 - **Copyright:** Copyright (c) Microsoft Corporation
-- **License:** MIT License
+- **License:** Apache License 2.0
 - **Install:** `Install-Module Az`
 
 ---
