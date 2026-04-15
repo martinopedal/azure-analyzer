@@ -57,3 +57,21 @@ This project invokes, wraps, or depends on the following open-source tools. None
 - **Copyright:** Copyright (c) Microsoft Corporation
 - **License:** MIT License
 - **Note:** The alz-graph-queries project (used by azure-analyzer) derives from this upstream project. This represents the original ALZ checklist data from which the ARG queries were generated.
+
+---
+
+## Maester
+- **Source:** https://github.com/maester365/maester
+- **Copyright:** Copyright (c) Maester365 contributors
+- **License:** MIT License
+- **Install:** `Install-Module Maester -Scope CurrentUser`
+- **Usage:** Invoked via `Invoke-Maester` to assess Entra ID security configuration against EIDSCA and CISA baselines
+
+---
+
+## OpenSSF Scorecard
+- **Source:** https://github.com/ossf/scorecard
+- **Copyright:** Copyright (c) OpenSSF Contributors
+- **License:** Apache License 2.0
+- **Install:** Download from https://github.com/ossf/scorecard/releases
+- **Usage:** Invoked via `scorecard` CLI to assess repository security practices (branch protection, dependency pinning, CI configuration)
