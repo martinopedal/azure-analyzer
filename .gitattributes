@@ -3,3 +3,12 @@
 .squad/agents/*/history.md merge=union
 .squad/log/** merge=union
 .squad/orchestration-log/** merge=union
+
+# Exclude squad infrastructure from archive downloads (zip/tar)
+.squad/ export-ignore
+.squad/** export-ignore
+.github/workflows/squad-*.yml export-ignore
+.github/workflows/sync-squad-labels.yml export-ignore
+.github/workflows/ci-failure-analysis.yml export-ignore
+.github/workflows/auto-label-issues.yml export-ignore
+.github/agents/ export-ignore
