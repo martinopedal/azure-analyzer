@@ -2,9 +2,16 @@
 
 All notable changes to azure-analyzer will be documented here.
 
+## [Unreleased]
+
+### Added
+- **AI triage (optional)**: `-EnableAiTriage` switch enriches non-compliant findings via GitHub Copilot SDK with priority ranking, risk context, remediation steps, and root cause grouping. See `docs/ai-triage.md`.
+- **AI triage in reports**: HTML/Markdown reports include AI Triage Summary when `triage.json` exists.
+
 ## [1.0.0] - 2025-01-15
 
 ### Added
+- **Auto-install prerequisites**: `Install-Prerequisites` auto-installs missing PSGallery modules (Az.ResourceGraph, PSRule, PSRule.Rules.Azure, WARA, Maester) on first run. CLI tools (azqr, scorecard) print install instructions. Respects `-IncludeTools` to only install what's needed. Use `-SkipPrereqCheck` to bypass in CI.
 - **Local module packaging**: Created `AzureAnalyzer.psd1` manifest and `AzureAnalyzer.psm1` loader. Users can now `Import-Module ./AzureAnalyzer.psd1` after cloning. Simplifies local invocation and development.
 - **Public module API**: Three exported functions: `Invoke-AzureAnalyzer`, `New-HtmlReport`, `New-MdReport`. All tool wrappers remain internal.
 - **Module auto-loading**: Root script dot-sources all tool wrappers from `modules/` directory and public functions from root scripts.

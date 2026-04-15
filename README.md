@@ -12,11 +12,10 @@ cd azure-analyzer
 # 2. Connect to Azure
 Connect-AzAccount -TenantId "<your-tenant-id>"
 
-# 3. Import the module
+# 3. Import and run
 Import-Module ./AzureAnalyzer.psd1
-
-# 4. Run an assessment
 Invoke-AzureAnalyzer -SubscriptionId "<your-subscription-id>"
+# That's it. Missing tools are auto-installed on first run.
 ```
 
 Results land in `output/` — a JSON file, an HTML dashboard, and a Markdown report. That's it.
@@ -30,6 +29,7 @@ After a run, `output/` contains:
 | `results.json` | All findings in a unified 10-field schema |
 | `report.html` | Offline HTML dashboard — donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown — summary tables, per-category findings, action plan |
+| `triage.json` | *(optional)* AI-enriched findings — generated with `-EnableAiTriage` |
 
 **Reports are auto-generated** after the run writes `results.json` — no manual step needed.
 
@@ -181,12 +181,32 @@ The report groups findings by category, then prioritizes action:
 # Single subscription
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
 
-# Management group (scans all child subscriptions)
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroup "my-landing-zone"
+# Management group (auto-discovers child subscriptions, scans recursively)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-landing-zone"
 
-# Skip tools you don't have installed
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SkipAzGovViz -SkipPSRule
+# Tenant root (scan all subscriptions in tenant)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "tenant-root-group-id"
+
+# MG tools only (no per-subscription recursion)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg" -Recurse:$false
+
+# Combine scopes for complete picture
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -Repository "github.com/org/repo"
 ```
+
+### Management Group hierarchy
+
+When you provide `-ManagementGroupId`, subscription-scoped tools (azqr, PSRule, WARA) automatically run per discovered child subscription:
+
+| Scope | Behavior |
+|-------|----------|
+| **Single subscription** | Run tools once for that subscription |
+| **Management group with `-Recurse:$true` (default)** | Discover all child subscriptions; run sub-scoped tools per subscription; run MG-scoped tools once at MG level |
+| **Management group with `-Recurse:$false`** | Run only MG-scoped tools (AzGovViz, ALZ Queries); skip per-subscription tools |
+| **Tenant root group** | Discover all subscriptions in tenant; run sub-scoped tools per subscription |
+
+**Permission requirements:**
+- `Reader` on the management group (inherited to child subscriptions) **OR** `Reader` on each individual subscription
 
 ### Scoped Runs
 
@@ -194,12 +214,15 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 
 | Use Case | Command |
 |----------|---------|
-| **Full assessment** (default) | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "..." -Repository "github.com/org/repo"` |
+| **Full assessment** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "..." -Repository "github.com/org/repo"` |
+| **Entire MG tree** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg"` |
+| **MG governance only** (no per-sub scanning) | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg" -Recurse:$false` |
 | **Azure resources only** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ExcludeTools 'maester','scorecard'` |
 | **Identity security only** (Entra ID) | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'maester'` |
 | **Repository security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'scorecard' -Repository "github.com/org/repo"` |
-| **Everything except governance** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ExcludeTools 'azgovviz'` |
+| **MG tree + repo security** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -IncludeTools 'azgovviz','alz-queries','scorecard' -Repository "..."` |
 | **Compliance checks only** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -IncludeTools 'azqr','psrule'` |
+| **Everything except governance** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -ExcludeTools 'azgovviz'` |
 
 **Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`
 
