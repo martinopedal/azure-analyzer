@@ -17,6 +17,8 @@
 .PARAMETER Repository
     GitHub repository to scan with OpenSSF Scorecard (e.g., "github.com/org/repo").
     If not provided, Scorecard is skipped.
+.PARAMETER ScorecardThreshold
+    Minimum score (0-10) to mark a Scorecard check as compliant. Default is 7.
 .PARAMETER OutputPath
     Output directory for results.json. Defaults to .\output.
 .EXAMPLE
@@ -31,6 +33,8 @@ param (
     [string] $ManagementGroupId,
     [string] $TenantId,
     [string] $Repository,
+    [ValidateRange(0, 10)]
+    [int] $ScorecardThreshold = 7,
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output')
 )
 
@@ -217,7 +221,7 @@ Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundCol
 # --- Scorecard ---
 if ($Repository) {
     Write-Host "`n[7/7] Running Scorecard..." -ForegroundColor Yellow
-    $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository }
+    $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository; Threshold = $ScorecardThreshold }
     foreach ($f in $scorecardResult.Findings) {
         $allResults.Add([PSCustomObject]@{
             Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())

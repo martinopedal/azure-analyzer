@@ -258,7 +258,7 @@
     "Title": "Branch-Protection",
     "Severity": "High",
     "Compliant": false,
-    "Detail": "branch protection is not enabled on development/release branches — score 2/10",
+    "Detail": "branch protection is not enabled on development/release branches (score 2/10)",
     "Remediation": "",
     "ResourceId": "github.com/martinopedal/azure-analyzer",
     "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection"
@@ -270,7 +270,7 @@
     "Title": "Pinned-Dependencies",
     "Severity": "Medium",
     "Compliant": false,
-    "Detail": "dependency not pinned by hash detected in GitHub Actions workflow — score 5/10",
+    "Detail": "dependency not pinned by hash detected in GitHub Actions workflow (score 5/10)",
     "Remediation": "",
     "ResourceId": "github.com/martinopedal/azure-analyzer",
     "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies"
@@ -282,7 +282,7 @@
     "Title": "Code-Review",
     "Severity": "Low",
     "Compliant": true,
-    "Detail": "all changesets reviewed before merge — score 8/10",
+    "Detail": "all changesets reviewed before merge (score 8/10)",
     "Remediation": "",
     "ResourceId": "github.com/martinopedal/azure-analyzer",
     "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#code-review"
@@ -294,7 +294,7 @@
     "Title": "SAST",
     "Severity": "Info",
     "Compliant": true,
-    "Detail": "SAST tool detected: CodeQL — score 10/10",
+    "Detail": "SAST tool detected: CodeQL (score 10/10)",
     "Remediation": "",
     "ResourceId": "github.com/martinopedal/azure-analyzer",
     "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#sast"
