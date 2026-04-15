@@ -46,6 +46,19 @@ function SeverityClass([string]$s) {
     }
 }
 
+# --- Load triage data if available ---
+$triageFindings = @()
+$hasTriage = $false
+if ($TriagePath -and (Test-Path $TriagePath)) {
+    try {
+        $triageFindings = @(Get-Content $TriagePath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $triageFindings = @($triageFindings | Where-Object { $null -ne $_.AiPriority } | Sort-Object AiPriority)
+        if ($triageFindings.Count -gt 0) { $hasTriage = $true }
+    } catch {
+        Write-Warning "Could not load triage data from ${TriagePath}: $_"
+    }
+}
+
 # --- Per-source breakdown data ---
 $allSources = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
 $sourceLabels = @{ 'azqr' = 'Azure Quick Review'; 'psrule' = 'PSRule'; 'azgovviz' = 'AzGovViz'; 'alz-queries' = 'ALZ Queries'; 'wara' = 'WARA'; 'maester' = 'Maester'; 'scorecard' = 'Scorecard' }
