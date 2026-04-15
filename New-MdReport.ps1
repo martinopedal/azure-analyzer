@@ -24,7 +24,7 @@ if (-not (Test-Path $InputPath)) {
     throw "Results file not found: $InputPath. Run Invoke-AzureAnalyzer.ps1 first."
 }
 
-$findings = Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop
+$findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = $findings.Count
@@ -133,10 +133,14 @@ if ($track.Count -eq 0) {
 }
 $lines.Add('')
 
-$outputDir = Split-Path $OutputPath -Parent
-if (-not (Test-Path $outputDir)) {
-    $null = New-Item -ItemType Directory -Path $outputDir -Force
+try {
+    $outputDir = Split-Path $OutputPath -Parent
+    if (-not (Test-Path $outputDir)) {
+        $null = New-Item -ItemType Directory -Path $outputDir -Force
+    }
+    $lines -join "`n" | Set-Content -Path $OutputPath -Encoding UTF8 -NoNewline
+} catch {
+    Write-Error "Failed to write Markdown report to ${OutputPath}: $_"
+    return
 }
-
-$lines -join "`n" | Set-Content -Path $OutputPath -Encoding UTF8 -NoNewline
 Write-Host "Markdown report written to: $OutputPath" -ForegroundColor Green
