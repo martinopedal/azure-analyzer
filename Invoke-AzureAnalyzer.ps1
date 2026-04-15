@@ -220,6 +220,28 @@ if ($TenantId) {
     Write-Host "`n[7/8] Skipping Microsoft Graph checks (no TenantId provided)" -ForegroundColor DarkGray
 }
 
+# --- DevOps API ---
+Write-Host "`n[8/8] Running DevOps API checks..." -ForegroundColor Yellow
+$devopsParams = @{}
+if ($GitHubRepo)  { $devopsParams['GitHubRepo']  = $GitHubRepo }
+if ($GitHubToken) { $devopsParams['GitHubToken'] = $GitHubToken }
+if ($AdoOrg)      { $devopsParams['AdoOrg']      = $AdoOrg }
+if ($AdoProject)  { $devopsParams['AdoProject']  = $AdoProject }
+if ($AdoToken)    { $devopsParams['AdoToken']     = $AdoToken }
+$devopsResult = Invoke-Wrapper -Script 'Invoke-DevOpsApi.ps1' -Params $devopsParams
+foreach ($f in $devopsResult.Findings) {
+    $allResults.Add([PSCustomObject]@{
+        Id          = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
+        Source      = 'devops-api'
+        Category    = Get-Prop $f 'Category' 'DevOps'
+        Title       = Get-Prop $f 'Title' 'Unknown'
+        Severity    = Map-Severity (Get-Prop $f 'Severity' 'Medium')
+        Compliant   = $f.Compliant
+        Detail      = Get-Prop $f 'Detail' ''
+        Remediation = Get-Prop $f 'Remediation' ''
+    })
+}
+Write-Host "  DevOps: $($devopsResult.Findings.Count) findings" -ForegroundColor Gray
 # --- Write output ---
 try {
     if (-not (Test-Path $OutputPath)) {
