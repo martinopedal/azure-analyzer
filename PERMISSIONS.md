@@ -35,6 +35,11 @@ No ADO integration currently planned.
 | `Policy.Read.All` | Conditional Access and authentication policies |
 | `RoleManagement.Read.Directory` | PIM/directory role assignments |
 | `Reports.Read.All` | MFA registration campaign status |
+## DevOps API (Invoke-DevOpsApi.ps1)
+| Scope | Justification |
+|-------|---------------|
+| `GITHUB_TOKEN` (contents: read, administration: read) | Branch protection and repo security settings |
+| ADO PAT: `Code (Read)`, `Build (Read)` | Azure DevOps branch policies and pipelines (optional) |
 
 ## What we do NOT need
 - No Contributor or Owner roles

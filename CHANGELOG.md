@@ -13,6 +13,8 @@ All notable changes to azure-analyzer will be documented here.
 - feat(cost): orchestrator step 6/8 integration for Cost Management API checks
 - feat(graph): `modules/Invoke-GraphApi.ps1` — Microsoft Graph API module for Entra ID security posture (CA policy coverage, PIM permanent GA assignments, MFA registration campaign, security defaults, guest access restrictions)
 - feat(graph): orchestrator step 7/8 integration for Microsoft Graph API checks
+- feat(devops): `modules/Invoke-DevOpsApi.ps1` — GitHub/ADO DevOps governance module (branch protection, CODEOWNERS, secret scanning, Dependabot, ADO pipelines)
+- feat(devops): orchestrator step 8/8 integration for DevOps API checks with `$GitHubRepo`, `$GitHubToken`, `$AdoOrg`, `$AdoProject`, `$AdoToken` parameters
 
 ### Fixed
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed
