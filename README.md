@@ -4,6 +4,23 @@ Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovV
 
 ## Quick Start
 
+### Option 1: Install from PSGallery (recommended)
+
+```powershell
+# 1. Install the module
+Install-Module AzureAnalyzer -Scope CurrentUser
+
+# 2. Connect to Azure
+Connect-AzAccount -TenantId "<your-tenant-id>"
+
+# 3. Run
+Invoke-AzureAnalyzer -SubscriptionId "<your-subscription-id>"
+```
+
+Results land in `output/` — a JSON file, an HTML dashboard, and a Markdown report. That's it.
+
+### Option 2: Clone and run from source
+
 ```powershell
 # 1. Clone & connect
 git clone https://github.com/martinopedal/azure-analyzer.git
@@ -13,8 +30,6 @@ Connect-AzAccount -TenantId "<your-tenant-id>"
 # 2. Run
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>"
 ```
-
-Results land in `output/` — a JSON file, an HTML dashboard, and a Markdown report. That's it.
 
 ## What you get
 

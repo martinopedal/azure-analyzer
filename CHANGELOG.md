@@ -2,6 +2,17 @@
 
 All notable changes to azure-analyzer will be documented here.
 
+## [2.0.0] - 2025-01-15
+
+### Added
+- **PSGallery module distribution**: Azure Analyzer is now available as a PowerShell module via PSGallery. Install with `Install-Module AzureAnalyzer -Scope CurrentUser`. Includes module manifest (`AzureAnalyzer.psd1`) and module root script (`AzureAnalyzer.psm1`) for simplified adoption and updates via `Update-Module`.
+- **Public module API**: Exported functions `Invoke-AzureAnalyzer`, `New-HtmlReport`, and `New-MdReport` are now formally published as module member functions. All tool wrappers remain internal.
+- **Module metadata**: PSGallery tags, LicenseUri, ProjectUri, and release notes for discoverability and governance tracking.
+- **README PSGallery instructions**: Quick Start now leads with "Install from PSGallery" as the recommended option, with "Clone and run from source" as Option 2.
+
+### Changed
+- README: Reordered Quick Start to prioritize PSGallery installation over source clone (PSGallery is now the recommended entry point)
+
 ## [Unreleased]
 
 ### Added
