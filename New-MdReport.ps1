@@ -69,13 +69,15 @@ $byCategory = $findings | Group-Object -Property Category | Sort-Object Name
 foreach ($cat in $byCategory) {
     $lines.Add("### $($cat.Name)")
     $lines.Add('')
-    $lines.Add('| Title | Severity | Source | Compliant | Detail |')
-    $lines.Add('|---|---|---|---|---|')
+    $lines.Add('| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |')
+    $lines.Add('|---|---|---|---|---|---|---|')
     foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
         $compliantStr = if ($f.Compliant) { 'Yes' } else { 'No' }
         $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
         $title = ($f.Title -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $lines.Add("| $title | $($f.Severity) | $($f.Source) | $compliantStr | $detail |")
+        $resId = ($f.ResourceId -replace '\|', '\\|')
+        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
+        $lines.Add("| $title | $($f.Severity) | $($f.Source) | $compliantStr | $detail | $resId | $learnMore |")
     }
     $lines.Add('')
 }
@@ -92,13 +94,15 @@ $lines.Add('')
 if ($fixNow.Count -eq 0) {
     $lines.Add('No high-severity non-compliant findings.')
 } else {
-    $lines.Add('| Title | Source | Detail | Remediation |')
-    $lines.Add('|---|---|---|---|')
+    $lines.Add('| Title | Source | Detail | Remediation | Resource ID | Learn More |')
+    $lines.Add('|---|---|---|---|---|---|')
     foreach ($f in $fixNow) {
         $title = ($f.Title -replace '\|', '\\|')
         $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
         $rem = ($f.Remediation -replace '\|', '\\|')
-        $lines.Add("| $title | $($f.Source) | $detail | $rem |")
+        $resId = ($f.ResourceId -replace '\|', '\\|')
+        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
+        $lines.Add("| $title | $($f.Source) | $detail | $rem | $resId | $learnMore |")
     }
 }
 $lines.Add('')
@@ -108,12 +112,14 @@ $lines.Add('')
 if ($planFix.Count -eq 0) {
     $lines.Add('No medium-severity non-compliant findings.')
 } else {
-    $lines.Add('| Title | Source | Detail |')
-    $lines.Add('|---|---|---|')
+    $lines.Add('| Title | Source | Detail | Resource ID | Learn More |')
+    $lines.Add('|---|---|---|---|---|')
     foreach ($f in $planFix) {
         $title = ($f.Title -replace '\|', '\\|')
         $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $lines.Add("| $title | $($f.Source) | $detail |")
+        $resId = ($f.ResourceId -replace '\|', '\\|')
+        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
+        $lines.Add("| $title | $($f.Source) | $detail | $resId | $learnMore |")
     }
 }
 $lines.Add('')
@@ -123,12 +129,14 @@ $lines.Add('')
 if ($track.Count -eq 0) {
     $lines.Add('No low/info non-compliant findings.')
 } else {
-    $lines.Add('| Title | Severity | Source | Detail |')
-    $lines.Add('|---|---|---|---|')
+    $lines.Add('| Title | Severity | Source | Detail | Resource ID | Learn More |')
+    $lines.Add('|---|---|---|---|---|---|')
     foreach ($f in $track) {
         $title = ($f.Title -replace '\|', '\\|')
         $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $lines.Add("| $title | $($f.Severity) | $($f.Source) | $detail |")
+        $resId = ($f.ResourceId -replace '\|', '\\|')
+        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
+        $lines.Add("| $title | $($f.Severity) | $($f.Source) | $detail | $resId | $learnMore |")
     }
 }
 $lines.Add('')

@@ -76,7 +76,9 @@ $rowsJson = $findings | ForEach-Object {
   severity: `"$(HE $_.Severity)`",
   compliant: $($_.Compliant.ToString().ToLower()),
   detail: `"$(HE $_.Detail)`",
-  remediation: `"$(HE $_.Remediation)`"
+  remediation: `"$(HE $_.Remediation)`",
+  resourceId: `"$(HE $_.ResourceId)`",
+  learnMoreUrl: `"$(HE $_.LearnMoreUrl)`"
 }
 "@
 } -join ','
@@ -92,7 +94,9 @@ $categoryHtml = foreach ($cat in $byCategory) {
         $sevClass = SeverityClass $f.Severity
         $compliantStr = if ($f.Compliant) { '<span class="badge badge-ok">Yes</span>' } else { '<span class="badge badge-fail">No</span>' }
         $remediationHtml = Linkify $f.Remediation
-        "<tr><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td></tr>"
+        $resourceIdHtml = HE $f.ResourceId
+        $learnMoreHtml = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE $f.LearnMoreUrl)`" target=`"_blank`" rel=`"noopener noreferrer`">Learn more</a>" }
+        "<tr><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -107,6 +111,8 @@ $categoryHtml = foreach ($cat in $byCategory) {
         <th onclick="sortTable(this)">Compliant</th>
         <th>Detail</th>
         <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
       </tr>
     </thead>
     <tbody>
@@ -209,6 +215,7 @@ $html = @"
   .findings-table th:hover { background: #e0e0e0; }
   .findings-table td { padding: 7px 10px; border-top: 1px solid #f0f0f0; vertical-align: top; }
   .findings-table td a { color: #1565c0; word-break: break-all; }
+  .findings-table td.resource-id { font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .findings-table tr:hover td { background: #fafafa; }
   .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; }
   .sev-high { background: #fde8e8; color: #c62828; }
