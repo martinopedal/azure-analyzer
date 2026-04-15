@@ -29,7 +29,8 @@ param (
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
     [string[]] $IncludeTools,
     [string[]] $ExcludeTools,
-    [switch] $SkipPrereqCheck
+    [switch] $SkipPrereqCheck,
+    [switch] $InstallMissingModules
 )
 
 Set-StrictMode -Version Latest
@@ -57,7 +58,7 @@ if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
 
-# --- Prerequisite auto-install ---
+# --- Prerequisite check ---
 function Install-Prerequisites {
     Write-Host "`n[0/7] Checking prerequisites..." -ForegroundColor Yellow
     $psModules = @(
@@ -67,15 +68,21 @@ function Install-Prerequisites {
         @{ Name = 'WARA'; Tool = 'wara' },
         @{ Name = 'Maester'; Tool = 'maester' }
     )
+    $missing = [System.Collections.Generic.List[string]]::new()
     foreach ($mod in $psModules) {
         if (-not (ShouldRunTool $mod.Tool)) { continue }
         if (-not (Get-Module -ListAvailable -Name $mod.Name -ErrorAction SilentlyContinue)) {
-            Write-Host "  Installing $($mod.Name)..." -ForegroundColor Yellow
-            try {
-                Install-Module $mod.Name -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-                Write-Host "  ✓ $($mod.Name) installed" -ForegroundColor Green
-            } catch {
-                Write-Warning "Could not install $($mod.Name): $_. $($mod.Tool) may be skipped."
+            if ($InstallMissingModules) {
+                Write-Host "  Installing $($mod.Name)..." -ForegroundColor Yellow
+                try {
+                    Install-Module $mod.Name -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+                    Write-Host "  ✓ $($mod.Name) installed" -ForegroundColor Green
+                } catch {
+                    Write-Warning "Could not install $($mod.Name): $_. $($mod.Tool) may be skipped."
+                }
+            } else {
+                $missing.Add($mod.Name)
+                Write-Host "  ⚠ $($mod.Name) not found. Install: Install-Module $($mod.Name) -Scope CurrentUser" -ForegroundColor DarkYellow
             }
         }
     }
@@ -88,6 +95,9 @@ function Install-Prerequisites {
         if (-not (Get-Command $cli.Cmd -ErrorAction SilentlyContinue)) {
             Write-Host "  ⚠ $($cli.Name) not found. Install: $($cli.Install)" -ForegroundColor DarkYellow
         }
+    }
+    if ($missing.Count -gt 0 -and -not $InstallMissingModules) {
+        Write-Host "  Tip: Re-run with -InstallMissingModules to auto-install $($missing.Count) missing module(s)" -ForegroundColor DarkGray
     }
 }
 
