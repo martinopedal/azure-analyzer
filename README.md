@@ -13,10 +13,21 @@ Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovV
 | 5 — WARA | `modules/Invoke-WARA.ps1` | Well-Architected Reliability Assessment — reliability findings per resource |
 | Report | `New-MdReport.ps1` / `New-HtmlReport.ps1` | Unified Markdown + offline HTML report |
 
-All findings are merged into `output/results.json` using a common schema:
+All findings are merged into `output/results.json` using a unified 10-field schema:
 
 ```json
-{ "source": "azqr", "category": "Security", "severity": "High", "title": "...", "description": "...", "resourceId": "...", "learnMoreUrl": "..." }
+{
+  "source": "azqr|psrule|azgovviz|alzqueries|wara",
+  "category": "Security|Reliability|Cost",
+  "severity": "Critical|High|Medium|Low|Info",
+  "title": "Finding title",
+  "description": "Detailed description",
+  "resourceId": "/subscriptions/.../resourceGroups/.../providers/...",
+  "learnMoreUrl": "https://learn.microsoft.com/...",
+  "remediation": "Steps to fix",
+  "source": "azqr",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
 ```
 
 ## Prerequisites
@@ -65,9 +76,29 @@ After a run, `output/` contains:
 
 | File | Description |
 |---|---|
-| `results.json` | All findings in unified schema |
-| `report.md` | Markdown report — summary table + Fix Now / Plan / Track sections |
-| `report.html` | Offline HTML report — sortable table, severity badges, no CDN dependencies |
+| `results.json` | All findings in unified 10-field schema (see above) |
+| `report.md` | GitHub-flavored Markdown with exec summary, Mermaid pie chart, callouts, collapsible sections, and tool coverage |
+| `report.html` | Offline HTML dashboard — pure-CSS donut chart, executive summary, per-source bar breakdown, search/filter, clickable remediation URLs, print-friendly, zero JS dependencies |
+
+**Reports are auto-generated** after `Invoke-AzureAnalyzer.ps1` writes `results.json` — no manual step needed.
+
+### HTML Report features
+
+- **Executive summary** — auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
+- **Pure-CSS donut chart** — compliance percentage with conic-gradient (no JavaScript)
+- **Per-source breakdown** — horizontal bar chart showing finding counts per tool
+- **Search & filter** — text input for instant filtering across all finding tables
+- **Clickable remediation URLs** — automatically wrapped in anchor tags
+- **Tool coverage badges** — shows which tools ran vs were skipped
+- **Print-friendly CSS** — hides interactive elements, prevents page breaks in rows
+
+### Markdown Report features
+
+- **Executive summary** — GitHub-flavored callouts (WARNING/NOTE/TIP) based on severity
+- **Mermaid pie chart** — compliance breakdown (rendered natively on GitHub)
+- **Severity badges** — per-source emoji indicators (🔴 High, 🟠 Med, 🟡 Low, 🟢 All compliant)
+- **Collapsible sections** — per-category finding tables via `<details>` tags
+- **Tool coverage matrix** — shows which tools ran vs were skipped
 
 ### Report structure
 
