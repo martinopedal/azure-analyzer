@@ -81,14 +81,16 @@ if ($SubscriptionId) {
     $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $SubscriptionId }
     foreach ($f in $azqrResult.Findings) {
         $allResults.Add([PSCustomObject]@{
-            Id          = [guid]::NewGuid().ToString()
-            Source      = 'azqr'
-            Category    = Get-Prop $f 'Category' (Get-Prop $f 'ServiceCategory' 'General')
-            Title       = Get-Prop $f 'Recommendation' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
-            Severity    = Map-Severity (Get-Prop $f 'Severity' (Get-Prop $f 'Risk' 'Info'))
-            Compliant   = ((Get-Prop $f 'Result') -eq 'OK') -or ((Get-Prop $f 'Compliant') -eq $true)
-            Detail      = Get-Prop $f 'Notes' (Get-Prop $f 'Description' '')
-            Remediation = Get-Prop $f 'Url' ''
+            Id           = [guid]::NewGuid().ToString()
+            Source       = 'azqr'
+            Category     = Get-Prop $f 'Category' (Get-Prop $f 'ServiceCategory' 'General')
+            Title        = Get-Prop $f 'Recommendation' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
+            Severity     = Map-Severity (Get-Prop $f 'Severity' (Get-Prop $f 'Risk' 'Info'))
+            Compliant    = ((Get-Prop $f 'Result') -eq 'OK') -or ((Get-Prop $f 'Compliant') -eq $true)
+            Detail       = Get-Prop $f 'Notes' (Get-Prop $f 'Description' '')
+            Remediation  = Get-Prop $f 'Url' ''
+            ResourceId   = Get-Prop $f 'ResourceId' (Get-Prop $f 'Id' '')
+            LearnMoreUrl = Get-Prop $f 'LearnMoreLink' (Get-Prop $f 'Url' '')
         })
     }
     Write-Host "  azqr: $($azqrResult.Findings.Count) findings" -ForegroundColor Gray
@@ -100,14 +102,16 @@ $psruleParams = if ($SubscriptionId) { @{ SubscriptionId = $SubscriptionId } } e
 $psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
 foreach ($f in $psruleResult.Findings) {
     $allResults.Add([PSCustomObject]@{
-        Id          = [guid]::NewGuid().ToString()
-        Source      = 'psrule'
-        Category    = Get-Prop $f 'RuleName' 'PSRule'
-        Title       = Get-Prop $f 'RuleName' 'Unknown rule'
-        Severity    = Map-Severity (Get-Prop $f 'Outcome' 'Info')
-        Compliant   = (Get-Prop $f 'Outcome') -eq 'Pass'
-        Detail      = Get-Prop $f 'Message' (Get-Prop $f 'TargetName' '')
-        Remediation = ''
+        Id           = [guid]::NewGuid().ToString()
+        Source       = 'psrule'
+        Category     = Get-Prop $f 'RuleName' 'PSRule'
+        Title        = Get-Prop $f 'RuleName' 'Unknown rule'
+        Severity     = Map-Severity (Get-Prop $f 'Outcome' 'Info')
+        Compliant    = (Get-Prop $f 'Outcome') -eq 'Pass'
+        Detail       = Get-Prop $f 'Message' (Get-Prop $f 'TargetName' '')
+        Remediation  = ''
+        ResourceId   = Get-Prop $f 'ResourceId' ''
+        LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
     })
 }
 Write-Host "  PSRule: $($psruleResult.Findings.Count) findings" -ForegroundColor Gray
@@ -118,14 +122,16 @@ if ($ManagementGroupId) {
     $azgovvizResult = Invoke-Wrapper -Script 'Invoke-AzGovViz.ps1' -Params @{ ManagementGroupId = $ManagementGroupId }
     foreach ($f in $azgovvizResult.Findings) {
         $allResults.Add([PSCustomObject]@{
-            Id          = [guid]::NewGuid().ToString()
-            Source      = 'azgovviz'
-            Category    = Get-Prop $f 'Category' 'Governance'
-            Title       = Get-Prop $f 'Title' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
-            Severity    = Map-Severity (Get-Prop $f 'Severity' 'Info')
-            Compliant   = if ($null -eq $f.PSObject.Properties['Compliant']) { $true } else { (Get-Prop $f 'Compliant') -ne $false }
-            Detail      = Get-Prop $f 'Detail' ''
-            Remediation = Get-Prop $f 'Remediation' ''
+            Id           = [guid]::NewGuid().ToString()
+            Source       = 'azgovviz'
+            Category     = Get-Prop $f 'Category' 'Governance'
+            Title        = Get-Prop $f 'Title' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
+            Severity     = Map-Severity (Get-Prop $f 'Severity' 'Info')
+            Compliant    = if ($null -eq $f.PSObject.Properties['Compliant']) { $true } else { (Get-Prop $f 'Compliant') -ne $false }
+            Detail       = Get-Prop $f 'Detail' ''
+            Remediation  = Get-Prop $f 'Remediation' ''
+            ResourceId   = Get-Prop $f 'ResourceId' ''
+            LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' (Get-Prop $f 'LearnMoreLink' '')
         })
     }
     Write-Host "  AzGovViz: $($azgovvizResult.Findings.Count) findings" -ForegroundColor Gray
@@ -143,14 +149,16 @@ $alzParams = if ($ManagementGroupId) {
 $alzResult = Invoke-Wrapper -Script 'Invoke-AlzQueries.ps1' -Params $alzParams
 foreach ($f in $alzResult.Findings) {
     $allResults.Add([PSCustomObject]@{
-        Id          = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
-        Source      = 'alz-queries'
-        Category    = Get-Prop $f 'Category' 'ALZ'
-        Title       = Get-Prop $f 'Title' 'Unknown'
-        Severity    = Map-Severity (Get-Prop $f 'Severity' 'Medium')
-        Compliant   = $f.Compliant
-        Detail      = Get-Prop $f 'Detail' ''
-        Remediation = ''
+        Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
+        Source       = 'alz-queries'
+        Category     = Get-Prop $f 'Category' 'ALZ'
+        Title        = Get-Prop $f 'Title' 'Unknown'
+        Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
+        Compliant    = $f.Compliant
+        Detail       = Get-Prop $f 'Detail' ''
+        Remediation  = ''
+        ResourceId   = Get-Prop $f 'ResourceId' ''
+        LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
     })
 }
 Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundColor Gray
@@ -163,14 +171,16 @@ if ($SubscriptionId) {
     $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
     foreach ($f in $waraResult.Findings) {
         $allResults.Add([PSCustomObject]@{
-            Id          = $f.Id ?? [guid]::NewGuid().ToString()
-            Source      = 'wara'
-            Category    = $f.Category ?? 'Reliability'
-            Title       = $f.Title ?? 'Unknown'
-            Severity    = Map-Severity ($f.Severity ?? 'Medium')
-            Compliant   = $f.Compliant
-            Detail      = $f.Detail ?? ''
-            Remediation = $f.Remediation ?? ''
+            Id           = $f.Id ?? [guid]::NewGuid().ToString()
+            Source       = 'wara'
+            Category     = $f.Category ?? 'Reliability'
+            Title        = $f.Title ?? 'Unknown'
+            Severity     = Map-Severity ($f.Severity ?? 'Medium')
+            Compliant    = $f.Compliant
+            Detail       = $f.Detail ?? ''
+            Remediation  = $f.Remediation ?? ''
+            ResourceId   = $f.ResourceId ?? ''
+            LearnMoreUrl = $f.LearnMoreUrl ?? ''
         })
     }
     Write-Host "  WARA: $($waraResult.Findings.Count) findings" -ForegroundColor Gray
@@ -188,6 +198,22 @@ try {
 } catch {
     Write-Error "Failed to write output to ${OutputPath}: $_"
     return
+}
+
+# --- Generate reports ---
+$htmlReport = Join-Path $OutputPath 'report.html'
+$mdReport   = Join-Path $OutputPath 'report.md'
+
+try {
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport
+} catch {
+    Write-Warning "HTML report generation failed: $_"
+}
+
+try {
+    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport
+} catch {
+    Write-Warning "Markdown report generation failed: $_"
 }
 
 $high = ($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count

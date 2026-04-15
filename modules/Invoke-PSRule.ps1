@@ -57,10 +57,12 @@ try {
 
     $findings = $results | ForEach-Object {
         [PSCustomObject]@{
-            RuleName  = $_.RuleName
-            Outcome   = $_.Outcome
-            TargetName = $_.TargetName
-            Message   = $_.Detail.Reason -join '; '
+            RuleName     = $_.RuleName
+            Outcome      = $_.Outcome
+            TargetName   = $_.TargetName
+            Message      = $_.Detail.Reason -join '; '
+            ResourceId   = if ($_.TargetName -match '^/subscriptions/') { $_.TargetName } else { '' }
+            LearnMoreUrl = ''
         }
     }
 

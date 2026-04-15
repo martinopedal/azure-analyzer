@@ -93,14 +93,22 @@ $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 $recommendations = $raw.Recommendations ?? ($raw.PSObject.Properties.Value | Where-Object { $_ -is [array] } | Select-Object -First 1)
 foreach ($rec in $recommendations) {
+    # Extract resource ID from ImpactedResources or ResourceId fields
+    $resId = $rec.ResourceId ?? ''
+    if (-not $resId -and $rec.PSObject.Properties['ImpactedResources']) {
+        $first = @($rec.ImpactedResources) | Select-Object -First 1
+        if ($first) { $resId = $first.ResourceId ?? $first.Id ?? $first ?? '' }
+    }
     $findings.Add([PSCustomObject]@{
-        Id          = $rec.GUID ?? [guid]::NewGuid().ToString()
-        Category    = $rec.Category ?? $rec.Service ?? 'Reliability'
-        Title       = $rec.Recommendation ?? $rec.Title ?? 'Unknown'
-        Severity    = $rec.Impact ?? $rec.Severity ?? 'Medium'
-        Compliant   = $false  # WARA only emits non-compliant findings
-        Detail      = $rec.Description ?? $rec.LongDescription ?? ''
-        Remediation = $rec.LearnMoreLink ?? $rec.Link ?? ''
+        Id           = $rec.GUID ?? [guid]::NewGuid().ToString()
+        Category     = $rec.Category ?? $rec.Service ?? 'Reliability'
+        Title        = $rec.Recommendation ?? $rec.Title ?? 'Unknown'
+        Severity     = $rec.Impact ?? $rec.Severity ?? 'Medium'
+        Compliant    = $false  # WARA only emits non-compliant findings
+        Detail       = $rec.Description ?? $rec.LongDescription ?? ''
+        Remediation  = $rec.LearnMoreLink ?? $rec.Link ?? ''
+        ResourceId   = [string]$resId
+        LearnMoreUrl = $rec.LearnMoreLink ?? $rec.Link ?? ''
     })
 }
 
