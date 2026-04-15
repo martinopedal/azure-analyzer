@@ -58,7 +58,8 @@ jobs:
                 }
                 if (inMembersTable && line.startsWith('|') && !line.includes('---') && !line.includes('Name')) {
                   const cells = line.split('|').map(c => c.trim()).filter(Boolean);
-                  if (cells.length >= 2 && cells[0].toLowerCase() === memberName) {
+                  const cellName = cells[0].toLowerCase().replace(/\s+/g, '-');
+                  if (cells.length >= 2 && cellName === memberName) {
                     assignedMember = { name: cells[0], role: cells[1] };
                     break;
                   }
