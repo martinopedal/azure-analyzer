@@ -226,7 +226,7 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 
 **Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`
 
-You can use `-IncludeTools` and `-ExcludeTools` together (inclusion list is evaluated first, then exclusions are applied). Useful for "all except" patterns or custom combinations.
+Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
 ### What each tool does
 

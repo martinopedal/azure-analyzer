@@ -16,15 +16,10 @@ param()
 
 Set-StrictMode -Version Latest
 
-# Ensure Maester module is available
+# Check Maester module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name Maester)) {
-    try {
-        Write-Warning "Maester module not found. Installing from PSGallery..."
-        Install-Module -Name Maester -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-    } catch {
-        Write-Warning "Could not install Maester module: $_. Returning empty result."
-        return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Could not install Maester module'; Findings = @() }
-    }
+    Write-Warning "Maester module not found. Install with: Install-Module Maester -Scope CurrentUser"
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Maester module not installed. Run: Install-Module Maester -Scope CurrentUser'; Findings = @() }
 }
 
 Import-Module Maester -ErrorAction SilentlyContinue

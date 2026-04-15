@@ -25,15 +25,10 @@ param (
 
 Set-StrictMode -Version Latest
 
-# Ensure WARA module is available
+# Check WARA module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name WARA)) {
-    try {
-        Write-Warning "WARA module not found. Installing from PSGallery..."
-        Install-Module -Name WARA -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-    } catch {
-        Write-Warning "Could not install WARA module: $_. Returning empty result."
-        return [PSCustomObject]@{ Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
-    }
+    Write-Warning "WARA module not found. Install with: Install-Module WARA -Scope CurrentUser"
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @() }
 }
 
 Import-Module WARA -ErrorAction SilentlyContinue

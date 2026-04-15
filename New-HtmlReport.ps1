@@ -13,7 +13,8 @@
 [CmdletBinding()]
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
-    [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.html')
+    [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.html'),
+    [string] $TriagePath = ''
 )
 
 Set-StrictMode -Version Latest

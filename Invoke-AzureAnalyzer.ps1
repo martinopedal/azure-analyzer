@@ -16,10 +16,16 @@
     Azure tenant ID. Used by WARA collector. Defaults to current Az context tenant.
 .PARAMETER OutputPath
     Output directory for results.json. Defaults to .\output.
+.PARAMETER Repository
+    GitHub repository to scan with OpenSSF Scorecard (e.g. "github.com/org/repo").
+    Required for Scorecard tool; ignored by Azure-scoped tools.
+.PARAMETER EnableAiTriage
+    When set, enriches non-compliant findings via GitHub Copilot SDK with priority
+    ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
-    .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -TenantId "..."
+    .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
 #>
 [CmdletBinding()]
 param (
@@ -31,7 +37,9 @@ param (
     [string[]] $ExcludeTools,
     [switch] $SkipPrereqCheck,
     [switch] $InstallMissingModules,
-    [switch] $Recurse
+    [switch] $Recurse,
+    [string] $Repository,
+    [switch] $EnableAiTriage
 )
 
 Set-StrictMode -Version Latest
@@ -57,6 +65,7 @@ function ShouldRunTool { param ([string]$ToolName)
 $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
+}
 
 # --- Management group subscription discovery ---
 function Get-ChildSubscriptions {
@@ -85,7 +94,6 @@ if ($shouldRecurse) {
     Write-Host "Discovered $($subscriptionsToScan.Count) subscription(s) under management group '$ManagementGroupId'" -ForegroundColor Cyan
 } elseif ($ManagementGroupId -and -not $shouldRecurse) {
     Write-Host "Management group '$ManagementGroupId' provided without -Recurse; subscription-scoped tools will only scan explicitly provided subscriptions" -ForegroundColor DarkGray
-}
 }
 
 # --- Prerequisite check ---
@@ -147,8 +155,11 @@ function Invoke-Wrapper {
     for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
         try {
             $result = & $scriptPath @Params
-            if ($result.Findings.Count -gt 0 -or $attempt -gt $MaxRetries) { return $result }
-            Write-Warning "$Script returned 0 findings (attempt $attempt/$($MaxRetries+1)), retrying..."
+            # Return immediately on Success or Skipped — only retry on Failed status
+            $status = if ($result.PSObject.Properties['Status']) { $result.Status } else { $null }
+            if ($status -in @('Success', 'Skipped')) { return $result }
+            if ($attempt -gt $MaxRetries) { return $result }
+            Write-Warning "$Script returned status '$status' (attempt $attempt/$($MaxRetries+1)), retrying..."
             Start-Sleep -Seconds $RetryDelaySec
         } catch {
             if ($attempt -le $MaxRetries) {
@@ -377,6 +388,32 @@ Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundCol
     Write-Host "`n[6/7] Skipping maester (excluded)" -ForegroundColor DarkGray
 }
 
+# --- Scorecard ---
+if (ShouldRunTool 'scorecard') {
+    if ($Repository) {
+        Write-Host "`n[7/7] Running Scorecard..." -ForegroundColor Yellow
+        $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository }
+        foreach ($f in $scorecardResult.Findings) {
+            $allResults.Add([PSCustomObject]@{
+                Id           = $f.Id ?? [guid]::NewGuid().ToString()
+                Source       = 'scorecard'
+                Category     = $f.Category ?? 'Supply Chain'
+                Title        = $f.Title ?? 'Unknown'
+                Severity     = Map-Severity ($f.Severity ?? 'Medium')
+                Compliant    = $f.Compliant
+                Detail       = $f.Detail ?? ''
+                Remediation  = $f.Remediation ?? ''
+                ResourceId   = $f.ResourceId ?? ''
+                LearnMoreUrl = $f.LearnMoreUrl ?? ''
+            })
+        }
+        Write-Host "  Scorecard: $($scorecardResult.Findings.Count) findings" -ForegroundColor Gray
+    } else {
+        Write-Host "`n[7/7] Skipping Scorecard (no -Repository provided)" -ForegroundColor DarkGray
+    }
+} else {
+    Write-Host "`n[7/7] Skipping Scorecard (excluded)" -ForegroundColor DarkGray
+}
 
 # --- Deduplicate cross-tool findings ---
 $preDedup = $allResults.Count
