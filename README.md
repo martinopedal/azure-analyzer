@@ -4,19 +4,34 @@ Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovV
 
 ## Quick Start
 
+**Scenario 1: Azure resources only**
+
 ```powershell
-# 1. Clone the repository
 git clone https://github.com/martinopedal/azure-analyzer.git
 cd azure-analyzer
-
-# 2. Connect to Azure
 Connect-AzAccount -TenantId "<your-tenant-id>"
-
-# 3. Import and run
-Import-Module ./AzureAnalyzer.psd1
-Invoke-AzureAnalyzer -SubscriptionId "<your-subscription-id>"
-# That's it. Missing tools are auto-installed on first run.
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>"
 ```
+
+**Scenario 2: Azure + Identity security (Entra ID)**
+
+```powershell
+Connect-AzAccount -TenantId "<your-tenant-id>"
+Connect-MgGraph -Scopes (Get-MtGraphScope)
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>"
+```
+
+**Scenario 3: Full assessment (Azure + Identity + Repository)**
+
+```powershell
+Connect-AzAccount -TenantId "<your-tenant-id>"
+Connect-MgGraph -Scopes (Get-MtGraphScope)
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" -Repository "github.com/org/repo"
+```
+
+Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
+
+Missing PowerShell modules are detected and reported with install commands. Use `-InstallMissingModules` to auto-install them.
 
 Results land in `output/` — a JSON file, an HTML dashboard, and a Markdown report. That's it.
 
@@ -35,75 +50,28 @@ After a run, `output/` contains:
 
 ### HTML Report features
 
-- **Executive summary** — auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
-- **Pure-CSS donut chart** — compliance percentage with conic-gradient (no JavaScript)
-- **Per-source breakdown** — horizontal bar chart showing finding counts per tool
-- **Search & filter** — text input for instant filtering across all finding tables
-- **Clickable remediation URLs** — automatically wrapped in anchor tags
-- **Tool coverage badges** — shows which tools ran vs were skipped
-- **Print-friendly CSS** — hides interactive elements, prevents page breaks in rows
+- **Executive summary** -- auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
+- **Pure-CSS donut chart** -- compliance percentage with conic-gradient (no JavaScript)
+- **Clickable stat cards** -- filter findings by severity with keyboard-accessible buttons
+- **Per-source breakdown** -- horizontal bar chart showing finding counts per tool
+- **Severity borders** -- color-coded left border on each finding row (High=red, Medium=orange, Low=yellow)
+- **Zebra striping** -- alternating row backgrounds for readability
+- **Search and filter** -- text input for instant filtering across all finding tables
+- **Clickable remediation URLs** -- automatically wrapped in anchor tags
+- **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
+- **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
 
 📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub — tables, categories, action plan)
 
 📊 **[Download the sample HTML report →](samples/sample-report.html)** (open in any browser — donut chart, stat cards, filterable tables, works offline)
 
-### HTML Report features
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Azure Analyzer Report                                      │
-│  Generated: 2025-04-15 10:30 UTC                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────┐  Scanned 18 resources across 7 tools.         │
-│  │          │  33% compliant overall.                        │
-│  │   33%    │  5 high-severity findings require              │
-│  │  ◉ donut │  immediate action.                            │
-│  │          │                                                │
-│  └──────────┘                                                │
-│                                                             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ Total    │ │ High     │ │ Medium   │ │ Compliant│       │
-│  │   18     │ │    5     │ │    5     │ │   33%    │       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-│                                                             │
-│  Findings by source                                         │
-│  ├─ Azure Quick Review  ████████████░░░░░  3                │
-│  ├─ PSRule              ████████████████░  4                │
-│  ├─ AzGovViz            ████████████░░░░░  3                │
-│  ├─ ALZ Queries         ████████████████░  4                │
-│  └─ WARA                ████████████████░  4                │
-│                                                             │
-│  Tool coverage                                              │
-│  ✅ Azure Quick Review  ✅ PSRule  ✅ AzGovViz               │
-│  ✅ ALZ Queries         ✅ WARA    ✅ Maester                │
-│  ✅ Scorecard                                               │
-│                                                             │
-│  Findings by category                                       │
-│  ▸ Compute (2)                                              │
-│  ▸ Identity (2)                                             │
-│  ▸ Networking (4)     ← click to expand sortable table      │
-│  ▸ Reliability (4)                                          │
-│  ▸ Security (4)                                             │
-│  ▸ Storage (2)                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-- Executive summary with compliance %, resource count, high-severity callout
-- Pure-CSS donut chart (no JavaScript)
-- Per-source horizontal bar chart
-- Search/filter across all finding tables
-- Clickable remediation URLs and Learn More links
-- Tool coverage badges (ran vs skipped)
-- Print-friendly CSS
-
 ### Markdown Report features
 
-- **Executive summary** — GitHub-flavored callouts (WARNING/NOTE/TIP) based on severity
-- **Mermaid pie chart** — compliance breakdown (rendered natively on GitHub)
-- **Severity badges** — per-source emoji indicators (🔴 High, 🟠 Med, 🟡 Low, 🟢 All compliant)
-- **Collapsible sections** — per-category finding tables via `<details>` tags
-- **Tool coverage matrix** — shows which tools ran vs were skipped
+- **Executive summary** -- GitHub-flavored callouts (WARNING/NOTE/TIP) based on severity
+- **Mermaid pie chart** -- compliance breakdown (rendered natively on GitHub)
+- **Severity badges** -- per-source emoji indicators
+- **Collapsible sections** -- per-category finding tables via `<details>` tags
+- **Tool coverage matrix** -- shows which tools ran, with status column
 
 <details>
 <summary>📊 Preview: Markdown report output</summary>
@@ -159,21 +127,19 @@ The report groups findings by category, then prioritizes action:
 
 ## Prerequisites
 
-| Requirement | Version | Install |
-|---|---|---|
-| PowerShell | 7+ | `pwsh --version` |
-| Azure CLI | latest | `az version` |
-| Az PowerShell | latest | `Install-Module Az` |
-| azqr | latest | `winget install azure-quick-review.azqr` |
-| PSRule for Azure | latest | `Install-Module PSRule.Rules.Azure` |
-| AzGovViz | latest | [Download](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) to `tools/AzGovViz/` |
-| WARA | latest | `Install-Module WARA` (auto-installed if missing) |
-| Maester | latest | `Install-Module Maester -Scope CurrentUser` |
-| OpenSSF Scorecard | latest | Download from https://github.com/ossf/scorecard/releases |
+| What | Install | Needed for |
+|------|---------|-----------|
+| PowerShell 7.2+ | `winget install Microsoft.PowerShell` | Everything |
+| Az PowerShell module | `Install-Module Az -Scope CurrentUser` | Azure tools (azqr, PSRule, AzGovViz, ALZ, WARA) |
+| Microsoft.Graph module | `Install-Module Microsoft.Graph -Scope CurrentUser` | Maester (identity security) |
+| azqr CLI | `winget install azure-quick-review.azqr` | Resource compliance scanning |
+| scorecard CLI | [Download](https://github.com/ossf/scorecard/releases) | Repository security (optional) |
 
-**Important notes:**
-- Maester requires `Connect-MgGraph` before running (authenticates to Microsoft Graph for Entra ID assessment)
-- Scorecard analyzes repository security posture; provide `GITHUB_AUTH_TOKEN` environment variable for authenticated API access (optional but recommended for rate limits)
+**Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard) must be installed manually.
+
+**Identity security (Maester)** requires a Graph connection: `Connect-MgGraph -Scopes (Get-MtGraphScope)`. Not needed if you exclude Maester.
+
+**Repository security (Scorecard)** works best with `GITHUB_AUTH_TOKEN` set (5,000 req/hr vs 60 without). Not needed if you skip Scorecard.
 
 ## Usage
 
