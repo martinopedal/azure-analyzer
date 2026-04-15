@@ -53,13 +53,35 @@ $lines.Add("| Info | $info |")
 $lines.Add('')
 
 $bySource = $findings | Group-Object -Property Source
+$sourceCountMap = @{}
+foreach ($sg in $bySource) { $sourceCountMap[$sg.Name] = $sg }
+
+# Load tool status metadata if available
+$allSources = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
+$sourceLabels = @{ 'azqr' = 'Azure Quick Review'; 'psrule' = 'PSRule'; 'azgovviz' = 'AzGovViz'; 'alz-queries' = 'ALZ Queries'; 'wara' = 'WARA'; 'maester' = 'Maester'; 'scorecard' = 'Scorecard' }
+$toolStatusMap = @{}
+$statusJsonPath = Join-Path (Split-Path $InputPath -Parent) 'tool-status.json'
+if (Test-Path $statusJsonPath) {
+    try {
+        $statusData = @(Get-Content $statusJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        foreach ($ts in $statusData) { $toolStatusMap[$ts.Tool] = $ts.Status }
+    } catch { }
+}
+
 $lines.Add('### By source')
 $lines.Add('')
-$lines.Add('| Source | Findings | Non-compliant |')
-$lines.Add('|---|---|---|')
-foreach ($src in $bySource) {
-    $nc = ($src.Group | Where-Object { -not $_.Compliant }).Count
-    $lines.Add("| $($src.Name) | $($src.Count) | $nc |")
+$lines.Add('| Source | Status | Findings | Non-compliant |')
+$lines.Add('|---|---|---|---|')
+foreach ($src in $allSources) {
+    $label = $sourceLabels[$src]
+    $status = if ($toolStatusMap.ContainsKey($src)) { $toolStatusMap[$src] } else { if ($sourceCountMap.ContainsKey($src)) { 'Success' } else { 'Skipped' } }
+    if ($sourceCountMap.ContainsKey($src)) {
+        $grp = $sourceCountMap[$src]
+        $nc = ($grp.Group | Where-Object { -not $_.Compliant }).Count
+        $lines.Add("| $label | $status | $($grp.Count) | $nc |")
+    } else {
+        $lines.Add("| $label | $status | 0 | 0 |")
+    }
 }
 $lines.Add('')
 

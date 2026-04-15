@@ -20,10 +20,14 @@ All notable changes to azure-analyzer will be documented here.
 - **HTML report enhancements**:
   - Executive summary with auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
   - Pure-CSS donut chart using conic-gradient for compliance percentage (zero JS dependencies)
-  - Per-source horizontal bar chart showing finding counts per tool (azqr, PSRule, AzGovViz, ALZ Queries, WARA)
+  - Per-source horizontal bar chart showing finding counts per tool (azqr, PSRule, AzGovViz, ALZ Queries, WARA, Maester, Scorecard)
+  - Clickable stat cards for severity filtering with `aria-pressed` accessibility support
+  - Filter banner with clear button when severity filter is active
+  - Zebra striping on findings tables for readability
+  - Severity left-border on table rows (color-coded by High/Medium/Low/Info)
   - Text filter/search input above each findings table with instant keyup filtering
   - Clickable remediation URLs auto-detected and wrapped in anchor tags
-  - Tool coverage badges showing which tools ran vs were skipped
+  - Tool coverage badges based on actual tool status (Success/Skipped/Failed/Excluded), not just presence of findings
   - Remediation column added to all findings tables
   - Print-friendly @media print CSS hiding interactive elements, preventing page breaks in rows
 - **Markdown report enhancements**:
@@ -53,6 +57,17 @@ All notable changes to azure-analyzer will be documented here.
 - **Prereq behavior**: `Install-Prerequisites` now advise-only by default — lists missing modules with install commands. Add `-InstallMissingModules` switch to opt-in to auto-install. Prevents unexpected writes in shared/CI environments.
 - **Report field rendering**: HTML and Markdown reports now render `ResourceId` and `LearnMoreUrl` columns in all findings tables (previously only stored in JSON but not displayed)
 - **PS 7.6 compatibility**: Fix `New-HtmlReport.ps1` `-join` operator parsing error on PowerShell 7.6 (wrap `ForEach-Object` pipeline in parentheses)
+- **Dedup key strengthened**: Use `Source+ResourceId+Category+Title+Compliant` as composite key. Never dedup across tools when ResourceId is empty — prevents unrelated findings from collapsing.
+- **PSRule severity mapping**: Fix `Outcome` (Pass/Fail) incorrectly mapping to severity via `Map-Severity` (Fail fell through to Info). Now derives severity from Outcome directly: Fail=Medium, Error=High, Pass=Info.
+- **errors.json completeness**: Wrapper `Status='Failed'` returns now recorded in `$toolErrors` and `errors.json`, not just exception-path failures.
+- **Tool status tracking**: Orchestrator writes `tool-status.json` alongside `results.json` with per-tool Status/Message/Findings count. Reports use this to distinguish success-with-zero-findings from skipped/failed.
+- **HTML stat cards clickable**: Stat cards converted from `<div>` to `<button>` elements with `onclick` severity filter, `aria-pressed` for screen readers, and visible focus styles.
+- **HTML zebra striping**: Alternating row backgrounds on findings tables for readability.
+- **HTML severity borders**: Left-border color on each finding row matching its severity (High=red, Medium=orange, Low=yellow, Info=gray).
+- **HTML tool coverage accuracy**: Coverage badges now reflect actual tool status (Success/Skipped/Failed/Excluded) from `tool-status.json`, not just presence/absence of findings.
+- **Markdown source table**: All 7 tools shown in source breakdown table with Status column, even when they have zero findings or were skipped.
+- **AzGovViz path discovery**: `Find-AzGovViz` now also searches `tools/AzGovViz/` and `$PSScriptRoot/tools/AzGovViz/`, matching README instructions.
+- **ScorecardThreshold param**: Added `-ScorecardThreshold` parameter to orchestrator, passed through to Scorecard wrapper. Default: 7.
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed
 - Update branch protection to require `Analyze (actions)` only
 - Update codeql.yml to use actions/checkout v6 SHA (was v4)
