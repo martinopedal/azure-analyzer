@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Azure Analyzer — unified Azure assessment orchestrator.
+    Azure Analyzer ÔÇö unified Azure assessment orchestrator.
 .DESCRIPTION
     Calls all seven assessment tool wrappers (azqr, PSRule, AzGovViz, alz-queries,
     WARA, Maester, Scorecard), merges results into a unified schema, and writes
@@ -14,27 +14,18 @@
     Management group ID. Used by AzGovViz and alz-queries.
 .PARAMETER TenantId
     Azure tenant ID. Used by WARA collector. Defaults to current Az context tenant.
-.PARAMETER Repository
-    GitHub repository to scan with OpenSSF Scorecard (e.g., "github.com/org/repo").
-    If not provided, Scorecard is skipped.
-.PARAMETER ScorecardThreshold
-    Minimum score (0-10) to mark a Scorecard check as compliant. Default is 7.
 .PARAMETER OutputPath
     Output directory for results.json. Defaults to .\output.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -TenantId "..."
-    .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
 #>
 [CmdletBinding()]
 param (
     [string] $SubscriptionId,
     [string] $ManagementGroupId,
     [string] $TenantId,
-    [string] $Repository,
-    [ValidateRange(0, 10)]
-    [int] $ScorecardThreshold = 7,
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
     [string[]] $IncludeTools,
     [string[]] $ExcludeTools
@@ -43,28 +34,23 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# --- Tool selection validation ---
+# --- Tool selection ---
 $validTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
 $azureScopedTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara')
 
 if ($IncludeTools -and $ExcludeTools) {
     throw "Cannot use both -IncludeTools and -ExcludeTools. Use one or the other."
 }
-
 foreach ($t in @($IncludeTools) + @($ExcludeTools) | Where-Object { $_ }) {
-    if ($t -notin $validTools) {
-        throw "Unknown tool '$t'. Valid tools: $($validTools -join ', ')"
-    }
+    if ($t -notin $validTools) { throw "Unknown tool '$t'. Valid: $($validTools -join ', ')" }
 }
 
-function ShouldRunTool {
-    param ([string]$ToolName)
+function ShouldRunTool { param ([string]$ToolName)
     if ($IncludeTools) { return $ToolName -in $IncludeTools }
     if ($ExcludeTools) { return $ToolName -notin $ExcludeTools }
     return $true
 }
 
-# Only require Azure scope if at least one Azure-scoped tool will run
 $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
@@ -111,6 +97,7 @@ Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
 $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # --- azqr ---
+if (ShouldRunTool 'azqr') {
 if ($SubscriptionId) {
     Write-Host "`n[1/7] Running azqr..." -ForegroundColor Yellow
     $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $SubscriptionId }
@@ -130,8 +117,12 @@ if ($SubscriptionId) {
     }
     Write-Host "  azqr: $($azqrResult.Findings.Count) findings" -ForegroundColor Gray
 }
+} else {
+    Write-Host "`n[1/7] Skipping azqr (excluded)" -ForegroundColor DarkGray
+}
 
 # --- PSRule ---
+if (ShouldRunTool 'psrule') {
 Write-Host "`n[2/7] Running PSRule..." -ForegroundColor Yellow
 $psruleParams = if ($SubscriptionId) { @{ SubscriptionId = $SubscriptionId } } else { @{ Path = '.' } }
 $psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
@@ -150,8 +141,12 @@ foreach ($f in $psruleResult.Findings) {
     })
 }
 Write-Host "  PSRule: $($psruleResult.Findings.Count) findings" -ForegroundColor Gray
+} else {
+    Write-Host "`n[2/7] Skipping psrule (excluded)" -ForegroundColor DarkGray
+}
 
 # --- AzGovViz ---
+if (ShouldRunTool 'azgovviz') {
 if ($ManagementGroupId) {
     Write-Host "`n[3/7] Running AzGovViz..." -ForegroundColor Yellow
     $azgovvizResult = Invoke-Wrapper -Script 'Invoke-AzGovViz.ps1' -Params @{ ManagementGroupId = $ManagementGroupId }
@@ -173,8 +168,12 @@ if ($ManagementGroupId) {
 } else {
     Write-Host "`n[3/7] Skipping AzGovViz (no ManagementGroupId provided)" -ForegroundColor DarkGray
 }
+} else {
+    Write-Host "`n[3/7] Skipping azgovviz (excluded)" -ForegroundColor DarkGray
+}
 
 # --- ALZ Queries ---
+if (ShouldRunTool 'alz-queries') {
 Write-Host "`n[4/7] Running ALZ queries..." -ForegroundColor Yellow
 $alzParams = if ($ManagementGroupId) {
     @{ ManagementGroupId = $ManagementGroupId }
@@ -197,8 +196,12 @@ foreach ($f in $alzResult.Findings) {
     })
 }
 Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundColor Gray
+} else {
+    Write-Host "`n[4/7] Skipping alz-queries (excluded)" -ForegroundColor DarkGray
+}
 
 # --- WARA ---
+if (ShouldRunTool 'wara') {
 if ($SubscriptionId) {
     Write-Host "`n[5/7] Running WARA..." -ForegroundColor Yellow
     $waraParams = @{ SubscriptionId = $SubscriptionId; OutputPath = (Join-Path $OutputPath 'wara') }
@@ -222,8 +225,12 @@ if ($SubscriptionId) {
 } else {
     Write-Host "`n[5/7] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
 }
+} else {
+    Write-Host "`n[5/7] Skipping wara (excluded)" -ForegroundColor DarkGray
+}
 
 # --- Maester ---
+if (ShouldRunTool 'maester') {
 Write-Host "`n[6/7] Running Maester..." -ForegroundColor Yellow
 $maesterResult = Invoke-Wrapper -Script 'Invoke-Maester.ps1' -Params @{}
 foreach ($f in $maesterResult.Findings) {
@@ -241,30 +248,10 @@ foreach ($f in $maesterResult.Findings) {
     })
 }
 Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundColor Gray
-
-
-# --- Scorecard ---
-if ($Repository) {
-    Write-Host "`n[7/7] Running Scorecard..." -ForegroundColor Yellow
-    $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository; Threshold = $ScorecardThreshold }
-    foreach ($f in $scorecardResult.Findings) {
-        $allResults.Add([PSCustomObject]@{
-            Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
-            Source       = 'scorecard'
-            Category     = Get-Prop $f 'Category' 'Supply Chain'
-            Title        = Get-Prop $f 'Title' 'Unknown'
-            Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
-            Compliant    = $f.Compliant
-            Detail       = Get-Prop $f 'Detail' ''
-            Remediation  = Get-Prop $f 'Remediation' ''
-            ResourceId   = Get-Prop $f 'ResourceId' ''
-            LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
-        })
-    }
-    Write-Host "  Scorecard: $($scorecardResult.Findings.Count) findings" -ForegroundColor Gray
 } else {
-    Write-Host "`n[7/7] Skipping Scorecard (no -Repository provided)" -ForegroundColor DarkGray
+    Write-Host "`n[6/7] Skipping maester (excluded)" -ForegroundColor DarkGray
 }
+
 # --- Write output ---
 try {
     if (-not (Test-Path $OutputPath)) {
@@ -299,5 +286,5 @@ $low = ($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Complian
 
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 Write-Host "  Total findings: $($allResults.Count)"
-Write-Host "  Non-compliant — High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
+Write-Host "  Non-compliant ÔÇö High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
 Write-Host "  Output: $outputFile" -ForegroundColor Green
