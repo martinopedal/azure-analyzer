@@ -117,11 +117,12 @@ $categoryHtml = foreach ($cat in $byCategory) {
     $catRows = foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
         $sevClass = SeverityClass $f.Severity
         $sevBorder = "sev-border-$($f.Severity.ToLower())"
+        $compliantBool = if ($f.Compliant) { 'true' } else { 'false' }
         $compliantStr = if ($f.Compliant) { '<span class="badge badge-ok">Yes</span>' } else { '<span class="badge badge-fail">No</span>' }
         $remediationHtml = Linkify $f.Remediation
         $resourceIdHtml = HE $f.ResourceId
         $learnMoreHtml = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE $f.LearnMoreUrl)`" target=`"_blank`" rel=`"noopener noreferrer`">Learn more</a>" }
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)'><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool'><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -338,8 +339,8 @@ function filterBySeverity(btn, severity) {
   btn.setAttribute('aria-pressed', 'true');
   rows.forEach(function(r) {
     if (severity === 'all') { r.style.display = ''; }
-    else if (severity === 'compliant') { r.style.display = r.querySelector('.badge-ok') ? '' : 'none'; }
-    else { r.style.display = r.dataset.severity === severity ? '' : 'none'; }
+    else if (severity === 'compliant') { r.style.display = r.dataset.compliant === 'true' ? '' : 'none'; }
+    else { r.style.display = (r.dataset.severity === severity && r.dataset.compliant === 'false') ? '' : 'none'; }
   });
   bannerText.textContent = severity === 'all' ? 'Showing all findings' : severity === 'compliant' ? 'Showing compliant findings only' : 'Showing ' + severity + ' severity findings only';
   banner.classList.add('active');
