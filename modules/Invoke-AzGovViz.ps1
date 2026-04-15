@@ -41,6 +41,8 @@ if (-not $azGovVizScript) {
     Write-Warning "AzGovViz (AzGovVizParallel.ps1) not found. Skipping. Clone from https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting"
     return [PSCustomObject]@{
         Source   = 'azgovviz'
+        Status   = 'Skipped'
+        Message  = 'AzGovVizParallel.ps1 not found'
         Findings = @()
     }
 }
@@ -72,12 +74,16 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'azgovviz'
+        Status   = 'Success'
+        Message  = ''
         Findings = $findings
     }
 } catch {
     Write-Warning "AzGovViz run failed: $_"
     return [PSCustomObject]@{
         Source   = 'azgovviz'
+        Status   = 'Failed'
+        Message  = "$_"
         Findings = @()
     }
 }
