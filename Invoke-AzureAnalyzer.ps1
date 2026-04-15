@@ -153,7 +153,7 @@ function Invoke-Wrapper {
     $scriptPath = Join-Path $modulesPath $Script
     if (-not (Test-Path $scriptPath)) {
         Write-Warning "$Script not found at $scriptPath"
-        return [PSCustomObject]@{ Source = $Script; Findings = @() }
+        return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = "Script not found: $scriptPath"; Findings = @() }
     }
     for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
         try {
@@ -178,7 +178,7 @@ function Invoke-Wrapper {
             } else {
                 Write-Warning "$Script failed after $($MaxRetries+1) attempts: $_"
                 $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = $_.Exception.Message; Timestamp = Get-Date })
-                return [PSCustomObject]@{ Source = $Script; Findings = @() }
+                return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = $_.Exception.Message; Findings = @() }
             }
         }
     }
