@@ -32,14 +32,14 @@ if (-not (Get-Module -ListAvailable -Name WARA)) {
         Install-Module -Name WARA -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
     } catch {
         Write-Warning "Could not install WARA module: $_. Returning empty result."
-        return [PSCustomObject]@{ Source = 'wara'; Findings = @() }
+        return [PSCustomObject]@{ Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
     }
 }
 
 Import-Module WARA -ErrorAction SilentlyContinue
 if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
     Write-Warning "WARA module loaded but Start-WARACollector not found. Returning empty result."
-    return [PSCustomObject]@{ Source = 'wara'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
 }
 
 # Resolve tenant
@@ -48,7 +48,7 @@ if (-not $TenantId) {
     $TenantId = $ctx?.Tenant?.Id
     if (-not $TenantId) {
         Write-Warning "No TenantId provided and no Az context found. Returning empty result."
-        return [PSCustomObject]@{ Source = 'wara'; Findings = @() }
+        return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = 'No TenantId and no Az context'; Findings = @() }
     }
 }
 
@@ -66,7 +66,7 @@ try {
 } catch {
     Pop-Location
     Write-Warning "WARA collector failed: $_. Returning empty result."
-    return [PSCustomObject]@{ Source = 'wara'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = "$_"; Findings = @() }
 }
 
 # Find the newest JSON output file
@@ -76,7 +76,7 @@ $jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA_File_*.json" |
 
 if (-not $jsonFile) {
     Write-Warning "WARA collector ran but no output JSON found in $OutputPath."
-    return [PSCustomObject]@{ Source = 'wara'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @() }
 }
 
 # Parse findings
@@ -84,7 +84,7 @@ try {
     $raw = Get-Content $jsonFile.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
 } catch {
     Write-Warning "Could not parse WARA JSON: $_"
-    return [PSCustomObject]@{ Source = 'wara'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = "JSON parse error: $_"; Findings = @() }
 }
 
 # Map to flat finding objects — WARA JSON has a 'ImpactedResources' or 'Recommendations' array
@@ -112,4 +112,4 @@ foreach ($rec in $recommendations) {
     })
 }
 
-return [PSCustomObject]@{ Source = 'wara'; Findings = $findings }
+return [PSCustomObject]@{ Source = 'wara'; Status = 'Success'; Message = ''; Findings = $findings }

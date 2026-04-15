@@ -22,21 +22,21 @@ if (-not (Get-Module -ListAvailable -Name Maester)) {
         Install-Module -Name Maester -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
     } catch {
         Write-Warning "Could not install Maester module: $_. Returning empty result."
-        return [PSCustomObject]@{ Source = 'maester'; Findings = @() }
+        return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Could not install Maester module'; Findings = @() }
     }
 }
 
 Import-Module Maester -ErrorAction SilentlyContinue
 if (-not (Get-Command Invoke-Maester -ErrorAction SilentlyContinue)) {
     Write-Warning "Maester module loaded but Invoke-Maester not found. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Could not install Maester module'; Findings = @() }
 }
 
 # Verify Microsoft Graph connection
 $mgContext = Get-MgContext -ErrorAction SilentlyContinue
 if (-not $mgContext) {
     Write-Warning "No Microsoft Graph connection found. Run Connect-MgGraph before using Maester. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection'; Findings = @() }
 }
 
 # Run Maester assessment
@@ -44,12 +44,12 @@ try {
     $result = Invoke-Maester -PassThru -Quiet -ErrorAction Stop
 } catch {
     Write-Warning "Maester assessment failed: $_. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = "$_"; Findings = @() }
 }
 
 if (-not $result -or -not $result.Tests) {
     Write-Warning "Maester returned no test results."
-    return [PSCustomObject]@{ Source = 'maester'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = 'No test results returned'; Findings = @() }
 }
 
 # Map tests to flat finding objects
@@ -92,4 +92,4 @@ foreach ($test in $result.Tests) {
     })
 }
 
-return [PSCustomObject]@{ Source = 'maester'; Findings = $findings }
+return [PSCustomObject]@{ Source = 'maester'; Status = 'Success'; Message = ''; Findings = $findings }

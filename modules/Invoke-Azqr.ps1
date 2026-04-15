@@ -31,6 +31,8 @@ if (-not (Test-AzqrInstalled)) {
     Write-Warning "azqr is not installed. Skipping Azqr scan. Install from https://azure.github.io/azqr"
     return [PSCustomObject]@{
         Source   = 'azqr'
+        Status   = 'Skipped'
+        Message  = 'azqr not installed'
         Findings = @()
     }
 }
@@ -61,12 +63,16 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'azqr'
+        Status   = 'Success'
+        Message  = ''
         Findings = $findings
     }
 } catch {
     Write-Warning "azqr scan failed: $_"
     return [PSCustomObject]@{
         Source   = 'azqr'
+        Status   = 'Failed'
+        Message  = "$_"
         Findings = @()
     }
 }

@@ -36,6 +36,8 @@ if (-not (Test-PSRuleInstalled)) {
     Write-Warning "PSRule.Rules.Azure is not installed. Skipping PSRule scan. Run: Install-Module PSRule.Rules.Azure"
     return [PSCustomObject]@{
         Source   = 'psrule'
+        Status   = 'Skipped'
+        Message  = 'PSRule.Rules.Azure not installed'
         Findings = @()
     }
 }
@@ -68,12 +70,16 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'psrule'
+        Status   = 'Success'
+        Message  = ''
         Findings = @($findings)
     }
 } catch {
     Write-Warning "PSRule scan failed: $_"
     return [PSCustomObject]@{
         Source   = 'psrule'
+        Status   = 'Failed'
+        Message  = "$_"
         Findings = @()
     }
 }
