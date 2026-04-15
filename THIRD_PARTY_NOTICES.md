@@ -44,10 +44,16 @@ This project invokes, wraps, or depends on the following open-source tools. None
 
 ---
 
-## Azure Review Checklists (query data)
+## ALZ Graph Queries
+- **Source:** https://github.com/martinopedal/alz-graph-queries
+- **Copyright:** Copyright (c) Microsoft Corporation (original work), derived by martinopedal
+- **License:** MIT License
+- **Usage:** The ALZ Resource Graph queries (132 custom ARG queries) are bundled from this project and automatically loaded by `modules/Invoke-AlzQueries.ps1`.
+
+---
+
+## Azure Review Checklists (upstream source)
 - **Source:** https://github.com/Azure/review-checklists
 - **Copyright:** Copyright (c) Microsoft Corporation
 - **License:** MIT License
-- **Usage:** The ALZ checklist query data loaded by `modules/Invoke-AlzQueries.ps1` is derived from this project.
-  Copy `queries/alz_additional_queries.json` from https://github.com/martinopedal/alz-graph-queries
-  or provide via `-QueriesFile` parameter.
+- **Note:** The alz-graph-queries project (used by azure-analyzer) derives from this upstream project. This represents the original ALZ checklist data from which the ARG queries were generated.
