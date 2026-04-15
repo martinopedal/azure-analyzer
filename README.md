@@ -236,12 +236,16 @@ All findings are merged into `output/results.json` using a unified 10-field sche
 
 ## Permissions
 
-| Scope | Role |
-|---|---|
-| Subscriptions / management groups | `Reader` |
-| Resource groups | `Reader` (inherited) |
+All tools operate read-only. No write permissions required anywhere.
 
-No write permissions are required. All tools operate read-only. See [PERMISSIONS.md](PERMISSIONS.md) for a full per-tool breakdown.
+| Scope | What needs it |
+|-------|--------------|
+| **Azure Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA |
+| **Microsoft Graph** (read) | Maester — Entra ID security |
+| **GitHub token** (optional) | Scorecard — repo security (recommended for rate limits) |
+| **Copilot license** (optional) | AI triage — fully optional; only used with `-EnableAiTriage` flag |
+
+See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup commands, and troubleshooting.
 
 ---
 
