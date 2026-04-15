@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, and the **ALZ Resource Graph queries** from [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) into a single orchestrated run with unified Markdown and HTML reports.
+Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, the **ALZ Resource Graph queries** from [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries), and **WARA** into a single orchestrated run with unified Markdown and HTML reports.
 
 ## What it does
 
@@ -10,6 +10,7 @@ Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovV
 | 2 — PSRule | `modules/Invoke-PSRule.ps1` | PSRule for Azure — rule-based policy validation |
 | 3 — AzGovViz | `modules/Invoke-AzGovViz.ps1` | Azure Governance Visualizer — tenant/MG/subscription hierarchy |
 | 4 — ALZ queries | `modules/Invoke-AlzQueries.ps1` | 132 custom ARG queries from alz-graph-queries |
+| 5 — WARA | `modules/Invoke-WARA.ps1` | Well-Architected Reliability Assessment — reliability findings per resource |
 | Report | `New-MdReport.ps1` / `New-HtmlReport.ps1` | Unified Markdown + offline HTML report |
 
 All findings are merged into `output/results.json` using a common schema:
@@ -28,7 +29,8 @@ All findings are merged into `output/results.json` using a common schema:
 | azqr | latest | `winget install azure-quick-review.azqr` |
 | PSRule for Azure | latest | `Install-Module PSRule.Rules.Azure` |
 | AzGovViz | latest | [Download](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) to `tools/AzGovViz/` |
-| Reader | subscription | All four tools need at minimum `Reader` on subscriptions in scope |
+| WARA | latest | `Install-Module WARA` (auto-installed if missing) |
+| Reader | subscription | All five tools need at minimum `Reader` on subscriptions in scope |
 
 ## Quick Start
 

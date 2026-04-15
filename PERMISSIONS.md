@@ -11,6 +11,7 @@ All tools run with the minimum permissions required. No write permissions anywhe
 | PSRule for Azure | Subscription | Reader | Reads ARM/Bicep resources for rule evaluation |
 | AzGovViz | Management Group | Reader + Directory.Read.All | Enumerates hierarchy, policies, RBAC assignments |
 | ALZ Resource Graph queries | Subscription/Tenant | Reader | ARG queries are read-only |
+| WARA (Start-WARACollector) | Subscription | Reader | Reads resources via ARG for reliability assessment |
 
 ## GitHub permissions
 

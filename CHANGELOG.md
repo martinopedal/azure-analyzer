@@ -9,6 +9,7 @@ All notable changes to azure-analyzer will be documented here.
 - Update branch protection to require `Analyze (actions)` only
 
 ### Added
+- feat: add WARA (Well-Architected Reliability Assessment) as 5th assessment source
 - Phase 6: full README with prerequisites, quick-start, output and permissions tables
 - CI failure analysis workflow: auto-creates issues with bug+squad labels when any workflow fails
 - Phase 4: `modules/Invoke-Azqr.ps1` — azqr CLI wrapper (graceful degradation)
