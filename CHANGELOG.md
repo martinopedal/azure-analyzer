@@ -8,6 +8,11 @@ All notable changes to azure-analyzer will be documented here.
 - **AI triage (optional)**: `-EnableAiTriage` switch enriches non-compliant findings via GitHub Copilot SDK with priority ranking, risk context, remediation steps, and root cause grouping. See `docs/ai-triage.md`.
 - **AI triage in reports**: HTML/Markdown reports include AI Triage Summary when `triage.json` exists.
 
+### Fixed
+- **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
+- **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.
+- **Prereq behavior**: `Install-Prerequisites` now advise-only by default — lists missing modules with install commands. Add `-InstallMissingModules` switch to opt-in to auto-install. Prevents unexpected writes in shared/CI environments.
+
 ## [1.0.0] - 2025-01-15
 
 ### Added

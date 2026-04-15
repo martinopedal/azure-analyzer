@@ -7,6 +7,7 @@
     connection exists, runs Invoke-Maester -PassThru -Quiet, and returns
     findings as PSObjects. Gracefully degrades if Maester is not available,
     Graph is not connected, or the assessment fails.
+    Requires: Connect-MgGraph -Scopes (Get-MtGraphScope)
 .EXAMPLE
     .\Invoke-Maester.ps1
 #>
@@ -29,33 +30,33 @@ if (-not (Get-Module -ListAvailable -Name Maester)) {
 Import-Module Maester -ErrorAction SilentlyContinue
 if (-not (Get-Command Invoke-Maester -ErrorAction SilentlyContinue)) {
     Write-Warning "Maester module loaded but Invoke-Maester not found. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Could not install Maester module'; Findings = @() }
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Invoke-Maester command not available'; Findings = @() }
 }
 
 # Verify Microsoft Graph connection
 $mgContext = Get-MgContext -ErrorAction SilentlyContinue
 if (-not $mgContext) {
-    Write-Warning "No Microsoft Graph connection found. Run Connect-MgGraph before using Maester. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection'; Findings = @() }
+    Write-Warning "No Microsoft Graph connection found. Run 'Connect-MgGraph -Scopes (Get-MtGraphScope)' before using Maester. Returning empty result."
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection. Run: Connect-MgGraph -Scopes (Get-MtGraphScope)'; Findings = @() }
 }
 
-# Run Maester assessment
+# Run Maester assessment — returns a Pester TestResultContainer
 try {
-    $result = Invoke-Maester -PassThru -Quiet -ErrorAction Stop
+    $container = Invoke-Maester -PassThru -Quiet -ErrorAction Stop
 } catch {
     Write-Warning "Maester assessment failed: $_. Returning empty result."
     return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = "$_"; Findings = @() }
 }
 
-if (-not $result -or -not $result.Tests) {
+if (-not $container -or -not $container.Result) {
     Write-Warning "Maester returned no test results."
     return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = 'No test results returned'; Findings = @() }
 }
 
-# Map tests to flat finding objects
+# Map Pester TestResult objects to flat findings
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-foreach ($test in $result.Tests) {
+foreach ($test in $container.Result) {
     # Derive severity from tags (default to Medium)
     $severity = 'Medium'
     if ($test.Tag) {
@@ -64,7 +65,7 @@ foreach ($test in $result.Tests) {
         elseif ($tagStr -match 'low') { $severity = 'Low' }
     }
 
-    # Map Result to Compliant: Passed/Skipped → true, Failed → false
+    # Map Result: Passed/Skipped/NotRun → compliant, Failed → non-compliant
     $compliant = $test.Result -ne 'Failed'
 
     # Extract detail from ErrorRecord if present
@@ -73,7 +74,7 @@ foreach ($test in $result.Tests) {
         $detail = ($test.ErrorRecord | ForEach-Object { $_.ToString() }) -join '; '
     }
 
-    # Extract category from Block.Name
+    # Extract category from parent Block name
     $category = 'Identity'
     if ($test.Block -and $test.Block.Name) {
         $category = $test.Block.Name
