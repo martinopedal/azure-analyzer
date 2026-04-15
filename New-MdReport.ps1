@@ -14,7 +14,8 @@
 [CmdletBinding()]
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
-    [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md')
+    [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md'),
+    [string] $TriagePath
 )
 
 Set-StrictMode -Version Latest
@@ -61,6 +62,27 @@ foreach ($src in $bySource) {
     $lines.Add("| $($src.Name) | $($src.Count) | $nc |")
 }
 $lines.Add('')
+
+# AI Triage section
+if ($TriagePath -and (Test-Path $TriagePath)) {
+    try {
+        $td = @(Get-Content $TriagePath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $te = @($td | Where-Object { $null -ne $_.AiPriority } | Sort-Object AiPriority)
+        if ($te.Count -gt 0) {
+            $lines.Add('## AI-Assisted Triage')
+            $lines.Add('')
+            $lines.Add('| # | Finding | Severity | Source | Risk | Remediation |')
+            $lines.Add('|---|---|---|---|---|---|')
+            foreach ($t in $te) {
+                $title = ($t.Title -replace '\|', '\\|')
+                $risk = ($t.AiRiskContext -replace '\|', '\\|' -replace "`n|`r", ' ')
+                $rem = ($t.AiRemediation -replace '\|', '\\|' -replace "`n|`r", ' ')
+                $lines.Add("| $($t.AiPriority) | $title | $($t.Severity) | $($t.Source) | $risk | $rem |")
+            }
+            $lines.Add('')
+        }
+    } catch { }
+}
 
 # Per-category sections
 $lines.Add('## Findings by category')
