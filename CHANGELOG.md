@@ -11,6 +11,8 @@ All notable changes to azure-analyzer will be documented here.
 
 - feat(cost): `modules/Invoke-CostManagementApi.ps1` — Cost Management API module (budget existence, alert thresholds ≥80%, anomaly alert rules, Advisor high-impact cost recommendations)
 - feat(cost): orchestrator step 6/8 integration for Cost Management API checks
+- feat(graph): `modules/Invoke-GraphApi.ps1` — Microsoft Graph API module for Entra ID security posture (CA policy coverage, PIM permanent GA assignments, MFA registration campaign, security defaults, guest access restrictions)
+- feat(graph): orchestrator step 7/8 integration for Microsoft Graph API checks
 
 ### Fixed
 - Remove `python` from CodeQL language matrix; repo is PowerShell-only, no Python extractor needed

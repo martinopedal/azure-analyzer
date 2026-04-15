@@ -3,7 +3,7 @@
 .SYNOPSIS
     Azure Analyzer — unified Azure assessment orchestrator.
 .DESCRIPTION
-    Calls all five assessment tool wrappers (azqr, PSRule, AzGovViz, alz-queries, WARA),
+    Calls all assessment tool wrappers (azqr, PSRule, AzGovViz, alz-queries, WARA, Cost Management, Graph API),
     merges results into a unified schema, and writes output/results.json.
     At least one of -SubscriptionId or -ManagementGroupId is required.
     Tools that are not installed are skipped gracefully.
@@ -157,7 +157,7 @@ Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundCol
 
 # --- WARA ---
 if ($SubscriptionId) {
-    Write-Host "`n[5/5] Running WARA..." -ForegroundColor Yellow
+    Write-Host "`n[5/8] Running WARA..." -ForegroundColor Yellow
     $waraParams = @{ SubscriptionId = $SubscriptionId; OutputPath = (Join-Path $OutputPath 'wara') }
     if ($TenantId) { $waraParams['TenantId'] = $TenantId }
     $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
@@ -175,7 +175,7 @@ if ($SubscriptionId) {
     }
     Write-Host "  WARA: $($waraResult.Findings.Count) findings" -ForegroundColor Gray
 } else {
-    Write-Host "`n[5/5] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
+    Write-Host "`n[5/8] Skipping WARA (no SubscriptionId provided)" -ForegroundColor DarkGray
 }
 
 # --- Cost Management API ---
@@ -197,6 +197,27 @@ if ($SubscriptionId) {
     Write-Host "  Cost: $($costResult.Findings.Count) findings" -ForegroundColor Gray
 } else {
     Write-Host "`n[6/8] Skipping Cost Management checks (no SubscriptionId provided)" -ForegroundColor DarkGray
+}
+
+# --- Microsoft Graph API ---
+if ($TenantId) {
+    Write-Host "`n[7/8] Running Microsoft Graph API checks..." -ForegroundColor Yellow
+    $graphResult = Invoke-Wrapper -Script 'Invoke-GraphApi.ps1' -Params @{ TenantId = $TenantId }
+    foreach ($f in $graphResult.Findings) {
+        $allResults.Add([PSCustomObject]@{
+            Id          = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
+            Source      = 'graph-api'
+            Category    = Get-Prop $f 'Category' 'Identity'
+            Title       = Get-Prop $f 'Title' 'Unknown'
+            Severity    = Map-Severity (Get-Prop $f 'Severity' 'High')
+            Compliant   = $f.Compliant
+            Detail      = Get-Prop $f 'Detail' ''
+            Remediation = Get-Prop $f 'Remediation' ''
+        })
+    }
+    Write-Host "  Graph: $($graphResult.Findings.Count) findings" -ForegroundColor Gray
+} else {
+    Write-Host "`n[7/8] Skipping Microsoft Graph checks (no TenantId provided)" -ForegroundColor DarkGray
 }
 
 # --- Write output ---
