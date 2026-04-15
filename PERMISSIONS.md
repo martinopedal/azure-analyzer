@@ -29,6 +29,13 @@ No ADO integration currently planned.
 |-------|---------------|
 | `Cost Management Reader` | Read budgets, alerts, and Advisor recommendations |
 
+## Microsoft Graph API (Invoke-GraphApi.ps1)
+| Scope | Justification |
+|-------|---------------|
+| `Policy.Read.All` | Conditional Access and authentication policies |
+| `RoleManagement.Read.Directory` | PIM/directory role assignments |
+| `Reports.Read.All` | MFA registration campaign status |
+
 ## What we do NOT need
 - No Contributor or Owner roles
 - No write permissions to any Azure resource
