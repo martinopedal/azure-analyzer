@@ -5,9 +5,11 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Added
+- **Sample reports and visual previews in README**: Added `samples/` directory with mock findings data and pre-generated HTML + Markdown reports so users can see output before running the tool. README now includes collapsed preview sections for both report formats.
 - **Bundled ALZ queries**: ALZ Resource Graph queries are now automatically bundled from [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) — no manual copy-step required. Queries originate from [Azure/review-checklists](https://github.com/Azure/review-checklists).
 
 ### Changed
+- README: Restructure as consumer-first (Quick Start → What you get → Prerequisites → Usage → Schema → Permissions) with contributor/CI sections below a separator
 - README: Rewrite CI/Automation section — separate user-facing CI from maintainer-only squad workflows behind a collapsed `<details>` block
 - README: Add "For Contributors" section explaining that `.squad/` is maintainer infrastructure, not part of the tool
 - `.gitattributes`: Add `export-ignore` rules so squad files (`.squad/`, squad workflows, `.github/agents/`) are excluded from archive downloads
@@ -15,6 +17,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - **Report field rendering**: HTML and Markdown reports now render `ResourceId` and `LearnMoreUrl` columns in all findings tables (previously only stored in JSON but not displayed)
+- **PS 7.6 compatibility**: Fix `New-HtmlReport.ps1` `-join` operator parsing error on PowerShell 7.6 (wrap `ForEach-Object` pipeline in parentheses)
 
 ### Added
 - CI: `docs-check.yml` workflow enforces documentation updates on PRs that change code files
