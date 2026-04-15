@@ -5,7 +5,9 @@
 .DESCRIPTION
     Loads all public functions from the modules/ directory and the root-level
     scripts (Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1, New-MdReport.ps1).
-    Private helper scripts are dot-sourced but not exported.
+    
+    This is a local module for convenience—use after Import-Module ./AzureAnalyzer.psd1
+    in the cloned repository.
 #>
 
 Set-StrictMode -Version Latest
@@ -34,18 +36,14 @@ foreach ($funcName in $publicFunctions) {
     }
 }
 
-# Ensure required modules are available
-$requiredModules = @('Az.Accounts', 'Az.ResourceGraph')
-foreach ($moduleName in $requiredModules) {
-    if (-not (Get-Module -Name $moduleName -ErrorAction SilentlyContinue)) {
-        try {
-            Import-Module -Name $moduleName -ErrorAction Stop | Out-Null
-        }
-        catch {
-            Write-Warning "Required module '$moduleName' not found. Install with: Install-Module $moduleName"
-        }
+# Warn if core required modules are missing
+$coreRequired = @('Az.Accounts', 'Az.ResourceGraph')
+foreach ($moduleName in $coreRequired) {
+    if (-not (Get-Module -Name $moduleName -ListAvailable -ErrorAction SilentlyContinue)) {
+        Write-Warning "Core module '$moduleName' not found. Install with: Install-Module $moduleName -Scope CurrentUser"
     }
 }
 
 # Export public functions
 Export-ModuleMember -Function $publicFunctions
+
