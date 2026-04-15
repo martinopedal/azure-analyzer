@@ -1,0 +1,74 @@
+name: Docs Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  docs-required:
+    name: Documentation update check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Check for documentation updates
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            // Check for skip-docs-check label
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            if (labels.includes('skip-docs-check')) {
+              core.info('Skipping docs check — skip-docs-check label found.');
+              return;
+            }
+
+            // Get changed files in the PR
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              { owner: context.repo.owner, repo: context.repo.repo, pull_number: context.issue.number }
+            );
+            const changed = files.map(f => f.filename);
+
+            // Patterns that are never considered "code changes"
+            const ignoredPatterns = [
+              /^\.squad\//,
+              /^\.github\/workflows\//,
+              /^\.github\/ISSUE_TEMPLATE\//,
+              /^\.github\/PULL_REQUEST_TEMPLATE/,
+              /^\.github\/copilot-instructions\.md$/,
+              /^\.github\/dependabot\.yml$/,
+              /^LICENSE$/,
+              /^\.gitignore$/,
+            ];
+
+            const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
+            const isDoc = (f) => ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AI_GOVERNANCE.md'].includes(f);
+
+            // Code file extensions that require docs
+            const codeExtensions = ['.ps1', '.psm1', '.psd1', '.json'];
+            const isCodeFile = (f) => !isIgnored(f) && !isDoc(f) && codeExtensions.some(ext => f.toLowerCase().endsWith(ext));
+
+            const codeFiles = changed.filter(isCodeFile);
+            const docFiles = changed.filter(isDoc);
+
+            if (codeFiles.length === 0) {
+              core.info('No code files changed — docs check not required.');
+              core.info(`Changed files: ${changed.join(', ')}`);
+              return;
+            }
+
+            core.info(`Code files changed: ${codeFiles.join(', ')}`);
+            core.info(`Doc files changed: ${docFiles.join(', ')}`);
+
+            if (docFiles.length === 0) {
+              core.setFailed(
+                'This PR changes code files but no documentation was updated.\n' +
+                'Please update README.md and/or CHANGELOG.md.\n' +
+                'See CONTRIBUTING.md for documentation requirements.'
+              );
+            }

@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Added
+- CI: `docs-check.yml` workflow enforces documentation updates on PRs that change code files
 - Unified schema: add `ResourceId` and `LearnMoreUrl` fields to every finding
 - Orchestrator auto-generates HTML and Markdown reports after writing results.json
 
