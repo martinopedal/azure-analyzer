@@ -25,7 +25,12 @@ param (
     [string] $SubscriptionId,
     [string] $ManagementGroupId,
     [string] $TenantId,
-    [string] $OutputPath = (Join-Path $PSScriptRoot 'output')
+    [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
+    [string] $GitHubRepo,
+    [string] $GitHubToken,
+    [string] $AdoOrg,
+    [string] $AdoProject,
+    [string] $AdoToken
 )
 
 Set-StrictMode -Version Latest
@@ -77,7 +82,7 @@ $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # --- azqr ---
 if ($SubscriptionId) {
-    Write-Host "`n[1/5] Running azqr..." -ForegroundColor Yellow
+    Write-Host "`n[1/8] Running azqr..." -ForegroundColor Yellow
     $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $SubscriptionId }
     foreach ($f in $azqrResult.Findings) {
         $allResults.Add([PSCustomObject]@{
@@ -95,7 +100,7 @@ if ($SubscriptionId) {
 }
 
 # --- PSRule ---
-Write-Host "`n[2/5] Running PSRule..." -ForegroundColor Yellow
+Write-Host "`n[2/8] Running PSRule..." -ForegroundColor Yellow
 $psruleParams = if ($SubscriptionId) { @{ SubscriptionId = $SubscriptionId } } else { @{ Path = '.' } }
 $psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
 foreach ($f in $psruleResult.Findings) {
@@ -114,7 +119,7 @@ Write-Host "  PSRule: $($psruleResult.Findings.Count) findings" -ForegroundColor
 
 # --- AzGovViz ---
 if ($ManagementGroupId) {
-    Write-Host "`n[3/5] Running AzGovViz..." -ForegroundColor Yellow
+    Write-Host "`n[3/8] Running AzGovViz..." -ForegroundColor Yellow
     $azgovvizResult = Invoke-Wrapper -Script 'Invoke-AzGovViz.ps1' -Params @{ ManagementGroupId = $ManagementGroupId }
     foreach ($f in $azgovvizResult.Findings) {
         $allResults.Add([PSCustomObject]@{
@@ -130,11 +135,11 @@ if ($ManagementGroupId) {
     }
     Write-Host "  AzGovViz: $($azgovvizResult.Findings.Count) findings" -ForegroundColor Gray
 } else {
-    Write-Host "`n[3/5] Skipping AzGovViz (no ManagementGroupId provided)" -ForegroundColor DarkGray
+    Write-Host "`n[3/8] Skipping AzGovViz (no ManagementGroupId provided)" -ForegroundColor DarkGray
 }
 
 # --- ALZ Queries ---
-Write-Host "`n[4/5] Running ALZ queries..." -ForegroundColor Yellow
+Write-Host "`n[4/8] Running ALZ queries..." -ForegroundColor Yellow
 $alzParams = if ($ManagementGroupId) {
     @{ ManagementGroupId = $ManagementGroupId }
 } else {
