@@ -4,6 +4,8 @@
 
 When enabled, AI triage enriches non-compliant findings with priority ranking, risk context, and actionable remediation guidance using the [GitHub Copilot SDK](https://github.com/github/copilot-sdk).
 
+> **⚠️ Preview SDK:** The `github-copilot-sdk` package is currently at version **0.1.x (preview)**. The API surface may change in future releases. Pin your version if stability is critical: `pip install github-copilot-sdk==0.1.*`
+
 ## What it does
 
 With `-EnableAiTriage`, after all assessment tools finish:
@@ -21,6 +23,17 @@ With `-EnableAiTriage`, after all assessment tools finish:
 Reports automatically include an AI Triage Summary section when `triage.json` is present.
 
 **Without `-EnableAiTriage`**, none of this runs. No Python is called, no token is checked, no warnings appear. The feature has zero footprint when disabled.
+
+## ⚠️ Data privacy warning
+
+**When AI triage is enabled, non-compliant finding data is sent to GitHub Copilot services.**
+
+This includes finding titles, severity, details, remediation text, and Azure resource IDs. This data is processed under your existing [GitHub Copilot agreement](https://github.com/features/copilot).
+
+- **Compliant findings are never sent** — only non-compliant findings are transmitted
+- **Strictly opt-in** — nothing is sent unless you explicitly pass `-EnableAiTriage`
+- **Without the flag, zero data leaves your machine**
+- A privacy notice is displayed in the console before any data is sent
 
 ## Requirements
 
@@ -41,6 +54,16 @@ These are only needed if you choose to use AI triage:
    ```bash
    export COPILOT_GITHUB_TOKEN="github_pat_..."
    ```
+
+### Authentication
+
+The SDK resolves credentials in this order:
+
+1. Token passed explicitly (azure-analyzer sets this from env vars below)
+2. `GITHUB_TOKEN` environment variable
+3. `gh auth login` session (GitHub CLI)
+
+Azure-analyzer checks these env vars and passes the first one found to the SDK:
 
 | Token variable | Priority |
 |---|---|
@@ -69,21 +92,14 @@ If any prerequisite is missing when `-EnableAiTriage` is passed, the tool warns 
 | SDK not installed | "AI triage requires github-copilot-sdk. Install with: pip install github-copilot-sdk. Skipping." |
 | No token / no license | "AI triage requires a GitHub Copilot license. Set COPILOT_GITHUB_TOKEN with a PAT that has the 'copilot' scope. Skipping." |
 
-## Models and fallback chain
+## Model selection
 
-| Priority | Model | Notes |
+The script discovers available models at runtime via `list_models()` and selects from a preferred list:
+
+| Preference | Model | Notes |
 |----------|-------|-------|
-| 1 (default) | `gpt-4.1` | Cost-effective, good at structured JSON |
-| 2 (fallback) | `claude-sonnet-4` | Strong reasoning fallback |
-| 3 (fallback) | `gpt-5-mini` | Lightweight last-resort |
+| 1st choice | `gpt-4.1` | Cost-effective, good at structured JSON |
+| 2nd choice | `claude-sonnet-4` | Strong reasoning fallback |
+| 3rd choice | `gpt-5-mini` | Lightweight last-resort |
 
-Each model is retried up to 3 times with exponential backoff before falling back.
-
-## Privacy and data handling
-
-> **When AI triage is enabled**, non-compliant finding data (titles, details, resource IDs, remediation text) is sent to the **GitHub Copilot API**.
-
-- Data is processed under your existing [GitHub Copilot agreement](https://github.com/features/copilot)
-- Compliant findings are **never** sent
-- The feature is strictly **opt-in** — nothing is sent unless you pass `-EnableAiTriage`
-- Without the flag, zero data leaves your machine
+If none of the preferred models are available (model names may change as the SDK evolves), the script falls back to whatever models `list_models()` returns. Each model is retried up to 3 times with exponential backoff before trying the next.

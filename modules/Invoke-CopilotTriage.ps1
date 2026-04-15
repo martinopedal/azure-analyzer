@@ -70,6 +70,10 @@ if (-not (Test-Path $scriptPath)) {
 }
 
 # --- Run triage ---
+Write-Host ''
+Write-Host '  ⚠ DATA NOTICE: Non-compliant finding data (titles, details, resource IDs)' -ForegroundColor Yellow
+Write-Host '    will be sent to GitHub Copilot services for AI analysis.' -ForegroundColor Yellow
+Write-Host ''
 Write-Host 'Running AI triage enrichment...' -ForegroundColor Magenta
 try {
     & $py $scriptPath --input $InputPath --output $OutputPath 2>&1 | ForEach-Object {
