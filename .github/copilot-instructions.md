@@ -21,7 +21,7 @@ Bundle multiple Azure assessment tools into a single, portable runner. Output un
 
 ## SHA-pinning
 - All GitHub Actions MUST use SHA-pinned versions, not tags
-- Example: `actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2`
+- Example: `actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6`
 
 ## Permissions
 - Azure tools need Reader only — NO write permissions
