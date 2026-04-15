@@ -224,13 +224,17 @@ jobs:
               labels: [assignLabel]
             });
 
-            // Apply default triage verdict
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue.number,
-              labels: ['go:needs-research']
-            });
+            // Apply go:needs-research only when routed to Lead (no domain match)
+            const needsResearch = assignedMember.name === lead.name || 
+                                  triageReason.includes('No specific domain match');
+            if (needsResearch) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['go:needs-research']
+              });
+            }
 
             // Auto-assign @copilot if enabled
             if (isCopilot && copilotAutoAssign) {
