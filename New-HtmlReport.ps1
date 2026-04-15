@@ -70,6 +70,16 @@ foreach ($sg in $sourceGroups) { $sourceCountMap[$sg.Name] = $sg.Count }
 $maxSourceCount = if ($sourceGroups.Count -gt 0) { ($sourceGroups | Measure-Object -Property Count -Maximum).Maximum } else { 1 }
 if ($maxSourceCount -eq 0) { $maxSourceCount = 1 }
 
+# Load tool status metadata if available (written by orchestrator)
+$toolStatusMap = @{}
+$statusJsonPath = Join-Path (Split-Path $InputPath -Parent) 'tool-status.json'
+if (Test-Path $statusJsonPath) {
+    try {
+        $statusData = @(Get-Content $statusJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        foreach ($ts in $statusData) { $toolStatusMap[$ts.Tool] = $ts.Status }
+    } catch { }
+}
+
 $sourcesWithResults = @($sourceGroups | ForEach-Object { $_.Name })
 $sourcesSkipped = @($allSources | Where-Object { $_ -notin $sourcesWithResults })
 
@@ -106,11 +116,12 @@ $categoryHtml = foreach ($cat in $byCategory) {
     $tableIndex++
     $catRows = foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
         $sevClass = SeverityClass $f.Severity
+        $sevBorder = "sev-border-$($f.Severity.ToLower())"
         $compliantStr = if ($f.Compliant) { '<span class="badge badge-ok">Yes</span>' } else { '<span class="badge badge-fail">No</span>' }
         $remediationHtml = Linkify $f.Remediation
         $resourceIdHtml = HE $f.ResourceId
         $learnMoreHtml = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE $f.LearnMoreUrl)`" target=`"_blank`" rel=`"noopener noreferrer`">Learn more</a>" }
-        "<tr><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)'><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -154,13 +165,18 @@ $sourceBarHtml = foreach ($src in $allSources) {
 "@
 }
 
-# --- Tool coverage summary ---
+# --- Tool coverage summary (status-aware) ---
 $toolCoverageHtml = foreach ($src in $allSources) {
     $label = $sourceLabels[$src]
-    if ($src -in $sourcesWithResults) {
-        "<span class='tool-badge tool-active' title='Produced results'>&#x2705; $label</span>"
+    $status = if ($toolStatusMap.ContainsKey($src)) { $toolStatusMap[$src] } else { $null }
+    if ($status -eq 'Success' -or ($null -eq $status -and $src -in $sourcesWithResults)) {
+        "<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; $label</span>"
+    } elseif ($status -eq 'Failed') {
+        "<span class='tool-badge tool-skipped' title='Failed to run'>&#x274C; $label (failed)</span>"
+    } elseif ($status -eq 'Excluded') {
+        "<span class='tool-badge tool-skipped' title='Excluded by user'>&#x2796; $label (excluded)</span>"
     } else {
-        "<span class='tool-badge tool-skipped' title='No results / skipped'>&#x26A0;&#xFE0F; $label</span>"
+        "<span class='tool-badge tool-skipped' title='Skipped (not configured or prereq missing)'>&#x26A0;&#xFE0F; $label (skipped)</span>"
     }
 }
 
@@ -193,7 +209,10 @@ $html = @"
 
   /* Stat cards */
   .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
-  .card { background: #fff; border-radius: 6px; padding: 16px 20px; min-width: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card { background: #fff; border-radius: 6px; padding: 16px 20px; min-width: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 2px solid transparent; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .card:focus { outline: 2px solid #1565c0; outline-offset: 2px; }
+  .card[aria-pressed="true"] { border-color: #1565c0; box-shadow: 0 2px 8px rgba(21,101,192,0.3); }
   .card-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
   .card-value { font-size: 28px; font-weight: 700; margin-top: 2px; }
   .card-total .card-value { color: #1a1a1a; }
@@ -228,6 +247,11 @@ $html = @"
   .findings-table th { background: #f0f0f0; padding: 8px 10px; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .findings-table th:hover { background: #e0e0e0; }
   .findings-table td { padding: 7px 10px; border-top: 1px solid #f0f0f0; vertical-align: top; }
+  .findings-table tr:nth-child(even) td { background: #fafafa; }
+  .findings-table tr.sev-border-high td:first-child { border-left: 3px solid #d32f2f; }
+  .findings-table tr.sev-border-medium td:first-child { border-left: 3px solid #e65100; }
+  .findings-table tr.sev-border-low td:first-child { border-left: 3px solid #f9a825; }
+  .findings-table tr.sev-border-info td:first-child { border-left: 3px solid #bdbdbd; }
   .findings-table td a { color: #1565c0; word-break: break-all; }
   .findings-table td.resource-id { font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .findings-table tr:hover td { background: #fafafa; }
@@ -238,6 +262,12 @@ $html = @"
   .sev-info { background: #eeeeee; color: #555; }
   .badge-ok { background: #e8f5e9; color: #1b5e20; }
   .badge-fail { background: #fce4ec; color: #880e4f; }
+
+  /* Filter banner */
+  .filter-banner { display: none; background: #e3f2fd; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; align-items: center; gap: 8px; }
+  .filter-banner.active { display: flex; }
+  .filter-banner button { background: #1565c0; color: #fff; border: none; border-radius: 3px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+  .filter-banner button:hover { background: #0d47a1; }
 
   /* Print-friendly styles */
   @media print {
@@ -269,11 +299,15 @@ $html = @"
 </div>
 
 <div class="cards">
-  <div class="card card-total"><div class="card-label">Total findings</div><div class="card-value">$total</div></div>
-  <div class="card card-high"><div class="card-label">High (non-compliant)</div><div class="card-value">$high</div></div>
-  <div class="card card-medium"><div class="card-label">Medium (non-compliant)</div><div class="card-value">$medium</div></div>
-  <div class="card card-low"><div class="card-label">Low (non-compliant)</div><div class="card-value">$low</div></div>
-  <div class="card card-ok"><div class="card-label">Compliant %</div><div class="card-value">$compliantPct%</div></div>
+  <button class="card card-total" onclick="filterBySeverity(this,'all')" aria-pressed="false"><div class="card-label">Total findings</div><div class="card-value">$total</div></button>
+  <button class="card card-high" onclick="filterBySeverity(this,'High')" aria-pressed="false"><div class="card-label">High (non-compliant)</div><div class="card-value">$high</div></button>
+  <button class="card card-medium" onclick="filterBySeverity(this,'Medium')" aria-pressed="false"><div class="card-label">Medium (non-compliant)</div><div class="card-value">$medium</div></button>
+  <button class="card card-low" onclick="filterBySeverity(this,'Low')" aria-pressed="false"><div class="card-label">Low (non-compliant)</div><div class="card-value">$low</div></button>
+  <button class="card card-ok" onclick="filterBySeverity(this,'compliant')" aria-pressed="false"><div class="card-label">Compliant %</div><div class="card-value">$compliantPct%</div></button>
+</div>
+<div class="filter-banner" id="filterBanner">
+  <span id="filterBannerText"></span>
+  <button onclick="clearSeverityFilter()">Clear filter</button>
 </div>
 
 <!-- Per-Source Breakdown -->
@@ -292,6 +326,30 @@ $($toolCoverageHtml -join "`n")
 $($categoryHtml -join "`n")
 
 <script>
+var activeSevFilter = null;
+function filterBySeverity(btn, severity) {
+  var cards = document.querySelectorAll('.card');
+  var rows = document.querySelectorAll('.findings-table tbody tr');
+  var banner = document.getElementById('filterBanner');
+  var bannerText = document.getElementById('filterBannerText');
+  if (activeSevFilter === severity) { clearSeverityFilter(); return; }
+  activeSevFilter = severity;
+  cards.forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
+  btn.setAttribute('aria-pressed', 'true');
+  rows.forEach(function(r) {
+    if (severity === 'all') { r.style.display = ''; }
+    else if (severity === 'compliant') { r.style.display = r.querySelector('.badge-ok') ? '' : 'none'; }
+    else { r.style.display = r.dataset.severity === severity ? '' : 'none'; }
+  });
+  bannerText.textContent = severity === 'all' ? 'Showing all findings' : severity === 'compliant' ? 'Showing compliant findings only' : 'Showing ' + severity + ' severity findings only';
+  banner.classList.add('active');
+}
+function clearSeverityFilter() {
+  activeSevFilter = null;
+  document.querySelectorAll('.card').forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
+  document.querySelectorAll('.findings-table tbody tr').forEach(function(r) { r.style.display = ''; });
+  document.getElementById('filterBanner').classList.remove('active');
+}
 function sortTable(th) {
   const table = th.closest('table');
   const tbody = table.querySelector('tbody');
