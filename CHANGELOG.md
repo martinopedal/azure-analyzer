@@ -4,6 +4,11 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- README: Rewrite CI/Automation section — separate user-facing CI from maintainer-only squad workflows behind a collapsed `<details>` block
+- README: Add "For Contributors" section explaining that `.squad/` is maintainer infrastructure, not part of the tool
+- `.gitattributes`: Add `export-ignore` rules so squad files (`.squad/`, squad workflows, `.github/agents/`) are excluded from archive downloads
+
 ### Added
 - CI: `docs-check.yml` workflow enforces documentation updates on PRs that change code files
 - **Schema enrichment**: Unified findings now include `ResourceId` (Azure ARM resource ID) and `LearnMoreUrl` (Microsoft Learn link) fields

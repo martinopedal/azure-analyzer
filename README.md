@@ -128,13 +128,32 @@ This tool wraps the following open-source projects. See [THIRD_PARTY_NOTICES.md]
 | WARA | [Azure/Azure-Proactive-Resiliency-Library-v2](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2) | MIT |
 | ALZ Query Data | [Azure/review-checklists](https://github.com/Azure/review-checklists) | MIT |
 
-## CI / Automation
+## CI / Quality
 
-| Workflow | Trigger | What it does |
+| Workflow | Trigger | Purpose |
 |---|---|---|
-| `codeql.yml` | Push / PR / weekly | Static analysis (CodeQL v4, SHA-pinned) |
-| `ci-failure-analysis.yml` | Any workflow failure | Auto-creates `bug`+`squad` issue with log excerpt |
-| `squad-heartbeat.yml` | PR open/sync + schedule | Squad CI gate |
+| `codeql.yml` | Push / PR / weekly | Static analysis for security vulnerabilities (CodeQL, SHA-pinned) |
+| `docs-check.yml` | PR | Ensures documentation is updated with code changes |
+
+<details>
+<summary>Maintainer workflows (squad infrastructure)</summary>
+
+These workflows support the AI development team and are excluded from archive downloads.
+
+| Workflow | Purpose |
+|---|---|
+| `squad-heartbeat.yml` | Automated triage and CI gate via Ralph |
+| `squad-triage.yml` | Issue routing to squad members |
+| `squad-issue-assign.yml` | Auto-assignment of issues to squad agents |
+| `sync-squad-labels.yml` | Syncs squad labels across the repo |
+| `ci-failure-analysis.yml` | Auto-creates bug issues with log excerpts on workflow failures |
+| `auto-label-issues.yml` | Adds the `squad` label to new issues |
+
+</details>
+
+## For Contributors
+
+The `.squad/` directory contains AI team infrastructure used by the maintainer for automated issue triage and development workflows. It is **not** part of the azure-analyzer tool itself and is excluded from archive downloads (`Download ZIP`, release tarballs). If you clone the repo as a contributor you will see these files, but they do not affect tool functionality.
 
 ## License
 
