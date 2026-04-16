@@ -1,0 +1,26 @@
+{
+  "Source": "ado-connections",
+  "Status": "PartialSuccess",
+  "Message": "Scanned 2 project(s), found 1 service connection(s). Failed projects: SecretProject.",
+  "Findings": [
+    {
+      "Source": "ado-connections",
+      "ResourceId": "ado://contoso/open-project/serviceconnection/azure-dev",
+      "Category": "Service Connection",
+      "Title": "AzureRM connection: azure-dev",
+      "Compliant": true,
+      "Severity": "Info",
+      "Detail": "Type=AzureRM; AuthScheme=ServicePrincipal; AuthMechanism=SPN; IsShared=False",
+      "Remediation": "",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+      "SchemaVersion": "1.0",
+      "AdoOrg": "contoso",
+      "AdoProject": "open-project",
+      "ConnectionId": "d4e5f6a7-3333-4444-5555-666677778888",
+      "ConnectionType": "AzureRM",
+      "AuthScheme": "ServicePrincipal",
+      "AuthMechanism": "SPN",
+      "IsShared": false
+    }
+  ]
+}

@@ -12,6 +12,7 @@ Describe 'Normalize-ADOConnections' {
     BeforeAll {
         $fixture = Get-Content (Join-Path $PSScriptRoot '..\fixtures\ado-connections-output.json') -Raw | ConvertFrom-Json
         $failedFixture = Get-Content (Join-Path $PSScriptRoot '..\fixtures\failed-output.json') -Raw | ConvertFrom-Json
+        $partialFixture = Get-Content (Join-Path $PSScriptRoot '..\fixtures\ado-connections-partial-output.json') -Raw | ConvertFrom-Json
     }
 
     Context 'v3 schema conversion' {
@@ -147,6 +148,12 @@ Describe 'Normalize-ADOConnections' {
             $emptyResult = [PSCustomObject]@{ Source = 'ado-connections'; Status = 'Success'; Findings = @() }
             $results = Normalize-ADOConnections -ToolResult $emptyResult
             @($results).Count | Should -Be 0
+        }
+
+        It 'processes PartialSuccess findings normally' {
+            $results = Normalize-ADOConnections -ToolResult $partialFixture
+            @($results).Count | Should -Be 1
+            $results[0].EntityId | Should -BeExactly 'ado://contoso/open-project/serviceconnection/azure-dev'
         }
 
         It 'handles missing optional fields gracefully' {

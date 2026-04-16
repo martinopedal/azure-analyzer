@@ -435,12 +435,16 @@ foreach ($wr in $parallelResults) {
         $toolErrors.Add([PSCustomObject]@{ Tool = $toolName; Error = Remove-Credentials $errMsg; Timestamp = Get-Date })
     }
 
-    # Update worst status
+    # Update worst status (ranking: Failed > PartialSuccess > Skipped > Success)
     if ($wrapperStatus -eq 'Failed') {
         $agg.WorstStatus = 'Failed'
         $rawMsg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
         $agg.Messages.Add((Remove-Credentials $rawMsg))
-    } elseif ($wrapperStatus -eq 'Skipped' -and $agg.WorstStatus -ne 'Failed') {
+    } elseif ($wrapperStatus -eq 'PartialSuccess' -and $agg.WorstStatus -notin @('Failed')) {
+        $agg.WorstStatus = 'PartialSuccess'
+        $rawMsg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
+        $agg.Messages.Add((Remove-Credentials $rawMsg))
+    } elseif ($wrapperStatus -eq 'Skipped' -and $agg.WorstStatus -notin @('Failed', 'PartialSuccess')) {
         $agg.WorstStatus = 'Skipped'
     }
 

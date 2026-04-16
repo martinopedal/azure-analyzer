@@ -20,7 +20,7 @@ function Normalize-ADOConnections {
         [PSCustomObject] $ToolResult
     )
 
-    if ($ToolResult.Status -ne 'Success' -or -not $ToolResult.Findings) {
+    if ($ToolResult.Status -notin @('Success', 'PartialSuccess') -or -not $ToolResult.Findings) {
         return @()
     }
 

@@ -73,7 +73,22 @@ function Invoke-AdoApi {
         [hashtable] $Headers
     )
     Invoke-WithRetry -ScriptBlock {
-        Invoke-RestMethod -Uri $Uri -Headers $Headers -Method Get -ContentType 'application/json'
+        $webResponse = Invoke-WebRequest -Uri $Uri -Headers $Headers -Method Get -ContentType 'application/json'
+        $body = $webResponse.Content | ConvertFrom-Json
+        $ct = $null
+        if ($webResponse.Headers.ContainsKey('x-ms-continuationtoken')) {
+            $headerValue = $webResponse.Headers['x-ms-continuationtoken']
+            # Headers may return as string[] or string
+            if ($headerValue -is [array]) {
+                $ct = $headerValue[0]
+            } else {
+                $ct = $headerValue
+            }
+        }
+        [PSCustomObject]@{
+            Body              = $body
+            ContinuationToken = $ct
+        }
     }
 }
 
@@ -93,18 +108,13 @@ function Get-AdoProjects {
             $uri += "&continuationToken=$continuationToken"
         }
         $response = Invoke-AdoApi -Uri $uri -Headers $Headers
-        if ($response -and $response.PSObject.Properties['value']) {
-            foreach ($p in @($response.value)) {
+        $body = if ($response) { $response.Body } else { $null }
+        if ($body -and $body.PSObject.Properties['value']) {
+            foreach ($p in @($body.value)) {
                 $projects.Add($p.name)
             }
         }
-        # ADO returns continuation token in the response header; Invoke-RestMethod
-        # doesn't expose headers easily, so check the response body count.
-        # If we got a full page, there may be more.
-        $continuationToken = $null
-        if ($response -and $response.PSObject.Properties['continuationToken'] -and $response.continuationToken) {
-            $continuationToken = $response.continuationToken
-        }
+        $continuationToken = if ($response) { $response.ContinuationToken } else { $null }
     } while ($continuationToken)
     return @($projects)
 }
@@ -126,15 +136,13 @@ function Get-AdoServiceConnections {
             $uri += "&continuationToken=$continuationToken"
         }
         $response = Invoke-AdoApi -Uri $uri -Headers $Headers
-        if ($response -and $response.PSObject.Properties['value']) {
-            foreach ($c in @($response.value)) {
+        $body = if ($response) { $response.Body } else { $null }
+        if ($body -and $body.PSObject.Properties['value']) {
+            foreach ($c in @($body.value)) {
                 $connections.Add($c)
             }
         }
-        $continuationToken = $null
-        if ($response -and $response.PSObject.Properties['continuationToken'] -and $response.continuationToken) {
-            $continuationToken = $response.continuationToken
-        }
+        $continuationToken = if ($response) { $response.ContinuationToken } else { $null }
     } while ($continuationToken)
     return @($connections)
 }
