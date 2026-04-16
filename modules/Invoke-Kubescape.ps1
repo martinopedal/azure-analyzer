@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Wrapper for kubescape CLI (AKS runtime posture scanning).
