@@ -145,6 +145,26 @@ OpenSSF Scorecard evaluates repository security practices. Authentication is opt
 | Classic PAT | `repo` (or `public_repo` for public repos only) | 5,000 requests/hour | Free tier with GitHub account |
 | Fine-grained PAT | Repository access: **Read** | 15,000 requests/hour | Free; more secure |
 
+#### GHEC-DR and GHES (enterprise instances)
+
+For GitHub Enterprise Cloud with Data Residency (GHEC-DR) or GitHub Enterprise Server (GHES), the token must be created on the **enterprise instance** (not github.com). Use `-GitHubHost` to point Scorecard at the correct host.
+
+| Requirement | Details |
+|-------------|---------|
+| **Token** | PAT created on the enterprise instance with `repo` scope (classic) or repository Read access (fine-grained) |
+| **GH_HOST** | Set automatically via `-GitHubHost` parameter (e.g. `github.contoso.com`) |
+| **Network** | The machine running azure-analyzer must be able to reach the enterprise host |
+
+```powershell
+# GHES example
+$env:GITHUB_AUTH_TOKEN = "<enterprise-pat>"
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+
+# GHEC-DR example
+$env:GITHUB_AUTH_TOKEN = "<ghec-dr-pat>"
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.eu.acme.com/org/repo" -GitHubHost "github.eu.acme.com"
+```
+
 **How to grant:**
 
 **Option 1: Classic PAT (simplest)**

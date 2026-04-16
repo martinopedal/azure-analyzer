@@ -11,6 +11,10 @@
     The repository to scan (e.g., "github.com/martinopedal/azure-analyzer").
 .PARAMETER Threshold
     Minimum score (0-10) to consider a check compliant. Default is 7.
+.PARAMETER GitHubHost
+    Custom GitHub host for GHEC-DR or GHES (e.g., "github.contoso.com").
+    Sets GH_HOST environment variable for the scorecard CLI call.
+    When empty, defaults to github.com.
 #>
 [CmdletBinding()]
 param (
@@ -19,7 +23,9 @@ param (
     [string] $Repository,
 
     [ValidateRange(0, 10)]
-    [int] $Threshold = 7
+    [int] $Threshold = 7,
+
+    [string] $GitHubHost = ''
 )
 
 Set-StrictMode -Version Latest
@@ -45,9 +51,27 @@ if (-not $env:GITHUB_AUTH_TOKEN -and -not $env:GITHUB_TOKEN) {
 }
 
 try {
-    Write-Verbose "Running scorecard for repository $Repository (threshold=$Threshold)"
-    $rawOutput = scorecard --repo=$Repository --format=json 2>&1
-    $json = $rawOutput | Out-String | ConvertFrom-Json -ErrorAction Stop
+    # Set GH_HOST for GHEC-DR / GHES, preserving the original value
+    $originalGhHost = $env:GH_HOST
+    if ($GitHubHost) {
+        Write-Verbose "Setting GH_HOST=$GitHubHost for enterprise GitHub instance"
+        $env:GH_HOST = $GitHubHost
+    }
+
+    try {
+        Write-Verbose "Running scorecard for repository $Repository (threshold=$Threshold)"
+        $rawOutput = scorecard --repo=$Repository --format=json 2>&1
+        $json = $rawOutput | Out-String | ConvertFrom-Json -ErrorAction Stop
+    } finally {
+        # Restore original GH_HOST
+        if ($GitHubHost) {
+            if ($null -eq $originalGhHost) {
+                Remove-Item Env:\GH_HOST -ErrorAction SilentlyContinue
+            } else {
+                $env:GH_HOST = $originalGhHost
+            }
+        }
+    }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
     $repoName = ''
@@ -111,3 +135,4 @@ try {
         Findings = @()
     }
 }
+

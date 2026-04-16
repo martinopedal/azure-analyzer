@@ -29,6 +29,13 @@ Connect-MgGraph -Scopes (Get-MtGraphScope)
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" -Repository "github.com/org/repo"
 ```
 
+**Scenario 4: GitHub Enterprise (GHEC-DR or GHES) repository**
+
+```powershell
+$env:GITHUB_AUTH_TOKEN = "<enterprise-pat>"
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+```
+
 Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
 
 Missing PowerShell modules are detected and reported with install commands. Use `-InstallMissingModules` to auto-install them.
@@ -177,6 +184,9 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 # Azure + repository supply chain security
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
 
+# GHEC-DR / GHES repository (enterprise GitHub instance)
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+
 # Full assessment (all 3 dimensions)
 .\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -Repository "github.com/org/repo"
 
@@ -196,6 +206,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-TenantId` | string | current context | Azure tenant ID (used by WARA) |
 | `-OutputPath` | string | `.\output` | Directory for results, reports, and errors |
 | `-Repository` | string | -- | GitHub repo for Scorecard (e.g. `github.com/org/repo`) |
+| `-GitHubHost` | string | -- | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
@@ -250,7 +261,7 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
 | 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
 
-> **Note:** Scorecard may work with GitHub Enterprise (GHEC/GHES) URLs. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for GHEC/GHES token requirements.
+> **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
 ## Schema reference
 

@@ -173,4 +173,92 @@ Describe 'Normalize-Scorecard' {
             @($results).Count | Should -Be 1
         }
     }
+
+    Context 'enterprise GitHub host (GHEC-DR / GHES)' {
+        It 'canonicalizes GHES repository URL with enterprise host' {
+            $ghesInput = [PSCustomObject]@{
+                Source   = 'scorecard'
+                Status   = 'Success'
+                Findings = @(
+                    [PSCustomObject]@{
+                        Source       = 'scorecard'
+                        ResourceId   = 'github.contoso.com/org/repo'
+                        Category     = 'Supply Chain'
+                        Title        = 'Branch protection check'
+                        Compliant    = $false
+                        Severity     = 'High'
+                        Detail       = 'Score 3/10. Enterprise repo check'
+                        SchemaVersion = '1.0'
+                    }
+                )
+            }
+            $results = Normalize-Scorecard -ToolResult $ghesInput
+            @($results).Count | Should -Be 1
+            $results[0].EntityId | Should -BeExactly 'github.contoso.com/org/repo'
+        }
+
+        It 'canonicalizes GHEC-DR repository URL' {
+            $ghecDrInput = [PSCustomObject]@{
+                Source   = 'scorecard'
+                Status   = 'Success'
+                Findings = @(
+                    [PSCustomObject]@{
+                        Source       = 'scorecard'
+                        ResourceId   = 'github.eu.acme.com/team/project'
+                        Category     = 'Supply Chain'
+                        Title        = 'Dependency pinning'
+                        Compliant    = $true
+                        Severity     = 'Info'
+                        Detail       = 'Score 10/10. All pinned'
+                        SchemaVersion = '1.0'
+                    }
+                )
+            }
+            $results = Normalize-Scorecard -ToolResult $ghecDrInput
+            @($results).Count | Should -Be 1
+            $results[0].EntityId | Should -BeExactly 'github.eu.acme.com/team/project'
+        }
+
+        It 'lowercases enterprise EntityId' {
+            $upperInput = [PSCustomObject]@{
+                Source   = 'scorecard'
+                Status   = 'Success'
+                Findings = @(
+                    [PSCustomObject]@{
+                        Source       = 'scorecard'
+                        ResourceId   = 'GitHub.Contoso.Com/MyOrg/MyRepo'
+                        Category     = 'Supply Chain'
+                        Title        = 'Check'
+                        Compliant    = $false
+                        Severity     = 'Medium'
+                        Detail       = 'Score 5/10.'
+                        SchemaVersion = '1.0'
+                    }
+                )
+            }
+            $results = Normalize-Scorecard -ToolResult $upperInput
+            $results[0].EntityId | Should -BeExactly 'github.contoso.com/myorg/myrepo'
+        }
+
+        It 'still works with standard github.com ResourceId' {
+            $standardInput = [PSCustomObject]@{
+                Source   = 'scorecard'
+                Status   = 'Success'
+                Findings = @(
+                    [PSCustomObject]@{
+                        Source       = 'scorecard'
+                        ResourceId   = 'github.com/martinopedal/azure-analyzer'
+                        Category     = 'Supply Chain'
+                        Title        = 'Check'
+                        Compliant    = $true
+                        Severity     = 'Info'
+                        Detail       = 'Score 10/10.'
+                        SchemaVersion = '1.0'
+                    }
+                )
+            }
+            $results = Normalize-Scorecard -ToolResult $standardInput
+            $results[0].EntityId | Should -BeExactly 'github.com/martinopedal/azure-analyzer'
+        }
+    }
 }

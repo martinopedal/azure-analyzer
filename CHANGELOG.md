@@ -4,6 +4,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **GHEC-DR and GHES support**: New `-GitHubHost` parameter on `Invoke-AzureAnalyzer.ps1` and `Invoke-Scorecard.ps1` sets the `GH_HOST` environment variable for the Scorecard CLI, enabling scans against GitHub Enterprise Cloud with Data Residency and GitHub Enterprise Server instances. Canonical entity IDs now use the actual host instead of hardcoding `github.com`. Backward compatible -- omitting `-GitHubHost` defaults to github.com.
+- **Identity correlator v0**: Cross-dimensional identity correlation engine (`modules/shared/IdentityCorrelator.ps1`) that maps service principals, managed identities, and app registrations across Azure, Entra, GitHub, and ADO dimensions. Uses candidate reduction (never bulk-enumerates SPNs). Opt-in Graph enrichment via `-IncludeGraphLookup` for federated identity credential lookups. Confidence scoring: Confirmed (3+ dimensions), Likely (2), Unconfirmed (name-only). Includes normalizer passthrough, tool manifest entry, and Pester tests.
+
 ### Fixed
 - **README schema table**: Split into three sections: `results.json` (v1 backward-compatible, 10 fields), `entities.json` (v3 entity model), and `v2 FindingRow` (24 fields used in entity Observations). Previously documented all 24 fields as the results.json format.
 - **Sample results.json**: Stripped to the 10-field v1 format that the orchestrator actually writes to results.json (removed EntityId, EntityType, Platform, Provenance, SubscriptionId, SubscriptionName, ResourceGroup, ManagementGroupPath, Frameworks, Controls, Confidence, EvidenceCount, MissingDimensions, SchemaVersion).

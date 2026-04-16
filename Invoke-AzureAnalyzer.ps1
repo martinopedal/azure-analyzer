@@ -20,6 +20,12 @@
 .PARAMETER Repository
     GitHub repository to scan with OpenSSF Scorecard (e.g. "github.com/org/repo").
     Required for Scorecard tool; ignored by Azure-scoped tools.
+    For GHEC-DR or GHES, use the enterprise host (e.g. "github.contoso.com/org/repo")
+    together with -GitHubHost.
+.PARAMETER GitHubHost
+    Custom GitHub host for GHEC-DR or GHES instances (e.g. "github.contoso.com").
+    Sets the GH_HOST environment variable for the Scorecard CLI. When empty,
+    defaults to github.com. Requires a GITHUB_AUTH_TOKEN valid on the enterprise instance.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -27,6 +33,7 @@
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
+    .\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
 #>
 [CmdletBinding()]
 param (
@@ -40,6 +47,7 @@ param (
     [switch] $InstallMissingModules,
     [switch] $Recurse,
     [string] $Repository,
+    [string] $GitHubHost = '',
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
     [switch] $EnableAiTriage
@@ -310,7 +318,10 @@ foreach ($toolDef in $manifest.tools) {
                 continue
             }
             $params = @{ Repository = $Repository }
-            if ($toolDef.name -eq 'scorecard') { $params['Threshold'] = $ScorecardThreshold }
+            if ($toolDef.name -eq 'scorecard') {
+                $params['Threshold'] = $ScorecardThreshold
+                if ($GitHubHost) { $params['GitHubHost'] = $GitHubHost }
+            }
             $specName = "$($toolDef.name)|repo"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
