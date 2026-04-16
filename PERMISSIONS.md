@@ -262,7 +262,7 @@ Azure-analyzer follows the principle of least privilege:
 - ❌ **Write permissions** to any Azure resource
 - ❌ **Key Vault access** -- No secrets are read from or stored in Key Vault
 - ❌ **Network permissions** -- No virtual network or firewall rules are modified
-- ❌ **Azure DevOps permissions** -- No ADO integration planned
+- ❌ **Azure DevOps permissions** -- ADO pipeline scanning is planned ([#48](https://github.com/martinopedal/azure-analyzer/issues/48)) but no tool wrappers exist yet
 - ❌ **Service Principal Password** -- Only object ID is needed for role assignment
 
 ### AI Triage (optional)

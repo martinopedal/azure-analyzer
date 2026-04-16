@@ -5,10 +5,18 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
-- **PSRule wrapper v1 field mapping**: `Invoke-PSRule.ps1` now emits standardised v1 fields (Title, Category, Compliant, Severity, Detail, Remediation, LearnMoreUrl) instead of raw PSRule fields (RuleName, Outcome, TargetName, Message). Normalizer no longer falls back to `Compliant=$true` / `Title='Unknown'` for real failures.
-- **azqr parallel output isolation**: azqr now writes to per-subscription output dirs (`azqr-<subId>`) during multi-subscription runs, preventing result mixing in parallel execution — same pattern as the WARA fix.
+- **README schema table**: Split into three sections: `results.json` (v1 backward-compatible, 10 fields), `entities.json` (v3 entity model), and `v2 FindingRow` (24 fields used in entity Observations). Previously documented all 24 fields as the results.json format.
+- **Sample results.json**: Stripped to the 10-field v1 format that the orchestrator actually writes to results.json (removed EntityId, EntityType, Platform, Provenance, SubscriptionId, SubscriptionName, ResourceGroup, ManagementGroupPath, Frameworks, Controls, Confidence, EvidenceCount, MissingDimensions, SchemaVersion).
+- **Sample entities.json**: Replaced FindingId mini-records in Observations with full v2 FindingRow objects matching actual EntityStore output.
+- **ARCHITECTURE.md AzGovViz entity type**: Updated from single `AzureResource` to `ManagementGroup / Subscription / AzureResource` with contextual typing note.
+- **ARCHITECTURE.md WARA normalizer filename**: Corrected `Normalize-Wara.ps1` to `Normalize-WARA.ps1` matching actual file.
+- **ARCHITECTURE.md report stage**: Replaced stale `report-model.json` reference with actual inputs (results.json, entities.json, tool-status.json).
+- **CONTRIBUTING-TOOLS.md normalizer paths**: Updated `modules/Normalize-{ToolName}.ps1` to `modules/normalizers/Normalize-{ToolName}.ps1`. Fixed manifest example to use function-name normalizer field. Fixed test example to use `-ToolResult` parameter.
+- **Em-dashes**: Replaced em-dashes with `--` in ARCHITECTURE.md and CONTRIBUTING-TOOLS.md.
 
 ### Added
+- **CONTRIBUTING.md normalizer workflow**: Added "Adding a new tool" section describing the three-component workflow (collector, normalizer, manifest entry) with link to CONTRIBUTING-TOOLS.md.
+- **README Roadmap section**: Added roadmap with planned ADO pipeline security scanning (issue #48) and GHEC/GHES compatibility note for Scorecard.
 - **Phase 1 normalizers**: Seven normalizer functions in `modules/normalizers/` that convert raw tool output (v1) to schema v3 FindingRow format. Each normalizer parses ARM ResourceIds, extracts subscription and resource group context, and maps platform/entity-type per tool.
 - **Phase 1 manifest-driven plugin model**: `tools/tool-manifest.json` drives tool registration and execution. Orchestrator loads manifest to resolve eligible tools and call corresponding collector and normalizer scripts.
 - **Phase 1 dual output model**: Parallel output streams produce both `entities.json` (entity-centric observations) and `results.json` (backward-compatible flat findings). Normalizers feed into entity correlation pipeline.

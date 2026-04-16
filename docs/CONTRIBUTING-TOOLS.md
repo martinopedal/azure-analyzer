@@ -6,7 +6,7 @@
    - `modules/Invoke-{ToolName}.ps1`
    - Follow the wrapper contract (see below)
 2. **Create the normalizer**
-   - `modules/Normalize-{ToolName}.ps1`
+   - `modules/normalizers/Normalize-{ToolName}.ps1`
    - Map raw output into schema v2
 3. **Register in the manifest**
    - Add an entry in `tools/tool-manifest.json`
@@ -20,7 +20,7 @@
 ## Wrapper contract
 
 Each tool wrapper is responsible for executing the tool and returning a
-consistent result object. Wrappers **must not throw** — they return a status
+consistent result object. Wrappers **must not throw** -- they return a status
 and message instead.
 
 ### Input parameters
@@ -64,12 +64,13 @@ Normalizers convert raw tool output into the schema v2 finding shape.
 
 ### Requirements
 
-- Map every raw field into a v2 field **or** explicitly list the field as:
-  `not captured: <reason>`.
-- Enforce required fields: `Id`, `Source`, `Category`, `Title`, `Severity`,
-  `Compliant`, `Detail`.
-- Use canonical `ResourceId` whenever possible.
-- Return an array of findings only — no side effects.
+- Call `New-FindingRow` (from `modules/shared/Schema.ps1`) for each finding.
+- Required parameters: `Id`, `Source`, `EntityId`, `EntityType`, `Title`, `Compliant`,
+  `ProvenanceRunId`.
+- Use canonical `EntityId` whenever possible (via `ConvertTo-CanonicalArmId` or
+  `ConvertTo-CanonicalRepoId` from `Canonicalize.ps1`).
+- Accept a `$ToolResult` parameter (the wrapper output object) instead of raw findings.
+- Return an array of findings only -- no side effects.
 
 ---
 
@@ -78,11 +79,11 @@ Normalizers convert raw tool output into the schema v2 finding shape.
 ```json
 {
   "name": "exampletool",
-  "provider": "Azure",
-  "scope": "Subscription",
-  "collector": "modules/Invoke-ExampleTool.ps1",
-  "normalizer": "modules/Normalize-ExampleTool.ps1",
-  "permissionTier": 1
+  "provider": "azure",
+  "scope": "subscription",
+  "script": "modules/Invoke-ExampleTool.ps1",
+  "normalizer": "Normalize-ExampleTool",
+  "requiredPermissionTier": 1
 }
 ```
 
@@ -106,41 +107,48 @@ Normalizers convert raw tool output into schema v2 FindingRow format. They are c
 function Normalize-MyTool {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
-        [object[]]$Findings,
-        
-        [Parameter(Mandatory=$false)]
-        [string]$SubscriptionId,
-        
-        [Parameter(Mandatory=$false)]
-        [string]$ResourceGroup
+        [Parameter(Mandatory)]
+        [PSCustomObject] $ToolResult
     )
-    
-    $normalized = @()
-    
-    foreach ($finding in $Findings) {
-        # Extract ResourceId from raw finding (if applicable)
+
+    if ($ToolResult.Status -ne 'Success' -or -not $ToolResult.Findings) {
+        return @()
+    }
+
+    $runId = [guid]::NewGuid().ToString()
+    $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    foreach ($finding in $ToolResult.Findings) {
         $resourceId = $finding.ResourceId
         if (-not $resourceId -and $finding.TargetName) {
             $resourceId = $finding.TargetName
         }
-        
-        # Map to v2 schema
-        $normalized += [PSCustomObject]@{
-            Id           = [guid]::NewGuid().ToString()
-            Source       = 'mytool'
-            Category     = $finding.Category
-            Title        = $finding.Title
-            Severity     = $finding.Severity
-            Compliant    = $finding.Compliant
-            Detail       = $finding.Description
-            Remediation  = $finding.Recommendation
-            ResourceId   = $resourceId
-            LearnMoreUrl = $finding.HelpUrl
+
+        # Canonicalize ARM IDs when possible
+        $canonicalId = if ($resourceId -and $resourceId -match '^/subscriptions/') {
+            try { ConvertTo-CanonicalArmId -ArmId $resourceId } catch { $resourceId.ToLowerInvariant() }
+        } else {
+            "mytool/$($finding.Id ?? [guid]::NewGuid().ToString())"
         }
+
+        $row = New-FindingRow `
+            -Id ([guid]::NewGuid().ToString()) `
+            -Source 'mytool' `
+            -EntityId $canonicalId `
+            -EntityType 'AzureResource' `
+            -Title $finding.Title `
+            -Compliant ([bool]$finding.Compliant) `
+            -ProvenanceRunId $runId `
+            -Category $finding.Category `
+            -Severity $finding.Severity `
+            -Detail $finding.Description `
+            -Remediation $finding.Recommendation `
+            -ResourceId ($resourceId ?? '') `
+            -LearnMoreUrl ($finding.HelpUrl ?? '')
+        $normalized.Add($row)
     }
-    
-    return $normalized
+
+    return @($normalized)
 }
 ```
 
@@ -163,10 +171,11 @@ The `normalizer` field points to your new normalizer script.
 
 ### Step 2: Field mapping requirements
 
-Ensure all raw fields are mapped:
+Normalizers must call `New-FindingRow` from `modules/shared/Schema.ps1`. Required parameters:
 
-- **Required v2 fields**: `Id`, `Source`, `Category`, `Title`, `Severity`, `Compliant`, `Detail`
-- **Optional v2 fields**: `Remediation`, `ResourceId`, `LearnMoreUrl`
+- **Required**: `Id`, `Source`, `EntityId`, `EntityType`, `Title`, `Compliant`, `ProvenanceRunId`
+- **Recommended**: `Category`, `Severity`, `Detail`, `Remediation`, `ResourceId`, `LearnMoreUrl`, `Platform`
+- **Optional**: `SubscriptionId`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, `MissingDimensions`
 - **Unmapped fields**: List them as `not captured: <reason>` in code comments
 
 ### Step 3: ResourceId extraction
@@ -194,7 +203,8 @@ Example test:
 Describe 'Normalize-MyTool' {
     It 'converts raw finding to v2 schema' {
         $raw = Get-Content 'tests/fixtures/normalizers/mytool-sample.json' | ConvertFrom-Json
-        $normalized = Normalize-MyTool -Findings $raw
+        $toolResult = [PSCustomObject]@{ Source = 'mytool'; Status = 'Success'; Message = ''; Findings = $raw }
+        $normalized = Normalize-MyTool -ToolResult $toolResult
         
         $normalized[0].Source | Should -Be 'mytool'
         $normalized[0].Compliant | Should -BeOfType [bool]
