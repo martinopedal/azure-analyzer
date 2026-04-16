@@ -253,6 +253,9 @@ foreach ($toolDef in $manifest.tools) {
                     if ($TenantId) { $params['TenantId'] = $TenantId }
                     $params['OutputPath'] = Join-Path $OutputPath "wara-$subId"
                 }
+                if ($toolDef.name -eq 'azqr') {
+                    $params['OutputPath'] = Join-Path $OutputPath "azqr-$subId"
+                }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{
                     Name        = $specName

@@ -4,6 +4,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **PSRule wrapper v1 field mapping**: `Invoke-PSRule.ps1` now emits standardised v1 fields (Title, Category, Compliant, Severity, Detail, Remediation, LearnMoreUrl) instead of raw PSRule fields (RuleName, Outcome, TargetName, Message). Normalizer no longer falls back to `Compliant=$true` / `Title='Unknown'` for real failures.
+- **azqr parallel output isolation**: azqr now writes to per-subscription output dirs (`azqr-<subId>`) during multi-subscription runs, preventing result mixing in parallel execution — same pattern as the WARA fix.
+
 ### Added
 - **Phase 1 normalizers**: Seven normalizer functions in `modules/normalizers/` that convert raw tool output (v1) to schema v3 FindingRow format. Each normalizer parses ARM ResourceIds, extracts subscription and resource group context, and maps platform/entity-type per tool.
 - **Phase 1 manifest-driven plugin model**: `tools/tool-manifest.json` drives tool registration and execution. Orchestrator loads manifest to resolve eligible tools and call corresponding collector and normalizer scripts.
