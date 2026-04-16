@@ -1,4 +1,4 @@
-# Permissions Reference — azure-analyzer
+# Permissions Reference -- azure-analyzer
 
 ## Core Principle
 
@@ -8,7 +8,7 @@ All tools operate **read-only** with no write permissions anywhere. Azure-analyz
 
 ## Required permissions by scope
 
-### Azure (Reader — all resource tools)
+### Azure (Reader -- all resource tools)
 
 | Tool | Scope | Role | Why |
 |------|-------|------|-----|
@@ -68,7 +68,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 .\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "00000000-0000-0000-0000-000000000000"
 
 # Scan specific MG subtree
-# E.g., "my-landing-zone" — discovers child subs, runs sub-tools per discovery
+# E.g., "my-landing-zone" -- discovers child subs, runs sub-tools per discovery
 .\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-landing-zone"
 
 # MG-level tools only, skip per-subscription recursion
@@ -85,7 +85,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 
 ---
 
-### Microsoft Graph (Maester — identity security)
+### Microsoft Graph (Maester -- identity security)
 
 Maester requires delegated or application permissions to read Entra ID security configuration.
 
@@ -125,7 +125,7 @@ For service principals (application permissions):
 
 ---
 
-### GitHub (Scorecard — repository security)
+### GitHub (Scorecard -- repository security)
 
 OpenSSF Scorecard evaluates repository security practices. Authentication is optional but **strongly recommended** to avoid rate limits.
 
@@ -210,19 +210,19 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 
 | Tool | Azure Reader | Microsoft Graph | GitHub Token | Copilot License |
 |------|-------------|-----------------|-------------|-----------------|
-| **azqr** | ✅ Required | — | — | — |
-| **PSRule** | ✅ Required | — | — | — |
-| **AzGovViz** | ✅ Required | — | — | — |
-| **ALZ Queries** | ✅ Required | — | — | — |
-| **WARA** | ✅ Required | — | — | — |
-| **Maester** | — | ✅ Required | — | — |
-| **Scorecard** | — | — | ⚡ Recommended | — |
-| **AI Triage** | — | — | ⚡ Recommended | ⚠️ Optional |
+| **azqr** | ✅ Required | -- | -- | -- |
+| **PSRule** | ✅ Required | -- | -- | -- |
+| **AzGovViz** | ✅ Required | -- | -- | -- |
+| **ALZ Queries** | ✅ Required | -- | -- | -- |
+| **WARA** | ✅ Required | -- | -- | -- |
+| **Maester** | -- | ✅ Required | -- | -- |
+| **Scorecard** | -- | -- | ⚡ Recommended | -- |
+| **AI Triage** | -- | -- | ⚡ Recommended | ⚠️ Optional |
 
 - ✅ = Required for tool to function
 - ⚡ = Strongly recommended (improves rate limits, feature completeness)
 - ⚠️ = Optional (license required only if you want AI analysis)
-- — = Not required for this tool
+- -- = Not required for this tool
 
 ---
 
@@ -230,10 +230,10 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 
 Azure-analyzer follows the principle of least privilege:
 
-1. **Read-only everywhere** — No write permissions on any scope (Azure, Graph, GitHub)
-2. **Scoped to subscriptions/tenants** — Not broader than necessary
-3. **Graceful degradation** — Missing permissions don't fail the run; the affected tool is skipped with a warning
-4. **Tool-specific controls** — Use `-IncludeTools` or `-ExcludeTools` to run only what you have access to
+1. **Read-only everywhere** -- No write permissions on any scope (Azure, Graph, GitHub)
+2. **Scoped to subscriptions/tenants** -- Not broader than necessary
+3. **Graceful degradation** -- Missing permissions don't fail the run; the affected tool is skipped with a warning
+4. **Tool-specific controls** -- Use `-IncludeTools` or `-ExcludeTools` to run only what you have access to
 
 **Example: Run only tools you have permissions for**
 ```powershell
@@ -248,12 +248,12 @@ Azure-analyzer follows the principle of least privilege:
 
 ## What we do NOT need
 
-- ❌ **Contributor** or **Owner** roles — Reader is sufficient
+- ❌ **Contributor** or **Owner** roles -- Reader is sufficient
 - ❌ **Write permissions** to any Azure resource
-- ❌ **Key Vault access** — No secrets are read from or stored in Key Vault
-- ❌ **Network permissions** — No virtual network or firewall rules are modified
-- ❌ **Azure DevOps permissions** — No ADO integration planned
-- ❌ **Service Principal Password** — Only object ID is needed for role assignment
+- ❌ **Key Vault access** -- No secrets are read from or stored in Key Vault
+- ❌ **Network permissions** -- No virtual network or firewall rules are modified
+- ❌ **Azure DevOps permissions** -- No ADO integration planned
+- ❌ **Service Principal Password** -- Only object ID is needed for role assignment
 
 ### AI Triage (optional)
 
@@ -301,6 +301,6 @@ curl -H "Authorization: token $env:GITHUB_AUTH_TOKEN" https://api.github.com/rat
 
 ## See also
 
-- [README.md](README.md) — Quick start and tool overview
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Development and PR process
-- [SECURITY.md](SECURITY.md) — Security practices and disclosure
+- [README.md](README.md) -- Quick start and tool overview
+- [CONTRIBUTING.md](CONTRIBUTING.md) -- Development and PR process
+- [SECURITY.md](SECURITY.md) -- Security practices and disclosure

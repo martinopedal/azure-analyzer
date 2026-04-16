@@ -13,10 +13,10 @@ All notable changes to azure-analyzer will be documented here.
 - **Maester integration**: Added `modules/Invoke-Maester.ps1` wrapper for Entra ID / identity security posture assessment (tool #6). Checks Graph connection, maps Pester test results to unified schema. Runs unconditionally (tenant-scoped, not subscription-gated).
 - **OpenSSF Scorecard integration**: Added `modules/Invoke-Scorecard.ps1` wrapper for repository supply chain security assessment (tool #7). Evaluates branch protection, dependency pinning, CI/CD configuration, and other security practices. Requires repository context via new `-Repository` parameter.
 - **Sample reports and visual previews in README**: Added `samples/` directory with mock findings data and pre-generated HTML + Markdown reports so users can see output before running the tool. README now includes collapsed preview sections for both report formats.
-- **Bundled ALZ queries**: ALZ Resource Graph queries are now automatically bundled from [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) — no manual copy-step required. Queries originate from [Azure/review-checklists](https://github.com/Azure/review-checklists).
+- **Bundled ALZ queries**: ALZ Resource Graph queries are now automatically bundled from [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) -- no manual copy-step required. Queries originate from [Azure/review-checklists](https://github.com/Azure/review-checklists).
 - CI: `docs-check.yml` workflow enforces documentation updates on PRs that change code files
 - **Schema enrichment**: Unified findings now include `ResourceId` (Azure ARM resource ID) and `LearnMoreUrl` (Microsoft Learn link) fields
-- **Auto-report generation**: `Invoke-AzureAnalyzer.ps1` now automatically calls `New-HtmlReport.ps1` and `New-MdReport.ps1` after writing `results.json` — no manual step needed
+- **Auto-report generation**: `Invoke-AzureAnalyzer.ps1` now automatically calls `New-HtmlReport.ps1` and `New-MdReport.ps1` after writing `results.json` -- no manual step needed
 - **HTML report enhancements**:
   - Executive summary with auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
   - Pure-CSS donut chart using conic-gradient for compliance percentage (zero JS dependencies)
@@ -39,26 +39,26 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Changed
 - README: Restructure as consumer-first (Quick Start → What you get → Prerequisites → Usage → Schema → Permissions) with contributor/CI sections below a separator
-- README: Rewrite CI/Automation section — separate user-facing CI from maintainer-only squad workflows behind a collapsed `<details>` block
+- README: Rewrite CI/Automation section -- separate user-facing CI from maintainer-only squad workflows behind a collapsed `<details>` block
 - README: Add "For Contributors" section explaining that `.squad/` is maintainer infrastructure, not part of the tool
 - `.gitattributes`: Add `export-ignore` rules so squad files (`.squad/`, squad workflows, `.github/agents/`) are excluded from archive downloads
 - README & THIRD_PARTY_NOTICES.md: Update ALZ queries attribution to reflect derivation chain (alz-graph-queries ← Azure/review-checklists)
-- `Invoke-PSRule.ps1` — populate `ResourceId` from `TargetName` when it looks like an ARM resource ID
-- `Invoke-AlzQueries.ps1` — populate `ResourceId` from first non-compliant ARG row
-- `Invoke-WARA.ps1` — populate `ResourceId` from ImpactedResources and `LearnMoreUrl` from LearnMoreLink
+- `Invoke-PSRule.ps1` -- populate `ResourceId` from `TargetName` when it looks like an ARM resource ID
+- `Invoke-AlzQueries.ps1` -- populate `ResourceId` from first non-compliant ARG row
+- `Invoke-WARA.ps1` -- populate `ResourceId` from ImpactedResources and `LearnMoreUrl` from LearnMoreLink
 - Updated README.md to document unified 10-field schema and auto-generated reports
 
 ### Removed
-- Delete dead Python stubs (`src/run.py`, `src/__init__.py`) — orchestrator is PowerShell only
+- Delete dead Python stubs (`src/run.py`, `src/__init__.py`) -- orchestrator is PowerShell only
 
 ### Fixed
 - **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.
-- **Prereq behavior**: `Install-Prerequisites` now advise-only by default — lists missing modules with install commands. Add `-InstallMissingModules` switch to opt-in to auto-install. Prevents unexpected writes in shared/CI environments.
+- **Prereq behavior**: `Install-Prerequisites` now advise-only by default -- lists missing modules with install commands. Add `-InstallMissingModules` switch to opt-in to auto-install. Prevents unexpected writes in shared/CI environments.
 - **Report field rendering**: HTML and Markdown reports now render `ResourceId` and `LearnMoreUrl` columns in all findings tables (previously only stored in JSON but not displayed)
 - **PS 7.6 compatibility**: Fix `New-HtmlReport.ps1` `-join` operator parsing error on PowerShell 7.6 (wrap `ForEach-Object` pipeline in parentheses)
-- **Dedup key strengthened**: Use `Source+ResourceId+Category+Title+Compliant` as composite key. Never dedup across tools when ResourceId is empty — prevents unrelated findings from collapsing.
+- **Dedup key strengthened**: Use `Source+ResourceId+Category+Title+Compliant` as composite key. Never dedup across tools when ResourceId is empty -- prevents unrelated findings from collapsing.
 - **PSRule severity mapping**: Fix `Outcome` (Pass/Fail) incorrectly mapping to severity via `Map-Severity` (Fail fell through to Info). Now derives severity from Outcome directly: Fail=Medium, Error=High, Pass=Info.
 - **errors.json completeness**: Wrapper `Status='Failed'` returns now recorded in `$toolErrors` and `errors.json`, not just exception-path failures.
 - **Tool status tracking**: Orchestrator writes `tool-status.json` alongside `results.json` with per-tool Status/Message/Findings count. Reports use this to distinguish success-with-zero-findings from skipped/failed.
