@@ -25,6 +25,10 @@ $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) {
     . $sanitizePath
 }
+$frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapper.ps1'
+if (Test-Path $frameworkMapperPath) {
+    . $frameworkMapperPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -125,6 +129,24 @@ if ($TriagePath -and (Test-Path $TriagePath)) {
                 $risk = ($t.AiRiskContext -replace '\|', '\\|' -replace "`n|`r", ' ')
                 $rem = ($t.AiRemediation -replace '\|', '\\|' -replace "`n|`r", ' ')
                 $lines.Add("| $($t.AiPriority) | $title | $($t.Severity) | $($t.Source) | $risk | $rem |")
+            }
+            $lines.Add('')
+        }
+    } catch { }
+}
+
+# Compliance framework coverage
+if (Get-Command Get-FrameworkCoverage -ErrorAction SilentlyContinue) {
+    try {
+        $coverage = @(Get-FrameworkCoverage -Findings $findings)
+        if ($coverage.Count -gt 0) {
+            $lines.Add('## Compliance coverage')
+            $lines.Add('')
+            $lines.Add('| Framework | Version | Controls hit | Total controls | Coverage | Status |')
+            $lines.Add('|---|---|---:|---:|---:|---|')
+            foreach ($c in $coverage) {
+                $icon = switch ($c.Status) { 'green' { '🟢' } 'yellow' { '🟡' } 'red' { '🔴' } default { '⚪' } }
+                $lines.Add("| $($c.DisplayName) | $($c.Version) | $($c.ControlsHit) | $($c.ControlsTotal) | $($c.PercentCovered)% | $icon |")
             }
             $lines.Add('')
         }

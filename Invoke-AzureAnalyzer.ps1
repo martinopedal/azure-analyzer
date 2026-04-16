@@ -67,6 +67,8 @@ param (
     [string] $ScanPath,
     [ValidateSet('fs', 'repo')]
     [string] $ScanType,
+    [ValidateSet('CIS','NIST','PCI')]
+    [string] $Framework,
     [switch] $EnableAiTriage
 )
 
@@ -77,7 +79,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -476,6 +478,9 @@ foreach ($wr in $parallelResults) {
     # Feed v3 findings into EntityStore
     foreach ($finding in $v3Findings) {
         try {
+            if (Get-Command Add-FrameworkMapping -ErrorAction SilentlyContinue) {
+                $null = Add-FrameworkMapping -Finding $finding -FilterFramework $Framework
+            }
             $store.AddFinding($finding)
         } catch {
             Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $toolName : $_")
@@ -497,6 +502,8 @@ foreach ($wr in $parallelResults) {
             Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
             ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
             LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+            Frameworks   = if ($f.PSObject.Properties['Frameworks']   -and $f.Frameworks)   { $f.Frameworks }   else { @() }
+            Controls     = if ($f.PSObject.Properties['Controls']     -and $f.Controls)     { $f.Controls }     else { @() }
         })
     }
 }

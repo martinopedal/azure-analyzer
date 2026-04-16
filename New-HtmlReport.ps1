@@ -24,6 +24,10 @@ $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) {
     . $sanitizePath
 }
+$frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapper.ps1'
+if (Test-Path $frameworkMapperPath) {
+    . $frameworkMapperPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -221,6 +225,36 @@ $uniqueResources = @($findings | Select-Object -ExpandProperty Detail -ErrorActi
 if ($uniqueResources -eq 0) { $uniqueResources = $total }
 $toolsUsed = $sourcesWithResults.Count
 
+# --- Compliance framework coverage ---
+$complianceHtml = ''
+if (Get-Command Get-FrameworkCoverage -ErrorAction SilentlyContinue) {
+    try {
+        $coverage = @(Get-FrameworkCoverage -Findings $findings)
+        if ($coverage.Count -gt 0) {
+            $rows = foreach ($c in $coverage) {
+                $colorMap = @{ green='#2e7d32'; yellow='#e65100'; red='#d32f2f' }
+                $barColor = $colorMap[$c.Status]
+                $label = HE "$($c.DisplayName) $($c.Version)"
+                @"
+<div class='bar-row' data-framework='$(HE $c.Framework)'>
+  <span class='bar-label'>$label</span>
+  <div class='bar-track'><div class='bar-fill' style='width:$($c.PercentCovered)%;background:$barColor;'></div></div>
+  <span class='bar-count'>$($c.ControlsHit) / $($c.ControlsTotal) ($($c.PercentCovered)%)</span>
+</div>
+"@
+            }
+            $complianceHtml = @"
+<h2>Compliance coverage</h2>
+<div class='source-section' id='complianceSection'>
+$($rows -join "`n")
+</div>
+"@
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Compliance coverage computation failed: $_")
+    }
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -357,6 +391,8 @@ $($sourceBarHtml -join "`n")
 <div class="tool-coverage">
 $($toolCoverageHtml -join "`n")
 </div>
+
+$complianceHtml
 
 <h2>Findings by category</h2>
 $($categoryHtml -join "`n")
