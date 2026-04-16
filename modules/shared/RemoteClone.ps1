@@ -150,7 +150,7 @@ function Invoke-RemoteRepoClone {
         $null = $proc.WaitForExit($TimeoutSec * 1000)
         if (-not $proc.HasExited) {
             try { $proc.Kill($true) } catch {}
-            throw "git clone timed out after $TimeoutSec seconds."
+            throw "git clone timed out after $TimeoutSec seconds for $(Remove-Credentials $RepoUrl)."
         }
 
         $stdout = $proc.StandardOutput.ReadToEnd()
