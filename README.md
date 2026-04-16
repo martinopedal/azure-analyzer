@@ -129,6 +129,7 @@ The report groups findings by category, then prioritizes action:
 
 - **Pipeline + dual data model:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Add a new tool:** [docs/CONTRIBUTING-TOOLS.md](docs/CONTRIBUTING-TOOLS.md)
+- **Template safety:** report generators must escape `</` as `<\/` when replacing `{{MODEL_JSON}}` in `report-template.html`.
 
 ## Prerequisites
 

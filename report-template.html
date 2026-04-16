@@ -329,10 +329,13 @@
         </section>
     </main>
 
+    <!-- IMPORTANT: Generator MUST escape </ to <\/ in JSON before inserting here -->
     <script type="application/json" id="report-data">{{MODEL_JSON}}</script>
     <script>
         const dataElement = document.getElementById('report-data');
         let model = {};
+        // Phase 0 note: inline JSON is acceptable for now. Large-tenant reports should
+        // move to a report-data.json sidecar and fetch it here in Phase 5.
 
         try {
             model = JSON.parse(dataElement ? dataElement.textContent : '{}');

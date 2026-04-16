@@ -90,6 +90,8 @@ function Invoke-ParallelTools {
     $defaultSemaphore = [System.Threading.SemaphoreSlim]::new($DefaultConcurrency, $DefaultConcurrency)
 
     $results = $ToolSpecs | ForEach-Object -Parallel {
+        $providerSemaphores = $using:providerSemaphores
+        $defaultSemaphoreLocal = $using:defaultSemaphore
         $tool = $_
         $toolName = $tool.Name ?? $tool.Tool ?? $tool.Source ?? 'unknown'
         $provider = $tool.Provider ?? 'Default'
@@ -100,20 +102,21 @@ function Invoke-ParallelTools {
         $errorMessage = ''
         $output = $null
 
-        $semaphore = $using:providerSemaphores[$provider]
+        $semaphore = $providerSemaphores[$provider]
         if (-not $semaphore) {
-            $semaphore = $using:defaultSemaphore
+            $semaphore = $defaultSemaphoreLocal
         }
 
         try {
             $null = $semaphore.Wait()
             if ($tool.ScriptBlock -is [scriptblock]) {
-                if ($tool.Arguments -is [hashtable]) {
-                    $output = & $tool.ScriptBlock @tool.Arguments
-                } elseif ($tool.Arguments -is [object[]]) {
-                    $output = & $tool.ScriptBlock @tool.Arguments
-                } elseif ($null -ne $tool.Arguments) {
-                    $output = & $tool.ScriptBlock $tool.Arguments
+                $toolArguments = $tool.Arguments
+                if ($toolArguments -is [hashtable]) {
+                    $output = & $tool.ScriptBlock @toolArguments
+                } elseif ($toolArguments -is [object[]]) {
+                    $output = & $tool.ScriptBlock @toolArguments
+                } elseif ($null -ne $toolArguments) {
+                    $output = & $tool.ScriptBlock $toolArguments
                 } else {
                     $output = & $tool.ScriptBlock
                 }

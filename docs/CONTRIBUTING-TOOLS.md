@@ -93,3 +93,10 @@ Normalizers convert raw tool output into the schema v2 finding shape.
 - Fixture file added under `tests/fixtures/`
 - Normalizer tests added under `tests/normalizers/`
 - Wrapper returns `Status`, `Message`, and `Findings` consistently
+
+## Report template safety
+
+- When inserting JSON into `report-template.html` (`{{MODEL_JSON}}`), generators **must**
+  escape `</` as `<\/` before replacement to prevent script-tag breakouts.
+- Phase 0 allows inline JSON in HTML for simplicity. For large tenants, use a
+  `report-data.json` sidecar and fetch it from the template (planned for Phase 5).

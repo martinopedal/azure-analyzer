@@ -52,6 +52,10 @@ All notable changes to azure-analyzer will be documented here.
 - Delete dead Python stubs (`src/run.py`, `src/__init__.py`) -- orchestrator is PowerShell only
 
 ### Fixed
+- **WorkerPool parallel safety**: Fixed `$using:` indexing and argument splatting in `ForEach-Object -Parallel` by copying to local variables before indexing/splatting.
+- **Checkpoint hardening**: Scope key components are sanitized, identity scope now uses `identity-correlator`, checkpoint path resolution enforces checkpoint-directory boundaries, and writes are now atomic via temp-file move.
+- **Checkpoint resilience**: `Get-Checkpoint` now treats corrupt JSON as a cache miss and emits a warning instead of failing the run.
+- **Report template guidance**: Added XSS-safe JSON embedding note (`</` escaping) and sidecar guidance for large-tenant report payloads.
 - **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.

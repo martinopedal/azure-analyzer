@@ -11,6 +11,16 @@ param ()
 
 Set-StrictMode -Version Latest
 
+function ConvertTo-SafeCheckpointComponent {
+    param (
+        [AllowNull()]
+        [string] $Value
+    )
+
+    if ($null -eq $Value) { return $null }
+    return ($Value -replace '[/\\]', '_' -replace '\.\.', '_')
+}
+
 function Get-CheckpointKey {
     <#
     .SYNOPSIS
@@ -31,7 +41,7 @@ function Get-CheckpointKey {
         Azure DevOps project name.
 .PARAMETER CorrelationId
     Reserved for future correlation identifiers; identity checkpoints use
-    the fixed key "correlation".
+    the fixed key "identity-correlator" by default.
     #>
     [CmdletBinding()]
     param (
@@ -45,32 +55,32 @@ function Get-CheckpointKey {
         [string] $RepoSlug,
         [string] $AdoOrg,
         [string] $AdoProject,
-        [string] $CorrelationId = 'correlation'
+        [string] $CorrelationId = 'identity-correlator'
     )
 
     switch ($ScopeType) {
         'Subscription' {
             if (-not $SubscriptionId) { throw "SubscriptionId is required for subscription-scoped checkpoints." }
-            return $SubscriptionId
+            return (ConvertTo-SafeCheckpointComponent -Value $SubscriptionId)
         }
         'ManagementGroup' {
             if (-not $ManagementGroupId) { throw "ManagementGroupId is required for management-group checkpoints." }
-            return "mg-$ManagementGroupId"
+            return (ConvertTo-SafeCheckpointComponent -Value "mg-$ManagementGroupId")
         }
         'Tenant' {
             if (-not $TenantId) { throw "TenantId is required for tenant-scoped checkpoints." }
-            return "tenant-$TenantId"
+            return (ConvertTo-SafeCheckpointComponent -Value "tenant-$TenantId")
         }
         'Repository' {
             if (-not $RepoSlug) { throw "RepoSlug is required for repository-scoped checkpoints." }
-            return "repo-$RepoSlug"
+            return (ConvertTo-SafeCheckpointComponent -Value "repo-$RepoSlug")
         }
         'ADO' {
             if (-not $AdoOrg -or -not $AdoProject) { throw "AdoOrg and AdoProject are required for ADO checkpoints." }
-            return "ado-$AdoOrg-$AdoProject"
+            return (ConvertTo-SafeCheckpointComponent -Value "ado-$AdoOrg-$AdoProject")
         }
         'Identity' {
-            return 'correlation'
+            return (ConvertTo-SafeCheckpointComponent -Value ($CorrelationId ?? 'identity-correlator'))
         }
     }
 }
@@ -101,7 +111,17 @@ function Get-CheckpointPath {
         [string] $ScopeKey
     )
 
-    return (Join-Path $CheckpointDir "$Tool-$ScopeKey.json")
+    $resolvedCheckpointDir = [System.IO.Path]::GetFullPath($CheckpointDir)
+    $sanitizedTool = ConvertTo-SafeCheckpointComponent -Value $Tool
+    $sanitizedScopeKey = ConvertTo-SafeCheckpointComponent -Value $ScopeKey
+    $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $resolvedCheckpointDir "$sanitizedTool-$sanitizedScopeKey.json"))
+
+    $checkpointRoot = if ($resolvedCheckpointDir.EndsWith('\')) { $resolvedCheckpointDir } else { "$resolvedCheckpointDir\" }
+    if (-not $resolvedPath.StartsWith($checkpointRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Checkpoint path resolution escaped checkpoint directory: $resolvedPath"
+    }
+
+    return $resolvedPath
 }
 
 function Save-Checkpoint {
@@ -141,7 +161,7 @@ function Save-Checkpoint {
         [string] $RepoSlug,
         [string] $AdoOrg,
         [string] $AdoProject,
-        [string] $CorrelationId = 'correlation'
+        [string] $CorrelationId = 'identity-correlator'
     )
 
     if (-not (Test-Path $CheckpointDir)) {
@@ -154,7 +174,9 @@ function Save-Checkpoint {
 
     $path = Get-CheckpointPath -CheckpointDir $CheckpointDir -Tool $Tool -ScopeKey $scopeKey
     $json = $Result | ConvertTo-Json -Depth 50
-    Set-Content -Path $path -Value $json -Encoding utf8
+    $tempPath = "$path.tmp-$([Guid]::NewGuid().ToString('N'))"
+    Set-Content -Path $tempPath -Value $json -Encoding utf8
+    Move-Item -Path $tempPath -Destination $path -Force
     return $path
 }
 
@@ -189,7 +211,7 @@ function Get-Checkpoint {
         [string] $RepoSlug,
         [string] $AdoOrg,
         [string] $AdoProject,
-        [string] $CorrelationId = 'correlation'
+        [string] $CorrelationId = 'identity-correlator'
     )
 
     $scopeKey = Get-CheckpointKey -ScopeType $ScopeType -SubscriptionId $SubscriptionId `
@@ -201,7 +223,12 @@ function Get-Checkpoint {
         return $null
     }
 
-    return (Get-Content -Raw $path | ConvertFrom-Json -ErrorAction Stop)
+    try {
+        return (Get-Content -Raw $path | ConvertFrom-Json -ErrorAction Stop)
+    } catch {
+        Write-Warning "Checkpoint file '$path' is corrupt or unreadable. Treating as cache miss. $_"
+        return $null
+    }
 }
 
 function Remove-Checkpoint {
@@ -235,7 +262,7 @@ function Remove-Checkpoint {
         [string] $RepoSlug,
         [string] $AdoOrg,
         [string] $AdoProject,
-        [string] $CorrelationId = 'correlation'
+        [string] $CorrelationId = 'identity-correlator'
     )
 
     $scopeKey = Get-CheckpointKey -ScopeType $ScopeType -SubscriptionId $SubscriptionId `
