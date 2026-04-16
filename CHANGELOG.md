@@ -6,7 +6,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 - **Phase 0 security helpers**: shared sanitization, masking, retry, and rate-limit modules with Pester coverage for retry and credential scrubbing.
-- **V3 Phase 0 core modules**: Add schema v2 factories/validation, canonicalization helpers, in-memory EntityStore with spill-to-disk, shared tests, and a tool manifest for plugin registration.
+- **V3 Phase 0 core modules**: Add schema v2 factories/validation, canonicalization helpers, in-memory EntityStore with spill-to-disk, schema/canonicalization Pester tests, and a tool manifest for plugin registration.
 - **Management group recursion**: When `-ManagementGroupId` is provided, the orchestrator auto-discovers all child subscriptions via ARG query and runs subscription-scoped tools (azqr, PSRule, WARA) across each one. MG-scoped tools (AzGovViz, ALZ queries) and tenant-wide tools (Maester) are unaffected. Use `-Recurse:$false` to disable.
 - **AI triage (optional, requires GitHub Copilot license)**: `-EnableAiTriage` switch enriches non-compliant findings via GitHub Copilot SDK with priority ranking, risk context, remediation steps, and root cause grouping. Zero footprint when disabled. See `docs/ai-triage.md`.
 - **AI triage in reports**: HTML/Markdown reports include AI Triage Summary when `triage.json` exists.
