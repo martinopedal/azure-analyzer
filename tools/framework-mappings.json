@@ -1,0 +1,56 @@
+{
+  "$comment": "Compliance framework mappings keyed by Source + rule identifier (Category or Check). Each entry lists applicable control(s) per framework. Authoritative references: CIS Azure Foundations v2.1 (https://www.cisecurity.org/benchmark/azure), NIST 800-53 Rev 5, PCI-DSS v4.0.",
+  "schemaVersion": "1.0",
+  "frameworks": {
+    "CIS": { "name": "CIS Azure Foundations", "version": "2.1" },
+    "NIST": { "name": "NIST 800-53", "version": "Rev 5" },
+    "PCI": { "name": "PCI-DSS", "version": "4.0" }
+  },
+  "mappings": [
+    { "source": "azqr", "match": { "Category": "Security" },       "controls": { "CIS": ["1.22"], "NIST": ["AC-2"],  "PCI": ["7.2"] } },
+    { "source": "azqr", "match": { "Category": "Reliability" },    "controls": { "NIST": ["CP-2"],  "PCI": ["12.10"] } },
+    { "source": "azqr", "match": { "Category": "Identity" },       "controls": { "CIS": ["1.1","1.2","1.23"], "NIST": ["AC-2","AC-6","IA-2"], "PCI": ["7.1","7.2","8.2"] } },
+    { "source": "azqr", "match": { "Category": "Networking" },     "controls": { "CIS": ["6.1","6.2"], "NIST": ["SC-7"], "PCI": ["1.2","1.3"] } },
+    { "source": "azqr", "match": { "Category": "Encryption" },     "controls": { "CIS": ["3.1","8.1"], "NIST": ["SC-13","SC-28"], "PCI": ["3.5","4.1"] } },
+    { "source": "azqr", "match": { "Category": "Monitoring" },     "controls": { "CIS": ["5.1","5.2"], "NIST": ["AU-2","AU-6"], "PCI": ["10.1","10.2"] } },
+
+    { "source": "psrule", "match": { "Category": "Security" },     "controls": { "CIS": ["1.22"], "NIST": ["AC-2","SC-7"], "PCI": ["6.1"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.KeyVault" }, "controls": { "CIS": ["8.1","8.5"], "NIST": ["SC-12","SC-13"], "PCI": ["3.5","3.6"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.Storage" },  "controls": { "CIS": ["3.1","3.7"], "NIST": ["AC-3","SC-28"], "PCI": ["3.5","7.1"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.SQL" },      "controls": { "CIS": ["4.1"], "NIST": ["AC-3","SC-28"], "PCI": ["3.5","8.2"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.VM" },       "controls": { "CIS": ["7.1","7.2"], "NIST": ["CM-2","CM-6"], "PCI": ["2.2"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.AKS" },      "controls": { "CIS": ["5.1"], "NIST": ["CM-2","SC-7"], "PCI": ["2.2","6.1"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.Defender" }, "controls": { "CIS": ["2.1","2.2"], "NIST": ["SI-4"], "PCI": ["10.6","11.4"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.Policy" },   "controls": { "CIS": ["5.1"], "NIST": ["CM-2","CM-6"], "PCI": ["2.2"] } },
+    { "source": "psrule", "match": { "RuleIdPrefix": "Azure.Monitor" },  "controls": { "CIS": ["5.1","5.2"], "NIST": ["AU-2","AU-6"], "PCI": ["10.1","10.2"] } },
+
+    { "source": "maester", "match": { "Category": "Identity" },          "controls": { "CIS": ["1.1","1.22"], "NIST": ["AC-2","IA-2"], "PCI": ["7.2","8.2","8.3"] } },
+    { "source": "maester", "match": { "Category": "ConditionalAccess" }, "controls": { "CIS": ["1.4","1.5"], "NIST": ["AC-2","AC-3"], "PCI": ["7.2","8.3"] } },
+    { "source": "maester", "match": { "Category": "Applications" },      "controls": { "CIS": ["1.14","1.15"], "NIST": ["AC-6","CM-7"], "PCI": ["7.2"] } },
+    { "source": "maester", "match": { "Category": "ExternalIdentities" }, "controls": { "CIS": ["1.3"], "NIST": ["AC-2","AC-20"], "PCI": ["7.1","12.8"] } },
+
+    { "source": "scorecard", "match": { "Category": "Branch-Protection" },      "controls": { "NIST": ["CM-3","SA-10"], "PCI": ["6.4"] } },
+    { "source": "scorecard", "match": { "Category": "Code-Review" },            "controls": { "NIST": ["SA-11","SA-15"], "PCI": ["6.3.2"] } },
+    { "source": "scorecard", "match": { "Category": "Dependency-Update-Tool" }, "controls": { "NIST": ["SI-2"], "PCI": ["6.3.3"] } },
+    { "source": "scorecard", "match": { "Category": "Pinned-Dependencies" },    "controls": { "NIST": ["CM-2","SA-10"], "PCI": ["6.3.3"] } },
+    { "source": "scorecard", "match": { "Category": "Token-Permissions" },      "controls": { "NIST": ["AC-6","CM-7"], "PCI": ["7.2"] } },
+    { "source": "scorecard", "match": { "Category": "Vulnerabilities" },        "controls": { "NIST": ["RA-5","SI-2"], "PCI": ["6.3.3","11.3"] } },
+    { "source": "scorecard", "match": { "Category": "SAST" },                   "controls": { "NIST": ["SA-11"], "PCI": ["6.3.2"] } },
+    { "source": "scorecard", "match": { "Category": "CI-Tests" },               "controls": { "NIST": ["SA-11"], "PCI": ["6.3.2"] } },
+    { "source": "scorecard", "match": { "Category": "Binary-Artifacts" },       "controls": { "NIST": ["SA-10","SI-7"], "PCI": ["6.3.3"] } },
+    { "source": "scorecard", "match": { "Category": "Signed-Releases" },        "controls": { "NIST": ["CM-5","SI-7"], "PCI": ["6.3.3"] } },
+
+    { "source": "zizmor",  "match": { "Category": "Security" },  "controls": { "NIST": ["SI-10","SA-11"], "PCI": ["6.3.2"] } },
+    { "source": "gitleaks", "match": { "Category": "Secrets" },  "controls": { "CIS": ["8.5"], "NIST": ["IA-5","SC-12"], "PCI": ["3.5","8.2.1"] } },
+    { "source": "trivy",   "match": { "Category": "Vulnerability" }, "controls": { "NIST": ["RA-5","SI-2"], "PCI": ["6.3.3","11.3"] } },
+    { "source": "trivy",   "match": { "Category": "Misconfiguration" }, "controls": { "NIST": ["CM-6","CM-7"], "PCI": ["2.2"] } },
+    { "source": "trivy",   "match": { "Category": "Secrets" }, "controls": { "CIS": ["8.5"], "NIST": ["IA-5"], "PCI": ["3.5","8.2.1"] } },
+
+    { "source": "ado-connections", "match": { "Category": "Identity" }, "controls": { "NIST": ["AC-2","AC-6","IA-5"], "PCI": ["7.2","8.2"] } },
+    { "source": "identity-correlator", "match": { "Category": "Identity" }, "controls": { "NIST": ["AC-2","AC-6","IA-2"], "PCI": ["7.2","8.2"] } },
+
+    { "source": "azgovviz",    "match": { "Category": "Policy" },     "controls": { "CIS": ["5.1"], "NIST": ["CM-6"], "PCI": ["2.2"] } },
+    { "source": "alz-queries", "match": { "Category": "Governance" }, "controls": { "CIS": ["1.22"], "NIST": ["CM-2","CM-6"], "PCI": ["2.2"] } },
+    { "source": "wara",        "match": { "Category": "Reliability" }, "controls": { "NIST": ["CP-2","CP-10"], "PCI": ["12.10"] } }
+  ]
+}

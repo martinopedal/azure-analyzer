@@ -91,6 +91,28 @@ any of `BREAKING`, `CHANGED:`, `removed flag`, `renamed`, or `schema`, the PR is
 `needs-copilot-iteration` and `@copilot` is tagged against the wrapper and normalizer paths
 so the iteration loop catches flag/schema drift automatically.
 
+### Compliance framework mappings (`tools/framework-mappings.json`)
+
+Findings are enriched post-normalization with CIS Azure Foundations / NIST 800-53 / PCI-DSS
+control mappings by `modules/shared/FrameworkMapper.ps1`. The mapping file is **user-extensible**
+— add entries to `tools/framework-mappings.json` without modifying code:
+
+```json
+{
+  "source": "my-new-tool",
+  "match": { "Category": "Encryption" },
+  "controls": {
+    "CIS":  ["8.1"],
+    "NIST": ["SC-13","SC-28"],
+    "PCI":  ["3.5","4.1"]
+  }
+}
+```
+
+`match` supports `Category`, `Check`, or `RuleIdPrefix` (prefix-match against `RuleId`).
+All findings from a source sharing the same category inherit the mapping, so one line covers
+many findings. Scope a run to a single framework via `-Framework CIS|NIST|PCI` on the orchestrator.
+
 ---
 
 ## Step 2 — Wrapper contract
