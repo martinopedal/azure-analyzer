@@ -13,7 +13,7 @@ flowchart LR
 4. **Merge EntityStore** -- combine entity metadata + findings into a dual model.
 5. **Correlate** -- cross-dimension relationships (identity <-> resources, CI/CD <-> repos).
 6. **Enrich** -- add computed signals (scores, deltas, trend metadata).
-7. **Report** -- render from `results.json`, `entities.json`, and `tool-status.json` into the static HTML template + Markdown.
+7. **Report** -- render from `results.json` and `tool-status.json` into the static HTML template + Markdown. Reports currently consume the v1 flat format; entity-aware reporting is planned for Phase 5.
 
 ---
 
@@ -35,7 +35,7 @@ Tools are declared in `tools/tool-manifest.json`. Each entry describes:
 
 - Tool name, provider, and scope (subscription, MG, tenant, repo, ADO)
 - Collector script path (`modules/Invoke-{Tool}.ps1`)
-- Normalizer script path (`modules/Normalize-{Tool}.ps1`)
+- Normalizer function name (`modules/normalizers/Normalize-{Tool}.ps1`)
 - Required permissions/tier and prerequisites
 
 The orchestrator loads the manifest, resolves eligible tools, and executes them
