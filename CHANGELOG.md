@@ -4,6 +4,16 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
+- **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
+- **zizmor parse failures return success**: JSON parse failure now returns Status='Failed' instead of Success with empty findings. Checks `$LASTEXITCODE` for non-zero exit codes.
+- **zizmor stderr mixed into JSON stream**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout. stderr is kept separate and logged via Write-Verbose.
+- **trivy stderr/stdout mixing corrupts JSON**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout directly. stderr is kept separate and logged via Write-Verbose. Temp file is cleaned up in a finally block.
+
+### Added
+- **trivy minimum version check**: `Invoke-Trivy.ps1` now runs `trivy --version`, parses the version number, and warns if below the minimum known-safe version (0.50.0). Includes guidance to download from official GitHub releases only.
+
 ### Added
 - **Phase 3: CI/CD security tools (zizmor, gitleaks, Trivy)**: Three new local CLI tools for repository security scanning, all operating read-only on the local filesystem with no cloud permissions required.
 - **zizmor integration (tool #9)**: `modules/Invoke-Zizmor.ps1` wrapper scans GitHub Actions workflow YAML files for security anti-patterns (expression injection, untrusted inputs, dangerous triggers). Normalizer maps findings to Platform=GitHub, EntityType=Workflow.

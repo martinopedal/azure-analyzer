@@ -171,7 +171,7 @@ The report groups findings by category, then prioritizes action:
 | scorecard CLI | [Download](https://github.com/ossf/scorecard/releases) | Repository security (optional) |
 | zizmor CLI | [Download](https://github.com/woodruffw/zizmor/releases) | GitHub Actions workflow security (optional) |
 | gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
-| trivy CLI | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) |
+| trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
 
 **Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard, zizmor, gitleaks, trivy) must be installed manually.
 

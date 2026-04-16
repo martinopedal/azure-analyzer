@@ -7,6 +7,9 @@
     issues such as expression injection, untrusted input, and unpinned actions.
     If zizmor is not installed, writes a warning and returns an empty result.
     Never throws -- designed for graceful degradation in the orchestrator.
+
+    JSON output is written to a temp file (--output) to avoid stderr/stdout
+    mixing. The temp file is cleaned up in a finally block.
 .PARAMETER Repository
     Path to the repository root to scan. Required.
 .PARAMETER WorkflowPath
@@ -66,23 +69,65 @@ try {
 
     Write-Verbose "Running zizmor for workflow path $scanPath"
 
-    $rawOutput = $null
-    $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
-    if ($useRetry) {
-        $rawOutput = Invoke-WithRetry -ScriptBlock {
-            zizmor --format json $scanPath 2>&1
-        }
-    } else {
-        $rawOutput = zizmor --format json $scanPath 2>&1
-    }
+    # Write JSON to a temp file to keep stderr separate from the JSON stream
+    $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "zizmor-report-$([guid]::NewGuid().ToString('N')).json"
 
-    $jsonText = $rawOutput | Out-String
-    $json = $null
     try {
-        $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
-    } catch {
-        # zizmor may return empty output when no findings
-        $json = @()
+        $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
+        if ($useRetry) {
+            Invoke-WithRetry -ScriptBlock {
+                & zizmor --format json --output $reportFile $scanPath 2>&1 | ForEach-Object {
+                    if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                        Write-Verbose "zizmor stderr: $_"
+                    }
+                }
+            }
+        } else {
+            & zizmor --format json --output $reportFile $scanPath 2>&1 | ForEach-Object {
+                if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                    Write-Verbose "zizmor stderr: $_"
+                }
+            }
+        }
+
+        $exitCode = $LASTEXITCODE
+
+        # Non-zero exit with no report = hard failure
+        if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
+            Write-Warning (Remove-Credentials "zizmor exited with code $exitCode and produced no report")
+            return [PSCustomObject]@{
+                Source   = 'zizmor'
+                Status   = 'Failed'
+                Message  = Remove-Credentials "zizmor exited with code $exitCode and produced no report"
+                Findings = @()
+            }
+        }
+
+        $json = $null
+        if (Test-Path $reportFile) {
+            $jsonText = Get-Content $reportFile -Raw -ErrorAction SilentlyContinue
+            if ($jsonText) {
+                try {
+                    $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
+                } catch {
+                    Write-Warning (Remove-Credentials "zizmor report JSON parse failed: $_")
+                    return [PSCustomObject]@{
+                        Source   = 'zizmor'
+                        Status   = 'Failed'
+                        Message  = Remove-Credentials "Report JSON parse failed: $_"
+                        Findings = @()
+                    }
+                }
+            } else {
+                # Empty report file — no findings
+                $json = @()
+            }
+        } elseif ($exitCode -eq 0) {
+            # exit 0 but no report file — zizmor found nothing
+            $json = @()
+        }
+    } finally {
+        Remove-Item $reportFile -Force -ErrorAction SilentlyContinue
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()

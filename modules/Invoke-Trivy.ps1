@@ -7,6 +7,12 @@
     supply chain security findings as PSObjects. If trivy is not installed, writes
     a warning and returns an empty result.
     Never throws -- designed for graceful degradation in the orchestrator.
+
+    Security: Verify trivy binary integrity. Download from official GitHub
+    releases only: https://github.com/aquasecurity/trivy/releases
+
+    JSON output is written to a temp file (--output) to avoid stderr/stdout
+    mixing. The temp file is cleaned up in a finally block.
 .PARAMETER ScanPath
     Path to scan for vulnerabilities. Defaults to current directory.
 .PARAMETER ScanType
@@ -24,8 +30,27 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Minimum trivy version known to produce reliable JSON output
+$script:MinTrivyVersion = [version]'0.50.0'
+
 function Test-TrivyInstalled {
     $null -ne (Get-Command trivy -ErrorAction SilentlyContinue)
+}
+
+function Get-TrivyVersion {
+    try {
+        $versionOutput = & trivy --version 2>$null
+        if ($versionOutput) {
+            $versionText = ($versionOutput | Out-String)
+            # trivy --version outputs lines like "Version: 0.56.2"
+            if ($versionText -match '(\d+\.\d+\.\d+)') {
+                return [version]$Matches[1]
+            }
+        }
+    } catch {
+        # Ignore version parse failures — proceed with warning
+    }
+    return $null
 }
 
 if (-not (Test-TrivyInstalled)) {
@@ -38,15 +63,66 @@ if (-not (Test-TrivyInstalled)) {
     }
 }
 
+# Version safety check — warn (but proceed) if below minimum known-safe version
+$trivyVersion = Get-TrivyVersion
+if ($null -ne $trivyVersion -and $trivyVersion -lt $script:MinTrivyVersion) {
+    Write-Warning "trivy version $trivyVersion is below the recommended minimum ($script:MinTrivyVersion). Update from https://github.com/aquasecurity/trivy/releases"
+}
+if ($null -eq $trivyVersion) {
+    Write-Warning "Could not determine trivy version. Verify binary integrity — download from https://github.com/aquasecurity/trivy/releases"
+}
+
 try {
     Write-Verbose "Running trivy $ScanType scan on '$ScanPath'"
-    $rawOutput = trivy $ScanType --format json --scanners vuln $ScanPath 2>&1
-    $json = $rawOutput | Out-String | ConvertFrom-Json -ErrorAction Stop
+
+    # Write JSON to a temp file to keep stderr separate from the JSON stream
+    $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-report-$([guid]::NewGuid().ToString('N')).json"
+
+    try {
+        & trivy $ScanType --format json --scanners vuln --output $reportFile $ScanPath 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                Write-Verbose "trivy stderr: $_"
+            }
+        }
+
+        $exitCode = $LASTEXITCODE
+
+        # Non-zero exit with no report = hard failure
+        if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
+            Write-Warning "trivy exited with code $exitCode and produced no report"
+            return [PSCustomObject]@{
+                Source   = 'trivy'
+                Status   = 'Failed'
+                Message  = "trivy exited with code $exitCode and produced no report"
+                Findings = @()
+            }
+        }
+
+        $json = $null
+        if (Test-Path $reportFile) {
+            $jsonText = Get-Content $reportFile -Raw -ErrorAction SilentlyContinue
+            if ($jsonText) {
+                try {
+                    $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
+                } catch {
+                    Write-Warning "trivy report JSON parse failed: $_"
+                    return [PSCustomObject]@{
+                        Source   = 'trivy'
+                        Status   = 'Failed'
+                        Message  = "Report JSON parse failed: $_"
+                        Findings = @()
+                    }
+                }
+            }
+        }
+    } finally {
+        Remove-Item $reportFile -Force -ErrorAction SilentlyContinue
+    }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     $results = $null
-    if ($json.PSObject.Properties['Results'] -and $json.Results) {
+    if ($null -ne $json -and $json.PSObject.Properties['Results'] -and $json.Results) {
         $results = $json.Results
     }
 

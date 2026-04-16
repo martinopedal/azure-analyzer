@@ -7,6 +7,9 @@
     such as API keys, tokens, and passwords in git history.
     If gitleaks is not installed, writes a warning and returns an empty result.
     Never throws -- designed for graceful degradation in the orchestrator.
+
+    Security: The report is written to the system temp directory (not inside the
+    scanned repo) and Secret/Match fields are stripped before creating findings.
 .PARAMETER RepoPath
     Path to the repository to scan. Defaults to the current directory.
 .PARAMETER NoGit
@@ -54,8 +57,8 @@ try {
     $resolvedPath = Resolve-Path $RepoPath -ErrorAction Stop | Select-Object -ExpandProperty Path
     Write-Verbose "Running gitleaks for path $resolvedPath"
 
-    # gitleaks writes JSON report to a file; use a temp file in the scan directory
-    $reportFile = Join-Path $resolvedPath ".gitleaks-report-$([guid]::NewGuid().ToString('N')).json"
+    # Write report to system temp dir — never inside the scanned repo
+    $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "gitleaks-report-$([guid]::NewGuid().ToString('N')).json"
 
     try {
         $gitleaksArgs = @('detect', '--source', $resolvedPath, '--report-format', 'json', '--report-path', $reportFile, '--no-banner', '--exit-code', '0')
@@ -66,10 +69,29 @@ try {
         $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
         if ($useRetry) {
             Invoke-WithRetry -ScriptBlock {
-                & gitleaks @gitleaksArgs 2>&1 | Out-Null
+                $stderrLines = & gitleaks @gitleaksArgs 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
+                if ($stderrLines) {
+                    Write-Verbose "gitleaks stderr: $($stderrLines -join '; ')"
+                }
             }
         } else {
-            & gitleaks @gitleaksArgs 2>&1 | Out-Null
+            $stderrLines = & gitleaks @gitleaksArgs 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
+            if ($stderrLines) {
+                Write-Verbose "gitleaks stderr: $($stderrLines -join '; ')"
+            }
+        }
+
+        $exitCode = $LASTEXITCODE
+
+        # Validate: non-zero exit code with no report = hard failure
+        if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
+            Write-Warning (Remove-Credentials "gitleaks exited with code $exitCode and produced no report")
+            return [PSCustomObject]@{
+                Source   = 'gitleaks'
+                Status   = 'Failed'
+                Message  = Remove-Credentials "gitleaks exited with code $exitCode and produced no report"
+                Findings = @()
+            }
         }
 
         $json = @()
@@ -79,12 +101,21 @@ try {
                 try {
                     $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
                 } catch {
-                    $json = @()
+                    Write-Warning (Remove-Credentials "gitleaks report JSON parse failed: $_")
+                    return [PSCustomObject]@{
+                        Source   = 'gitleaks'
+                        Status   = 'Failed'
+                        Message  = Remove-Credentials "Report JSON parse failed: $_"
+                        Findings = @()
+                    }
                 }
             }
+        } elseif ($exitCode -eq 0) {
+            # exit 0 but no report file — gitleaks found nothing; treat as success
+            $json = @()
         }
     } finally {
-        Remove-Item $reportFile -ErrorAction SilentlyContinue
+        Remove-Item $reportFile -Force -ErrorAction SilentlyContinue
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -127,6 +158,8 @@ try {
         if ($item.PSObject.Properties['Fingerprint'] -and $item.Fingerprint) {
             $fingerprint = [string]$item.Fingerprint
         }
+
+        # Strip Secret/Match fields — never propagate raw secret values into findings
 
         # Severity: Secret-type findings → High, everything else → Medium
         $severity = 'High'
