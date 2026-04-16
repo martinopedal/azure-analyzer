@@ -26,6 +26,11 @@
     Custom GitHub host for GHEC-DR or GHES instances (e.g. "github.contoso.com").
     Sets the GH_HOST environment variable for the Scorecard CLI. When empty,
     defaults to github.com. Requires a GITHUB_AUTH_TOKEN valid on the enterprise instance.
+.PARAMETER AdoOrg
+    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections).
+    When provided, ADO tools are included in the run.
+.PARAMETER AdoProject
+    Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -34,6 +39,7 @@
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
     .\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+    .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
 #>
 [CmdletBinding()]
 param (
@@ -48,6 +54,8 @@ param (
     [switch] $Recurse,
     [string] $Repository,
     [string] $GitHubHost = '',
+    [string] $AdoOrg,
+    [string] $AdoProject,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
     [switch] $EnableAiTriage
@@ -323,6 +331,23 @@ foreach ($toolDef in $manifest.tools) {
                 if ($GitHubHost) { $params['GitHubHost'] = $GitHubHost }
             }
             $specName = "$($toolDef.name)|repo"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $toolDef.provider
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
+        'ado' {
+            if (-not $AdoOrg) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No -AdoOrg provided'; Findings = 0 })
+                continue
+            }
+            $params = @{ AdoOrg = $AdoOrg }
+            if ($AdoProject) { $params['AdoProject'] = $AdoProject }
+            $specName = "$($toolDef.name)|ado"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
                 Provider    = $toolDef.provider
