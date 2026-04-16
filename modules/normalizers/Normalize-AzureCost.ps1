@@ -3,7 +3,7 @@
 .SYNOPSIS
     Normalizer for Azure cost collection findings.
 .DESCRIPTION
-    Converts aggregated consumption data to informational v2 FindingRows and
+    Converts aggregated consumption data to informational FindingRows and
     annotates the owning entities with MonthlyCost/Currency metadata.
 #>
 [CmdletBinding()]

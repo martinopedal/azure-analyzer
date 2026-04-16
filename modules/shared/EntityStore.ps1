@@ -333,13 +333,22 @@ class EntityStore {
             }
 
             $incomingMonthlyCost = Get-ObjectPropertyValue -Object $targetFinding -PropertyName 'MonthlyCost'
-            if ($incomingMonthlyCost -ne $null) { $entity.MonthlyCost = $incomingMonthlyCost }
+            if ($null -ne $incomingMonthlyCost) {
+                if ($entity.PSObject.Properties['MonthlyCost']) { $entity.MonthlyCost = $incomingMonthlyCost }
+                else { $entity | Add-Member -MemberType NoteProperty -Name MonthlyCost -Value $incomingMonthlyCost -Force }
+            }
 
             $incomingCurrency = Get-ObjectPropertyValue -Object $targetFinding -PropertyName 'Currency'
-            if ($incomingCurrency) { $entity.Currency = $incomingCurrency }
+            if ($incomingCurrency) {
+                if ($entity.PSObject.Properties['Currency']) { $entity.Currency = $incomingCurrency }
+                else { $entity | Add-Member -MemberType NoteProperty -Name Currency -Value $incomingCurrency -Force }
+            }
 
             $incomingCostTrend = Get-ObjectPropertyValue -Object $targetFinding -PropertyName 'CostTrend'
-            if ($incomingCostTrend) { $entity.CostTrend = $incomingCostTrend }
+            if ($incomingCostTrend) {
+                if ($entity.PSObject.Properties['CostTrend']) { $entity.CostTrend = $incomingCostTrend }
+                else { $entity | Add-Member -MemberType NoteProperty -Name CostTrend -Value $incomingCostTrend -Force }
+            }
         }
 
         if (($this.Entities.Count + $this.Findings.Count) -gt $this.MaxEntitiesInMemory) {
