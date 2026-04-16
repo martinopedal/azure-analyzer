@@ -24,11 +24,27 @@ param (
     [string] $ScanPath = '.',
 
     [ValidateSet('fs', 'repo')]
-    [string] $ScanType = 'fs'
+    [string] $ScanType = 'fs',
+
+    [string] $RemoteUrl
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Dot-source shared modules for Remove-Credentials, Invoke-RemoteRepoClone
+$sharedDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'modules' 'shared'
+if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
+    $sharedDir = Join-Path $PSScriptRoot 'shared'
+}
+$sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+$remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
+if (Test-Path $remoteClonePath) { . $remoteClonePath }
+
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string]$Text) return $Text }
+}
 
 # Minimum trivy version known to produce reliable JSON output
 $script:MinTrivyVersion = [version]'0.50.0'
@@ -72,7 +88,30 @@ if ($null -eq $trivyVersion) {
     Write-Warning "Could not determine trivy version. Verify binary integrity — download from https://github.com/aquasecurity/trivy/releases"
 }
 
+$cloneInfo = $null
+$cleanupClone = $null
 try {
+    if ($RemoteUrl) {
+        if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
+            Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
+            return [PSCustomObject]@{
+                Source = 'trivy'; Status = 'Failed'
+                Message = 'RemoteClone helper unavailable'; Findings = @()
+            }
+        }
+        $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
+        if (-not $cloneInfo) {
+            return [PSCustomObject]@{
+                Source = 'trivy'; Status = 'Failed'
+                Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
+                Findings = @()
+            }
+        }
+        $cleanupClone = $cloneInfo.Cleanup
+        $ScanPath = $cloneInfo.Path
+        $ScanType = 'fs'
+    }
+
     Write-Verbose "Running trivy $ScanType scan on '$ScanPath'"
 
     # Write JSON to a temp file to keep stderr separate from the JSON stream
@@ -240,5 +279,9 @@ try {
         Status   = 'Failed'
         Message  = "$_"
         Findings = @()
+    }
+} finally {
+    if ($cleanupClone) {
+        try { & $cleanupClone } catch { Write-Verbose "trivy clone cleanup failed: $($_.Exception.Message)" }
     }
 }

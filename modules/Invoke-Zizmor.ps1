@@ -17,17 +17,17 @@
 #>
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
     [string] $Repository,
 
-    [string] $WorkflowPath = '.github/workflows'
+    [string] $WorkflowPath = '.github/workflows',
+
+    [string] $RemoteUrl
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Dot-source shared modules for Remove-Credentials and Invoke-WithRetry
+# Dot-source shared modules for Remove-Credentials, Invoke-WithRetry, Invoke-RemoteRepoClone
 $sharedDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'modules' 'shared'
 if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
     $sharedDir = Join-Path $PSScriptRoot 'shared'
@@ -36,6 +36,8 @@ $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
+$remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
+if (Test-Path $remoteClonePath) { . $remoteClonePath }
 
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
@@ -55,7 +57,37 @@ if (-not (Test-ZizmorInstalled)) {
     }
 }
 
+# Remote-first: if -RemoteUrl provided, clone it and scan the clone path.
+# Otherwise fall back to local -Repository.
+$cloneInfo = $null
+$cleanupClone = $null
 try {
+    if ($RemoteUrl) {
+        if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
+            Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
+            return [PSCustomObject]@{
+                Source = 'zizmor'; Status = 'Failed'
+                Message = 'RemoteClone helper unavailable'; Findings = @()
+            }
+        }
+        $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
+        if (-not $cloneInfo) {
+            return [PSCustomObject]@{
+                Source = 'zizmor'; Status = 'Failed'
+                Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
+                Findings = @()
+            }
+        }
+        $cleanupClone = $cloneInfo.Cleanup
+        $Repository = $cloneInfo.Path
+    }
+
+    if (-not $Repository) {
+        return [PSCustomObject]@{
+            Source = 'zizmor'; Status = 'Skipped'
+            Message = 'No -RemoteUrl or -Repository provided'; Findings = @()
+        }
+    }
     $scanPath = Join-Path $Repository $WorkflowPath
     if (-not (Test-Path $scanPath)) {
         Write-Warning "Workflow path not found: $scanPath"
@@ -236,5 +268,9 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
+    }
+} finally {
+    if ($cleanupClone) {
+        try { & $cleanupClone } catch { Write-Verbose "zizmor clone cleanup failed: $($_.Exception.Message)" }
     }
 }

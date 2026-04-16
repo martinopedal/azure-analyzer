@@ -61,6 +61,7 @@ param (
     [string] $RepoPath,
     [string] $AdoOrg,
     [string] $AdoProject,
+    [string] $AdoRepoUrl,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
     [string] $ScanPath,
@@ -76,7 +77,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -297,19 +298,32 @@ foreach ($toolDef in $manifest.tools) {
             $toolMetaMap[$specName] = $toolDef
         }
         'repository' {
-            # CLI-provider tools (trivy, zizmor, gitleaks) scan local filesystem -- always eligible
+            # CLI-provider tools (trivy, zizmor, gitleaks): remote-first, local fallback.
             if ($toolDef.provider -eq 'cli') {
                 $params = @{}
+                $scanTargetUrl = $null
+                if (Get-Command Resolve-ScanTargetUrl -ErrorAction SilentlyContinue) {
+                    $resolveArgs = @{}
+                    if ($AdoRepoUrl) { $resolveArgs['AdoRepoUrl'] = $AdoRepoUrl }
+                    if ($Repository) { $resolveArgs['Repository'] = $Repository }
+                    if ($GitHubHost) { $resolveArgs['GitHubHost'] = $GitHubHost }
+                    $scanTargetUrl = Resolve-ScanTargetUrl @resolveArgs
+                }
+                if ($scanTargetUrl) {
+                    $params['RemoteUrl'] = $scanTargetUrl
+                }
                 if ($toolDef.name -eq 'trivy') {
-                    if ($ScanPath) { $params['ScanPath'] = $ScanPath }
-                    if ($ScanType) { $params['ScanType'] = $ScanType }
+                    if (-not $scanTargetUrl -and $ScanPath) { $params['ScanPath'] = $ScanPath }
+                    if (-not $scanTargetUrl -and $ScanType) { $params['ScanType'] = $ScanType }
                 }
                 if ($toolDef.name -eq 'zizmor') {
-                    $localPath = if ($RepoPath) { $RepoPath } else { '.' }
-                    $params['Repository'] = $localPath
+                    if (-not $scanTargetUrl) {
+                        $localPath = if ($RepoPath) { $RepoPath } else { '.' }
+                        $params['Repository'] = $localPath
+                    }
                 }
                 if ($toolDef.name -eq 'gitleaks') {
-                    if ($RepoPath) { $params['RepoPath'] = $RepoPath }
+                    if (-not $scanTargetUrl -and $RepoPath) { $params['RepoPath'] = $RepoPath }
                 }
                 $specName = "$($toolDef.name)|repo"
                 $toolSpecs.Add([PSCustomObject]@{
