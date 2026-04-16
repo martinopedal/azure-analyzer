@@ -116,7 +116,8 @@ function Get-CheckpointPath {
     $sanitizedScopeKey = ConvertTo-SafeCheckpointComponent -Value $ScopeKey
     $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $resolvedCheckpointDir "$sanitizedTool-$sanitizedScopeKey.json"))
 
-    $checkpointRoot = if ($resolvedCheckpointDir.EndsWith('\')) { $resolvedCheckpointDir } else { "$resolvedCheckpointDir\" }
+    $sep = [System.IO.Path]::DirectorySeparatorChar
+    $checkpointRoot = if ($resolvedCheckpointDir.EndsWith($sep)) { $resolvedCheckpointDir } else { "$resolvedCheckpointDir$sep" }
     if (-not $resolvedPath.StartsWith($checkpointRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Checkpoint path resolution escaped checkpoint directory: $resolvedPath"
     }
