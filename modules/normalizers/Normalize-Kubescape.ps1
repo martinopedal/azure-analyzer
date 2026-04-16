@@ -75,21 +75,22 @@ function Normalize-Kubescape {
         $controls = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         $cisIds = Get-ValueOrDefault -Obj $finding -Name 'CisIds' -Default @()
         foreach ($cisId in @($cisIds)) {
-            if (-not [string]::IsNullOrWhiteSpace([string]$cisId)) {
-                $null = $controls.Add([string]$cisId)
+            $normalizedControl = [string]$cisId
+            if (-not [string]::IsNullOrWhiteSpace($normalizedControl) -and $normalizedControl -match '^CIS-\d+(\.\d+)+$') {
+                $null = $controls.Add($normalizedControl.ToUpperInvariant())
             }
         }
 
         if ($controls.Count -eq 0) {
             $controlId = [string](Get-ValueOrDefault -Obj $finding -Name 'ControlId' -Default '')
             if ($controlId -match '([0-9]+(?:\.[0-9]+)+)') {
-                $null = $controls.Add("CIS-$($Matches[1])")
+                $null = $controls.Add("CIS-$($Matches[1])".ToUpperInvariant())
             }
         }
 
         if ($controls.Count -eq 0 -and $detail) {
             foreach ($m in [regex]::Matches($detail, '([0-9]+(?:\.[0-9]+)+)')) {
-                $null = $controls.Add("CIS-$($m.Groups[1].Value)")
+                $null = $controls.Add("CIS-$($m.Groups[1].Value)".ToUpperInvariant())
             }
         }
 
