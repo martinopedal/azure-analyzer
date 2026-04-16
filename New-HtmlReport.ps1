@@ -14,7 +14,8 @@
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.html'),
-    [string] $TriagePath = ''
+    [string] $TriagePath = '',
+    [string] $PreviousRun = ''
 )
 
 Set-StrictMode -Version Latest
@@ -28,6 +29,10 @@ $frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapp
 if (Test-Path $frameworkMapperPath) {
     . $frameworkMapperPath
 }
+$reportDeltaPath = Join-Path $PSScriptRoot 'modules' 'shared' 'ReportDelta.ps1'
+if (Test-Path $reportDeltaPath) {
+    . $reportDeltaPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -37,6 +42,29 @@ if (-not (Test-Path $InputPath)) {
 }
 
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+
+# --- Report v2 delta vs previous run ---
+$deltaStatus  = @{}
+$deltaSummary = $null
+$resolvedRows = @()
+if ($PreviousRun -and (Test-Path $PreviousRun) -and (Get-Command Get-ReportDelta -ErrorAction SilentlyContinue)) {
+    try {
+        $prev = @(Get-Content $PreviousRun -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $delta = Get-ReportDelta -Current $findings -Previous $prev
+        $deltaStatus  = $delta.Status
+        $deltaSummary = $delta.Summary
+        $resolvedRows = @($delta.Resolved)
+        # Fold resolved synthetic rows so they render with status=Resolved badges.
+        if ($resolvedRows.Count -gt 0) {
+            foreach ($r in $resolvedRows) {
+                $r | Add-Member -NotePropertyName Compliant -NotePropertyValue $true -Force
+            }
+            $findings = @($findings + $resolvedRows)
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Report delta computation failed: $_")
+    }
+}
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = @($findings).Count
@@ -161,7 +189,18 @@ $categoryHtml = foreach ($cat in $byCategory) {
         $remediationHtml = Linkify $f.Remediation
         $resourceIdHtml = HE $f.ResourceId
         $learnMoreHtml = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE $f.LearnMoreUrl)`" target=`"_blank`" rel=`"noopener noreferrer`">Learn more</a>" }
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool'><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+        $rowStatus = ''
+        $statusBadge = ''
+        if ($deltaSummary) {
+            $k = Get-ReportDeltaKey -Row $f
+            if ($deltaStatus.ContainsKey($k)) { $rowStatus = $deltaStatus[$k] }
+            switch ($rowStatus) {
+                'New'       { $statusBadge = ' <span class="badge badge-new">New</span>' }
+                'Resolved'  { $statusBadge = ' <span class="badge badge-resolved">Resolved</span>' }
+                'Unchanged' { $statusBadge = ' <span class="badge badge-unchanged">Unchanged</span>' }
+            }
+        }
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -255,6 +294,21 @@ $($rows -join "`n")
     }
 }
 
+$deltaBannerHtml = ''
+if ($deltaSummary) {
+    $netClass = if ($deltaSummary.NetNonCompliantDelta -gt 0) { 'net-up' } elseif ($deltaSummary.NetNonCompliantDelta -lt 0) { 'net-down' } else { 'unchanged' }
+    $netSign  = if ($deltaSummary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
+    $deltaBannerHtml = @"
+<div class="delta-summary" role="region" aria-label="Delta vs previous run">
+  <strong>Delta vs previous run:</strong>
+  <span class="delta-chip new">$($deltaSummary.New) new</span>
+  <span class="delta-chip resolved">$($deltaSummary.Resolved) resolved</span>
+  <span class="delta-chip unchanged">$($deltaSummary.Unchanged) unchanged</span>
+  <span class="delta-chip $netClass">Net non-compliant: $netSign$($deltaSummary.NetNonCompliantDelta)</span>
+</div>
+"@
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -332,6 +386,19 @@ $html = @"
   .sev-info { background: #eeeeee; color: #555; }
   .badge-ok { background: #e8f5e9; color: #1b5e20; }
   .badge-fail { background: #fce4ec; color: #880e4f; }
+  .badge-new { background: #ffebee; color: #b71c1c; }
+  .badge-resolved { background: #e8f5e9; color: #1b5e20; }
+  .badge-unchanged { background: #eceff1; color: #37474f; }
+
+  /* Delta summary */
+  .delta-summary { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+  .delta-summary strong { font-size: 16px; }
+  .delta-chip { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+  .delta-chip.new { background: #ffebee; color: #b71c1c; }
+  .delta-chip.resolved { background: #e8f5e9; color: #1b5e20; }
+  .delta-chip.unchanged { background: #eceff1; color: #37474f; }
+  .delta-chip.net-up { background: #ffebee; color: #b71c1c; }
+  .delta-chip.net-down { background: #e8f5e9; color: #1b5e20; }
 
   /* Filter banner */
   .filter-banner { display: none; background: #e3f2fd; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; align-items: center; gap: 8px; }
@@ -379,6 +446,8 @@ $html = @"
   <span id="filterBannerText"></span>
   <button onclick="clearSeverityFilter()">Clear filter</button>
 </div>
+
+$deltaBannerHtml
 
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
