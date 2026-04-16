@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure Analyzer ÔÇö unified Azure assessment orchestrator.
@@ -47,6 +47,14 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) {
+    . $sanitizePath
+}
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string]$Text) return $Text }
+}
+
 # --- Tool selection ---
 $validTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
 $azureScopedTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara')
@@ -77,7 +85,7 @@ function Get-ChildSubscriptions {
         $subs = Search-AzGraph -Query $query -ManagementGroup $ManagementGroupId -First 1000 -ErrorAction Stop
         return @($subs | Select-Object -ExpandProperty subscriptionId -Unique)
     } catch {
-        Write-Warning "Failed to enumerate subscriptions under $ManagementGroupId : $_"
+        Write-Warning (Remove-Credentials "Failed to enumerate subscriptions under $ManagementGroupId : $_")
         return @()
     }
 }
@@ -118,7 +126,7 @@ function Install-Prerequisites {
                     Install-Module $mod.Name -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
                     Write-Host "  ✓ $($mod.Name) installed" -ForegroundColor Green
                 } catch {
-                    Write-Warning "Could not install $($mod.Name): $_. $($mod.Tool) may be skipped."
+                    Write-Warning (Remove-Credentials "Could not install $($mod.Name): $_. $($mod.Tool) may be skipped.")
                 }
             } else {
                 $missing.Add($mod.Name)
@@ -174,12 +182,13 @@ function Invoke-Wrapper {
             return $result
         } catch {
             if ($attempt -le $MaxRetries) {
-                Write-Warning "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ -- retrying in ${RetryDelaySec}s..."
+                Write-Warning (Remove-Credentials "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ -- retrying in ${RetryDelaySec}s...")
                 Start-Sleep -Seconds $RetryDelaySec
             } else {
-                Write-Warning "$Script failed after $($MaxRetries+1) attempts: $_"
-                $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = $_.Exception.Message; Timestamp = Get-Date })
-                return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = $_.Exception.Message; Findings = @() }
+                Write-Warning (Remove-Credentials "$Script failed after $($MaxRetries+1) attempts: $_")
+                $sanitizedMessage = Remove-Credentials $_.Exception.Message
+                $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = $sanitizedMessage; Timestamp = Get-Date })
+                return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = $sanitizedMessage; Findings = @() }
             }
         }
     }
@@ -488,7 +497,7 @@ try {
     $statusFile = Join-Path $OutputPath 'tool-status.json'
     $toolStatus | ConvertTo-Json -Depth 3 | Set-Content -Path $statusFile -Encoding UTF8
 } catch {
-    Write-Error "Failed to write output to ${OutputPath}: $_"
+    Write-Error (Remove-Credentials "Failed to write output to ${OutputPath}: $_")
     return
 }
 
@@ -500,7 +509,7 @@ if ($EnableAiTriage) {
         $triageResult = & (Join-Path $modulesPath 'Invoke-CopilotTriage.ps1') `
             -InputPath $outputFile -OutputPath $triageFile
         if ($null -eq $triageResult) { Write-Warning "AI triage did not produce results." }
-    } catch { Write-Warning "AI triage failed: $_ -- continuing without enrichment." }
+    } catch { Write-Warning (Remove-Credentials "AI triage failed: $_ -- continuing without enrichment.") }
 } else {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
@@ -513,13 +522,13 @@ $mdReport   = Join-Path $OutputPath 'report.md'
 try {
     & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg
 } catch {
-    Write-Warning "HTML report generation failed: $_"
+    Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }
 
 try {
     & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg
 } catch {
-    Write-Warning "Markdown report generation failed: $_"
+    Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
 }
 
 $high = ($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
@@ -535,12 +544,14 @@ Write-Host "  Output: $outputFile" -ForegroundColor Green
 if ($toolErrors.Count -gt 0) {
     $errorsFile = Join-Path $OutputPath 'errors.json'
     try {
-        $toolErrors | ConvertTo-Json -Depth 3 | Set-Content -Path $errorsFile -Encoding UTF8
+        $errorsJson = $toolErrors | ConvertTo-Json -Depth 3
+        $errorsJson = Remove-Credentials $errorsJson
+        $errorsJson | Set-Content -Path $errorsFile -Encoding UTF8
     } catch {
-        Write-Warning "Failed to write errors.json: $_"
+        Write-Warning (Remove-Credentials "Failed to write errors.json: $_")
     }
     Write-Host "`n⚠️ $($toolErrors.Count) tool(s) encountered errors:" -ForegroundColor Red
     foreach ($te in $toolErrors) {
-        Write-Host "  - $($te.Tool): $($te.Error)" -ForegroundColor Red
+        Write-Host (Remove-Credentials "  - $($te.Tool): $($te.Error)") -ForegroundColor Red
     }
 }

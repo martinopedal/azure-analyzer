@@ -6,7 +6,7 @@
     CompanyName           = 'Azure Community'
     Description           = 'Unified Azure assessment tool bundling azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Maester, and OpenSSF Scorecard. Local module for on-demand assessment runs.'
     
-    PowerShellVersion     = '7.0'
+    PowerShellVersion     = '7.4'
     
     RequiredModules       = @()
     

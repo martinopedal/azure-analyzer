@@ -1,0 +1,72 @@
+#Requires -Version 7.4
+
+BeforeAll {
+    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+    . (Join-Path $repoRoot 'modules\shared\Canonicalize.ps1')
+    . (Join-Path $repoRoot 'modules\shared\Schema.ps1')
+}
+
+Describe 'New-FindingRow' {
+    It 'creates a finding with required fields and defaults' {
+        $finding = New-FindingRow `
+            -Id 'f-001' `
+            -Source 'azqr' `
+            -EntityId '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.storage/storageaccounts/foo' `
+            -EntityType 'AzureResource' `
+            -Title 'Test' `
+            -Compliant $false `
+            -ProvenanceRunId 'azqr-run-1'
+
+        $finding.SchemaVersion | Should -Be '2.0'
+        $finding.Platform | Should -Be 'Azure'
+        $finding.Provenance.RunId | Should -Be 'azqr-run-1'
+    }
+
+    It 'throws when required fields are missing' {
+        { New-FindingRow -Id '' -Source 'azqr' -EntityId 'x' -EntityType 'AzureResource' -Title 'x' -Compliant $true -ProvenanceRunId 'run' } | Should -Throw
+    }
+}
+
+Describe 'New-EntityStub' {
+    It 'creates an entity stub with empty observations' {
+        $entity = New-EntityStub `
+            -CanonicalId '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.storage/storageaccounts/foo' `
+            -EntityType 'AzureResource'
+
+        $entity.EntityId | Should -Match '/subscriptions/'
+        $entity.Platform | Should -Be 'Azure'
+        $entity.Observations | Should -BeNullOrEmpty
+    }
+}
+
+Describe 'Test-FindingRow' {
+    It 'returns true for valid finding rows' {
+        $finding = New-FindingRow `
+            -Id 'f-002' `
+            -Source 'psrule' `
+            -EntityId '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.storage/storageaccounts/foo' `
+            -EntityType 'AzureResource' `
+            -Title 'Valid' `
+            -Compliant $true `
+            -ProvenanceRunId 'psrule-run-1'
+
+        $errors = @()
+        (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeTrue
+        $errors | Should -BeNullOrEmpty
+    }
+
+    It 'returns false with errors for non-canonical IDs' {
+        $finding = New-FindingRow `
+            -Id 'f-003' `
+            -Source 'azqr' `
+            -EntityId '/Subscriptions/ABC12345-6789-4ABC-8DEF-1234567890AB/ResourceGroups/rg/providers/Microsoft.Storage/storageAccounts/foo' `
+            -EntityType 'AzureResource' `
+            -Title 'Invalid' `
+            -Compliant $false `
+            -ProvenanceRunId 'azqr-run-2'
+
+        $errors = @()
+        (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeFalse
+        ($errors -join '; ') | Should -Match 'canonicalized'
+    }
+}

@@ -34,6 +34,7 @@ Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure reso
 Missing PowerShell modules are detected and reported with install commands. Use `-InstallMissingModules` to auto-install them.
 
 Results land in `output/` -- a JSON file, an HTML dashboard, and a Markdown report. That's it.
+Sensitive tokens are scrubbed from console output, errors.json, and report files before writing.
 
 ## What you get
 
@@ -125,11 +126,17 @@ The report groups findings by category, then prioritizes action:
 - **Track** -- Low + Info severity
 - Per-category breakdown with finding counts
 
+## Architecture & contributor docs
+
+- **Pipeline + dual data model:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Add a new tool:** [docs/CONTRIBUTING-TOOLS.md](docs/CONTRIBUTING-TOOLS.md)
+- **Template safety:** report generators must escape `</` as `<\/` when replacing `{{MODEL_JSON}}` in `report-template.html`.
+
 ## Prerequisites
 
 | What | Install | Needed for |
 |------|---------|-----------|
-| PowerShell 7.2+ | `winget install Microsoft.PowerShell` | Everything |
+| PowerShell 7.4+ | `winget install Microsoft.PowerShell` | Everything |
 | Az PowerShell module | `Install-Module Az -Scope CurrentUser` | Azure tools (azqr, PSRule, AzGovViz, ALZ, WARA) |
 | Microsoft.Graph module | `Install-Module Microsoft.Graph -Scope CurrentUser` | Maester (identity security) |
 | azqr CLI | `winget install azure-quick-review.azqr` | Resource compliance scanning |
@@ -256,6 +263,10 @@ All findings are merged into `output/results.json` using a unified 10-field sche
 | `Remediation` | string | Steps to fix (may include URLs) |
 | `ResourceId` | string | Azure ARM resource ID |
 | `LearnMoreUrl` | string | Link to Microsoft Learn documentation |
+
+Phase 0 v3 introduces shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) to support dual-model outputs (`entities.json` + `results.json`) in upcoming orchestrator updates, with Pester coverage in `tests/shared/`. The manifest now includes v3 orchestration metadata (`provider`, `scope`, `normalizer`, `invokeMethod`) for each tool.
+Phase 0 v3 introduces shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) to support dual-model outputs (`entities.json` + `results.json`) in upcoming orchestrator updates, with Pester coverage in `tests/shared/`.
+Phase 0 security helpers now enforce terminating error behavior and redact Azure SAS/token-style credentials in logs and report rendering paths.
 
 ## Permissions
 

@@ -4,6 +4,16 @@
 
 All tools operate **read-only** with no write permissions anywhere. Azure-analyzer uses only the minimum permissions required to assess your infrastructure.
 
+Phase 0 v3 core modules (Schema, Canonicalize, EntityStore, tool manifest) introduce no new permissions or scopes.
+
+---
+
+## Permission tiers (v3)
+
+Azure Analyzer v3 groups capabilities into permission tiers (Tier 0–6) covering
+Azure, Graph, CI/CD, cost, and optional AI access. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the tier breakdown.
+
 ---
 
 ## Required permissions by scope
