@@ -371,6 +371,16 @@ class EntityStore {
         $entity.Policies = Merge-UniqueByKey -Existing $entity.Policies -Incoming $EntityStub.Policies -KeySelector {
             param ($item) "$($item.PolicyName)|$($item.AssignmentScope)"
         }
+        $entity.Correlations = Merge-UniqueByKey -Existing $entity.Correlations -Incoming $EntityStub.Correlations -KeySelector {
+            param ($item)
+            if (-not $item) { return $null }
+            $recommendationId = Get-ObjectPropertyValue -Object $item -PropertyName 'RecommendationId' -Default ''
+            $type = Get-ObjectPropertyValue -Object $item -PropertyName 'Type' -Default ''
+            if (-not [string]::IsNullOrWhiteSpace([string]$recommendationId)) {
+                return "$type|$recommendationId"
+            }
+            return "$type|$($item | ConvertTo-Json -Depth 10 -Compress)"
+        }
 
         if ($EntityStub.MonthlyCost -ne $null) { $entity.MonthlyCost = $EntityStub.MonthlyCost }
         if ($EntityStub.Currency) { $entity.Currency = $EntityStub.Currency }
@@ -425,6 +435,16 @@ class EntityStore {
                             $existing.Observations = @($existing.Observations) + @($entity.Observations)
                         }
                         $existing.Sources = Merge-UniqueByKey -Existing $existing.Sources -Incoming $entity.Sources -KeySelector { param ($item) $item }
+                        $existing.Correlations = Merge-UniqueByKey -Existing $existing.Correlations -Incoming $entity.Correlations -KeySelector {
+                            param ($item)
+                            if (-not $item) { return $null }
+                            $recommendationId = Get-ObjectPropertyValue -Object $item -PropertyName 'RecommendationId' -Default ''
+                            $type = Get-ObjectPropertyValue -Object $item -PropertyName 'Type' -Default ''
+                            if (-not [string]::IsNullOrWhiteSpace([string]$recommendationId)) {
+                                return "$type|$recommendationId"
+                            }
+                            return "$type|$($item | ConvertTo-Json -Depth 10 -Compress)"
+                        }
                         if ((Get-SeverityRank $entity.WorstSeverity) -gt (Get-SeverityRank $existing.WorstSeverity)) {
                             $existing.WorstSeverity = $entity.WorstSeverity
                         }

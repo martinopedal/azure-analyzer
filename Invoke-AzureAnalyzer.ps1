@@ -150,6 +150,7 @@ function Install-Prerequisites {
     Write-Host "`n[prereq] Checking prerequisites..." -ForegroundColor Yellow
     $psModules = @(
         @{ Name = 'Az.ResourceGraph'; Tool = 'alz-queries' },
+        @{ Name = 'Az.Security'; Tool = 'defender-for-cloud' },
         @{ Name = 'PSRule'; Tool = 'psrule' },
         @{ Name = 'PSRule.Rules.Azure'; Tool = 'psrule' },
         @{ Name = 'WARA'; Tool = 'wara' },
@@ -224,6 +225,73 @@ function Map-Severity {
 
 function Get-SeverityRank ([string]$Sev) {
     switch ($Sev) { 'Critical' { 4 } 'High' { 3 } 'Medium' { 2 } 'Low' { 1 } default { 0 } }
+}
+
+function Resolve-DefenderCorrelations {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [EntityStore] $Store,
+
+        [Parameter(Mandatory)]
+        [PSCustomObject[]] $DefenderFindings
+    )
+
+    $eligible = @($Store.GetFindings() | Where-Object {
+            $_.Source -in @('azqr', 'psrule') -and
+            $_.EntityType -eq 'AzureResource' -and
+            $_.Compliant -eq $false
+        })
+
+    $matchByEntity = @{}
+    foreach ($finding in $eligible) {
+        if (-not $finding.EntityId) { continue }
+        if (-not $matchByEntity.ContainsKey($finding.EntityId)) {
+            $matchByEntity[$finding.EntityId] = [System.Collections.Generic.List[PSCustomObject]]::new()
+        }
+        $matchByEntity[$finding.EntityId].Add($finding)
+    }
+
+    $emitted = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $suppressedCount = 0
+
+    foreach ($df in @($DefenderFindings)) {
+        if (-not $df) { continue }
+
+        $isAssessment = ($df.EntityType -eq 'AzureResource' -and $df.Compliant -eq $false)
+        if (-not $isAssessment -or -not $df.EntityId) {
+            $emitted.Add($df)
+            continue
+        }
+
+        if (-not $matchByEntity.ContainsKey($df.EntityId)) {
+            $emitted.Add($df)
+            continue
+        }
+
+        $matched = @($matchByEntity[$df.EntityId].ToArray())
+        $correlation = [PSCustomObject]@{
+            Type              = 'DefenderRecommendation'
+            RecommendationId  = $df.Id
+            Recommendation    = $df.Title
+            Severity          = $df.Severity
+            MatchedSources    = @($matched | ForEach-Object { $_.Source } | Select-Object -Unique)
+            MatchedFindingIds = @($matched | ForEach-Object { $_.Id } | Select-Object -Unique)
+        }
+
+        $Store.MergeEntityMetadata([PSCustomObject]@{
+            EntityId     = $df.EntityId
+            EntityType   = 'AzureResource'
+            Platform     = 'Azure'
+            Correlations = @($correlation)
+        })
+        $suppressedCount++
+    }
+
+    return [PSCustomObject]@{
+        EmittedFindings  = $emitted.ToArray()
+        SuppressedCount = $suppressedCount
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -438,6 +506,7 @@ if ($toolSpecs.Count -gt 0) {
 # ---------------------------------------------------------------------------
 $store      = [EntityStore]::new(50000, $OutputPath)
 $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+$pendingDefenderFindings = [System.Collections.Generic.List[PSCustomObject]]::new()
 # Per-tool aggregation for tool-status.json
 $toolAgg = @{}   # toolName → @{ WorstStatus; Messages; Count }
 
@@ -497,6 +566,13 @@ foreach ($wr in $parallelResults) {
         }
     }
 
+    if ($toolName -eq 'defender-for-cloud') {
+        foreach ($finding in $v3Findings) {
+            if ($finding) { $pendingDefenderFindings.Add($finding) }
+        }
+        continue
+    }
+
     # Feed v3 findings into EntityStore
     foreach ($finding in $v3Findings) {
         try {
@@ -522,6 +598,40 @@ foreach ($wr in $parallelResults) {
             ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
             LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
         })
+    }
+}
+
+if ($pendingDefenderFindings.Count -gt 0) {
+    $defenderResolution = Resolve-DefenderCorrelations -Store $store -DefenderFindings @($pendingDefenderFindings)
+    $defenderFindingsToEmit = @($defenderResolution.EmittedFindings)
+    foreach ($finding in $defenderFindingsToEmit) {
+        try {
+            $store.AddFinding($finding)
+        } catch {
+            Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for defender-for-cloud : $_")
+        }
+    }
+
+    foreach ($f in $defenderFindingsToEmit) {
+        $allResults.Add([PSCustomObject]@{
+            Id           = $f.Id
+            Source       = $f.Source
+            Category     = if ($f.PSObject.Properties['Category'] -and $f.Category) { $f.Category } else { '' }
+            Title        = $f.Title
+            Severity     = if ($f.PSObject.Properties['Severity'] -and $f.Severity) { $f.Severity } else { 'Info' }
+            Compliant    = $f.Compliant
+            Detail       = if ($f.PSObject.Properties['Detail'] -and $f.Detail) { $f.Detail } else { '' }
+            Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
+            ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
+            LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+        })
+    }
+
+    if ($toolAgg.ContainsKey('defender-for-cloud')) {
+        $toolAgg['defender-for-cloud'].Count = $defenderFindingsToEmit.Count
+        if ($defenderResolution.SuppressedCount -gt 0) {
+            $toolAgg['defender-for-cloud'].Messages.Add("Correlated $($defenderResolution.SuppressedCount) Defender recommendation(s) to existing azqr/psrule findings")
+        }
     }
 }
 

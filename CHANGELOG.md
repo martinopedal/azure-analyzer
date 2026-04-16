@@ -4,6 +4,12 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **Phase 4 Defender for Cloud enrichment (tool #13 in manifest)**: Added `defender-for-cloud` collector in `tools/tool-manifest.json` (`provider=azure`, `scope=subscription`, `install.kind=psmodule` with `Az.Security`, `report.phase=4`).
+- **Defender for Cloud wrapper**: New `modules/Invoke-DefenderForCloud.ps1` fetches per-subscription secure score and pages `Microsoft.Security/assessments` recommendations. Handles Defender-disabled subscriptions gracefully with `Status='Skipped'` for 404/409 responses.
+- **Defender for Cloud normalizer + tests**: New `modules/normalizers/Normalize-DefenderForCloud.ps1` and `tests/normalizers/Normalize-DefenderForCloud.Tests.ps1` convert non-healthy assessments to `AzureResource` findings with severity mapped from Defender metadata, and emit secure score as an informational `Subscription` finding.
+- **Defender overlap correlation**: Orchestrator now correlates Defender recommendation findings to existing non-compliant azqr/PSRule findings on the same resource and stores linkage in entity `Correlations` metadata instead of emitting duplicate overlapping findings.
+
 ### Fixed
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
@@ -163,5 +169,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 

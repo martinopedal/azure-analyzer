@@ -193,6 +193,29 @@
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
       "enabled": true
+    },
+    {
+      "name": "defender-for-cloud",
+      "displayName": "Microsoft Defender for Cloud",
+      "source": "defender-for-cloud",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-DefenderForCloud",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-DefenderForCloud.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": [],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "install": {
+        "kind": "psmodule",
+        "name": "Az.Security"
+      },
+      "report": {
+        "phase": 4
+      },
+      "enabled": true
     }
   ]
 }

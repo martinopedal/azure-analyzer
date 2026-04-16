@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **zizmor**, **gitleaks**, and **Trivy** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, CI/CD workflow security, secrets detection, and DevOps service connection dimensions.
+Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Defender for Cloud**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **zizmor**, **gitleaks**, and **Trivy** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, CI/CD workflow security, secrets detection, and DevOps service connection dimensions.
 
 ## Quick Start
 
@@ -282,7 +282,7 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **Supply chain scan with custom path** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
 | **Local repo security scan** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`
+**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `defender-for-cloud`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
@@ -295,12 +295,13 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy -- management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies |
 | 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance -- 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column |
 | 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture -- single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
-| 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
-| 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
-| 8 | **ADO Service Connections** | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | REST API queries ADO org/projects and catalogs all service endpoints with auth details |
-| 9 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity |
-| 10 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns |
-| 11 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) |
+| 6 | **Defender for Cloud** | Security posture enrichment -- per-subscription secure score and active recommendations from Microsoft Defender for Cloud | Uses Microsoft.Security REST APIs (`secureScores`, `assessments`) and correlates overlapping recommendations to existing azqr/PSRule resource findings |
+| 7 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
+| 8 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
+| 9 | **ADO Service Connections** | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | REST API queries ADO org/projects and catalogs all service endpoints with auth details |
+| 10 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity |
+| 11 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns |
+| 12 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) |
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
@@ -318,7 +319,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, or `trivy` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `defender-for-cloud`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, or `trivy` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -364,7 +365,7 @@ Normalizers produce v2 FindingRow objects internally. These appear as entries in
 
 `Id`, `Source`, `Category`, `Title`, `Severity`, `Compliant`, `Detail`, `Remediation`, `ResourceId`, `LearnMoreUrl`, `EntityId`, `EntityType`, `Platform`, `Provenance` (`{ RunId, Source, RawRecordRef, Timestamp }`), `SubscriptionId`, `SubscriptionName`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, `MissingDimensions`, `SchemaVersion`
 
-The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs. Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline.
+The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs. The current manifest registers **13 tools** (12 collectors + 1 correlator). Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline.
 
 ## Permissions
 

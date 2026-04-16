@@ -1,0 +1,52 @@
+{
+  "Source": "defender-for-cloud",
+  "Status": "Success",
+  "Message": "",
+  "SubscriptionId": "00000000-0000-0000-0000-000000000001",
+  "Findings": [
+    {
+      "RecordType": "SecureScore",
+      "SubscriptionId": "00000000-0000-0000-0000-000000000001",
+      "Title": "Defender for Cloud Secure Score",
+      "Current": 42,
+      "Max": 60,
+      "Percentage": 70
+    },
+    {
+      "RecordType": "Assessment",
+      "SubscriptionId": "00000000-0000-0000-0000-000000000001",
+      "AssessmentId": "assessment-vm-disk-encryption",
+      "StatusCode": "Unhealthy",
+      "Title": "Virtual machines should encrypt temp disks, caches, and data flows between Compute and Storage resources",
+      "Severity": "High",
+      "Description": "Disk encryption should be enabled for this VM.",
+      "Remediation": "Enable encryption at host or Azure Disk Encryption.",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+      "LearnMoreUrl": "https://portal.azure.com/#blade/Microsoft_Azure_Security/SecurityMenuBlade/Recommendations"
+    },
+    {
+      "RecordType": "Assessment",
+      "SubscriptionId": "00000000-0000-0000-0000-000000000001",
+      "AssessmentId": "assessment-storage-tls",
+      "StatusCode": "Healthy",
+      "Title": "Storage accounts should enforce TLS 1.2",
+      "Severity": "Low",
+      "Description": "TLS 1.2 is enabled.",
+      "Remediation": "",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Storage/storageAccounts/stprod01",
+      "LearnMoreUrl": ""
+    },
+    {
+      "RecordType": "Assessment",
+      "SubscriptionId": "00000000-0000-0000-0000-000000000001",
+      "AssessmentId": "assessment-kv-soft-delete",
+      "StatusCode": "Unhealthy",
+      "Title": "Key vaults should have purge protection enabled",
+      "Severity": "Medium",
+      "Description": "Purge protection is disabled.",
+      "Remediation": "Enable purge protection in Key Vault settings.",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.KeyVault/vaults/kv-prod-01",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview"
+    }
+  ]
+}

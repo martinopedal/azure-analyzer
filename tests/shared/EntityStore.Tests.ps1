@@ -62,4 +62,79 @@ Describe 'EntityStore spill merge' {
             }
         }
     }
+
+    It 'merges correlation metadata for existing entities without duplicates' {
+        $outputPath = Join-Path $PSScriptRoot '..\..\output-test\entitystore-correlations'
+        if (Test-Path $outputPath) {
+            Remove-Item -Path $outputPath -Recurse -Force
+        }
+        $null = New-Item -Path $outputPath -ItemType Directory -Force
+
+        try {
+            $store = [EntityStore]::new(50000, $outputPath)
+            $entityId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg1/providers/microsoft.compute/virtualmachines/vm1'
+            $store.MergeEntityMetadata([pscustomobject]@{
+                EntityId     = $entityId
+                EntityType   = 'AzureResource'
+                Platform     = 'Azure'
+                DisplayName  = ''
+                SubscriptionName = ''
+                ManagementGroupPath = @()
+                SubscriptionId = ''
+                ResourceGroup = ''
+                ExternalIds = @()
+                Frameworks = @()
+                Policies = @()
+                MissingDimensions = @()
+                Currency = ''
+                CostTrend = ''
+                MonthlyCost = $null
+                Observations = @()
+                Correlations = @(
+                    [pscustomobject]@{
+                        Type             = 'DefenderRecommendation'
+                        RecommendationId = 'rec-1'
+                    }
+                )
+            })
+            $store.MergeEntityMetadata([pscustomobject]@{
+                EntityId     = $entityId
+                EntityType   = 'AzureResource'
+                Platform     = 'Azure'
+                DisplayName  = ''
+                SubscriptionName = ''
+                ManagementGroupPath = @()
+                SubscriptionId = ''
+                ResourceGroup = ''
+                ExternalIds = @()
+                Frameworks = @()
+                Policies = @()
+                MissingDimensions = @()
+                Currency = ''
+                CostTrend = ''
+                MonthlyCost = $null
+                Observations = @()
+                Correlations = @(
+                    [pscustomobject]@{
+                        Type             = 'DefenderRecommendation'
+                        RecommendationId = 'rec-1'
+                    },
+                    [pscustomobject]@{
+                        Type             = 'DefenderRecommendation'
+                        RecommendationId = 'rec-2'
+                    }
+                )
+            })
+
+            $entities = $store.GetEntities()
+            $entity = @($entities | Where-Object { $_.EntityId -eq $entityId })[0]
+            @($entity.Correlations).Count | Should -Be 2
+            @($entity.Correlations | ForEach-Object { $_.RecommendationId }) | Should -Contain 'rec-1'
+            @($entity.Correlations | ForEach-Object { $_.RecommendationId }) | Should -Contain 'rec-2'
+        } finally {
+            if (Test-Path $outputPath) {
+                Remove-Item -Path $outputPath -Recurse -Force
+            }
+        }
+    }
 }

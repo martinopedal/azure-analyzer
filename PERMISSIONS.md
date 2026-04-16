@@ -27,6 +27,7 @@ Azure, Graph, CI/CD, cost, and optional AI access. See
 | **AzGovViz** | Management Group | Reader | Crawls governance hierarchy, policies, and RBAC assignments |
 | **ALZ Resource Graph queries** | Subscription or MG | Reader | Runs 132 custom ARG queries for Azure architecture assessment |
 | **WARA** | Subscription | Reader | Collects Well-Architected Framework reliability assessment data |
+| **Defender for Cloud** | Subscription | Reader | Reads secure score and security assessments from `Microsoft.Security` endpoints |
 
 **How to grant:**
 ```powershell
@@ -56,7 +57,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 
 | Tool scope | Behavior |
 |------------|----------|
-| **Subscription-scoped** (azqr, PSRule, WARA) | Runs **per discovered subscription** |
+| **Subscription-scoped** (azqr, PSRule, WARA, Defender for Cloud) | Runs **per discovered subscription** |
 | **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
 | **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
@@ -293,6 +294,8 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 
 ## Permission matrix (quick reference)
 
+The manifest currently includes **13 tools** (12 collectors + 1 correlator).
+
 | Tool | Azure Reader | Microsoft Graph | GitHub Token | ADO PAT | Local CLI | Copilot License |
 |------|-------------|-----------------|-------------|---------|-----------|-----------------|
 | **azqr** | ✅ Required | -- | -- | -- | -- | -- |
@@ -300,6 +303,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **AzGovViz** | ✅ Required | -- | -- | -- | -- | -- |
 | **ALZ Queries** | ✅ Required | -- | -- | -- | -- | -- |
 | **WARA** | ✅ Required | -- | -- | -- | -- | -- |
+| **Defender for Cloud** | ✅ Required | -- | -- | -- | -- | -- |
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
