@@ -76,6 +76,13 @@ function ConvertTo-AuthenticatedRemoteUrl {
 
     if (-not $Token) { return $Url }
 
+    try {
+        $uri = [System.Uri]::new($Url)
+        if ($uri.UserInfo) { return $Url }
+    } catch {
+        return $Url
+    }
+
     $encodedToken = [System.Uri]::EscapeDataString($Token)
     return ($Url -replace '^https://', "https://x-access-token:$encodedToken@")
 }
@@ -90,7 +97,7 @@ function Remove-RemoteCloneCredentialsFromGitConfig {
 
     try {
         $configText = Get-Content -LiteralPath $gitConfigPath -Raw -ErrorAction Stop
-        $scrubbed = $configText -replace '(https://)([^/\s:@"]+):([^@\s"]+)@', '$1'
+        $scrubbed = $configText -replace '(https://)([^/\s"]+@)', '$1'
         if ($scrubbed -ne $configText) {
             Set-Content -LiteralPath $gitConfigPath -Value $scrubbed -NoNewline -Encoding UTF8 -ErrorAction Stop
         }
@@ -110,6 +117,15 @@ function Invoke-RemoteRepoClone {
 
     if (-not (Test-RemoteRepoUrl -Url $RepoUrl)) {
         Write-Warning '[remote-clone] Refusing to clone from non-HTTPS or disallowed host URL. Allowed: github.com, dev.azure.com, *.visualstudio.com, *.ghe.com.'
+        return $null
+    }
+    try {
+        if ([System.Uri]::new($RepoUrl).UserInfo) {
+            Write-Warning '[remote-clone] Refusing URL with embedded credentials. Provide token via environment variable instead.'
+            return $null
+        }
+    } catch {
+        Write-Warning "[remote-clone] Invalid repository URL: $(Remove-Credentials $RepoUrl)"
         return $null
     }
 
@@ -174,7 +190,7 @@ function Invoke-RemoteRepoClone {
         }
     } catch {
         & $cleanup
-        Write-Warning (Remove-Credentials "[remote-clone] $(Remove-Credentials "$_")")
+        Write-Warning (Remove-Credentials "[remote-clone] $_")
         return $null
     }
 }
