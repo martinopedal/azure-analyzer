@@ -1,0 +1,31 @@
+{
+  "Source": "wara",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Source": "wara",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01",
+      "Category": "Reliability",
+      "Title": "VM is not part of an availability set or availability zone",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Virtual machine vm-web-01 is deployed without an availability set or availability zone. Single-instance VMs do not qualify for the 99.9% SLA.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/reliability/reliability-virtual-machines",
+      "Remediation": "Redeploy the VM into an availability zone or availability set to improve resiliency.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "wara",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Sql/servers/sql-prod-01",
+      "Category": "Resiliency",
+      "Title": "SQL Server does not have geo-replication configured",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "SQL Server sql-prod-01 does not have active geo-replication or auto-failover groups configured. A regional outage could result in data loss.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview",
+      "Remediation": "Configure active geo-replication or auto-failover groups for business-critical databases.",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}

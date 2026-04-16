@@ -1,0 +1,6 @@
+{
+  "Source": "azqr",
+  "Status": "Failed",
+  "Message": "Tool execution failed: Azure authentication token expired. Run Connect-AzAccount to re-authenticate.",
+  "Findings": []
+}

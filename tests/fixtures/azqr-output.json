@@ -1,0 +1,43 @@
+{
+  "Source": "azqr",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Source": "azqr",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01",
+      "Category": "Security",
+      "Title": "VM does not have Azure Disk Encryption enabled",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Virtual machine vm-web-01 does not have Azure Disk Encryption (ADE) enabled. OS and data disks should be encrypted at rest using platform-managed or customer-managed keys.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview",
+      "Remediation": "Enable Azure Disk Encryption on the VM through the Azure Portal or by running Set-AzVMDiskEncryptionExtension.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azqr",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Storage/storageAccounts/stproddata01",
+      "Category": "HighAvailability",
+      "Title": "Storage account is not using zone-redundant storage",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Storage account stproddata01 is configured with LRS replication. Zone-redundant storage (ZRS) is recommended for high availability workloads.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/storage/common/storage-redundancy",
+      "Remediation": "Migrate the storage account to ZRS or GZRS replication by creating a support request or using the Azure Portal migration option.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azqr",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.KeyVault/vaults/kv-prod-01",
+      "Category": "MonitoringAndAlerting",
+      "Title": "Key Vault has diagnostic settings configured",
+      "Compliant": true,
+      "Severity": "Info",
+      "Detail": "Key Vault kv-prod-01 has diagnostic settings configured with audit and metric logs sent to a Log Analytics workspace.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/key-vault/general/logging",
+      "Remediation": "",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}
