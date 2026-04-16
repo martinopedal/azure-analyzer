@@ -72,6 +72,7 @@ if ($AdoRepoUrl) {
 } elseif ($Repository) {
     if ($Repository -match '^https://') {
         $resolvedRemoteUrl = $Repository
+    # host/owner/repo shorthand (for example: github.com/org/repo)
     } elseif (($Repository -match '^[^/\s]+/[^/\s]+/[^/\s]+$') -and -not (Test-Path -LiteralPath $Repository)) {
         $resolvedRemoteUrl = "https://$Repository"
     } elseif (-not $PSBoundParameters.ContainsKey('RepoPath')) {

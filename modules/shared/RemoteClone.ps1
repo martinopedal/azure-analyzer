@@ -97,7 +97,7 @@ function Remove-RemoteCloneCredentialsFromGitConfig {
 
     try {
         $configText = Get-Content -LiteralPath $gitConfigPath -Raw -ErrorAction Stop
-        $scrubbed = $configText -replace '(https://)([^/\s"]+@)', '$1'
+        $scrubbed = $configText -replace '(https://)([^@]+@)', '$1'
         if ($scrubbed -ne $configText) {
             Set-Content -LiteralPath $gitConfigPath -Value $scrubbed -NoNewline -Encoding UTF8 -ErrorAction Stop
         }
@@ -163,8 +163,8 @@ function Invoke-RemoteRepoClone {
         $proc = [System.Diagnostics.Process]::new()
         $proc.StartInfo = $psi
         $null = $proc.Start()
-        $null = $proc.WaitForExit($TimeoutSec * 1000)
-        if (-not $proc.HasExited) {
+        $exited = $proc.WaitForExit($TimeoutSec * 1000)
+        if (-not $exited) {
             try { $proc.Kill($true) } catch {}
             throw "git clone timed out after $TimeoutSec seconds for $(Remove-Credentials $RepoUrl)."
         }
