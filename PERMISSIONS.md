@@ -206,9 +206,14 @@ $env:GITHUB_AUTH_TOKEN = (gh auth token)
 
 ---
 
-### Local CLI tools (zizmor, gitleaks, Trivy -- no cloud permissions)
+### Local CLI tools (zizmor, gitleaks, Trivy)
 
-These tools scan the local repository checkout and require **no API tokens, cloud permissions, or network access**. They only need the CLI binary installed on the machine.
+These tools support both local fallback and remote-first targeting:
+
+- **Remote-first** when `-Repository` (GitHub) or `-AdoRepoUrl` (Azure DevOps) is provided
+- **Local fallback** when no remote target is provided (`-RepoPath` / `-ScanPath`)
+
+All modes require the CLI binary on PATH.
 
 | Tool | What it scans | Install |
 |------|--------------|---------|
@@ -216,7 +221,14 @@ These tools scan the local repository checkout and require **no API tokens, clou
 | **gitleaks** | Repository filesystem for hardcoded secrets (keys, tokens, passwords) | [Download](https://github.com/gitleaks/gitleaks/releases) or `brew install gitleaks` |
 | **Trivy** | Dependency manifests (package-lock.json, requirements.txt, go.sum, etc.) for CVEs | [Download](https://github.com/aquasecurity/trivy/releases) or `brew install trivy` / `choco install trivy` |
 
-**No permissions required.** These tools operate entirely on local files. If the CLI binary is not found on PATH, the tool is skipped with an install instruction.
+**Token requirements (remote mode only):**
+
+| Remote host | Token source | Minimum scope |
+|------------|--------------|---------------|
+| GitHub (`github.com`, `*.ghe.com`) | `GITHUB_AUTH_TOKEN` / `GITHUB_TOKEN` / `GH_TOKEN` | `repo` (classic) or repository **Read** (fine-grained) for private repos; no token needed for public repos |
+| Azure DevOps (`dev.azure.com`, `*.visualstudio.com`) | `AZURE_DEVOPS_EXT_PAT` (or `SYSTEM_ACCESSTOKEN`) | Code **Read** on the target repository |
+
+These scanners remain read-only and do not push commits or mutate remote repositories.
 
 ---
 
@@ -303,9 +315,9 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
-| **zizmor** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
-| **gitleaks** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
-| **Trivy** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
+| **zizmor** | -- | -- | ⚡ Optional (remote private GitHub repos) | ⚡ Optional (remote ADO repos) | ✅ Binary on PATH | -- |
+| **gitleaks** | -- | -- | ⚡ Optional (remote private GitHub repos) | ⚡ Optional (remote ADO repos) | ✅ Binary on PATH | -- |
+| **Trivy** | -- | -- | ⚡ Optional (remote private GitHub repos) | ⚡ Optional (remote ADO repos) | ✅ Binary on PATH | -- |
 | **AI Triage** | -- | -- | ⚡ Recommended | -- | -- | ⚠️ Optional |
 
 - ✅ = Required for tool to function

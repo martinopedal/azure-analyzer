@@ -29,6 +29,9 @@
 .PARAMETER RepoPath
     Local repository path for CI/CD security scanning tools (zizmor, gitleaks).
     Defaults to the current directory. Tools scan workflow files and git history at this path.
+.PARAMETER AdoRepoUrl
+    Azure DevOps HTTPS Git repository URL for remote-first scanner targeting
+    (zizmor, gitleaks, trivy). Token is resolved from AZURE_DEVOPS_EXT_PAT.
 .PARAMETER AdoOrg
     Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections).
     When provided, ADO tools are included in the run.
@@ -59,6 +62,7 @@ param (
     [string] $Repository,
     [string] $GitHubHost = '',
     [string] $RepoPath,
+    [string] $AdoRepoUrl,
     [string] $AdoOrg,
     [string] $AdoProject,
     [ValidateRange(0, 10)]
@@ -335,19 +339,20 @@ foreach ($toolDef in $manifest.tools) {
             $toolMetaMap[$specName] = $toolDef
         }
         'repository' {
-            # CLI-provider tools (trivy, zizmor, gitleaks) scan local filesystem -- always eligible
+            # CLI-provider tools (trivy, zizmor, gitleaks) are always eligible.
             if ($toolDef.provider -eq 'cli') {
                 $params = @{}
+                if ($Repository) { $params['Repository'] = $Repository }
+                if ($AdoRepoUrl) { $params['AdoRepoUrl'] = $AdoRepoUrl }
                 if ($toolDef.name -eq 'trivy') {
-                    if ($ScanPath) { $params['ScanPath'] = $ScanPath }
+                    $params['ScanPath'] = if ($ScanPath) { $ScanPath } else { '.' }
                     if ($ScanType) { $params['ScanType'] = $ScanType }
                 }
                 if ($toolDef.name -eq 'zizmor') {
-                    $localPath = if ($RepoPath) { $RepoPath } else { '.' }
-                    $params['Repository'] = $localPath
+                    $params['RepoPath'] = if ($RepoPath) { $RepoPath } else { '.' }
                 }
                 if ($toolDef.name -eq 'gitleaks') {
-                    if ($RepoPath) { $params['RepoPath'] = $RepoPath }
+                    $params['RepoPath'] = if ($RepoPath) { $RepoPath } else { '.' }
                 }
                 $specName = "$($toolDef.name)|repo"
                 $toolSpecs.Add([PSCustomObject]@{

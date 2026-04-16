@@ -235,6 +235,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-Repository` | string | -- | GitHub repo for Scorecard (e.g. `github.com/org/repo`) |
 | `-GitHubHost` | string | -- | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
 | `-RepoPath` | string | `.` | Local repo path for CI/CD scanning (zizmor, gitleaks) |
+| `-AdoRepoUrl` | string | -- | Azure DevOps HTTPS Git repo URL for remote scanner targeting |
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
@@ -279,6 +280,10 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **ADO service connections only** | `.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-connections'` |
 | **Azure + ADO** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"` |
 | **CI/CD security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks','trivy'` |
+| **zizmor remote (GitHub)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor' -Repository "github.com/org/repo"` |
+| **gitleaks remote (GitHub)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'gitleaks' -Repository "github.com/org/repo"` |
+| **trivy remote (GitHub)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -Repository "github.com/org/repo"` |
+| **remote repo (Azure DevOps)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks','trivy' -AdoRepoUrl "https://dev.azure.com/org/project/_git/repo"` |
 | **Supply chain scan with custom path** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
 | **Local repo security scan** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 
@@ -304,7 +309,7 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
-> **Note:** zizmor, gitleaks, and Trivy are local CLI tools that scan the current repository checkout. They require no cloud permissions or API tokens -- just the CLI binary installed on the machine. They run automatically when enabled and the binary is found on PATH.
+> **Note:** zizmor, gitleaks, and Trivy are now remote-first: when `-Repository` (GitHub) or `-AdoRepoUrl` (Azure DevOps) is provided, the repo is cloned to a temp directory and scanned there. If no remote target is provided, they fall back to local `-RepoPath` / `-ScanPath`. CLI binaries on PATH are still required.
 
 ## Schema reference
 
@@ -375,7 +380,7 @@ All tools operate read-only. No write permissions required anywhere.
 | **Azure Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA |
 | **Microsoft Graph** (read) | Maester -- Entra ID security |
 | **GitHub token** (optional) | Scorecard -- repo security (recommended for rate limits) |
-| **Local CLI only** (no cloud permissions) | zizmor, gitleaks, Trivy -- scan local filesystem |
+| **Local CLI / remote clone** | zizmor, gitleaks, Trivy -- scan local filesystem by default; can clone remote repos with GitHub/ADO read tokens |
 | **Copilot license** (optional) | AI triage -- fully optional; only used with `-EnableAiTriage` flag |
 
 See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup commands, and troubleshooting.

@@ -13,13 +13,22 @@
     as a defense-in-depth layer. The report is written to the system temp
     directory (not inside the scanned repo).
 .PARAMETER RepoPath
-    Path to the repository to scan. Defaults to the current directory.
+    Local repository path fallback when no remote target is provided.
+.PARAMETER Repository
+    Remote repository identifier/URL for cloud-first scanning
+    (e.g. "github.com/org/repo" or "https://github.com/org/repo.git").
+.PARAMETER AdoRepoUrl
+    Azure DevOps HTTPS repository URL for remote clone mode.
 .PARAMETER NoGit
     Switch for scanning non-git directories (uses --no-git flag).
 #>
 [CmdletBinding()]
 param (
     [string] $RepoPath = '.',
+
+    [string] $Repository,
+
+    [string] $AdoRepoUrl,
 
     [switch] $NoGit
 )
@@ -36,6 +45,10 @@ $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
+$remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
+if ((-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) -and (Test-Path $remoteClonePath)) {
+    . $remoteClonePath
+}
 
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
@@ -55,8 +68,46 @@ if (-not (Test-GitleaksInstalled)) {
     }
 }
 
+$resolvedRemoteUrl = ''
+if ($AdoRepoUrl) {
+    $resolvedRemoteUrl = $AdoRepoUrl
+} elseif ($Repository) {
+    if ($Repository -match '^https://') {
+        $resolvedRemoteUrl = $Repository
+    } elseif (($Repository -match '^[^/\s]+/[^/\s]+/[^/\s]+$') -and -not (Test-Path -LiteralPath $Repository)) {
+        $resolvedRemoteUrl = "https://$Repository"
+    } elseif (-not $PSBoundParameters.ContainsKey('RepoPath')) {
+        $RepoPath = $Repository
+    }
+}
+
+$remoteClone = $null
 try {
-    $resolvedPath = Resolve-Path $RepoPath -ErrorAction Stop | Select-Object -ExpandProperty Path
+    if ($resolvedRemoteUrl) {
+        $cloneFn = Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue
+        if (-not $cloneFn) {
+            return [PSCustomObject]@{
+                Source   = 'gitleaks'
+                Status   = 'Failed'
+                Message  = 'Remote clone helper not available (modules/shared/RemoteClone.ps1 not found).'
+                Findings = @()
+            }
+        }
+
+        $remoteClone = Invoke-RemoteRepoClone -RepoUrl $resolvedRemoteUrl
+        if (-not $remoteClone -or -not $remoteClone.Path) {
+            return [PSCustomObject]@{
+                Source   = 'gitleaks'
+                Status   = 'Failed'
+                Message  = "Failed to clone remote repository '$resolvedRemoteUrl'. Allowed hosts: github.com, dev.azure.com, *.visualstudio.com, *.ghe.com."
+                Findings = @()
+            }
+        }
+        $resolvedPath = $remoteClone.Path
+    } else {
+        $resolvedPath = Resolve-Path $RepoPath -ErrorAction Stop | Select-Object -ExpandProperty Path
+    }
+
     Write-Verbose "Running gitleaks for path $resolvedPath"
 
     # Write report to system temp dir — never inside the scanned repo
@@ -217,5 +268,9 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
+    }
+} finally {
+    if ($remoteClone -and $remoteClone.Cleanup) {
+        & $remoteClone.Cleanup
     }
 }

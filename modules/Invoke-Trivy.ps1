@@ -14,7 +14,12 @@
     JSON output is written to a temp file (--output) to avoid stderr/stdout
     mixing. The temp file is cleaned up in a finally block.
 .PARAMETER ScanPath
-    Path to scan for vulnerabilities. Defaults to current directory.
+    Local filesystem fallback path when no remote target is provided.
+.PARAMETER Repository
+    Remote repository identifier/URL for cloud-first scanning
+    (e.g. "github.com/org/repo" or "https://github.com/org/repo.git").
+.PARAMETER AdoRepoUrl
+    Azure DevOps HTTPS repository URL for remote clone mode.
 .PARAMETER ScanType
     Type of scan to perform: 'fs' (filesystem) or 'repo' (remote repository).
     Defaults to 'fs'.
@@ -23,12 +28,31 @@
 param (
     [string] $ScanPath = '.',
 
+    [string] $Repository,
+
+    [string] $AdoRepoUrl,
+
     [ValidateSet('fs', 'repo')]
     [string] $ScanType = 'fs'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Dot-source shared modules for Remove-Credentials and remote clone helper
+$sharedDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'modules' 'shared'
+if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
+    $sharedDir = Join-Path $PSScriptRoot 'shared'
+}
+$sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+$remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
+if ((-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) -and (Test-Path $remoteClonePath)) {
+    . $remoteClonePath
+}
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string]$Text) return $Text }
+}
 
 # Minimum trivy version known to produce reliable JSON output
 $script:MinTrivyVersion = [version]'0.50.0'
@@ -72,14 +96,56 @@ if ($null -eq $trivyVersion) {
     Write-Warning "Could not determine trivy version. Verify binary integrity — download from https://github.com/aquasecurity/trivy/releases"
 }
 
+$resolvedRemoteUrl = ''
+if ($AdoRepoUrl) {
+    $resolvedRemoteUrl = $AdoRepoUrl
+} elseif ($Repository) {
+    if ($Repository -match '^https://') {
+        $resolvedRemoteUrl = $Repository
+    } elseif (($Repository -match '^[^/\s]+/[^/\s]+/[^/\s]+$') -and -not (Test-Path -LiteralPath $Repository)) {
+        $resolvedRemoteUrl = "https://$Repository"
+    } elseif (-not $PSBoundParameters.ContainsKey('ScanPath')) {
+        $ScanPath = $Repository
+    }
+}
+
+$remoteClone = $null
 try {
-    Write-Verbose "Running trivy $ScanType scan on '$ScanPath'"
+    $resolvedScanPath = ''
+    $effectiveScanType = $ScanType
+    if ($resolvedRemoteUrl) {
+        $cloneFn = Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue
+        if (-not $cloneFn) {
+            return [PSCustomObject]@{
+                Source   = 'trivy'
+                Status   = 'Failed'
+                Message  = 'Remote clone helper not available (modules/shared/RemoteClone.ps1 not found).'
+                Findings = @()
+            }
+        }
+
+        $remoteClone = Invoke-RemoteRepoClone -RepoUrl $resolvedRemoteUrl
+        if (-not $remoteClone -or -not $remoteClone.Path) {
+            return [PSCustomObject]@{
+                Source   = 'trivy'
+                Status   = 'Failed'
+                Message  = "Failed to clone remote repository '$resolvedRemoteUrl'. Allowed hosts: github.com, dev.azure.com, *.visualstudio.com, *.ghe.com."
+                Findings = @()
+            }
+        }
+        $resolvedScanPath = $remoteClone.Path
+        $effectiveScanType = 'fs'
+    } else {
+        $resolvedScanPath = Resolve-Path $ScanPath -ErrorAction Stop | Select-Object -ExpandProperty Path
+    }
+
+    Write-Verbose "Running trivy $effectiveScanType scan on '$resolvedScanPath'"
 
     # Write JSON to a temp file to keep stderr separate from the JSON stream
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-report-$([guid]::NewGuid().ToString('N')).json"
 
     try {
-        & trivy $ScanType --format json --scanners vuln --output $reportFile $ScanPath 2>&1 | ForEach-Object {
+        & trivy $effectiveScanType --format json --scanners vuln --output $reportFile $resolvedScanPath 2>&1 | ForEach-Object {
             if ($_ -is [System.Management.Automation.ErrorRecord]) {
                 Write-Verbose "trivy stderr: $_"
             }
@@ -220,7 +286,7 @@ try {
                     Compliant    = $false
                     Detail       = $detail
                     Remediation  = $remediation
-                    ResourceId   = $ScanPath
+                    ResourceId   = $resolvedScanPath
                     LearnMoreUrl = $learnMoreUrl
                 })
             }
@@ -238,7 +304,11 @@ try {
     return [PSCustomObject]@{
         Source   = 'trivy'
         Status   = 'Failed'
-        Message  = "$_"
+        Message  = Remove-Credentials "$_"
         Findings = @()
+    }
+} finally {
+    if ($remoteClone -and $remoteClone.Cleanup) {
+        & $remoteClone.Cleanup
     }
 }

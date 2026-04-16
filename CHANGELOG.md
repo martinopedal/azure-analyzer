@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
+- **Remote-first scanner targeting for zizmor/gitleaks/trivy**: repository scanners now prefer remote targets via `-Repository` (GitHub) or `-AdoRepoUrl` (Azure DevOps) using shared `modules/shared/RemoteClone.ps1` guardrails (HTTPS-only, host allow-list, token scrub, temp cleanup). Local `-RepoPath` / `-ScanPath` behavior is preserved as fallback.
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
 - **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.
@@ -13,6 +14,7 @@ All notable changes to azure-analyzer will be documented here.
 - **trivy stderr/stdout mixing corrupts JSON**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout directly. stderr is kept separate and logged via Write-Verbose. Temp file is cleaned up in a finally block.
 
 ### Added
+- **Wrapper tests for remote targeting**: Added `tests/wrappers/RemoteFirstWrappers.Tests.ps1` covering remote happy path, local fallback, disallowed host handling, and cleanup-on-exception for zizmor/gitleaks/trivy wrappers.
 - **trivy minimum version check**: `Invoke-Trivy.ps1` now runs `trivy --version`, parses the version number, and warns if below the minimum known-safe version (0.50.0). Includes guidance to download from official GitHub releases only.
 
 ### Added
@@ -163,5 +165,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 
