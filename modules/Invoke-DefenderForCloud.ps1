@@ -53,7 +53,7 @@ function ConvertFrom-AzRestContent {
     if ($null -eq $Response) { return $null }
     $content = $Response.Content
     if ([string]::IsNullOrWhiteSpace([string]$content)) { return $null }
-    return ($content | ConvertFrom-Json -Depth 100 -ErrorAction Stop)
+    return ($content | ConvertFrom-Json -Depth 20 -ErrorAction Stop)
 }
 
 function ConvertTo-RestPath {
@@ -93,6 +93,7 @@ if (-not (Get-Command Invoke-AzRestMethod -ErrorAction SilentlyContinue)) {
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 try {
+    # secureScores currently requires the preview API version for consistent score fields.
     $secureScorePath = "/subscriptions/$SubscriptionId/providers/Microsoft.Security/secureScores?api-version=2020-01-01-preview"
     $secureScoreResponse = Invoke-AzRestMethod -Method GET -Path $secureScorePath -ErrorAction Stop
     $secureScorePayload = ConvertFrom-AzRestContent -Response $secureScoreResponse

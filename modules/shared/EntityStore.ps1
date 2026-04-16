@@ -376,10 +376,12 @@ class EntityStore {
             if (-not $item) { return $null }
             $recommendationId = Get-ObjectPropertyValue -Object $item -PropertyName 'RecommendationId' -Default ''
             $type = Get-ObjectPropertyValue -Object $item -PropertyName 'Type' -Default ''
+            $recommendation = Get-ObjectPropertyValue -Object $item -PropertyName 'Recommendation' -Default ''
+            $recommendationTitle = Get-ObjectPropertyValue -Object $item -PropertyName 'RecommendationTitle' -Default ''
             if (-not [string]::IsNullOrWhiteSpace([string]$recommendationId)) {
                 return "$type|$recommendationId"
             }
-            return "$type|$($item | ConvertTo-Json -Depth 10 -Compress)"
+            return "$type|$recommendation|$recommendationTitle"
         }
 
         if ($EntityStub.MonthlyCost -ne $null) { $entity.MonthlyCost = $EntityStub.MonthlyCost }
@@ -440,10 +442,12 @@ class EntityStore {
                             if (-not $item) { return $null }
                             $recommendationId = Get-ObjectPropertyValue -Object $item -PropertyName 'RecommendationId' -Default ''
                             $type = Get-ObjectPropertyValue -Object $item -PropertyName 'Type' -Default ''
+                            $recommendation = Get-ObjectPropertyValue -Object $item -PropertyName 'Recommendation' -Default ''
+                            $recommendationTitle = Get-ObjectPropertyValue -Object $item -PropertyName 'RecommendationTitle' -Default ''
                             if (-not [string]::IsNullOrWhiteSpace([string]$recommendationId)) {
                                 return "$type|$recommendationId"
                             }
-                            return "$type|$($item | ConvertTo-Json -Depth 10 -Compress)"
+                            return "$type|$recommendation|$recommendationTitle"
                         }
                         if ((Get-SeverityRank $entity.WorstSeverity) -gt (Get-SeverityRank $existing.WorstSeverity)) {
                             $existing.WorstSeverity = $entity.WorstSeverity
