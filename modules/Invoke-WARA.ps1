@@ -40,7 +40,7 @@ if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
 # Resolve tenant
 if (-not $TenantId) {
     $ctx = Get-AzContext -ErrorAction SilentlyContinue
-    $TenantId = $ctx?.Tenant?.Id
+    $TenantId = if ($null -ne $ctx -and $null -ne $ctx.Tenant) { $ctx.Tenant.Id } else { $null }
     if (-not $TenantId) {
         Write-Warning "No TenantId provided and no Az context found. Returning empty result."
         return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = 'No TenantId and no Az context'; Findings = @() }
