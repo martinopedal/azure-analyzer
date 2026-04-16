@@ -42,7 +42,8 @@ After a run, `output/` contains:
 
 | File | Description |
 |---|---|
-| `results.json` | All findings in a unified 10-field schema |
+| `results.json` | Backward-compatible flat findings (v1 format, all tools' observations in single array) |
+| `entities.json` | Entity-centric view (v3 format, observations per entity with platform/type hierarchy) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
@@ -264,9 +265,7 @@ All findings are merged into `output/results.json` using a unified 10-field sche
 | `ResourceId` | string | Azure ARM resource ID |
 | `LearnMoreUrl` | string | Link to Microsoft Learn documentation |
 
-Phase 0 v3 introduces shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) to support dual-model outputs (`entities.json` + `results.json`) in upcoming orchestrator updates, with Pester coverage in `tests/shared/`. The manifest now includes v3 orchestration metadata (`provider`, `scope`, `normalizer`, `invokeMethod`) for each tool.
-Phase 0 v3 introduces shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) to support dual-model outputs (`entities.json` + `results.json`) in upcoming orchestrator updates, with Pester coverage in `tests/shared/`.
-Phase 0 security helpers now enforce terminating error behavior and redact Azure SAS/token-style credentials in logs and report rendering paths.
+The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs (`entities.json` + `results.json`). Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline. Security helpers enforce terminating error behavior and redact credentials in logs and report rendering paths.
 
 ## Permissions
 

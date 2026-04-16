@@ -1,13 +1,14 @@
 #Requires -Version 7.4
 <#
 .SYNOPSIS
-    Azure Analyzer ÔÇö unified Azure assessment orchestrator.
+    Azure Analyzer — unified Azure assessment orchestrator (v3 manifest-driven).
 .DESCRIPTION
-    Calls all seven assessment tool wrappers (azqr, PSRule, AzGovViz, alz-queries,
-    WARA, Maester, Scorecard), merges results into a unified schema, and writes
-    output/results.json.
-    At least one of -SubscriptionId or -ManagementGroupId is required.
-    Tools that are not installed are skipped gracefully.
+    Reads tools/tool-manifest.json, runs enabled tool wrappers via Invoke-ParallelTools,
+    normalises findings into schema v2 FindingRows, feeds them into an EntityStore, and
+    writes dual output: output/entities.json (entity-centric) and output/results.json
+    (v1-compatible flat findings).
+    At least one of -SubscriptionId or -ManagementGroupId is required for Azure-scoped
+    tools.  Tools that are not installed are skipped gracefully.
 .PARAMETER SubscriptionId
     Azure subscription ID. Used by azqr, PSRule (live), alz-queries, and WARA.
 .PARAMETER ManagementGroupId
@@ -47,17 +48,28 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
-if (Test-Path $sanitizePath) {
-    . $sanitizePath
+# ---------------------------------------------------------------------------
+# Dot-source shared modules
+# ---------------------------------------------------------------------------
+$sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint')) {
+    $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
+    if (Test-Path $sharedPath) { . $sharedPath }
 }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
 
-# --- Tool selection ---
-$validTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
-$azureScopedTools = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara')
+# ---------------------------------------------------------------------------
+# Read tool manifest
+# ---------------------------------------------------------------------------
+$manifest = Get-Content (Join-Path $PSScriptRoot 'tools' 'tool-manifest.json') -Raw | ConvertFrom-Json
+
+# ---------------------------------------------------------------------------
+# Tool selection (manifest-driven)
+# ---------------------------------------------------------------------------
+$validTools = @($manifest.tools | ForEach-Object { $_.name })
+$azureScopedTools = @($manifest.tools | Where-Object { $_.provider -eq 'azure' } | ForEach-Object { $_.name })
 
 if ($IncludeTools -and $ExcludeTools) {
     throw "Cannot use both -IncludeTools and -ExcludeTools. Use one or the other."
@@ -72,12 +84,15 @@ function ShouldRunTool { param ([string]$ToolName)
     return $true
 }
 
-$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
+# PSRule can run in path-mode without Azure scope, so exempt it from the guard
+$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
 
-# --- Management group subscription discovery ---
+# ---------------------------------------------------------------------------
+# Management group subscription discovery
+# ---------------------------------------------------------------------------
 function Get-ChildSubscriptions {
     param ([string]$ManagementGroupId)
     $query = "resourcecontainers | where type == 'microsoft.resources/subscriptions'"
@@ -90,11 +105,9 @@ function Get-ChildSubscriptions {
     }
 }
 
-# Build list of subscriptions to scan
 $subscriptionsToScan = [System.Collections.Generic.List[string]]::new()
 if ($SubscriptionId) { $subscriptionsToScan.Add($SubscriptionId) }
 
-# Recurse into MG by default when ManagementGroupId is provided
 $shouldRecurse = $ManagementGroupId -and (-not $PSBoundParameters.ContainsKey('Recurse') -or $Recurse)
 if ($shouldRecurse) {
     $childSubs = Get-ChildSubscriptions -ManagementGroupId $ManagementGroupId
@@ -106,9 +119,11 @@ if ($shouldRecurse) {
     Write-Host "Management group '$ManagementGroupId' provided without -Recurse; subscription-scoped tools will only scan explicitly provided subscriptions" -ForegroundColor DarkGray
 }
 
-# --- Prerequisite check ---
+# ---------------------------------------------------------------------------
+# Prerequisite check (unchanged)
+# ---------------------------------------------------------------------------
 function Install-Prerequisites {
-    Write-Host "`n[0/7] Checking prerequisites..." -ForegroundColor Yellow
+    Write-Host "`n[prereq] Checking prerequisites..." -ForegroundColor Yellow
     $psModules = @(
         @{ Name = 'Az.ResourceGraph'; Tool = 'alz-queries' },
         @{ Name = 'PSRule'; Tool = 'psrule' },
@@ -151,357 +166,328 @@ function Install-Prerequisites {
 
 if (-not $SkipPrereqCheck) { Install-Prerequisites }
 
-
-$modulesPath = Join-Path $PSScriptRoot 'modules'
-$toolErrors = [System.Collections.Generic.List[PSCustomObject]]::new()
-$toolStatus = [System.Collections.Generic.List[PSCustomObject]]::new()
-
-function Invoke-Wrapper {
-    param ([string]$Script, [hashtable]$Params, [int]$MaxRetries = 2, [int]$RetryDelaySec = 5)
-    $scriptPath = Join-Path $modulesPath $Script
-    if (-not (Test-Path $scriptPath)) {
-        Write-Warning "$Script not found at $scriptPath"
-        $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = "Script not found: $scriptPath"; Timestamp = Get-Date })
-        return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = "Script not found: $scriptPath"; Findings = @() }
-    }
-    for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
-        try {
-            $result = & $scriptPath @Params
-            $status = if ($result.PSObject.Properties['Status']) { $result.Status } else { $null }
-            # Only retry on explicit 'Failed' status; everything else returns as-is
-            if ($status -eq 'Failed' -and $attempt -le $MaxRetries) {
-                Write-Warning "$Script returned status 'Failed' (attempt $attempt/$($MaxRetries+1)), retrying..."
-                Start-Sleep -Seconds $RetryDelaySec
-                continue
-            }
-            # Record failed status in errors after final attempt
-            if ($status -eq 'Failed') {
-                $msg = if ($result.PSObject.Properties['Message']) { $result.Message } else { 'Wrapper returned Failed status' }
-                $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = $msg; Timestamp = Get-Date })
-            }
-            return $result
-        } catch {
-            if ($attempt -le $MaxRetries) {
-                Write-Warning (Remove-Credentials "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ -- retrying in ${RetryDelaySec}s...")
-                Start-Sleep -Seconds $RetryDelaySec
-            } else {
-                Write-Warning (Remove-Credentials "$Script failed after $($MaxRetries+1) attempts: $_")
-                $sanitizedMessage = Remove-Credentials $_.Exception.Message
-                $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = $sanitizedMessage; Timestamp = Get-Date })
-                return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = $sanitizedMessage; Findings = @() }
-            }
-        }
-    }
+# ---------------------------------------------------------------------------
+# Dot-source normalizers
+# ---------------------------------------------------------------------------
+$normalizersDir = Join-Path $PSScriptRoot 'modules' 'normalizers'
+foreach ($toolDef in $manifest.tools) {
+    if (-not $toolDef.normalizer) { continue }
+    $normPath = Join-Path $normalizersDir "$($toolDef.normalizer).ps1"
+    if (Test-Path $normPath) { . $normPath }
 }
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+$modulesPath = Join-Path $PSScriptRoot 'modules'
+$toolErrors  = [System.Collections.Generic.List[PSCustomObject]]::new()
+$toolStatus  = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 function Map-Severity {
     param ([string]$Raw)
     if ([string]::IsNullOrEmpty($Raw)) { return 'Info' }
     switch -Regex ($Raw.ToLowerInvariant()) {
-        'high|critical'   { return 'High' }
+        'critical'        { return 'Critical' }
+        'high'            { return 'High' }
         'medium|moderate' { return 'Medium' }
         'low'             { return 'Low' }
         default           { return 'Info' }
     }
 }
 
-function Get-Prop {
-    param ($Obj, [string]$Name, $Default = '')
-    if ($null -eq $Obj) { return $Default }
-    $p = $Obj.PSObject.Properties[$Name]
-    if ($null -eq $p -or $null -eq $p.Value) { return $Default }
-    return $p.Value
-}
-
 function Get-SeverityRank ([string]$Sev) {
-    switch ($Sev) { 'High' { 3 } 'Medium' { 2 } 'Low' { 1 } default { 0 } }
+    switch ($Sev) { 'Critical' { 4 } 'High' { 3 } 'Medium' { 2 } 'Low' { 1 } default { 0 } }
 }
 
-function Remove-DuplicateFindings {
-    param ([System.Collections.Generic.List[PSCustomObject]]$Findings)
-    $deduped = [System.Collections.Generic.List[PSCustomObject]]::new()
-    # Only dedup findings that share a non-empty ResourceId
-    $withId = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $withoutId = [System.Collections.Generic.List[PSCustomObject]]::new()
-    foreach ($f in $Findings) {
-        if ([string]::IsNullOrWhiteSpace($f.ResourceId)) { $withoutId.Add($f) }
-        else { $withId.Add($f) }
-    }
-    # Composite key: Source+ResourceId+Category+Title+Compliant
-    $groups = $withId | Group-Object { "$($_.Source)`t$($_.ResourceId)`t$($_.Category)`t$($_.Title)`t$($_.Compliant)".ToLowerInvariant() }
-    foreach ($g in $groups) {
-        if ($g.Count -eq 1) { $deduped.Add($g.Group[0]); continue }
-        $best = $g.Group | Sort-Object { Get-SeverityRank $_.Severity } -Descending | Select-Object -First 1
-        $longestDetail = ($g.Group | Sort-Object { ($_.Detail ?? '').Length } -Descending | Select-Object -First 1).Detail
-        $merged = $best.PSObject.Copy()
-        $merged.Detail = $longestDetail
-        $deduped.Add($merged)
-    }
-    # Never dedup findings without ResourceId
-    foreach ($f in $withoutId) { $deduped.Add($f) }
-    return $deduped
-}
-
+# ---------------------------------------------------------------------------
+# Build ToolSpecs from manifest
+# ---------------------------------------------------------------------------
 Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
 
-$allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+# ScriptBlock used by every ToolSpec — self-contained, runs in parallel runspace
+$runnerBlock = {
+    param ([string]$ScriptPath, [hashtable]$ToolParams)
+    if (-not (Test-Path $ScriptPath)) {
+        return [PSCustomObject]@{
+            Source   = [System.IO.Path]::GetFileNameWithoutExtension($ScriptPath)
+            Status   = 'Failed'
+            Message  = "Script not found: $ScriptPath"
+            Findings = @()
+        }
+    }
+    try {
+        $result = & $ScriptPath @ToolParams
+        return $result
+    } catch {
+        return [PSCustomObject]@{
+            Source   = [System.IO.Path]::GetFileNameWithoutExtension($ScriptPath)
+            Status   = 'Failed'
+            Message  = $_.Exception.Message
+            Findings = @()
+        }
+    }
+}
 
+$toolSpecs   = [System.Collections.Generic.List[PSCustomObject]]::new()
+$toolMetaMap = @{}   # spec-name → manifest tool object
 
-# --- azqr ---
-if (ShouldRunTool 'azqr') {
-    if ($subscriptionsToScan.Count -gt 0) {
-        Write-Host "`n[1/7] Running azqr..." -ForegroundColor Yellow
-        $azqrWorstStatus = 'Success'; $azqrMessages = @()
-        foreach ($subId in $subscriptionsToScan) {
-            if ($subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
-            $azqrResult = Invoke-Wrapper -Script 'Invoke-Azqr.ps1' -Params @{ SubscriptionId = $subId }
-            $subStatus = if ($azqrResult.PSObject.Properties['Status']) { $azqrResult.Status } else { 'Success' }
-            if ($subStatus -eq 'Failed') { $azqrWorstStatus = 'Failed'; $azqrMessages += "Failed for $subId" }
-            elseif ($subStatus -eq 'Skipped' -and $azqrWorstStatus -ne 'Failed') { $azqrWorstStatus = 'Skipped' }
-            foreach ($f in $azqrResult.Findings) {
-                $allResults.Add([PSCustomObject]@{
-                    Id           = [guid]::NewGuid().ToString()
-                    Source       = 'azqr'
-                    Category     = Get-Prop $f 'Category' (Get-Prop $f 'ServiceCategory' 'General')
-                    Title        = Get-Prop $f 'Recommendation' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
-                    Severity     = Map-Severity (Get-Prop $f 'Severity' (Get-Prop $f 'Risk' 'Info'))
-                    Compliant    = ((Get-Prop $f 'Result') -eq 'OK') -or ((Get-Prop $f 'Compliant') -eq $true)
-                    Detail       = Get-Prop $f 'Notes' (Get-Prop $f 'Description' '')
-                    Remediation  = Get-Prop $f 'Url' ''
-                    ResourceId   = Get-Prop $f 'ResourceId' (Get-Prop $f 'Id' '')
-                    LearnMoreUrl = Get-Prop $f 'LearnMoreLink' (Get-Prop $f 'Url' '')
+foreach ($toolDef in $manifest.tools) {
+    if (-not $toolDef.enabled) { continue }
+    if (-not (ShouldRunTool $toolDef.name)) {
+        $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
+        continue
+    }
+
+    $scriptPath = Join-Path $PSScriptRoot $toolDef.script
+
+    switch ($toolDef.scope) {
+        'subscription' {
+            if ($subscriptionsToScan.Count -eq 0) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No subscriptions to scan'; Findings = 0 })
+                continue
+            }
+            foreach ($subId in $subscriptionsToScan) {
+                $params = @{ SubscriptionId = $subId }
+                # Tool-specific optional params
+                if ($toolDef.name -eq 'wara') {
+                    if ($TenantId) { $params['TenantId'] = $TenantId }
+                    $params['OutputPath'] = Join-Path $OutputPath "wara-$subId"
+                }
+                if ($toolDef.name -eq 'azqr') {
+                    $params['OutputPath'] = Join-Path $OutputPath "azqr-$subId"
+                }
+                $specName = "$($toolDef.name)|$subId"
+                $toolSpecs.Add([PSCustomObject]@{
+                    Name        = $specName
+                    Provider    = $toolDef.provider
+                    Scope       = $toolDef.scope
+                    ScriptBlock = $runnerBlock
+                    Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
                 })
+                $toolMetaMap[$specName] = $toolDef
             }
         }
-        $azqrTotal = ($allResults | Where-Object { $_.Source -eq 'azqr' }).Count
-        Write-Host "  azqr: $azqrTotal findings" -ForegroundColor Gray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'azqr'; Status = $azqrWorstStatus; Message = ($azqrMessages -join '; '); Findings = $azqrTotal })
-    } else {
-        Write-Host "`n[1/7] Skipping azqr (no subscriptions to scan)" -ForegroundColor DarkGray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'azqr'; Status = 'Skipped'; Message = 'No subscriptions to scan'; Findings = 0 })
+        'managementGroup' {
+            # alz-queries: also runnable with just SubscriptionId
+            if (-not $ManagementGroupId -and $toolDef.name -ne 'alz-queries') {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No ManagementGroupId provided'; Findings = 0 })
+                continue
+            }
+            if (-not $ManagementGroupId -and -not $SubscriptionId) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No scope provided'; Findings = 0 })
+                continue
+            }
+            $params = if ($ManagementGroupId) {
+                @{ ManagementGroupId = $ManagementGroupId }
+            } else {
+                @{ SubscriptionId = $SubscriptionId }
+            }
+            $specName = "$($toolDef.name)|mg"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $toolDef.provider
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
+        'tenant' {
+            $providerKey = if ($toolDef.provider -eq 'microsoft365') { 'Graph' } else { $toolDef.provider }
+            $specName = "$($toolDef.name)|tenant"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $providerKey
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = @{} }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
+        'repository' {
+            if (-not $Repository) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No -Repository provided'; Findings = 0 })
+                continue
+            }
+            $params = @{ Repository = $Repository }
+            if ($toolDef.name -eq 'scorecard') { $params['Threshold'] = $ScorecardThreshold }
+            $specName = "$($toolDef.name)|repo"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $toolDef.provider
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
     }
-} else {
-    Write-Host "`n[1/7] Skipping azqr (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'azqr'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
 }
 
-# --- PSRule ---
-if (ShouldRunTool 'psrule') {
-    Write-Host "`n[2/7] Running PSRule..." -ForegroundColor Yellow
-    $psruleWorstStatus = 'Success'; $psruleMessages = @()
-    foreach ($subId in ($subscriptionsToScan.Count -gt 0 ? $subscriptionsToScan : @($null))) {
-        $psruleParams = if ($subId) { @{ SubscriptionId = $subId } } else { @{ Path = '.' } }
-        if ($subId -and $subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
-        $psruleResult = Invoke-Wrapper -Script 'Invoke-PSRule.ps1' -Params $psruleParams
-        $subStatus = if ($psruleResult.PSObject.Properties['Status']) { $psruleResult.Status } else { 'Success' }
-        if ($subStatus -eq 'Failed') { $psruleWorstStatus = 'Failed'; $psruleMessages += "Failed for $subId" }
-        elseif ($subStatus -eq 'Skipped' -and $psruleWorstStatus -ne 'Failed') { $psruleWorstStatus = 'Skipped' }
-        foreach ($f in $psruleResult.Findings) {
-            # PSRule Outcome: Pass=compliant, Fail=non-compliant, Error=critical
-            $psruleSev = switch (Get-Prop $f 'Outcome' 'Pass') {
-                'Fail'  { 'Medium' }
-                'Error' { 'High' }
-                default { 'Info' }
-            }
-            $allResults.Add([PSCustomObject]@{
-                Id           = [guid]::NewGuid().ToString()
-                Source       = 'psrule'
-                Category     = Get-Prop $f 'RuleName' 'PSRule'
-                Title        = Get-Prop $f 'RuleName' 'Unknown rule'
-                Severity     = $psruleSev
-                Compliant    = (Get-Prop $f 'Outcome') -eq 'Pass'
-                Detail       = Get-Prop $f 'Message' (Get-Prop $f 'TargetName' '')
-                Remediation  = ''
-                ResourceId   = Get-Prop $f 'ResourceId' ''
-                LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
-            })
+# Also handle psrule fallback when no subscriptions but tool is included
+$psruleDef = $manifest.tools | Where-Object { $_.name -eq 'psrule' } | Select-Object -First 1
+if ($psruleDef -and $psruleDef.enabled -and (ShouldRunTool 'psrule') -and $subscriptionsToScan.Count -eq 0) {
+    $psruleScript = Join-Path $PSScriptRoot $psruleDef.script
+    $specName = 'psrule|path'
+    $toolSpecs.Add([PSCustomObject]@{
+        Name        = $specName
+        Provider    = $psruleDef.provider
+        Scope       = $psruleDef.scope
+        ScriptBlock = $runnerBlock
+        Arguments   = @{ ScriptPath = $psruleScript; ToolParams = @{ Path = '.' } }
+    })
+    $toolMetaMap[$specName] = $psruleDef
+    # Remove the 'Skipped' status that was added for psrule
+    $psruleSkipped = $toolStatus | Where-Object { $_.Tool -eq 'psrule' -and $_.Status -eq 'Skipped' }
+    if ($psruleSkipped) {
+        $toolStatus.Remove($psruleSkipped) | Out-Null
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Execute tools in parallel
+# ---------------------------------------------------------------------------
+$parallelResults = @()
+if ($toolSpecs.Count -gt 0) {
+    $specCount = $toolSpecs.Count
+    $toolNames = @($toolMetaMap.Values | ForEach-Object { $_.name } | Select-Object -Unique)
+    Write-Host "`nRunning $specCount tool spec(s) across $($toolNames.Count) tool(s): $($toolNames -join ', ')" -ForegroundColor Yellow
+    $parallelResults = Invoke-ParallelTools -ToolSpecs @($toolSpecs)
+} else {
+    Write-Host "`nNo tools to run." -ForegroundColor DarkGray
+}
+
+# ---------------------------------------------------------------------------
+# Normalise results → v3 FindingRows → EntityStore
+# ---------------------------------------------------------------------------
+$store      = [EntityStore]::new(50000, $OutputPath)
+$allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+# Per-tool aggregation for tool-status.json
+$toolAgg = @{}   # toolName → @{ WorstStatus; Messages; Count }
+
+foreach ($wr in $parallelResults) {
+    $meta     = $toolMetaMap[$wr.Tool]
+    $toolName = if ($meta) { $meta.name } else { $wr.Tool }
+
+    # Initialise aggregation bucket
+    if (-not $toolAgg.ContainsKey($toolName)) {
+        $toolAgg[$toolName] = @{ WorstStatus = 'Success'; Messages = [System.Collections.Generic.List[string]]::new(); Count = 0 }
+    }
+    $agg = $toolAgg[$toolName]
+
+    # --- Determine wrapper status ---
+    $toolResult = $wr.Result
+    if (-not $toolResult) {
+        $toolResult = [PSCustomObject]@{ Source = $toolName; Status = 'Failed'; Message = 'No result returned'; Findings = @() }
+    }
+    $wrapperStatus = 'Success'
+    if ($wr.Status -eq 'Failed') {
+        $wrapperStatus = 'Failed'
+    } elseif ($toolResult.PSObject.Properties['Status'] -and $toolResult.Status) {
+        $wrapperStatus = $toolResult.Status
+    }
+
+    # Track errors
+    if ($wrapperStatus -eq 'Failed') {
+        $errMsg = ''
+        if ($wr.Error) { $errMsg = $wr.Error }
+        elseif ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $errMsg = $toolResult.Message }
+        else { $errMsg = 'Tool execution failed' }
+        $toolErrors.Add([PSCustomObject]@{ Tool = $toolName; Error = Remove-Credentials $errMsg; Timestamp = Get-Date })
+    }
+
+    # Update worst status
+    if ($wrapperStatus -eq 'Failed') {
+        $agg.WorstStatus = 'Failed'
+        $rawMsg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
+        $agg.Messages.Add((Remove-Credentials $rawMsg))
+    } elseif ($wrapperStatus -eq 'Skipped' -and $agg.WorstStatus -ne 'Failed') {
+        $agg.WorstStatus = 'Skipped'
+    }
+
+    # --- Run normaliser ---
+    $normFunc = if ($meta) { $meta.normalizer } else { $null }
+    $v3Findings = @()
+    if ($normFunc -and (Get-Command $normFunc -ErrorAction SilentlyContinue)) {
+        try {
+            $v3Findings = @(& $normFunc -ToolResult $toolResult)
+        } catch {
+            Write-Warning (Remove-Credentials "Normaliser $normFunc failed: $_")
+            $v3Findings = @()
         }
     }
-    $psruleTotal = ($allResults | Where-Object { $_.Source -eq 'psrule' }).Count
-    Write-Host "  PSRule: $psruleTotal findings" -ForegroundColor Gray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'psrule'; Status = $psruleWorstStatus; Message = ($psruleMessages -join '; '); Findings = $psruleTotal })
-} else {
-    Write-Host "`n[2/7] Skipping psrule (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'psrule'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
-}
-# --- AzGovViz ---
-if (ShouldRunTool 'azgovviz') {
-if ($ManagementGroupId) {
-    Write-Host "`n[3/7] Running AzGovViz..." -ForegroundColor Yellow
-    $azgovvizResult = Invoke-Wrapper -Script 'Invoke-AzGovViz.ps1' -Params @{ ManagementGroupId = $ManagementGroupId }
-    foreach ($f in $azgovvizResult.Findings) {
+
+    # Feed v3 findings into EntityStore
+    foreach ($finding in $v3Findings) {
+        try {
+            $store.AddFinding($finding)
+        } catch {
+            Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $toolName : $_")
+        }
+    }
+
+    $agg.Count += $v3Findings.Count
+
+    # Build v1-compatible flat finding for results.json backward compat
+    foreach ($f in $v3Findings) {
         $allResults.Add([PSCustomObject]@{
-            Id           = [guid]::NewGuid().ToString()
-            Source       = 'azgovviz'
-            Category     = Get-Prop $f 'Category' 'Governance'
-            Title        = Get-Prop $f 'Title' (Get-Prop $f 'Description' ($f | ConvertTo-Json -Compress -ErrorAction SilentlyContinue))
-            Severity     = Map-Severity (Get-Prop $f 'Severity' 'Info')
-            Compliant    = if ($null -eq $f.PSObject.Properties['Compliant']) { $true } else { (Get-Prop $f 'Compliant') -ne $false }
-            Detail       = Get-Prop $f 'Detail' ''
-            Remediation  = Get-Prop $f 'Remediation' ''
-            ResourceId   = Get-Prop $f 'ResourceId' ''
-            LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' (Get-Prop $f 'LearnMoreLink' '')
+            Id           = $f.Id
+            Source       = $f.Source
+            Category     = if ($f.PSObject.Properties['Category'] -and $f.Category) { $f.Category } else { '' }
+            Title        = $f.Title
+            Severity     = if ($f.PSObject.Properties['Severity'] -and $f.Severity) { $f.Severity } else { 'Info' }
+            Compliant    = $f.Compliant
+            Detail       = if ($f.PSObject.Properties['Detail'] -and $f.Detail) { $f.Detail } else { '' }
+            Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
+            ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
+            LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
         })
     }
-    Write-Host "  AzGovViz: $($azgovvizResult.Findings.Count) findings" -ForegroundColor Gray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'azgovviz'; Status = if ($azgovvizResult.Status) { $azgovvizResult.Status } else { 'Success' }; Message = ''; Findings = $azgovvizResult.Findings.Count })
-} else {
-    Write-Host "`n[3/7] Skipping AzGovViz (no ManagementGroupId provided)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'azgovviz'; Status = 'Skipped'; Message = 'No ManagementGroupId provided'; Findings = 0 })
-}
-} else {
-    Write-Host "`n[3/7] Skipping azgovviz (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'azgovviz'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
 }
 
-# --- ALZ Queries ---
-if (ShouldRunTool 'alz-queries') {
-Write-Host "`n[4/7] Running ALZ queries..." -ForegroundColor Yellow
-$alzParams = if ($ManagementGroupId) {
-    @{ ManagementGroupId = $ManagementGroupId }
-} else {
-    @{ SubscriptionId = $SubscriptionId }
-}
-$alzResult = Invoke-Wrapper -Script 'Invoke-AlzQueries.ps1' -Params $alzParams
-foreach ($f in $alzResult.Findings) {
-    $allResults.Add([PSCustomObject]@{
-        Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
-        Source       = 'alz-queries'
-        Category     = Get-Prop $f 'Category' 'ALZ'
-        Title        = Get-Prop $f 'Title' 'Unknown'
-        Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
-        Compliant    = $f.Compliant
-        Detail       = Get-Prop $f 'Detail' ''
-        Remediation  = ''
-        ResourceId   = Get-Prop $f 'ResourceId' ''
-        LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
+# Emit per-tool status lines and build tool-status.json entries
+foreach ($entry in $toolAgg.GetEnumerator()) {
+    Write-Host "  $($entry.Key): $($entry.Value.Count) findings" -ForegroundColor Gray
+    $toolStatus.Add([PSCustomObject]@{
+        Tool     = $entry.Key
+        Status   = $entry.Value.WorstStatus
+        Message  = ($entry.Value.Messages -join '; ')
+        Findings = $entry.Value.Count
     })
 }
-Write-Host "  ALZ queries: $($alzResult.Findings.Count) findings" -ForegroundColor Gray
-$toolStatus.Add([PSCustomObject]@{ Tool = 'alz-queries'; Status = if ($alzResult.Status) { $alzResult.Status } else { 'Success' }; Message = ''; Findings = $alzResult.Findings.Count })
-} else {
-    Write-Host "`n[4/7] Skipping alz-queries (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'alz-queries'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
-}
 
-
-# --- WARA ---
-if (ShouldRunTool 'wara') {
-    if ($subscriptionsToScan.Count -gt 0) {
-        Write-Host "`n[5/7] Running WARA..." -ForegroundColor Yellow
-        $waraWorstStatus = 'Success'; $waraMessages = @()
-        foreach ($subId in $subscriptionsToScan) {
-            if ($subscriptionsToScan.Count -gt 1) { Write-Host "  Scanning subscription: $subId" -ForegroundColor Gray }
-            $waraParams = @{ SubscriptionId = $subId; OutputPath = (Join-Path $OutputPath 'wara') }
-            if ($TenantId) { $waraParams['TenantId'] = $TenantId }
-            $waraResult = Invoke-Wrapper -Script 'Invoke-WARA.ps1' -Params $waraParams
-            $subStatus = if ($waraResult.PSObject.Properties['Status']) { $waraResult.Status } else { 'Success' }
-            if ($subStatus -eq 'Failed') { $waraWorstStatus = 'Failed'; $waraMessages += "Failed for $subId" }
-            elseif ($subStatus -eq 'Skipped' -and $waraWorstStatus -ne 'Failed') { $waraWorstStatus = 'Skipped' }
-            foreach ($f in $waraResult.Findings) {
-                $allResults.Add([PSCustomObject]@{
-                    Id           = $f.Id ?? [guid]::NewGuid().ToString()
-                    Source       = 'wara'
-                    Category     = $f.Category ?? 'Reliability'
-                    Title        = $f.Title ?? 'Unknown'
-                    Severity     = Map-Severity ($f.Severity ?? 'Medium')
-                    Compliant    = $f.Compliant
-                    Detail       = $f.Detail ?? ''
-                    Remediation  = $f.Remediation ?? ''
-                    ResourceId   = $f.ResourceId ?? ''
-                    LearnMoreUrl = $f.LearnMoreUrl ?? ''
-                })
-            }
-        }
-        $waraTotal = ($allResults | Where-Object { $_.Source -eq 'wara' }).Count
-        Write-Host "  WARA: $waraTotal findings" -ForegroundColor Gray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'wara'; Status = $waraWorstStatus; Message = ($waraMessages -join '; '); Findings = $waraTotal })
-    } else {
-        Write-Host "`n[5/7] Skipping WARA (no subscriptions to scan)" -ForegroundColor DarkGray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'wara'; Status = 'Skipped'; Message = 'No subscriptions to scan'; Findings = 0 })
-    }
-} else {
-    Write-Host "`n[5/7] Skipping wara (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'wara'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
-}
-# --- Maester ---
-if (ShouldRunTool 'maester') {
-Write-Host "`n[6/7] Running Maester..." -ForegroundColor Yellow
-$maesterResult = Invoke-Wrapper -Script 'Invoke-Maester.ps1' -Params @{}
-foreach ($f in $maesterResult.Findings) {
-    $allResults.Add([PSCustomObject]@{
-        Id           = $f.Id ?? [guid]::NewGuid().ToString()
-        Source       = 'maester'
-        Category     = $f.Category ?? 'Identity'
-        Title        = $f.Title ?? 'Unknown'
-        Severity     = Map-Severity ($f.Severity ?? 'Medium')
-        Compliant    = $f.Compliant
-        Detail       = $f.Detail ?? ''
-        Remediation  = $f.Remediation ?? ''
-        ResourceId   = $f.ResourceId ?? ''
-        LearnMoreUrl = $f.LearnMoreUrl ?? ''
-    })
-}
-Write-Host "  Maester: $($maesterResult.Findings.Count) findings" -ForegroundColor Gray
-$toolStatus.Add([PSCustomObject]@{ Tool = 'maester'; Status = if ($maesterResult.Status) { $maesterResult.Status } else { 'Success' }; Message = ''; Findings = $maesterResult.Findings.Count })
-} else {
-    Write-Host "`n[6/7] Skipping maester (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'maester'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
-}
-
-# --- Scorecard ---
-if (ShouldRunTool 'scorecard') {
-    if ($Repository) {
-        Write-Host "`n[7/7] Running Scorecard..." -ForegroundColor Yellow
-        $scorecardResult = Invoke-Wrapper -Script 'Invoke-Scorecard.ps1' -Params @{ Repository = $Repository; Threshold = $ScorecardThreshold }
-        foreach ($f in $scorecardResult.Findings) {
-            $allResults.Add([PSCustomObject]@{
-                Id           = Get-Prop $f 'Id' ([guid]::NewGuid().ToString())
-                Source       = 'scorecard'
-                Category     = Get-Prop $f 'Category' 'Supply Chain'
-                Title        = Get-Prop $f 'Title' 'Unknown'
-                Severity     = Map-Severity (Get-Prop $f 'Severity' 'Medium')
-                Compliant    = (Get-Prop $f 'Compliant') -eq $true
-                Detail       = Get-Prop $f 'Detail' ''
-                Remediation  = Get-Prop $f 'Remediation' ''
-                ResourceId   = Get-Prop $f 'ResourceId' ''
-                LearnMoreUrl = Get-Prop $f 'LearnMoreUrl' ''
-            })
-        }
-        Write-Host "  Scorecard: $($scorecardResult.Findings.Count) findings" -ForegroundColor Gray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'scorecard'; Status = if ($scorecardResult.Status) { $scorecardResult.Status } else { 'Success' }; Message = ''; Findings = $scorecardResult.Findings.Count })
-    } else {
-        Write-Host "`n[7/7] Skipping Scorecard (no -Repository provided)" -ForegroundColor DarkGray
-        $toolStatus.Add([PSCustomObject]@{ Tool = 'scorecard'; Status = 'Skipped'; Message = 'No -Repository provided'; Findings = 0 })
-    }
-} else {
-    Write-Host "`n[7/7] Skipping Scorecard (excluded)" -ForegroundColor DarkGray
-    $toolStatus.Add([PSCustomObject]@{ Tool = 'scorecard'; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
-}
-
-# --- Deduplicate within-tool findings (same Source+ResourceId+Category+Title+Compliant) ---
-$preDedup = $allResults.Count
-$allResults = Remove-DuplicateFindings $allResults
-$dedupRemoved = $preDedup - $allResults.Count
-if ($dedupRemoved -gt 0) {
-    Write-Host "  Deduplication: removed $dedupRemoved duplicate(s) ($preDedup -> $($allResults.Count))" -ForegroundColor Gray
-}
-
-# --- Write output ---
+# ---------------------------------------------------------------------------
+# Write output
+# ---------------------------------------------------------------------------
 try {
     if (-not (Test-Path $OutputPath)) {
         $null = New-Item -ItemType Directory -Path $OutputPath -Force
     }
+
+    # v1-compatible flat findings (backward compat for reports)
     $outputFile = Join-Path $OutputPath 'results.json'
-    $allResults | ConvertTo-Json -Depth 5 | Set-Content -Path $outputFile -Encoding UTF8
+    $resultsJson = if ($allResults.Count -eq 0) { '[]' } else { $allResults | ConvertTo-Json -Depth 5 }
+    Set-Content -Path $outputFile -Value $resultsJson -Encoding UTF8
+
+    # v3 entity-centric output
+    $entitiesFile = Join-Path $OutputPath 'entities.json'
+    $entities = Export-Entities -Store $store
+    $entitiesJson = if ($entities.Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
+    Set-Content -Path $entitiesFile -Value $entitiesJson -Encoding UTF8
+
+    # Tool status
     $statusFile = Join-Path $OutputPath 'tool-status.json'
     $toolStatus | ConvertTo-Json -Depth 3 | Set-Content -Path $statusFile -Encoding UTF8
+
+    $store.CleanupSpillFiles()
 } catch {
     Write-Error (Remove-Credentials "Failed to write output to ${OutputPath}: $_")
     return
 }
 
-# --- AI triage (optional) ---
+# ---------------------------------------------------------------------------
+# AI triage (optional)
+# ---------------------------------------------------------------------------
 $triageFile = Join-Path $OutputPath 'triage.json'
 if ($EnableAiTriage) {
     Write-Host "`n[AI] Running Copilot triage..." -ForegroundColor Magenta
@@ -515,7 +501,9 @@ if ($EnableAiTriage) {
 }
 $triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
 
-# --- Generate reports ---
+# ---------------------------------------------------------------------------
+# Generate reports
+# ---------------------------------------------------------------------------
 $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
@@ -531,16 +519,22 @@ try {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
 }
 
-$high = ($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
-$medium = ($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
-$low = ($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
+$critical = @($allResults | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count
+$high     = @($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
+$medium   = @($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
+$low      = @($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
 
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 Write-Host "  Total findings: $($allResults.Count)"
-Write-Host "  Non-compliant ÔÇö High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
+Write-Host "  Non-compliant — Critical: $critical  High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
 Write-Host "  Output: $outputFile" -ForegroundColor Green
+if (Test-Path $entitiesFile) {
+    Write-Host "  Entities: $entitiesFile" -ForegroundColor Green
+}
 
-# --- Error summary ---
+# ---------------------------------------------------------------------------
+# Error summary
+# ---------------------------------------------------------------------------
 if ($toolErrors.Count -gt 0) {
     $errorsFile = Join-Path $OutputPath 'errors.json'
     try {

@@ -1,0 +1,43 @@
+{
+  "Source": "maester",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Source": "maester",
+      "ResourceId": "",
+      "Category": "Identity",
+      "Title": "MFA is not enforced for all administrators",
+      "Compliant": false,
+      "Severity": "Critical",
+      "Detail": "Multi-factor authentication is not enforced for all users with administrative roles. 3 out of 12 admin accounts do not have MFA registered.",
+      "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/authentication/concept-mfa-howitworks",
+      "Remediation": "Create a Conditional Access policy requiring MFA for all administrative roles, or enable security defaults.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "maester",
+      "ResourceId": "",
+      "Category": "Security",
+      "Title": "Legacy authentication protocols are not blocked",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Legacy authentication protocols (IMAP, POP3, SMTP) are not blocked by Conditional Access. Legacy protocols cannot enforce MFA and are a common attack vector.",
+      "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/conditional-access/block-legacy-authentication",
+      "Remediation": "Create a Conditional Access policy to block legacy authentication for all users.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "maester",
+      "ResourceId": "",
+      "Category": "Identity",
+      "Title": "Self-service password reset is enabled for all users",
+      "Compliant": true,
+      "Severity": "Info",
+      "Detail": "Self-service password reset (SSPR) is enabled for all users in the tenant, reducing helpdesk load and improving user experience.",
+      "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-howitworks",
+      "Remediation": "",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}

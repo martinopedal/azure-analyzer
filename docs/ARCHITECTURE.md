@@ -106,7 +106,38 @@ azure-analyzer/
 
 ---
 
-## Error handling contract
+## Normalizers (Phase 1)
+
+Each of the 7 tools has a dedicated normalizer function that converts raw tool output into the unified schema v2 FindingRow format.
+
+### Normalizer responsibilities
+
+- **Parse raw findings** — read output from tool wrapper
+- **Extract resource context** — parse ARM ResourceIds to extract subscriptionId, resourceGroup, resourceType, resourceName
+- **Map schema** — convert tool-specific fields into v2 fields (Source, Category, Title, Severity, Compliant, Detail, Remediation, ResourceId, LearnMoreUrl)
+- **Platform/Entity mapping** — determine owning platform and entity type per tool:
+  - Azure tools (azqr, PSRule, AzGovViz, ALZ Queries, WARA) → Platform: `Azure`, EntityType: `Resource`
+  - Entra ID tool (Maester) → Platform: `EntraID`, EntityType: `Tenant`
+  - Repository tool (Scorecard) → Platform: `GitHub`, EntityType: `Repository`
+- **Return findings only** — no side effects, return array of v2-compliant findings
+
+### Normalizer locations
+
+| Tool | Normalizer | Entity Type |
+|---|---|---|
+| azqr | `modules/normalizers/Normalize-Azqr.ps1` | Resource |
+| PSRule | `modules/normalizers/Normalize-PSRule.ps1` | Resource |
+| AzGovViz | `modules/normalizers/Normalize-AzGovViz.ps1` | Resource |
+| ALZ Queries | `modules/normalizers/Normalize-AlzQueries.ps1` | Resource |
+| WARA | `modules/normalizers/Normalize-Wara.ps1` | Resource |
+| Maester | `modules/normalizers/Normalize-Maester.ps1` | Tenant |
+| Scorecard | `modules/normalizers/Normalize-Scorecard.ps1` | Repository |
+
+### Manifest-driven invocation
+
+The orchestrator loads `tools/tool-manifest.json`, which specifies the normalizer path for each tool. After a tool collector returns `Findings`, the manifest entry's `normalizer` script is invoked to transform findings into v2 format before they enter the entity store pipeline.
+
+---
 
 - **Collectors never throw:** each wrapper returns `Source`, `Status`, `Message`, and `Findings`.
 - **Worker pool isolation:** one tool failure does not stop others.

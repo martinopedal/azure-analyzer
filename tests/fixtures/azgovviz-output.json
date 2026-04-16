@@ -1,0 +1,31 @@
+{
+  "Source": "azgovviz",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Source": "azgovviz",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001",
+      "Category": "Governance",
+      "Title": "Subscription has no resource locks configured",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Subscription 00000000-0000-0000-0000-000000000001 does not have any resource locks. Critical resources should be protected with CanNotDelete or ReadOnly locks.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources",
+      "Remediation": "Add resource locks to critical resources using the Azure Portal or New-AzResourceLock cmdlet.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azgovviz",
+      "ResourceId": "",
+      "Category": "Policy",
+      "Title": "Management group has orphaned custom policy definitions",
+      "Compliant": false,
+      "Severity": "Low",
+      "Detail": "Found 3 orphaned custom policy definitions at the Tenant Root Group that are not assigned to any scope. Unused policies should be cleaned up to reduce management overhead.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/governance/policy/overview",
+      "Remediation": "Review and remove orphaned custom policy definitions that are no longer in use.",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "Source": "scorecard",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Source": "scorecard",
+      "ResourceId": "",
+      "Category": "Supply Chain",
+      "Title": "Branch protection is not enabled on default branch",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Score 0/10. The default branch does not have branch protection rules configured. This allows direct pushes without review.",
+      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection",
+      "Remediation": "Enable branch protection on the default branch requiring at least one review approval and status checks.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "scorecard",
+      "ResourceId": "",
+      "Category": "Supply Chain",
+      "Title": "Dependencies are pinned to specific versions",
+      "Compliant": true,
+      "Severity": "Info",
+      "Detail": "Score 10/10. All dependencies in package manifests and GitHub Actions workflows are pinned to specific versions or SHA hashes.",
+      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies",
+      "Remediation": "",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "scorecard",
+      "ResourceId": "",
+      "Category": "Supply Chain",
+      "Title": "SAST tool is not integrated in CI pipeline",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Score 0/10. No static analysis security testing (SAST) tool detected in CI/CD pipeline configuration.",
+      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#sast",
+      "Remediation": "Integrate a SAST tool such as CodeQL or Semgrep into the CI pipeline.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "scorecard",
+      "ResourceId": "",
+      "Category": "Supply Chain",
+      "Title": "Signed releases are not configured",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Score 2/10. Repository releases are not signed. Signed releases help verify artifact provenance and integrity.",
+      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#signed-releases",
+      "Remediation": "Configure GPG signing for releases and enable Sigstore for artifact attestation.",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}

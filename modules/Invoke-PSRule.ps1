@@ -58,13 +58,28 @@ try {
     $results = Invoke-PSRule @invokeParams -ErrorAction Stop
 
     $findings = $results | ForEach-Object {
+        $info = $_.Info
+        $ruleName = $_.RuleName
+        $title = if ($info -and $info.DisplayName) { $info.DisplayName } else { $ruleName }
+        $detail = if ($_.Detail -and $_.Detail.Reason) { $_.Detail.Reason -join '; ' } else { '' }
+        $learnUrl = ''
+        if ($info -and $info.Annotations) {
+            $onlineVer = $info.Annotations.'online version'
+            if ($onlineVer) { $learnUrl = $onlineVer }
+        }
+        $remediation = if ($info -and $info.Recommendation) { $info.Recommendation } else { '' }
+
         [PSCustomObject]@{
-            RuleName     = $_.RuleName
-            Outcome      = $_.Outcome
-            TargetName   = $_.TargetName
-            Message      = $_.Detail.Reason -join '; '
-            ResourceId   = if ($_.TargetName -match '^/subscriptions/') { $_.TargetName } else { '' }
-            LearnMoreUrl = ''
+            Source        = 'psrule'
+            Title         = $title
+            Category      = $ruleName
+            Compliant     = ($_.Outcome.ToString() -eq 'Pass')
+            Severity      = 'Medium'
+            Detail        = $detail
+            ResourceId    = if ($_.TargetName -match '^/subscriptions/') { $_.TargetName } else { '' }
+            LearnMoreUrl  = $learnUrl
+            Remediation   = $remediation
+            SchemaVersion = '1.0'
         }
     }
 
