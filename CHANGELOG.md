@@ -5,6 +5,29 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
+- **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
+- **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
+- **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.
+- **zizmor parse failures return success**: JSON parse failure now returns Status='Failed' instead of Success with empty findings. Checks `$LASTEXITCODE` for non-zero exit codes.
+- **zizmor stderr mixed into JSON stream**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout. stderr is kept separate and logged via Write-Verbose.
+- **trivy stderr/stdout mixing corrupts JSON**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout directly. stderr is kept separate and logged via Write-Verbose. Temp file is cleaned up in a finally block.
+
+### Added
+- **trivy minimum version check**: `Invoke-Trivy.ps1` now runs `trivy --version`, parses the version number, and warns if below the minimum known-safe version (0.50.0). Includes guidance to download from official GitHub releases only.
+
+### Added
+- **Phase 3: CI/CD security tools (zizmor, gitleaks, Trivy)**: Three new local CLI tools for repository security scanning, all operating read-only on the local filesystem with no cloud permissions required.
+- **zizmor integration (tool #9)**: `modules/Invoke-Zizmor.ps1` wrapper scans GitHub Actions workflow YAML files for security anti-patterns (expression injection, untrusted inputs, dangerous triggers). Normalizer maps findings to Platform=GitHub, EntityType=Workflow.
+- **gitleaks integration (tool #10)**: `modules/Invoke-Gitleaks.ps1` wrapper scans the repository for hardcoded secrets (API keys, tokens, passwords). Normalizer maps findings to Platform=GitHub, EntityType=Repository.
+- **Trivy integration (tool #11)**: `modules/Invoke-Trivy.ps1` wrapper scans the filesystem for dependency vulnerabilities in package manifests (package-lock.json, requirements.txt, go.sum, pom.xml, etc.). Maps trivy severity (CRITICAL/HIGH/MEDIUM/LOW) to schema severity. Each CVE = one finding with CVE ID + package name as title. Normalizer in `modules/normalizers/Normalize-Trivy.ps1` with Platform=GitHub, EntityType=Repository.
+- **`-RepoPath` parameter**: New parameter on `Invoke-AzureAnalyzer.ps1` for local repo scanning. zizmor and gitleaks use this path (defaults to current directory). Separate from `-Repository` (GitHub URL for Scorecard).
+- **`-ScanPath` and `-ScanType` parameters**: New parameters on `Invoke-AzureAnalyzer.ps1` for Trivy. `-ScanPath` sets the filesystem path to scan (default: current directory). `-ScanType` selects `fs` (filesystem, default) or `repo` (remote repository).
+- **Workflow EntityType**: Added `Workflow` to schema v2 EntityTypes with Platform=GitHub mapping. Used by zizmor normalizer to distinguish workflow files from repository-level findings.
+- **CLI-provider orchestrator support**: Repository-scoped tools with `provider=cli` in the manifest now run automatically without requiring `-Repository`. They scan the local filesystem and are always eligible when enabled.
+- **Phase 3 manifest entries**: zizmor, gitleaks, and trivy added to `tools/tool-manifest.json` with provider=cli, scope=repository.
+- **Phase 3 normalizer tests**: Pester test suites for Normalize-Zizmor, Normalize-Gitleaks, and Normalize-Trivy with fixture-driven validation covering schema conversion, entity ID normalization, severity mapping, field preservation, provenance tracking, and error handling.
+
+### Fixed
 - **`$host` reserved variable crash**: Renamed `$host` to `$repoHost` in `Normalize-Scorecard.ps1` to avoid StrictMode crash (System.Management.Automation.Internal.Host.InternalHost is read-only).
 - **Identity correlator never invoked**: Correlators (type=correlator in manifest) now run in a post-collection stage after all parallel tools complete and EntityStore is populated, instead of running as a script in the parallel loop. The orchestrator dot-sources the correlator script and calls `Invoke-IdentityCorrelation` directly.
 - **Candidate alias merge for objectId/appId**: Added `Merge-CandidateAliases` function to `IdentityCorrelator.ps1`. After initial candidate extraction, candidates keyed by objectId are merged into their appId counterpart when both refer to the same identity, eliminating false-negative splits.

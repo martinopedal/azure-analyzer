@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, **OpenSSF Scorecard**, and **ADO Service Connections** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, and DevOps service connection dimensions.
+Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **zizmor**, **gitleaks**, and **Trivy** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, CI/CD workflow security, secrets detection, and DevOps service connection dimensions.
 
 ## Quick Start
 
@@ -43,6 +43,15 @@ $env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
 # Or scan a specific project:
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
+```
+
+**Scenario 6: Local repo CI/CD security scan (zizmor + gitleaks)**
+
+```powershell
+# Scan current directory for workflow issues and leaked secrets
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks'
+# Or scan a specific repo path
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"
 ```
 
 Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
@@ -160,8 +169,11 @@ The report groups findings by category, then prioritizes action:
 | Microsoft.Graph module | `Install-Module Microsoft.Graph -Scope CurrentUser` | Maester (identity security) |
 | azqr CLI | `winget install azure-quick-review.azqr` | Resource compliance scanning |
 | scorecard CLI | [Download](https://github.com/ossf/scorecard/releases) | Repository security (optional) |
+| zizmor CLI | [Download](https://github.com/woodruffw/zizmor/releases) | GitHub Actions workflow security (optional) |
+| gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
+| trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
 
-**Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard) must be installed manually.
+**Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard, zizmor, gitleaks, trivy) must be installed manually.
 
 **AzGovViz** is a standalone script, not a module. Clone it into `tools/AzGovViz/` or `$HOME/AzGovViz/`:
 ```
@@ -222,12 +234,15 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-OutputPath` | string | `.\output` | Directory for results, reports, and errors |
 | `-Repository` | string | -- | GitHub repo for Scorecard (e.g. `github.com/org/repo`) |
 | `-GitHubHost` | string | -- | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
+| `-RepoPath` | string | `.` | Local repo path for CI/CD scanning (zizmor, gitleaks) |
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
 | `-ScorecardThreshold` | int (0-10) | 7 | Minimum score for a Scorecard check to be compliant |
+| `-ScanPath` | string | `.` | Filesystem path for Trivy dependency scanning |
+| `-ScanType` | string | `fs` | Trivy scan type: `fs` (filesystem) or `repo` (remote repository) |
 | `-InstallMissingModules` | switch | `$false` | Auto-install missing PowerShell modules |
 | `-SkipPrereqCheck` | switch | `$false` | Skip prerequisite detection (for CI pipelines) |
 | `-EnableAiTriage` | switch | `$false` | Enrich findings via GitHub Copilot SDK (requires license) |
@@ -263,8 +278,11 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **Everything except governance** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -ExcludeTools 'azgovviz'` |
 | **ADO service connections only** | `.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-connections'` |
 | **Azure + ADO** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"` |
+| **CI/CD security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks','trivy'` |
+| **Supply chain scan with custom path** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
+| **Local repo security scan** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`
+**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
@@ -280,8 +298,13 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
 | 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
 | 8 | **ADO Service Connections** | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | REST API queries ADO org/projects and catalogs all service endpoints with auth details |
+| 9 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity |
+| 10 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns |
+| 11 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) |
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
+
+> **Note:** zizmor, gitleaks, and Trivy are local CLI tools that scan the current repository checkout. They require no cloud permissions or API tokens -- just the CLI binary installed on the machine. They run automatically when enabled and the binary is found on PATH.
 
 ## Schema reference
 
@@ -295,7 +318,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, or `ado-connections` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, or `trivy` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -352,6 +375,7 @@ All tools operate read-only. No write permissions required anywhere.
 | **Azure Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA |
 | **Microsoft Graph** (read) | Maester -- Entra ID security |
 | **GitHub token** (optional) | Scorecard -- repo security (recommended for rate limits) |
+| **Local CLI only** (no cloud permissions) | zizmor, gitleaks, Trivy -- scan local filesystem |
 | **Copilot license** (optional) | AI triage -- fully optional; only used with `-EnableAiTriage` flag |
 
 See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup commands, and troubleshooting.
@@ -410,6 +434,9 @@ This tool wraps the following open-source projects. See [THIRD_PARTY_NOTICES.md]
 | Maester | [maester365/maester](https://github.com/maester365/maester) | MIT |
 | OpenSSF Scorecard | [ossf/scorecard](https://github.com/ossf/scorecard) | Apache 2.0 |
 | ADO Service Connections | Native REST API scanner (no external dependency) | -- |
+| zizmor | [woodruffw/zizmor](https://github.com/woodruffw/zizmor) | MIT |
+| gitleaks | [gitleaks/gitleaks](https://github.com/gitleaks/gitleaks) | MIT |
+| Trivy | [aquasecurity/trivy](https://github.com/aquasecurity/trivy) | Apache 2.0 |
 
 ## License
 

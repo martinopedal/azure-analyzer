@@ -201,7 +201,8 @@ function ConvertTo-CanonicalEntityId {
             'ServiceConnection',
             'User',
             'Subscription',
-            'ManagementGroup'
+            'ManagementGroup',
+            'Workflow'
         )]
         [string] $EntityType,
 
@@ -212,6 +213,7 @@ function ConvertTo-CanonicalEntityId {
         'AzureResource' { ConvertTo-CanonicalArmId -ArmId $RawId }
         'ManagedIdentity' { ConvertTo-CanonicalArmId -ArmId $RawId }
         'Repository' { ConvertTo-CanonicalRepoId -RepoId $RawId }
+        'Workflow' { $RawId.Trim().ToLowerInvariant() -replace '\\', '/' }
         'ServicePrincipal' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
         'Application' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
         'Pipeline' { ConvertTo-CanonicalAdoId -AdoId $RawId }

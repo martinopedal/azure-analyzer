@@ -131,6 +131,22 @@
       "enabled": true
     },
     {
+      "name": "trivy",
+      "displayName": "Trivy Vulnerability Scanner",
+      "source": "trivy",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Trivy",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Trivy.ps1",
+      "requiredParams": [],
+      "optionalParams": ["ScanPath", "ScanType"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
+    },
+    {
       "name": "identity-correlator",
       "displayName": "Identity Correlator",
       "source": "identity-correlator",
@@ -143,6 +159,38 @@
       "requiredParams": ["TenantId"],
       "optionalParams": ["IncludeGraphLookup"],
       "requiredPermissionTier": 3,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
+    },
+    {
+      "name": "zizmor",
+      "displayName": "zizmor (Actions YAML Scanner)",
+      "source": "zizmor",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Zizmor",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Zizmor.ps1",
+      "requiredParams": [],
+      "optionalParams": ["Repository", "WorkflowPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
+    },
+    {
+      "name": "gitleaks",
+      "displayName": "gitleaks (Secrets Scanner)",
+      "source": "gitleaks",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Gitleaks",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Gitleaks.ps1",
+      "requiredParams": [],
+      "optionalParams": ["RepoPath", "NoGit"],
+      "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
       "enabled": true
     }
