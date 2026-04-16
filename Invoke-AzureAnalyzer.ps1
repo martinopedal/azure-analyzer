@@ -26,6 +26,9 @@
     Custom GitHub host for GHEC-DR or GHES instances (e.g. "github.contoso.com").
     Sets the GH_HOST environment variable for the Scorecard CLI. When empty,
     defaults to github.com. Requires a GITHUB_AUTH_TOKEN valid on the enterprise instance.
+.PARAMETER RepoPath
+    Local repository path for CI/CD security scanning tools (zizmor, gitleaks).
+    Defaults to the current directory. Tools scan workflow files and git history at this path.
 .PARAMETER AdoOrg
     Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections).
     When provided, ADO tools are included in the run.
@@ -40,6 +43,7 @@
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
     .\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
     .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
+    .\Invoke-AzureAnalyzer.ps1 -RepoPath "C:\repos\my-app"
 #>
 [CmdletBinding()]
 param (
@@ -54,6 +58,7 @@ param (
     [switch] $Recurse,
     [string] $Repository,
     [string] $GitHubHost = '',
+    [string] $RepoPath,
     [string] $AdoOrg,
     [string] $AdoProject,
     [ValidateRange(0, 10)]
@@ -171,7 +176,9 @@ function Install-Prerequisites {
     $cliTools = @(
         @{ Cmd = 'azqr'; Tool = 'azqr'; Name = 'Azure Quick Review'; Install = 'winget install azure-quick-review.azqr' },
         @{ Cmd = 'scorecard'; Tool = 'scorecard'; Name = 'OpenSSF Scorecard'; Install = 'Download from https://github.com/ossf/scorecard/releases' },
-        @{ Cmd = 'trivy'; Tool = 'trivy'; Name = 'Trivy Vulnerability Scanner'; Install = 'Download from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy' }
+        @{ Cmd = 'trivy'; Tool = 'trivy'; Name = 'Trivy Vulnerability Scanner'; Install = 'Download from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy' },
+        @{ Cmd = 'zizmor'; Tool = 'zizmor'; Name = 'zizmor (Actions YAML Scanner)'; Install = 'pip install zizmor or https://github.com/woodruffw/zizmor/releases' },
+        @{ Cmd = 'gitleaks'; Tool = 'gitleaks'; Name = 'gitleaks (Secrets Scanner)'; Install = 'Download from https://github.com/gitleaks/gitleaks/releases' }
     )
     foreach ($cli in $cliTools) {
         if (-not (ShouldRunTool $cli.Tool)) { continue }
@@ -334,6 +341,13 @@ foreach ($toolDef in $manifest.tools) {
                 if ($toolDef.name -eq 'trivy') {
                     if ($ScanPath) { $params['ScanPath'] = $ScanPath }
                     if ($ScanType) { $params['ScanType'] = $ScanType }
+                }
+                if ($toolDef.name -eq 'zizmor') {
+                    $localPath = if ($RepoPath) { $RepoPath } else { '.' }
+                    $params['Repository'] = $localPath
+                }
+                if ($toolDef.name -eq 'gitleaks') {
+                    if ($RepoPath) { $params['RepoPath'] = $RepoPath }
                 }
                 $specName = "$($toolDef.name)|repo"
                 $toolSpecs.Add([PSCustomObject]@{

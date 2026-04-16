@@ -1,0 +1,43 @@
+{
+  "Source": "zizmor",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "Category": "CI/CD Security",
+      "Title": "expression-injection: Untrusted input in run step",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Expression '${{ github.event.pull_request.title }}' in run step is vulnerable to injection (file: .github/workflows/ci.yml)",
+      "Remediation": "Use an environment variable instead of directly interpolating the expression in the run step.",
+      "ResourceId": ".github/workflows/ci.yml",
+      "LearnMoreUrl": "https://woodruffw.github.io/zizmor/audits/#expression-injection",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "Category": "CI/CD Security",
+      "Title": "unpinned-uses: Action reference is not pinned to a SHA",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Action 'actions/checkout@v4' is not pinned to a full SHA hash (file: .github/workflows/ci.yml)",
+      "Remediation": "Pin the action to a full commit SHA instead of a mutable tag.",
+      "ResourceId": ".github/workflows/ci.yml",
+      "LearnMoreUrl": "https://woodruffw.github.io/zizmor/audits/#unpinned-uses",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "Category": "CI/CD Security",
+      "Title": "dangerous-triggers: Workflow uses dangerous trigger",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Workflow uses pull_request_target trigger which runs with write permissions in the context of the base branch (file: .github/workflows/auto-label.yml)",
+      "Remediation": "Avoid pull_request_target unless strictly necessary. If needed, ensure no untrusted code is checked out or executed.",
+      "ResourceId": ".github/workflows/auto-label.yml",
+      "LearnMoreUrl": "https://woodruffw.github.io/zizmor/audits/#dangerous-triggers",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}

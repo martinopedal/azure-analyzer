@@ -45,6 +45,15 @@ $env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
 ```
 
+**Scenario 6: Local repo CI/CD security scan (zizmor + gitleaks)**
+
+```powershell
+# Scan current directory for workflow issues and leaked secrets
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks'
+# Or scan a specific repo path
+.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"
+```
+
 Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
 
 Missing PowerShell modules are detected and reported with install commands. Use `-InstallMissingModules` to auto-install them.
@@ -225,6 +234,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-OutputPath` | string | `.\output` | Directory for results, reports, and errors |
 | `-Repository` | string | -- | GitHub repo for Scorecard (e.g. `github.com/org/repo`) |
 | `-GitHubHost` | string | -- | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
+| `-RepoPath` | string | `.` | Local repo path for CI/CD scanning (zizmor, gitleaks) |
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
@@ -270,6 +280,7 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **Azure + ADO** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"` |
 | **CI/CD security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks','trivy'` |
 | **Supply chain scan with custom path** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
+| **Local repo security scan** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 
 **Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`
 
