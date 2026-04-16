@@ -53,6 +53,8 @@ All notable changes to azure-analyzer will be documented here.
 - Delete dead Python stubs (`src/run.py`, `src/__init__.py`) -- orchestrator is PowerShell only
 
 ### Fixed
+- **Phase 0 core hardening**: Removed unsupported null-conditional member access from `EntityStore`, fixed severity comparison invocation parsing, and corrected spill-file entity merge to aggregate compliant/non-compliant counts.
+- **Tool manifest v3 metadata**: Added `provider`, `scope`, `normalizer`, and `invokeMethod` fields per tool entry; retained `azgovviz` with a migration note for native ARG in a later phase.
 - **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.
