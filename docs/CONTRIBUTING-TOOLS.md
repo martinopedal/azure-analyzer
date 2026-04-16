@@ -87,6 +87,24 @@ Normalizers convert raw tool output into the schema v2 finding shape.
 }
 ```
 
+### Upstream metadata for weekly auto-update
+
+For tools that track an upstream release feed, add an `upstream` block so `.github/workflows/tool-auto-update.yml` can detect updates and open one PR per tool.
+
+```json
+"upstream": {
+  "repo": "owner/repo",
+  "releaseApi": "repos/owner/repo/releases/latest",
+  "pinType": "semver",
+  "currentPin": "v1.2.3"
+}
+```
+
+- `repo`: Upstream GitHub repository (`owner/name`)
+- `releaseApi`: GitHub REST API path queried with `gh api`
+- `pinType`: One of `semver`, `sha`, or `cli-version`
+- `currentPin`: Current pinned value used for comparisons and PR body output
+
 ---
 
 ## Testing checklist

@@ -1,0 +1,174 @@
+name: Tool Auto Update
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  tool-auto-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Open tool update PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          manifest='tools/tool-manifest.json'
+          tools_json="$(jq -c '.tools[] | select(.upstream.releaseApi and .upstream.repo and .upstream.pinType)' "$manifest")"
+
+          if [ -z "$tools_json" ]; then
+            echo 'No tools with upstream metadata found.'
+            exit 0
+          fi
+
+          while IFS= read -r tool; do
+            [ -z "$tool" ] && continue
+
+            name="$(jq -r '.name' <<<"$tool")"
+            repo="$(jq -r '.upstream.repo' <<<"$tool")"
+            release_api="$(jq -r '.upstream.releaseApi' <<<"$tool")"
+            pin_type="$(jq -r '.upstream.pinType' <<<"$tool")"
+            previous_pin="$(jq -r '.upstream.currentPin // ""' <<<"$tool")"
+            wrapper_path="$(jq -r '.script // ("modules/Invoke-" + .displayName + ".ps1")' <<<"$tool")"
+            normalizer_name="$(jq -r '.normalizer // empty' <<<"$tool")"
+
+            if [ -n "$normalizer_name" ]; then
+              normalizer_path="modules/normalizers/${normalizer_name}.ps1"
+            else
+              normalizer_path="modules/normalizers/Normalize-${name}.ps1"
+            fi
+
+            release_json="$(gh api "$release_api" 2>/dev/null || true)"
+            if [ -z "$release_json" ]; then
+              echo "Skipping $name: unable to fetch release metadata from $release_api"
+              continue
+            fi
+
+            tag_name="$(jq -r '.tag_name // .name // empty' <<<"$release_json")"
+            release_url="$(jq -r '.html_url // empty' <<<"$release_json")"
+            release_notes="$(jq -r '.body // ""' <<<"$release_json" | tr -d '\r')"
+
+            if [ -z "$tag_name" ]; then
+              echo "Skipping $name: missing tag_name in release payload"
+              continue
+            fi
+
+            case "$pin_type" in
+              semver|cli-version)
+                new_pin="$tag_name"
+                ;;
+              sha)
+                new_pin="$(gh api "repos/$repo/commits/$tag_name" --jq '.sha' 2>/dev/null || true)"
+                if [ -z "$new_pin" ]; then
+                  new_pin="$(jq -r '.target_commitish // empty' <<<"$release_json")"
+                fi
+                ;;
+              *)
+                echo "Skipping $name: unsupported pinType '$pin_type'"
+                continue
+                ;;
+            esac
+
+            if [ -z "$new_pin" ]; then
+              echo "Skipping $name: unable to compute new pin"
+              continue
+            fi
+
+            if [ "$new_pin" = "$previous_pin" ]; then
+              echo "No update for $name ($previous_pin)"
+              continue
+            fi
+
+            release_excerpt="$(printf '%s\n' "$release_notes" | head -n 20)"
+            if [ -z "$release_excerpt" ]; then
+              release_excerpt='(No release notes provided by upstream.)'
+            fi
+
+            if grep -Eiq 'BREAKING|CHANGED:|removed flag|renamed|schema' <<<"$release_notes"; then
+              needs_iteration='true'
+            else
+              needs_iteration='false'
+            fi
+
+            branch="tool-auto-update/${name}"
+            title="chore(tool): update ${name} pin to ${new_pin}"
+            pr_body_file="/tmp/tool-update-${name}.md"
+
+            cat > "$pr_body_file" <<EOF
+## Tool auto-update
+
+- Tool: \`${name}\`
+- Previous pin: \`${previous_pin:-untracked}\`
+- New pin: \`${new_pin}\`
+- Upstream release: ${release_url}
+
+### Release notes excerpt
+\`\`\`
+${release_excerpt}
+\`\`\`
+EOF
+
+            if [ "$needs_iteration" = 'true' ]; then
+              cat >> "$pr_body_file" <<EOF
+
+### Copilot iteration requested
+@copilot please verify wrapper/normalizer compatibility for this upstream change:
+
+- \`${wrapper_path}\`
+- \`${normalizer_path}\`
+EOF
+            fi
+
+            git checkout -B "$branch"
+            jq --arg tool_name "$name" --arg new_pin "$new_pin" '
+              .tools = (.tools | map(
+                if .name == $tool_name then
+                  (.upstream.currentPin = $new_pin)
+                else
+                  .
+                end
+              ))
+            ' "$manifest" > /tmp/tool-manifest.json
+            mv /tmp/tool-manifest.json "$manifest"
+
+            if git diff --quiet -- "$manifest"; then
+              echo "No manifest change detected for $name"
+              git checkout -- "$manifest"
+              git checkout -
+              continue
+            fi
+
+            git add "$manifest"
+            git commit -m "$title"
+            git push -u origin "$branch" --force-with-lease
+
+            pr_number="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number // empty')"
+            if [ -z "$pr_number" ]; then
+              gh pr create --base main --head "$branch" --title "$title" --body-file "$pr_body_file"
+              pr_number="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number // empty')"
+            else
+              gh pr edit "$pr_number" --title "$title" --body-file "$pr_body_file"
+            fi
+
+            if [ "$needs_iteration" = 'true' ] && [ -n "$pr_number" ]; then
+              gh label create needs-copilot-iteration --color F59E0B --description 'Upstream release notes indicate possible wrapper/schema change' 2>/dev/null || true
+              gh pr edit "$pr_number" --add-label needs-copilot-iteration
+            fi
+
+            git checkout -
+            git branch -D "$branch" || true
+          done <<< "$tools_json"

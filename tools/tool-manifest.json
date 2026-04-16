@@ -15,7 +15,13 @@
       "optionalParams": ["OutputPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "Azure/azqr",
+        "releaseApi": "repos/Azure/azqr/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "psrule",
@@ -31,7 +37,13 @@
       "optionalParams": ["Path"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "Azure/PSRule.Rules.Azure",
+        "releaseApi": "repos/Azure/PSRule.Rules.Azure/releases/latest",
+        "pinType": "semver",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "azgovviz",
@@ -48,7 +60,13 @@
       "optionalParams": ["OutputPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
+        "releaseApi": "repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/releases/latest",
+        "pinType": "sha",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "alz-queries",
@@ -64,7 +82,13 @@
       "optionalParams": ["QueriesFile"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "martinopedal/alz-graph-queries",
+        "releaseApi": "repos/martinopedal/alz-graph-queries/releases/latest",
+        "pinType": "sha",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "wara",
@@ -80,7 +104,13 @@
       "optionalParams": ["TenantId", "OutputPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "Azure/Azure-Proactive-Resiliency-Library-v2",
+        "releaseApi": "repos/Azure/Azure-Proactive-Resiliency-Library-v2/releases/latest",
+        "pinType": "semver",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "maester",
@@ -96,7 +126,13 @@
       "optionalParams": [],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "maester365/maester",
+        "releaseApi": "repos/maester365/maester/releases/latest",
+        "pinType": "semver",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "scorecard",
@@ -112,7 +148,13 @@
       "optionalParams": ["Threshold"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "ossf/scorecard",
+        "releaseApi": "repos/ossf/scorecard/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "ado-connections",
@@ -144,7 +186,13 @@
       "optionalParams": ["ScanPath", "ScanType"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "aquasecurity/trivy",
+        "releaseApi": "repos/aquasecurity/trivy/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "identity-correlator",
@@ -176,7 +224,13 @@
       "optionalParams": ["Repository", "WorkflowPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "woodruffw/zizmor",
+        "releaseApi": "repos/woodruffw/zizmor/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "untracked"
+      }
     },
     {
       "name": "gitleaks",
@@ -192,7 +246,13 @@
       "optionalParams": ["RepoPath", "NoGit"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "upstream": {
+        "repo": "gitleaks/gitleaks",
+        "releaseApi": "repos/gitleaks/gitleaks/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "untracked"
+      }
     }
   ]
 }

@@ -403,6 +403,7 @@ The `.squad/` directory contains AI team infrastructure for automated triage and
 |---|---|---|
 | `codeql.yml` | Push / PR / weekly | Static analysis for security vulnerabilities (CodeQL, SHA-pinned) |
 | `docs-check.yml` | PR | Ensures documentation is updated with code changes |
+| `tool-auto-update.yml` | Weekly (Mon 09:00 UTC) / manual dispatch | Checks upstream releases from `tools/tool-manifest.json` and opens one PR per tool pin update |
 
 <details>
 <summary>Maintainer workflows (squad infrastructure)</summary>

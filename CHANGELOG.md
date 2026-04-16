@@ -13,6 +13,15 @@ All notable changes to azure-analyzer will be documented here.
 - **trivy stderr/stdout mixing corrupts JSON**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout directly. stderr is kept separate and logged via Write-Verbose. Temp file is cleaned up in a finally block.
 
 ### Added
+- **Weekly tool auto-update workflow**: Added `.github/workflows/tool-auto-update.yml` (SHA-pinned) with Monday 09:00 UTC schedule and `workflow_dispatch` support. The workflow reads `tools/tool-manifest.json` upstream metadata, checks latest releases via `gh api`, and opens one PR per tool pin update.
+- **Copilot iteration loop for upstream breaking notes**: Auto-update PRs now scan upstream release notes for `BREAKING`, `CHANGED:`, `removed flag`, `renamed`, and `schema`. Matching PRs add `needs-copilot-iteration` and include `@copilot` guidance for wrapper/normalizer paths.
+- **Tool manifest upstream metadata**: Added `upstream` blocks to external tools in `tools/tool-manifest.json` with `repo`, `releaseApi`, `pinType`, and `currentPin` fields used by the weekly automation.
+
+### Changed
+- **Contributor tooling docs**: `docs/CONTRIBUTING-TOOLS.md` now documents the `upstream` metadata block required to onboard tools into the weekly auto-update loop.
+- **README CI table**: Added `tool-auto-update.yml` to the automation matrix with schedule/dispatch trigger details.
+
+### Added
 - **trivy minimum version check**: `Invoke-Trivy.ps1` now runs `trivy --version`, parses the version number, and warns if below the minimum known-safe version (0.50.0). Includes guidance to download from official GitHub releases only.
 
 ### Added
@@ -163,5 +172,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 
