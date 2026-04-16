@@ -183,6 +183,91 @@ function Get-IdentityCandidatesFromStore {
     return $candidates
 }
 
+function Merge-CandidateAliases {
+    <#
+    .SYNOPSIS
+        Merge candidate entries that share an objectId↔appId alias.
+    .DESCRIPTION
+        When one entity is keyed by objectId and another by appId but they refer
+        to the same identity, this merges them into a single candidate keyed by
+        appId. Also checks observation text for cross-references between the two
+        ID types to discover aliases without Graph.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [hashtable] $Candidates
+    )
+
+    # Build alias map: objectId → appId from candidates that have both
+    $aliases = @{}
+    foreach ($key in @($Candidates.Keys)) {
+        $c = $Candidates[$key]
+        if ($c.AppId -and $c.ObjectId) {
+            $aliases[$c.ObjectId] = $c.AppId
+        }
+    }
+
+    # Also scan obj:-keyed candidates for appId references in their dimension evidence
+    foreach ($key in @($Candidates.Keys)) {
+        if (-not $key.StartsWith('obj:')) { continue }
+        $c = $Candidates[$key]
+        $objId = $key.Substring(4)
+        if ($aliases.ContainsKey($objId)) { continue }
+
+        # Check if any evidence text mentions an appId
+        foreach ($dim in $c.Dimensions.Keys) {
+            foreach ($ev in @($c.Dimensions[$dim])) {
+                if ($ev -match 'appId[:\s=]+([0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12})') {
+                    $aliases[$objId] = $Matches[1]
+                    $c.AppId = $Matches[1]
+                    break
+                }
+            }
+            if ($aliases.ContainsKey($objId)) { break }
+        }
+    }
+
+    # Merge obj:-keyed candidates into their app:-keyed counterpart
+    foreach ($objId in @($aliases.Keys)) {
+        $appId = $aliases[$objId]
+        $objKey = "obj:$objId"
+        $appKey = "app:$appId"
+
+        if (-not $Candidates.ContainsKey($objKey)) { continue }
+
+        $objCandidate = $Candidates[$objKey]
+
+        if ($Candidates.ContainsKey($appKey)) {
+            # Merge into existing app-keyed candidate
+            $appCandidate = $Candidates[$appKey]
+            if (-not $appCandidate.ObjectId -and $objCandidate.ObjectId) {
+                $appCandidate.ObjectId = $objCandidate.ObjectId
+            }
+            if (-not $appCandidate.DisplayName -and $objCandidate.DisplayName) {
+                $appCandidate.DisplayName = $objCandidate.DisplayName
+            }
+
+            foreach ($dim in $objCandidate.Dimensions.Keys) {
+                if (-not $appCandidate.Dimensions.ContainsKey($dim)) {
+                    $appCandidate.Dimensions[$dim] = [System.Collections.Generic.List[string]]::new()
+                }
+                foreach ($ev in @($objCandidate.Dimensions[$dim])) {
+                    $appCandidate.Dimensions[$dim].Add($ev)
+                }
+            }
+        } else {
+            # Re-key the obj candidate as an app candidate
+            $objCandidate.AppId = $appId
+            $Candidates[$appKey] = $objCandidate
+        }
+
+        $Candidates.Remove($objKey)
+    }
+
+    return $Candidates
+}
+
 function Get-FederatedCredentials {
     <#
     .SYNOPSIS
@@ -283,7 +368,10 @@ function Invoke-IdentityCorrelation {
         return @()
     }
 
-    Write-Verbose "IdentityCorrelator: Found $($candidates.Count) identity candidate(s)."
+    # Phase 1b: Merge candidates sharing objectId↔appId aliases
+    $candidates = Merge-CandidateAliases -Candidates $candidates
+
+    Write-Verbose "IdentityCorrelator: Found $($candidates.Count) identity candidate(s) after alias merge."
 
     # Check Graph availability for optional enrichment
     $graphAvailable = $false

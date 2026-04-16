@@ -254,6 +254,9 @@ foreach ($toolDef in $manifest.tools) {
         continue
     }
 
+    # Correlators run post-collection, not in the parallel tool loop
+    if ($toolDef.type -eq 'correlator') { continue }
+
     $scriptPath = Join-Path $PSScriptRoot $toolDef.script
 
     switch ($toolDef.scope) {
@@ -493,6 +496,67 @@ foreach ($entry in $toolAgg.GetEnumerator()) {
 }
 
 # ---------------------------------------------------------------------------
+# Post-collection correlation stage
+# ---------------------------------------------------------------------------
+$correlators = @($manifest.tools | Where-Object { $_.type -eq 'correlator' -and $_.enabled -and (ShouldRunTool $_.name) })
+foreach ($corrDef in $correlators) {
+    $corrName = $corrDef.name
+    Write-Host "`n[correlator] Running $($corrDef.displayName)..." -ForegroundColor Magenta
+    try {
+        $corrScript = Join-Path $PSScriptRoot $corrDef.script
+        if (-not (Test-Path $corrScript)) {
+            Write-Warning "Correlator script not found: $corrScript"
+            $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = "Script not found: $corrScript"; Findings = 0 })
+            continue
+        }
+        . $corrScript
+
+        $corrParams = @{ EntityStore = $store; TenantId = ($TenantId ?? 'unknown') }
+        if ($corrDef.optionalParams -contains 'IncludeGraphLookup') {
+            $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
+            if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
+        }
+
+        $corrFindings = @(Invoke-IdentityCorrelation @corrParams)
+
+        # Feed correlation findings into EntityStore and flat results
+        $corrNormFunc = $corrDef.normalizer
+        $corrV3 = $corrFindings
+        if ($corrNormFunc -and (Get-Command $corrNormFunc -ErrorAction SilentlyContinue)) {
+            $corrToolResult = [PSCustomObject]@{ Status = 'Success'; Findings = $corrFindings }
+            $corrV3 = @(& $corrNormFunc -ToolResult $corrToolResult)
+        }
+
+        foreach ($finding in $corrV3) {
+            try { $store.AddFinding($finding) }
+            catch { Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $corrName : $_") }
+        }
+
+        foreach ($f in $corrV3) {
+            $allResults.Add([PSCustomObject]@{
+                Id           = $f.Id
+                Source       = $f.Source
+                Category     = if ($f.PSObject.Properties['Category'] -and $f.Category) { $f.Category } else { '' }
+                Title        = $f.Title
+                Severity     = if ($f.PSObject.Properties['Severity'] -and $f.Severity) { $f.Severity } else { 'Info' }
+                Compliant    = $f.Compliant
+                Detail       = if ($f.PSObject.Properties['Detail'] -and $f.Detail) { $f.Detail } else { '' }
+                Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
+                ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
+                LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+            })
+        }
+
+        Write-Host "  $corrName`: $($corrV3.Count) correlation finding(s)" -ForegroundColor Gray
+        $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Success'; Message = "Emitted $($corrV3.Count) correlation finding(s)"; Findings = $corrV3.Count })
+    } catch {
+        $errMsg = Remove-Credentials "$_"
+        Write-Warning "Correlator $corrName failed: $errMsg"
+        $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = $errMsg; Findings = 0 })
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Write output
 # ---------------------------------------------------------------------------
 try {
@@ -508,7 +572,8 @@ try {
     # v3 entity-centric output
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
-    $entitiesJson = if ($entities.Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
+    if ($null -eq $entities) { $entities = @() }
+    $entitiesJson = if (@($entities).Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
     Set-Content -Path $entitiesFile -Value $entitiesJson -Encoding UTF8
 
     # Tool status

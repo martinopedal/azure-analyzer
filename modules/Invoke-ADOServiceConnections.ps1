@@ -85,13 +85,28 @@ function Get-AdoProjects {
         [string] $Org,
         [hashtable] $Headers
     )
-    $uri = "https://dev.azure.com/$Org/_apis/projects?api-version=7.1"
-    $response = Invoke-AdoApi -Uri $uri -Headers $Headers
-    $projects = @()
-    if ($response -and $response.PSObject.Properties['value']) {
-        $projects = @($response.value | ForEach-Object { $_.name })
-    }
-    return $projects
+    $projects = [System.Collections.Generic.List[string]]::new()
+    $continuationToken = $null
+    do {
+        $uri = "https://dev.azure.com/$Org/_apis/projects?api-version=7.1&`$top=100"
+        if ($continuationToken) {
+            $uri += "&continuationToken=$continuationToken"
+        }
+        $response = Invoke-AdoApi -Uri $uri -Headers $Headers
+        if ($response -and $response.PSObject.Properties['value']) {
+            foreach ($p in @($response.value)) {
+                $projects.Add($p.name)
+            }
+        }
+        # ADO returns continuation token in the response header; Invoke-RestMethod
+        # doesn't expose headers easily, so check the response body count.
+        # If we got a full page, there may be more.
+        $continuationToken = $null
+        if ($response -and $response.PSObject.Properties['continuationToken'] -and $response.continuationToken) {
+            $continuationToken = $response.continuationToken
+        }
+    } while ($continuationToken)
+    return @($projects)
 }
 
 # ---------------------------------------------------------------------------
@@ -103,13 +118,25 @@ function Get-AdoServiceConnections {
         [string] $Project,
         [hashtable] $Headers
     )
-    $uri = "https://dev.azure.com/$Org/$Project/_apis/serviceendpoint/endpoints?api-version=7.1"
-    $response = Invoke-AdoApi -Uri $uri -Headers $Headers
-    $connections = @()
-    if ($response -and $response.PSObject.Properties['value']) {
-        $connections = @($response.value)
-    }
-    return $connections
+    $connections = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $continuationToken = $null
+    do {
+        $uri = "https://dev.azure.com/$Org/$Project/_apis/serviceendpoint/endpoints?api-version=7.1&`$top=100"
+        if ($continuationToken) {
+            $uri += "&continuationToken=$continuationToken"
+        }
+        $response = Invoke-AdoApi -Uri $uri -Headers $Headers
+        if ($response -and $response.PSObject.Properties['value']) {
+            foreach ($c in @($response.value)) {
+                $connections.Add($c)
+            }
+        }
+        $continuationToken = $null
+        if ($response -and $response.PSObject.Properties['continuationToken'] -and $response.continuationToken) {
+            $continuationToken = $response.continuationToken
+        }
+    } while ($continuationToken)
+    return @($connections)
 }
 
 # ---------------------------------------------------------------------------
@@ -199,6 +226,7 @@ try {
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $failedProjects = [System.Collections.Generic.List[string]]::new()
 
     foreach ($proj in $projects) {
         try {
@@ -209,13 +237,26 @@ try {
             }
         } catch {
             Write-Warning (Remove-Credentials "Failed to scan project '$proj': $_")
+            $failedProjects.Add($proj)
         }
+    }
+
+    $status = if ($failedProjects.Count -gt 0 -and $failedProjects.Count -lt $projects.Count) {
+        'PartialSuccess'
+    } elseif ($failedProjects.Count -ge $projects.Count -and $projects.Count -gt 0) {
+        'Failed'
+    } else {
+        'Success'
+    }
+    $message = "Scanned $($projects.Count) project(s), found $($findings.Count) service connection(s)."
+    if ($failedProjects.Count -gt 0) {
+        $message += " Failed projects: $($failedProjects -join ', ')."
     }
 
     return [PSCustomObject]@{
         Source   = 'ado-connections'
-        Status   = 'Success'
-        Message  = "Scanned $($projects.Count) project(s), found $($findings.Count) service connection(s)."
+        Status   = $status
+        Message  = $message
         Findings = @($findings)
     }
 } catch {

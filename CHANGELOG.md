@@ -4,6 +4,13 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **`$host` reserved variable crash**: Renamed `$host` to `$repoHost` in `Normalize-Scorecard.ps1` to avoid StrictMode crash (System.Management.Automation.Internal.Host.InternalHost is read-only).
+- **Identity correlator never invoked**: Correlators (type=correlator in manifest) now run in a post-collection stage after all parallel tools complete and EntityStore is populated, instead of running as a script in the parallel loop. The orchestrator dot-sources the correlator script and calls `Invoke-IdentityCorrelation` directly.
+- **Candidate alias merge for objectId/appId**: Added `Merge-CandidateAliases` function to `IdentityCorrelator.ps1`. After initial candidate extraction, candidates keyed by objectId are merged into their appId counterpart when both refer to the same identity, eliminating false-negative splits.
+- **ADO scanner pagination**: `Get-AdoProjects` and `Get-AdoServiceConnections` now use continuation-token loops (`$top=100`) to handle orgs with >100 projects or connections. Per-project failures are tracked; when some projects fail, the wrapper returns `Status='PartialSuccess'` with a message listing failed projects.
+- **`$entities.Count` null crash under StrictMode**: Added explicit null guard (`if ($null -eq $entities) { $entities = @() }`) before accessing `.Count` on the Export-Entities result in `Invoke-AzureAnalyzer.ps1`.
+
 ### Added
 - **ADO service connection scanner**: New `modules/Invoke-ADOServiceConnections.ps1` wrapper queries Azure DevOps REST API to inventory service connections across an organization. Returns connection type, authorization scheme (ServicePrincipal, ManagedServiceIdentity, WorkloadIdentityFederation), and sharing status. All findings are informational (Compliant=true, Severity=Info) -- compliance correlation comes in a later phase.
 - **ADO connections normalizer**: `modules/normalizers/Normalize-ADOConnections.ps1` converts raw ADO findings to v3 FindingRow format with Platform=ADO, EntityType=ServiceConnection, and canonical IDs in `ado://org/project/serviceconnection/name` format.
