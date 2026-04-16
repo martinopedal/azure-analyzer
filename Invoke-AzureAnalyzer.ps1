@@ -58,6 +58,9 @@ param (
     [string] $AdoProject,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
+    [string] $ScanPath,
+    [ValidateSet('fs', 'repo')]
+    [string] $ScanType,
     [switch] $EnableAiTriage
 )
 
@@ -167,7 +170,8 @@ function Install-Prerequisites {
     }
     $cliTools = @(
         @{ Cmd = 'azqr'; Tool = 'azqr'; Name = 'Azure Quick Review'; Install = 'winget install azure-quick-review.azqr' },
-        @{ Cmd = 'scorecard'; Tool = 'scorecard'; Name = 'OpenSSF Scorecard'; Install = 'Download from https://github.com/ossf/scorecard/releases' }
+        @{ Cmd = 'scorecard'; Tool = 'scorecard'; Name = 'OpenSSF Scorecard'; Install = 'Download from https://github.com/ossf/scorecard/releases' },
+        @{ Cmd = 'trivy'; Tool = 'trivy'; Name = 'Trivy Vulnerability Scanner'; Install = 'Download from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy' }
     )
     foreach ($cli in $cliTools) {
         if (-not (ShouldRunTool $cli.Tool)) { continue }
@@ -324,6 +328,25 @@ foreach ($toolDef in $manifest.tools) {
             $toolMetaMap[$specName] = $toolDef
         }
         'repository' {
+            # CLI-provider tools (trivy, zizmor, gitleaks) scan local filesystem -- always eligible
+            if ($toolDef.provider -eq 'cli') {
+                $params = @{}
+                if ($toolDef.name -eq 'trivy') {
+                    if ($ScanPath) { $params['ScanPath'] = $ScanPath }
+                    if ($ScanType) { $params['ScanType'] = $ScanType }
+                }
+                $specName = "$($toolDef.name)|repo"
+                $toolSpecs.Add([PSCustomObject]@{
+                    Name        = $specName
+                    Provider    = $toolDef.provider
+                    Scope       = $toolDef.scope
+                    ScriptBlock = $runnerBlock
+                    Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+                })
+                $toolMetaMap[$specName] = $toolDef
+                continue
+            }
+            # GitHub-provider tools (scorecard) require -Repository
             if (-not $Repository) {
                 $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No -Repository provided'; Findings = 0 })
                 continue

@@ -4,6 +4,16 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **Phase 3: CI/CD security tools (zizmor, gitleaks, Trivy)**: Three new local CLI tools for repository security scanning, all operating read-only on the local filesystem with no cloud permissions required.
+- **zizmor integration (tool #9)**: `modules/Invoke-Zizmor.ps1` wrapper scans GitHub Actions workflow YAML files for security anti-patterns (expression injection, untrusted inputs, dangerous triggers). Normalizer maps findings to Platform=GitHub, EntityType=Repository.
+- **gitleaks integration (tool #10)**: `modules/Invoke-Gitleaks.ps1` wrapper scans the repository for hardcoded secrets (API keys, tokens, passwords). Normalizer maps findings to Platform=GitHub, EntityType=Repository.
+- **Trivy integration (tool #11)**: `modules/Invoke-Trivy.ps1` wrapper scans the filesystem for dependency vulnerabilities in package manifests (package-lock.json, requirements.txt, go.sum, pom.xml, etc.). Maps trivy severity (CRITICAL/HIGH/MEDIUM/LOW) to schema severity. Each CVE = one finding with CVE ID + package name as title. Normalizer in `modules/normalizers/Normalize-Trivy.ps1` with Platform=GitHub, EntityType=Repository.
+- **`-ScanPath` and `-ScanType` parameters**: New parameters on `Invoke-AzureAnalyzer.ps1` for Trivy. `-ScanPath` sets the filesystem path to scan (default: current directory). `-ScanType` selects `fs` (filesystem, default) or `repo` (remote repository).
+- **CLI-provider orchestrator support**: Repository-scoped tools with `provider=cli` in the manifest now run automatically without requiring `-Repository`. They scan the local filesystem and are always eligible when enabled.
+- **Phase 3 manifest entries**: zizmor, gitleaks, and trivy added to `tools/tool-manifest.json` with provider=cli, scope=repository.
+- **Phase 3 normalizer tests**: Pester test suites for Normalize-Trivy with fixture-driven validation covering schema conversion, entity ID normalization, severity mapping, field preservation, provenance tracking, and error handling.
+
 ### Fixed
 - **`$host` reserved variable crash**: Renamed `$host` to `$repoHost` in `Normalize-Scorecard.ps1` to avoid StrictMode crash (System.Management.Automation.Internal.Host.InternalHost is read-only).
 - **Identity correlator never invoked**: Correlators (type=correlator in manifest) now run in a post-collection stage after all parallel tools complete and EntityStore is populated, instead of running as a script in the parallel loop. The orchestrator dot-sources the correlator script and calls `Invoke-IdentityCorrelation` directly.

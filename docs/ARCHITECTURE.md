@@ -123,9 +123,9 @@ azure-analyzer/
 
 ---
 
-## Normalizers (Phase 1)
+## Normalizers (Phase 1–3)
 
-Each of the 7 tools has a dedicated normalizer function that converts raw tool output into the unified schema v2 FindingRow format.
+Each of the 11 tools has a dedicated normalizer function that converts raw tool output into the unified schema v2 FindingRow format.
 
 ### Normalizer responsibilities
 
@@ -137,6 +137,7 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
   - AzGovViz -> Platform: `Azure`, EntityType varies by finding context: `ManagementGroup` for MG-level governance findings, `Subscription` for bare subscription paths, `AzureResource` for deeper ARM resource paths
   - Entra ID tool (Maester) -> Platform: `Entra`, EntityType: `Application`
   - Repository tool (Scorecard) -> Platform: `GitHub`, EntityType: `Repository`
+  - CI/CD security tools (zizmor, gitleaks, Trivy) -> Platform: `GitHub`, EntityType: `Repository` (local CLI tools, no cloud permissions)
 - **Return findings only** -- no side effects, return array of v2-compliant findings
 
 ### Normalizer locations
@@ -151,10 +152,36 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
 | Maester | `modules/normalizers/Normalize-Maester.ps1` | Application |
 | Scorecard | `modules/normalizers/Normalize-Scorecard.ps1` | Repository |
 | Identity Correlator | `modules/normalizers/Normalize-IdentityCorrelation.ps1` | ServicePrincipal |
+| zizmor | `modules/normalizers/Normalize-Zizmor.ps1` | Repository |
+| gitleaks | `modules/normalizers/Normalize-Gitleaks.ps1` | Repository |
+| Trivy | `modules/normalizers/Normalize-Trivy.ps1` | Repository |
 
 ### Manifest-driven invocation
 
 The orchestrator loads `tools/tool-manifest.json`, which specifies the normalizer path for each tool. After a tool collector returns `Findings`, the manifest entry's `normalizer` script is invoked to transform findings into v2 format before they enter the entity store pipeline.
+
+---
+
+## CI/CD Security Stage (Phase 3)
+
+Phase 3 adds three local CLI tools that scan the repository checkout for security issues.
+These tools have `provider=cli` and `scope=repository` in the manifest. Unlike cloud-scoped
+tools, they require no API tokens or permissions -- only the CLI binary on PATH.
+
+| Tool | What it detects | Category |
+|---|---|---|
+| **zizmor** | GitHub Actions workflow vulnerabilities (expression injection, untrusted inputs, dangerous triggers) | CI/CD Security |
+| **gitleaks** | Hardcoded secrets in source code and git history (API keys, tokens, passwords, certificates) | Secrets |
+| **Trivy** | Known CVEs in dependency manifests (package-lock.json, requirements.txt, go.sum, pom.xml) | Supply Chain |
+
+### CLI-provider orchestrator behavior
+
+Repository-scoped tools with `provider=cli` are handled differently from `provider=github` tools:
+
+- **Always eligible**: CLI tools run whenever enabled, regardless of whether `-Repository` is provided
+- **Local filesystem**: They scan the working directory (or `-ScanPath` for Trivy)
+- **Graceful skip**: If the CLI binary is not installed, the wrapper returns `Status=Skipped` with install instructions
+- **No rate limits**: No API calls, no tokens, no rate limit concerns
 
 ---
 

@@ -60,6 +60,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 | **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
 | **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
+| **CLI-scoped** (zizmor, gitleaks, Trivy) | Local filesystem tools; run automatically, no cloud scope needed |
 | **ADO-scoped** (ADO Connections) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
 
 **Required permissions for recursion:**
@@ -205,6 +206,20 @@ $env:GITHUB_AUTH_TOKEN = (gh auth token)
 
 ---
 
+### Local CLI tools (zizmor, gitleaks, Trivy -- no cloud permissions)
+
+These tools scan the local repository checkout and require **no API tokens, cloud permissions, or network access**. They only need the CLI binary installed on the machine.
+
+| Tool | What it scans | Install |
+|------|--------------|---------|
+| **zizmor** | GitHub Actions workflow YAML files for security anti-patterns | [Download](https://github.com/woodruffw/zizmor/releases) or `cargo install zizmor` |
+| **gitleaks** | Repository filesystem for hardcoded secrets (keys, tokens, passwords) | [Download](https://github.com/gitleaks/gitleaks/releases) or `brew install gitleaks` |
+| **Trivy** | Dependency manifests (package-lock.json, requirements.txt, go.sum, etc.) for CVEs | [Download](https://github.com/aquasecurity/trivy/releases) or `brew install trivy` / `choco install trivy` |
+
+**No permissions required.** These tools operate entirely on local files. If the CLI binary is not found on PATH, the tool is skipped with an install instruction.
+
+---
+
 ### Azure DevOps (ADO Service Connections -- service connection inventory)
 
 The ADO service connection scanner requires a Personal Access Token (PAT) with read access to service endpoints.
@@ -278,17 +293,20 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 
 ## Permission matrix (quick reference)
 
-| Tool | Azure Reader | Microsoft Graph | GitHub Token | ADO PAT | Copilot License |
-|------|-------------|-----------------|-------------|---------|-----------------|
-| **azqr** | ✅ Required | -- | -- | -- | -- |
-| **PSRule** | ✅ Required | -- | -- | -- | -- |
-| **AzGovViz** | ✅ Required | -- | -- | -- | -- |
-| **ALZ Queries** | ✅ Required | -- | -- | -- | -- |
-| **WARA** | ✅ Required | -- | -- | -- | -- |
-| **Maester** | -- | ✅ Required | -- | -- | -- |
-| **Scorecard** | -- | -- | ⚡ Recommended | -- | -- |
-| **ADO Connections** | -- | -- | -- | ✅ Required | -- |
-| **AI Triage** | -- | -- | ⚡ Recommended | -- | ⚠️ Optional |
+| Tool | Azure Reader | Microsoft Graph | GitHub Token | ADO PAT | Local CLI | Copilot License |
+|------|-------------|-----------------|-------------|---------|-----------|-----------------|
+| **azqr** | ✅ Required | -- | -- | -- | -- | -- |
+| **PSRule** | ✅ Required | -- | -- | -- | -- | -- |
+| **AzGovViz** | ✅ Required | -- | -- | -- | -- | -- |
+| **ALZ Queries** | ✅ Required | -- | -- | -- | -- | -- |
+| **WARA** | ✅ Required | -- | -- | -- | -- | -- |
+| **Maester** | -- | ✅ Required | -- | -- | -- | -- |
+| **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
+| **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
+| **zizmor** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
+| **gitleaks** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
+| **Trivy** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
+| **AI Triage** | -- | -- | ⚡ Recommended | -- | -- | ⚠️ Optional |
 
 - ✅ = Required for tool to function
 - ⚡ = Strongly recommended (improves rate limits, feature completeness)

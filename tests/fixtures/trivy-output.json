@@ -1,0 +1,51 @@
+{
+  "Source": "trivy",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "Category": "Supply Chain",
+      "Title": "CVE-2021-44228 (log4j-core)",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Detail": "Remote code execution via JNDI injection. File: pom.xml. Installed: 2.14.1. Fixed: 2.17.1",
+      "Remediation": "Upgrade log4j-core to 2.17.1 or later.",
+      "ResourceId": ".",
+      "LearnMoreUrl": "https://avd.aquasec.com/nvd/cve-2021-44228"
+    },
+    {
+      "Id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "Category": "Supply Chain",
+      "Title": "CVE-2023-45853 (zlib)",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Integer overflow in MiniZip. File: go.sum. Installed: 1.2.12. Fixed: 1.3.0",
+      "Remediation": "Upgrade zlib to 1.3.0 or later.",
+      "ResourceId": ".",
+      "LearnMoreUrl": "https://avd.aquasec.com/nvd/cve-2023-45853"
+    },
+    {
+      "Id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "Category": "Supply Chain",
+      "Title": "CVE-2024-21626 (runc)",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Container breakout via fd leak. File: package-lock.json. Installed: 1.1.9. Fixed: 1.1.12",
+      "Remediation": "Upgrade runc to 1.1.12 or later.",
+      "ResourceId": "github.com/contoso/myapp",
+      "LearnMoreUrl": "https://avd.aquasec.com/nvd/cve-2024-21626"
+    },
+    {
+      "Id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "Category": "Supply Chain",
+      "Title": "CVE-2023-52425 (libexpat)",
+      "Severity": "Low",
+      "Compliant": false,
+      "Detail": "Quadratic runtime in XML parsing. File: requirements.txt. Installed: 2.5.0",
+      "Remediation": "",
+      "ResourceId": ".",
+      "LearnMoreUrl": "https://avd.aquasec.com/nvd/cve-2023-52425"
+    }
+  ]
+}
