@@ -33,6 +33,12 @@
 - **Commit:** 85d8c5e
 - **Status:** Active
 
+### Multi-Model Development Process Codified (2026-01-15)
+- **Decision:** All code changes follow the mandatory multi-model review pipeline: Build -> Review (3 models) -> Fix -> Re-gate -> CI -> Merge. Models: Opus 4.6, Goldeneye, GPT-5.3-codex. All 3 must approve before merge.
+- **Why:** Ensures code quality through independent multi-perspective validation. Catches bugs that single-model review misses. Proven across 4 phases with 50+ findings caught.
+- **Enforcement:** Documented in `.copilot/copilot-instructions.md` and `.squad/ceremonies.md` for automatic discovery by future sessions.
+- **Status:** Active
+
 ## Governance
 
 - All meaningful changes require team consensus
