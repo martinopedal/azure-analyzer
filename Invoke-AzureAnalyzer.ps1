@@ -20,6 +20,17 @@
 .PARAMETER Repository
     GitHub repository to scan with OpenSSF Scorecard (e.g. "github.com/org/repo").
     Required for Scorecard tool; ignored by Azure-scoped tools.
+    For GHEC-DR or GHES, use the enterprise host (e.g. "github.contoso.com/org/repo")
+    together with -GitHubHost.
+.PARAMETER GitHubHost
+    Custom GitHub host for GHEC-DR or GHES instances (e.g. "github.contoso.com").
+    Sets the GH_HOST environment variable for the Scorecard CLI. When empty,
+    defaults to github.com. Requires a GITHUB_AUTH_TOKEN valid on the enterprise instance.
+.PARAMETER AdoOrg
+    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections).
+    When provided, ADO tools are included in the run.
+.PARAMETER AdoProject
+    Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -27,6 +38,8 @@
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
+    .\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+    .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
 #>
 [CmdletBinding()]
 param (
@@ -40,6 +53,9 @@ param (
     [switch] $InstallMissingModules,
     [switch] $Recurse,
     [string] $Repository,
+    [string] $GitHubHost = '',
+    [string] $AdoOrg,
+    [string] $AdoProject,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
     [switch] $EnableAiTriage
@@ -238,6 +254,9 @@ foreach ($toolDef in $manifest.tools) {
         continue
     }
 
+    # Correlators run post-collection, not in the parallel tool loop
+    if ($toolDef.type -eq 'correlator') { continue }
+
     $scriptPath = Join-Path $PSScriptRoot $toolDef.script
 
     switch ($toolDef.scope) {
@@ -310,8 +329,28 @@ foreach ($toolDef in $manifest.tools) {
                 continue
             }
             $params = @{ Repository = $Repository }
-            if ($toolDef.name -eq 'scorecard') { $params['Threshold'] = $ScorecardThreshold }
+            if ($toolDef.name -eq 'scorecard') {
+                $params['Threshold'] = $ScorecardThreshold
+                if ($GitHubHost) { $params['GitHubHost'] = $GitHubHost }
+            }
             $specName = "$($toolDef.name)|repo"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $toolDef.provider
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
+        'ado' {
+            if (-not $AdoOrg) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No -AdoOrg provided'; Findings = 0 })
+                continue
+            }
+            $params = @{ AdoOrg = $AdoOrg }
+            if ($AdoProject) { $params['AdoProject'] = $AdoProject }
+            $specName = "$($toolDef.name)|ado"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
                 Provider    = $toolDef.provider
@@ -396,12 +435,16 @@ foreach ($wr in $parallelResults) {
         $toolErrors.Add([PSCustomObject]@{ Tool = $toolName; Error = Remove-Credentials $errMsg; Timestamp = Get-Date })
     }
 
-    # Update worst status
+    # Update worst status (ranking: Failed > PartialSuccess > Skipped > Success)
     if ($wrapperStatus -eq 'Failed') {
         $agg.WorstStatus = 'Failed'
         $rawMsg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
         $agg.Messages.Add((Remove-Credentials $rawMsg))
-    } elseif ($wrapperStatus -eq 'Skipped' -and $agg.WorstStatus -ne 'Failed') {
+    } elseif ($wrapperStatus -eq 'PartialSuccess' -and $agg.WorstStatus -notin @('Failed')) {
+        $agg.WorstStatus = 'PartialSuccess'
+        $rawMsg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
+        $agg.Messages.Add((Remove-Credentials $rawMsg))
+    } elseif ($wrapperStatus -eq 'Skipped' -and $agg.WorstStatus -notin @('Failed', 'PartialSuccess')) {
         $agg.WorstStatus = 'Skipped'
     }
 
@@ -457,6 +500,67 @@ foreach ($entry in $toolAgg.GetEnumerator()) {
 }
 
 # ---------------------------------------------------------------------------
+# Post-collection correlation stage
+# ---------------------------------------------------------------------------
+$correlators = @($manifest.tools | Where-Object { $_.type -eq 'correlator' -and $_.enabled -and (ShouldRunTool $_.name) })
+foreach ($corrDef in $correlators) {
+    $corrName = $corrDef.name
+    Write-Host "`n[correlator] Running $($corrDef.displayName)..." -ForegroundColor Magenta
+    try {
+        $corrScript = Join-Path $PSScriptRoot $corrDef.script
+        if (-not (Test-Path $corrScript)) {
+            Write-Warning "Correlator script not found: $corrScript"
+            $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = "Script not found: $corrScript"; Findings = 0 })
+            continue
+        }
+        . $corrScript
+
+        $corrParams = @{ EntityStore = $store; TenantId = ($TenantId ?? 'unknown') }
+        if ($corrDef.optionalParams -contains 'IncludeGraphLookup') {
+            $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
+            if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
+        }
+
+        $corrFindings = @(Invoke-IdentityCorrelation @corrParams)
+
+        # Feed correlation findings into EntityStore and flat results
+        $corrNormFunc = $corrDef.normalizer
+        $corrV3 = $corrFindings
+        if ($corrNormFunc -and (Get-Command $corrNormFunc -ErrorAction SilentlyContinue)) {
+            $corrToolResult = [PSCustomObject]@{ Status = 'Success'; Findings = $corrFindings }
+            $corrV3 = @(& $corrNormFunc -ToolResult $corrToolResult)
+        }
+
+        foreach ($finding in $corrV3) {
+            try { $store.AddFinding($finding) }
+            catch { Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $corrName : $_") }
+        }
+
+        foreach ($f in $corrV3) {
+            $allResults.Add([PSCustomObject]@{
+                Id           = $f.Id
+                Source       = $f.Source
+                Category     = if ($f.PSObject.Properties['Category'] -and $f.Category) { $f.Category } else { '' }
+                Title        = $f.Title
+                Severity     = if ($f.PSObject.Properties['Severity'] -and $f.Severity) { $f.Severity } else { 'Info' }
+                Compliant    = $f.Compliant
+                Detail       = if ($f.PSObject.Properties['Detail'] -and $f.Detail) { $f.Detail } else { '' }
+                Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
+                ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
+                LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+            })
+        }
+
+        Write-Host "  $corrName`: $($corrV3.Count) correlation finding(s)" -ForegroundColor Gray
+        $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Success'; Message = "Emitted $($corrV3.Count) correlation finding(s)"; Findings = $corrV3.Count })
+    } catch {
+        $errMsg = Remove-Credentials "$_"
+        Write-Warning "Correlator $corrName failed: $errMsg"
+        $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = $errMsg; Findings = 0 })
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Write output
 # ---------------------------------------------------------------------------
 try {
@@ -472,7 +576,8 @@ try {
     # v3 entity-centric output
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
-    $entitiesJson = if ($entities.Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
+    if ($null -eq $entities) { $entities = @() }
+    $entitiesJson = if (@($entities).Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
     Set-Content -Path $entitiesFile -Value $entitiesJson -Encoding UTF8
 
     # Tool status

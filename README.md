@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, and **OpenSSF Scorecard** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, and supply chain security dimensions.
+Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, **OpenSSF Scorecard**, and **ADO Service Connections** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, and DevOps service connection dimensions.
 
 ## Quick Start
 
@@ -27,6 +27,22 @@ Connect-MgGraph -Scopes (Get-MtGraphScope)
 Connect-AzAccount -TenantId "<your-tenant-id>"
 Connect-MgGraph -Scopes (Get-MtGraphScope)
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" -Repository "github.com/org/repo"
+```
+
+**Scenario 4: GitHub Enterprise (GHEC-DR or GHES) repository**
+
+```powershell
+$env:GITHUB_AUTH_TOKEN = "<enterprise-pat>"
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+```
+
+**Scenario 5: Azure DevOps service connections**
+
+```powershell
+$env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
+# Or scan a specific project:
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
 ```
 
 Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
@@ -177,6 +193,15 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 # Azure + repository supply chain security
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
 
+# GHEC-DR / GHES repository (enterprise GitHub instance)
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+
+# Azure DevOps service connections (all projects)
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
+
+# Azure DevOps + Azure resources
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso" -AdoProject "my-project"
+
 # Full assessment (all 3 dimensions)
 .\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -Repository "github.com/org/repo"
 
@@ -196,6 +221,9 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-TenantId` | string | current context | Azure tenant ID (used by WARA) |
 | `-OutputPath` | string | `.\output` | Directory for results, reports, and errors |
 | `-Repository` | string | -- | GitHub repo for Scorecard (e.g. `github.com/org/repo`) |
+| `-GitHubHost` | string | -- | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
+| `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
+| `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
@@ -233,8 +261,10 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **MG tree + repo security** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -IncludeTools 'azgovviz','alz-queries','scorecard' -Repository "..."` |
 | **Compliance checks only** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -IncludeTools 'azqr','psrule'` |
 | **Everything except governance** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -ExcludeTools 'azgovviz'` |
+| **ADO service connections only** | `.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-connections'` |
+| **Azure + ADO** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"` |
 
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`
+**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
@@ -249,8 +279,9 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture -- single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
 | 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
 | 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
+| 8 | **ADO Service Connections** | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | REST API queries ADO org/projects and catalogs all service endpoints with auth details |
 
-> **Note:** Scorecard may work with GitHub Enterprise (GHEC/GHES) URLs. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for GHEC/GHES token requirements.
+> **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
 ## Schema reference
 
@@ -264,7 +295,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, or `scorecard` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, or `ado-connections` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -329,7 +360,7 @@ See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup comman
 
 ## Roadmap
 
-- **Azure DevOps pipeline security** -- ADO pipeline and service connection scanning is planned ([#48](https://github.com/martinopedal/azure-analyzer/issues/48)). The unified schema already supports `Platform='ADO'` with `Pipeline` and `ServiceConnection` entity types, but no tool wrappers exist yet.
+- **Azure DevOps pipeline security** -- ADO pipeline scanning (build/release definitions, variable groups, environments) is planned as a follow-up to the service connection scanner shipped in Phase 2 ([#48](https://github.com/martinopedal/azure-analyzer/issues/48)). Service connection inventory is live; compliance correlation (e.g. overprivileged SPNs, shared connections) comes next.
 
 ## Contributing
 
@@ -378,6 +409,7 @@ This tool wraps the following open-source projects. See [THIRD_PARTY_NOTICES.md]
 | ALZ Query Data | [martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) (derived from [Azure/review-checklists](https://github.com/Azure/review-checklists)) | MIT |
 | Maester | [maester365/maester](https://github.com/maester365/maester) | MIT |
 | OpenSSF Scorecard | [ossf/scorecard](https://github.com/ossf/scorecard) | Apache 2.0 |
+| ADO Service Connections | Native REST API scanner (no external dependency) | -- |
 
 ## License
 

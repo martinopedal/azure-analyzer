@@ -113,6 +113,38 @@
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
       "enabled": true
+    },
+    {
+      "name": "ado-connections",
+      "displayName": "ADO Service Connections",
+      "source": "ado-connections",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOConnections",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADOServiceConnections.ps1",
+      "requiredParams": ["AdoOrg"],
+      "optionalParams": ["AdoProject", "AdoPat"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
+    },
+    {
+      "name": "identity-correlator",
+      "displayName": "Identity Correlator",
+      "source": "identity-correlator",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-IdentityCorrelation",
+      "invokeMethod": "function",
+      "type": "correlator",
+      "script": "modules/shared/IdentityCorrelator.ps1",
+      "requiredParams": ["TenantId"],
+      "optionalParams": ["IncludeGraphLookup"],
+      "requiredPermissionTier": 3,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
     }
   ]
 }

@@ -57,14 +57,15 @@ function ConvertTo-CanonicalRepoId {
     $normalized = $normalized -replace '^ssh://', ''
     $normalized = $normalized -replace '^git@', ''
     $normalized = $normalized -replace '^www\.', ''
-    $normalized = $normalized -replace '^github\.com:', 'github.com/'
-    $normalized = $normalized -replace '^github\.com/', 'github.com/'
+    # Normalize git@ SSH syntax for any host (e.g., git@github.contoso.com:org/repo)
+    $normalized = $normalized -replace '^([^/:]+):', '$1/'
     $normalized = $normalized.TrimEnd('/')
     $normalized = $normalized -replace '\.git$', ''
     $normalized = $normalized.ToLowerInvariant()
 
-    if ($normalized -notmatch '^github\.com/[^/]+/[^/]+$') {
-        throw "Repository ID must be in github.com/owner/repo format. Provided: '$RepoId'."
+    # Accept github.com or any enterprise host with host/owner/repo format
+    if ($normalized -notmatch '^[a-z0-9]([a-z0-9\-\.]*[a-z0-9])?/[^/]+/[^/]+$') {
+        throw "Repository ID must be in host/owner/repo format (e.g., github.com/owner/repo). Provided: '$RepoId'."
     }
 
     return $normalized

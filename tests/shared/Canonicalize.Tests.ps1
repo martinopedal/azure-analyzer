@@ -24,6 +24,22 @@ Describe 'ConvertTo-CanonicalRepoId' {
     It 'throws on invalid input' {
         { ConvertTo-CanonicalRepoId -RepoId 'not-a-repo' } | Should -Throw
     }
+
+    It 'accepts GHES enterprise host URL' {
+        ConvertTo-CanonicalRepoId -RepoId 'https://github.contoso.com/Org/Repo' | Should -Be 'github.contoso.com/org/repo'
+    }
+
+    It 'accepts GHEC-DR host URL' {
+        ConvertTo-CanonicalRepoId -RepoId 'github.eu.acme.com/team/project' | Should -Be 'github.eu.acme.com/team/project'
+    }
+
+    It 'strips .git suffix from enterprise URLs' {
+        ConvertTo-CanonicalRepoId -RepoId 'https://github.contoso.com/Org/Repo.git' | Should -Be 'github.contoso.com/org/repo'
+    }
+
+    It 'handles git@ SSH syntax for enterprise hosts' {
+        ConvertTo-CanonicalRepoId -RepoId 'git@github.contoso.com:Org/Repo.git' | Should -Be 'github.contoso.com/org/repo'
+    }
 }
 
 Describe 'ConvertTo-CanonicalAdoId' {

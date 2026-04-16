@@ -38,8 +38,16 @@ function Normalize-Scorecard {
             try {
                 $canonicalId = ConvertTo-CanonicalRepoId -RepoId $rawId
             } catch {
-                # If it doesn't parse as a repo, use as-is
-                $canonicalId = "github.com/$($rawId.TrimStart('/').ToLowerInvariant())"
+                # If it doesn't parse as a repo, derive host from URL or default to github.com
+                $repoHost = 'github.com'
+                $cleaned = $rawId -replace '^https?://', ''
+                if ($cleaned -match '^([^/]+)/') {
+                    $candidateHost = $matches[1].ToLowerInvariant()
+                    if ($candidateHost -ne 'github.com' -and $candidateHost -match '\.') {
+                        $repoHost = $candidateHost
+                    }
+                }
+                $canonicalId = "$repoHost/$($rawId.TrimStart('/').ToLowerInvariant())"
             }
         }
 

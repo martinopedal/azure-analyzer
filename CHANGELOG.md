@@ -5,6 +5,24 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
+- **`$host` reserved variable crash**: Renamed `$host` to `$repoHost` in `Normalize-Scorecard.ps1` to avoid StrictMode crash (System.Management.Automation.Internal.Host.InternalHost is read-only).
+- **Identity correlator never invoked**: Correlators (type=correlator in manifest) now run in a post-collection stage after all parallel tools complete and EntityStore is populated, instead of running as a script in the parallel loop. The orchestrator dot-sources the correlator script and calls `Invoke-IdentityCorrelation` directly.
+- **Candidate alias merge for objectId/appId**: Added `Merge-CandidateAliases` function to `IdentityCorrelator.ps1`. After initial candidate extraction, candidates keyed by objectId are merged into their appId counterpart when both refer to the same identity, eliminating false-negative splits.
+- **ADO scanner pagination**: `Get-AdoProjects` and `Get-AdoServiceConnections` now use continuation-token loops (`$top=100`) to handle orgs with >100 projects or connections. Per-project failures are tracked; when some projects fail, the wrapper returns `Status='PartialSuccess'` with a message listing failed projects.
+- **`$entities.Count` null crash under StrictMode**: Added explicit null guard (`if ($null -eq $entities) { $entities = @() }`) before accessing `.Count` on the Export-Entities result in `Invoke-AzureAnalyzer.ps1`.
+
+### Added
+- **ADO service connection scanner**: New `modules/Invoke-ADOServiceConnections.ps1` wrapper queries Azure DevOps REST API to inventory service connections across an organization. Returns connection type, authorization scheme (ServicePrincipal, ManagedServiceIdentity, WorkloadIdentityFederation), and sharing status. All findings are informational (Compliant=true, Severity=Info) -- compliance correlation comes in a later phase.
+- **ADO connections normalizer**: `modules/normalizers/Normalize-ADOConnections.ps1` converts raw ADO findings to v3 FindingRow format with Platform=ADO, EntityType=ServiceConnection, and canonical IDs in `ado://org/project/serviceconnection/name` format.
+- **`-AdoOrg` and `-AdoProject` parameters**: New parameters on `Invoke-AzureAnalyzer.ps1` to enable ADO-scoped tools. ADO tools only run when `-AdoOrg` is provided. When `-AdoProject` is omitted, all projects in the organization are scanned.
+- **ADO tool manifest entry**: `ado-connections` added to `tools/tool-manifest.json` with provider=ado, scope=ado.
+- **ADO normalizer tests**: Pester test suite for Normalize-ADOConnections with fixture-driven validation covering schema conversion, canonical ID normalization, field preservation, error handling, and provenance tracking.
+
+### Added
+- **GHEC-DR and GHES support**: New `-GitHubHost` parameter on `Invoke-AzureAnalyzer.ps1` and `Invoke-Scorecard.ps1` sets the `GH_HOST` environment variable for the Scorecard CLI, enabling scans against GitHub Enterprise Cloud with Data Residency and GitHub Enterprise Server instances. Canonical entity IDs now use the actual host instead of hardcoding `github.com`. Backward compatible -- omitting `-GitHubHost` defaults to github.com.
+- **Identity correlator v0**: Cross-dimensional identity correlation engine (`modules/shared/IdentityCorrelator.ps1`) that maps service principals, managed identities, and app registrations across Azure, Entra, GitHub, and ADO dimensions. Uses candidate reduction (never bulk-enumerates SPNs). Opt-in Graph enrichment via `-IncludeGraphLookup` for federated identity credential lookups. Confidence scoring: Confirmed (3+ dimensions), Likely (2), Unconfirmed (name-only). Includes normalizer passthrough, tool manifest entry, and Pester tests.
+
+### Fixed
 - **README schema table**: Split into three sections: `results.json` (v1 backward-compatible, 10 fields), `entities.json` (v3 entity model), and `v2 FindingRow` (24 fields used in entity Observations). Previously documented all 24 fields as the results.json format.
 - **Sample results.json**: Stripped to the 10-field v1 format that the orchestrator actually writes to results.json (removed EntityId, EntityType, Platform, Provenance, SubscriptionId, SubscriptionName, ResourceGroup, ManagementGroupPath, Frameworks, Controls, Confidence, EvidenceCount, MissingDimensions, SchemaVersion).
 - **Sample entities.json**: Replaced FindingId mini-records in Observations with full v2 FindingRow objects matching actual EntityStore output.

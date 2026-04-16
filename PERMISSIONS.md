@@ -60,6 +60,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 | **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
 | **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
+| **ADO-scoped** (ADO Connections) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
 
 **Required permissions for recursion:**
 - `Reader` on the management group (auto-inherited to all child subscriptions)
@@ -145,6 +146,26 @@ OpenSSF Scorecard evaluates repository security practices. Authentication is opt
 | Classic PAT | `repo` (or `public_repo` for public repos only) | 5,000 requests/hour | Free tier with GitHub account |
 | Fine-grained PAT | Repository access: **Read** | 15,000 requests/hour | Free; more secure |
 
+#### GHEC-DR and GHES (enterprise instances)
+
+For GitHub Enterprise Cloud with Data Residency (GHEC-DR) or GitHub Enterprise Server (GHES), the token must be created on the **enterprise instance** (not github.com). Use `-GitHubHost` to point Scorecard at the correct host.
+
+| Requirement | Details |
+|-------------|---------|
+| **Token** | PAT created on the enterprise instance with `repo` scope (classic) or repository Read access (fine-grained) |
+| **GH_HOST** | Set automatically via `-GitHubHost` parameter (e.g. `github.contoso.com`) |
+| **Network** | The machine running azure-analyzer must be able to reach the enterprise host |
+
+```powershell
+# GHES example
+$env:GITHUB_AUTH_TOKEN = "<enterprise-pat>"
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+
+# GHEC-DR example
+$env:GITHUB_AUTH_TOKEN = "<ghec-dr-pat>"
+.\Invoke-AzureAnalyzer.ps1 -Repository "github.eu.acme.com/org/repo" -GitHubHost "github.eu.acme.com"
+```
+
 **How to grant:**
 
 **Option 1: Classic PAT (simplest)**
@@ -184,6 +205,45 @@ $env:GITHUB_AUTH_TOKEN = (gh auth token)
 
 ---
 
+### Azure DevOps (ADO Service Connections -- service connection inventory)
+
+The ADO service connection scanner requires a Personal Access Token (PAT) with read access to service endpoints.
+
+| Token scope | Why |
+|-------------|-----|
+| **Service Connections (Read)** | Read service connection metadata (type, auth scheme, sharing status) across projects |
+| **Project and Team (Read)** | List projects in the organization when `-AdoProject` is omitted |
+
+**How to grant:**
+
+1. Go to **Azure DevOps** → **User settings** → **Personal access tokens**
+2. Click **New Token**
+3. Set **Organization** to the target org (or "All accessible organizations")
+4. Under **Scopes**, select:
+   - **Service Connections**: Read
+   - **Project and Team**: Read
+5. Set expiration (recommended: 90 days)
+6. Copy the token
+
+**Usage:**
+
+```powershell
+# Option 1: Environment variable (recommended for CI)
+$env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
+
+# Option 2: Explicit parameter
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
+# (PAT resolved from AZURE_DEVOPS_EXT_PAT or AZ_DEVOPS_PAT env vars)
+
+# Option 3: Combine with Azure assessment
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"
+```
+
+**Important:** The ADO scanner does **NOT** modify service connections or project settings. All API calls are read-only (`GET`).
+
+---
+
 ### Optional: GitHub Copilot SDK (AI triage)
 
 When running with `-EnableAiTriage`, non-compliant findings are sent to GitHub Copilot for AI analysis and remediation suggestions. **This is completely optional.**
@@ -218,16 +278,17 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 
 ## Permission matrix (quick reference)
 
-| Tool | Azure Reader | Microsoft Graph | GitHub Token | Copilot License |
-|------|-------------|-----------------|-------------|-----------------|
-| **azqr** | ✅ Required | -- | -- | -- |
-| **PSRule** | ✅ Required | -- | -- | -- |
-| **AzGovViz** | ✅ Required | -- | -- | -- |
-| **ALZ Queries** | ✅ Required | -- | -- | -- |
-| **WARA** | ✅ Required | -- | -- | -- |
-| **Maester** | -- | ✅ Required | -- | -- |
-| **Scorecard** | -- | -- | ⚡ Recommended | -- |
-| **AI Triage** | -- | -- | ⚡ Recommended | ⚠️ Optional |
+| Tool | Azure Reader | Microsoft Graph | GitHub Token | ADO PAT | Copilot License |
+|------|-------------|-----------------|-------------|---------|-----------------|
+| **azqr** | ✅ Required | -- | -- | -- | -- |
+| **PSRule** | ✅ Required | -- | -- | -- | -- |
+| **AzGovViz** | ✅ Required | -- | -- | -- | -- |
+| **ALZ Queries** | ✅ Required | -- | -- | -- | -- |
+| **WARA** | ✅ Required | -- | -- | -- | -- |
+| **Maester** | -- | ✅ Required | -- | -- | -- |
+| **Scorecard** | -- | -- | ⚡ Recommended | -- | -- |
+| **ADO Connections** | -- | -- | -- | ✅ Required | -- |
+| **AI Triage** | -- | -- | ⚡ Recommended | -- | ⚠️ Optional |
 
 - ✅ = Required for tool to function
 - ⚡ = Strongly recommended (improves rate limits, feature completeness)
@@ -262,7 +323,7 @@ Azure-analyzer follows the principle of least privilege:
 - ❌ **Write permissions** to any Azure resource
 - ❌ **Key Vault access** -- No secrets are read from or stored in Key Vault
 - ❌ **Network permissions** -- No virtual network or firewall rules are modified
-- ❌ **Azure DevOps permissions** -- ADO pipeline scanning is planned ([#48](https://github.com/martinopedal/azure-analyzer/issues/48)) but no tool wrappers exist yet
+- ❌ **Azure DevOps write permissions** -- ADO service connection scanner requires only read access to service endpoints
 - ❌ **Service Principal Password** -- Only object ID is needed for role assignment
 
 ### AI Triage (optional)
