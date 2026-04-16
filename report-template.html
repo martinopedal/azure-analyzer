@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Azure Analyzer Report</title>
+    <!-- azure-analyzer v3 report template -->
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f7f9fb;
+            --panel: #ffffff;
+            --text: #1b1b1f;
+            --muted: #5a5a66;
+            --accent: #2563eb;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --critical: #7f1d1d;
+            --info: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        header {
+            background: var(--panel);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        header p {
+            margin: 0.25rem 0 0;
+            color: var(--muted);
+        }
+
+        nav.tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0 2rem 1rem;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-button {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .tab-button.is-active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        main {
+            padding: 1.5rem 2rem 2.5rem;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.is-active {
+            display: block;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 90px;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-top: 0.4rem;
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) 2fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .donut {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: conic-gradient(var(--success) var(--compliance, 0%), var(--danger) 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .donut span {
+            background: var(--panel);
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .source-bars {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .source-bar {
+            display: grid;
+            grid-template-columns: 120px 1fr 50px;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .bar-track {
+            background: var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+            height: 10px;
+        }
+
+        .bar-fill {
+            height: 10px;
+            background: var(--accent);
+            border-radius: 999px;
+            width: 0%;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-row input {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            min-width: 220px;
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        th {
+            background: #f1f5f9;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        .badge.critical { background: var(--critical); }
+        .badge.high { background: var(--danger); }
+        .badge.medium { background: var(--warning); color: #1f2937; }
+        .badge.low { background: #facc15; color: #1f2937; }
+        .badge.info { background: var(--info); }
+        .badge.compliant { background: var(--success); }
+        .badge.noncompliant { background: var(--danger); }
+
+        .empty-state {
+            padding: 1.5rem;
+            color: var(--muted);
+            background: var(--panel);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+            nav.tabs, .filter-row {
+                display: none;
+            }
+            header {
+                border-bottom: none;
+            }
+            .card, table {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Azure Analyzer Report</h1>
+        <p id="report-subtitle">Offline report</p>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Report sections">
+        <button class="tab-button is-active" id="tab-dashboard-button" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-tab="dashboard">Dashboard</button>
+        <button class="tab-button" id="tab-azure-button" role="tab" aria-selected="false" aria-controls="tab-azure" data-tab="azure">Azure</button>
+        <button class="tab-button" id="tab-identity-button" role="tab" aria-selected="false" aria-controls="tab-identity" data-tab="identity">Identity</button>
+        <button class="tab-button" id="tab-cicd-button" role="tab" aria-selected="false" aria-controls="tab-cicd" data-tab="cicd">CI/CD</button>
+        <button class="tab-button" id="tab-compliance-button" role="tab" aria-selected="false" aria-controls="tab-compliance" data-tab="compliance">Compliance</button>
+        <button class="tab-button" id="tab-cost-button" role="tab" aria-selected="false" aria-controls="tab-cost" data-tab="cost">Cost</button>
+    </nav>
+
+    <main>
+        <section class="tab-panel is-active" id="tab-dashboard" role="tabpanel" aria-labelledby="tab-dashboard-button">
+            <div class="dashboard-layout">
+                <div class="card">
+                    <h3>Compliance</h3>
+                    <div class="donut" aria-label="Compliance donut chart" id="compliance-donut">
+                        <span id="compliance-label">0%</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="grid" id="summary-cards"></div>
+                    <h2 class="section-title">Sources</h2>
+                    <div class="source-bars" id="source-bars"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-panel" id="tab-azure" role="tabpanel" aria-labelledby="tab-azure-button">
+            <h2 class="section-title">Azure Findings</h2>
+            <div id="azure-table"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-identity" role="tabpanel" aria-labelledby="tab-identity-button">
+            <h2 class="section-title">Identity Findings</h2>
+            <div id="identity-table"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-cicd" role="tabpanel" aria-labelledby="tab-cicd-button">
+            <h2 class="section-title">CI/CD Findings</h2>
+            <div id="cicd-table"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-compliance" role="tabpanel" aria-labelledby="tab-compliance-button">
+            <h2 class="section-title">Compliance Findings</h2>
+            <div id="compliance-table"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-cost" role="tabpanel" aria-labelledby="tab-cost-button">
+            <h2 class="section-title">Cost Findings</h2>
+            <div id="cost-table"></div>
+        </section>
+    </main>
+
+    <!-- IMPORTANT: Generator MUST escape </ to <\/ in JSON before inserting here -->
+    <script type="application/json" id="report-data">{{MODEL_JSON}}</script>
+    <script>
+        const dataElement = document.getElementById('report-data');
+        let model = {};
+        // Phase 0 note: inline JSON is acceptable for now. Large-tenant reports should
+        // move to a report-data.json sidecar and fetch it here in Phase 5.
+
+        try {
+            model = JSON.parse(dataElement ? dataElement.textContent : '{}');
+        } catch {
+            model = {};
+        }
+
+        const safeText = (value) => value === null || value === undefined ? '' : String(value);
+        const getArray = (value) => Array.isArray(value) ? value : [];
+
+        const summary = model.summary || {};
+        const reportSubtitle = document.getElementById('report-subtitle');
+        if (reportSubtitle) {
+            const generatedAt = safeText(summary.generatedAt || model.generatedAt);
+            reportSubtitle.textContent = generatedAt ? `Generated ${generatedAt}` : 'Offline report';
+        }
+
+        function renderSummaryCards() {
+            const container = document.getElementById('summary-cards');
+            if (!container) return;
+            container.textContent = '';
+
+            const cards = [
+                { label: 'Total Findings', value: summary.totalFindings || 0 },
+                { label: 'Non-Compliant', value: summary.nonCompliant || 0 },
+                { label: 'Compliant', value: summary.compliant || 0 },
+                { label: 'Tools Ran', value: summary.toolsRan || 0 },
+                { label: 'High/Critical', value: summary.highSeverity || 0 },
+                { label: 'Entities', value: summary.entities || 0 }
+            ];
+
+            cards.forEach((card) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                const title = document.createElement('h3');
+                title.textContent = card.label;
+                const value = document.createElement('div');
+                value.className = 'value';
+                value.textContent = safeText(card.value);
+                cardEl.appendChild(title);
+                cardEl.appendChild(value);
+                container.appendChild(cardEl);
+            });
+        }
+
+        function renderDonut() {
+            const donut = document.getElementById('compliance-donut');
+            const label = document.getElementById('compliance-label');
+            if (!donut || !label) return;
+
+            const compliant = Number(summary.compliant || 0);
+            const total = Number(summary.totalFindings || 0);
+            const percent = total > 0 ? Math.round((compliant / total) * 100) : 0;
+            donut.style.setProperty('--compliance', `${percent}%`);
+            label.textContent = `${percent}%`;
+        }
+
+        function renderSourceBars() {
+            const container = document.getElementById('source-bars');
+            if (!container) return;
+            container.textContent = '';
+
+            const sources = getArray(model.sources || model.sourceBreakdown);
+            if (sources.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+                empty.textContent = 'No source breakdown available.';
+                container.appendChild(empty);
+                return;
+            }
+
+            const maxValue = Math.max(...sources.map((s) => Number(s.count || s.findings || 0)), 1);
+            sources.forEach((source) => {
+                const row = document.createElement('div');
+                row.className = 'source-bar';
+
+                const label = document.createElement('div');
+                label.textContent = safeText(source.name || source.source || 'Unknown');
+                row.appendChild(label);
+
+                const track = document.createElement('div');
+                track.className = 'bar-track';
+                const fill = document.createElement('div');
+                fill.className = 'bar-fill';
+                const value = Number(source.count || source.findings || 0);
+                const width = Math.round((value / maxValue) * 100);
+                fill.style.width = `${width}%`;
+                track.appendChild(fill);
+                row.appendChild(track);
+
+                const valueLabel = document.createElement('div');
+                valueLabel.textContent = safeText(value);
+                row.appendChild(valueLabel);
+
+                container.appendChild(row);
+            });
+        }
+
+        function createBadge(text, className) {
+            const badge = document.createElement('span');
+            badge.className = `badge ${className}`;
+            badge.textContent = text;
+            return badge;
+        }
+
+        function renderFindingsTable(containerId, findings) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.textContent = '';
+
+            if (!Array.isArray(findings) || findings.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+                empty.textContent = 'No findings available for this section.';
+                container.appendChild(empty);
+                return;
+            }
+
+            const filterRow = document.createElement('div');
+            filterRow.className = 'filter-row';
+            const filterLabel = document.createElement('label');
+            filterLabel.textContent = 'Filter';
+            filterLabel.setAttribute('for', `${containerId}-filter`);
+            const filterInput = document.createElement('input');
+            filterInput.id = `${containerId}-filter`;
+            filterInput.type = 'text';
+            filterInput.setAttribute('aria-label', 'Filter findings');
+            filterRow.appendChild(filterLabel);
+            filterRow.appendChild(filterInput);
+            container.appendChild(filterRow);
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const headRow = document.createElement('tr');
+            ['Title', 'Severity', 'Compliant', 'Source', 'Resource', 'Detail'].forEach((title) => {
+                const th = document.createElement('th');
+                th.textContent = title;
+                headRow.appendChild(th);
+            });
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+
+            findings.forEach((finding) => {
+                const row = document.createElement('tr');
+                const titleCell = document.createElement('td');
+                titleCell.textContent = safeText(finding.title || finding.Title);
+                row.appendChild(titleCell);
+
+                const severityCell = document.createElement('td');
+                const severityText = safeText(finding.severity || finding.Severity || 'Info');
+                const severityClass = severityText.toLowerCase();
+                severityCell.appendChild(createBadge(severityText, severityClass));
+                row.appendChild(severityCell);
+
+                const compliantCell = document.createElement('td');
+                const isCompliant = Boolean(finding.compliant ?? finding.Compliant);
+                compliantCell.appendChild(createBadge(isCompliant ? 'Compliant' : 'Non-Compliant', isCompliant ? 'compliant' : 'noncompliant'));
+                row.appendChild(compliantCell);
+
+                const sourceCell = document.createElement('td');
+                sourceCell.textContent = safeText(finding.source || finding.Source);
+                row.appendChild(sourceCell);
+
+                const resourceCell = document.createElement('td');
+                resourceCell.textContent = safeText(finding.resourceId || finding.ResourceId);
+                row.appendChild(resourceCell);
+
+                const detailCell = document.createElement('td');
+                detailCell.textContent = safeText(finding.detail || finding.Detail);
+                row.appendChild(detailCell);
+
+                row.dataset.search = `${safeText(finding.title || finding.Title)} ${severityText} ${safeText(finding.source || finding.Source)} ${safeText(finding.detail || finding.Detail)}`.toLowerCase();
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            container.appendChild(table);
+
+            filterInput.addEventListener('input', () => {
+                const query = filterInput.value.trim().toLowerCase();
+                Array.from(tbody.children).forEach((row) => {
+                    row.hidden = query.length > 0 && !row.dataset.search.includes(query);
+                });
+            });
+        }
+
+        function getTabFindings(key) {
+            if (model.tabs && model.tabs[key] && Array.isArray(model.tabs[key].findings)) {
+                return model.tabs[key].findings;
+            }
+            if (model[key] && Array.isArray(model[key].findings)) {
+                return model[key].findings;
+            }
+            return getArray(model.findings || model.allFindings);
+        }
+
+        renderSummaryCards();
+        renderDonut();
+        renderSourceBars();
+        renderFindingsTable('azure-table', getTabFindings('azure'));
+        renderFindingsTable('identity-table', getTabFindings('identity'));
+        renderFindingsTable('cicd-table', getTabFindings('cicd'));
+        renderFindingsTable('compliance-table', getTabFindings('compliance'));
+        renderFindingsTable('cost-table', getTabFindings('cost'));
+
+        document.querySelectorAll('.tab-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                const tab = button.getAttribute('data-tab');
+                document.querySelectorAll('.tab-button').forEach((btn) => {
+                    const isActive = btn === button;
+                    btn.classList.toggle('is-active', isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+                document.querySelectorAll('.tab-panel').forEach((panel) => {
+                    panel.classList.toggle('is-active', panel.id === `tab-${tab}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

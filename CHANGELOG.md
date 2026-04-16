@@ -61,6 +61,10 @@ All notable changes to azure-analyzer will be documented here.
 - **Security helper fail-fast mode**: Added `$ErrorActionPreference = 'Stop'` to shared `Sanitize`, `Mask`, `Retry`, and `RateLimit` modules for consistent terminating behavior.
 - **Rate limit header handling**: Azure `x-ms-ratelimit-remaining-*` headers are now tracked across all matching buckets instead of stopping at the first one.
 - **Tool status diagnostics**: `New-HtmlReport.ps1` now emits a warning when tool status JSON cannot be parsed in report generation.
+- **WorkerPool parallel safety**: Fixed `$using:` indexing and argument splatting in `ForEach-Object -Parallel` by copying to local variables before indexing/splatting.
+- **Checkpoint hardening**: Scope key components are sanitized, identity scope now uses `identity-correlator`, checkpoint path resolution enforces checkpoint-directory boundaries, and writes are now atomic via temp-file move.
+- **Checkpoint resilience**: `Get-Checkpoint` now treats corrupt JSON as a cache miss and emits a warning instead of failing the run.
+- **Report template guidance**: Added XSS-safe JSON embedding note (`</` escaping) and sidecar guidance for large-tenant report payloads.
 - **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.
@@ -82,6 +86,8 @@ All notable changes to azure-analyzer will be documented here.
 - Update branch protection to require `Analyze (actions)` only
 - Update codeql.yml to use actions/checkout v6 SHA (was v4)
 - Fix copilot-instructions.md SHA-pinning example to reference v6 (was v4.2.2)
+- **V3 Phase 0 infrastructure**: Added shared `WorkerPool.ps1` and `Checkpoint.ps1` utilities (PS 7.4) plus the new static `report-template.html`.
+- **V3 documentation**: Added `docs/ARCHITECTURE.md` and `docs/CONTRIBUTING-TOOLS.md` for the v3 pipeline and tool authoring guidance.
 
 ## [1.0.0] - 2025-01-15
 
