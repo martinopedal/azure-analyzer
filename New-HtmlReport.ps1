@@ -85,7 +85,9 @@ if (Test-Path $statusJsonPath) {
     try {
         $statusData = @(Get-Content $statusJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
         foreach ($ts in $statusData) { $toolStatusMap[$ts.Tool] = $ts.Status }
-    } catch { }
+    } catch {
+        Write-Warning "Could not load tool status: $_"
+    }
 }
 
 $sourcesWithResults = @($sourceGroups | ForEach-Object { $_.Name })

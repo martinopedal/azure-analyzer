@@ -1,5 +1,6 @@
 #Requires -Version 7.4
 Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
 function Remove-Credentials {
     [CmdletBinding()]
@@ -22,7 +23,10 @@ function Remove-Credentials {
         @{ Pattern = '(?im)Authorization:\s*Basic\s+[A-Za-z0-9+/=]{16,}'; Replacement = 'Authorization: [ADO-PAT-REDACTED]' },
         @{ Pattern = '(?im)Authorization:\s*(Bearer|Basic)\s+\S+'; Replacement = 'Authorization: [REDACTED]' },
         @{ Pattern = '(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*'; Replacement = 'Bearer [REDACTED]' },
-        @{ Pattern = '(?i)\b(AccountKey|SharedAccessKey|Password)=[^;]+'; Replacement = '$1=[REDACTED]' }
+        @{ Pattern = '(?i)\b(AccountKey|SharedAccessKey|Password)=[^;]+'; Replacement = '$1=[REDACTED]' },
+        @{ Pattern = '(?i)\bsig=[A-Za-z0-9%+/=]{10,}'; Replacement = 'sig=[REDACTED]' },
+        @{ Pattern = '(?i)\bclient_secret=[^&\s]+'; Replacement = 'client_secret=[REDACTED]' },
+        @{ Pattern = '(?i)\bSharedAccessSignature=[^;]+'; Replacement = 'SharedAccessSignature=[REDACTED]' }
     )
 
     foreach ($rule in $rules) {

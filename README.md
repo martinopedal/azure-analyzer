@@ -259,6 +259,7 @@ All findings are merged into `output/results.json` using a unified 10-field sche
 | `LearnMoreUrl` | string | Link to Microsoft Learn documentation |
 
 Phase 0 v3 introduces shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) to support dual-model outputs (`entities.json` + `results.json`) in upcoming orchestrator updates, with Pester coverage in `tests/shared/`.
+Phase 0 security helpers now enforce terminating error behavior and redact Azure SAS/token-style credentials in logs and report rendering paths.
 
 ## Permissions
 

@@ -55,6 +55,10 @@ All notable changes to azure-analyzer will be documented here.
 - Delete dead Python stubs (`src/run.py`, `src/__init__.py`) -- orchestrator is PowerShell only
 
 ### Fixed
+- **Sanitization coverage**: `Remove-Credentials` now redacts Azure `sig=...`, `client_secret=...`, and `SharedAccessSignature=...` patterns in addition to existing token patterns.
+- **Security helper fail-fast mode**: Added `$ErrorActionPreference = 'Stop'` to shared `Sanitize`, `Mask`, `Retry`, and `RateLimit` modules for consistent terminating behavior.
+- **Rate limit header handling**: Azure `x-ms-ratelimit-remaining-*` headers are now tracked across all matching buckets instead of stopping at the first one.
+- **Tool status diagnostics**: `New-HtmlReport.ps1` now emits a warning when tool status JSON cannot be parsed in report generation.
 - **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.

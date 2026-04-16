@@ -1,5 +1,6 @@
 #Requires -Version 7.4
 Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
 function New-ProviderThrottleState {
     [CmdletBinding()]
@@ -31,6 +32,7 @@ function New-ProviderThrottleState {
         ConsecutiveFailures     = 0
         CircuitBreakerThreshold = 5
         CircuitOpenUntil        = [datetime]::MinValue
+        RemainingQuotaByHeader  = @{}
     }
 }
 
@@ -84,11 +86,13 @@ function Update-ThrottleState {
         foreach ($key in $Headers.Keys) {
             if ($key -match '^(?i)x-ms-ratelimit-remaining-') {
                 $value = [int]$Headers[$key]
-                $State.RemainingQuota = $value
+                $State.RemainingQuotaByHeader[$key] = $value
+                if (($null -eq $State.RemainingQuota) -or ($value -lt $State.RemainingQuota)) {
+                    $State.RemainingQuota = $value
+                }
                 if (-not $State.InitialQuota) {
                     $State.InitialQuota = $value
                 }
-                break
             }
         }
 
