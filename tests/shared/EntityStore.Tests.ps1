@@ -63,3 +63,52 @@ Describe 'EntityStore spill merge' {
         }
     }
 }
+
+Describe 'EntityStore cost metadata merge' {
+    It 'updates existing entity monthly cost and currency from later findings without duplicating entity records' {
+        $outputPath = Join-Path $PSScriptRoot '..\..\output-test\entitystore-cost'
+        if (Test-Path $outputPath) {
+            Remove-Item -Path $outputPath -Recurse -Force
+        }
+        $null = New-Item -Path $outputPath -ItemType Directory -Force
+
+        try {
+            $store = [EntityStore]::new(50000, $outputPath)
+            $entityId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg/providers/microsoft.compute/virtualmachines/vm-1'
+            $store.AddFinding([pscustomobject]@{
+                Source      = 'azqr'
+                EntityId    = $entityId
+                EntityType  = 'AzureResource'
+                Platform    = 'Azure'
+                Title       = 'config finding'
+                Severity    = 'Medium'
+                Compliant   = $false
+            })
+
+            $store.AddFinding([pscustomobject]@{
+                Source      = 'azure-cost'
+                EntityId    = $entityId
+                EntityType  = 'AzureResource'
+                Platform    = 'Azure'
+                Title       = 'Resource spend: vm-1'
+                Severity    = 'Info'
+                Compliant   = $true
+                MonthlyCost = 321.09
+                Currency    = 'USD'
+            })
+
+            $entities = @($store.GetEntities() | Where-Object { $_.EntityId -eq $entityId })
+            $entities.Count | Should -Be 1
+            $entities[0].MonthlyCost | Should -Be 321.09
+            $entities[0].Currency | Should -Be 'USD'
+            @($entities[0].Observations).Count | Should -Be 2
+        } finally {
+            if ($null -ne $store) {
+                $store.CleanupSpillFiles()
+            }
+            if (Test-Path $outputPath) {
+                Remove-Item -Path $outputPath -Recurse -Force
+            }
+        }
+    }
+}

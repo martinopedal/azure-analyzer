@@ -331,6 +331,15 @@ class EntityStore {
                 $entity.Observations.Add($targetFinding)
                 $this.UpdateEntityAggregates($entity, $targetFinding)
             }
+
+            $incomingMonthlyCost = Get-ObjectPropertyValue -Object $targetFinding -PropertyName 'MonthlyCost'
+            if ($incomingMonthlyCost -ne $null) { $entity.MonthlyCost = $incomingMonthlyCost }
+
+            $incomingCurrency = Get-ObjectPropertyValue -Object $targetFinding -PropertyName 'Currency'
+            if ($incomingCurrency) { $entity.Currency = $incomingCurrency }
+
+            $incomingCostTrend = Get-ObjectPropertyValue -Object $targetFinding -PropertyName 'CostTrend'
+            if ($incomingCostTrend) { $entity.CostTrend = $incomingCostTrend }
         }
 
         if (($this.Entities.Count + $this.Findings.Count) -gt $this.MaxEntitiesInMemory) {

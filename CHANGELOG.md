@@ -4,7 +4,13 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **Phase 4 Azure cost collection (`azure-cost`)**: Added `modules/Invoke-AzureCost.ps1` wrapper that queries the Consumption API usageDetails endpoint for a 30-day window, emits subscription total spend, and returns top 20 costly resources per subscription.
+- **Azure cost normalizer + tests**: Added `modules/normalizers/Normalize-AzureCost.ps1` and fixture-driven Pester coverage (`tests/normalizers/Normalize-AzureCost.Tests.ps1`, `tests/fixtures/azure-cost-output.json`) to emit informational subscription/resource findings with cost metadata.
+- **Tool manifest + prerequisites updates for cost modules**: Added `azure-cost` manifest entry (`provider=azure`, `scope=subscription`) and prereq checks for `Az.Billing` and `Az.CostManagement`.
+
 ### Fixed
+- **Entity cost folding into existing records**: `EntityStore.AddFinding` now applies `MonthlyCost`, `Currency`, and `CostTrend` metadata from incoming findings onto the owning entity, so cost data enriches existing entities instead of requiring duplicate entities.
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
 - **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.
@@ -163,5 +169,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 

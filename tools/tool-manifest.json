@@ -83,6 +83,26 @@
       "enabled": true
     },
     {
+      "name": "azure-cost",
+      "displayName": "Azure Cost (Consumption API)",
+      "source": "azure-cost",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AzureCost",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AzureCost.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["Days", "TopCount"],
+      "requiredPermissionTier": 0,
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Billing", "Az.CostManagement"]
+      },
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
+    },
+    {
       "name": "maester",
       "displayName": "Maester",
       "source": "maester",

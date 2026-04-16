@@ -1,0 +1,30 @@
+{
+  "Source": "azure-cost",
+  "Status": "Success",
+  "Message": "",
+  "SubscriptionId": "00000000-0000-0000-0000-000000000001",
+  "Days": 30,
+  "Currency": "USD",
+  "SubscriptionTotal": 5123.45,
+  "ResourceCosts": [
+    {
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "ResourceName": "vm-app-01",
+      "MonthlyCost": 1850.12,
+      "Currency": "USD"
+    },
+    {
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Sql/servers/sql-prod/databases/appdb",
+      "ResourceName": "appdb",
+      "MonthlyCost": 1620.00,
+      "Currency": "USD"
+    },
+    {
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-network/providers/Microsoft.Network/publicIPAddresses/pip-egress",
+      "ResourceName": "pip-egress",
+      "MonthlyCost": 220.33,
+      "Currency": "USD"
+    }
+  ],
+  "Findings": []
+}

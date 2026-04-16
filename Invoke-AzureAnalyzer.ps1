@@ -153,6 +153,8 @@ function Install-Prerequisites {
         @{ Name = 'PSRule'; Tool = 'psrule' },
         @{ Name = 'PSRule.Rules.Azure'; Tool = 'psrule' },
         @{ Name = 'WARA'; Tool = 'wara' },
+        @{ Name = 'Az.Billing'; Tool = 'azure-cost' },
+        @{ Name = 'Az.CostManagement'; Tool = 'azure-cost' },
         @{ Name = 'Maester'; Tool = 'maester' }
     )
     $missing = [System.Collections.Generic.List[string]]::new()

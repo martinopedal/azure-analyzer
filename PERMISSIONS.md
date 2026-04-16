@@ -27,6 +27,13 @@ Azure, Graph, CI/CD, cost, and optional AI access. See
 | **AzGovViz** | Management Group | Reader | Crawls governance hierarchy, policies, and RBAC assignments |
 | **ALZ Resource Graph queries** | Subscription or MG | Reader | Runs 132 custom ARG queries for Azure architecture assessment |
 | **WARA** | Subscription | Reader | Collects Well-Architected Framework reliability assessment data |
+| **Azure Cost (Consumption API)** | Subscription | Reader | Reads Microsoft.Consumption usageDetails for 30-day spend and top costly resources |
+
+Optional for future advanced cost endpoints:
+
+| Tool | Scope | Role | Why |
+|------|-------|------|-----|
+| **Azure Cost (advanced/forecast)** | Subscription | Cost Management Reader | Access forecasted or advanced Cost Management APIs when enabled |
 
 **How to grant:**
 ```powershell
@@ -56,7 +63,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 
 | Tool scope | Behavior |
 |------------|----------|
-| **Subscription-scoped** (azqr, PSRule, WARA) | Runs **per discovered subscription** |
+| **Subscription-scoped** (azqr, PSRule, WARA, Azure Cost) | Runs **per discovered subscription** |
 | **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
 | **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
@@ -300,6 +307,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **AzGovViz** | ✅ Required | -- | -- | -- | -- | -- |
 | **ALZ Queries** | ✅ Required | -- | -- | -- | -- | -- |
 | **WARA** | ✅ Required | -- | -- | -- | -- | -- |
+| **Azure Cost** | ✅ Required | -- | -- | -- | -- | -- |
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
