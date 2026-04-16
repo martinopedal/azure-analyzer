@@ -11,18 +11,41 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-Azqr.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["OutputPath"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#1565c0", "phase": 1 },
+      "report": {
+        "color": "#1565c0",
+        "phase": 1
+      },
       "install": {
         "kind": "cli",
         "command": "azqr",
-        "windows": { "winget": "azure-quick-review.azqr" },
-        "macos":   { "brew": "azure/azqr/azqr" },
-        "linux":   { "url": "https://github.com/Azure/azqr/releases/latest" }
+        "windows": {
+          "winget": "azure-quick-review.azqr"
+        },
+        "macos": {
+          "brew": "azure/azqr/azqr"
+        },
+        "linux": {
+          "url": "https://github.com/Azure/azqr/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "Azure/azqr",
+        "releaseApi": "https://api.github.com/repos/Azure/azqr/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -35,15 +58,35 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-PSRule.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["Path"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "Path"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#6a1b9a", "phase": 1 },
+      "report": {
+        "color": "#6a1b9a",
+        "phase": 1
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["PSRule", "PSRule.Rules.Azure"]
+        "modules": [
+          "PSRule",
+          "PSRule.Rules.Azure"
+        ]
+      },
+      "upstream": {
+        "repo": "microsoft/PSRule.Rules.Azure",
+        "releaseApi": "https://api.github.com/repos/microsoft/PSRule.Rules.Azure/releases/latest",
+        "pinType": "psmodule-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -57,17 +100,34 @@
       "comment": "Auto-cloned into tools/AzGovViz/ on first run if missing.",
       "type": "collector",
       "script": "modules/Invoke-AzGovViz.ps1",
-      "requiredParams": ["ManagementGroupId"],
-      "optionalParams": ["OutputPath"],
+      "requiredParams": [
+        "ManagementGroupId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#00838f", "phase": 1 },
+      "report": {
+        "color": "#00838f",
+        "phase": 1
+      },
       "install": {
         "kind": "gitclone",
         "repo": "https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting",
         "target": "tools/AzGovViz",
         "probe": "AzGovVizParallel.ps1"
+      },
+      "upstream": {
+        "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
+        "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
+        "pinType": "sha",
+        "currentPin": "HEAD"
       }
     },
     {
@@ -80,15 +140,35 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-AlzQueries.ps1",
-      "requiredParams": ["SubscriptionId", "ManagementGroupId"],
-      "optionalParams": ["QueriesFile"],
+      "requiredParams": [
+        "SubscriptionId",
+        "ManagementGroupId"
+      ],
+      "optionalParams": [
+        "QueriesFile"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#e65100", "phase": 1 },
+      "report": {
+        "color": "#e65100",
+        "phase": 1
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.ResourceGraph"]
+        "modules": [
+          "Az.ResourceGraph"
+        ]
+      },
+      "upstream": {
+        "repo": "Azure/Azure-Landing-Zones-Library",
+        "releaseApi": "https://api.github.com/repos/Azure/Azure-Landing-Zones-Library/commits/main",
+        "pinType": "sha",
+        "currentPin": "HEAD"
       }
     },
     {
@@ -101,15 +181,35 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-WARA.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["TenantId", "OutputPath"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "TenantId",
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#2e7d32", "phase": 1 },
+      "report": {
+        "color": "#2e7d32",
+        "phase": 1
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["WARA"]
+        "modules": [
+          "WARA"
+        ]
+      },
+      "upstream": {
+        "repo": "Azure/Azure-Proactive-Resiliency-Library-v2",
+        "releaseApi": "https://api.github.com/repos/Azure/Azure-Proactive-Resiliency-Library-v2/releases/latest",
+        "pinType": "psmodule-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -125,12 +225,27 @@
       "requiredParams": [],
       "optionalParams": [],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#7b1fa2", "phase": 1 },
+      "report": {
+        "color": "#7b1fa2",
+        "phase": 1
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Maester"]
+        "modules": [
+          "Maester"
+        ]
+      },
+      "upstream": {
+        "repo": "maester365/maester",
+        "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
+        "pinType": "psmodule-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -143,18 +258,41 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-Scorecard.ps1",
-      "requiredParams": ["Repository"],
-      "optionalParams": ["Threshold"],
+      "requiredParams": [
+        "Repository"
+      ],
+      "optionalParams": [
+        "Threshold"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#ff6f00", "phase": 1 },
+      "report": {
+        "color": "#ff6f00",
+        "phase": 1
+      },
       "install": {
         "kind": "cli",
         "command": "scorecard",
-        "windows": { "winget": "ossf.scorecard" },
-        "macos":   { "brew": "scorecard" },
-        "linux":   { "url": "https://github.com/ossf/scorecard/releases/latest" }
+        "windows": {
+          "winget": "ossf.scorecard"
+        },
+        "macos": {
+          "brew": "scorecard"
+        },
+        "linux": {
+          "url": "https://github.com/ossf/scorecard/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "ossf/scorecard",
+        "releaseApi": "https://api.github.com/repos/ossf/scorecard/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -167,13 +305,27 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-ADOServiceConnections.ps1",
-      "requiredParams": ["AdoOrg"],
-      "optionalParams": ["AdoProject", "AdoPat"],
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#0078d4", "phase": 2 },
-      "install": { "kind": "none" }
+      "report": {
+        "color": "#0078d4",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      }
     },
     {
       "name": "identity-correlator",
@@ -185,15 +337,29 @@
       "invokeMethod": "function",
       "type": "correlator",
       "script": "modules/shared/IdentityCorrelator.ps1",
-      "requiredParams": ["TenantId"],
-      "optionalParams": ["IncludeGraphLookup"],
+      "requiredParams": [
+        "TenantId"
+      ],
+      "optionalParams": [
+        "IncludeGraphLookup"
+      ],
       "requiredPermissionTier": 3,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#5e35b1", "phase": 2 },
+      "report": {
+        "color": "#5e35b1",
+        "phase": 2
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Applications"]
+        "modules": [
+          "Microsoft.Graph.Authentication",
+          "Microsoft.Graph.Applications"
+        ]
       }
     },
     {
@@ -207,17 +373,39 @@
       "type": "collector",
       "script": "modules/Invoke-Zizmor.ps1",
       "requiredParams": [],
-      "optionalParams": ["Repository", "WorkflowPath"],
+      "optionalParams": [
+        "Repository",
+        "WorkflowPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#ad1457", "phase": 3 },
+      "report": {
+        "color": "#ad1457",
+        "phase": 3
+      },
       "install": {
         "kind": "cli",
         "command": "zizmor",
-        "windows": { "pipx": "zizmor" },
-        "macos":   { "brew": "zizmor" },
-        "linux":   { "pipx": "zizmor" }
+        "windows": {
+          "pipx": "zizmor"
+        },
+        "macos": {
+          "brew": "zizmor"
+        },
+        "linux": {
+          "pipx": "zizmor"
+        }
+      },
+      "upstream": {
+        "repo": "woodruffw/zizmor",
+        "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -231,17 +419,39 @@
       "type": "collector",
       "script": "modules/Invoke-Gitleaks.ps1",
       "requiredParams": [],
-      "optionalParams": ["RepoPath", "NoGit"],
+      "optionalParams": [
+        "RepoPath",
+        "NoGit"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#c62828", "phase": 3 },
+      "report": {
+        "color": "#c62828",
+        "phase": 3
+      },
       "install": {
         "kind": "cli",
         "command": "gitleaks",
-        "windows": { "winget": "gitleaks.gitleaks" },
-        "macos":   { "brew": "gitleaks" },
-        "linux":   { "url": "https://github.com/gitleaks/gitleaks/releases/latest" }
+        "windows": {
+          "winget": "gitleaks.gitleaks"
+        },
+        "macos": {
+          "brew": "gitleaks"
+        },
+        "linux": {
+          "url": "https://github.com/gitleaks/gitleaks/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "gitleaks/gitleaks",
+        "releaseApi": "https://api.github.com/repos/gitleaks/gitleaks/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       }
     },
     {
@@ -255,17 +465,39 @@
       "type": "collector",
       "script": "modules/Invoke-Trivy.ps1",
       "requiredParams": [],
-      "optionalParams": ["ScanPath", "ScanType"],
+      "optionalParams": [
+        "ScanPath",
+        "ScanType"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#00695c", "phase": 3 },
+      "report": {
+        "color": "#00695c",
+        "phase": 3
+      },
       "install": {
         "kind": "cli",
         "command": "trivy",
-        "windows": { "winget": "AquaSecurity.Trivy" },
-        "macos":   { "brew": "trivy" },
-        "linux":   { "url": "https://github.com/aquasecurity/trivy/releases/latest" }
+        "windows": {
+          "winget": "AquaSecurity.Trivy"
+        },
+        "macos": {
+          "brew": "trivy"
+        },
+        "linux": {
+          "url": "https://github.com/aquasecurity/trivy/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "aquasecurity/trivy",
+        "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       }
     }
   ]

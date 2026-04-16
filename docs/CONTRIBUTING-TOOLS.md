@@ -65,6 +65,32 @@ The installer runs only when `-InstallMissingModules` is set on `Invoke-AzureAna
 
 Reports (`New-HtmlReport.ps1`, `New-MdReport.ps1`) read this block and auto-generate Tool coverage, per-source bars, and Findings by source without any report-code changes.
 
+### `upstream` block — weekly auto-update loop (optional)
+
+Every wrapped upstream tool should declare an `upstream` block so the **Tool auto-update** workflow
+(`.github/workflows/tool-auto-update.yml`) can keep the pin fresh and open a PR when a new version ships.
+
+```json
+"upstream": {
+  "repo": "vendor/mytool",
+  "releaseApi": "https://api.github.com/repos/vendor/mytool/releases/latest",
+  "pinType": "cli-version",
+  "currentPin": "1.2.3"
+}
+```
+
+| Field | Values | Notes |
+|---|---|---|
+| `repo` | `owner/name` | GitHub repo for the upstream tool |
+| `releaseApi` | URL | GitHub API endpoint returning the latest release (or commit for SHA-pinned tools) |
+| `pinType` | `semver`, `cli-version`, `psmodule-version`, `sha` | Controls how the driver compares versions |
+| `currentPin` | string | Current pinned version / SHA. The weekly workflow rewrites this on bump. |
+
+The driver (`tools/Update-ToolPins.ps1`) opens one PR per tool. When the release notes match
+any of `BREAKING`, `CHANGED:`, `removed flag`, `renamed`, or `schema`, the PR is labelled
+`needs-copilot-iteration` and `@copilot` is tagged against the wrapper and normalizer paths
+so the iteration loop catches flag/schema drift automatically.
+
 ---
 
 ## Step 2 — Wrapper contract
