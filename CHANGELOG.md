@@ -73,6 +73,8 @@ All notable changes to azure-analyzer will be documented here.
 - Update branch protection to require `Analyze (actions)` only
 - Update codeql.yml to use actions/checkout v6 SHA (was v4)
 - Fix copilot-instructions.md SHA-pinning example to reference v6 (was v4.2.2)
+- **V3 Phase 0 infrastructure**: Added shared `WorkerPool.ps1` and `Checkpoint.ps1` utilities (PS 7.4) plus the new static `report-template.html`.
+- **V3 documentation**: Added `docs/ARCHITECTURE.md` and `docs/CONTRIBUTING-TOOLS.md` for the v3 pipeline and tool authoring guidance.
 
 ## [1.0.0] - 2025-01-15
 

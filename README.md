@@ -125,6 +125,11 @@ The report groups findings by category, then prioritizes action:
 - **Track** -- Low + Info severity
 - Per-category breakdown with finding counts
 
+## Architecture & contributor docs
+
+- **Pipeline + dual data model:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Add a new tool:** [docs/CONTRIBUTING-TOOLS.md](docs/CONTRIBUTING-TOOLS.md)
+
 ## Prerequisites
 
 | What | Install | Needed for |

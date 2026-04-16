@@ -6,6 +6,14 @@ All tools operate **read-only** with no write permissions anywhere. Azure-analyz
 
 ---
 
+## Permission tiers (v3)
+
+Azure Analyzer v3 groups capabilities into permission tiers (Tier 0–6) covering
+Azure, Graph, CI/CD, cost, and optional AI access. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the tier breakdown.
+
+---
+
 ## Required permissions by scope
 
 ### Azure (Reader -- all resource tools)
