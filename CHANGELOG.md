@@ -4,6 +4,13 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **Phase 5 compliance framework mapping**: Added `tools/framework-mappings.json` (50 seeded keys across azqr, PSRule, Maester, and Scorecard) and shared `modules/shared/FrameworkMapper.ps1` enrichment to populate `Frameworks` and `Controls` on findings.
+- **Framework-scoped orchestrator runs**: New `-Framework CIS|NIST|PCI` parameter on `Invoke-AzureAnalyzer.ps1` to keep only findings mapped to the selected framework.
+- **Compliance coverage reporting**: HTML and Markdown reports now include per-framework control coverage (`X/Y`, percentage, and green/yellow/red status).
+- **HTML framework chips**: Added CIS/NIST/PCI chip filters for findings tables in the HTML report.
+- **Framework mapper tests**: Added `tests/shared/FrameworkMapper.Tests.ps1` with mapping, scoping, and coverage assertions.
+
 ### Fixed
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
@@ -163,5 +170,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 

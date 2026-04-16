@@ -86,6 +86,8 @@ After a run, `output/` contains:
 - **Severity borders** -- color-coded left border on each finding row (High=red, Medium=orange, Low=yellow)
 - **Zebra striping** -- alternating row backgrounds for readability
 - **Search and filter** -- text input for instant filtering across all finding tables
+- **Framework filtering** -- one-click CIS/NIST/PCI chips to filter mapped findings
+- **Compliance coverage** -- per-framework control coverage cards (X/Y + green/yellow/red status)
 - **Clickable remediation URLs** -- automatically wrapped in anchor tags
 - **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
 - **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
@@ -237,6 +239,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-RepoPath` | string | `.` | Local repo path for CI/CD scanning (zizmor, gitleaks) |
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
+| `-Framework` | string | -- | Optional framework scope: `CIS`, `NIST`, or `PCI` (keeps only findings mapped to that framework) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
@@ -310,7 +313,7 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 
 Azure Analyzer writes two JSON output files with different schemas:
 
-- **`results.json`** -- v1 backward-compatible flat findings (10 fields per finding). This is the stable contract consumed by reports and downstream tooling.
+- **`results.json`** -- v1-compatible flat findings, including optional compliance metadata (`Frameworks`, `Controls`) when mappings exist.
 - **`entities.json`** -- v3 entity-centric model. Groups findings by owning entity with aggregated metadata. Each entity's `Observations` array contains full v2 FindingRow objects (24 fields).
 
 ### results.json (v1 flat findings)
@@ -327,6 +330,8 @@ Azure Analyzer writes two JSON output files with different schemas:
 | `Remediation` | string | | Steps to fix (may include URLs) |
 | `ResourceId` | string | | Azure ARM resource ID (or repo URL for Scorecard) |
 | `LearnMoreUrl` | string | | Link to Microsoft Learn documentation |
+| `Frameworks` | object[] | | Optional mapped framework controls (`framework`, `control`, `citation`) |
+| `Controls` | string[] | | Optional flattened controls from framework mappings |
 
 ### entities.json (v3 entity model)
 

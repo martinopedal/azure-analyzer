@@ -178,6 +178,23 @@ Normalizers must call `New-FindingRow` from `modules/shared/Schema.ps1`. Require
 - **Optional**: `SubscriptionId`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, `MissingDimensions`
 - **Unmapped fields**: List them as `not captured: <reason>` in code comments
 
+### Step 2b: Compliance framework mappings (Phase 5)
+
+Framework enrichment is metadata-only and happens after normalization in the shared `FrameworkMapper` stage:
+
+- Mapping catalog: `tools/framework-mappings.json`
+- Key format: `source|category|rule-id` (all lower-case)
+- Value format: array of `{ framework, control, citation }`
+- Supported framework names: `CIS`, `NIST`, `PCI`
+
+To add or override a mapping:
+
+1. Derive a stable rule id from the normalizer output (prefer `RuleId`; fallback is title slug).
+2. Add a new key under `mappings` in `tools/framework-mappings.json`.
+3. Add at least one framework-control object with a citation to authoritative guidance.
+
+These mappings are user-extensible by design; no code changes are required for catalog-only updates.
+
 ### Step 3: ResourceId extraction
 
 Parse ARM ResourceIds to extract subscription and resource group when possible:

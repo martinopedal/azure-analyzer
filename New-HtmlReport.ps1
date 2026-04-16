@@ -24,6 +24,10 @@ $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) {
     . $sanitizePath
 }
+$frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapper.ps1'
+if (Test-Path $frameworkMapperPath) {
+    . $frameworkMapperPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -36,11 +40,15 @@ $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = $findings.Count
-$high = ($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
-$medium = ($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
-$low = ($findings | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
-$compliantCount = ($findings | Where-Object { $_.Compliant -eq $true }).Count
+$high = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
+$medium = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
+$low = @($findings | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
+$compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
 $compliantPct = if ($total -gt 0) { [math]::Round(($compliantCount / $total) * 100) } else { 0 }
+$frameworkCoverage = @()
+if (Get-Command Get-FrameworkCoverage -ErrorAction SilentlyContinue) {
+    $frameworkCoverage = @(Get-FrameworkCoverage -Findings $findings)
+}
 
 function HE([string]$s) {
     $s -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;' -replace '"', '&quot;'
@@ -132,7 +140,15 @@ $categoryHtml = foreach ($cat in $byCategory) {
         $remediationHtml = Linkify $f.Remediation
         $resourceIdHtml = HE $f.ResourceId
         $learnMoreHtml = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE $f.LearnMoreUrl)`" target=`"_blank`" rel=`"noopener noreferrer`">Learn more</a>" }
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool'><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+        $frameworkData = @()
+        foreach ($fw in @($f.Frameworks)) {
+            if ($null -eq $fw) { continue }
+            $fwName = [string]$fw.framework
+            if ([string]::IsNullOrWhiteSpace($fwName)) { continue }
+            $frameworkData += $fwName.ToLowerInvariant()
+        }
+        $frameworkAttr = (($frameworkData | Sort-Object -Unique) -join ',')
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-frameworks='$(HE $frameworkAttr)'><td>$(HE $f.Title)</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -191,6 +207,16 @@ $toolCoverageHtml = foreach ($src in $allSources) {
     }
 }
 
+$frameworkCoverageHtml = foreach ($coverage in $frameworkCoverage) {
+    @"
+<div class="coverage-card status-$($coverage.Status)">
+  <div class="coverage-title">$(HE $coverage.Framework)</div>
+  <div class="coverage-count">$($coverage.CoveredControls)/$($coverage.TotalControls) controls</div>
+  <div class="coverage-percent">$($coverage.Percent)% covered</div>
+</div>
+"@
+}
+
 # --- Unique resource count estimate (unique Detail values as proxy) ---
 $uniqueResources = ($findings | Select-Object -ExpandProperty Detail -ErrorAction SilentlyContinue | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique).Count
 if ($uniqueResources -eq 0) { $uniqueResources = $total }
@@ -245,6 +271,16 @@ $html = @"
   .tool-badge { display: inline-block; padding: 6px 14px; border-radius: 5px; font-size: 13px; font-weight: 500; }
   .tool-active { background: #e8f5e9; color: #1b5e20; }
   .tool-skipped { background: #fff3e0; color: #bf360c; }
+  .framework-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .framework-chip { border: 1px solid #90caf9; background: #fff; color: #1565c0; border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .framework-chip.active { background: #1565c0; color: #fff; }
+  .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .coverage-card { background: #fff; border-radius: 6px; padding: 12px; border-left: 4px solid #bdbdbd; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .coverage-card.status-green { border-left-color: #2e7d32; }
+  .coverage-card.status-yellow { border-left-color: #f9a825; }
+  .coverage-card.status-red { border-left-color: #d32f2f; }
+  .coverage-title { font-weight: 700; margin-bottom: 6px; }
+  .coverage-count, .coverage-percent { font-size: 13px; color: #333; }
 
   /* Findings tables */
   details { background: #fff; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
@@ -321,6 +357,11 @@ $html = @"
   <button onclick="clearSeverityFilter()">Clear filter</button>
 </div>
 
+<h2>Compliance coverage</h2>
+<div class="coverage-grid">
+$($frameworkCoverageHtml -join "`n")
+</div>
+
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
 <div class="source-section">
@@ -333,33 +374,73 @@ $($sourceBarHtml -join "`n")
 $($toolCoverageHtml -join "`n")
 </div>
 
+<div class="framework-filters no-print">
+  <button class="framework-chip active" data-framework="all" onclick="filterByFramework(this,'all')">All frameworks</button>
+  <button class="framework-chip" data-framework="cis" onclick="filterByFramework(this,'cis')">CIS</button>
+  <button class="framework-chip" data-framework="nist" onclick="filterByFramework(this,'nist')">NIST</button>
+  <button class="framework-chip" data-framework="pci" onclick="filterByFramework(this,'pci')">PCI</button>
+</div>
+
 <h2>Findings by category</h2>
 $($categoryHtml -join "`n")
 
 <script>
 var activeSevFilter = null;
-function filterBySeverity(btn, severity) {
-  var cards = document.querySelectorAll('.card');
+var activeFrameworkFilter = 'all';
+function rowMatchesSeverity(row) {
+  if (activeSevFilter === null) { return true; }
+  if (activeSevFilter === 'all') { return true; }
+  if (activeSevFilter === 'compliant') { return row.dataset.compliant === 'true'; }
+  return row.dataset.severity === activeSevFilter && row.dataset.compliant === 'false';
+}
+function rowMatchesFramework(row) {
+  if (activeFrameworkFilter === 'all') { return true; }
+  var frameworks = (row.dataset.frameworks || '').split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  return frameworks.indexOf(activeFrameworkFilter) >= 0;
+}
+function applyFilters() {
   var rows = document.querySelectorAll('.findings-table tbody tr');
+  rows.forEach(function(r) {
+    r.style.display = (rowMatchesSeverity(r) && rowMatchesFramework(r)) ? '' : 'none';
+  });
   var banner = document.getElementById('filterBanner');
   var bannerText = document.getElementById('filterBannerText');
+  var parts = [];
+  if (activeSevFilter && activeSevFilter !== 'all') {
+    parts.push(activeSevFilter === 'compliant' ? 'compliant findings' : (activeSevFilter + ' severity findings'));
+  }
+  if (activeFrameworkFilter !== 'all') {
+    parts.push(activeFrameworkFilter.toUpperCase() + ' mapped findings');
+  }
+  if (parts.length === 0) {
+    banner.classList.remove('active');
+  } else {
+    bannerText.textContent = 'Showing ' + parts.join(' and ');
+    banner.classList.add('active');
+  }
+}
+function filterBySeverity(btn, severity) {
+  var cards = document.querySelectorAll('.card');
   if (activeSevFilter === severity) { clearSeverityFilter(); return; }
   activeSevFilter = severity;
   cards.forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
   btn.setAttribute('aria-pressed', 'true');
-  rows.forEach(function(r) {
-    if (severity === 'all') { r.style.display = ''; }
-    else if (severity === 'compliant') { r.style.display = r.dataset.compliant === 'true' ? '' : 'none'; }
-    else { r.style.display = (r.dataset.severity === severity && r.dataset.compliant === 'false') ? '' : 'none'; }
-  });
-  bannerText.textContent = severity === 'all' ? 'Showing all findings' : severity === 'compliant' ? 'Showing compliant findings only' : 'Showing ' + severity + ' severity findings only';
-  banner.classList.add('active');
+  applyFilters();
+}
+function filterByFramework(btn, framework) {
+  activeFrameworkFilter = framework;
+  document.querySelectorAll('.framework-chip').forEach(function(chip) { chip.classList.remove('active'); });
+  btn.classList.add('active');
+  applyFilters();
 }
 function clearSeverityFilter() {
   activeSevFilter = null;
   document.querySelectorAll('.card').forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
-  document.querySelectorAll('.findings-table tbody tr').forEach(function(r) { r.style.display = ''; });
-  document.getElementById('filterBanner').classList.remove('active');
+  activeFrameworkFilter = 'all';
+  document.querySelectorAll('.framework-chip').forEach(function(chip) { chip.classList.remove('active'); });
+  var allChip = document.querySelector('.framework-chip[data-framework=\"all\"]');
+  if (allChip) { allChip.classList.add('active'); }
+  applyFilters();
 }
 function sortTable(th) {
   const table = th.closest('table');

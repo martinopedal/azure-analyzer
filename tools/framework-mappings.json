@@ -1,0 +1,875 @@
+{
+  "version": "1.0",
+  "sources": [
+    "azqr",
+    "psrule",
+    "maester",
+    "scorecard"
+  ],
+  "frameworks": [
+    {
+      "name": "CIS",
+      "displayName": "CIS Microsoft Azure Foundations Benchmark v2.x"
+    },
+    {
+      "name": "NIST",
+      "displayName": "NIST SP 800-53 Rev. 5"
+    },
+    {
+      "name": "PCI",
+      "displayName": "PCI DSS v4.0"
+    }
+  ],
+  "mappings": {
+    "azqr|security|vm-does-not-have-azure-disk-encryption-enabled": [
+      {
+        "framework": "CIS",
+        "control": "7.1",
+        "citation": "CIS Microsoft Azure Foundations Benchmark v2.x - Ensure disk encryption is enabled"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-28",
+        "citation": "NIST SP 800-53 Rev.5 SC-28 Protection of Information at Rest"
+      },
+      {
+        "framework": "PCI",
+        "control": "3.5.1",
+        "citation": "PCI DSS v4.0 Req 3.5.1 Protect stored account data"
+      }
+    ],
+    "azqr|highavailability|storage-account-is-not-using-zone-redundant-storage": [
+      {
+        "framework": "CIS",
+        "control": "9.1",
+        "citation": "CIS Azure Foundations - Ensure geo-redundant storage is used for critical data"
+      },
+      {
+        "framework": "NIST",
+        "control": "CP-10",
+        "citation": "NIST SP 800-53 Rev.5 CP-10 System Recovery and Reconstitution"
+      },
+      {
+        "framework": "PCI",
+        "control": "12.10.1",
+        "citation": "PCI DSS v4.0 Req 12.10.1 Incident response readiness"
+      }
+    ],
+    "azqr|monitoringandalerting|key-vault-has-diagnostic-settings-configured": [
+      {
+        "framework": "CIS",
+        "control": "5.2",
+        "citation": "CIS Azure Foundations - Ensure diagnostic logs in Azure resources"
+      },
+      {
+        "framework": "NIST",
+        "control": "AU-2",
+        "citation": "NIST SP 800-53 Rev.5 AU-2 Event Logging"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.2.1",
+        "citation": "PCI DSS v4.0 Req 10.2.1 Audit logs for security events"
+      }
+    ],
+    "azqr|security|key-vault-soft-delete-is-disabled": [
+      {
+        "framework": "CIS",
+        "control": "8.3",
+        "citation": "CIS Azure Foundations - Ensure soft delete for Key Vault"
+      },
+      {
+        "framework": "NIST",
+        "control": "CP-9",
+        "citation": "NIST SP 800-53 Rev.5 CP-9 Information System Backup"
+      },
+      {
+        "framework": "PCI",
+        "control": "3.6.1",
+        "citation": "PCI DSS v4.0 Req 3.6.1 Cryptographic key management"
+      }
+    ],
+    "azqr|security|storage-account-allows-public-network-access": [
+      {
+        "framework": "CIS",
+        "control": "3.8",
+        "citation": "CIS Azure Foundations - Restrict network access to storage accounts"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-4",
+        "citation": "NIST SP 800-53 Rev.5 AC-4 Information Flow Enforcement"
+      },
+      {
+        "framework": "PCI",
+        "control": "1.2.1",
+        "citation": "PCI DSS v4.0 Req 1.2.1 Network security controls"
+      }
+    ],
+    "azqr|security|network-security-group-allows-rdp-from-anywhere": [
+      {
+        "framework": "CIS",
+        "control": "6.1",
+        "citation": "CIS Azure Foundations - Restrict management ports"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-17",
+        "citation": "NIST SP 800-53 Rev.5 AC-17 Remote Access"
+      },
+      {
+        "framework": "PCI",
+        "control": "1.3.2",
+        "citation": "PCI DSS v4.0 Req 1.3.2 Inbound traffic restriction"
+      }
+    ],
+    "azqr|security|network-security-group-allows-ssh-from-anywhere": [
+      {
+        "framework": "CIS",
+        "control": "6.1",
+        "citation": "CIS Azure Foundations - Restrict management ports"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-17",
+        "citation": "NIST SP 800-53 Rev.5 AC-17 Remote Access"
+      },
+      {
+        "framework": "PCI",
+        "control": "1.3.2",
+        "citation": "PCI DSS v4.0 Req 1.3.2 Inbound traffic restriction"
+      }
+    ],
+    "azqr|identity|managed-identity-not-enabled": [
+      {
+        "framework": "CIS",
+        "control": "6.5",
+        "citation": "CIS Azure Foundations - Use managed identities"
+      },
+      {
+        "framework": "NIST",
+        "control": "IA-2",
+        "citation": "NIST SP 800-53 Rev.5 IA-2 Identification and Authentication"
+      },
+      {
+        "framework": "PCI",
+        "control": "8.3.1",
+        "citation": "PCI DSS v4.0 Req 8.3.1 Strong authentication"
+      }
+    ],
+    "azqr|security|app-service-does-not-enforce-https-only": [
+      {
+        "framework": "CIS",
+        "control": "9.2",
+        "citation": "CIS Azure Foundations - Ensure HTTPS is enforced"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-8",
+        "citation": "NIST SP 800-53 Rev.5 SC-8 Transmission Confidentiality"
+      },
+      {
+        "framework": "PCI",
+        "control": "4.2.1",
+        "citation": "PCI DSS v4.0 Req 4.2.1 Strong cryptography in transit"
+      }
+    ],
+    "azqr|security|sql-server-auditing-is-disabled": [
+      {
+        "framework": "CIS",
+        "control": "4.1",
+        "citation": "CIS Azure Foundations - Enable SQL auditing"
+      },
+      {
+        "framework": "NIST",
+        "control": "AU-12",
+        "citation": "NIST SP 800-53 Rev.5 AU-12 Audit Record Generation"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.2.1",
+        "citation": "PCI DSS v4.0 Req 10.2.1 Audit logging"
+      }
+    ],
+    "azqr|security|defender-for-cloud-plan-not-enabled": [
+      {
+        "framework": "CIS",
+        "control": "2.1",
+        "citation": "CIS Azure Foundations - Enable Microsoft Defender plans"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-4",
+        "citation": "NIST SP 800-53 Rev.5 SI-4 System Monitoring"
+      },
+      {
+        "framework": "PCI",
+        "control": "11.5.1",
+        "citation": "PCI DSS v4.0 Req 11.5.1 Intrusion detection"
+      }
+    ],
+    "azqr|resilience|backup-is-not-enabled-for-virtual-machine": [
+      {
+        "framework": "CIS",
+        "control": "9.3",
+        "citation": "CIS Azure Foundations - Ensure Azure Backup enabled"
+      },
+      {
+        "framework": "NIST",
+        "control": "CP-9",
+        "citation": "NIST SP 800-53 Rev.5 CP-9 Information System Backup"
+      },
+      {
+        "framework": "PCI",
+        "control": "12.10.1",
+        "citation": "PCI DSS v4.0 Req 12.10.1 Incident response readiness"
+      }
+    ],
+    "azqr|governance|subscription-does-not-have-required-tags": [
+      {
+        "framework": "CIS",
+        "control": "1.1",
+        "citation": "CIS Azure Foundations - Use resource governance controls"
+      },
+      {
+        "framework": "NIST",
+        "control": "CM-8",
+        "citation": "NIST SP 800-53 Rev.5 CM-8 Information System Component Inventory"
+      },
+      {
+        "framework": "PCI",
+        "control": "2.4.1",
+        "citation": "PCI DSS v4.0 Req 2.4.1 Maintain inventory of system components"
+      }
+    ],
+    "psrule|azure.sql.tde|azure.sql.tde": [
+      {
+        "framework": "CIS",
+        "control": "4.2",
+        "citation": "CIS Azure Foundations - Ensure SQL transparent data encryption"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-28",
+        "citation": "NIST SP 800-53 Rev.5 SC-28 Protection of Information at Rest"
+      },
+      {
+        "framework": "PCI",
+        "control": "3.5.1",
+        "citation": "PCI DSS v4.0 Req 3.5.1 Protect stored account data"
+      }
+    ],
+    "psrule|azure.nsg.associated|azure.nsg.associated": [
+      {
+        "framework": "CIS",
+        "control": "6.2",
+        "citation": "CIS Azure Foundations - Ensure NSGs are associated"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-7",
+        "citation": "NIST SP 800-53 Rev.5 SC-7 Boundary Protection"
+      },
+      {
+        "framework": "PCI",
+        "control": "1.2.7",
+        "citation": "PCI DSS v4.0 Req 1.2.7 Restrict inbound/outbound traffic"
+      }
+    ],
+    "psrule|azure.appservice.mintls|azure.appservice.mintls": [
+      {
+        "framework": "CIS",
+        "control": "9.2",
+        "citation": "CIS Azure Foundations - Ensure minimum TLS version"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-13",
+        "citation": "NIST SP 800-53 Rev.5 SC-13 Cryptographic Protection"
+      },
+      {
+        "framework": "PCI",
+        "control": "4.2.1",
+        "citation": "PCI DSS v4.0 Req 4.2.1 Strong cryptography in transit"
+      }
+    ],
+    "psrule|azure.keyvault.softdelete|azure.keyvault.softdelete": [
+      {
+        "framework": "CIS",
+        "control": "8.3",
+        "citation": "CIS Azure Foundations - Ensure Key Vault soft delete"
+      },
+      {
+        "framework": "NIST",
+        "control": "CP-9",
+        "citation": "NIST SP 800-53 Rev.5 CP-9 Information System Backup"
+      },
+      {
+        "framework": "PCI",
+        "control": "3.6.1",
+        "citation": "PCI DSS v4.0 Req 3.6.1 Cryptographic key management"
+      }
+    ],
+    "psrule|azure.storage.securetransfer|azure.storage.securetransfer": [
+      {
+        "framework": "CIS",
+        "control": "3.7",
+        "citation": "CIS Azure Foundations - Secure transfer required for storage"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-8",
+        "citation": "NIST SP 800-53 Rev.5 SC-8 Transmission Confidentiality"
+      },
+      {
+        "framework": "PCI",
+        "control": "4.2.1",
+        "citation": "PCI DSS v4.0 Req 4.2.1 Strong cryptography in transit"
+      }
+    ],
+    "psrule|azure.vm.diskencryption|azure.vm.diskencryption": [
+      {
+        "framework": "CIS",
+        "control": "7.1",
+        "citation": "CIS Azure Foundations - Enable disk encryption"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-28",
+        "citation": "NIST SP 800-53 Rev.5 SC-28 Protection of Information at Rest"
+      },
+      {
+        "framework": "PCI",
+        "control": "3.5.1",
+        "citation": "PCI DSS v4.0 Req 3.5.1 Protect stored account data"
+      }
+    ],
+    "psrule|azure.sql.auditing|azure.sql.auditing": [
+      {
+        "framework": "CIS",
+        "control": "4.1",
+        "citation": "CIS Azure Foundations - Enable SQL auditing"
+      },
+      {
+        "framework": "NIST",
+        "control": "AU-12",
+        "citation": "NIST SP 800-53 Rev.5 AU-12 Audit Record Generation"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.2.1",
+        "citation": "PCI DSS v4.0 Req 10.2.1 Audit logging"
+      }
+    ],
+    "psrule|azure.keyvault.purgeprotection|azure.keyvault.purgeprotection": [
+      {
+        "framework": "CIS",
+        "control": "8.4",
+        "citation": "CIS Azure Foundations - Enable purge protection on Key Vault"
+      },
+      {
+        "framework": "NIST",
+        "control": "CP-9",
+        "citation": "NIST SP 800-53 Rev.5 CP-9 Information System Backup"
+      },
+      {
+        "framework": "PCI",
+        "control": "3.6.1",
+        "citation": "PCI DSS v4.0 Req 3.6.1 Cryptographic key management"
+      }
+    ],
+    "psrule|azure.monitor.activitylog|azure.monitor.activitylog": [
+      {
+        "framework": "CIS",
+        "control": "5.1",
+        "citation": "CIS Azure Foundations - Enable activity log alerts"
+      },
+      {
+        "framework": "NIST",
+        "control": "AU-6",
+        "citation": "NIST SP 800-53 Rev.5 AU-6 Audit Review, Analysis, and Reporting"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.4.1",
+        "citation": "PCI DSS v4.0 Req 10.4.1 Review logs"
+      }
+    ],
+    "psrule|azure.defender.cloud|azure.defender.cloud": [
+      {
+        "framework": "CIS",
+        "control": "2.1",
+        "citation": "CIS Azure Foundations - Enable Defender for Cloud"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-4",
+        "citation": "NIST SP 800-53 Rev.5 SI-4 System Monitoring"
+      },
+      {
+        "framework": "PCI",
+        "control": "11.5.1",
+        "citation": "PCI DSS v4.0 Req 11.5.1 Intrusion detection"
+      }
+    ],
+    "psrule|azure.network.ddosprotection|azure.network.ddosprotection": [
+      {
+        "framework": "CIS",
+        "control": "6.6",
+        "citation": "CIS Azure Foundations - Enable DDoS network protection"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-5",
+        "citation": "NIST SP 800-53 Rev.5 SC-5 Denial-of-Service Protection"
+      },
+      {
+        "framework": "PCI",
+        "control": "1.4.4",
+        "citation": "PCI DSS v4.0 Req 1.4.4 Mitigate network attacks"
+      }
+    ],
+    "psrule|azure.authorization.roleassignment|azure.authorization.roleassignment": [
+      {
+        "framework": "CIS",
+        "control": "1.4",
+        "citation": "CIS Azure Foundations - Least privilege for subscriptions"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-2",
+        "citation": "NIST SP 800-53 Rev.5 AC-2 Account Management"
+      },
+      {
+        "framework": "PCI",
+        "control": "7.2.2",
+        "citation": "PCI DSS v4.0 Req 7.2.2 Least privilege"
+      }
+    ],
+    "psrule|azure.storage.privateendpoint|azure.storage.privateendpoint": [
+      {
+        "framework": "CIS",
+        "control": "3.9",
+        "citation": "CIS Azure Foundations - Use private endpoints for storage"
+      },
+      {
+        "framework": "NIST",
+        "control": "SC-7",
+        "citation": "NIST SP 800-53 Rev.5 SC-7 Boundary Protection"
+      },
+      {
+        "framework": "PCI",
+        "control": "1.2.1",
+        "citation": "PCI DSS v4.0 Req 1.2.1 Network security controls"
+      }
+    ],
+    "maester|identity|mfa-is-not-enforced-for-all-administrators": [
+      {
+        "framework": "CIS",
+        "control": "1.5",
+        "citation": "CIS Azure Foundations - Ensure MFA for administrative accounts"
+      },
+      {
+        "framework": "NIST",
+        "control": "IA-2",
+        "citation": "NIST SP 800-53 Rev.5 IA-2 Identification and Authentication"
+      },
+      {
+        "framework": "PCI",
+        "control": "8.4.2",
+        "citation": "PCI DSS v4.0 Req 8.4.2 MFA for admin access"
+      }
+    ],
+    "maester|security|legacy-authentication-protocols-are-not-blocked": [
+      {
+        "framework": "CIS",
+        "control": "1.6",
+        "citation": "CIS Azure Foundations - Block legacy authentication"
+      },
+      {
+        "framework": "NIST",
+        "control": "IA-2",
+        "citation": "NIST SP 800-53 Rev.5 IA-2 Identification and Authentication"
+      },
+      {
+        "framework": "PCI",
+        "control": "8.3.1",
+        "citation": "PCI DSS v4.0 Req 8.3.1 Strong authentication"
+      }
+    ],
+    "maester|identity|self-service-password-reset-is-enabled-for-all-users": [
+      {
+        "framework": "CIS",
+        "control": "1.7",
+        "citation": "CIS Azure Foundations - Enable secure password reset"
+      },
+      {
+        "framework": "NIST",
+        "control": "IA-5",
+        "citation": "NIST SP 800-53 Rev.5 IA-5 Authenticator Management"
+      },
+      {
+        "framework": "PCI",
+        "control": "8.3.6",
+        "citation": "PCI DSS v4.0 Req 8.3.6 Identity lifecycle controls"
+      }
+    ],
+    "maester|identity|conditional-access-policy-does-not-protect-admin-roles": [
+      {
+        "framework": "CIS",
+        "control": "1.5",
+        "citation": "CIS Azure Foundations - MFA for privileged roles"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-3",
+        "citation": "NIST SP 800-53 Rev.5 AC-3 Access Enforcement"
+      },
+      {
+        "framework": "PCI",
+        "control": "7.2.5",
+        "citation": "PCI DSS v4.0 Req 7.2.5 Access controls for privileged users"
+      }
+    ],
+    "maester|identity|break-glass-accounts-are-not-monitored": [
+      {
+        "framework": "CIS",
+        "control": "1.8",
+        "citation": "CIS Azure Foundations - Monitor emergency access accounts"
+      },
+      {
+        "framework": "NIST",
+        "control": "AU-12",
+        "citation": "NIST SP 800-53 Rev.5 AU-12 Audit Record Generation"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.2.1",
+        "citation": "PCI DSS v4.0 Req 10.2.1 Audit logging"
+      }
+    ],
+    "maester|security|password-protection-is-not-configured": [
+      {
+        "framework": "CIS",
+        "control": "1.9",
+        "citation": "CIS Azure Foundations - Configure Entra password protection"
+      },
+      {
+        "framework": "NIST",
+        "control": "IA-5",
+        "citation": "NIST SP 800-53 Rev.5 IA-5 Authenticator Management"
+      },
+      {
+        "framework": "PCI",
+        "control": "8.3.7",
+        "citation": "PCI DSS v4.0 Req 8.3.7 Password controls"
+      }
+    ],
+    "maester|identity|guest-user-access-is-too-permissive": [
+      {
+        "framework": "CIS",
+        "control": "1.10",
+        "citation": "CIS Azure Foundations - Restrict guest access"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-2",
+        "citation": "NIST SP 800-53 Rev.5 AC-2 Account Management"
+      },
+      {
+        "framework": "PCI",
+        "control": "7.2.1",
+        "citation": "PCI DSS v4.0 Req 7.2.1 Access by business need"
+      }
+    ],
+    "maester|security|risky-sign-in-policy-is-not-enabled": [
+      {
+        "framework": "CIS",
+        "control": "1.11",
+        "citation": "CIS Azure Foundations - Enable risk-based conditional access"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-4",
+        "citation": "NIST SP 800-53 Rev.5 SI-4 System Monitoring"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.2.1",
+        "citation": "PCI DSS v4.0 Req 10.2.1 Monitoring user activity"
+      }
+    ],
+    "maester|identity|application-consent-settings-allow-user-consent": [
+      {
+        "framework": "CIS",
+        "control": "1.12",
+        "citation": "CIS Azure Foundations - Restrict user app consent"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-6",
+        "citation": "NIST SP 800-53 Rev.5 AC-6 Least Privilege"
+      },
+      {
+        "framework": "PCI",
+        "control": "7.2.2",
+        "citation": "PCI DSS v4.0 Req 7.2.2 Least privilege"
+      }
+    ],
+    "maester|security|tenant-allows-unrestricted-third-party-apps": [
+      {
+        "framework": "CIS",
+        "control": "1.12",
+        "citation": "CIS Azure Foundations - Restrict third-party app consent"
+      },
+      {
+        "framework": "NIST",
+        "control": "CM-7",
+        "citation": "NIST SP 800-53 Rev.5 CM-7 Least Functionality"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.3.2",
+        "citation": "PCI DSS v4.0 Req 6.3.2 Secure software management"
+      }
+    ],
+    "maester|identity|security-defaults-are-disabled": [
+      {
+        "framework": "CIS",
+        "control": "1.5",
+        "citation": "CIS Azure Foundations - Use baseline identity protections"
+      },
+      {
+        "framework": "NIST",
+        "control": "IA-2",
+        "citation": "NIST SP 800-53 Rev.5 IA-2 Identification and Authentication"
+      },
+      {
+        "framework": "PCI",
+        "control": "8.4.2",
+        "citation": "PCI DSS v4.0 Req 8.4.2 MFA for admin access"
+      }
+    ],
+    "maester|security|audit-logging-retention-is-insufficient": [
+      {
+        "framework": "CIS",
+        "control": "1.13",
+        "citation": "CIS Azure Foundations - Retain audit logs"
+      },
+      {
+        "framework": "NIST",
+        "control": "AU-11",
+        "citation": "NIST SP 800-53 Rev.5 AU-11 Audit Record Retention"
+      },
+      {
+        "framework": "PCI",
+        "control": "10.5.1",
+        "citation": "PCI DSS v4.0 Req 10.5.1 Retain audit logs"
+      }
+    ],
+    "scorecard|supply chain|branch-protection-is-not-enabled-on-default-branch": [
+      {
+        "framework": "CIS",
+        "control": "11.1",
+        "citation": "CIS Azure Foundations - Protect CI/CD source repositories"
+      },
+      {
+        "framework": "NIST",
+        "control": "CM-3",
+        "citation": "NIST SP 800-53 Rev.5 CM-3 Configuration Change Control"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.4.1",
+        "citation": "PCI DSS v4.0 Req 6.4.1 Change control processes"
+      }
+    ],
+    "scorecard|supply chain|branch-protection": [
+      {
+        "framework": "CIS",
+        "control": "11.1",
+        "citation": "CIS Azure Foundations - Protect CI/CD source repositories"
+      },
+      {
+        "framework": "NIST",
+        "control": "CM-3",
+        "citation": "NIST SP 800-53 Rev.5 CM-3 Configuration Change Control"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.4.1",
+        "citation": "PCI DSS v4.0 Req 6.4.1 Change control processes"
+      }
+    ],
+    "scorecard|supply chain|dependencies-are-pinned-to-specific-versions": [
+      {
+        "framework": "CIS",
+        "control": "11.2",
+        "citation": "CIS Azure Foundations - Pin dependencies in CI/CD"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-7",
+        "citation": "NIST SP 800-53 Rev.5 SI-7 Software, Firmware, and Information Integrity"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.3.3",
+        "citation": "PCI DSS v4.0 Req 6.3.3 Secure dependencies"
+      }
+    ],
+    "scorecard|supply chain|sast-tool-is-not-integrated-in-ci-pipeline": [
+      {
+        "framework": "CIS",
+        "control": "11.3",
+        "citation": "CIS Azure Foundations - Integrate SAST in build pipeline"
+      },
+      {
+        "framework": "NIST",
+        "control": "RA-5",
+        "citation": "NIST SP 800-53 Rev.5 RA-5 Vulnerability Monitoring and Scanning"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.3.2",
+        "citation": "PCI DSS v4.0 Req 6.3.2 Secure software development"
+      }
+    ],
+    "scorecard|supply chain|signed-releases-are-not-configured": [
+      {
+        "framework": "CIS",
+        "control": "11.4",
+        "citation": "CIS Azure Foundations - Sign build artifacts and releases"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-7",
+        "citation": "NIST SP 800-53 Rev.5 SI-7 Software Integrity"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.5.1",
+        "citation": "PCI DSS v4.0 Req 6.5.1 Protect software integrity"
+      }
+    ],
+    "scorecard|supply chain|token-permissions-are-overly-permissive": [
+      {
+        "framework": "CIS",
+        "control": "11.5",
+        "citation": "CIS Azure Foundations - Minimize workflow token permissions"
+      },
+      {
+        "framework": "NIST",
+        "control": "AC-6",
+        "citation": "NIST SP 800-53 Rev.5 AC-6 Least Privilege"
+      },
+      {
+        "framework": "PCI",
+        "control": "7.2.2",
+        "citation": "PCI DSS v4.0 Req 7.2.2 Least privilege"
+      }
+    ],
+    "scorecard|supply chain|binary-artifacts-are-not-verified": [
+      {
+        "framework": "CIS",
+        "control": "11.6",
+        "citation": "CIS Azure Foundations - Verify third-party artifacts"
+      },
+      {
+        "framework": "NIST",
+        "control": "SA-12",
+        "citation": "NIST SP 800-53 Rev.5 SA-12 Supply Chain Protection"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.3.2",
+        "citation": "PCI DSS v4.0 Req 6.3.2 Secure software supply chain"
+      }
+    ],
+    "scorecard|supply chain|dangerous-workflow-triggers-detected": [
+      {
+        "framework": "CIS",
+        "control": "11.7",
+        "citation": "CIS Azure Foundations - Secure workflow triggers"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-10",
+        "citation": "NIST SP 800-53 Rev.5 SI-10 Information Input Validation"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.2.2",
+        "citation": "PCI DSS v4.0 Req 6.2.2 Secure coding practices"
+      }
+    ],
+    "scorecard|supply chain|security-policy-file-is-missing": [
+      {
+        "framework": "CIS",
+        "control": "11.8",
+        "citation": "CIS Azure Foundations - Maintain security policy for repositories"
+      },
+      {
+        "framework": "NIST",
+        "control": "PL-2",
+        "citation": "NIST SP 800-53 Rev.5 PL-2 System Security and Privacy Plans"
+      },
+      {
+        "framework": "PCI",
+        "control": "12.1.1",
+        "citation": "PCI DSS v4.0 Req 12.1.1 Security policy governance"
+      }
+    ],
+    "scorecard|supply chain|dependency-update-automation-is-missing": [
+      {
+        "framework": "CIS",
+        "control": "11.9",
+        "citation": "CIS Azure Foundations - Automate dependency updates"
+      },
+      {
+        "framework": "NIST",
+        "control": "SI-2",
+        "citation": "NIST SP 800-53 Rev.5 SI-2 Flaw Remediation"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.3.3",
+        "citation": "PCI DSS v4.0 Req 6.3.3 Address vulnerable dependencies"
+      }
+    ],
+    "scorecard|supply chain|ci-tests-do-not-run-on-pull-requests": [
+      {
+        "framework": "CIS",
+        "control": "11.10",
+        "citation": "CIS Azure Foundations - Enforce CI checks on PRs"
+      },
+      {
+        "framework": "NIST",
+        "control": "SA-11",
+        "citation": "NIST SP 800-53 Rev.5 SA-11 Developer Testing and Evaluation"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.4.2",
+        "citation": "PCI DSS v4.0 Req 6.4.2 Separate and secure test environments"
+      }
+    ],
+    "scorecard|supply chain|code-review-requirements-are-not-enforced": [
+      {
+        "framework": "CIS",
+        "control": "11.1",
+        "citation": "CIS Azure Foundations - Require pull request review"
+      },
+      {
+        "framework": "NIST",
+        "control": "CM-3",
+        "citation": "NIST SP 800-53 Rev.5 CM-3 Configuration Change Control"
+      },
+      {
+        "framework": "PCI",
+        "control": "6.2.3",
+        "citation": "PCI DSS v4.0 Req 6.2.3 Code review controls"
+      }
+    ]
+  }
+}

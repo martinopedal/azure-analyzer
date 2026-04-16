@@ -25,6 +25,10 @@ $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) {
     . $sanitizePath
 }
+$frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapper.ps1'
+if (Test-Path $frameworkMapperPath) {
+    . $frameworkMapperPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -37,11 +41,11 @@ $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = $findings.Count
-$high = ($findings | Where-Object { $_.Severity -eq 'High' }).Count
-$medium = ($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
-$low = ($findings | Where-Object { $_.Severity -eq 'Low' }).Count
-$info = ($findings | Where-Object { $_.Severity -eq 'Info' }).Count
-$compliantCount = ($findings | Where-Object { $_.Compliant -eq $true }).Count
+$high = @($findings | Where-Object { $_.Severity -eq 'High' }).Count
+$medium = @($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
+$low = @($findings | Where-Object { $_.Severity -eq 'Low' }).Count
+$info = @($findings | Where-Object { $_.Severity -eq 'Info' }).Count
+$compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
 $nonCompliantCount = $total - $compliantCount
 
 $lines = [System.Collections.Generic.List[string]]::new()
@@ -59,6 +63,26 @@ $lines.Add("| Medium severity | $medium |")
 $lines.Add("| Low severity | $low |")
 $lines.Add("| Info | $info |")
 $lines.Add('')
+
+$frameworkCoverage = @()
+if (Get-Command Get-FrameworkCoverage -ErrorAction SilentlyContinue) {
+    $frameworkCoverage = @(Get-FrameworkCoverage -Findings $findings)
+}
+if ($frameworkCoverage.Count -gt 0) {
+    $lines.Add('## Compliance coverage')
+    $lines.Add('')
+    $lines.Add('| Framework | Coverage | Status |')
+    $lines.Add('|---|---|---|')
+    foreach ($coverage in $frameworkCoverage) {
+        $status = switch ($coverage.Status) {
+            'green' { '🟢 Green' }
+            'yellow' { '🟡 Yellow' }
+            default { '🔴 Red' }
+        }
+        $lines.Add("| $($coverage.Framework) | $($coverage.CoveredControls)/$($coverage.TotalControls) ($($coverage.Percent)%) | $status |")
+    }
+    $lines.Add('')
+}
 
 $bySource = $findings | Group-Object -Property Source
 $sourceCountMap = @{}
@@ -135,9 +159,9 @@ foreach ($cat in $byCategory) {
 }
 
 # Action sections
-$fixNow = $findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title
-$planFix = $findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title
-$track = $findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title
+$fixNow = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title)
+$planFix = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title)
+$track = @($findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title)
 
 $lines.Add('## Action plan')
 $lines.Add('')

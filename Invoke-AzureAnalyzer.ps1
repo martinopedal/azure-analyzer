@@ -34,6 +34,9 @@
     When provided, ADO tools are included in the run.
 .PARAMETER AdoProject
     Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
+.PARAMETER Framework
+    Optional framework scope (`CIS`, `NIST`, `PCI`). When set, only findings mapped
+    to that framework are retained in output and reports.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -61,6 +64,8 @@ param (
     [string] $RepoPath,
     [string] $AdoOrg,
     [string] $AdoProject,
+    [ValidateSet('CIS', 'NIST', 'PCI')]
+    [string] $Framework,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
     [string] $ScanPath,
@@ -77,6 +82,10 @@ $ErrorActionPreference = 'Stop'
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
 foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint')) {
+    $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
+    if (Test-Path $sharedPath) { . $sharedPath }
+}
+foreach ($sharedModule in @('FrameworkMapper')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -497,6 +506,11 @@ foreach ($wr in $parallelResults) {
         }
     }
 
+    $v3Findings = @(Add-FrameworkMetadata -Findings $v3Findings)
+    if ($Framework) {
+        $v3Findings = @(Select-FindingsByFramework -Findings $v3Findings -Framework $Framework)
+    }
+
     # Feed v3 findings into EntityStore
     foreach ($finding in $v3Findings) {
         try {
@@ -521,6 +535,8 @@ foreach ($wr in $parallelResults) {
             Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
             ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
             LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+            Frameworks   = if ($f.PSObject.Properties['Frameworks'] -and $f.Frameworks) { @($f.Frameworks) } else { @() }
+            Controls     = if ($f.PSObject.Properties['Controls'] -and $f.Controls) { @($f.Controls) } else { @() }
         })
     }
 }
@@ -567,6 +583,10 @@ foreach ($corrDef in $correlators) {
             $corrToolResult = [PSCustomObject]@{ Status = 'Success'; Findings = $corrFindings }
             $corrV3 = @(& $corrNormFunc -ToolResult $corrToolResult)
         }
+        $corrV3 = @(Add-FrameworkMetadata -Findings $corrV3)
+        if ($Framework) {
+            $corrV3 = @(Select-FindingsByFramework -Findings $corrV3 -Framework $Framework)
+        }
 
         foreach ($finding in $corrV3) {
             try { $store.AddFinding($finding) }
@@ -585,6 +605,8 @@ foreach ($corrDef in $correlators) {
                 Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
                 ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
                 LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+                Frameworks   = if ($f.PSObject.Properties['Frameworks'] -and $f.Frameworks) { @($f.Frameworks) } else { @() }
+                Controls     = if ($f.PSObject.Properties['Controls'] -and $f.Controls) { @($f.Controls) } else { @() }
             })
         }
 
