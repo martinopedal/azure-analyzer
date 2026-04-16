@@ -1,0 +1,259 @@
+#Requires -Version 7.4
+<#
+.SYNOPSIS
+    Canonicalization helpers for schema v2 entity IDs.
+.DESCRIPTION
+    Normalizes identifiers for Azure, GitHub, ADO, and Entra entities.
+#>
+[CmdletBinding()]
+param ()
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$script:GuidPattern = '^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$'
+
+function ConvertTo-CanonicalArmId {
+    <#
+    .SYNOPSIS
+        Canonicalize an ARM resource ID.
+    .PARAMETER ArmId
+        Raw ARM resource identifier.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string] $ArmId
+    )
+
+    $normalized = $ArmId.Trim() -replace '\\', '/'
+    $normalized = $normalized.TrimEnd('/')
+    $normalized = $normalized.ToLowerInvariant()
+
+    if ($normalized -notmatch '^/subscriptions/[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}(/|$)') {
+        throw "ARM ID must start with /subscriptions/{guid}. Provided: '$ArmId'."
+    }
+
+    return $normalized
+}
+
+function ConvertTo-CanonicalRepoId {
+    <#
+    .SYNOPSIS
+        Canonicalize a GitHub repository identifier.
+    .PARAMETER RepoId
+        Raw repository identifier.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string] $RepoId
+    )
+
+    $normalized = $RepoId.Trim()
+    $normalized = $normalized -replace '^https?://', ''
+    $normalized = $normalized -replace '^ssh://', ''
+    $normalized = $normalized -replace '^git@', ''
+    $normalized = $normalized -replace '^www\.', ''
+    $normalized = $normalized -replace '^github\.com:', 'github.com/'
+    $normalized = $normalized -replace '^github\.com/', 'github.com/'
+    $normalized = $normalized.TrimEnd('/')
+    $normalized = $normalized -replace '\.git$', ''
+    $normalized = $normalized.ToLowerInvariant()
+
+    if ($normalized -notmatch '^github\.com/[^/]+/[^/]+$') {
+        throw "Repository ID must be in github.com/owner/repo format. Provided: '$RepoId'."
+    }
+
+    return $normalized
+}
+
+function ConvertTo-CanonicalAdoId {
+    <#
+    .SYNOPSIS
+        Canonicalize an Azure DevOps identifier.
+    .DESCRIPTION
+        Normalizes to ado://org/project/type/name.
+    .PARAMETER AdoId
+        Raw ADO identifier or URL.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string] $AdoId
+    )
+
+    $raw = $AdoId.Trim()
+    $org = $null
+    $project = $null
+    $type = $null
+    $name = $null
+
+    if ($raw -match '^ado://') {
+        $raw = $raw.Substring(6)
+    } elseif ($raw -match '^https?://dev\.azure\.com/([^/]+)/([^/]+)/_build') {
+        $org = $matches[1]
+        $project = $matches[2]
+        $type = 'pipeline'
+        if ($raw -match 'definitionId=([0-9]+)') {
+            $name = $matches[1]
+        }
+    } elseif ($raw -match '^https?://([^/]+)\.visualstudio\.com/([^/]+)/_build') {
+        $org = $matches[1]
+        $project = $matches[2]
+        $type = 'pipeline'
+        if ($raw -match 'definitionId=([0-9]+)') {
+            $name = $matches[1]
+        }
+    }
+
+    if (-not $org) {
+        $raw = $raw.Trim('/')
+        $segments = $raw -split '/'
+        if ($segments.Count -lt 4) {
+            throw "ADO ID must be in org/project/type/name format. Provided: '$AdoId'."
+        }
+        $org = $segments[0]
+        $project = $segments[1]
+        $type = $segments[2]
+        $name = ($segments[3..($segments.Count - 1)] -join '/')
+    }
+
+    if (-not $org -or -not $project -or -not $type -or -not $name) {
+        throw "ADO ID must include org, project, type, and name. Provided: '$AdoId'."
+    }
+
+    return "ado://$($org.ToLowerInvariant())/$($project.ToLowerInvariant())/$($type.ToLowerInvariant())/$($name.ToLowerInvariant())"
+}
+
+function ConvertTo-CanonicalSpnId {
+    <#
+    .SYNOPSIS
+        Canonicalize a service principal identifier.
+    .DESCRIPTION
+        Always returns an appId:{guid} identifier. Object IDs require a lookup map.
+    .PARAMETER SpnId
+        Raw service principal identifier (appId:{guid}, objectId:{guid}, or guid).
+    .PARAMETER ObjectIdToAppId
+        Lookup map from objectId to appId.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string] $SpnId,
+
+        [hashtable] $ObjectIdToAppId
+    )
+
+    $raw = $SpnId.Trim()
+    $guid = $null
+
+    if ($raw -match '^(?i:appid):(?<id>[0-9a-f-]{36})$') {
+        $guid = $matches['id']
+    } elseif ($raw -match '^(?i:objectid):(?<id>[0-9a-f-]{36})$') {
+        $objectId = $matches['id'].ToLowerInvariant()
+        if (-not $ObjectIdToAppId -or -not $ObjectIdToAppId.ContainsKey($objectId)) {
+            throw "ObjectId '$objectId' requires a lookup map to resolve to appId."
+        }
+        $guid = [string]$ObjectIdToAppId[$objectId]
+    } elseif ($raw -match $script:GuidPattern) {
+        $guid = $raw
+    } else {
+        throw "SPN identifier must be appId:{guid}, objectId:{guid}, or a GUID. Provided: '$SpnId'."
+    }
+
+    $guid = $guid.ToLowerInvariant()
+    if ($guid -notmatch $script:GuidPattern) {
+        throw "Resolved appId '$guid' is not a valid GUID."
+    }
+
+    return "appId:$guid"
+}
+
+function ConvertTo-CanonicalEntityId {
+    <#
+    .SYNOPSIS
+        Derive canonical entity metadata from a raw identifier.
+    .PARAMETER RawId
+        Raw identifier provided by a tool.
+    .PARAMETER EntityType
+        Entity type enum.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string] $RawId,
+
+        [Parameter(Mandatory)]
+        [ValidateSet(
+            'AzureResource',
+            'ServicePrincipal',
+            'ManagedIdentity',
+            'Application',
+            'Repository',
+            'Pipeline',
+            'ServiceConnection',
+            'User',
+            'Subscription',
+            'ManagementGroup'
+        )]
+        [string] $EntityType,
+
+        [hashtable] $ObjectIdToAppId
+    )
+
+    $canonicalId = switch ($EntityType) {
+        'AzureResource' { ConvertTo-CanonicalArmId -ArmId $RawId }
+        'ManagedIdentity' { ConvertTo-CanonicalArmId -ArmId $RawId }
+        'Repository' { ConvertTo-CanonicalRepoId -RepoId $RawId }
+        'ServicePrincipal' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
+        'Application' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
+        'Pipeline' { ConvertTo-CanonicalAdoId -AdoId $RawId }
+        'ServiceConnection' { ConvertTo-CanonicalAdoId -AdoId $RawId }
+        'User' {
+            $raw = $RawId.Trim()
+            $userId = if ($raw -match '^(?i:objectid):(?<id>[0-9a-f-]{36})$') {
+                $matches['id']
+            } elseif ($raw -match $script:GuidPattern) {
+                $raw
+            } else {
+                throw "User entity IDs must be objectId:{guid} or a GUID. Provided: '$RawId'."
+            }
+            "objectId:$($userId.ToLowerInvariant())"
+        }
+        'Subscription' {
+            $raw = $RawId.Trim()
+            if ($raw -notmatch $script:GuidPattern) {
+                throw "Subscription IDs must be GUIDs. Provided: '$RawId'."
+            }
+            $raw.ToLowerInvariant()
+        }
+        'ManagementGroup' { $RawId.Trim().ToLowerInvariant() }
+        default { throw "Unsupported EntityType '$EntityType'." }
+    }
+
+    $platform = switch ($EntityType) {
+        'AzureResource' { 'Azure' }
+        'ManagedIdentity' { 'Azure' }
+        'Subscription' { 'Azure' }
+        'ManagementGroup' { 'Azure' }
+        'ServicePrincipal' { 'Entra' }
+        'Application' { 'Entra' }
+        'User' { 'Entra' }
+        'Repository' { 'GitHub' }
+        'Pipeline' { 'ADO' }
+        'ServiceConnection' { 'ADO' }
+        default { 'Unknown' }
+    }
+
+    return [PSCustomObject]@{
+        Platform    = $platform
+        EntityType  = $EntityType
+        CanonicalId = $canonicalId
+    }
+}

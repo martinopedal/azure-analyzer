@@ -257,6 +257,7 @@ All findings are merged into `output/results.json` using a unified 10-field sche
 | `ResourceId` | string | Azure ARM resource ID |
 | `LearnMoreUrl` | string | Link to Microsoft Learn documentation |
 
+Phase 0 v3 introduces shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) to support dual-model outputs (`entities.json` + `results.json`) in upcoming orchestrator updates, with Pester coverage in `tests/shared/`.
 ## Permissions
 
 All tools operate read-only. No write permissions required anywhere.

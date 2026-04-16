@@ -4,6 +4,8 @@
 
 All tools operate **read-only** with no write permissions anywhere. Azure-analyzer uses only the minimum permissions required to assess your infrastructure.
 
+Phase 0 v3 core modules (Schema, Canonicalize, EntityStore, tool manifest) introduce no new permissions or scopes.
+
 ---
 
 ## Required permissions by scope
