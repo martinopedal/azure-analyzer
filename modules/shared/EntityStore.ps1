@@ -92,6 +92,19 @@ function Merge-MissingDimensions {
     return $Existing
 }
 
+function Get-ObjectPropertyValue {
+    param (
+        [object] $Object,
+        [string] $PropertyName,
+        [object] $Default = $null
+    )
+
+    if ($null -eq $Object) { return $Default }
+    $property = $Object.PSObject.Properties[$PropertyName]
+    if ($null -eq $property) { return $Default }
+    return $property.Value
+}
+
 function New-StoreEntity {
     param (
         [pscustomobject] $EntityStub,
@@ -107,30 +120,75 @@ function New-StoreEntity {
         }
     }
 
+    $displayName = $null
+    $subscriptionId = $null
+    $subscriptionName = $null
+    $resourceGroup = $null
+    $managementGroupPath = $null
+    $externalIds = $null
+    $worstSeverity = $null
+    $compliantCount = 0
+    $nonCompliantCount = 0
+    $sources = @()
+    $monthlyCost = $null
+    $currency = $null
+    $costTrend = $null
+    $frameworks = $null
+    $controls = $null
+    $policies = $null
+    $correlations = $null
+    $confidence = $null
+    $missingDimensions = $null
+
+    if ($null -ne $EntityStub) {
+        $displayName = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'DisplayName'
+        $subscriptionId = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'SubscriptionId'
+        $subscriptionName = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'SubscriptionName'
+        $resourceGroup = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'ResourceGroup'
+        $managementGroupPath = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'ManagementGroupPath'
+        $externalIds = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'ExternalIds'
+        $worstSeverity = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'WorstSeverity'
+        $entityCompliantCount = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'CompliantCount'
+        if ($null -ne $entityCompliantCount) { $compliantCount = $entityCompliantCount }
+        $entityNonCompliantCount = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'NonCompliantCount'
+        if ($null -ne $entityNonCompliantCount) { $nonCompliantCount = $entityNonCompliantCount }
+        $entitySources = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Sources'
+        if ($null -ne $entitySources) { $sources = $entitySources }
+        $monthlyCost = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'MonthlyCost'
+        $currency = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Currency'
+        $costTrend = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'CostTrend'
+        $frameworks = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Frameworks'
+        $controls = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Controls'
+        $policies = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Policies'
+        $correlations = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Correlations'
+        $confidence = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Confidence'
+        $missingDimensions = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'MissingDimensions'
+    }
+
     [PSCustomObject]@{
         EntityId         = $EntityId
         EntityType       = $EntityType
         Platform         = $Platform
-        DisplayName      = $EntityStub?.DisplayName
-        SubscriptionId   = $EntityStub?.SubscriptionId
-        SubscriptionName = $EntityStub?.SubscriptionName
-        ResourceGroup    = $EntityStub?.ResourceGroup
-        ManagementGroupPath = $EntityStub?.ManagementGroupPath
-        ExternalIds      = $EntityStub?.ExternalIds
+        DisplayName      = $displayName
+        SubscriptionId   = $subscriptionId
+        SubscriptionName = $subscriptionName
+        ResourceGroup    = $resourceGroup
+        ManagementGroupPath = $managementGroupPath
+        ExternalIds      = $externalIds
         Observations     = $observations
-        WorstSeverity    = $EntityStub?.WorstSeverity
-        CompliantCount   = $EntityStub?.CompliantCount ?? 0
-        NonCompliantCount = $EntityStub?.NonCompliantCount ?? 0
-        Sources          = $EntityStub?.Sources ?? @()
-        MonthlyCost      = $EntityStub?.MonthlyCost
-        Currency         = $EntityStub?.Currency
-        CostTrend        = $EntityStub?.CostTrend
-        Frameworks       = $EntityStub?.Frameworks
-        Controls         = $EntityStub?.Controls
-        Policies         = $EntityStub?.Policies
-        Correlations     = $EntityStub?.Correlations
-        Confidence       = $EntityStub?.Confidence
-        MissingDimensions = $EntityStub?.MissingDimensions
+        WorstSeverity    = $worstSeverity
+        CompliantCount   = $compliantCount
+        NonCompliantCount = $nonCompliantCount
+        Sources          = $sources
+        MonthlyCost      = $monthlyCost
+        Currency         = $currency
+        CostTrend        = $costTrend
+        Frameworks       = $frameworks
+        Controls         = $controls
+        Policies         = $policies
+        Correlations     = $correlations
+        Confidence       = $confidence
+        MissingDimensions = $missingDimensions
     }
 }
 
@@ -178,15 +236,19 @@ class EntityStore {
     [void] MergeFinding([pscustomobject] $Target, [pscustomobject] $Incoming) {
         if (-not $Target -or -not $Incoming) { return }
 
-        if (Get-SeverityRank $Incoming.Severity -gt (Get-SeverityRank $Target.Severity)) {
+        if ((Get-SeverityRank $Incoming.Severity) -gt (Get-SeverityRank $Target.Severity)) {
             $Target.Severity = $Incoming.Severity
         }
 
-        if ($Incoming.Detail -and ($Incoming.Detail.Length -gt ($Target.Detail?.Length ?? 0))) {
+        $targetDetailLength = 0
+        if (($null -ne $Target) -and ($null -ne $Target.Detail)) { $targetDetailLength = $Target.Detail.Length }
+        if ($Incoming.Detail -and ($Incoming.Detail.Length -gt $targetDetailLength)) {
             $Target.Detail = $Incoming.Detail
         }
 
-        if ($Incoming.Remediation -and ($Incoming.Remediation.Length -gt ($Target.Remediation?.Length ?? 0))) {
+        $targetRemediationLength = 0
+        if (($null -ne $Target) -and ($null -ne $Target.Remediation)) { $targetRemediationLength = $Target.Remediation.Length }
+        if ($Incoming.Remediation -and ($Incoming.Remediation.Length -gt $targetRemediationLength)) {
             $Target.Remediation = $Incoming.Remediation
         }
 
@@ -221,7 +283,7 @@ class EntityStore {
             $Entity.Sources += $Finding.Source
         }
 
-        if ($Finding.Severity -and (Get-SeverityRank $Finding.Severity -gt (Get-SeverityRank $Entity.WorstSeverity))) {
+        if ($Finding.Severity -and ((Get-SeverityRank $Finding.Severity) -gt (Get-SeverityRank $Entity.WorstSeverity))) {
             $Entity.WorstSeverity = $Finding.Severity
         }
 
@@ -363,9 +425,11 @@ class EntityStore {
                             $existing.Observations = @($existing.Observations) + @($entity.Observations)
                         }
                         $existing.Sources = Merge-UniqueByKey -Existing $existing.Sources -Incoming $entity.Sources -KeySelector { param ($item) $item }
-                        if (Get-SeverityRank $entity.WorstSeverity -gt (Get-SeverityRank $existing.WorstSeverity)) {
+                        if ((Get-SeverityRank $entity.WorstSeverity) -gt (Get-SeverityRank $existing.WorstSeverity)) {
                             $existing.WorstSeverity = $entity.WorstSeverity
                         }
+                        $existing.CompliantCount = [int]($existing.CompliantCount ?? 0) + [int]($entity.CompliantCount ?? 0)
+                        $existing.NonCompliantCount = [int]($existing.NonCompliantCount ?? 0) + [int]($entity.NonCompliantCount ?? 0)
                     }
                 }
             }
