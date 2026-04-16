@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Added
+- **Phase 0 security helpers**: shared sanitization, masking, retry, and rate-limit modules with Pester coverage for retry and credential scrubbing.
 - **V3 Phase 0 core modules**: Add schema v2 factories/validation, canonicalization helpers, in-memory EntityStore with spill-to-disk, schema/canonicalization Pester tests, and a tool manifest for plugin registration.
 - **Management group recursion**: When `-ManagementGroupId` is provided, the orchestrator auto-discovers all child subscriptions via ARG query and runs subscription-scoped tools (azqr, PSRule, WARA) across each one. MG-scoped tools (AzGovViz, ALZ queries) and tenant-wide tools (Maester) are unaffected. Use `-Recurse:$false` to disable.
 - **AI triage (optional, requires GitHub Copilot license)**: `-EnableAiTriage` switch enriches non-compliant findings via GitHub Copilot SDK with priority ranking, risk context, remediation steps, and root cause grouping. Zero footprint when disabled. See `docs/ai-triage.md`.
@@ -39,6 +40,7 @@ All notable changes to azure-analyzer will be documented here.
   - Tool coverage section showing which tools ran vs were skipped
 
 ### Changed
+- PowerShell minimum version raised to 7.4 to support Phase 0 security modules.
 - README: Restructure as consumer-first (Quick Start → What you get → Prerequisites → Usage → Schema → Permissions) with contributor/CI sections below a separator
 - README: Rewrite CI/Automation section -- separate user-facing CI from maintainer-only squad workflows behind a collapsed `<details>` block
 - README: Add "For Contributors" section explaining that `.squad/` is maintainer infrastructure, not part of the tool
@@ -55,6 +57,10 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 - **Phase 0 core hardening**: Removed unsupported null-conditional member access from `EntityStore`, fixed severity comparison invocation parsing, and corrected spill-file entity merge to aggregate compliant/non-compliant counts.
 - **Tool manifest v3 metadata**: Added `provider`, `scope`, `normalizer`, and `invokeMethod` fields per tool entry; retained `azgovviz` with a migration note for native ARG in a later phase.
+- **Sanitization coverage**: `Remove-Credentials` now redacts Azure `sig=...`, `client_secret=...`, and `SharedAccessSignature=...` patterns in addition to existing token patterns.
+- **Security helper fail-fast mode**: Added `$ErrorActionPreference = 'Stop'` to shared `Sanitize`, `Mask`, `Retry`, and `RateLimit` modules for consistent terminating behavior.
+- **Rate limit header handling**: Azure `x-ms-ratelimit-remaining-*` headers are now tracked across all matching buckets instead of stopping at the first one.
+- **Tool status diagnostics**: `New-HtmlReport.ps1` now emits a warning when tool status JSON cannot be parsed in report generation.
 - **Invoke-Wrapper fallback status**: Both fallback paths (script-not-found and exception-after-retries) now return `Status='Failed'` and `Message`, preventing `tool-status.json` and reports from falsely showing success after hard failures.
 - **Maester API mapping**: Fix `.Tests` → `.Result` to match Pester `TestResultContainer` returned by `Invoke-Maester -PassThru`. Handle `NotRun` status alongside `Passed`/`Skipped`.
 - **Graph scopes hint**: Warning message now shows `Connect-MgGraph -Scopes (Get-MtGraphScope)` with correct scope helper.

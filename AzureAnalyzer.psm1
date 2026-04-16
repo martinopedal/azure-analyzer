@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure Analyzer PowerShell Module — Root module script.
@@ -17,7 +17,7 @@ $ModuleRoot = Split-Path -Parent $PSScriptRoot
 
 # Dot-source all tool wrapper modules from modules/ directory
 # These are internal helpers and should not be exported directly
-Get-ChildItem -Path (Join-Path $ModuleRoot 'modules') -Filter '*.ps1' -ErrorAction SilentlyContinue | ForEach-Object {
+Get-ChildItem -Path (Join-Path $ModuleRoot 'modules') -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
     . $_.FullName
 }
 

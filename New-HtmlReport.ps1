@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Generate an offline HTML report from azure-analyzer results.
@@ -19,6 +19,14 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+$sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) {
+    . $sanitizePath
+}
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string]$Text) return $Text }
+}
 
 if (-not (Test-Path $InputPath)) {
     throw "Results file not found: $InputPath. Run Invoke-AzureAnalyzer.ps1 first."
@@ -77,7 +85,9 @@ if (Test-Path $statusJsonPath) {
     try {
         $statusData = @(Get-Content $statusJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
         foreach ($ts in $statusData) { $toolStatusMap[$ts.Tool] = $ts.Status }
-    } catch { }
+    } catch {
+        Write-Warning "Could not load tool status: $_"
+    }
 }
 
 $sourcesWithResults = @($sourceGroups | ForEach-Object { $_.Name })
@@ -382,9 +392,10 @@ try {
     if (-not (Test-Path $outputDir)) {
         $null = New-Item -ItemType Directory -Path $outputDir -Force
     }
+    $html = Remove-Credentials $html
     $html | Set-Content -Path $OutputPath -Encoding UTF8
 } catch {
-    Write-Error "Failed to write HTML report to ${OutputPath}: $_"
+    Write-Error (Remove-Credentials "Failed to write HTML report to ${OutputPath}: $_")
     return
 }
 Write-Host "HTML report written to: $OutputPath" -ForegroundColor Green
