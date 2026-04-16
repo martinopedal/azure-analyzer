@@ -664,10 +664,13 @@ if ($PreviousRun) {
 }
 
 if (-not $resolvedPreviousRun) {
-    $currentResultsPath = (Resolve-Path $outputFile).Path
+    $currentResultsPath = $null
+    if (Test-Path $outputFile -PathType Leaf) {
+        $currentResultsPath = (Resolve-Path $outputFile).Path
+    }
     $fallbackRuns = @(Get-ChildItem -Path (Join-Path $PSScriptRoot 'output-*') -Directory -ErrorAction SilentlyContinue |
         ForEach-Object { Join-Path $_.FullName 'results.json' } |
-        Where-Object { (Test-Path $_) -and ((Resolve-Path $_).Path -ne $currentResultsPath) } |
+        Where-Object { (Test-Path $_) -and ($null -eq $currentResultsPath -or (Resolve-Path $_).Path -ne $currentResultsPath) } |
         ForEach-Object { Get-Item $_ } |
         Sort-Object LastWriteTime -Descending)
     if ($fallbackRuns.Count -gt 0) {
