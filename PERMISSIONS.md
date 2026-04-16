@@ -27,6 +27,7 @@ Azure, Graph, CI/CD, cost, and optional AI access. See
 | **AzGovViz** | Management Group | Reader | Crawls governance hierarchy, policies, and RBAC assignments |
 | **ALZ Resource Graph queries** | Subscription or MG | Reader | Runs 132 custom ARG queries for Azure architecture assessment |
 | **WARA** | Subscription | Reader | Collects Well-Architected Framework reliability assessment data |
+| **Kubescape** | AKS cluster | Reader (+ AKS RBAC Reader) | Discovers AKS clusters via ARG and maps runtime posture findings to AKS ARM IDs |
 
 **How to grant:**
 ```powershell
@@ -58,6 +59,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 |------------|----------|
 | **Subscription-scoped** (azqr, PSRule, WARA) | Runs **per discovered subscription** |
 | **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
+| **Cluster-scoped** (Kubescape) | Discovers AKS clusters in scope and runs **per cluster** with isolated kubeconfig contexts |
 | **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
 | **CLI-scoped** (zizmor, gitleaks, Trivy) | Local filesystem tools; run automatically, no cloud scope needed |
@@ -220,6 +222,20 @@ These tools scan the local repository checkout and require **no API tokens, clou
 
 ---
 
+### AKS runtime tool (Kubescape)
+
+Kubescape extends azure-analyzer into cluster runtime posture checks for AKS.
+
+| Requirement | Why |
+|-------------|-----|
+| **Azure Reader** on subscription or management group | Discover AKS clusters via Azure Resource Graph |
+| **Azure Kubernetes Service RBAC Reader** on each AKS cluster | Read Kubernetes API objects needed by runtime posture checks |
+| **CLI binaries**: `az`, `kubectl`, `kubescape` | Acquire kubeconfig context and run kubescape scan |
+
+If AKS RBAC Reader is missing for a discovered cluster, kubescape is skipped for that cluster and the run continues.
+
+---
+
 ### Azure DevOps (ADO Service Connections -- service connection inventory)
 
 The ADO service connection scanner requires a Personal Access Token (PAT) with read access to service endpoints.
@@ -306,6 +322,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **zizmor** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
 | **gitleaks** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
 | **Trivy** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
+| **Kubescape** | ✅ Required (for ARG discovery) | -- | -- | -- | ✅ Binary on PATH + AKS RBAC Reader | -- |
 | **AI Triage** | -- | -- | ⚡ Recommended | -- | -- | ⚠️ Optional |
 
 - ✅ = Required for tool to function

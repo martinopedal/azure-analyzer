@@ -129,6 +129,41 @@ function Get-ChildSubscriptions {
     }
 }
 
+function Get-AksClustersInScope {
+    param (
+        [string[]] $SubscriptionIds,
+        [string] $ManagementGroupId
+    )
+
+    $query = @'
+resources
+| where type =~ "microsoft.containerservice/managedclusters"
+| project id, name, subscriptionId, resourceGroup, location
+'@
+
+    $clusters = [System.Collections.Generic.List[object]]::new()
+
+    try {
+        if ($SubscriptionIds -and $SubscriptionIds.Count -gt 0) {
+            foreach ($subId in $SubscriptionIds) {
+                $rows = Search-AzGraph -Query $query -Subscription $subId -First 1000 -ErrorAction Stop
+                foreach ($row in @($rows)) { $clusters.Add($row) }
+            }
+            return @($clusters)
+        }
+
+        if ($ManagementGroupId) {
+            $rows = Search-AzGraph -Query $query -ManagementGroup $ManagementGroupId -First 1000 -ErrorAction Stop
+            foreach ($row in @($rows)) { $clusters.Add($row) }
+            return @($clusters)
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Failed to enumerate AKS clusters in scope: $_")
+    }
+
+    return @()
+}
+
 $subscriptionsToScan = [System.Collections.Generic.List[string]]::new()
 if ($SubscriptionId) { $subscriptionsToScan.Add($SubscriptionId) }
 
@@ -177,6 +212,8 @@ function Install-Prerequisites {
         @{ Cmd = 'azqr'; Tool = 'azqr'; Name = 'Azure Quick Review'; Install = 'winget install azure-quick-review.azqr' },
         @{ Cmd = 'scorecard'; Tool = 'scorecard'; Name = 'OpenSSF Scorecard'; Install = 'Download from https://github.com/ossf/scorecard/releases' },
         @{ Cmd = 'trivy'; Tool = 'trivy'; Name = 'Trivy Vulnerability Scanner'; Install = 'Download from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy' },
+        @{ Cmd = 'kubescape'; Tool = 'kubescape'; Name = 'Kubescape'; Install = 'winget install ARMO.kubescape / brew install kubescape / snap install kubescape' },
+        @{ Cmd = 'kubectl'; Tool = 'kubescape'; Name = 'kubectl'; Install = 'Install kubectl from https://kubernetes.io/docs/tasks/tools/' },
         @{ Cmd = 'zizmor'; Tool = 'zizmor'; Name = 'zizmor (Actions YAML Scanner)'; Install = 'pip install zizmor or https://github.com/woodruffw/zizmor/releases' },
         @{ Cmd = 'gitleaks'; Tool = 'gitleaks'; Name = 'gitleaks (Secrets Scanner)'; Install = 'Download from https://github.com/gitleaks/gitleaks/releases' }
     )
@@ -396,6 +433,39 @@ foreach ($toolDef in $manifest.tools) {
                 Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
             })
             $toolMetaMap[$specName] = $toolDef
+        }
+        'cluster' {
+            $scopeSubs = @($subscriptionsToScan)
+            $aksClusters = Get-AksClustersInScope -SubscriptionIds $scopeSubs -ManagementGroupId $ManagementGroupId
+            if (-not $aksClusters -or $aksClusters.Count -eq 0) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No AKS clusters found in scope'; Findings = 0 })
+                continue
+            }
+
+            foreach ($cluster in $aksClusters) {
+                $clusterSub = [string]$cluster.subscriptionId
+                $clusterRg = [string]$cluster.resourceGroup
+                $clusterName = [string]$cluster.name
+                $clusterId = [string]$cluster.id
+                if (-not $clusterSub -or -not $clusterRg -or -not $clusterName) { continue }
+
+                $params = @{
+                    SubscriptionId   = $clusterSub
+                    ResourceGroupName = $clusterRg
+                    ClusterName      = $clusterName
+                    ClusterResourceId = $clusterId
+                }
+
+                $specName = "$($toolDef.name)|$clusterSub|$clusterName"
+                $toolSpecs.Add([PSCustomObject]@{
+                    Name        = $specName
+                    Provider    = $toolDef.provider
+                    Scope       = $toolDef.scope
+                    ScriptBlock = $runnerBlock
+                    Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+                })
+                $toolMetaMap[$specName] = $toolDef
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **zizmor**, **gitleaks**, and **Trivy** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, CI/CD workflow security, secrets detection, and DevOps service connection dimensions.
+Automated Azure assessment that bundles **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **zizmor**, **gitleaks**, **Trivy**, and **Kubescape** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, identity security, supply chain security, CI/CD workflow security, secrets detection, AKS runtime posture, and DevOps service connection dimensions.
 
 ## Quick Start
 
@@ -172,8 +172,10 @@ The report groups findings by category, then prioritizes action:
 | zizmor CLI | [Download](https://github.com/woodruffw/zizmor/releases) | GitHub Actions workflow security (optional) |
 | gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
 | trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
+| kubectl CLI | [Install](https://kubernetes.io/docs/tasks/tools/) | AKS cluster context access for runtime scanning (optional) |
+| kubescape CLI | [Download](https://github.com/kubescape/kubescape) | AKS runtime posture scanning (optional) |
 
-**Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard, zizmor, gitleaks, trivy) must be installed manually.
+**Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard, zizmor, gitleaks, trivy, kubectl, kubescape) must be installed manually.
 
 **AzGovViz** is a standalone script, not a module. Clone it into `tools/AzGovViz/` or `$HOME/AzGovViz/`:
 ```
@@ -280,9 +282,10 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **Azure + ADO** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"` |
 | **CI/CD security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks','trivy'` |
 | **Supply chain scan with custom path** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
+| **AKS runtime posture only** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -IncludeTools 'kubescape'` |
 | **Local repo security scan** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`
+**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`, `kubescape`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
@@ -301,10 +304,13 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 9 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity |
 | 10 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns |
 | 11 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) |
+| 12 | **[Kubescape](https://github.com/kubescape/kubescape)** | AKS runtime posture -- CIS Kubernetes Benchmark and NSA/CISA hardening controls from inside the cluster | CLI runs per AKS cluster context and emits JSON findings mapped to cluster ARM resources |
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
 > **Note:** zizmor, gitleaks, and Trivy are local CLI tools that scan the current repository checkout. They require no cloud permissions or API tokens -- just the CLI binary installed on the machine. They run automatically when enabled and the binary is found on PATH.
+
+> **Note:** Kubescape scans AKS cluster runtime posture and requires `kubectl` + `kubescape` plus AKS read access. Azure-analyzer discovers AKS clusters via ARG and runs `az aks get-credentials` per cluster context.
 
 ## Schema reference
 
@@ -318,7 +324,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, or `trivy` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, `scorecard`, `ado-connections`, `zizmor`, `gitleaks`, `trivy`, or `kubescape` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -373,6 +379,7 @@ All tools operate read-only. No write permissions required anywhere.
 | Scope | What needs it |
 |-------|--------------|
 | **Azure Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA |
+| **AKS RBAC Reader** | Kubescape runtime posture scan against AKS clusters |
 | **Microsoft Graph** (read) | Maester -- Entra ID security |
 | **GitHub token** (optional) | Scorecard -- repo security (recommended for rate limits) |
 | **Local CLI only** (no cloud permissions) | zizmor, gitleaks, Trivy -- scan local filesystem |

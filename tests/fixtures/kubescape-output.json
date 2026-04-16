@@ -1,0 +1,33 @@
+{
+  "Source": "kubescape",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Id": "e1111111-1111-1111-1111-111111111111",
+      "Category": "Kubernetes Runtime",
+      "Title": "Do not allow privileged containers",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "CIS 5.2.8 control failed for privileged container usage",
+      "Remediation": "Set securityContext.privileged to false",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-aks-eastus/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "LearnMoreUrl": "https://hub.armosec.io/docs/c-0016",
+      "ControlId": "C-0016",
+      "CisIds": ["CIS-5.2.8"]
+    },
+    {
+      "Id": "e2222222-2222-2222-2222-222222222222",
+      "Category": "Kubernetes Runtime",
+      "Title": "Minimize admission of containers with added capabilities",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Mapped to CIS 5.2.9",
+      "Remediation": "Drop unnecessary Linux capabilities",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-aks-eastus/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "LearnMoreUrl": "https://hub.armosec.io/docs/c-0017",
+      "ControlId": "C-0017",
+      "CisIds": ["CIS-5.2.9"]
+    }
+  ]
+}

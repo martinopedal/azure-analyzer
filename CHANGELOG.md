@@ -14,6 +14,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 - **trivy minimum version check**: `Invoke-Trivy.ps1` now runs `trivy --version`, parses the version number, and warns if below the minimum known-safe version (0.50.0). Includes guidance to download from official GitHub releases only.
+- **Phase 6 kubescape runtime integration**: Added `kubescape` manifest entry (`provider=azure`, `scope=cluster`, `install.kind=cli`, `report.phase=6`), new wrapper `modules/Invoke-Kubescape.ps1`, new normalizer `modules/normalizers/Normalize-Kubescape.ps1`, and fixture-backed Pester tests. The orchestrator now discovers AKS clusters via ARG and runs kubescape per cluster with isolated kubeconfig contexts.
 
 ### Added
 - **Phase 3: CI/CD security tools (zizmor, gitleaks, Trivy)**: Three new local CLI tools for repository security scanning, all operating read-only on the local filesystem with no cloud permissions required.
@@ -163,5 +164,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 

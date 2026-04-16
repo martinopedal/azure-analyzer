@@ -147,6 +147,30 @@
       "enabled": true
     },
     {
+      "name": "kubescape",
+      "displayName": "Kubescape (AKS Runtime Posture)",
+      "source": "kubescape",
+      "provider": "azure",
+      "scope": "cluster",
+      "normalizer": "Normalize-Kubescape",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Kubescape.ps1",
+      "requiredParams": [],
+      "optionalParams": ["SubscriptionId", "ManagementGroupId", "ClusterName", "ResourceGroupName", "Kubeconfig", "ClusterResourceId"],
+      "requiredPermissionTier": 1,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#00695c", "phase": 6 },
+      "install": {
+        "kind": "cli",
+        "command": "kubescape",
+        "windows": { "winget": "ARMO.kubescape" },
+        "macos": { "brew": "kubescape" },
+        "linux": { "snap": "kubescape" }
+      }
+    },
+    {
       "name": "identity-correlator",
       "displayName": "Identity Correlator",
       "source": "identity-correlator",
