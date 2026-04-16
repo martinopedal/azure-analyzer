@@ -48,17 +48,22 @@ Describe 'Normalize-AzGovViz' {
         }
 
         It 'maps subscription-scoped findings to Subscription EntityType' {
-            $subFinding = $results | Where-Object { $_.EntityId -match '^[0-9a-f-]{36}$' }
-            if ($subFinding) {
-                $subFinding.EntityType | Should -Be 'Subscription'
-            }
+            $subFinding = $results | Where-Object { $_.ResourceId -match '^/subscriptions/[^/]+$' }
+            $subFinding | Should -Not -BeNullOrEmpty
+            $subFinding.EntityType | Should -Be 'Subscription'
         }
 
         It 'maps governance findings without ResourceId to ManagementGroup EntityType' {
             $mgFinding = $results | Where-Object { $_.EntityType -eq 'ManagementGroup' }
-            if ($mgFinding) {
-                $mgFinding.EntityType | Should -Be 'ManagementGroup'
-            }
+            $mgFinding | Should -Not -BeNullOrEmpty
+            $mgFinding.EntityType | Should -Be 'ManagementGroup'
+        }
+
+        It 'uses stable canonical IDs for MG findings (not random GUIDs)' {
+            $mgFinding = $results | Where-Object { $_.EntityType -eq 'ManagementGroup' }
+            $mgFinding | Should -Not -BeNullOrEmpty
+            $mgFinding.EntityId | Should -Match '^azgovviz/'
+            $mgFinding.EntityId | Should -Not -Match '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
         }
     }
 

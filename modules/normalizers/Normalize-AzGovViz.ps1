@@ -42,7 +42,12 @@ function Normalize-AzGovViz {
         $entityType = 'ManagementGroup'
 
         if ($rawId -and $rawId -match '^/subscriptions/') {
-            $entityType = 'AzureResource'
+            # Bare /subscriptions/{id} → Subscription; deeper paths → AzureResource
+            if ($rawId -match '^/subscriptions/[^/]+$') {
+                $entityType = 'Subscription'
+            } else {
+                $entityType = 'AzureResource'
+            }
             try {
                 $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId
             } catch {
@@ -53,8 +58,16 @@ function Normalize-AzGovViz {
         }
 
         if (-not $canonicalId) {
-            $findingId = Get-PropertyValue $finding 'Id' ([guid]::NewGuid().ToString())
-            $canonicalId = "azgovviz/$findingId"
+            # For MG findings, build a stable ID from Category+Title instead of random GUID
+            $mgId = Get-PropertyValue $finding 'ManagementGroupId' ''
+            if ($mgId) {
+                $canonicalId = "azgovviz/mg/$($mgId.ToLowerInvariant())"
+            } else {
+                $cat  = Get-PropertyValue $finding 'Category' 'unknown'
+                $ttl  = Get-PropertyValue $finding 'Title' (Get-PropertyValue $finding 'Description' 'unknown')
+                $stableKey = "$cat/$ttl".ToLowerInvariant() -replace '[^a-z0-9/]', '-'
+                $canonicalId = "azgovviz/$stableKey"
+            }
             # For management group findings, keep the ManagementGroup type
             $entityType = 'ManagementGroup'
         }

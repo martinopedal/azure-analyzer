@@ -84,7 +84,8 @@ function ShouldRunTool { param ([string]$ToolName)
     return $true
 }
 
-$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ }
+# PSRule can run in path-mode without Azure scope, so exempt it from the guard
+$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
@@ -250,7 +251,7 @@ foreach ($toolDef in $manifest.tools) {
                 # Tool-specific optional params
                 if ($toolDef.name -eq 'wara') {
                     if ($TenantId) { $params['TenantId'] = $TenantId }
-                    $params['OutputPath'] = Join-Path $OutputPath 'wara'
+                    $params['OutputPath'] = Join-Path $OutputPath "wara-$subId"
                 }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{
@@ -395,8 +396,8 @@ foreach ($wr in $parallelResults) {
     # Update worst status
     if ($wrapperStatus -eq 'Failed') {
         $agg.WorstStatus = 'Failed'
-        $msg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
-        $agg.Messages.Add($msg)
+        $rawMsg = if ($toolResult.PSObject.Properties['Message'] -and $toolResult.Message) { $toolResult.Message } else { '' }
+        $agg.Messages.Add((Remove-Credentials $rawMsg))
     } elseif ($wrapperStatus -eq 'Skipped' -and $agg.WorstStatus -ne 'Failed') {
         $agg.WorstStatus = 'Skipped'
     }
@@ -462,12 +463,14 @@ try {
 
     # v1-compatible flat findings (backward compat for reports)
     $outputFile = Join-Path $OutputPath 'results.json'
-    $allResults | ConvertTo-Json -Depth 5 | Set-Content -Path $outputFile -Encoding UTF8
+    $resultsJson = if ($allResults.Count -eq 0) { '[]' } else { $allResults | ConvertTo-Json -Depth 5 }
+    Set-Content -Path $outputFile -Value $resultsJson -Encoding UTF8
 
     # v3 entity-centric output
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
-    $entities | ConvertTo-Json -Depth 30 | Set-Content -Path $entitiesFile -Encoding UTF8
+    $entitiesJson = if ($entities.Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
+    Set-Content -Path $entitiesFile -Value $entitiesJson -Encoding UTF8
 
     # Tool status
     $statusFile = Join-Path $OutputPath 'tool-status.json'
@@ -513,13 +516,14 @@ try {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
 }
 
-$high   = @($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
-$medium = @($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
-$low    = @($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
+$critical = @($allResults | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count
+$high     = @($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
+$medium   = @($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
+$low      = @($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
 
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 Write-Host "  Total findings: $($allResults.Count)"
-Write-Host "  Non-compliant — High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
+Write-Host "  Non-compliant — Critical: $critical  High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
 Write-Host "  Output: $outputFile" -ForegroundColor Green
 if (Test-Path $entitiesFile) {
     Write-Host "  Entities: $entitiesFile" -ForegroundColor Green
