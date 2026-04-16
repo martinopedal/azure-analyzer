@@ -49,6 +49,27 @@
       }
     },
     {
+      "name": "azure-cost",
+      "displayName": "Azure Cost (Consumption API)",
+      "source": "azure-cost",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AzureCost",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AzureCost.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["TopN", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#388e3c", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts"]
+      }
+    },
+    {
       "name": "psrule",
       "displayName": "PSRule for Azure",
       "source": "psrule",
