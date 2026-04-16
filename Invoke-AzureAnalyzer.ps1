@@ -482,6 +482,27 @@ foreach ($wr in $parallelResults) {
                 $null = Add-FrameworkMapping -Finding $finding -FilterFramework $Framework
             }
             $store.AddFinding($finding)
+
+            # If the finding carries cost metadata, fold it onto the owning entity.
+            if ($finding.PSObject.Properties['MonthlyCost'] -or $finding.PSObject.Properties['Currency']) {
+                $hasCost = ($finding.PSObject.Properties['MonthlyCost'] -and $null -ne $finding.MonthlyCost -and $finding.MonthlyCost -ne 0) -or `
+                           ($finding.PSObject.Properties['Currency'] -and $finding.Currency)
+                if ($hasCost) {
+                    $stub = [pscustomobject]@{
+                        EntityId       = $finding.EntityId
+                        EntityType     = $finding.EntityType
+                        Platform       = $finding.Platform
+                        MonthlyCost    = $finding.MonthlyCost
+                        Currency       = $finding.Currency
+                        CostTrend      = if ($finding.PSObject.Properties['CostTrend']) { $finding.CostTrend } else { $null }
+                        SubscriptionId = $finding.SubscriptionId
+                        ResourceGroup  = $finding.ResourceGroup
+                    }
+                    try { $store.MergeEntityMetadata($stub) } catch {
+                        Write-Warning (Remove-Credentials "MergeEntityMetadata failed for cost enrichment: $_")
+                    }
+                }
+            }
         } catch {
             Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $toolName : $_")
         }

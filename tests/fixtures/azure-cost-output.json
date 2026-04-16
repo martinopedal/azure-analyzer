@@ -1,0 +1,55 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "azure-cost",
+  "Status": "Success",
+  "Message": "Collected 3 usage records; emitted 1 subscription roll-up + 2 top-resource findings.",
+  "Subscription": "11111111-1111-1111-1111-111111111111",
+  "Findings": [
+    {
+      "Id": "azure-cost/subscription/11111111-1111-1111-1111-111111111111",
+      "Source": "azure-cost",
+      "Category": "Cost",
+      "Severity": "Info",
+      "Compliant": true,
+      "Title": "30-day subscription spend: 1234.56 USD",
+      "Detail": "Aggregated from 3 usageDetails records.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111",
+      "ResourceType": "Microsoft.Resources/subscriptions",
+      "MonthlyCost": 1234.56,
+      "Currency": "USD",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/cost-management-billing/"
+    },
+    {
+      "Id": "azure-cost/resource/sub1-res-aks",
+      "Source": "azure-cost",
+      "Category": "Cost",
+      "Severity": "Info",
+      "Compliant": true,
+      "Title": "Top costly resource: 800.00 USD",
+      "Detail": "Microsoft.ContainerService/managedClusters in eastus. 30-day total 800.00 USD.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/aks1",
+      "ResourceType": "Microsoft.ContainerService/managedClusters",
+      "ResourceName": "aks1",
+      "Location": "eastus",
+      "MonthlyCost": 800.00,
+      "Currency": "USD",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/advisor/advisor-cost-recommendations"
+    },
+    {
+      "Id": "azure-cost/resource/sub1-res-sql",
+      "Source": "azure-cost",
+      "Category": "Cost",
+      "Severity": "Info",
+      "Compliant": true,
+      "Title": "Top costly resource: 434.56 USD",
+      "Detail": "Microsoft.Sql/servers/databases in eastus. 30-day total 434.56 USD.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.Sql/servers/sqlsrv/databases/appdb",
+      "ResourceType": "Microsoft.Sql/servers/databases",
+      "ResourceName": "appdb",
+      "Location": "eastus",
+      "MonthlyCost": 434.56,
+      "Currency": "USD",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/advisor/advisor-cost-recommendations"
+    }
+  ]
+}
