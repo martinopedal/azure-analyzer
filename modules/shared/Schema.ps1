@@ -25,7 +25,8 @@ $script:EntityTypes = @(
     'User',
     'Subscription',
     'ManagementGroup',
-    'Workflow'
+    'Workflow',
+    'Tenant'
 )
 $script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
@@ -44,7 +45,8 @@ function Get-PlatformForEntityType {
             'User',
             'Subscription',
             'ManagementGroup',
-            'Workflow'
+            'Workflow',
+            'Tenant'
         )]
         [string] $EntityType
     )
@@ -57,6 +59,7 @@ function Get-PlatformForEntityType {
         'ServicePrincipal' { 'Entra' }
         'Application' { 'Entra' }
         'User' { 'Entra' }
+        'Tenant' { 'Entra' }
         'Repository' { 'GitHub' }
         'Workflow' { 'GitHub' }
         'Pipeline' { 'ADO' }
@@ -113,7 +116,8 @@ function New-FindingRow {
             'User',
             'Subscription',
             'ManagementGroup',
-            'Workflow'
+            'Workflow',
+            'Tenant'
         )]
         [string] $EntityType,
 
@@ -222,7 +226,8 @@ function New-EntityStub {
             'User',
             'Subscription',
             'ManagementGroup',
-            'Workflow'
+            'Workflow',
+            'Tenant'
         )]
         [string] $EntityType,
 

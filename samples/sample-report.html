@@ -10,37 +10,35 @@
   h1 { font-size: 22px; margin-bottom: 4px; }
   h2 { font-size: 16px; margin: 24px 0 12px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
   .subtitle { color: #666; font-size: 12px; margin-bottom: 24px; }
-  
-  /* Stat cards - 6 essentials: clickable, one active at a time, bold border */
+
+  /* Executive summary */
+  .exec-summary { background: #fff; border-radius: 8px; padding: 24px 28px; margin-bottom: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+  .donut { width: 140px; height: 140px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .donut-inner { width: 90px; height: 90px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
+  .exec-text { flex: 1; min-width: 200px; }
+  .exec-text p { font-size: 15px; line-height: 1.6; color: #333; margin-bottom: 6px; }
+  .exec-text .exec-highlight { font-size: 17px; font-weight: 600; color: #1a1a1a; }
+
+  /* Stat cards */
   .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
-  .card { background: #fff; border-radius: 6px; padding: 16px 20px; min-width: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; transition: border 0.2s; border: 2px solid transparent; }
-  .card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
-  .card.active { border-color: #1565c0; border-width: 3px; font-weight: 600; }
+  .card { background: #fff; border-radius: 6px; padding: 16px 20px; min-width: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 2px solid transparent; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .card:focus { outline: 2px solid #1565c0; outline-offset: 2px; }
+  .card[aria-pressed="true"] { border-color: #1565c0; box-shadow: 0 2px 8px rgba(21,101,192,0.3); }
   .card-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
   .card-value { font-size: 28px; font-weight: 700; margin-top: 2px; }
   .card-total .card-value { color: #1a1a1a; }
   .card-high .card-value { color: #d32f2f; }
   .card-medium .card-value { color: #e65100; }
   .card-low .card-value { color: #f9a825; }
-  .card-info .card-value { color: #666; }
-
-  /* Executive summary */
-  .exec-summary { background: #fff; border-radius: 6px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-  .exec-summary p { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 4px; }
-  .exec-summary strong { color: #1a1a1a; }
-
-  /* Filter banner */
-  .filter-banner { display: none; background: #e3f2fd; border-left: 4px solid #1565c0; padding: 12px 16px; margin-bottom: 16px; border-radius: 4px; font-size: 13px; color: #0d47a1; }
-  .filter-banner.active { display: block; }
-  .filter-banner a { color: #0d47a1; font-weight: 600; cursor: pointer; text-decoration: underline; margin-left: 8px; }
-  .filter-banner a:hover { text-decoration: none; }
+  .card-ok .card-value { color: #2e7d32; }
 
   /* Per-source bars */
-  .source-section { background: #fff; border-radius: 6px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .source-section { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
   .bar-label { width: 130px; font-size: 13px; font-weight: 500; flex-shrink: 0; }
   .bar-track { flex: 1; height: 20px; background: #eee; border-radius: 4px; overflow: hidden; margin: 0 10px; }
-  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
   .bar-count { width: 40px; text-align: right; font-size: 13px; font-weight: 600; }
 
   /* Tool coverage */
@@ -49,7 +47,7 @@
   .tool-active { background: #e8f5e9; color: #1b5e20; }
   .tool-skipped { background: #fff3e0; color: #bf360c; }
 
-  /* Findings tables - 6 essentials: severity borders, zebra stripe, sort arrows, text truncation */
+  /* Findings tables */
   details { background: #fff; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   summary { padding: 12px 16px; cursor: pointer; user-select: none; font-size: 14px; }
   summary:hover { background: #f9f9f9; }
@@ -61,24 +59,14 @@
   .findings-table th { background: #f0f0f0; padding: 8px 10px; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .findings-table th:hover { background: #e0e0e0; }
   .findings-table td { padding: 7px 10px; border-top: 1px solid #f0f0f0; vertical-align: top; }
+  .findings-table tr:nth-child(even) td { background: #fafafa; }
+  .findings-table tr.sev-border-high td:first-child { border-left: 3px solid #d32f2f; }
+  .findings-table tr.sev-border-medium td:first-child { border-left: 3px solid #e65100; }
+  .findings-table tr.sev-border-low td:first-child { border-left: 3px solid #f9a825; }
+  .findings-table tr.sev-border-info td:first-child { border-left: 3px solid #bdbdbd; }
   .findings-table td a { color: #1565c0; word-break: break-all; }
   .findings-table td.resource-id { font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .findings-table td.detail-cell { max-width: 250px; cursor: help; }
-  
-  /* Severity left-border (3px) + zebra striping */
-  .findings-table tr:nth-child(odd) td { background: #fafafa; }
-  .findings-table tr:hover td { background: #f0f0f0; }
-  .findings-table tr[data-severity="High"] { border-left: 3px solid #d32f2f; }
-  .findings-table tr[data-severity="Medium"] { border-left: 3px solid #e65100; }
-  .findings-table tr[data-severity="Low"] { border-left: 3px solid #f9a825; }
-  .findings-table tr[data-severity="Info"] { border-left: 3px solid #999; }
-  
-  /* Sort arrows */
-  .findings-table th.sortable::after { content: ' ↕'; font-size: 10px; opacity: 0.5; }
-  .findings-table th.sort-asc::after { content: ' ↑'; opacity: 1; }
-  .findings-table th.sort-desc::after { content: ' ↓'; opacity: 1; }
-
-  /* Badge colors */
+  .findings-table tr:hover td { background: #fafafa; }
   .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; }
   .sev-high { background: #fde8e8; color: #c62828; }
   .sev-medium { background: #fff3e0; color: #bf360c; }
@@ -87,70 +75,164 @@
   .badge-ok { background: #e8f5e9; color: #1b5e20; }
   .badge-fail { background: #fce4ec; color: #880e4f; }
 
-  /* Print styles */
+  /* Filter banner */
+  .filter-banner { display: none; background: #e3f2fd; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; align-items: center; gap: 8px; }
+  .filter-banner.active { display: flex; }
+  .filter-banner button { background: #1565c0; color: #fff; border: none; border-radius: 3px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+  .filter-banner button:hover { background: #0d47a1; }
+
+  /* Print-friendly styles */
   @media print {
     body { background: #fff; padding: 12px; }
-    .filter-box, .filter-input, .filter-banner { display: none !important; }
+    .no-print, .filter-box, .filter-input { display: none !important; }
     .findings-table th { cursor: default; }
     .findings-table th:hover { background: #f0f0f0; }
     details { break-inside: avoid; }
     .findings-table tr { page-break-inside: avoid; }
+    .exec-summary, .source-section, .card, details { box-shadow: none; border: 1px solid #ddd; }
+    a { color: #1a1a1a; text-decoration: underline; }
   }
 </style>
 </head>
 <body>
-
 <h1>Azure Analyzer Report</h1>
-<p class="subtitle">Generated: 2026-04-15 22:01 UTC</p>
+<p class="subtitle">Generated: 2026-04-16 22:35 UTC</p>
 
-<!-- Executive Summary -->
+<!-- Executive Summary with Donut Chart -->
 <div class="exec-summary">
-  <p><strong>Scanned 5 resources across 5 tools</strong></p>
-  <p>20% compliant overall. 2 high-severity findings require action. 1 medium-severity and 1 low-severity findings detected.</p>
+  <div class="donut" style="background:conic-gradient(#2e7d32 0% 0%, #d32f2f 0% 100%);">
+    <div class="donut-inner">0%</div>
+  </div>
+  <div class="exec-text">
+    <p class="exec-highlight">Scanned 23 resources across 12 tools. 0% compliant overall.</p>
+    <p>11 high-severity findings require immediate action.</p>
+    <p>8 medium-severity and 1 low-severity findings also detected across 8 categories.</p>
+  </div>
 </div>
 
-<!-- Stat Cards (6 essentials: clickable, one active at a time, bold border) -->
 <div class="cards">
-  <div class="card card-total" onclick="toggleFilterBySeverity(null)"><div class="card-label">Total</div><div class="card-value">5</div></div>
-  <div class="card card-high" onclick="toggleFilterBySeverity('High')"><div class="card-label">High</div><div class="card-value">2</div></div>
-  <div class="card card-medium" onclick="toggleFilterBySeverity('Medium')"><div class="card-label">Medium</div><div class="card-value">1</div></div>
-  <div class="card card-low" onclick="toggleFilterBySeverity('Low')"><div class="card-label">Low</div><div class="card-value">1</div></div>
-  <div class="card card-info" onclick="toggleFilterBySeverity('Info')"><div class="card-label">Info</div><div class="card-value">1</div></div>
+  <button class="card card-total" onclick="filterBySeverity(this,'all')" aria-pressed="false"><div class="card-label">Total findings</div><div class="card-value">23</div></button>
+  <button class="card card-high" onclick="filterBySeverity(this,'High')" aria-pressed="false"><div class="card-label">High (non-compliant)</div><div class="card-value">11</div></button>
+  <button class="card card-medium" onclick="filterBySeverity(this,'Medium')" aria-pressed="false"><div class="card-label">Medium (non-compliant)</div><div class="card-value">8</div></button>
+  <button class="card card-low" onclick="filterBySeverity(this,'Low')" aria-pressed="false"><div class="card-label">Low (non-compliant)</div><div class="card-value">1</div></button>
+  <button class="card card-ok" onclick="filterBySeverity(this,'compliant')" aria-pressed="false"><div class="card-label">Compliant %</div><div class="card-value">0%</div></button>
 </div>
-
-<!-- Filter Indicator Banner (6 essentials: shows "Showing X findings — Clear") -->
 <div class="filter-banner" id="filterBanner">
-  <span id="filterText"></span>
-  <a onclick="clearAllFilters()">Clear</a>
+  <span id="filterBannerText"></span>
+  <button onclick="clearSeverityFilter()">Clear filter</button>
 </div>
 
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
 <div class="source-section">
-<div class='bar-row'><span class='bar-label'>Azure Quick Review</span><div class='bar-track'><div class='bar-fill' style='width: 100%; background: #1565c0;'></div></div><span class='bar-count'>1</span></div>
-<div class='bar-row'><span class='bar-label'>PSRule</span><div class='bar-track'><div class='bar-fill' style='width: 100%; background: #6a1b9a;'></div></div><span class='bar-count'>1</span></div>
-<div class='bar-row'><span class='bar-label'>AzGovViz</span><div class='bar-track'><div class='bar-fill' style='width: 100%; background: #00838f;'></div></div><span class='bar-count'>1</span></div>
-<div class='bar-row'><span class='bar-label'>ALZ Queries</span><div class='bar-track'><div class='bar-fill' style='width: 100%; background: #e65100;'></div></div><span class='bar-count'>1</span></div>
-<div class='bar-row'><span class='bar-label'>WARA</span><div class='bar-track'><div class='bar-fill' style='width: 100%; background: #2e7d32;'></div></div><span class='bar-count'>1</span></div>
+<div class="bar-row">
+  <span class="bar-label">Azure Quick Review</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#1565c0;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">PSRule for Azure</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#6a1b9a;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">AzGovViz</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#00838f;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">ALZ Resource Graph Queries</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#e65100;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">Well-Architected Reliability Assessment</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#2e7d32;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">Maester</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#7b1fa2;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">OpenSSF Scorecard</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#ff6f00;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">ADO Service Connections</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#0078d4;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">Identity Correlator</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#5e35b1;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">zizmor (Actions YAML Scanner)</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#ad1457;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">gitleaks (Secrets Scanner)</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:50%;background:#c62828;"></div>
+  </div>
+  <span class="bar-count">1</span>
+</div>
+<div class="bar-row">
+  <span class="bar-label">Trivy Vulnerability Scanner</span>
+  <div class="bar-track">
+    <div class="bar-fill" style="width:100%;background:#00695c;"></div>
+  </div>
+  <span class="bar-count">2</span>
+</div>
 </div>
 
 <!-- Tool Coverage Summary -->
 <h2>Tool coverage</h2>
 <div class="tool-coverage">
-<span class='tool-badge tool-active' title='Produced results'>✅ Azure Quick Review</span>
-<span class='tool-badge tool-active' title='Produced results'>✅ PSRule</span>
-<span class='tool-badge tool-active' title='Produced results'>✅ AzGovViz</span>
-<span class='tool-badge tool-active' title='Produced results'>✅ ALZ Queries</span>
-<span class='tool-badge tool-active' title='Produced results'>✅ WARA</span>
-<span class='tool-badge tool-skipped' title='No results / skipped'>⚠️ Maester</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; Azure Quick Review</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; PSRule for Azure</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; AzGovViz</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; ALZ Resource Graph Queries</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; Well-Architected Reliability Assessment</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; Maester</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; OpenSSF Scorecard</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; ADO Service Connections</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; Identity Correlator</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; zizmor (Actions YAML Scanner)</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; gitleaks (Secrets Scanner)</span>
+<span class='tool-badge tool-active' title='Ran successfully'>&#x2705; Trivy Vulnerability Scanner</span>
 </div>
 
-<!-- Findings by Category -->
 <h2>Findings by category</h2>
-<details id="cat-compute">
-  <summary><strong>Compute</strong> <span class="cat-count">(1)</span></summary>
-  <div class="filter-box"><input type="text" placeholder="Filter this category..." onkeyup="filterTable(this)" class="filter-input"></div>
-  <table class="findings-table">
+<details id="cat-ci-cd-security">
+  <summary><strong>CI/CD Security</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-ci-cd-security-0')" class="filter-input"></div>
+  <table id="tbl-ci-cd-security-0" class="findings-table sortable">
     <thead>
       <tr>
         <th onclick="sortTable(this)">Title</th>
@@ -164,14 +246,15 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-severity="High" data-source="azgovviz"><td>VM uses unencrypted OS disk</td><td><span class='badge sev-high'>High</span></td><td>azgovviz</td><td><span class="badge badge-fail">No</span></td><td class="detail-cell" title="Virtual machine uses standard unencrypted OS disk">Virtual machine uses standard unencrypted OS disk</td><td>Enable encryption at rest</td><td class="resource-id">/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1</td><td></td></tr>
+      <tr class='sev-border-critical' data-severity='Critical' data-compliant='false'><td>template-injection: Workflow uses ${{ github.event.issue.title }} in run step</td><td><span class='badge sev-info'>Critical</span></td><td>zizmor</td><td><span class="badge badge-fail">No</span></td><td>File .github/workflows/triage.yml injects untrusted issue title directly into a shell command.</td><td>Move the expression to an env variable and reference it as &quot;$ISSUE_TITLE&quot; in the script.</td><td class="resource-id">.github/workflows/triage.yml</td><td><a href="https://woodruffw.github.io/zizmor/audits/#template-injection" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>unpinned-uses: action pinned by tag, not SHA</td><td><span class='badge sev-medium'>Medium</span></td><td>zizmor</td><td><span class="badge badge-fail">No</span></td><td>File .github/workflows/release.yml references actions/upload-artifact@v4 instead of a 40-char SHA.</td><td>Pin third-party actions to a full commit SHA and add Dependabot for updates.</td><td class="resource-id">.github/workflows/release.yml</td><td><a href="https://woodruffw.github.io/zizmor/audits/#unpinned-uses" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
     </tbody>
   </table>
 </details>
-<details id="cat-data">
-  <summary><strong>Data</strong> <span class="cat-count">(1)</span></summary>
-  <div class="filter-box"><input type="text" placeholder="Filter this category..." onkeyup="filterTable(this)" class="filter-input"></div>
-  <table class="findings-table">
+<details id="cat-governance">
+  <summary><strong>Governance</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-governance-1')" class="filter-input"></div>
+  <table id="tbl-governance-1" class="findings-table sortable">
     <thead>
       <tr>
         <th onclick="sortTable(this)">Title</th>
@@ -185,14 +268,42 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-severity="Low" data-source="alz-queries"><td>SQL Database has no backup</td><td><span class='badge sev-low'>Low</span></td><td>alz-queries</td><td><span class="badge badge-fail">No</span></td><td class="detail-cell" title="SQL database has no backup policy configured">SQL database has no backup policy configured</td><td>Configure backup retention</td><td class="resource-id">/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Sql/servers/sqlsrv1/databases/db1</td><td></td></tr>
+      <tr class='sev-border-low' data-severity='Low' data-compliant='false'><td>Resource missing required tag 'owner'</td><td><span class='badge sev-low'>Low</span></td><td>alz-queries</td><td><span class="badge badge-fail">No</span></td><td>12 resources in subscription 'prod-01' are missing the required 'owner' tag.</td><td>Apply tags via Azure Policy 'Require a tag on resources'.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444</td><td><a href="https://github.com/martinopedal/alz-graph-queries" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>Built-in policy 'Audit VMs without Azure Monitor agent' not assigned</td><td><span class='badge sev-medium'>Medium</span></td><td>azgovviz</td><td><span class="badge badge-fail">No</span></td><td>Recommended built-in policy is not assigned at the management group scope.</td><td>Assign the 'Audit VMs without Azure Monitor agent' policy at the tenant root MG.</td><td class="resource-id">/providers/Microsoft.Management/managementGroups/contoso-root</td><td><a href="https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-identity">
+  <summary><strong>Identity</strong> <span class="cat-count">(7)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-identity-2')" class="filter-input"></div>
+  <table id="tbl-identity-2" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class='sev-border-critical' data-severity='Critical' data-compliant='false'><td>MT.1010: Breakglass accounts without MFA</td><td><span class='badge sev-info'>Critical</span></td><td>maester</td><td><span class="badge badge-fail">No</span></td><td>2 of 2 breakglass accounts have no MFA registered.</td><td>Register FIDO2 keys for all breakglass accounts; review per NIST SP 800-63.</td><td class="resource-id">tenant:11111111-2222-3333-4444-555555555555</td><td><a href="https://maester.dev/docs/tests/MT.1010" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Classic (password-based) service connection in use</td><td><span class='badge sev-high'>High</span></td><td>ado-connections</td><td><span class="badge badge-fail">No</span></td><td>Service connection 'prod-deploy' authenticates with a client secret instead of workload identity federation.</td><td>Migrate the service connection to Workload Identity Federation (OIDC).</td><td class="resource-id">ado://contoso/Platform/serviceEndpoint/prod-deploy</td><td><a href="https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>EIDSCA.AG01: Security defaults disabled, no Conditional Access</td><td><span class='badge sev-high'>High</span></td><td>maester</td><td><span class="badge badge-fail">No</span></td><td>Tenant has security defaults off and fewer than 2 baseline CA policies.</td><td>Deploy baseline Conditional Access policies covering MFA, legacy auth block, and risky sign-ins.</td><td class="resource-id">tenant:11111111-2222-3333-4444-555555555555</td><td><a href="https://maester.dev/docs/tests/EIDSCA.AG01" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Owner role assigned to non-PIM eligible user</td><td><span class='badge sev-high'>High</span></td><td>azgovviz</td><td><span class="badge badge-fail">No</span></td><td>User 'alice@contoso.com' holds a permanent Owner assignment on subscription 'prod-01'.</td><td>Convert the permanent assignment to PIM-eligible with JIT activation.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444</td><td><a href="https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Service principal with Owner role is also an ADO service connection</td><td><span class='badge sev-high'>High</span></td><td>identity-correlator</td><td><span class="badge badge-fail">No</span></td><td>SPN 'sp-prod-deploy' has Owner on subscription prod-01 AND is used by ADO service connection 'prod-deploy'. A compromised ADO pipeline would gain tenant-level control.</td><td>Split responsibilities: use one SPN for role management (User Access Administrator) and a separate, scoped SPN for deployments.</td><td class="resource-id">appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</td><td></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>Orphaned service principal with active role assignment</td><td><span class='badge sev-medium'>Medium</span></td><td>identity-correlator</td><td><span class="badge badge-fail">No</span></td><td>SPN 'sp-legacy-etl' still holds Contributor on rg-prod-data but the corresponding App Registration was deleted 47 days ago.</td><td>Remove the stale role assignment or recreate the App Registration if still needed.</td><td class="resource-id">appId:ffffffff-0000-1111-2222-333333333333</td><td></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>Service connection grants Contributor at subscription scope</td><td><span class='badge sev-medium'>Medium</span></td><td>ado-connections</td><td><span class="badge badge-fail">No</span></td><td>'prod-deploy' has Contributor on the entire prod subscription.</td><td>Scope the service connection to a single resource group or use fine-grained roles.</td><td class="resource-id">ado://contoso/Platform/serviceEndpoint/prod-deploy</td><td><a href="https://learn.microsoft.com/azure/role-based-access-control/best-practices" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
     </tbody>
   </table>
 </details>
 <details id="cat-networking">
-  <summary><strong>Networking</strong> <span class="cat-count">(1)</span></summary>
-  <div class="filter-box"><input type="text" placeholder="Filter this category..." onkeyup="filterTable(this)" class="filter-input"></div>
-  <table class="findings-table">
+  <summary><strong>Networking</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-networking-3')" class="filter-input"></div>
+  <table id="tbl-networking-3" class="findings-table sortable">
     <thead>
       <tr>
         <th onclick="sortTable(this)">Title</th>
@@ -206,14 +317,59 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-severity="Info" data-source="wara"><td>Network security group is well-configured</td><td><span class='badge sev-info'>Info</span></td><td>wara</td><td><span class="badge badge-ok">Yes</span></td><td class="detail-cell" title="NSG has appropriate rules and restrictions">NSG has appropriate rules and restrictions</td><td>No action needed</td><td class="resource-id">/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Network/networkSecurityGroups/nsg1</td><td></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>NSG allows SSH from any source</td><td><span class='badge sev-high'>High</span></td><td>azqr</td><td><span class="badge badge-fail">No</span></td><td>Network Security Group allows SSH (port 22) from any source address.</td><td>Restrict SSH access to specific IP ranges or use Azure Bastion.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend</td><td><a href="https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Public IP without NSG association</td><td><span class='badge sev-high'>High</span></td><td>alz-queries</td><td><span class="badge badge-fail">No</span></td><td>Public IP 'pip-prod-lb' is attached to a NIC that has no associated NSG.</td><td>Attach an NSG to the NIC or subnet; deny inbound by default.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/publicIPAddresses/pip-prod-lb</td><td><a href="https://github.com/martinopedal/alz-graph-queries" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-reliability">
+  <summary><strong>Reliability</strong> <span class="cat-count">(3)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-reliability-4')" class="filter-input"></div>
+  <table id="tbl-reliability-4" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>SQL Database has no active geo-replication</td><td><span class='badge sev-high'>High</span></td><td>wara</td><td><span class="badge badge-fail">No</span></td><td>SQL database 'sqldb-prod-orders' has no secondary replica configured.</td><td>Enable active geo-replication or failover groups for critical databases.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod/databases/sqldb-prod-orders</td><td><a href="https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>AKS cluster has no SLA tier enabled</td><td><span class='badge sev-medium'>Medium</span></td><td>wara</td><td><span class="badge badge-fail">No</span></td><td>AKS cluster 'aks-prod-apps' is running on the Free tier without uptime SLA.</td><td>Upgrade to Standard tier to get 99.95% uptime SLA on the control plane.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-aks/providers/Microsoft.ContainerService/managedClusters/aks-prod-apps</td><td><a href="https://learn.microsoft.com/azure/aks/uptime-sla" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>Azure.VM.AvailabilityZone: VM not deployed to availability zone</td><td><span class='badge sev-medium'>Medium</span></td><td>psrule</td><td><span class="badge badge-fail">No</span></td><td>Virtual machine 'vm-prod-web-01' has no availability zone assigned.</td><td>Redeploy the VM with an explicit availabilityZone (1, 2, or 3).</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-web/providers/Microsoft.Compute/virtualMachines/vm-prod-web-01</td><td><a href="https://azure.github.io/PSRule.Rules.Azure/" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+    </tbody>
+  </table>
+</details>
+<details id="cat-secret-detection">
+  <summary><strong>Secret Detection</strong> <span class="cat-count">(1)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-secret-detection-5')" class="filter-input"></div>
+  <table id="tbl-secret-detection-5" class="findings-table sortable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Title</th>
+        <th onclick="sortTable(this)">Severity</th>
+        <th onclick="sortTable(this)">Source</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th>Detail</th>
+        <th>Remediation</th>
+        <th onclick="sortTable(this)">Resource ID</th>
+        <th>Learn More</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>AWS access key found in commit history</td><td><span class='badge sev-high'>High</span></td><td>gitleaks</td><td><span class="badge badge-fail">No</span></td><td>Rule 'aws-access-token' matched in file scripts/legacy-migrate.sh at line 14. Commit: 8a1f3c2.</td><td>Rotate the exposed credential immediately and purge it from git history with git-filter-repo.</td><td class="resource-id">scripts/legacy-migrate.sh</td><td><a href="https://github.com/gitleaks/gitleaks" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
     </tbody>
   </table>
 </details>
 <details id="cat-security">
-  <summary><strong>Security</strong> <span class="cat-count">(1)</span></summary>
-  <div class="filter-box"><input type="text" placeholder="Filter this category..." onkeyup="filterTable(this)" class="filter-input"></div>
-  <table class="findings-table">
+  <summary><strong>Security</strong> <span class="cat-count">(2)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-security-6')" class="filter-input"></div>
+  <table id="tbl-security-6" class="findings-table sortable">
     <thead>
       <tr>
         <th onclick="sortTable(this)">Title</th>
@@ -227,14 +383,15 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-severity="Medium" data-source="psrule"><td>Key Vault logging disabled</td><td><span class='badge sev-medium'>Medium</span></td><td>psrule</td><td><span class="badge badge-fail">No</span></td><td class="detail-cell" title="Key Vault doesn't have logging enabled for access tracking">Key Vault doesn't have logging enabled for access tracking</td><td>Enable Key Vault logging</td><td class="resource-id">/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.KeyVault/vaults/kv1</td><td></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Azure.Storage.SecureTransfer: Storage account requires HTTPS</td><td><span class='badge sev-high'>High</span></td><td>psrule</td><td><span class="badge badge-fail">No</span></td><td>Storage account 'stprodlogs' allows unencrypted HTTP traffic.</td><td>Set supportsHttpsTrafficOnly=true on the storage account.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stprodlogs</td><td><a href="https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Key Vault soft delete is disabled</td><td><span class='badge sev-high'>High</span></td><td>azqr</td><td><span class="badge badge-fail">No</span></td><td>Key Vault 'kv-prod-secrets' does not have soft delete enabled.</td><td>Enable soft delete on the Key Vault with a minimum retention of 7 days.</td><td class="resource-id">/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-sec/providers/Microsoft.KeyVault/vaults/kv-prod-secrets</td><td><a href="https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
     </tbody>
   </table>
 </details>
-<details id="cat-storage">
-  <summary><strong>Storage</strong> <span class="cat-count">(1)</span></summary>
-  <div class="filter-box"><input type="text" placeholder="Filter this category..." onkeyup="filterTable(this)" class="filter-input"></div>
-  <table class="findings-table">
+<details id="cat-supply-chain">
+  <summary><strong>Supply Chain</strong> <span class="cat-count">(4)</span></summary>
+  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'tbl-supply-chain-7')" class="filter-input"></div>
+  <table id="tbl-supply-chain-7" class="findings-table sortable">
     <thead>
       <tr>
         <th onclick="sortTable(this)">Title</th>
@@ -248,70 +405,60 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-severity="High" data-source="azqr"><td>Storage account has public access</td><td><span class='badge sev-high'>High</span></td><td>azqr</td><td><span class="badge badge-fail">No</span></td><td class="detail-cell" title="Storage account allows public access without firewall rules">Storage account allows public access without firewall rules</td><td>Enable firewall and restrict access</td><td class="resource-id">/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/sa1</td><td><a href="https://docs.microsoft.com" target="_blank" rel="noopener">Learn more</a></td></tr>
+      <tr class='sev-border-critical' data-severity='Critical' data-compliant='false'><td>CVE-2024-24790 (golang.org/x/net)</td><td><span class='badge sev-info'>Critical</span></td><td>trivy</td><td><span class="badge badge-fail">No</span></td><td>Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0.</td><td>Upgrade golang.org/x/net to 0.23.0 or later.</td><td class="resource-id">go.mod</td><td><a href="https://nvd.nist.gov/vuln/detail/CVE-2024-24790" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-high' data-severity='High' data-compliant='false'><td>Branch-Protection score 3/10</td><td><span class='badge sev-high'>High</span></td><td>scorecard</td><td><span class="badge badge-fail">No</span></td><td>Default branch 'main' allows force-push and does not require code review.</td><td>Enable required reviews, linear history, and prohibit force-push on protected branches.</td><td class="resource-id">github.com/contoso/azure-landing-zone</td><td><a href="https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>CVE-2024-28849 (follow-redirects)</td><td><span class='badge sev-medium'>Medium</span></td><td>trivy</td><td><span class="badge badge-fail">No</span></td><td>follow-redirects leaks Proxy-Authorization header across hosts. File: package-lock.json. Installed: 1.15.5. Fixed: 1.15.6.</td><td>Upgrade follow-redirects to 1.15.6 or later.</td><td class="resource-id">package-lock.json</td><td><a href="https://nvd.nist.gov/vuln/detail/CVE-2024-28849" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
+      <tr class='sev-border-medium' data-severity='Medium' data-compliant='false'><td>Pinned-Dependencies score 5/10</td><td><span class='badge sev-medium'>Medium</span></td><td>scorecard</td><td><span class="badge badge-fail">No</span></td><td>3 GitHub Actions in .github/workflows are pinned by tag rather than SHA.</td><td>Replace tag references (e.g. @v4) with full 40-char SHAs and add Dependabot for updates.</td><td class="resource-id">github.com/contoso/azure-landing-zone</td><td><a href="https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies" target="_blank" rel="noopener noreferrer">Learn more</a></td></tr>
     </tbody>
   </table>
 </details>
 
 <script>
-let state = { severity: null };
-function toggleFilterBySeverity(s) {
-  state.severity = state.severity === s ? null : s;
-  applyFilters();
-  updateBanner();
-}
-function clearAllFilters() {
-  state = { severity: null };
-  applyFilters();
-  updateBanner();
-}
-function applyFilters() {
-  const rows = document.querySelectorAll('.findings-table tbody tr');
-  let shown = 0;
-  rows.forEach(r => {
-    const match = !state.severity || r.dataset.severity === state.severity;
-    r.style.display = match ? '' : 'none';
-    if (match) shown++;
+var activeSevFilter = null;
+function filterBySeverity(btn, severity) {
+  var cards = document.querySelectorAll('.card');
+  var rows = document.querySelectorAll('.findings-table tbody tr');
+  var banner = document.getElementById('filterBanner');
+  var bannerText = document.getElementById('filterBannerText');
+  if (activeSevFilter === severity) { clearSeverityFilter(); return; }
+  activeSevFilter = severity;
+  cards.forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
+  btn.setAttribute('aria-pressed', 'true');
+  rows.forEach(function(r) {
+    if (severity === 'all') { r.style.display = ''; }
+    else if (severity === 'compliant') { r.style.display = r.dataset.compliant === 'true' ? '' : 'none'; }
+    else { r.style.display = (r.dataset.severity === severity && r.dataset.compliant === 'false') ? '' : 'none'; }
   });
-  document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-  if (state.severity) {
-    document.querySelector('.card-' + state.severity.toLowerCase()).classList.add('active');
-  }
+  bannerText.textContent = severity === 'all' ? 'Showing all findings' : severity === 'compliant' ? 'Showing compliant findings only' : 'Showing ' + severity + ' severity findings only';
+  banner.classList.add('active');
 }
-function updateBanner() {
-  const banner = document.getElementById('filterBanner');
-  const shown = document.querySelectorAll('.findings-table tbody tr:not([style*="display: none"])').length;
-  if (state.severity) {
-    banner.classList.add('active');
-    document.getElementById('filterText').textContent = 'Showing ' + shown + ' findings';
-  } else {
-    banner.classList.remove('active');
-  }
+function clearSeverityFilter() {
+  activeSevFilter = null;
+  document.querySelectorAll('.card').forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
+  document.querySelectorAll('.findings-table tbody tr').forEach(function(r) { r.style.display = ''; });
+  document.getElementById('filterBanner').classList.remove('active');
 }
 function sortTable(th) {
   const table = th.closest('table');
   const tbody = table.querySelector('tbody');
-  const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
   const idx = Array.from(th.parentNode.children).indexOf(th);
-  const col = th.dataset.sort === 'asc' ? 'desc' : 'asc';
-  th.parentNode.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-  th.classList.add('sort-' + col);
-  th.dataset.sort = col;
+  const asc = th.dataset.sort !== 'asc';
+  th.dataset.sort = asc ? 'asc' : 'desc';
   rows.sort((a, b) => {
     const ta = a.cells[idx].textContent.trim();
     const tb = b.cells[idx].textContent.trim();
-    const cmp = isNaN(ta) ? ta.localeCompare(tb) : Number(ta) - Number(tb);
-    return col === 'asc' ? cmp : -cmp;
+    return asc ? ta.localeCompare(tb) : tb.localeCompare(ta);
   });
   rows.forEach(r => tbody.appendChild(r));
 }
-function filterTable(input) {
-  const filter = input.value.toLowerCase();
-  input.closest('details').querySelectorAll('tbody tr').forEach(r => {
-    r.style.display = r.textContent.toLowerCase().includes(filter) ? '' : 'none';
-  });
+function filterTable(input, tableId) {
+  var filter = input.value.toLowerCase();
+  var rows = document.getElementById(tableId).getElementsByTagName('tr');
+  for (var i = 1; i < rows.length; i++) {
+    rows[i].style.display = rows[i].textContent.toLowerCase().includes(filter) ? '' : 'none';
+  }
 }
 </script>
-
 </body>
 </html>

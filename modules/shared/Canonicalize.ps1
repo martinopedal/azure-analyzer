@@ -202,7 +202,8 @@ function ConvertTo-CanonicalEntityId {
             'User',
             'Subscription',
             'ManagementGroup',
-            'Workflow'
+            'Workflow',
+            'Tenant'
         )]
         [string] $EntityType,
 
@@ -237,6 +238,17 @@ function ConvertTo-CanonicalEntityId {
             $raw.ToLowerInvariant()
         }
         'ManagementGroup' { $RawId.Trim().ToLowerInvariant() }
+        'Tenant' {
+            # Accept bare GUID or tenant:{guid} form; fall back to slugified string for synthetic IDs
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:tenant):(?<id>[0-9a-f-]{36})$') {
+                "tenant:$($matches['id'].ToLowerInvariant())"
+            } elseif ($raw -match $script:GuidPattern) {
+                "tenant:$($raw.ToLowerInvariant())"
+            } else {
+                $raw.ToLowerInvariant() -replace '\s+', '-'
+            }
+        }
         default { throw "Unsupported EntityType '$EntityType'." }
     }
 
@@ -248,6 +260,7 @@ function ConvertTo-CanonicalEntityId {
         'ServicePrincipal' { 'Entra' }
         'Application' { 'Entra' }
         'User' { 'Entra' }
+        'Tenant' { 'Entra' }
         'Repository' { 'GitHub' }
         'Pipeline' { 'ADO' }
         'ServiceConnection' { 'ADO' }

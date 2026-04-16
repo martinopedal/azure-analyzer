@@ -36,12 +36,12 @@ if (-not (Test-Path $InputPath)) {
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
-$total = $findings.Count
-$high = ($findings | Where-Object { $_.Severity -eq 'High' }).Count
-$medium = ($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
-$low = ($findings | Where-Object { $_.Severity -eq 'Low' }).Count
-$info = ($findings | Where-Object { $_.Severity -eq 'Info' }).Count
-$compliantCount = ($findings | Where-Object { $_.Compliant -eq $true }).Count
+$total = @($findings).Count
+$high = @($findings | Where-Object { $_.Severity -eq 'High' }).Count
+$medium = @($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
+$low = @($findings | Where-Object { $_.Severity -eq 'Low' }).Count
+$info = @($findings | Where-Object { $_.Severity -eq 'Info' }).Count
+$compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
 $nonCompliantCount = $total - $compliantCount
 
 $lines = [System.Collections.Generic.List[string]]::new()
@@ -64,9 +64,26 @@ $bySource = $findings | Group-Object -Property Source
 $sourceCountMap = @{}
 foreach ($sg in $bySource) { $sourceCountMap[$sg.Name] = $sg }
 
-# Load tool status metadata if available
-$allSources = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
-$sourceLabels = @{ 'azqr' = 'Azure Quick Review'; 'psrule' = 'PSRule'; 'azgovviz' = 'AzGovViz'; 'alz-queries' = 'ALZ Queries'; 'wara' = 'WARA'; 'maester' = 'Maester'; 'scorecard' = 'Scorecard' }
+# Load tool status metadata if available (manifest-driven source list)
+$manifestPath = Join-Path $PSScriptRoot 'tools' 'tool-manifest.json'
+$allSources   = @()
+$sourceLabels = @{}
+if (Test-Path $manifestPath) {
+    try {
+        $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+        foreach ($t in $manifest.tools) {
+            if (-not $t.enabled) { continue }
+            $allSources += $t.name
+            $sourceLabels[$t.name] = $t.displayName
+        }
+    } catch {
+        Write-Warning "Could not parse tool-manifest.json; falling back to built-in source list. $_"
+    }
+}
+if ($allSources.Count -eq 0) {
+    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','maester','scorecard','ado-connections','identity-correlator','zizmor','gitleaks','trivy')
+    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
+}
 $toolStatusMap = @{}
 $statusJsonPath = Join-Path (Split-Path $InputPath -Parent) 'tool-status.json'
 if (Test-Path $statusJsonPath) {
@@ -85,7 +102,7 @@ foreach ($src in $allSources) {
     $status = if ($toolStatusMap.ContainsKey($src)) { $toolStatusMap[$src] } else { if ($sourceCountMap.ContainsKey($src)) { 'Success' } else { 'Skipped' } }
     if ($sourceCountMap.ContainsKey($src)) {
         $grp = $sourceCountMap[$src]
-        $nc = ($grp.Group | Where-Object { -not $_.Compliant }).Count
+        $nc = @($grp.Group | Where-Object { -not $_.Compliant }).Count
         $lines.Add("| $label | $status | $($grp.Count) | $nc |")
     } else {
         $lines.Add("| $label | $status | 0 | 0 |")

@@ -9,7 +9,14 @@ function Invoke-WithRetry {
         [scriptblock] $ScriptBlock,
         [int] $MaxRetries = 3,
         [int] $BaseDelaySec = 2,
-        [int] $MaxDelaySec = 60
+        [int] $MaxDelaySec = 60,
+        [string[]] $TransientMessagePatterns = @(
+            '\b429\b', '\b503\b', '\b504\b',
+            'throttl', 'rate limit', 'too many requests',
+            'timed out', 'timeout', 'service unavailable',
+            'temporarily unavailable', 'connection reset', 'temporary failure',
+            'could not resolve host', 'network is unreachable', 'tls handshake'
+        )
     )
 
     $retryable = @('Throttled', 'Timeout', 'ProviderError', 'ServiceUnavailable')
@@ -21,8 +28,21 @@ function Invoke-WithRetry {
         } catch {
             $category = Get-ErrorCategory -ErrorRecord $_
             $normalized = $category.ToString()
+            $isRetryable = ($retryable -contains $normalized)
 
-            if ($retryable -notcontains $normalized) {
+            if (-not $isRetryable) {
+                # Fall back to inspecting the exception message for well-known
+                # transient markers (HTTP 429/503, throttling, timeouts). Many
+                # upstream libraries (Invoke-WebRequest, Search-AzGraph, ...)
+                # do not classify these into a PowerShell ErrorCategory that
+                # matches our retryable enum, so we scan the message too.
+                $msg = ([string]$_.Exception?.Message).ToLowerInvariant()
+                foreach ($pat in $TransientMessagePatterns) {
+                    if ($msg -match $pat) { $isRetryable = $true; break }
+                }
+            }
+
+            if (-not $isRetryable) {
                 $message = "Non-retryable error category '$normalized'. The request failed and will not be retried. Action: verify credentials, inputs, or permissions before retrying."
                 throw [System.Exception]::new($message, $_.Exception)
             }
