@@ -49,6 +49,36 @@
       }
     },
     {
+      "name": "kubescape",
+      "displayName": "Kubescape (AKS runtime posture)",
+      "source": "kubescape",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Kubescape",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-Kubescape.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["ClusterArmIds", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#7b1fa2", "phase": 6 },
+      "install": {
+        "kind": "cli",
+        "command": "kubescape",
+        "windows": { "manager": "winget", "package": "ARMO.kubescape" },
+        "macos":   { "manager": "brew",   "package": "kubescape" },
+        "linux":   { "manager": "script", "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh" }
+      },
+      "upstream": {
+        "repo": "kubescape/kubescape",
+        "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
+        "pinType": "version",
+        "currentPin": "v3"
+      }
+    },
+    {
       "name": "defender-for-cloud",
       "displayName": "Microsoft Defender for Cloud",
       "source": "defender-for-cloud",

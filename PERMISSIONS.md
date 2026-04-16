@@ -314,6 +314,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **WARA** | ✅ Required | -- | -- | -- | -- | -- |
 | **Azure Cost** | ✅ Required (Consumption API read) | -- | -- | -- | -- | -- |
 | **Defender for Cloud** | ✅ Required (Microsoft.Security read) | -- | -- | -- | -- | -- |
+| **kubescape** | ✅ Reader (ARG AKS discovery) + AKS cluster-read RBAC (or kubeconfig) | -- | -- | -- | ✅ `kubescape`, `kubectl`, `az` | -- |
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
