@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.1",
   "tools": [
     {
       "name": "azqr",
@@ -15,7 +15,15 @@
       "optionalParams": ["OutputPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#1565c0", "phase": 1 },
+      "install": {
+        "kind": "cli",
+        "command": "azqr",
+        "windows": { "winget": "azure-quick-review.azqr" },
+        "macos":   { "brew": "azure/azqr/azqr" },
+        "linux":   { "url": "https://github.com/Azure/azqr/releases/latest" }
+      }
     },
     {
       "name": "psrule",
@@ -31,7 +39,12 @@
       "optionalParams": ["Path"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#6a1b9a", "phase": 1 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["PSRule", "PSRule.Rules.Azure"]
+      }
     },
     {
       "name": "azgovviz",
@@ -41,14 +54,21 @@
       "scope": "managementGroup",
       "normalizer": "Normalize-AzGovViz",
       "invokeMethod": "script",
-      "comment": "Phase 0 keeps azgovviz on main; v3 replaces this with native ARG collection.",
+      "comment": "Auto-cloned into tools/AzGovViz/ on first run if missing.",
       "type": "collector",
       "script": "modules/Invoke-AzGovViz.ps1",
       "requiredParams": ["ManagementGroupId"],
       "optionalParams": ["OutputPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#00838f", "phase": 1 },
+      "install": {
+        "kind": "gitclone",
+        "repo": "https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting",
+        "target": "tools/AzGovViz",
+        "probe": "AzGovVizParallel.ps1"
+      }
     },
     {
       "name": "alz-queries",
@@ -64,7 +84,12 @@
       "optionalParams": ["QueriesFile"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#e65100", "phase": 1 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.ResourceGraph"]
+      }
     },
     {
       "name": "wara",
@@ -80,7 +105,12 @@
       "optionalParams": ["TenantId", "OutputPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#2e7d32", "phase": 1 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["WARA"]
+      }
     },
     {
       "name": "maester",
@@ -96,7 +126,12 @@
       "optionalParams": [],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#7b1fa2", "phase": 1 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Maester"]
+      }
     },
     {
       "name": "scorecard",
@@ -112,7 +147,15 @@
       "optionalParams": ["Threshold"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#ff6f00", "phase": 1 },
+      "install": {
+        "kind": "cli",
+        "command": "scorecard",
+        "windows": { "winget": "ossf.scorecard" },
+        "macos":   { "brew": "scorecard" },
+        "linux":   { "url": "https://github.com/ossf/scorecard/releases/latest" }
+      }
     },
     {
       "name": "ado-connections",
@@ -128,23 +171,9 @@
       "optionalParams": ["AdoProject", "AdoPat"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
-    },
-    {
-      "name": "trivy",
-      "displayName": "Trivy Vulnerability Scanner",
-      "source": "trivy",
-      "provider": "cli",
-      "scope": "repository",
-      "normalizer": "Normalize-Trivy",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-Trivy.ps1",
-      "requiredParams": [],
-      "optionalParams": ["ScanPath", "ScanType"],
-      "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#0078d4", "phase": 2 },
+      "install": { "kind": "none" }
     },
     {
       "name": "identity-correlator",
@@ -160,7 +189,12 @@
       "optionalParams": ["IncludeGraphLookup"],
       "requiredPermissionTier": 3,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#5e35b1", "phase": 2 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Microsoft.Graph.Authentication", "Microsoft.Graph.Applications"]
+      }
     },
     {
       "name": "zizmor",
@@ -176,7 +210,15 @@
       "optionalParams": ["Repository", "WorkflowPath"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#ad1457", "phase": 3 },
+      "install": {
+        "kind": "cli",
+        "command": "zizmor",
+        "windows": { "pipx": "zizmor" },
+        "macos":   { "brew": "zizmor" },
+        "linux":   { "pipx": "zizmor" }
+      }
     },
     {
       "name": "gitleaks",
@@ -192,7 +234,39 @@
       "optionalParams": ["RepoPath", "NoGit"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
-      "enabled": true
+      "enabled": true,
+      "report": { "color": "#c62828", "phase": 3 },
+      "install": {
+        "kind": "cli",
+        "command": "gitleaks",
+        "windows": { "winget": "gitleaks.gitleaks" },
+        "macos":   { "brew": "gitleaks" },
+        "linux":   { "url": "https://github.com/gitleaks/gitleaks/releases/latest" }
+      }
+    },
+    {
+      "name": "trivy",
+      "displayName": "Trivy Vulnerability Scanner",
+      "source": "trivy",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Trivy",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Trivy.ps1",
+      "requiredParams": [],
+      "optionalParams": ["ScanPath", "ScanType"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#00695c", "phase": 3 },
+      "install": {
+        "kind": "cli",
+        "command": "trivy",
+        "windows": { "winget": "AquaSecurity.Trivy" },
+        "macos":   { "brew": "trivy" },
+        "linux":   { "url": "https://github.com/aquasecurity/trivy/releases/latest" }
+      }
     }
   ]
 }

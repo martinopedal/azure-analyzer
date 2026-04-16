@@ -52,12 +52,15 @@ if (-not $container -or -not $container.Result) {
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($test in $container.Result) {
-    # Derive severity from tags (default to Medium)
+    # Derive severity from tags using word boundaries so tags like
+    # "criticality" or "highlight" don't bleed into Critical/High.
     $severity = 'Medium'
     if ($test.Tag) {
         $tagStr = ($test.Tag -join ' ').ToLowerInvariant()
-        if ($tagStr -match 'critical|high') { $severity = 'High' }
-        elseif ($tagStr -match 'low') { $severity = 'Low' }
+        if     ($tagStr -match '\bcritical\b') { $severity = 'Critical' }
+        elseif ($tagStr -match '\bhigh\b')     { $severity = 'High' }
+        elseif ($tagStr -match '\blow\b')      { $severity = 'Low' }
+        elseif ($tagStr -match '\b(info|informational)\b') { $severity = 'Info' }
     }
 
     # Map Result: Passed/Skipped/NotRun → compliant, Failed → non-compliant

@@ -31,6 +31,10 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Dot-source retry helper so Search-AzGraph calls transparently handle
+# Azure Resource Graph throttling (429) and transient service errors.
+. (Join-Path $PSScriptRoot 'shared' 'Retry.ps1')
+
 if (-not (Get-Module -Name Az.ResourceGraph -ListAvailable -ErrorAction SilentlyContinue)) {
     Write-Warning "Az.ResourceGraph module not installed. Skipping ALZ queries. Run: Install-Module Az.ResourceGraph"
     return [PSCustomObject]@{
@@ -78,7 +82,9 @@ $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($item in $queryable) {
     try {
-        $rows = Search-AzGraph -Query $item.graph @graphParams -First 1000 -ErrorAction Stop
+        $rows = Invoke-WithRetry -MaxRetries 3 -BaseDelaySec 2 -MaxDelaySec 30 -ScriptBlock {
+            Search-AzGraph -Query $item.graph @graphParams -First 1000 -ErrorAction Stop
+        }
         # Queries return a 'compliant' boolean column.
         # No rows means no resources in scope — treat as compliant.
         if ($rows.Count -eq 0) {

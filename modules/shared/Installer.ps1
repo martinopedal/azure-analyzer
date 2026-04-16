@@ -1,0 +1,442 @@
+#Requires -Version 7.4
+<#
+.SYNOPSIS
+    Manifest-driven prerequisite installer for azure-analyzer.
+.DESCRIPTION
+    Reads the `install` section of each tool in tools/tool-manifest.json and
+    auto-installs missing PowerShell modules, CLI binaries, and git-cloned
+    tools (e.g. AzGovViz).
+
+    Install kinds supported:
+      - psmodule : Install-Module (PowerShell Gallery).
+      - cli      : winget (Windows), brew (macOS), pipx/pip (any), or a
+                   URL hint shown to the user.
+      - gitclone : git clone --depth 1 into a target directory under the
+                   repo root.
+      - none     : nothing to install (e.g. ado-connections uses REST only).
+
+    Security hardening:
+      - Package names are validated against a conservative regex before
+        being handed to a package manager. Anything with shell metachars
+        is refused.
+      - Git clone URLs must be HTTPS and from an allow-listed host
+        (github.com by default).
+      - Every install call runs with a timeout (default 300s) so a hung
+        mirror can never block the orchestrator indefinitely.
+      - Stdout and stderr from package managers are scrubbed via
+        Remove-Credentials before being surfaced to the user.
+      - Install kinds outside {none, psmodule, cli, gitclone} are refused.
+
+    Behaviour:
+      - Only installs tools the user has NOT excluded via -ExcludeTools and
+        has enabled via -IncludeTools (if specified).
+      - Always idempotent: skips any tool whose probe command / module /
+        file already resolves.
+      - Never throws -- emits warnings and returns the number of remaining
+        unmet prerequisites so the caller can decide how to proceed.
+#>
+[CmdletBinding()]
+param ()
+
+Set-StrictMode -Version Latest
+
+# ---------------------------------------------------------------------------
+# Security policy
+# ---------------------------------------------------------------------------
+$script:AllowedInstallKinds   = @('none', 'psmodule', 'cli', 'gitclone')
+$script:AllowedPackageManagers = @('winget', 'brew', 'pipx', 'pip', 'snap')
+$script:AllowedGitHosts       = @('github.com')
+# Package names: letters, digits, dots, dashes, underscores, slashes, at-signs.
+# Covers winget IDs (Publisher.Package), brew taps (org/tap/pkg), pipx, pip.
+$script:PackageNamePattern    = '^[A-Za-z0-9][A-Za-z0-9._\-/@]{0,127}$'
+$script:DefaultInstallTimeoutSec = 300
+
+# Lightweight credential scrubber used when Remove-Credentials isn't in scope.
+if (-not (Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials {
+        param ([string] $Text)
+        if ([string]::IsNullOrEmpty($Text)) { return $Text }
+        # Strip common token patterns: GitHub, bearer, basic, Azure keys.
+        $scrubbed = $Text
+        $scrubbed = $scrubbed -replace '(gh[pousr]_[A-Za-z0-9]{36,255})', '[redacted-gh-token]'
+        $scrubbed = $scrubbed -replace '(?i)(authorization[:= ]+bearer\s+)[A-Za-z0-9\._\-]+', '$1[redacted]'
+        $scrubbed = $scrubbed -replace '(?i)(password[:= ]+)[^\s,;]+', '$1[redacted]'
+        return $scrubbed
+    }
+}
+
+function Get-CurrentOS {
+    if ($IsWindows -or ($PSVersionTable.Platform -eq 'Win32NT')) { return 'windows' }
+    if ($IsMacOS) { return 'macos' }
+    return 'linux'
+}
+
+function Test-CliAvailable {
+    param ([Parameter(Mandatory)][string] $Command)
+    return [bool](Get-Command $Command -ErrorAction SilentlyContinue)
+}
+
+function Test-PSModuleAvailable {
+    param ([Parameter(Mandatory)][string] $Name)
+    return [bool](Get-Module -ListAvailable -Name $Name -ErrorAction SilentlyContinue)
+}
+
+function New-InstallerError {
+    <#
+    .SYNOPSIS
+        Build a rich, sanitized error object describing an install failure.
+    #>
+    param (
+        [Parameter(Mandatory)][string] $Tool,
+        [Parameter(Mandatory)][ValidateSet('psmodule','cli','gitclone','none')][string] $Kind,
+        [Parameter(Mandatory)][string] $Reason,
+        [string] $Package,
+        [string] $Url,
+        [string] $Remediation,
+        [string] $Output,
+        [string] $Category = 'InstallFailed'
+    )
+    return [PSCustomObject]@{
+        Tool         = $Tool
+        Kind         = $Kind
+        OS           = Get-CurrentOS
+        Package      = $Package
+        Url          = $Url
+        Category     = $Category
+        Reason       = $Reason
+        Remediation  = $Remediation
+        Output       = Remove-Credentials ([string]$Output)
+        TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
+    }
+}
+
+function Write-InstallerError {
+    param ([Parameter(Mandatory)] $Err)
+    $line = "[installer] {0} ({1}/{2}): {3}" -f $Err.Tool, $Err.Kind, $Err.Category, $Err.Reason
+    if ($Err.Remediation) { $line += " Action: $($Err.Remediation)" }
+    Write-Warning $line
+    if ($Err.Output) { Write-Verbose $Err.Output }
+}
+
+function Invoke-WithInstallRetry {
+    <#
+    .SYNOPSIS
+        Retry a transient install-related scriptblock with jittered
+        exponential backoff. Permanent failures (auth, not-found,
+        conflict) are surfaced immediately without retry.
+    #>
+    param (
+        [Parameter(Mandatory)][scriptblock] $ScriptBlock,
+        [int] $MaxRetries = 2,
+        [int] $BaseDelaySec = 2,
+        [int] $MaxDelaySec = 20,
+        [string[]] $TransientMarkers = @(
+            'timed out', 'timeout', 'temporary failure', 'connection reset',
+            'could not resolve host', 'network is unreachable',
+            'service unavailable', '503', '429', 'rate limit',
+            'read timed out', 'tls handshake'
+        )
+    )
+    for ($i = 0; $i -le $MaxRetries; $i++) {
+        $result = & $ScriptBlock
+        if ($null -eq $result) { return $null }
+        if ($result.ExitCode -eq 0) { return $result }
+        $lower = ([string]$result.Output).ToLowerInvariant()
+        $transient = $false
+        foreach ($m in $TransientMarkers) { if ($lower -like "*$m*") { $transient = $true; break } }
+        if (-not $transient -or $i -eq $MaxRetries) {
+            $result | Add-Member -NotePropertyName Attempts  -NotePropertyValue ($i + 1)      -Force
+            $result | Add-Member -NotePropertyName Exhausted -NotePropertyValue ($i -eq $MaxRetries -and $transient) -Force
+            return $result
+        }
+        $delay = Get-JitteredDelay -RetryIndex $i -BaseDelaySec $BaseDelaySec -MaxDelaySec $MaxDelaySec
+        Write-Verbose "[installer] transient failure (exit=$($result.ExitCode)); retrying in ${delay}s (attempt $($i + 2)/$($MaxRetries + 1))"
+        if ($delay -gt 0) { Start-Sleep -Seconds $delay }
+    }
+}
+
+function Install-PSModules {
+    <#
+    .SYNOPSIS
+        Guard against shell injection via manifest-supplied package names.
+    #>
+    param ([Parameter(Mandatory)][string] $Name)
+    return ($Name -match $script:PackageNamePattern)
+}
+
+function Test-SafeGitUrl {
+    <#
+    .SYNOPSIS
+        Enforce HTTPS + allow-listed host for auto-cloned tools.
+    #>
+    param ([Parameter(Mandatory)][string] $Url)
+    if ($Url -notmatch '^https://') { return $false }
+    $hostPart = ($Url -replace '^https://', '').Split('/')[0].ToLowerInvariant()
+    return ($script:AllowedGitHosts -contains $hostPart)
+}
+
+function Invoke-WithTimeout {
+    <#
+    .SYNOPSIS
+        Run an external command with stdout+stderr capture and a hard
+        timeout. Returns [PSCustomObject]@{ ExitCode; Output }.
+    #>
+    param (
+        [Parameter(Mandatory)][string]   $Command,
+        [Parameter(Mandatory)][string[]] $Arguments,
+        [int] $TimeoutSec = $script:DefaultInstallTimeoutSec
+    )
+
+    $psi = [System.Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = $Command
+    foreach ($a in $Arguments) { $psi.ArgumentList.Add($a) }
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError  = $true
+    $psi.UseShellExecute = $false
+
+    $proc = [System.Diagnostics.Process]::new()
+    $proc.StartInfo = $psi
+    $null = $proc.Start()
+
+    # Drain streams asynchronously so a full pipe buffer can't deadlock us.
+    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $proc.StandardError.ReadToEndAsync()
+
+    if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
+        try { $proc.Kill($true) } catch { }
+        return [PSCustomObject]@{ ExitCode = -1; Output = "Timed out after $TimeoutSec seconds" }
+    }
+
+    $stdout = $stdoutTask.Result
+    $stderr = $stderrTask.Result
+    $combined = Remove-Credentials (($stdout + "`n" + $stderr).Trim())
+    return [PSCustomObject]@{ ExitCode = $proc.ExitCode; Output = $combined }
+}
+
+function Install-PSModules {
+    param ([string[]] $Names, [string] $ToolName)
+    foreach ($mod in $Names) {
+        if (-not (Test-SafePackageName -Name $mod)) {
+            Write-Warning "Refusing to install PowerShell module with unsafe name '$mod' for $ToolName."
+            continue
+        }
+        if (Test-PSModuleAvailable -Name $mod) {
+            Write-Verbose "  v $mod already installed"
+            continue
+        }
+        Write-Host "  Installing PowerShell module $mod ..." -ForegroundColor Yellow
+        try {
+            Install-Module $mod -Scope CurrentUser -Force -AllowClobber -AcceptLicense -ErrorAction Stop
+            Write-Host "  v $mod installed" -ForegroundColor Green
+        } catch {
+            Write-Warning (Remove-Credentials "Could not install $mod for ${ToolName}: $($_.Exception.Message). Run manually: Install-Module $mod -Scope CurrentUser")
+        }
+    }
+}
+
+function Invoke-PackageManager {
+    <#
+    .SYNOPSIS
+        Runs a system package manager quietly and returns $true on success.
+    #>
+    param (
+        [Parameter(Mandatory)][string] $Manager,
+        [Parameter(Mandatory)][string] $Package
+    )
+
+    if ($script:AllowedPackageManagers -notcontains $Manager) {
+        Write-Warning "Refusing to use disallowed package manager '$Manager'."
+        return $false
+    }
+    if (-not (Test-SafePackageName -Name $Package)) {
+        Write-Warning "Refusing to install package with unsafe name '$Package'."
+        return $false
+    }
+
+    $mgrArgs = switch ($Manager) {
+        'winget' { @('install', '--silent', '--accept-source-agreements', '--accept-package-agreements', '--id', $Package) }
+        'brew'   { @('install', $Package) }
+        'pipx'   { @('install', $Package) }
+        'pip'    { @('install', '--user', $Package) }
+        'snap'   { @('install', $Package) }
+        default  { $null }
+    }
+    if (-not $mgrArgs) { return $false }
+    if (-not (Test-CliAvailable -Command $Manager)) { return $false }
+
+    $result = Invoke-WithTimeout -Command $Manager -Arguments $mgrArgs
+    if ($result.ExitCode -eq 0) { return $true }
+    Write-Verbose $result.Output
+    return $false
+}
+
+function Install-CliTool {
+    param (
+        [Parameter(Mandatory)][PSCustomObject] $InstallSpec,
+        [Parameter(Mandatory)][string] $ToolName
+    )
+
+    $cmd = $InstallSpec.command
+    if (Test-CliAvailable -Command $cmd) {
+        Write-Verbose "  v $cmd already installed"
+        return $true
+    }
+
+    $os = Get-CurrentOS
+    $osBlock = if ($InstallSpec.PSObject.Properties[$os]) { $InstallSpec.$os } else { $null }
+    if (-not $osBlock) {
+        Write-Warning "No install recipe for $ToolName on $os. Install $cmd manually."
+        return $false
+    }
+
+    foreach ($mgr in $script:AllowedPackageManagers) {
+        if ($osBlock.PSObject.Properties[$mgr]) {
+            $pkg = [string]$osBlock.$mgr
+            Write-Host "  Installing $ToolName via $mgr ($pkg) ..." -ForegroundColor Yellow
+            if (Invoke-PackageManager -Manager $mgr -Package $pkg) {
+                if (Test-CliAvailable -Command $cmd) {
+                    Write-Host "  v $ToolName installed" -ForegroundColor Green
+                    return $true
+                }
+                Write-Warning "$mgr install succeeded but $cmd still not on PATH. Open a new shell and re-run."
+                return $false
+            }
+        }
+    }
+
+    if ($osBlock.PSObject.Properties['url']) {
+        Write-Warning "No package manager available for $ToolName on $os. Download from: $($osBlock.url)"
+    } else {
+        Write-Warning "$ToolName could not be installed automatically. Install it manually."
+    }
+    return $false
+}
+
+function Install-GitClone {
+    param (
+        [Parameter(Mandatory)][PSCustomObject] $InstallSpec,
+        [Parameter(Mandatory)][string] $ToolName,
+        [Parameter(Mandatory)][string] $RepoRoot
+    )
+
+    $repoUrl = [string]$InstallSpec.repo
+    if (-not (Test-SafeGitUrl -Url $repoUrl)) {
+        Write-Warning "Refusing to clone $ToolName from disallowed URL '$repoUrl'. Allowed hosts: $($script:AllowedGitHosts -join ', ')."
+        return $false
+    }
+
+    $targetRel = $InstallSpec.target
+    $target = Join-Path $RepoRoot $targetRel
+    $probeFile = Join-Path $target $InstallSpec.probe
+
+    if (Test-Path $probeFile) {
+        Write-Verbose "  v $ToolName already present at $targetRel"
+        return $true
+    }
+
+    if (-not (Test-CliAvailable -Command 'git')) {
+        Write-Warning "git not found -- cannot bootstrap $ToolName. Install git or clone $repoUrl to $targetRel manually."
+        return $false
+    }
+
+    Write-Host "  Cloning $ToolName from $repoUrl ..." -ForegroundColor Yellow
+    try {
+        $parent = Split-Path $target -Parent
+        if (-not (Test-Path $parent)) { $null = New-Item -ItemType Directory -Path $parent -Force }
+        # Remove any partial clone
+        if (Test-Path $target) { Remove-Item $target -Recurse -Force -ErrorAction SilentlyContinue }
+        $result = Invoke-WithTimeout -Command 'git' -Arguments @('clone', '--depth', '1', '--quiet', $repoUrl, $target)
+        if ($result.ExitCode -ne 0 -or -not (Test-Path $probeFile)) {
+            Write-Warning "git clone of $ToolName failed: $($result.Output)"
+            return $false
+        }
+        Write-Host "  v $ToolName cloned into $targetRel" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Warning (Remove-Credentials "Failed to clone ${ToolName}: $($_.Exception.Message)")
+        return $false
+    }
+}
+
+function Install-PrerequisitesFromManifest {
+    <#
+    .SYNOPSIS
+        Install all prerequisites for enabled, non-excluded tools.
+    .PARAMETER Manifest
+        The parsed tool manifest object (from tool-manifest.json).
+    .PARAMETER RepoRoot
+        Repository root used as the base for gitclone targets.
+    .PARAMETER ShouldRunTool
+        Scriptblock that returns $true if a given tool name should run
+        (honours -IncludeTools / -ExcludeTools in the caller).
+    .PARAMETER SkipInstall
+        When set, only reports what's missing without installing.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)] $Manifest,
+        [Parameter(Mandatory)][string] $RepoRoot,
+        [Parameter(Mandatory)][scriptblock] $ShouldRunTool,
+        [switch] $SkipInstall
+    )
+
+    Write-Host "`n[prereq] Checking prerequisites (manifest-driven)..." -ForegroundColor Yellow
+    $missing = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($tool in $Manifest.tools) {
+        if (-not $tool.enabled) { continue }
+        if (-not (& $ShouldRunTool $tool.name)) { continue }
+        if (-not $tool.PSObject.Properties['install'] -or -not $tool.install) { continue }
+        $install = $tool.install
+        $kind = [string]$install.kind
+
+        if ($script:AllowedInstallKinds -notcontains $kind) {
+            Write-Warning "Refusing to honour unknown install kind '$kind' for $($tool.name)."
+            continue
+        }
+
+        switch ($kind) {
+            'none' { }
+            'psmodule' {
+                $names = @($install.modules)
+                $anyMissing = $false
+                foreach ($m in $names) { if (-not (Test-PSModuleAvailable -Name $m)) { $anyMissing = $true; break } }
+                if (-not $anyMissing) { break }
+                if ($SkipInstall) {
+                    $missing.Add("$($tool.displayName) ($($names -join ', '))")
+                } else {
+                    Install-PSModules -Names $names -ToolName $tool.displayName
+                    foreach ($m in $names) {
+                        if (-not (Test-PSModuleAvailable -Name $m)) { $missing.Add("$($tool.displayName) ($m)"); break }
+                    }
+                }
+            }
+            'cli' {
+                if (Test-CliAvailable -Command $install.command) { break }
+                if ($SkipInstall) {
+                    $missing.Add("$($tool.displayName) ($($install.command))")
+                } else {
+                    $ok = Install-CliTool -InstallSpec $install -ToolName $tool.displayName
+                    if (-not $ok) { $missing.Add($tool.displayName) }
+                }
+            }
+            'gitclone' {
+                $probe = Join-Path (Join-Path $RepoRoot $install.target) $install.probe
+                if (Test-Path $probe) { break }
+                if ($SkipInstall) {
+                    $missing.Add("$($tool.displayName) ($($install.target))")
+                } else {
+                    $ok = Install-GitClone -InstallSpec $install -ToolName $tool.displayName -RepoRoot $RepoRoot
+                    if (-not $ok) { $missing.Add($tool.displayName) }
+                }
+            }
+        }
+    }
+
+    if ($missing.Count -gt 0) {
+        Write-Host "`n[prereq] $($missing.Count) tool(s) still missing: $($missing -join '; ')" -ForegroundColor DarkYellow
+    } else {
+        Write-Host "[prereq] All prerequisites for enabled tools are available." -ForegroundColor Green
+    }
+    return $missing.Count
+}

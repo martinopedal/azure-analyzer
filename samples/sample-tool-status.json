@@ -1,0 +1,50 @@
+{
+  "maester": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "zizmor": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "azqr": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "trivy": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "ado-connections": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "alz-queries": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "wara": {
+    "Message": "WARA module not installed",
+    "Status": "Skipped"
+  },
+  "gitleaks": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "psrule": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "scorecard": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "identity-correlator": {
+    "Message": "",
+    "Status": "Success"
+  },
+  "azgovviz": {
+    "Message": "",
+    "Status": "Success"
+  }
+}

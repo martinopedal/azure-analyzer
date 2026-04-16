@@ -76,7 +76,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -144,54 +144,16 @@ if ($shouldRecurse) {
 }
 
 # ---------------------------------------------------------------------------
-# Prerequisite check (unchanged)
+# Prerequisite check (manifest-driven auto-installer)
 # ---------------------------------------------------------------------------
-function Install-Prerequisites {
-    Write-Host "`n[prereq] Checking prerequisites..." -ForegroundColor Yellow
-    $psModules = @(
-        @{ Name = 'Az.ResourceGraph'; Tool = 'alz-queries' },
-        @{ Name = 'PSRule'; Tool = 'psrule' },
-        @{ Name = 'PSRule.Rules.Azure'; Tool = 'psrule' },
-        @{ Name = 'WARA'; Tool = 'wara' },
-        @{ Name = 'Maester'; Tool = 'maester' }
-    )
-    $missing = [System.Collections.Generic.List[string]]::new()
-    foreach ($mod in $psModules) {
-        if (-not (ShouldRunTool $mod.Tool)) { continue }
-        if (-not (Get-Module -ListAvailable -Name $mod.Name -ErrorAction SilentlyContinue)) {
-            if ($InstallMissingModules) {
-                Write-Host "  Installing $($mod.Name)..." -ForegroundColor Yellow
-                try {
-                    Install-Module $mod.Name -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-                    Write-Host "  ✓ $($mod.Name) installed" -ForegroundColor Green
-                } catch {
-                    Write-Warning (Remove-Credentials "Could not install $($mod.Name): $_. $($mod.Tool) may be skipped.")
-                }
-            } else {
-                $missing.Add($mod.Name)
-                Write-Host "  ⚠ $($mod.Name) not found. Install: Install-Module $($mod.Name) -Scope CurrentUser" -ForegroundColor DarkYellow
-            }
-        }
-    }
-    $cliTools = @(
-        @{ Cmd = 'azqr'; Tool = 'azqr'; Name = 'Azure Quick Review'; Install = 'winget install azure-quick-review.azqr' },
-        @{ Cmd = 'scorecard'; Tool = 'scorecard'; Name = 'OpenSSF Scorecard'; Install = 'Download from https://github.com/ossf/scorecard/releases' },
-        @{ Cmd = 'trivy'; Tool = 'trivy'; Name = 'Trivy Vulnerability Scanner'; Install = 'Download from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy' },
-        @{ Cmd = 'zizmor'; Tool = 'zizmor'; Name = 'zizmor (Actions YAML Scanner)'; Install = 'pip install zizmor or https://github.com/woodruffw/zizmor/releases' },
-        @{ Cmd = 'gitleaks'; Tool = 'gitleaks'; Name = 'gitleaks (Secrets Scanner)'; Install = 'Download from https://github.com/gitleaks/gitleaks/releases' }
-    )
-    foreach ($cli in $cliTools) {
-        if (-not (ShouldRunTool $cli.Tool)) { continue }
-        if (-not (Get-Command $cli.Cmd -ErrorAction SilentlyContinue)) {
-            Write-Host "  ⚠ $($cli.Name) not found. Install: $($cli.Install)" -ForegroundColor DarkYellow
-        }
-    }
-    if ($missing.Count -gt 0 -and -not $InstallMissingModules) {
-        Write-Host "  Tip: Re-run with -InstallMissingModules to auto-install $($missing.Count) missing module(s)" -ForegroundColor DarkGray
-    }
+if (-not $SkipPrereqCheck) {
+    $shouldRunRef = { param($name) ShouldRunTool $name }.GetNewClosure()
+    $null = Install-PrerequisitesFromManifest `
+        -Manifest $manifest `
+        -RepoRoot $PSScriptRoot `
+        -ShouldRunTool $shouldRunRef `
+        -SkipInstall:(-not $InstallMissingModules)
 }
-
-if (-not $SkipPrereqCheck) { Install-Prerequisites }
 
 # ---------------------------------------------------------------------------
 # Dot-source normalizers

@@ -101,6 +101,10 @@ azure-analyzer/
 │       ├── Canonicalize.ps1
 │       ├── EntityStore.ps1
 │       ├── IdentityCorrelator.ps1
+│       ├── Installer.ps1          # manifest-driven prereq installer
+│       ├── RemoteClone.ps1        # HTTPS-only remote repo clone (cloud-first scanners)
+│       ├── Retry.ps1              # jittered retry w/ status & message predicates
+│       ├── Sanitize.ps1           # Remove-Credentials
 │       ├── WorkerPool.ps1
 │       ├── Checkpoint.ps1
 │       └── ...
@@ -125,7 +129,7 @@ azure-analyzer/
 
 ## Normalizers (Phase 1–3)
 
-Each of the 11 tools has a dedicated normalizer function that converts raw tool output into the unified schema v2 FindingRow format.
+Each of the 12 tools has a dedicated normalizer function that converts raw tool output into the unified schema v2 FindingRow format.
 
 ### Normalizer responsibilities
 
@@ -135,7 +139,7 @@ Each of the 11 tools has a dedicated normalizer function that converts raw tool 
 - **Platform/Entity mapping** -- determine owning platform and entity type per tool:
   - Azure tools (azqr, PSRule, ALZ Queries, WARA) -> Platform: `Azure`, EntityType: `AzureResource`
   - AzGovViz -> Platform: `Azure`, EntityType varies by finding context: `ManagementGroup` for MG-level governance findings, `Subscription` for bare subscription paths, `AzureResource` for deeper ARM resource paths
-  - Entra ID tool (Maester) -> Platform: `Entra`, EntityType: `Application`
+  - Entra ID tool (Maester) -> Platform: `Entra`. Per-app checks emit EntityType `Application`; **tenant-wide baseline checks emit a synthetic `Tenant` entity** (the tenant itself owns the finding, not any single app). Severity extraction uses word-boundary regex (`\bcritical\b`, `\bhigh\b`, etc.) so strings like "criticality" no longer match "critical".
   - Repository tool (Scorecard) -> Platform: `GitHub`, EntityType: `Repository`
   - CI/CD security tools (zizmor, gitleaks, Trivy) -> Platform: `GitHub`, EntityType: `Repository` (local CLI tools, no cloud permissions)
 - **Return findings only** -- no side effects, return array of v2-compliant findings
@@ -149,7 +153,7 @@ Each of the 11 tools has a dedicated normalizer function that converts raw tool 
 | AzGovViz | `modules/normalizers/Normalize-AzGovViz.ps1` | ManagementGroup / Subscription / AzureResource |
 | ALZ Queries | `modules/normalizers/Normalize-AlzQueries.ps1` | AzureResource |
 | WARA | `modules/normalizers/Normalize-WARA.ps1` | AzureResource |
-| Maester | `modules/normalizers/Normalize-Maester.ps1` | Application |
+| Maester | `modules/normalizers/Normalize-Maester.ps1` | Application / Tenant |
 | Scorecard | `modules/normalizers/Normalize-Scorecard.ps1` | Repository |
 | Identity Correlator | `modules/normalizers/Normalize-IdentityCorrelation.ps1` | ServicePrincipal |
 | zizmor | `modules/normalizers/Normalize-Zizmor.ps1` | Repository |
@@ -216,9 +220,120 @@ correlator already emits valid FindingRow objects.
 
 ---
 
+## EntityType taxonomy
+
+The v3 schema defines **12 EntityTypes** across **4 platforms**. Every finding and entity MUST use one of these. The taxonomy is the authoritative join key for cross-tool correlation.
+
+| EntityType | Platform | Emitted by |
+|---|---|---|
+| `AzureResource` | Azure | azqr, PSRule, AzGovViz (deep ARM paths), ALZ Queries, WARA |
+| `Subscription` | Azure | AzGovViz (subscription-scope findings), orchestrator (entity seed) |
+| `ManagementGroup` | Azure | AzGovViz (MG-scope findings) |
+| `ManagedIdentity` | Azure | Identity Correlator |
+| `Application` | Entra | Maester (per-app findings), Identity Correlator |
+| `ServicePrincipal` | Entra | Identity Correlator |
+| `User` | Entra | Identity Correlator |
+| `Tenant` | Entra | **Maester synthetic entity** (tenant-wide baseline checks that don't belong to any single app) |
+| `Repository` | GitHub | Scorecard, gitleaks, Trivy (when repo-scoped) |
+| `Workflow` | GitHub | zizmor |
+| `Pipeline` | ADO | (reserved -- future ADO pipeline scanner) |
+| `ServiceConnection` | ADO | ADO Connections |
+
+Platform mapping is deterministic: given an EntityType, `Get-PlatformForEntityType` (in `Schema.ps1`) returns exactly one platform.
+
+---
+
+## Manifest-driven pipeline (`tools/tool-manifest.json`)
+
+`tools/tool-manifest.json` is the single source of truth for tool registration. The orchestrator, installer, and reports all read from it. Every tool entry declares:
+
+- **Registration** — `name`, `displayName`, `source`, `provider`, `scope`, `enabled`, `platforms`
+- **Collection** — `script` (collector path), `invokeMethod`, `requiredParams`, `optionalParams`
+- **Normalization** — `normalizer` (function name under `modules/normalizers/`)
+- **Permissions** — `requiredPermissionTier` (0–6, see tiers below)
+- **`install` block** — how `-InstallMissingModules` provisions this tool (see Installer below)
+- **`report` block** — `color` (hex, for per-source bars) and `phase` (grouping hint for HTML + MD reports)
+
+Because both the installer and the report generators consume the manifest, adding a tool to the manifest automatically surfaces it in install flows, tool coverage, per-source bars, and findings-by-source tables.
+
+---
+
+## Installer (`modules/shared/Installer.ps1`)
+
+Manifest-driven prerequisite installer, gated by the `-InstallMissingModules` switch on `Invoke-AzureAnalyzer.ps1`. Supports four `install.kind` values:
+
+| Kind | What it does |
+|---|---|
+| `psmodule` | `Install-Module` from PSGallery (PSRule, WARA, Maester, Az.ResourceGraph) |
+| `cli` | Package-manager install via one of an allow-listed set: `winget`, `brew`, `pipx`, `pip`, `snap`. Package name is validated against a safe-name regex before invocation. |
+| `gitclone` | HTTPS-only `git clone` into `tools/<name>/`. Target URL must match a host allow-list (currently: github.com). Used for AzGovViz auto-bootstrap. |
+| `none` | No-op (nothing to install) |
+
+**Security controls:**
+- Package-name regex — rejects unsafe names before spawning a package manager
+- Allow-listed package managers — unknown managers are refused
+- HTTPS-only git clone with host allow-list
+- 300-second timeout on external commands
+- All stdout/stderr scrubbed via `Remove-Credentials` before emission
+- Rich error objects via `New-InstallerError` / `Write-InstallerError`
+- Transient failures retried via `Invoke-WithInstallRetry` (jittered exponential backoff)
+
+---
+
+## Remote clone helper (`modules/shared/RemoteClone.ps1`)
+
+Used by cloud-first scanners (zizmor, gitleaks, trivy) to fetch a remote repo for scanning. Enforces:
+
+- **HTTPS only** — `git://`, `ssh://`, and `file://` are refused
+- **Host allow-list** — `github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`
+- **Token scrub** — any auth token injected into the clone URL is stripped from `.git/config` immediately after clone
+- **Temp dir cleanup** — clones are cleaned up in `finally` blocks
+
+This is the migration path for the three local scanners; local-path scanning remains available as a fallback.
+
+---
+
+## Retry helper (`modules/shared/Retry.ps1`)
+
+`Invoke-WithRetry` wraps any scriptblock with jittered exponential backoff. Retries on:
+
+- **HTTP status codes** — 408, 429, 500, 502, 503, 504
+- **Exception message patterns** — `429`, `503`, `throttle`, `throttled`, `timeout`, `timed out`, `connection reset`, `socket`, `transient`
+- Custom predicate (via `-ShouldRetry`)
+
+This makes REST and `Search-AzGraph` calls resilient to throttling. `Invoke-AlzQueries.ps1` wraps `Search-AzGraph` in `Invoke-WithRetry` for 429/503 resilience across large tenants.
+
+---
+
+## Normalizer v1 → v3 contract
+
+Every tool wrapper returns a **v1 result envelope**:
+
+```powershell
+[PSCustomObject]@{
+    Source   = 'tool-name'
+    Status   = 'Success' | 'Skipped' | 'Failed' | 'PartialSuccess'
+    Message  = '...'
+    Findings = @( <raw tool-specific objects> )
+}
+```
+
+Each tool's normalizer is invoked by the orchestrator with `-ToolResult <envelope>` and must produce an array of **v2 FindingRow** objects (24 fields, see `modules/shared/Schema.ps1`). Normalizers:
+
+1. Validate the envelope (`Status -ne 'Success'` -> return `@()`)
+2. Parse raw findings; extract ARM context when possible via `ConvertTo-CanonicalArmId` / `ConvertTo-CanonicalRepoId`
+3. Call `New-FindingRow` for each finding, populating required fields (`Id`, `Source`, `EntityId`, `EntityType`, `Title`, `Compliant`, `ProvenanceRunId`) plus all available optional fields
+4. Return the array — **no side effects, no throws**
+
+The EntityStore pipeline then canonicalizes IDs, deduplicates on composite key (`Source+ResourceId+Category+Title+Compliant`), merges findings into entities, and exports both `results.json` (v1 flat, 10-field contract) and `entities.json` (v3 entity model).
+
+---
+
 - **Collectors never throw:** each wrapper returns `Source`, `Status`, `Message`, and `Findings`.
 - **Worker pool isolation:** one tool failure does not stop others.
 - **Tool status tracking:** orchestrator writes `tool-status.json` with per-tool Status, Message, and finding count. Reports use this to distinguish success-with-zero-findings from skipped/failed.
 - **Errors are captured:** orchestrator records failures in `errors.json`.
 - **Exit codes:** CI/CD uses 0–3 exit codes (success, policy violation, partial failure, total failure).
 - **Checkpoint/resume:** tool results are serialized per scope for long-running scans.
+
+---

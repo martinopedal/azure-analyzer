@@ -4,9 +4,8 @@
     Normalizer for Maester (Entra ID security) findings.
 .DESCRIPTION
     Converts raw Maester wrapper output to v3 FindingRow objects.
-    Platform=Entra, EntityType=Application.
-    Maester checks tenant-level Entra ID configuration; all findings map to
-    a single synthetic tenant entity since the schema has no 'Tenant' type.
+    Platform=Entra, EntityType=Tenant. All Maester findings map to a single
+    synthetic tenant entity.
 #>
 [CmdletBinding()]
 param ()
@@ -28,8 +27,13 @@ function Normalize-Maester {
     $runId = [guid]::NewGuid().ToString()
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-    # All Maester findings map to a synthetic tenant-level entity
-    $tenantEntityId = 'maester/entra-tenant-configuration'
+    # Resolve tenant entity ID: prefer real TenantId from tool output; fall back to synthetic.
+    $tenantRaw = if ($ToolResult.PSObject.Properties['TenantId'] -and $ToolResult.TenantId) {
+        [string]$ToolResult.TenantId
+    } else {
+        'entra-tenant-configuration'
+    }
+    $tenantEntityId = (ConvertTo-CanonicalEntityId -RawId $tenantRaw -EntityType 'Tenant').CanonicalId
 
     foreach ($finding in $ToolResult.Findings) {
         $findingId = if ($finding.PSObject.Properties['Id'] -and $finding.Id) {
@@ -42,13 +46,14 @@ function Normalize-Maester {
         $category = if ($finding.PSObject.Properties['Category'] -and $finding.Category) { $finding.Category } else { 'Identity' }
 
         $rawSev = if ($finding.PSObject.Properties['Severity'] -and $finding.Severity) { $finding.Severity } else { 'Medium' }
+        # Word-boundary match so tags like "criticality.info" don't become Critical/High.
         $severity = switch -Regex ($rawSev.ToString().ToLowerInvariant()) {
-            'critical'         { 'Critical' }
-            'high'             { 'High' }
-            'medium|moderate'  { 'Medium' }
-            'low'              { 'Low' }
-            'info'             { 'Info' }
-            default            { 'Medium' }
+            '\bcritical\b'                  { 'Critical'; break }
+            '\bhigh\b'                      { 'High'; break }
+            '\b(medium|moderate)\b'         { 'Medium'; break }
+            '\blow\b'                       { 'Low'; break }
+            '\b(info|informational)\b'      { 'Info'; break }
+            default                         { 'Medium' }
         }
 
         $compliant = if ($finding.PSObject.Properties['Compliant']) { [bool]$finding.Compliant } else { $true }
@@ -57,7 +62,7 @@ function Normalize-Maester {
         $learnMore = if ($finding.PSObject.Properties['LearnMoreUrl'] -and $finding.LearnMoreUrl) { $finding.LearnMoreUrl } else { '' }
 
         $row = New-FindingRow -Id $findingId `
-            -Source 'maester' -EntityId $tenantEntityId -EntityType 'Application' `
+            -Source 'maester' -EntityId $tenantEntityId -EntityType 'Tenant' `
             -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
             -Platform 'Entra' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `

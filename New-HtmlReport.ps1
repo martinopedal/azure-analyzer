@@ -35,11 +35,11 @@ if (-not (Test-Path $InputPath)) {
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
-$total = $findings.Count
-$high = ($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
-$medium = ($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
-$low = ($findings | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
-$compliantCount = ($findings | Where-Object { $_.Compliant -eq $true }).Count
+$total = @($findings).Count
+$high = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
+$medium = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
+$low = @($findings | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
+$compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
 $compliantPct = if ($total -gt 0) { [math]::Round(($compliantCount / $total) * 100) } else { 0 }
 
 function HE([string]$s) {
@@ -68,10 +68,35 @@ if ($TriagePath -and (Test-Path $TriagePath)) {
     }
 }
 
-# --- Per-source breakdown data ---
-$allSources = @('azqr', 'psrule', 'azgovviz', 'alz-queries', 'wara', 'maester', 'scorecard')
-$sourceLabels = @{ 'azqr' = 'Azure Quick Review'; 'psrule' = 'PSRule'; 'azgovviz' = 'AzGovViz'; 'alz-queries' = 'ALZ Queries'; 'wara' = 'WARA'; 'maester' = 'Maester'; 'scorecard' = 'Scorecard' }
-$sourceColors = @{ 'azqr' = '#1565c0'; 'psrule' = '#6a1b9a'; 'azgovviz' = '#00838f'; 'alz-queries' = '#e65100'; 'wara' = '#2e7d32'; 'maester' = '#7b1fa2'; 'scorecard' = '#ff6f00' }
+# --- Per-source breakdown data (manifest-driven) ---
+$manifestPath = Join-Path $PSScriptRoot 'tools' 'tool-manifest.json'
+$allSources   = @()
+$sourceLabels = @{}
+$sourceColors = @{}
+if (Test-Path $manifestPath) {
+    try {
+        $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+        foreach ($t in $manifest.tools) {
+            if (-not $t.enabled) { continue }
+            $allSources += $t.name
+            $sourceLabels[$t.name] = $t.displayName
+            if ($t.PSObject.Properties['report'] -and $t.report.PSObject.Properties['color']) {
+                $sourceColors[$t.name] = [string]$t.report.color
+            } else {
+                $sourceColors[$t.name] = '#546e7a'
+            }
+        }
+    } catch {
+        Write-Warning "Could not parse tool-manifest.json; falling back to built-in source list. $_"
+    }
+}
+# Safety net: if manifest is missing, keep the legacy hardcoded set so a
+# report can still be generated in degraded environments.
+if ($allSources.Count -eq 0) {
+    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','maester','scorecard','ado-connections','identity-correlator','zizmor','gitleaks','trivy')
+    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
+    $sourceColors = @{ 'azqr'='#1565c0'; 'psrule'='#6a1b9a'; 'azgovviz'='#00838f'; 'alz-queries'='#e65100'; 'wara'='#2e7d32'; 'maester'='#7b1fa2'; 'scorecard'='#ff6f00'; 'ado-connections'='#0277bd'; 'identity-correlator'='#ad1457'; 'zizmor'='#4527a0'; 'gitleaks'='#c62828'; 'trivy'='#00695c' }
+}
 $sourceGroups = $findings | Group-Object -Property Source
 $sourceCountMap = @{}
 foreach ($sg in $sourceGroups) { $sourceCountMap[$sg.Name] = $sg.Count }
@@ -192,7 +217,7 @@ $toolCoverageHtml = foreach ($src in $allSources) {
 }
 
 # --- Unique resource count estimate (unique Detail values as proxy) ---
-$uniqueResources = ($findings | Select-Object -ExpandProperty Detail -ErrorAction SilentlyContinue | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique).Count
+$uniqueResources = @($findings | Select-Object -ExpandProperty Detail -ErrorAction SilentlyContinue | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique).Count
 if ($uniqueResources -eq 0) { $uniqueResources = $total }
 $toolsUsed = $sourcesWithResults.Count
 

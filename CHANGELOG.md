@@ -4,7 +4,38 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **`Tenant` EntityType**: Added to schema v2 (Platform=Entra). The valid EntityType set is now **12 types** across 4 platforms. Used by Maester as the owning entity for tenant-wide baseline checks that don't belong to any single application.
+- **Manifest-driven installer** (`modules/shared/Installer.ps1`): Reads each tool's `install` block in `tools/tool-manifest.json`. Supports four kinds — `psmodule` (PSGallery), `cli` (winget/brew/pipx/pip/snap with package-name regex and manager allow-list), `gitclone` (HTTPS-only with host allow-list), and `none`. Wired into `Invoke-AzureAnalyzer.ps1`.
+- **`-InstallMissingModules` switch**: When set, the orchestrator auto-invokes the manifest-driven installer per enabled tool so every prerequisite — PowerShell modules, CLI tools, and git-cloned helpers — is provisioned in one pass. Without the flag, missing prerequisites are only listed; nothing is mutated.
+- **AzGovViz auto-bootstrap**: With `-InstallMissingModules`, AzGovViz is auto-cloned into `tools/AzGovViz/` via the installer's `gitclone` path on first run — no manual `git clone` step required.
+- **Installer security hardening**: package-name regex validation, allow-listed package managers (`winget`/`brew`/`pipx`/`pip`/`snap`), HTTPS-only `git clone` with host allow-list, 300-second timeout on external commands, output scrubbed via `Remove-Credentials`, rich error objects (`New-InstallerError` / `Write-InstallerError`), and retry with jittered exponential backoff (`Invoke-WithInstallRetry`).
+- **Retry extension** (`modules/shared/Retry.ps1`): `Invoke-WithRetry` now also retries on exception-message patterns (`429`, `503`, `throttle`, `throttled`, `timeout`, `timed out`, `connection reset`, `socket`, `transient`) in addition to HTTP status codes. REST and Graph clients that surface throttling in exception messages (rather than typed responses) now retry correctly.
+- **`Search-AzGraph` retry**: `Invoke-AlzQueries.ps1` now wraps `Search-AzGraph` in `Invoke-WithRetry` so ARG 429/503 throttling on large tenants is handled transparently.
+- **Manifest-driven HTML + Markdown reports**: `New-HtmlReport.ps1` and `New-MdReport.ps1` now read the tool list, display names, colors, and phase grouping from `tools/tool-manifest.json` instead of a hardcoded 7-tool list. All 12 tools now surface in Tool coverage, per-source bars, and Findings by source. Adding a tool to the manifest is sufficient to make it appear in reports — no report-code changes needed.
+- **`RemoteClone.ps1`** (`modules/shared/`): Cloud-first clone helper used by zizmor / gitleaks / trivy. Enforces HTTPS-only, a host allow-list (`github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`), token scrub from `.git/config` after clone, and temp-dir cleanup in a `finally` block. Enables remote-first targeting via `-Repository` / `-AdoRepoUrl`.
+- **Future IaC drift design doc**: `docs/future-iac-drift.md` captures the planned Terraform/Bicep drift-detection surface. Design only — no tracking issue and no implementation at this stage, per user direction.
+- **THIRD_PARTY_NOTICES.md — zizmor / gitleaks / trivy entries**: License and upstream attribution recorded for the three CI/CD security tools.
+- **THIRD_PARTY_NOTICES.md — "First-Party Components (azure-analyzer)" section**: Calls out ADO Service Connections, Identity Correlator, Installer, HTML/Markdown report generators, and the orchestrator as MIT-licensed first-party code under the repo's `LICENSE`.
+- **Expanded sample findings**: `samples/sample-results.json` now contains ~23 findings spanning all 12 tools with mixed severities (Critical / High / Medium / Low). Sample HTML and Markdown reports regenerated so the README previews reflect all 12 sources.
+
+### Changed
+- **Maester synthetic entity: `Application` → `Tenant`**: Maester tenant-wide baseline findings (those without a per-app owner) are now emitted against a synthetic `Tenant` entity on `Platform=Entra`, rather than being shoehorned into `Application`. Per-app checks still emit `Application` entities.
+- **Maester severity regex uses word boundaries**: Severity extraction now uses `\bcritical\b`, `\bhigh\b`, `\bmedium\b`, `\blow\b`, `\binfo\b`. Previously, strings like "criticality" matched "critical" and misgraded findings.
+- **Sample findings cover all 12 tools**: `samples/sample-results.json` regenerated to include representative findings from every tool (azqr, psrule, azgovviz, alz-queries, wara, maester, scorecard, ado-connections, identity-correlator, zizmor, gitleaks, trivy) with mixed severities.
+
 ### Fixed
+- **Report strict-mode `.Count` crash on single-item `Where-Object` results**: HTML and Markdown report generators crashed under StrictMode when `Where-Object` returned a single object (scalar) and code accessed `.Count` on it. All such sites now coerce to array (`@(...)`) before reading `.Count`.
+
+### Security
+- **`RemoteClone.ps1` hardening**: HTTPS-only transport (refuses `git://` / `ssh://` / `file://`); clone targets must match the host allow-list (`github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`); any auth token injected into the clone URL is scrubbed from `.git/config` immediately after the clone completes.
+- **`Installer.ps1` hardening**: Refuses unsafe package names (package-name regex), refuses disallowed package managers (only `winget` / `brew` / `pipx` / `pip` / `snap` accepted), refuses non-HTTPS git-clone sources, and refuses hosts outside the allow-list. All stdout/stderr emitted by package managers is scrubbed via `Remove-Credentials` before logging.
+
+---
+
+## [Unreleased — earlier entries]
+
+### Fixed (earlier)
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
 - **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.

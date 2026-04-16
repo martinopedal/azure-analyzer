@@ -47,10 +47,15 @@ Describe 'Normalize-Maester' {
             $results = Normalize-Maester -ToolResult $fixture
         }
 
-        It 'uses an Entra-compatible EntityType' {
-            $validEntraTypes = @('ServicePrincipal', 'Application', 'User')
+        It 'uses the Tenant EntityType' {
             foreach ($r in $results) {
-                $r.EntityType | Should -BeIn $validEntraTypes
+                $r.EntityType | Should -Be 'Tenant'
+            }
+        }
+
+        It 'sets Platform to Entra' {
+            foreach ($r in $results) {
+                $r.Platform | Should -Be 'Entra'
             }
         }
 

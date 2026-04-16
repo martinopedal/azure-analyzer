@@ -206,17 +206,29 @@ $env:GITHUB_AUTH_TOKEN = (gh auth token)
 
 ---
 
-### Local CLI tools (zizmor, gitleaks, Trivy -- no cloud permissions)
+### Local CLI tools (zizmor, gitleaks, Trivy)
 
-These tools scan the local repository checkout and require **no API tokens, cloud permissions, or network access**. They only need the CLI binary installed on the machine.
+These tools are **cloud-first**: when `-Repository` (GitHub) or `-AdoOrg`/`-AdoRepoUrl` (Azure DevOps) is provided, they scan a **remote** checkout via `modules/shared/RemoteClone.ps1` (HTTPS-only; host allow-list: `github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`; tokens scrubbed from `.git/config` after clone). When neither is provided they fall back to scanning the local filesystem (`-RepoPath` / `-ScanPath`).
 
-| Tool | What it scans | Install |
-|------|--------------|---------|
-| **zizmor** | GitHub Actions workflow YAML files for security anti-patterns | [Download](https://github.com/woodruffw/zizmor/releases) or `cargo install zizmor` |
-| **gitleaks** | Repository filesystem for hardcoded secrets (keys, tokens, passwords) | [Download](https://github.com/gitleaks/gitleaks/releases) or `brew install gitleaks` |
-| **Trivy** | Dependency manifests (package-lock.json, requirements.txt, go.sum, etc.) for CVEs | [Download](https://github.com/aquasecurity/trivy/releases) or `brew install trivy` / `choco install trivy` |
+| Tool | What it scans | Remote auth (when targeting a remote repo) | Local fallback |
+|------|--------------|-------------------------------------------|----------------|
+| **zizmor** | GitHub Actions workflow YAML files for security anti-patterns | `GITHUB_AUTH_TOKEN` — fine-grained PAT with **Contents: Read** on the target repo, or classic PAT with `public_repo` / `repo` | Works on any local checkout; no token |
+| **gitleaks** | Repository filesystem for hardcoded secrets. Invoked with `--redact` so the report file **never contains plaintext secrets** (Secret/Match fields are also stripped from parsed JSON as defense-in-depth). | `GITHUB_AUTH_TOKEN` (GitHub) or `AZURE_DEVOPS_EXT_PAT` with **Code: Read** (ADO) for private repos | Works on any local checkout; no token |
+| **Trivy** | Dependency manifests (package-lock.json, requirements.txt, go.sum, etc.) for CVEs | `GITHUB_AUTH_TOKEN` / ADO PAT with **Code: Read** for private repos | Works on any local checkout; no token |
 
-**No permissions required.** These tools operate entirely on local files. If the CLI binary is not found on PATH, the tool is skipped with an install instruction.
+For public repos, no token is required. For private repos, use the **minimum-scope** token type listed above. All three tools operate read-only; no write permissions anywhere. If the CLI binary is missing the tool is skipped with an install instruction.
+
+---
+
+### Identity Correlator (cross-dimensional identity mapping)
+
+The Identity Correlator runs in-process after all collectors complete. It seeds candidates from existing findings and cross-references them across dimensions — no additional permissions beyond whatever those collectors already had.
+
+| Optional path | Requirement | Why |
+|---|---|---|
+| `-IncludeGraphLookup` | Microsoft Graph `Application.Read.All` (or Security Reader) | Look up federated identity credentials on candidate apps |
+
+Without `-IncludeGraphLookup`, correlator runs with zero additional permissions.
 
 ---
 
@@ -303,9 +315,10 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
-| **zizmor** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
-| **gitleaks** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
-| **Trivy** | -- | -- | -- | -- | ✅ Binary on PATH | -- |
+| **zizmor** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
+| **gitleaks** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
+| **Trivy** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
+| **Identity Correlator** | ✅ Inherited | ⚡ Optional (Graph lookup) | -- | -- | -- | -- |
 | **AI Triage** | -- | -- | ⚡ Recommended | -- | -- | ⚠️ Optional |
 
 - ✅ = Required for tool to function
