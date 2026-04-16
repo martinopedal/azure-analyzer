@@ -69,6 +69,7 @@ param (
     [string] $ScanType,
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
+    [string] $PreviousRun,
     [switch] $EnableAiTriage
 )
 
@@ -646,6 +647,7 @@ if ($EnableAiTriage) {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
 $triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
+$prevRunArg = if ($PreviousRun -and (Test-Path $PreviousRun)) { @{ PreviousRun = $PreviousRun } } else { @{} }
 
 # ---------------------------------------------------------------------------
 # Generate reports
@@ -654,7 +656,7 @@ $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg
 } catch {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }

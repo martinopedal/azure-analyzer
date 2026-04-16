@@ -254,6 +254,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
+| `-PreviousRun` | string | -- | Path to a prior `results.json`; HTML report renders New/Resolved/Unchanged badges + a delta summary banner |
 | `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
 | `-ScorecardThreshold` | int (0-10) | 7 | Minimum score for a Scorecard check to be compliant |
 | `-ScanPath` | string | `.` | Filesystem path for Trivy dependency scanning |
