@@ -313,6 +313,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **ALZ Queries** | ✅ Required | -- | -- | -- | -- | -- |
 | **WARA** | ✅ Required | -- | -- | -- | -- | -- |
 | **Azure Cost** | ✅ Required (Consumption API read) | -- | -- | -- | -- | -- |
+| **Defender for Cloud** | ✅ Required (Microsoft.Security read) | -- | -- | -- | -- | -- |
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |

@@ -49,6 +49,27 @@
       }
     },
     {
+      "name": "defender-for-cloud",
+      "displayName": "Microsoft Defender for Cloud",
+      "source": "defender-for-cloud",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-DefenderForCloud",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-DefenderForCloud.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#0078d4", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts"]
+      }
+    },
+    {
       "name": "azure-cost",
       "displayName": "Azure Cost (Consumption API)",
       "source": "azure-cost",
