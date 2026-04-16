@@ -8,8 +8,10 @@
     If gitleaks is not installed, writes a warning and returns an empty result.
     Never throws -- designed for graceful degradation in the orchestrator.
 
-    Security: The report is written to the system temp directory (not inside the
-    scanned repo) and Secret/Match fields are stripped before creating findings.
+    Security: The --redact flag ensures the report file never contains plaintext
+    secret values. Secret/Match fields are also stripped during post-processing
+    as a defense-in-depth layer. The report is written to the system temp
+    directory (not inside the scanned repo).
 .PARAMETER RepoPath
     Path to the repository to scan. Defaults to the current directory.
 .PARAMETER NoGit
@@ -61,7 +63,8 @@ try {
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "gitleaks-report-$([guid]::NewGuid().ToString('N')).json"
 
     try {
-        $gitleaksArgs = @('detect', '--source', $resolvedPath, '--report-format', 'json', '--report-path', $reportFile, '--no-banner', '--exit-code', '0')
+        # --redact: gitleaks replaces secret values with REDACTED in the report so plaintext secrets are never written to disk
+        $gitleaksArgs = @('detect', '--source', $resolvedPath, '--report-format', 'json', '--report-path', $reportFile, '--no-banner', '--redact', '--exit-code', '0')
         if ($NoGit) {
             $gitleaksArgs += '--no-git'
         }
@@ -159,7 +162,7 @@ try {
             $fingerprint = [string]$item.Fingerprint
         }
 
-        # Strip Secret/Match fields — never propagate raw secret values into findings
+        # Strip Secret/Match fields — defense-in-depth; --redact already replaces values in the report
 
         # Severity: Secret-type findings → High, everything else → Medium
         $severity = 'High'

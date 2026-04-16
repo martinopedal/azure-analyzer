@@ -7,6 +7,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
+- **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.
 - **zizmor parse failures return success**: JSON parse failure now returns Status='Failed' instead of Success with empty findings. Checks `$LASTEXITCODE` for non-zero exit codes.
 - **zizmor stderr mixed into JSON stream**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout. stderr is kept separate and logged via Write-Verbose.
 - **trivy stderr/stdout mixing corrupts JSON**: Uses `--output` flag to write JSON to a temp file instead of capturing stdout directly. stderr is kept separate and logged via Write-Verbose. Temp file is cleaned up in a finally block.
