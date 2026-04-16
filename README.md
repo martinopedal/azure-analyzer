@@ -33,7 +33,7 @@ Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure reso
 
 Missing PowerShell modules are detected and reported with install commands. Use `-InstallMissingModules` to auto-install them.
 
-Results land in `output/` — a JSON file, an HTML dashboard, and a Markdown report. That's it.
+Results land in `output/` -- a JSON file, an HTML dashboard, and a Markdown report. That's it.
 
 ## What you get
 
@@ -42,11 +42,11 @@ After a run, `output/` contains:
 | File | Description |
 |---|---|
 | `results.json` | All findings in a unified 10-field schema |
-| `report.html` | Offline HTML dashboard — donut chart, stat cards, per-source bars, filterable tables, print-friendly |
-| `report.md` | GitHub-flavored Markdown — summary tables, per-category findings, action plan |
-| `triage.json` | *(optional)* AI-enriched findings — generated with `-EnableAiTriage` |
+| `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
+| `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
+| `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
 
-**Reports are auto-generated** after the run writes `results.json` — no manual step needed.
+**Reports are auto-generated** after the run writes `results.json` -- no manual step needed.
 
 ### HTML Report features
 
@@ -61,9 +61,9 @@ After a run, `output/` contains:
 - **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
 - **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
 
-📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub — tables, categories, action plan)
+📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub -- tables, categories, action plan)
 
-📊 **[Download the sample HTML report →](samples/sample-report.html)** (open in any browser — donut chart, stat cards, filterable tables, works offline)
+📊 **[Download the sample HTML report →](samples/sample-report.html)** (open in any browser -- donut chart, stat cards, filterable tables, works offline)
 
 ### Markdown Report features
 
@@ -116,13 +116,13 @@ The report groups findings by category, then prioritizes action:
 
 </details>
 
-> 💡 Full sample reports are available in [`samples/`](samples/) — open `sample-report.html` in a browser or view `sample-report.md` on GitHub.
+> 💡 Full sample reports are available in [`samples/`](samples/) -- open `sample-report.html` in a browser or view `sample-report.md` on GitHub.
 
 ### Report structure
 
-- **Fix Now** — High + Critical severity findings
-- **Plan** — Medium severity
-- **Track** — Low + Info severity
+- **Fix Now** -- High + Critical severity findings
+- **Plan** -- Medium severity
+- **Track** -- Low + Info severity
 - Per-category breakdown with finding counts
 
 ## Prerequisites
@@ -137,6 +137,11 @@ The report groups findings by category, then prioritizes action:
 
 **Auto-install**: PSRule, WARA, Maester, and Az.ResourceGraph are auto-installed when you pass `-InstallMissingModules`. CLI tools (azqr, scorecard) must be installed manually.
 
+**AzGovViz** is a standalone script, not a module. Clone it into `tools/AzGovViz/` or `$HOME/AzGovViz/`:
+```
+git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting tools/AzGovViz
+```
+
 **Identity security (Maester)** requires a Graph connection: `Connect-MgGraph -Scopes (Get-MtGraphScope)`. Not needed if you exclude Maester.
 
 **Repository security (Scorecard)** works best with `GITHUB_AUTH_TOKEN` set (5,000 req/hr vs 60 without). Not needed if you skip Scorecard.
@@ -144,7 +149,7 @@ The report groups findings by category, then prioritizes action:
 ## Usage
 
 ```powershell
-# Single subscription
+# Single subscription (Azure resource tools only)
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
 
 # Management group (auto-discovers child subscriptions, scans recursively)
@@ -156,9 +161,38 @@ The report groups findings by category, then prioritizes action:
 # MG tools only (no per-subscription recursion)
 .\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg" -Recurse:$false
 
-# Combine scopes for complete picture
+# Azure + Entra ID identity security
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." # Maester runs automatically if Connect-MgGraph is active
+
+# Azure + repository supply chain security
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
+
+# Full assessment (all 3 dimensions)
 .\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -Repository "github.com/org/repo"
+
+# Custom output directory
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -OutputPath "C:\reports\april"
+
+# CI/automation (skip interactive prereq check)
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SkipPrereqCheck
 ```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `-SubscriptionId` | string | -- | Azure subscription to scan |
+| `-ManagementGroupId` | string | -- | Management group (discovers child subs) |
+| `-TenantId` | string | current context | Azure tenant ID (used by WARA) |
+| `-OutputPath` | string | `.\output` | Directory for results, reports, and errors |
+| `-Repository` | string | -- | GitHub repo for Scorecard (e.g. `github.com/org/repo`) |
+| `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
+| `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
+| `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
+| `-ScorecardThreshold` | int (0-10) | 7 | Minimum score for a Scorecard check to be compliant |
+| `-InstallMissingModules` | switch | `$false` | Auto-install missing PowerShell modules |
+| `-SkipPrereqCheck` | switch | `$false` | Skip prerequisite detection (for CI pipelines) |
+| `-EnableAiTriage` | switch | `$false` | Enrich findings via GitHub Copilot SDK (requires license) |
 
 ### Management Group hierarchy
 
@@ -198,13 +232,13 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 
 | # | Tool | What it assesses | How it works |
 |---|------|-----------------|-------------|
-| 1 | **[azqr](https://azure.github.io/azqr)** | Azure resource compliance — storage encryption, Key Vault config, App Service HTTPS, SQL auditing, 200+ checks | CLI scans a subscription and emits per-resource recommendations with severity |
-| 2 | **[PSRule for Azure](https://azure.github.io/PSRule.Rules.Azure/)** | Infrastructure best practices — managed disks, network isolation, diagnostic settings, WAF alignment | PowerShell module evaluates resources against 400+ rules, returns pass/fail per rule |
-| 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy — management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies |
-| 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance — 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column |
-| 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture — single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
-| 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration — EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
-| 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security — branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
+| 1 | **[azqr](https://azure.github.io/azqr)** | Azure resource compliance -- storage encryption, Key Vault config, App Service HTTPS, SQL auditing, 200+ checks | CLI scans a subscription and emits per-resource recommendations with severity |
+| 2 | **[PSRule for Azure](https://azure.github.io/PSRule.Rules.Azure/)** | Infrastructure best practices -- managed disks, network isolation, diagnostic settings, WAF alignment | PowerShell module evaluates resources against 400+ rules, returns pass/fail per rule |
+| 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy -- management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies |
+| 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance -- 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column |
+| 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture -- single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
+| 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
+| 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
 
 ## Schema reference
 
@@ -230,9 +264,9 @@ All tools operate read-only. No write permissions required anywhere.
 | Scope | What needs it |
 |-------|--------------|
 | **Azure Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA |
-| **Microsoft Graph** (read) | Maester — Entra ID security |
-| **GitHub token** (optional) | Scorecard — repo security (recommended for rate limits) |
-| **Copilot license** (optional) | AI triage — fully optional; only used with `-EnableAiTriage` flag |
+| **Microsoft Graph** (read) | Maester -- Entra ID security |
+| **GitHub token** (optional) | Scorecard -- repo security (recommended for rate limits) |
+| **Copilot license** (optional) | AI triage -- fully optional; only used with `-EnableAiTriage` flag |
 
 See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup commands, and troubleshooting.
 
@@ -244,7 +278,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process. Key points:
 
 - Fork → branch → PR against `main`
 - Every PR that changes code must include a docs update (README, CHANGELOG, PERMISSIONS.md as applicable)
-- ARG queries live in `queries/` as JSON — every query must return a `compliant` column (boolean)
+- ARG queries live in `queries/` as JSON -- every query must return a `compliant` column (boolean)
 - All GitHub Actions must use SHA-pinned versions
 
 The `.squad/` directory contains AI team infrastructure for automated triage and development workflows. It is **not** part of the tool itself and is excluded from archive downloads.

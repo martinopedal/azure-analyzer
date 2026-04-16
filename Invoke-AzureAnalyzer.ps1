@@ -153,6 +153,7 @@ function Invoke-Wrapper {
     $scriptPath = Join-Path $modulesPath $Script
     if (-not (Test-Path $scriptPath)) {
         Write-Warning "$Script not found at $scriptPath"
+        $toolErrors.Add([PSCustomObject]@{ Tool = $Script; Error = "Script not found: $scriptPath"; Timestamp = Get-Date })
         return [PSCustomObject]@{ Source = $Script; Status = 'Failed'; Message = "Script not found: $scriptPath"; Findings = @() }
     }
     for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
@@ -173,7 +174,7 @@ function Invoke-Wrapper {
             return $result
         } catch {
             if ($attempt -le $MaxRetries) {
-                Write-Warning "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ — retrying in ${RetryDelaySec}s..."
+                Write-Warning "$Script failed (attempt $attempt/$($MaxRetries+1)): $_ -- retrying in ${RetryDelaySec}s..."
                 Start-Sleep -Seconds $RetryDelaySec
             } else {
                 Write-Warning "$Script failed after $($MaxRetries+1) attempts: $_"
@@ -499,7 +500,7 @@ if ($EnableAiTriage) {
         $triageResult = & (Join-Path $modulesPath 'Invoke-CopilotTriage.ps1') `
             -InputPath $outputFile -OutputPath $triageFile
         if ($null -eq $triageResult) { Write-Warning "AI triage did not produce results." }
-    } catch { Write-Warning "AI triage failed: $_ — continuing without enrichment." }
+    } catch { Write-Warning "AI triage failed: $_ -- continuing without enrichment." }
 } else {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
