@@ -4,6 +4,11 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **Report v2 dashboard (Phase 5)**: `New-HtmlReport.ps1` now emits a single-file HTML dashboard with embedded JSON model, client-side combinable filters (source, severity, category, compliance, framework), URL-encodable filter state, and print-friendly layout.
+- **Previous-run delta support**: New `-PreviousRun` parameter on `Invoke-AzureAnalyzer.ps1` enables comparison to a prior `results.json`; report now surfaces New/Resolved/Unchanged badges and delta summary cards (new, resolved, unchanged, and net non-compliant change). When omitted, the orchestrator auto-detects the latest `output-*/results.json` fallback.
+- **Delta logic test coverage**: Added `modules/shared/ReportDelta.ps1` and `tests/shared/ReportDelta.Tests.ps1` for composite key and delta detection behavior.
+
 ### Fixed
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
@@ -163,5 +168,4 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
 

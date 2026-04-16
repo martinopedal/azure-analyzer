@@ -71,7 +71,7 @@ After a run, `output/` contains:
 | `entities.json` | Entity-centric view (v3 format, observations per entity with platform/type hierarchy) |
 | `tool-status.json` | Per-tool execution status (Success, Skipped, Failed) with message and finding count |
 | `errors.json` | Tool failures and error details (only written when errors occur) |
-| `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
+| `report.html` | Offline HTML dashboard -- donut chart, per-source bars, interactive filters, and delta vs previous run |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
 
@@ -79,16 +79,13 @@ After a run, `output/` contains:
 
 ### HTML Report features
 
-- **Executive summary** -- auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
-- **Pure-CSS donut chart** -- compliance percentage with conic-gradient (no JavaScript)
-- **Clickable stat cards** -- filter findings by severity with keyboard-accessible buttons
-- **Per-source breakdown** -- horizontal bar chart showing finding counts per tool
-- **Severity borders** -- color-coded left border on each finding row (High=red, Medium=orange, Low=yellow)
-- **Zebra striping** -- alternating row backgrounds for readability
-- **Search and filter** -- text input for instant filtering across all finding tables
-- **Clickable remediation URLs** -- automatically wrapped in anchor tags
-- **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
-- **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
+- **Single-file dashboard** -- embedded JSON payload and no external assets (offline-friendly)
+- **Live combinable filters** -- source, severity, category, compliance, and framework chip filter
+- **URL-encodable filter state** -- share filtered views via query parameters
+- **Delta comparison** -- New / Resolved / Unchanged and net non-compliant change vs previous run
+- **Per-source bars + compliance donut** -- preserved from v1 report
+- **Print-friendly CSS** -- hides controls and avoids row/page breaks
+- **Accessibility and fallback** -- keyboard-friendly controls and static no-JS report section
 
 📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub -- tables, categories, action plan)
 
@@ -222,6 +219,9 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 
 # CI/automation (skip interactive prereq check)
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SkipPrereqCheck
+
+# Compare against a previous run for report delta badges and summary
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -PreviousRun "C:\reports\2026-04-15\results.json"
 ```
 
 ### Parameters
@@ -246,6 +246,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-InstallMissingModules` | switch | `$false` | Auto-install missing PowerShell modules |
 | `-SkipPrereqCheck` | switch | `$false` | Skip prerequisite detection (for CI pipelines) |
 | `-EnableAiTriage` | switch | `$false` | Enrich findings via GitHub Copilot SDK (requires license) |
+| `-PreviousRun` | string | latest `output-*/results.json` (auto-detect) | Prior run `results.json` path or glob for HTML delta comparison |
 
 ### Management Group hierarchy
 

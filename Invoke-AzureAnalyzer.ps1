@@ -37,6 +37,9 @@
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
+.PARAMETER PreviousRun
+    Optional path or glob to a prior results.json file used for HTML report delta
+    comparison. If omitted, the latest output-*/results.json is auto-detected.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -66,7 +69,8 @@ param (
     [string] $ScanPath,
     [ValidateSet('fs', 'repo')]
     [string] $ScanType,
-    [switch] $EnableAiTriage
+    [switch] $EnableAiTriage,
+    [string] $PreviousRun
 )
 
 Set-StrictMode -Version Latest
@@ -643,6 +647,39 @@ if ($EnableAiTriage) {
 }
 $triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
 
+# Resolve previous run for delta reporting
+$previousRunArg = @{}
+$resolvedPreviousRun = $null
+if ($PreviousRun) {
+    if (Test-Path $PreviousRun -PathType Leaf) {
+        $resolvedPreviousRun = (Resolve-Path $PreviousRun).Path
+    } else {
+        $matches = @(Get-ChildItem -Path $PreviousRun -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+        if ($matches.Count -gt 0) {
+            $resolvedPreviousRun = $matches[0].FullName
+        } else {
+            Write-Warning "No previous run file matched pattern: $PreviousRun"
+        }
+    }
+}
+
+if (-not $resolvedPreviousRun) {
+    $currentResultsPath = (Resolve-Path $outputFile).Path
+    $fallbackRuns = @(Get-ChildItem -Path (Join-Path $PSScriptRoot 'output-*') -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName 'results.json' } |
+        Where-Object { (Test-Path $_) -and ((Resolve-Path $_).Path -ne $currentResultsPath) } |
+        ForEach-Object { Get-Item $_ } |
+        Sort-Object LastWriteTime -Descending)
+    if ($fallbackRuns.Count -gt 0) {
+        $resolvedPreviousRun = $fallbackRuns[0].FullName
+    }
+}
+
+if ($resolvedPreviousRun) {
+    Write-Host "Using previous run for delta: $resolvedPreviousRun" -ForegroundColor Cyan
+    $previousRunArg = @{ PreviousRunPath = $resolvedPreviousRun }
+}
+
 # ---------------------------------------------------------------------------
 # Generate reports
 # ---------------------------------------------------------------------------
@@ -650,7 +687,7 @@ $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @previousRunArg
 } catch {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }
