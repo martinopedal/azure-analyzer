@@ -100,6 +100,7 @@ azure-analyzer/
 │       ├── Schema.ps1
 │       ├── Canonicalize.ps1
 │       ├── EntityStore.ps1
+│       ├── IdentityCorrelator.ps1
 │       ├── WorkerPool.ps1
 │       ├── Checkpoint.ps1
 │       └── ...
@@ -149,10 +150,42 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
 | WARA | `modules/normalizers/Normalize-WARA.ps1` | AzureResource |
 | Maester | `modules/normalizers/Normalize-Maester.ps1` | Application |
 | Scorecard | `modules/normalizers/Normalize-Scorecard.ps1` | Repository |
+| Identity Correlator | `modules/normalizers/Normalize-IdentityCorrelation.ps1` | ServicePrincipal |
 
 ### Manifest-driven invocation
 
 The orchestrator loads `tools/tool-manifest.json`, which specifies the normalizer path for each tool. After a tool collector returns `Findings`, the manifest entry's `normalizer` script is invoked to transform findings into v2 format before they enter the entity store pipeline.
+
+---
+
+## Correlation stage (Phase 2)
+
+The correlation stage runs after entity merge and before enrichment. It connects
+identities that span multiple platforms without bulk-enumerating tenant SPNs.
+
+### Identity correlator (`modules/shared/IdentityCorrelator.ps1`)
+
+**Strategy -- candidate reduction, not bulk enumeration:**
+
+1. **Seed candidates** from existing entity store data: extract appIds, objectIds,
+   and SPN display names from Azure RBAC findings, ADO service connections,
+   GitHub OIDC subjects, and Entra identity entities.
+2. **Cross-reference** each candidate across dimensions (Azure, Entra, GitHub, ADO).
+3. **Optional Graph enrichment** (`-IncludeGraphLookup`): look up federated identity
+   credentials for candidate apps via `Get-MgApplication` + `Get-MgApplicationFederatedIdentityCredential`.
+   Requires Security Reader. Opt-in only.
+4. **Emit findings** as v3 FindingRow objects with confidence scoring:
+   - Confirmed: same appId in 3+ dimensions with direct evidence
+   - Likely: same appId in 2 dimensions
+   - Unconfirmed: name-based correlation only
+
+**Output**: Informational findings (Severity=Info, Compliant=true) with Confidence,
+EvidenceCount, and MissingDimensions fields. Checkpoint-compatible via Identity scope.
+
+### Normalizer
+
+`modules/normalizers/Normalize-IdentityCorrelation.ps1` is a passthrough -- the
+correlator already emits valid FindingRow objects.
 
 ---
 

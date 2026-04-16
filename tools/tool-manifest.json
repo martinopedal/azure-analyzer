@@ -113,6 +113,22 @@
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
       "enabled": true
+    },
+    {
+      "name": "identity-correlator",
+      "displayName": "Identity Correlator",
+      "source": "identity-correlator",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-IdentityCorrelation",
+      "invokeMethod": "function",
+      "type": "correlator",
+      "script": "modules/shared/IdentityCorrelator.ps1",
+      "requiredParams": ["TenantId"],
+      "optionalParams": ["IncludeGraphLookup"],
+      "requiredPermissionTier": 3,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true
     }
   ]
 }
