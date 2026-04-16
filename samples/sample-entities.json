@@ -1,0 +1,169 @@
+[
+  {
+    "EntityId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-networking/providers/microsoft.network/networksecuritygroups/nsg-frontend",
+    "EntityType": "AzureResource",
+    "Platform": "Azure",
+    "DisplayName": "nsg-frontend",
+    "SubscriptionId": "00000000-1111-2222-3333-444444444444",
+    "SubscriptionName": "Production",
+    "ResourceGroup": "rg-prod-networking",
+    "ManagementGroupPath": null,
+    "ExternalIds": null,
+    "Observations": [
+      {
+        "FindingId": "azqr-nsg-001",
+        "Source": "azqr",
+        "Title": "NSG has no inbound rules restricting SSH access",
+        "Severity": "High",
+        "Compliant": false
+      }
+    ],
+    "WorstSeverity": "High",
+    "CompliantCount": 0,
+    "NonCompliantCount": 1,
+    "Sources": ["azqr"],
+    "MonthlyCost": null,
+    "Currency": null,
+    "CostTrend": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Policies": null,
+    "Correlations": null,
+    "Confidence": null,
+    "MissingDimensions": null
+  },
+  {
+    "EntityId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-compute/providers/microsoft.compute/virtualmachines/vm-app-backend-01",
+    "EntityType": "AzureResource",
+    "Platform": "Azure",
+    "DisplayName": "vm-app-backend-01",
+    "SubscriptionId": "00000000-1111-2222-3333-444444444444",
+    "SubscriptionName": "Production",
+    "ResourceGroup": "rg-prod-compute",
+    "ManagementGroupPath": null,
+    "ExternalIds": null,
+    "Observations": [
+      {
+        "FindingId": "psrule-vm-001",
+        "Source": "psrule",
+        "Title": "Virtual machine does not use managed disks",
+        "Severity": "Medium",
+        "Compliant": false
+      }
+    ],
+    "WorstSeverity": "Medium",
+    "CompliantCount": 0,
+    "NonCompliantCount": 1,
+    "Sources": ["psrule"],
+    "MonthlyCost": null,
+    "Currency": null,
+    "CostTrend": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Policies": null,
+    "Correlations": null,
+    "Confidence": null,
+    "MissingDimensions": null
+  },
+  {
+    "EntityId": "maester/entra-tenant-configuration",
+    "EntityType": "Application",
+    "Platform": "Entra",
+    "DisplayName": "Entra Tenant Configuration",
+    "SubscriptionId": null,
+    "SubscriptionName": null,
+    "ResourceGroup": null,
+    "ManagementGroupPath": null,
+    "ExternalIds": null,
+    "Observations": [
+      {
+        "FindingId": "maester-ca-001",
+        "Source": "maester",
+        "Title": "No Conditional Access policy requires MFA for all users",
+        "Severity": "High",
+        "Compliant": false
+      },
+      {
+        "FindingId": "maester-auth-002",
+        "Source": "maester",
+        "Title": "Legacy authentication protocols are not blocked",
+        "Severity": "High",
+        "Compliant": false
+      },
+      {
+        "FindingId": "maester-eidsca-003",
+        "Source": "maester",
+        "Title": "Self-service password reset is correctly configured",
+        "Severity": "Info",
+        "Compliant": true
+      }
+    ],
+    "WorstSeverity": "High",
+    "CompliantCount": 1,
+    "NonCompliantCount": 2,
+    "Sources": ["maester"],
+    "MonthlyCost": null,
+    "Currency": null,
+    "CostTrend": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Policies": null,
+    "Correlations": null,
+    "Confidence": null,
+    "MissingDimensions": null
+  },
+  {
+    "EntityId": "github.com/martinopedal/azure-analyzer",
+    "EntityType": "Repository",
+    "Platform": "GitHub",
+    "DisplayName": "martinopedal/azure-analyzer",
+    "SubscriptionId": null,
+    "SubscriptionName": null,
+    "ResourceGroup": null,
+    "ManagementGroupPath": null,
+    "ExternalIds": null,
+    "Observations": [
+      {
+        "FindingId": "scorecard-bp-001",
+        "Source": "scorecard",
+        "Title": "Branch-Protection",
+        "Severity": "High",
+        "Compliant": false
+      },
+      {
+        "FindingId": "scorecard-pd-002",
+        "Source": "scorecard",
+        "Title": "Pinned-Dependencies",
+        "Severity": "Medium",
+        "Compliant": false
+      },
+      {
+        "FindingId": "scorecard-cr-003",
+        "Source": "scorecard",
+        "Title": "Code-Review",
+        "Severity": "Low",
+        "Compliant": true
+      },
+      {
+        "FindingId": "scorecard-sa-004",
+        "Source": "scorecard",
+        "Title": "SAST",
+        "Severity": "Info",
+        "Compliant": true
+      }
+    ],
+    "WorstSeverity": "High",
+    "CompliantCount": 2,
+    "NonCompliantCount": 2,
+    "Sources": ["scorecard"],
+    "MonthlyCost": null,
+    "Currency": null,
+    "CostTrend": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Policies": null,
+    "Correlations": null,
+    "Confidence": null,
+    "MissingDimensions": null
+  }
+]

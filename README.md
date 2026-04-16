@@ -33,7 +33,7 @@ Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure reso
 
 Missing PowerShell modules are detected and reported with install commands. Use `-InstallMissingModules` to auto-install them.
 
-Results land in `output/` -- a JSON file, an HTML dashboard, and a Markdown report. That's it.
+Results land in `output/` -- multiple JSON files (findings, entities, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
 Sensitive tokens are scrubbed from console output, errors.json, and report files before writing.
 
 ## What you get
@@ -44,6 +44,8 @@ After a run, `output/` contains:
 |---|---|
 | `results.json` | Backward-compatible flat findings (v1 format, all tools' observations in single array) |
 | `entities.json` | Entity-centric view (v3 format, observations per entity with platform/type hierarchy) |
+| `tool-status.json` | Per-tool execution status (Success, Skipped, Failed) with message and finding count |
+| `errors.json` | Tool failures and error details (only written when errors occur) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
@@ -248,22 +250,38 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 6 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
 | 7 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
 
+> **Note:** Scorecard may work with GitHub Enterprise (GHEC/GHES) URLs. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for GHEC/GHES token requirements.
+
 ## Schema reference
 
-All findings are merged into `output/results.json` using a unified 10-field schema:
+All findings are merged into `output/results.json` using the unified v2 schema (24 fields per finding):
 
-| Field | Type | Description |
-|---|---|---|
-| `Id` | string | Unique finding identifier |
-| `Source` | string | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, or `scorecard` |
-| `Category` | string | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
-| `Title` | string | Short finding title |
-| `Severity` | string | `Critical`, `High`, `Medium`, `Low`, or `Info` |
-| `Compliant` | boolean | Whether the resource passes the check |
-| `Detail` | string | Detailed description of the finding |
-| `Remediation` | string | Steps to fix (may include URLs) |
-| `ResourceId` | string | Azure ARM resource ID |
-| `LearnMoreUrl` | string | Link to Microsoft Learn documentation |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `Id` | string | yes | Unique finding identifier |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `maester`, or `scorecard` |
+| `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
+| `Title` | string | yes | Short finding title |
+| `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
+| `Compliant` | boolean | yes | Whether the resource passes the check |
+| `Detail` | string | | Detailed description of the finding |
+| `Remediation` | string | | Steps to fix (may include URLs) |
+| `ResourceId` | string | | Azure ARM resource ID (or repo URL for Scorecard) |
+| `LearnMoreUrl` | string | | Link to Microsoft Learn documentation |
+| `EntityId` | string | yes | Canonical entity identifier (lowercase ARM ID, repo URL, or synthetic key) |
+| `EntityType` | string | yes | `AzureResource`, `ServicePrincipal`, `ManagedIdentity`, `Application`, `Repository`, `Pipeline`, `ServiceConnection`, `User`, `Subscription`, or `ManagementGroup` |
+| `Platform` | string | | `Azure`, `Entra`, `GitHub`, or `ADO` (inferred from EntityType when omitted) |
+| `Provenance` | object | yes | `{ RunId, Source, RawRecordRef, Timestamp }` -- traceability back to raw tool output |
+| `SubscriptionId` | string | | Azure subscription GUID (extracted from ARM ID) |
+| `SubscriptionName` | string | | Human-readable subscription name |
+| `ResourceGroup` | string | | Azure resource group name |
+| `ManagementGroupPath` | string[] | | Management group hierarchy path |
+| `Frameworks` | object[] | | Compliance framework mappings (e.g. CIS, NIST) |
+| `Controls` | string[] | | Control identifiers from compliance frameworks |
+| `Confidence` | string | | `Confirmed`, `Likely`, `Unconfirmed`, or `Unknown` |
+| `EvidenceCount` | int | | Number of supporting evidence items |
+| `MissingDimensions` | string[] | | Dimensions the tool could not assess |
+| `SchemaVersion` | string | | Schema version (currently `2.0`) |
 
 The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs (`entities.json` + `results.json`). Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline. Security helpers enforce terminating error behavior and redact credentials in logs and report rendering paths.
 
@@ -281,6 +299,10 @@ All tools operate read-only. No write permissions required anywhere.
 See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup commands, and troubleshooting.
 
 ---
+
+## Roadmap
+
+- **Azure DevOps pipeline security** -- ADO pipeline and service connection scanning is planned ([#48](https://github.com/martinopedal/azure-analyzer/issues/48)). The unified schema already supports `Platform='ADO'` with `Pipeline` and `ServiceConnection` entity types, but no tool wrappers exist yet.
 
 ## Contributing
 

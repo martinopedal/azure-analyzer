@@ -45,6 +45,8 @@ through the shared worker pool.
 
 ## Schema v2 overview (findings)
 
+The full v2 finding schema has 24 fields. Key fields:
+
 | Field | Type | Description |
 |---|---|---|
 | `Id` | string | Unique finding ID (GUID) |
@@ -57,6 +59,13 @@ through the shared worker pool.
 | `Remediation` | string | Recommended fix steps |
 | `ResourceId` | string | Canonical resource/entity ID |
 | `LearnMoreUrl` | string | Documentation or reference link |
+| `EntityId` | string | Canonical entity identifier |
+| `EntityType` | string | `AzureResource`, `Application`, `Repository`, etc. |
+| `Platform` | string | `Azure`, `Entra`, `GitHub`, or `ADO` |
+| `Provenance` | object | `{ RunId, Source, RawRecordRef, Timestamp }` |
+| `SchemaVersion` | string | Currently `2.0` |
+
+See `modules/shared/Schema.ps1` for the complete field list including `SubscriptionId`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, and `MissingDimensions`.
 
 Entities use a separate schema with canonical `EntityId`, type, display name,
 hierarchy, and metadata for correlation.
@@ -85,8 +94,12 @@ azure-analyzer/
 ├── report-template.html
 ├── modules/
 │   ├── Invoke-*.ps1
-│   ├── Normalize-*.ps1
+│   ├── normalizers/
+│   │   └── Normalize-*.ps1
 │   └── shared/
+│       ├── Schema.ps1
+│       ├── Canonicalize.ps1
+│       ├── EntityStore.ps1
 │       ├── WorkerPool.ps1
 │       ├── Checkpoint.ps1
 │       └── ...
@@ -100,8 +113,11 @@ azure-analyzer/
 │   └── normalizers/
 └── output/
     ├── results.json
-    ├── report-model.json
-    └── report.html
+    ├── entities.json
+    ├── tool-status.json
+    ├── errors.json
+    ├── report.html
+    └── report.md
 ```
 
 ---
@@ -116,8 +132,8 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
 - **Extract resource context** — parse ARM ResourceIds to extract subscriptionId, resourceGroup, resourceType, resourceName
 - **Map schema** — convert tool-specific fields into v2 fields (Source, Category, Title, Severity, Compliant, Detail, Remediation, ResourceId, LearnMoreUrl)
 - **Platform/Entity mapping** — determine owning platform and entity type per tool:
-  - Azure tools (azqr, PSRule, AzGovViz, ALZ Queries, WARA) → Platform: `Azure`, EntityType: `Resource`
-  - Entra ID tool (Maester) → Platform: `EntraID`, EntityType: `Tenant`
+  - Azure tools (azqr, PSRule, AzGovViz, ALZ Queries, WARA) → Platform: `Azure`, EntityType: `AzureResource`
+  - Entra ID tool (Maester) → Platform: `Entra`, EntityType: `Application`
   - Repository tool (Scorecard) → Platform: `GitHub`, EntityType: `Repository`
 - **Return findings only** — no side effects, return array of v2-compliant findings
 
@@ -125,12 +141,12 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
 
 | Tool | Normalizer | Entity Type |
 |---|---|---|
-| azqr | `modules/normalizers/Normalize-Azqr.ps1` | Resource |
-| PSRule | `modules/normalizers/Normalize-PSRule.ps1` | Resource |
-| AzGovViz | `modules/normalizers/Normalize-AzGovViz.ps1` | Resource |
-| ALZ Queries | `modules/normalizers/Normalize-AlzQueries.ps1` | Resource |
-| WARA | `modules/normalizers/Normalize-Wara.ps1` | Resource |
-| Maester | `modules/normalizers/Normalize-Maester.ps1` | Tenant |
+| azqr | `modules/normalizers/Normalize-Azqr.ps1` | AzureResource |
+| PSRule | `modules/normalizers/Normalize-PSRule.ps1` | AzureResource |
+| AzGovViz | `modules/normalizers/Normalize-AzGovViz.ps1` | AzureResource |
+| ALZ Queries | `modules/normalizers/Normalize-AlzQueries.ps1` | AzureResource |
+| WARA | `modules/normalizers/Normalize-Wara.ps1` | AzureResource |
+| Maester | `modules/normalizers/Normalize-Maester.ps1` | Application |
 | Scorecard | `modules/normalizers/Normalize-Scorecard.ps1` | Repository |
 
 ### Manifest-driven invocation
@@ -141,6 +157,7 @@ The orchestrator loads `tools/tool-manifest.json`, which specifies the normalize
 
 - **Collectors never throw:** each wrapper returns `Source`, `Status`, `Message`, and `Findings`.
 - **Worker pool isolation:** one tool failure does not stop others.
+- **Tool status tracking:** orchestrator writes `tool-status.json` with per-tool Status, Message, and finding count. Reports use this to distinguish success-with-zero-findings from skipped/failed.
 - **Errors are captured:** orchestrator records failures in `errors.json`.
 - **Exit codes:** CI/CD uses 0–3 exit codes (success, policy violation, partial failure, total failure).
 - **Checkpoint/resume:** tool results are serialized per scope for long-running scans.

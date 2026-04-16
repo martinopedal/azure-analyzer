@@ -5,10 +5,20 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
+- **README schema table**: Updated from stale 10-field reference to full 24-field v2 schema matching `New-FindingRow` in `Schema.ps1`. Added Required column.
+- **README output description**: Fixed "a JSON file" (singular) to describe all output files (results.json, entities.json, tool-status.json, errors.json).
+- **README output table**: Added `tool-status.json` and `errors.json` entries to the "What you get" table.
+- **docs/ARCHITECTURE.md entity types**: Corrected `EntityType: Resource` to `AzureResource`, `Platform: EntraID` to `Entra`, and `EntityType: Tenant` to `Application` to match Schema.ps1 definitions.
+- **docs/ARCHITECTURE.md file structure**: Fixed normalizer paths (`modules/normalizers/` not `modules/`), added missing output files (entities.json, tool-status.json, errors.json, report.md), and added shared module files.
+- **docs/CONTRIBUTING-TOOLS.md normalizer template**: Replaced manual PSCustomObject template with `New-FindingRow` call matching actual normalizer implementations. Updated required field list to match Schema.ps1.
+- **Sample data**: Updated `samples/sample-results.json` to include v2 schema fields (EntityId, EntityType, Platform, Provenance, SchemaVersion). Created `samples/sample-entities.json`.
+- **PERMISSIONS.md ADO note**: Corrected "No ADO integration planned" to reference planned ADO pipeline scanning (issue #48).
 - **PSRule wrapper v1 field mapping**: `Invoke-PSRule.ps1` now emits standardised v1 fields (Title, Category, Compliant, Severity, Detail, Remediation, LearnMoreUrl) instead of raw PSRule fields (RuleName, Outcome, TargetName, Message). Normalizer no longer falls back to `Compliant=$true` / `Title='Unknown'` for real failures.
 - **azqr parallel output isolation**: azqr now writes to per-subscription output dirs (`azqr-<subId>`) during multi-subscription runs, preventing result mixing in parallel execution — same pattern as the WARA fix.
 
 ### Added
+- **CONTRIBUTING.md normalizer workflow**: Added "Adding a new tool" section describing the three-component workflow (collector, normalizer, manifest entry) with link to CONTRIBUTING-TOOLS.md.
+- **README Roadmap section**: Added roadmap with planned ADO pipeline security scanning (issue #48) and GHEC/GHES compatibility note for Scorecard.
 - **Phase 1 normalizers**: Seven normalizer functions in `modules/normalizers/` that convert raw tool output (v1) to schema v3 FindingRow format. Each normalizer parses ARM ResourceIds, extracts subscription and resource group context, and maps platform/entity-type per tool.
 - **Phase 1 manifest-driven plugin model**: `tools/tool-manifest.json` drives tool registration and execution. Orchestrator loads manifest to resolve eligible tools and call corresponding collector and normalizer scripts.
 - **Phase 1 dual output model**: Parallel output streams produce both `entities.json` (entity-centric observations) and `results.json` (backward-compatible flat findings). Normalizers feed into entity correlation pipeline.
