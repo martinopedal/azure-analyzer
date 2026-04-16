@@ -6,7 +6,7 @@
    - `modules/Invoke-{ToolName}.ps1`
    - Follow the wrapper contract (see below)
 2. **Create the normalizer**
-   - `modules/Normalize-{ToolName}.ps1`
+   - `modules/normalizers/Normalize-{ToolName}.ps1`
    - Map raw output into schema v2
 3. **Register in the manifest**
    - Add an entry in `tools/tool-manifest.json`
@@ -20,7 +20,7 @@
 ## Wrapper contract
 
 Each tool wrapper is responsible for executing the tool and returning a
-consistent result object. Wrappers **must not throw** — they return a status
+consistent result object. Wrappers **must not throw** -- they return a status
 and message instead.
 
 ### Input parameters
@@ -79,11 +79,11 @@ Normalizers convert raw tool output into the schema v2 finding shape.
 ```json
 {
   "name": "exampletool",
-  "provider": "Azure",
-  "scope": "Subscription",
-  "collector": "modules/Invoke-ExampleTool.ps1",
-  "normalizer": "modules/Normalize-ExampleTool.ps1",
-  "permissionTier": 1
+  "provider": "azure",
+  "scope": "subscription",
+  "script": "modules/Invoke-ExampleTool.ps1",
+  "normalizer": "Normalize-ExampleTool",
+  "requiredPermissionTier": 1
 }
 ```
 
@@ -203,7 +203,8 @@ Example test:
 Describe 'Normalize-MyTool' {
     It 'converts raw finding to v2 schema' {
         $raw = Get-Content 'tests/fixtures/normalizers/mytool-sample.json' | ConvertFrom-Json
-        $normalized = Normalize-MyTool -Findings $raw
+        $toolResult = [PSCustomObject]@{ Source = 'mytool'; Status = 'Success'; Message = ''; Findings = $raw }
+        $normalized = Normalize-MyTool -ToolResult $toolResult
         
         $normalized[0].Source | Should -Be 'mytool'
         $normalized[0].Compliant | Should -BeOfType [bool]

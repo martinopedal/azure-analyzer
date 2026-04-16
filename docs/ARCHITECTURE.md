@@ -7,13 +7,13 @@ flowchart LR
     Collect --> Normalize --> ValidateCanonicalize --> MergeEntityStore --> Correlate --> Enrich --> Report
 ```
 
-1. **Collect** — tool plugins gather raw signals (Azure, Graph, CI/CD, cost).
-2. **Normalize** — each tool maps raw output into schema v2.
-3. **Validate/Canonicalize** — enforce schema, normalize IDs, deduplicate.
-4. **Merge EntityStore** — combine entity metadata + findings into a dual model.
-5. **Correlate** — cross-dimension relationships (identity ↔ resources, CI/CD ↔ repos).
-6. **Enrich** — add computed signals (scores, deltas, trend metadata).
-7. **Report** — render report-model.json into the static HTML template + Markdown.
+1. **Collect** -- tool plugins gather raw signals (Azure, Graph, CI/CD, cost).
+2. **Normalize** -- each tool maps raw output into schema v2.
+3. **Validate/Canonicalize** -- enforce schema, normalize IDs, deduplicate.
+4. **Merge EntityStore** -- combine entity metadata + findings into a dual model.
+5. **Correlate** -- cross-dimension relationships (identity <-> resources, CI/CD <-> repos).
+6. **Enrich** -- add computed signals (scores, deltas, trend metadata).
+7. **Report** -- render from `results.json`, `entities.json`, and `tool-status.json` into the static HTML template + Markdown.
 
 ---
 
@@ -128,14 +128,15 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
 
 ### Normalizer responsibilities
 
-- **Parse raw findings** — read output from tool wrapper
-- **Extract resource context** — parse ARM ResourceIds to extract subscriptionId, resourceGroup, resourceType, resourceName
-- **Map schema** — convert tool-specific fields into v2 fields (Source, Category, Title, Severity, Compliant, Detail, Remediation, ResourceId, LearnMoreUrl)
-- **Platform/Entity mapping** — determine owning platform and entity type per tool:
-  - Azure tools (azqr, PSRule, AzGovViz, ALZ Queries, WARA) → Platform: `Azure`, EntityType: `AzureResource`
-  - Entra ID tool (Maester) → Platform: `Entra`, EntityType: `Application`
-  - Repository tool (Scorecard) → Platform: `GitHub`, EntityType: `Repository`
-- **Return findings only** — no side effects, return array of v2-compliant findings
+- **Parse raw findings** -- read output from tool wrapper
+- **Extract resource context** -- parse ARM ResourceIds to extract subscriptionId, resourceGroup, resourceType, resourceName
+- **Map schema** -- convert tool-specific fields into v2 fields (Source, Category, Title, Severity, Compliant, Detail, Remediation, ResourceId, LearnMoreUrl)
+- **Platform/Entity mapping** -- determine owning platform and entity type per tool:
+  - Azure tools (azqr, PSRule, ALZ Queries, WARA) -> Platform: `Azure`, EntityType: `AzureResource`
+  - AzGovViz -> Platform: `Azure`, EntityType varies by finding context: `ManagementGroup` for MG-level governance findings, `Subscription` for bare subscription paths, `AzureResource` for deeper ARM resource paths
+  - Entra ID tool (Maester) -> Platform: `Entra`, EntityType: `Application`
+  - Repository tool (Scorecard) -> Platform: `GitHub`, EntityType: `Repository`
+- **Return findings only** -- no side effects, return array of v2-compliant findings
 
 ### Normalizer locations
 
@@ -143,9 +144,9 @@ Each of the 7 tools has a dedicated normalizer function that converts raw tool o
 |---|---|---|
 | azqr | `modules/normalizers/Normalize-Azqr.ps1` | AzureResource |
 | PSRule | `modules/normalizers/Normalize-PSRule.ps1` | AzureResource |
-| AzGovViz | `modules/normalizers/Normalize-AzGovViz.ps1` | AzureResource |
+| AzGovViz | `modules/normalizers/Normalize-AzGovViz.ps1` | ManagementGroup / Subscription / AzureResource |
 | ALZ Queries | `modules/normalizers/Normalize-AlzQueries.ps1` | AzureResource |
-| WARA | `modules/normalizers/Normalize-Wara.ps1` | AzureResource |
+| WARA | `modules/normalizers/Normalize-WARA.ps1` | AzureResource |
 | Maester | `modules/normalizers/Normalize-Maester.ps1` | Application |
 | Scorecard | `modules/normalizers/Normalize-Scorecard.ps1` | Repository |
 

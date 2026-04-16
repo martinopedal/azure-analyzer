@@ -254,7 +254,12 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 
 ## Schema reference
 
-All findings are merged into `output/results.json` using the unified v2 schema (24 fields per finding):
+Azure Analyzer writes two JSON output files with different schemas:
+
+- **`results.json`** -- v1 backward-compatible flat findings (10 fields per finding). This is the stable contract consumed by reports and downstream tooling.
+- **`entities.json`** -- v3 entity-centric model. Groups findings by owning entity with aggregated metadata. Each entity's `Observations` array contains full v2 FindingRow objects (24 fields).
+
+### results.json (v1 flat findings)
 
 | Field | Type | Required | Description |
 |---|---|---|---|
@@ -268,22 +273,44 @@ All findings are merged into `output/results.json` using the unified v2 schema (
 | `Remediation` | string | | Steps to fix (may include URLs) |
 | `ResourceId` | string | | Azure ARM resource ID (or repo URL for Scorecard) |
 | `LearnMoreUrl` | string | | Link to Microsoft Learn documentation |
-| `EntityId` | string | yes | Canonical entity identifier (lowercase ARM ID, repo URL, or synthetic key) |
-| `EntityType` | string | yes | `AzureResource`, `ServicePrincipal`, `ManagedIdentity`, `Application`, `Repository`, `Pipeline`, `ServiceConnection`, `User`, `Subscription`, or `ManagementGroup` |
-| `Platform` | string | | `Azure`, `Entra`, `GitHub`, or `ADO` (inferred from EntityType when omitted) |
-| `Provenance` | object | yes | `{ RunId, Source, RawRecordRef, Timestamp }` -- traceability back to raw tool output |
-| `SubscriptionId` | string | | Azure subscription GUID (extracted from ARM ID) |
-| `SubscriptionName` | string | | Human-readable subscription name |
-| `ResourceGroup` | string | | Azure resource group name |
-| `ManagementGroupPath` | string[] | | Management group hierarchy path |
-| `Frameworks` | object[] | | Compliance framework mappings (e.g. CIS, NIST) |
-| `Controls` | string[] | | Control identifiers from compliance frameworks |
-| `Confidence` | string | | `Confirmed`, `Likely`, `Unconfirmed`, or `Unknown` |
-| `EvidenceCount` | int | | Number of supporting evidence items |
-| `MissingDimensions` | string[] | | Dimensions the tool could not assess |
-| `SchemaVersion` | string | | Schema version (currently `2.0`) |
 
-The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs (`entities.json` + `results.json`). Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline. Security helpers enforce terminating error behavior and redact credentials in logs and report rendering paths.
+### entities.json (v3 entity model)
+
+Each entry in `entities.json` represents a real-world resource (subscription, repo, user, app) with all observations aggregated:
+
+| Field | Type | Description |
+|---|---|---|
+| `EntityId` | string | Canonical entity identifier (lowercase ARM ID, repo URL, or synthetic key) |
+| `EntityType` | string | `AzureResource`, `Subscription`, `ManagementGroup`, `Application`, `Repository`, etc. |
+| `Platform` | string | `Azure`, `Entra`, `GitHub`, or `ADO` |
+| `DisplayName` | string | Human-readable name for the entity |
+| `SubscriptionId` | string | Azure subscription GUID (when applicable) |
+| `SubscriptionName` | string | Human-readable subscription name |
+| `ResourceGroup` | string | Azure resource group name |
+| `ManagementGroupPath` | string[] | Management group hierarchy path |
+| `ExternalIds` | object[] | Cross-platform identity links |
+| `Observations` | object[] | Array of full v2 FindingRow objects (24 fields each -- see below) |
+| `WorstSeverity` | string | Highest severity across all observations |
+| `CompliantCount` | int | Number of compliant observations |
+| `NonCompliantCount` | int | Number of non-compliant observations |
+| `Sources` | string[] | Tools that contributed observations |
+| `MonthlyCost` | number | Monthly cost (when cost data is available) |
+| `Currency` | string | Cost currency code |
+| `CostTrend` | object | Cost trend metadata |
+| `Frameworks` | object[] | Compliance framework mappings |
+| `Controls` | string[] | Control identifiers from compliance frameworks |
+| `Policies` | object[] | Policy assignments |
+| `Correlations` | object[] | Cross-dimension relationships |
+| `Confidence` | string | `Confirmed`, `Likely`, `Unconfirmed`, or `Unknown` |
+| `MissingDimensions` | string[] | Dimensions the tool could not assess |
+
+### v2 FindingRow (24 fields -- used in entity Observations)
+
+Normalizers produce v2 FindingRow objects internally. These appear as entries in each entity's `Observations` array in `entities.json`. The full field list is defined in `modules/shared/Schema.ps1`:
+
+`Id`, `Source`, `Category`, `Title`, `Severity`, `Compliant`, `Detail`, `Remediation`, `ResourceId`, `LearnMoreUrl`, `EntityId`, `EntityType`, `Platform`, `Provenance` (`{ RunId, Source, RawRecordRef, Timestamp }`), `SubscriptionId`, `SubscriptionName`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, `MissingDimensions`, `SchemaVersion`
+
+The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs. Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline.
 
 ## Permissions
 

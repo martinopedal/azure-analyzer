@@ -5,16 +5,14 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
-- **README schema table**: Updated from stale 10-field reference to full 24-field v2 schema matching `New-FindingRow` in `Schema.ps1`. Added Required column.
-- **README output description**: Fixed "a JSON file" (singular) to describe all output files (results.json, entities.json, tool-status.json, errors.json).
-- **README output table**: Added `tool-status.json` and `errors.json` entries to the "What you get" table.
-- **docs/ARCHITECTURE.md entity types**: Corrected `EntityType: Resource` to `AzureResource`, `Platform: EntraID` to `Entra`, and `EntityType: Tenant` to `Application` to match Schema.ps1 definitions.
-- **docs/ARCHITECTURE.md file structure**: Fixed normalizer paths (`modules/normalizers/` not `modules/`), added missing output files (entities.json, tool-status.json, errors.json, report.md), and added shared module files.
-- **docs/CONTRIBUTING-TOOLS.md normalizer template**: Replaced manual PSCustomObject template with `New-FindingRow` call matching actual normalizer implementations. Updated required field list to match Schema.ps1.
-- **Sample data**: Updated `samples/sample-results.json` to include v2 schema fields (EntityId, EntityType, Platform, Provenance, SchemaVersion). Created `samples/sample-entities.json`.
-- **PERMISSIONS.md ADO note**: Corrected "No ADO integration planned" to reference planned ADO pipeline scanning (issue #48).
-- **PSRule wrapper v1 field mapping**: `Invoke-PSRule.ps1` now emits standardised v1 fields (Title, Category, Compliant, Severity, Detail, Remediation, LearnMoreUrl) instead of raw PSRule fields (RuleName, Outcome, TargetName, Message). Normalizer no longer falls back to `Compliant=$true` / `Title='Unknown'` for real failures.
-- **azqr parallel output isolation**: azqr now writes to per-subscription output dirs (`azqr-<subId>`) during multi-subscription runs, preventing result mixing in parallel execution — same pattern as the WARA fix.
+- **README schema table**: Split into three sections: `results.json` (v1 backward-compatible, 10 fields), `entities.json` (v3 entity model), and `v2 FindingRow` (24 fields used in entity Observations). Previously documented all 24 fields as the results.json format.
+- **Sample results.json**: Stripped to the 10-field v1 format that the orchestrator actually writes to results.json (removed EntityId, EntityType, Platform, Provenance, SubscriptionId, SubscriptionName, ResourceGroup, ManagementGroupPath, Frameworks, Controls, Confidence, EvidenceCount, MissingDimensions, SchemaVersion).
+- **Sample entities.json**: Replaced FindingId mini-records in Observations with full v2 FindingRow objects matching actual EntityStore output.
+- **ARCHITECTURE.md AzGovViz entity type**: Updated from single `AzureResource` to `ManagementGroup / Subscription / AzureResource` with contextual typing note.
+- **ARCHITECTURE.md WARA normalizer filename**: Corrected `Normalize-Wara.ps1` to `Normalize-WARA.ps1` matching actual file.
+- **ARCHITECTURE.md report stage**: Replaced stale `report-model.json` reference with actual inputs (results.json, entities.json, tool-status.json).
+- **CONTRIBUTING-TOOLS.md normalizer paths**: Updated `modules/Normalize-{ToolName}.ps1` to `modules/normalizers/Normalize-{ToolName}.ps1`. Fixed manifest example to use function-name normalizer field. Fixed test example to use `-ToolResult` parameter.
+- **Em-dashes**: Replaced em-dashes with `--` in ARCHITECTURE.md and CONTRIBUTING-TOOLS.md.
 
 ### Added
 - **CONTRIBUTING.md normalizer workflow**: Added "Adding a new tool" section describing the three-component workflow (collector, normalizer, manifest entry) with link to CONTRIBUTING-TOOLS.md.

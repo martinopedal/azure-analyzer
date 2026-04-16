@@ -9,26 +9,7 @@
     "Detail": "Network Security Group allows SSH (port 22) from any source address",
     "Remediation": "Restrict SSH access to specific IP ranges or use Azure Bastion. See https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview",
     "ResourceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-networking/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend",
-    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview",
-    "EntityId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-networking/providers/microsoft.network/networksecuritygroups/nsg-frontend",
-    "EntityType": "AzureResource",
-    "Platform": "Azure",
-    "Provenance": {
-      "RunId": "a1b2c3d4-0000-0000-0000-000000000001",
-      "Source": "azqr",
-      "RawRecordRef": null,
-      "Timestamp": "2025-04-15T10:30:00.0000000Z"
-    },
-    "SubscriptionId": "00000000-1111-2222-3333-444444444444",
-    "SubscriptionName": "Production",
-    "ResourceGroup": "rg-prod-networking",
-    "ManagementGroupPath": null,
-    "Frameworks": null,
-    "Controls": null,
-    "Confidence": null,
-    "EvidenceCount": null,
-    "MissingDimensions": null,
-    "SchemaVersion": "2.0"
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview"
   },
   {
     "Id": "azqr-kv-002",
@@ -40,26 +21,7 @@
     "Detail": "Key Vault does not have soft delete enabled, risking permanent data loss",
     "Remediation": "Enable soft delete on the Key Vault via portal or CLI",
     "ResourceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-security/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
-    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/key-vault/general/soft-delete-overview",
-    "EntityId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-security/providers/microsoft.keyvault/vaults/kv-prod-secrets",
-    "EntityType": "AzureResource",
-    "Platform": "Azure",
-    "Provenance": {
-      "RunId": "a1b2c3d4-0000-0000-0000-000000000001",
-      "Source": "azqr",
-      "RawRecordRef": null,
-      "Timestamp": "2025-04-15T10:30:00.0000000Z"
-    },
-    "SubscriptionId": "00000000-1111-2222-3333-444444444444",
-    "SubscriptionName": "Production",
-    "ResourceGroup": "rg-prod-security",
-    "ManagementGroupPath": null,
-    "Frameworks": null,
-    "Controls": null,
-    "Confidence": null,
-    "EvidenceCount": null,
-    "MissingDimensions": null,
-    "SchemaVersion": "2.0"
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/key-vault/general/soft-delete-overview"
   },
   {
     "Id": "azqr-sa-003",
@@ -71,26 +33,7 @@
     "Detail": "Storage account correctly enforces HTTPS-only connections",
     "Remediation": "",
     "ResourceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stproddata001",
-    "LearnMoreUrl": "",
-    "EntityId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.storage/storageaccounts/stproddata001",
-    "EntityType": "AzureResource",
-    "Platform": "Azure",
-    "Provenance": {
-      "RunId": "a1b2c3d4-0000-0000-0000-000000000001",
-      "Source": "azqr",
-      "RawRecordRef": null,
-      "Timestamp": "2025-04-15T10:30:00.0000000Z"
-    },
-    "SubscriptionId": "00000000-1111-2222-3333-444444444444",
-    "SubscriptionName": "Production",
-    "ResourceGroup": "rg-prod-data",
-    "ManagementGroupPath": null,
-    "Frameworks": null,
-    "Controls": null,
-    "Confidence": null,
-    "EvidenceCount": null,
-    "MissingDimensions": null,
-    "SchemaVersion": "2.0"
+    "LearnMoreUrl": ""
   },
   {
     "Id": "psrule-vm-001",
@@ -102,26 +45,7 @@
     "Detail": "VM uses unmanaged disks which lack built-in redundancy and simplified management",
     "Remediation": "Migrate to managed disks using the Azure portal or PowerShell Convert-AzVMManagedDisk",
     "ResourceId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-compute/providers/Microsoft.Compute/virtualMachines/vm-app-backend-01",
-    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview",
-    "EntityId": "/subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-compute/providers/microsoft.compute/virtualmachines/vm-app-backend-01",
-    "EntityType": "AzureResource",
-    "Platform": "Azure",
-    "Provenance": {
-      "RunId": "a1b2c3d4-0000-0000-0000-000000000002",
-      "Source": "psrule",
-      "RawRecordRef": null,
-      "Timestamp": "2025-04-15T10:32:00.0000000Z"
-    },
-    "SubscriptionId": "00000000-1111-2222-3333-444444444444",
-    "SubscriptionName": "Production",
-    "ResourceGroup": "rg-prod-compute",
-    "ManagementGroupPath": null,
-    "Frameworks": null,
-    "Controls": null,
-    "Confidence": null,
-    "EvidenceCount": null,
-    "MissingDimensions": null,
-    "SchemaVersion": "2.0"
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/virtual-machines/managed-disks-overview"
   },
   {
     "Id": "maester-ca-001",
@@ -133,26 +57,7 @@
     "Detail": "No policy enforces multi-factor authentication for all users, leaving accounts vulnerable to credential theft",
     "Remediation": "Create a Conditional Access policy requiring MFA for all users with minimal exclusions",
     "ResourceId": "",
-    "LearnMoreUrl": "https://learn.microsoft.com/en-us/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa",
-    "EntityId": "maester/entra-tenant-configuration",
-    "EntityType": "Application",
-    "Platform": "Entra",
-    "Provenance": {
-      "RunId": "a1b2c3d4-0000-0000-0000-000000000003",
-      "Source": "maester",
-      "RawRecordRef": null,
-      "Timestamp": "2025-04-15T10:35:00.0000000Z"
-    },
-    "SubscriptionId": "",
-    "SubscriptionName": "",
-    "ResourceGroup": "",
-    "ManagementGroupPath": null,
-    "Frameworks": null,
-    "Controls": null,
-    "Confidence": null,
-    "EvidenceCount": null,
-    "MissingDimensions": null,
-    "SchemaVersion": "2.0"
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa"
   },
   {
     "Id": "scorecard-bp-001",
@@ -164,25 +69,6 @@
     "Detail": "branch protection is not enabled on development/release branches (score 2/10)",
     "Remediation": "",
     "ResourceId": "github.com/martinopedal/azure-analyzer",
-    "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection",
-    "EntityId": "github.com/martinopedal/azure-analyzer",
-    "EntityType": "Repository",
-    "Platform": "GitHub",
-    "Provenance": {
-      "RunId": "a1b2c3d4-0000-0000-0000-000000000004",
-      "Source": "scorecard",
-      "RawRecordRef": null,
-      "Timestamp": "2025-04-15T10:38:00.0000000Z"
-    },
-    "SubscriptionId": "",
-    "SubscriptionName": "",
-    "ResourceGroup": "",
-    "ManagementGroupPath": null,
-    "Frameworks": null,
-    "Controls": null,
-    "Confidence": null,
-    "EvidenceCount": null,
-    "MissingDimensions": null,
-    "SchemaVersion": "2.0"
+    "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection"
   }
 ]
