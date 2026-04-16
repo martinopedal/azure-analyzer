@@ -42,7 +42,8 @@ After a run, `output/` contains:
 
 | File | Description |
 |---|---|
-| `results.json` | All findings in a unified 10-field schema |
+| `results.json` | Backward-compatible flat findings (v1 format, all tools' observations in single array) |
+| `entities.json` | Entity-centric view (v3 format, observations per entity with platform/type hierarchy) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |

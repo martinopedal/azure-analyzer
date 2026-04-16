@@ -5,6 +5,11 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Added
+- **Phase 1 normalizers**: Seven normalizer functions in `modules/normalizers/` that convert raw tool output (v1) to schema v3 FindingRow format. Each normalizer parses ARM ResourceIds, extracts subscription and resource group context, and maps platform/entity-type per tool.
+- **Phase 1 manifest-driven plugin model**: `tools/tool-manifest.json` drives tool registration and execution. Orchestrator loads manifest to resolve eligible tools and call corresponding collector and normalizer scripts.
+- **Phase 1 dual output model**: Parallel output streams produce both `entities.json` (entity-centric observations) and `results.json` (backward-compatible flat findings). Normalizers feed into entity correlation pipeline.
+- **Phase 1 parallel tool execution**: New `WorkerPool` module enables concurrent tool invocation with provider-based concurrency limits (Azure, EntraID, GitHub). Tools execute in parallel up to provider limits, with shared isolation.
+- **Phase 1 normalizer test fixtures**: Comprehensive test fixtures for all 7 tools under `tests/fixtures/normalizers/` to validate v1-to-v3 schema conversion.
 - **Phase 0 security helpers**: shared sanitization, masking, retry, and rate-limit modules with Pester coverage for retry and credential scrubbing.
 - **V3 Phase 0 core modules**: Add schema v2 factories/validation, canonicalization helpers, in-memory EntityStore with spill-to-disk, schema/canonicalization Pester tests, and a tool manifest for plugin registration.
 - **Management group recursion**: When `-ManagementGroupId` is provided, the orchestrator auto-discovers all child subscriptions via ARG query and runs subscription-scoped tools (azqr, PSRule, WARA) across each one. MG-scoped tools (AzGovViz, ALZ queries) and tenant-wide tools (Maester) are unaffected. Use `-Recurse:$false` to disable.
@@ -40,6 +45,7 @@ All notable changes to azure-analyzer will be documented here.
   - Tool coverage section showing which tools ran vs were skipped
 
 ### Changed
+- **Phase 1 refactor**: `Invoke-AzureAnalyzer.ps1` refactored to use plugin model from `tools/tool-manifest.json` instead of hardcoded tool calls. Orchestrator now resolves, validates, and executes tools based on manifest entries and provided scope identifiers.
 - PowerShell minimum version raised to 7.4 to support Phase 0 security modules.
 - README: Restructure as consumer-first (Quick Start → What you get → Prerequisites → Usage → Schema → Permissions) with contributor/CI sections below a separator
 - README: Rewrite CI/Automation section -- separate user-facing CI from maintainer-only squad workflows behind a collapsed `<details>` block
