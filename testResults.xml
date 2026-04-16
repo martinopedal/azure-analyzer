@@ -1,831 +1,197 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="302" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-04-16" time="20:48:18">
-  <environment os-version="6.17.0-1010-azure" cwd="/home/runner/work/azure-analyzer/azure-analyzer" user="runner" clr-version="8.0.25" user-domain="" platform="Linux" nunit-version="2.5.8.0" machine-name="runnervm35a4x" />
-  <culture-info current-culture="" current-uiculture="" />
-  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="5.3612" asserts="0" description="Pester">
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="72" errors="0" failures="0" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-04-16" time="19:23:13">
+  <environment os-version="10.0.26200" user-domain="REDMOND" cwd="C:\git\azure-analyzer" clr-version="10.0.5" machine-name="DESKTOP-ILS5UVV" platform="Microsoft Windows 11 Enterprise|C:\WINDOWS|\Device\Harddisk0\Partition3" user="martinopedal" nunit-version="2.5.8.0" />
+  <culture-info current-culture="nb-NO" current-uiculture="nb-NO" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Success" success="True" time="1.5338" asserts="0" description="Pester">
     <results>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-ADOConnections.Tests.ps1" executed="True" result="Success" success="True" time="0.9939" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-ADOConnections.Tests.ps1">
+      <test-suite type="TestFixture" name="C:\git\azure-analyzer\tests\normalizers\Normalize-ADOConnections.Tests.ps1" executed="True" result="Success" success="True" time="0.8212" asserts="0" description="C:\git\azure-analyzer\tests\normalizers\Normalize-ADOConnections.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="Normalize-ADOConnections" executed="True" result="Success" success="True" time="0.5365" asserts="0" description="Normalize-ADOConnections">
+          <test-suite type="TestFixture" name="Normalize-ADOConnections" executed="True" result="Success" success="True" time="0.3514" asserts="0" description="Normalize-ADOConnections">
             <results>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.v3 schema conversion" executed="True" result="Success" success="True" time="0.2126" asserts="0" description="Normalize-ADOConnections.v3 schema conversion">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.v3 schema conversion" executed="True" result="Success" success="True" time="0.1621" asserts="0" description="Normalize-ADOConnections.v3 schema conversion">
                 <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-ADOConnections.v3 schema conversion.returns the correct number of findings" time="0.0911" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-ADOConnections.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0117" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to ado-connections" name="Normalize-ADOConnections.v3 schema conversion.sets Source to ado-connections" time="0.0098" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to ADO" name="Normalize-ADOConnections.v3 schema conversion.sets Platform to ADO" time="0.0116" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to ServiceConnection" name="Normalize-ADOConnections.v3 schema conversion.sets EntityType to ServiceConnection" time="0.0124" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns the correct number of findings" name="Normalize-ADOConnections.v3 schema conversion.returns the correct number of findings" time="0.0773" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-ADOConnections.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0073" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Source to ado-connections" name="Normalize-ADOConnections.v3 schema conversion.sets Source to ado-connections" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Platform to ADO" name="Normalize-ADOConnections.v3 schema conversion.sets Platform to ADO" time="0.0144" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets EntityType to ServiceConnection" name="Normalize-ADOConnections.v3 schema conversion.sets EntityType to ServiceConnection" time="0.0061" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.CanonicalId normalization" executed="True" result="Success" success="True" time="0.252" asserts="0" description="Normalize-ADOConnections.CanonicalId normalization">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.CanonicalId normalization" executed="True" result="Success" success="True" time="0.1857" asserts="0" description="Normalize-ADOConnections.CanonicalId normalization">
                 <results>
-                  <test-case description="lowercases EntityId" name="Normalize-ADOConnections.CanonicalId normalization.lowercases EntityId" time="0.0125" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="has ado:// prefix in EntityId" name="Normalize-ADOConnections.CanonicalId normalization.has ado:// prefix in EntityId" time="0.0085" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="includes org/project/serviceconnection/name in EntityId" name="Normalize-ADOConnections.CanonicalId normalization.includes org/project/serviceconnection/name in EntityId" time="0.0095" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="lowercases EntityId" name="Normalize-ADOConnections.CanonicalId normalization.lowercases EntityId" time="0.0076" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="has ado:// prefix in EntityId" name="Normalize-ADOConnections.CanonicalId normalization.has ado:// prefix in EntityId" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="includes org/project/serviceconnection/name in EntityId" name="Normalize-ADOConnections.CanonicalId normalization.includes org/project/serviceconnection/name in EntityId" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.Service Connection category" executed="True" result="Success" success="True" time="0.2725" asserts="0" description="Normalize-ADOConnections.Service Connection category">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.Service Connection category" executed="True" result="Success" success="True" time="0.214" asserts="0" description="Normalize-ADOConnections.Service Connection category">
                 <results>
-                  <test-case description="sets Category to Service Connection" name="Normalize-ADOConnections.Service Connection category.sets Category to Service Connection" time="0.0104" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Category to Service Connection" name="Normalize-ADOConnections.Service Connection category.sets Category to Service Connection" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.field preservation" executed="True" result="Success" success="True" time="0.3518" asserts="0" description="Normalize-ADOConnections.field preservation">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.field preservation" executed="True" result="Success" success="True" time="0.2514" asserts="0" description="Normalize-ADOConnections.field preservation">
                 <results>
-                  <test-case description="all findings are compliant (inventory mode)" name="Normalize-ADOConnections.field preservation.all findings are compliant (inventory mode)" time="0.0284" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="all findings have Info severity" name="Normalize-ADOConnections.field preservation.all findings have Info severity" time="0.0114" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-ADOConnections.field preservation.preserves Title" time="0.0195" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail with auth info" name="Normalize-ADOConnections.field preservation.preserves Detail with auth info" time="0.0087" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="all findings are compliant (inventory mode)" name="Normalize-ADOConnections.field preservation.all findings are compliant (inventory mode)" time="0.0077" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="all findings have Info severity" name="Normalize-ADOConnections.field preservation.all findings have Info severity" time="0.0047" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Title" name="Normalize-ADOConnections.field preservation.preserves Title" time="0.0116" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Detail with auth info" name="Normalize-ADOConnections.field preservation.preserves Detail with auth info" time="0.0051" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.no Azure subscription context" executed="True" result="Success" success="True" time="0.3774" asserts="0" description="Normalize-ADOConnections.no Azure subscription context">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.no Azure subscription context" executed="True" result="Success" success="True" time="0.2738" asserts="0" description="Normalize-ADOConnections.no Azure subscription context">
                 <results>
-                  <test-case description="does not set SubscriptionId for ADO connections" name="Normalize-ADOConnections.no Azure subscription context.does not set SubscriptionId for ADO connections" time="0.0086" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not set ResourceGroup for ADO connections" name="Normalize-ADOConnections.no Azure subscription context.does not set ResourceGroup for ADO connections" time="0.0083" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="does not set SubscriptionId for ADO connections" name="Normalize-ADOConnections.no Azure subscription context.does not set SubscriptionId for ADO connections" time="0.0078" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="does not set ResourceGroup for ADO connections" name="Normalize-ADOConnections.no Azure subscription context.does not set ResourceGroup for ADO connections" time="0.0049" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.error handling" executed="True" result="Success" success="True" time="0.4409" asserts="0" description="Normalize-ADOConnections.error handling">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.error handling" executed="True" result="Success" success="True" time="0.3028" asserts="0" description="Normalize-ADOConnections.error handling">
                 <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-ADOConnections.error handling.returns empty array for failed tool output" time="0.0074" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-ADOConnections.error handling.returns empty array for null Findings" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-ADOConnections.error handling.returns empty array for empty Findings" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="processes PartialSuccess findings normally" name="Normalize-ADOConnections.error handling.processes PartialSuccess findings normally" time="0.0107" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-ADOConnections.error handling.handles missing optional fields gracefully" time="0.0076" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns empty array for failed tool output" name="Normalize-ADOConnections.error handling.returns empty array for failed tool output" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns empty array for null Findings" name="Normalize-ADOConnections.error handling.returns empty array for null Findings" time="0.0082" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns empty array for empty Findings" name="Normalize-ADOConnections.error handling.returns empty array for empty Findings" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="handles missing optional fields gracefully" name="Normalize-ADOConnections.error handling.handles missing optional fields gracefully" time="0.0054" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-ADOConnections.Provenance tracking" executed="True" result="Success" success="True" time="0.508" asserts="0" description="Normalize-ADOConnections.Provenance tracking">
+              <test-suite type="TestFixture" name="Normalize-ADOConnections.Provenance tracking" executed="True" result="Success" success="True" time="0.3227" asserts="0" description="Normalize-ADOConnections.Provenance tracking">
                 <results>
-                  <test-case description="sets Provenance.RunId consistently across all findings" name="Normalize-ADOConnections.Provenance tracking.sets Provenance.RunId consistently across all findings" time="0.0284" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Provenance.Source to ado-connections" name="Normalize-ADOConnections.Provenance tracking.sets Provenance.Source to ado-connections" time="0.0229" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Provenance.RunId consistently across all findings" name="Normalize-ADOConnections.Provenance tracking.sets Provenance.RunId consistently across all findings" time="0.0059" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Provenance.Source to ado-connections" name="Normalize-ADOConnections.Provenance tracking.sets Provenance.Source to ado-connections" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
             </results>
           </test-suite>
         </results>
       </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-AlzQueries.Tests.ps1" executed="True" result="Success" success="True" time="0.2379" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-AlzQueries.Tests.ps1">
+      <test-suite type="TestFixture" name="C:\git\azure-analyzer\tests\shared\IdentityCorrelator.Tests.ps1" executed="True" result="Success" success="True" time="0.3002" asserts="0" description="C:\git\azure-analyzer\tests\shared\IdentityCorrelator.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="Normalize-AlzQueries" executed="True" result="Success" success="True" time="0.1938" asserts="0" description="Normalize-AlzQueries">
+          <test-suite type="TestFixture" name="Get-IdentityCandidatesFromStore" executed="True" result="Success" success="True" time="0.0341" asserts="0" description="Get-IdentityCandidatesFromStore">
             <results>
-              <test-suite type="TestFixture" name="Normalize-AlzQueries.v3 schema conversion" executed="True" result="Success" success="True" time="0.066" asserts="0" description="Normalize-AlzQueries.v3 schema conversion">
+              <test-case description="extracts candidates from entities with ExternalIds" name="Get-IdentityCandidatesFromStore.extracts candidates from entities with ExternalIds" time="0.0201" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="extracts candidates from observation details containing appId" name="Get-IdentityCandidatesFromStore.extracts candidates from observation details containing appId" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="returns empty hashtable when no identity entities exist" name="Get-IdentityCandidatesFromStore.returns empty hashtable when no identity entities exist" time="0.004" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+          <test-suite type="TestFixture" name="Get-ConfidenceLevel" executed="True" result="Success" success="True" time="0.0607" asserts="0" description="Get-ConfidenceLevel">
+            <results>
+              <test-case description="returns Confirmed for 3+ dimensions with direct evidence" name="Get-ConfidenceLevel.returns Confirmed for 3+ dimensions with direct evidence" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="returns Likely for 2 dimensions with direct evidence" name="Get-ConfidenceLevel.returns Likely for 2 dimensions with direct evidence" time="0.0031" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="returns Unconfirmed for 1 dimension" name="Get-ConfidenceLevel.returns Unconfirmed for 1 dimension" time="0.0092" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="returns Unconfirmed for name-based correlation regardless of dimension count" name="Get-ConfidenceLevel.returns Unconfirmed for name-based correlation regardless of dimension count" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+          <test-suite type="TestFixture" name="Invoke-IdentityCorrelation" executed="True" result="Success" success="True" time="0.1346" asserts="0" description="Invoke-IdentityCorrelation">
+            <results>
+              <test-case description="produces FindingRow objects for cross-dimensional SPNs" name="Invoke-IdentityCorrelation.produces FindingRow objects for cross-dimensional SPNs" time="0.0259" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="returns empty array when no cross-dimensional candidates exist" name="Invoke-IdentityCorrelation.returns empty array when no cross-dimensional candidates exist" time="0.003" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="works without Graph connection (no -IncludeGraphLookup)" name="Invoke-IdentityCorrelation.works without Graph connection (no -IncludeGraphLookup)" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="validates findings pass Test-FindingRow" name="Invoke-IdentityCorrelation.validates findings pass Test-FindingRow" time="0.0206" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="sets MissingDimensions correctly" name="Invoke-IdentityCorrelation.sets MissingDimensions correctly" time="0.015" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+          <test-suite type="TestFixture" name="Normalize-IdentityCorrelation" executed="True" result="Success" success="True" time="0.1782" asserts="0" description="Normalize-IdentityCorrelation">
+            <results>
+              <test-case description="passes through valid findings" name="Normalize-IdentityCorrelation.passes through valid findings" time="0.0109" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="returns empty for failed tool result" name="Normalize-IdentityCorrelation.returns empty for failed tool result" time="0.0036" asserts="0" success="True" result="Success" executed="True" />
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+      <test-suite type="TestFixture" name="C:\git\azure-analyzer\tests\normalizers\Normalize-Scorecard.Tests.ps1" executed="True" result="Success" success="True" time="0.2701" asserts="0" description="C:\git\azure-analyzer\tests\normalizers\Normalize-Scorecard.Tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="Normalize-Scorecard" executed="True" result="Success" success="True" time="0.1748" asserts="0" description="Normalize-Scorecard">
+            <results>
+              <test-suite type="TestFixture" name="Normalize-Scorecard.v3 schema conversion" executed="True" result="Success" success="True" time="0.0514" asserts="0" description="Normalize-Scorecard.v3 schema conversion">
                 <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-AlzQueries.v3 schema conversion.returns the correct number of findings" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-AlzQueries.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0193" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to alz-queries" name="Normalize-AlzQueries.v3 schema conversion.sets Source to alz-queries" time="0.0092" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to Azure" name="Normalize-AlzQueries.v3 schema conversion.sets Platform to Azure" time="0.0093" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to AzureResource" name="Normalize-AlzQueries.v3 schema conversion.sets EntityType to AzureResource" time="0.0087" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns the correct number of findings" name="Normalize-Scorecard.v3 schema conversion.returns the correct number of findings" time="0.0033" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Scorecard.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0041" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Source to scorecard" name="Normalize-Scorecard.v3 schema conversion.sets Source to scorecard" time="0.0036" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets Platform to GitHub" name="Normalize-Scorecard.v3 schema conversion.sets Platform to GitHub" time="0.0035" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="sets EntityType to Repository" name="Normalize-Scorecard.v3 schema conversion.sets EntityType to Repository" time="0.0036" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AlzQueries.CanonicalId normalization" executed="True" result="Success" success="True" time="0.085" asserts="0" description="Normalize-AlzQueries.CanonicalId normalization">
+              <test-suite type="TestFixture" name="Normalize-Scorecard.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0639" asserts="0" description="Normalize-Scorecard.CanonicalId normalization">
                 <results>
-                  <test-case description="lowercases the ARM ResourceId into EntityId" name="Normalize-AlzQueries.CanonicalId normalization.lowercases the ARM ResourceId into EntityId" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not have a trailing slash on EntityId" name="Normalize-AlzQueries.CanonicalId normalization.does not have a trailing slash on EntityId" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="lowercases EntityId" name="Normalize-Scorecard.CanonicalId normalization.lowercases EntityId" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="has a non-empty EntityId even for empty ResourceId inputs" name="Normalize-Scorecard.CanonicalId normalization.has a non-empty EntityId even for empty ResourceId inputs" time="0.0031" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AlzQueries.ARM path parsing" executed="True" result="Success" success="True" time="0.109" asserts="0" description="Normalize-AlzQueries.ARM path parsing">
+              <test-suite type="TestFixture" name="Normalize-Scorecard.Supply Chain category" executed="True" result="Success" success="True" time="0.0798" asserts="0" description="Normalize-Scorecard.Supply Chain category">
                 <results>
-                  <test-case description="parses SubscriptionId from ARM ResourceId" name="Normalize-AlzQueries.ARM path parsing.parses SubscriptionId from ARM ResourceId" time="0.0097" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="parses ResourceGroup from ARM ResourceId" name="Normalize-AlzQueries.ARM path parsing.parses ResourceGroup from ARM ResourceId" time="0.0083" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Supply Chain category" name="Normalize-Scorecard.Supply Chain category.preserves Supply Chain category" time="0.0101" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AlzQueries.field preservation" executed="True" result="Success" success="True" time="0.1577" asserts="0" description="Normalize-AlzQueries.field preservation">
+              <test-suite type="TestFixture" name="Normalize-Scorecard.score in Detail" executed="True" result="Success" success="True" time="0.093" asserts="0" description="Normalize-Scorecard.score in Detail">
                 <results>
-                  <test-case description="preserves Compliant boolean correctly" name="Normalize-AlzQueries.field preservation.preserves Compliant boolean correctly" time="0.01" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-AlzQueries.field preservation.preserves Severity values" time="0.0112" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Category values" name="Normalize-AlzQueries.field preservation.preserves Category values" time="0.0103" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-AlzQueries.field preservation.preserves Title" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-AlzQueries.field preservation.preserves Detail" time="0.0049" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves score information in Detail" name="Normalize-Scorecard.score in Detail.preserves score information in Detail" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AlzQueries.error handling" executed="True" result="Success" success="True" time="0.1871" asserts="0" description="Normalize-AlzQueries.error handling">
+              <test-suite type="TestFixture" name="Normalize-Scorecard.field preservation" executed="True" result="Success" success="True" time="0.1134" asserts="0" description="Normalize-Scorecard.field preservation">
                 <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-AlzQueries.error handling.returns empty array for failed tool output" time="0.006" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-AlzQueries.error handling.returns empty array for null Findings" time="0.0058" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-AlzQueries.error handling.returns empty array for empty Findings" time="0.0058" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-AlzQueries.error handling.handles missing optional fields gracefully" time="0.007" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Compliant boolean correctly" name="Normalize-Scorecard.field preservation.preserves Compliant boolean correctly" time="0.005" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Severity values" name="Normalize-Scorecard.field preservation.preserves Severity values" time="0.0039" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Title" name="Normalize-Scorecard.field preservation.preserves Title" time="0.0021" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="preserves Detail" name="Normalize-Scorecard.field preservation.preserves Detail" time="0.0025" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="Normalize-Scorecard.Scorecard has no Azure subscription context" executed="True" result="Success" success="True" time="0.1292" asserts="0" description="Normalize-Scorecard.Scorecard has no Azure subscription context">
+                <results>
+                  <test-case description="does not set SubscriptionId for GitHub checks" name="Normalize-Scorecard.Scorecard has no Azure subscription context.does not set SubscriptionId for GitHub checks" time="0.004" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="does not set ResourceGroup for GitHub checks" name="Normalize-Scorecard.Scorecard has no Azure subscription context.does not set ResourceGroup for GitHub checks" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="Normalize-Scorecard.error handling" executed="True" result="Success" success="True" time="0.1505" asserts="0" description="Normalize-Scorecard.error handling">
+                <results>
+                  <test-case description="returns empty array for failed tool output" name="Normalize-Scorecard.error handling.returns empty array for failed tool output" time="0.0028" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns empty array for null Findings" name="Normalize-Scorecard.error handling.returns empty array for null Findings" time="0.0025" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="returns empty array for empty Findings" name="Normalize-Scorecard.error handling.returns empty array for empty Findings" time="0.0083" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="handles missing optional fields gracefully" name="Normalize-Scorecard.error handling.handles missing optional fields gracefully" time="0.0034" asserts="0" success="True" result="Success" executed="True" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES)" executed="True" result="Success" success="True" time="0.1678" asserts="0" description="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES)">
+                <results>
+                  <test-case description="canonicalizes GHES repository URL with enterprise host" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).canonicalizes GHES repository URL with enterprise host" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="canonicalizes GHEC-DR repository URL" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).canonicalizes GHEC-DR repository URL" time="0.0032" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="lowercases enterprise EntityId" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).lowercases enterprise EntityId" time="0.0026" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="still works with standard github.com ResourceId" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).still works with standard github.com ResourceId" time="0.0027" asserts="0" success="True" result="Success" executed="True" />
                 </results>
               </test-suite>
             </results>
           </test-suite>
         </results>
       </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-AzGovViz.Tests.ps1" executed="True" result="Success" success="True" time="0.3196" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-AzGovViz.Tests.ps1">
+      <test-suite type="TestFixture" name="C:\git\azure-analyzer\tests\shared\Canonicalize.Tests.ps1" executed="True" result="Success" success="True" time="0.1423" asserts="0" description="C:\git\azure-analyzer\tests\shared\Canonicalize.Tests.ps1">
         <results>
-          <test-suite type="TestFixture" name="Normalize-AzGovViz" executed="True" result="Success" success="True" time="0.2344" asserts="0" description="Normalize-AzGovViz">
+          <test-suite type="TestFixture" name="ConvertTo-CanonicalArmId" executed="True" result="Success" success="True" time="0.0257" asserts="0" description="ConvertTo-CanonicalArmId">
             <results>
-              <test-suite type="TestFixture" name="Normalize-AzGovViz.v3 schema conversion" executed="True" result="Success" success="True" time="0.0526" asserts="0" description="Normalize-AzGovViz.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-AzGovViz.v3 schema conversion.returns the correct number of findings" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-AzGovViz.v3 schema conversion.sets SchemaVersion to 2.0" time="0.007" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to azgovviz" name="Normalize-AzGovViz.v3 schema conversion.sets Source to azgovviz" time="0.007" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to Azure" name="Normalize-AzGovViz.v3 schema conversion.sets Platform to Azure" time="0.007" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzGovViz.entity type mapping" executed="True" result="Success" success="True" time="0.0943" asserts="0" description="Normalize-AzGovViz.entity type mapping">
-                <results>
-                  <test-case description="maps subscription-scoped findings to Subscription EntityType" name="Normalize-AzGovViz.entity type mapping.maps subscription-scoped findings to Subscription EntityType" time="0.01" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="maps governance findings without ResourceId to ManagementGroup EntityType" name="Normalize-AzGovViz.entity type mapping.maps governance findings without ResourceId to ManagementGroup EntityType" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="uses stable canonical IDs for MG findings (not random GUIDs)" name="Normalize-AzGovViz.entity type mapping.uses stable canonical IDs for MG findings (not random GUIDs)" time="0.0109" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzGovViz.CanonicalId normalization" executed="True" result="Success" success="True" time="0.1293" asserts="0" description="Normalize-AzGovViz.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases EntityId" name="Normalize-AzGovViz.CanonicalId normalization.lowercases EntityId" time="0.0076" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzGovViz.subscription parsing" executed="True" result="Success" success="True" time="0.1498" asserts="0" description="Normalize-AzGovViz.subscription parsing">
-                <results>
-                  <test-case description="parses SubscriptionId for subscription-scoped findings" name="Normalize-AzGovViz.subscription parsing.parses SubscriptionId for subscription-scoped findings" time="0.011" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzGovViz.field preservation" executed="True" result="Success" success="True" time="0.1868" asserts="0" description="Normalize-AzGovViz.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly" name="Normalize-AzGovViz.field preservation.preserves Compliant boolean correctly" time="0.0064" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-AzGovViz.field preservation.preserves Severity values" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Category values" name="Normalize-AzGovViz.field preservation.preserves Category values" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-AzGovViz.field preservation.preserves Title" time="0.0049" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzGovViz.error handling" executed="True" result="Success" success="True" time="0.2222" asserts="0" description="Normalize-AzGovViz.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-AzGovViz.error handling.returns empty array for failed tool output" time="0.0061" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-AzGovViz.error handling.returns empty array for null Findings" time="0.006" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-AzGovViz.error handling.returns empty array for empty Findings" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-AzGovViz.error handling.handles missing optional fields gracefully" time="0.012" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
+              <test-case description="lowercases and trims trailing slash" name="ConvertTo-CanonicalArmId.lowercases and trims trailing slash" time="0.0035" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="throws on empty input" name="ConvertTo-CanonicalArmId.throws on empty input" time="0.0154" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Azqr.Tests.ps1" executed="True" result="Success" success="True" time="0.3157" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Azqr.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-Azqr" executed="True" result="Success" success="True" time="0.2575" asserts="0" description="Normalize-Azqr">
+          <test-suite type="TestFixture" name="ConvertTo-CanonicalRepoId" executed="True" result="Success" success="True" time="0.0453" asserts="0" description="ConvertTo-CanonicalRepoId">
             <results>
-              <test-suite type="TestFixture" name="Normalize-Azqr.v3 schema conversion" executed="True" result="Success" success="True" time="0.0896" asserts="0" description="Normalize-Azqr.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-Azqr.v3 schema conversion.returns the correct number of findings" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Azqr.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0087" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to azqr" name="Normalize-Azqr.v3 schema conversion.sets Source to azqr" time="0.0088" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to Azure" name="Normalize-Azqr.v3 schema conversion.sets Platform to Azure" time="0.0276" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to AzureResource" name="Normalize-Azqr.v3 schema conversion.sets EntityType to AzureResource" time="0.013" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Azqr.CanonicalId normalization" executed="True" result="Success" success="True" time="0.1403" asserts="0" description="Normalize-Azqr.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases the ARM ResourceId into EntityId" name="Normalize-Azqr.CanonicalId normalization.lowercases the ARM ResourceId into EntityId" time="0.0126" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not have a trailing slash on EntityId" name="Normalize-Azqr.CanonicalId normalization.does not have a trailing slash on EntityId" time="0.0073" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Azqr.ARM path parsing" executed="True" result="Success" success="True" time="0.1827" asserts="0" description="Normalize-Azqr.ARM path parsing">
-                <results>
-                  <test-case description="parses SubscriptionId from ARM ResourceId" name="Normalize-Azqr.ARM path parsing.parses SubscriptionId from ARM ResourceId" time="0.0113" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="parses ResourceGroup from ARM ResourceId" name="Normalize-Azqr.ARM path parsing.parses ResourceGroup from ARM ResourceId" time="0.0151" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Azqr.field preservation" executed="True" result="Success" success="True" time="0.2251" asserts="0" description="Normalize-Azqr.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly" name="Normalize-Azqr.field preservation.preserves Compliant boolean correctly" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-Azqr.field preservation.preserves Severity values" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Category values" name="Normalize-Azqr.field preservation.preserves Category values" time="0.0089" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-Azqr.field preservation.preserves Title" time="0.0038" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-Azqr.field preservation.preserves Detail" time="0.0038" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Azqr.error handling" executed="True" result="Success" success="True" time="0.2512" asserts="0" description="Normalize-Azqr.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-Azqr.error handling.returns empty array for failed tool output" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-Azqr.error handling.returns empty array for null Findings" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-Azqr.error handling.returns empty array for empty Findings" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-Azqr.error handling.handles missing optional fields gracefully" time="0.008" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
+              <test-case description="strips protocol and .git suffix" name="ConvertTo-CanonicalRepoId.strips protocol and .git suffix" time="0.0025" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="throws on invalid input" name="ConvertTo-CanonicalRepoId.throws on invalid input" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="accepts GHES enterprise host URL" name="ConvertTo-CanonicalRepoId.accepts GHES enterprise host URL" time="0.0021" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="accepts GHEC-DR host URL" name="ConvertTo-CanonicalRepoId.accepts GHEC-DR host URL" time="0.002" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="strips .git suffix from enterprise URLs" name="ConvertTo-CanonicalRepoId.strips .git suffix from enterprise URLs" time="0.0021" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="handles git@ SSH syntax for enterprise hosts" name="ConvertTo-CanonicalRepoId.handles git@ SSH syntax for enterprise hosts" time="0.0025" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-AzureCost.Tests.ps1" executed="True" result="Success" success="True" time="0.2584" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-AzureCost.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-AzureCost" executed="True" result="Success" success="True" time="0.2272" asserts="0" description="Normalize-AzureCost">
+          <test-suite type="TestFixture" name="ConvertTo-CanonicalAdoId" executed="True" result="Success" success="True" time="0.0525" asserts="0" description="ConvertTo-CanonicalAdoId">
             <results>
-              <test-suite type="TestFixture" name="Normalize-AzureCost.v3 schema conversion" executed="True" result="Success" success="True" time="0.1426" asserts="0" description="Normalize-AzureCost.v3 schema conversion">
-                <results>
-                  <test-case description="emits one subscription finding plus one per resource" name="Normalize-AzureCost.v3 schema conversion.emits one subscription finding plus one per resource" time="0.0214" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets source, severity and category for all findings" name="Normalize-AzureCost.v3 schema conversion.sets source, severity and category for all findings" time="0.0318" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="emits a subscription informational finding" name="Normalize-AzureCost.v3 schema conversion.emits a subscription informational finding" time="0.0172" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="emits AzureResource findings with monthly cost and currency metadata" name="Normalize-AzureCost.v3 schema conversion.emits AzureResource findings with monthly cost and currency metadata" time="0.0234" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzureCost.error handling" executed="True" result="Success" success="True" time="0.159" asserts="0" description="Normalize-AzureCost.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-AzureCost.error handling.returns empty array for failed tool output" time="0.005" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array when no cost data is available" name="Normalize-AzureCost.error handling.returns empty array when no cost data is available" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-AzureCost.resource cap behavior" executed="True" result="Success" success="True" time="0.2197" asserts="0" description="Normalize-AzureCost.resource cap behavior">
-                <results>
-                  <test-case description="limits emitted resource findings to top 20 when wrapper returns top 20" name="Normalize-AzureCost.resource cap behavior.limits emitted resource findings to top 20 when wrapper returns top 20" time="0.0547" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
+              <test-case description="normalizes ado identifiers" name="ConvertTo-CanonicalAdoId.normalizes ado identifiers" time="0.002" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="handles dev.azure.com URLs" name="ConvertTo-CanonicalAdoId.handles dev.azure.com URLs" time="0.002" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Gitleaks.Tests.ps1" executed="True" result="Success" success="True" time="0.3563" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Gitleaks.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-Gitleaks" executed="True" result="Success" success="True" time="0.3008" asserts="0" description="Normalize-Gitleaks">
+          <test-suite type="TestFixture" name="ConvertTo-CanonicalSpnId" executed="True" result="Success" success="True" time="0.062" asserts="0" description="ConvertTo-CanonicalSpnId">
             <results>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.v3 schema conversion" executed="True" result="Success" success="True" time="0.0633" asserts="0" description="Normalize-Gitleaks.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-Gitleaks.v3 schema conversion.returns the correct number of findings" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Gitleaks.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0103" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to gitleaks" name="Normalize-Gitleaks.v3 schema conversion.sets Source to gitleaks" time="0.0088" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to GitHub" name="Normalize-Gitleaks.v3 schema conversion.sets Platform to GitHub" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to Repository" name="Normalize-Gitleaks.v3 schema conversion.sets EntityType to Repository" time="0.0171" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0979" asserts="0" description="Normalize-Gitleaks.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases EntityId" name="Normalize-Gitleaks.CanonicalId normalization.lowercases EntityId" time="0.0082" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="uses forward slashes in EntityId" name="Normalize-Gitleaks.CanonicalId normalization.uses forward slashes in EntityId" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="has a non-empty EntityId" name="Normalize-Gitleaks.CanonicalId normalization.has a non-empty EntityId" time="0.0059" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="canonicalizes file paths" name="Normalize-Gitleaks.CanonicalId normalization.canonicalizes file paths" time="0.0075" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.Secret Detection category" executed="True" result="Success" success="True" time="0.1152" asserts="0" description="Normalize-Gitleaks.Secret Detection category">
-                <results>
-                  <test-case description="preserves Secret Detection category" name="Normalize-Gitleaks.Secret Detection category.preserves Secret Detection category" time="0.0101" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.severity mapping" executed="True" result="Success" success="True" time="0.1315" asserts="0" description="Normalize-Gitleaks.severity mapping">
-                <results>
-                  <test-case description="maps High severity for secret findings" name="Normalize-Gitleaks.severity mapping.maps High severity for secret findings" time="0.0059" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="maps Medium severity for non-secret findings" name="Normalize-Gitleaks.severity mapping.maps Medium severity for non-secret findings" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.field preservation" executed="True" result="Success" success="True" time="0.1889" asserts="0" description="Normalize-Gitleaks.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly (all false for secret findings)" name="Normalize-Gitleaks.field preservation.preserves Compliant boolean correctly (all false for secret findings)" time="0.009" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-Gitleaks.field preservation.preserves Title" time="0.0151" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-Gitleaks.field preservation.preserves Detail" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Remediation" name="Normalize-Gitleaks.field preservation.preserves Remediation" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves LearnMoreUrl" name="Normalize-Gitleaks.field preservation.preserves LearnMoreUrl" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves finding Id from fingerprint" name="Normalize-Gitleaks.field preservation.preserves finding Id from fingerprint" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.no Azure subscription context" executed="True" result="Success" success="True" time="0.2165" asserts="0" description="Normalize-Gitleaks.no Azure subscription context">
-                <results>
-                  <test-case description="does not set SubscriptionId" name="Normalize-Gitleaks.no Azure subscription context.does not set SubscriptionId" time="0.0092" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not set ResourceGroup" name="Normalize-Gitleaks.no Azure subscription context.does not set ResourceGroup" time="0.0087" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.provenance tracking" executed="True" result="Success" success="True" time="0.2535" asserts="0" description="Normalize-Gitleaks.provenance tracking">
-                <results>
-                  <test-case description="sets Provenance.Source to gitleaks" name="Normalize-Gitleaks.provenance tracking.sets Provenance.Source to gitleaks" time="0.0117" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets a non-empty Provenance.RunId" name="Normalize-Gitleaks.provenance tracking.sets a non-empty Provenance.RunId" time="0.0091" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="shares the same RunId across all findings" name="Normalize-Gitleaks.provenance tracking.shares the same RunId across all findings" time="0.008" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.error handling" executed="True" result="Success" success="True" time="0.2838" asserts="0" description="Normalize-Gitleaks.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-Gitleaks.error handling.returns empty array for failed tool output" time="0.0054" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-Gitleaks.error handling.returns empty array for null Findings" time="0.0054" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-Gitleaks.error handling.returns empty array for empty Findings" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-Gitleaks.error handling.handles missing optional fields gracefully" time="0.0098" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Gitleaks.backslash path normalization" executed="True" result="Success" success="True" time="0.2942" asserts="0" description="Normalize-Gitleaks.backslash path normalization">
-                <results>
-                  <test-case description="converts backslashes to forward slashes in EntityId" name="Normalize-Gitleaks.backslash path normalization.converts backslashes to forward slashes in EntityId" time="0.0064" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
+              <test-case description="normalizes appId values" name="ConvertTo-CanonicalSpnId.normalizes appId values" time="0.002" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="resolves objectId values with lookup" name="ConvertTo-CanonicalSpnId.resolves objectId values with lookup" time="0.0041" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Maester.Tests.ps1" executed="True" result="Success" success="True" time="0.2238" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Maester.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-Maester" executed="True" result="Success" success="True" time="0.1785" asserts="0" description="Normalize-Maester">
+          <test-suite type="TestFixture" name="ConvertTo-CanonicalEntityId" executed="True" result="Success" success="True" time="0.0727" asserts="0" description="ConvertTo-CanonicalEntityId">
             <results>
-              <test-suite type="TestFixture" name="Normalize-Maester.v3 schema conversion" executed="True" result="Success" success="True" time="0.0419" asserts="0" description="Normalize-Maester.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-Maester.v3 schema conversion.returns the correct number of findings" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Maester.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0084" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to maester" name="Normalize-Maester.v3 schema conversion.sets Source to maester" time="0.0083" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to Entra for tenant-scoped identity checks" name="Normalize-Maester.v3 schema conversion.sets Platform to Entra for tenant-scoped identity checks" time="0.0083" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Maester.entity type mapping for tenant-scoped checks" executed="True" result="Success" success="True" time="0.0711" asserts="0" description="Normalize-Maester.entity type mapping for tenant-scoped checks">
-                <results>
-                  <test-case description="uses an Entra-compatible EntityType" name="Normalize-Maester.entity type mapping for tenant-scoped checks.uses an Entra-compatible EntityType" time="0.0158" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="has a non-empty EntityId even for empty ResourceId inputs" name="Normalize-Maester.entity type mapping for tenant-scoped checks.has a non-empty EntityId even for empty ResourceId inputs" time="0.0068" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Maester.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0865" asserts="0" description="Normalize-Maester.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases EntityId" name="Normalize-Maester.CanonicalId normalization.lowercases EntityId" time="0.0087" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Maester.field preservation" executed="True" result="Success" success="True" time="0.1248" asserts="0" description="Normalize-Maester.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly" name="Normalize-Maester.field preservation.preserves Compliant boolean correctly" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-Maester.field preservation.preserves Severity values" time="0.0082" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Category values" name="Normalize-Maester.field preservation.preserves Category values" time="0.008" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-Maester.field preservation.preserves Title" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-Maester.field preservation.preserves Detail" time="0.0042" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Maester.tenant-scoped checks have no SubscriptionId" executed="True" result="Success" success="True" time="0.1442" asserts="0" description="Normalize-Maester.tenant-scoped checks have no SubscriptionId">
-                <results>
-                  <test-case description="does not set SubscriptionId for Entra checks" name="Normalize-Maester.tenant-scoped checks have no SubscriptionId.does not set SubscriptionId for Entra checks" time="0.0067" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not set ResourceGroup for Entra checks" name="Normalize-Maester.tenant-scoped checks have no SubscriptionId.does not set ResourceGroup for Entra checks" time="0.0063" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Maester.error handling" executed="True" result="Success" success="True" time="0.1727" asserts="0" description="Normalize-Maester.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-Maester.error handling.returns empty array for failed tool output" time="0.0085" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-Maester.error handling.returns empty array for null Findings" time="0.0051" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-Maester.error handling.returns empty array for empty Findings" time="0.005" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-Maester.error handling.handles missing optional fields gracefully" time="0.0059" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-PSRule.Tests.ps1" executed="True" result="Success" success="True" time="0.223" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-PSRule.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-PSRule" executed="True" result="Success" success="True" time="0.1829" asserts="0" description="Normalize-PSRule">
-            <results>
-              <test-suite type="TestFixture" name="Normalize-PSRule.v3 schema conversion" executed="True" result="Success" success="True" time="0.0583" asserts="0" description="Normalize-PSRule.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-PSRule.v3 schema conversion.returns the correct number of findings" time="0.0049" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-PSRule.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0079" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to psrule" name="Normalize-PSRule.v3 schema conversion.sets Source to psrule" time="0.0078" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to Azure" name="Normalize-PSRule.v3 schema conversion.sets Platform to Azure" time="0.0077" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to AzureResource" name="Normalize-PSRule.v3 schema conversion.sets EntityType to AzureResource" time="0.0172" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-PSRule.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0803" asserts="0" description="Normalize-PSRule.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases the ARM ResourceId into EntityId" name="Normalize-PSRule.CanonicalId normalization.lowercases the ARM ResourceId into EntityId" time="0.0083" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not have a trailing slash on EntityId" name="Normalize-PSRule.CanonicalId normalization.does not have a trailing slash on EntityId" time="0.0064" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-PSRule.ARM path parsing" executed="True" result="Success" success="True" time="0.1065" asserts="0" description="Normalize-PSRule.ARM path parsing">
-                <results>
-                  <test-case description="parses SubscriptionId from ARM ResourceId" name="Normalize-PSRule.ARM path parsing.parses SubscriptionId from ARM ResourceId" time="0.0097" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="parses ResourceGroup from ARM ResourceId" name="Normalize-PSRule.ARM path parsing.parses ResourceGroup from ARM ResourceId" time="0.0095" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-PSRule.field preservation" executed="True" result="Success" success="True" time="0.1461" asserts="0" description="Normalize-PSRule.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly" name="Normalize-PSRule.field preservation.preserves Compliant boolean correctly" time="0.0061" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-PSRule.field preservation.preserves Severity values" time="0.0078" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="maps PSRule rule name to Category" name="Normalize-PSRule.field preservation.maps PSRule rule name to Category" time="0.0079" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-PSRule.field preservation.preserves Title" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-PSRule.field preservation.preserves Detail" time="0.0041" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-PSRule.error handling" executed="True" result="Success" success="True" time="0.1762" asserts="0" description="Normalize-PSRule.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-PSRule.error handling.returns empty array for failed tool output" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-PSRule.error handling.returns empty array for null Findings" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-PSRule.error handling.returns empty array for empty Findings" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-PSRule.error handling.handles missing optional fields gracefully" time="0.0086" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Scorecard.Tests.ps1" executed="True" result="Success" success="True" time="0.3158" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Scorecard.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-Scorecard" executed="True" result="Success" success="True" time="0.2484" asserts="0" description="Normalize-Scorecard">
-            <results>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.v3 schema conversion" executed="True" result="Success" success="True" time="0.0701" asserts="0" description="Normalize-Scorecard.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-Scorecard.v3 schema conversion.returns the correct number of findings" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Scorecard.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0117" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to scorecard" name="Normalize-Scorecard.v3 schema conversion.sets Source to scorecard" time="0.0101" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to GitHub" name="Normalize-Scorecard.v3 schema conversion.sets Platform to GitHub" time="0.0157" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to Repository" name="Normalize-Scorecard.v3 schema conversion.sets EntityType to Repository" time="0.0088" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0938" asserts="0" description="Normalize-Scorecard.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases EntityId" name="Normalize-Scorecard.CanonicalId normalization.lowercases EntityId" time="0.01" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="has a non-empty EntityId even for empty ResourceId inputs" name="Normalize-Scorecard.CanonicalId normalization.has a non-empty EntityId even for empty ResourceId inputs" time="0.0069" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.Supply Chain category" executed="True" result="Success" success="True" time="0.1093" asserts="0" description="Normalize-Scorecard.Supply Chain category">
-                <results>
-                  <test-case description="preserves Supply Chain category" name="Normalize-Scorecard.Supply Chain category.preserves Supply Chain category" time="0.0088" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.score in Detail" executed="True" result="Success" success="True" time="0.1198" asserts="0" description="Normalize-Scorecard.score in Detail">
-                <results>
-                  <test-case description="preserves score information in Detail" name="Normalize-Scorecard.score in Detail.preserves score information in Detail" time="0.0041" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.field preservation" executed="True" result="Success" success="True" time="0.1561" asserts="0" description="Normalize-Scorecard.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly" name="Normalize-Scorecard.field preservation.preserves Compliant boolean correctly" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-Scorecard.field preservation.preserves Severity values" time="0.0135" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-Scorecard.field preservation.preserves Title" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-Scorecard.field preservation.preserves Detail" time="0.0042" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.Scorecard has no Azure subscription context" executed="True" result="Success" success="True" time="0.1765" asserts="0" description="Normalize-Scorecard.Scorecard has no Azure subscription context">
-                <results>
-                  <test-case description="does not set SubscriptionId for GitHub checks" name="Normalize-Scorecard.Scorecard has no Azure subscription context.does not set SubscriptionId for GitHub checks" time="0.007" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not set ResourceGroup for GitHub checks" name="Normalize-Scorecard.Scorecard has no Azure subscription context.does not set ResourceGroup for GitHub checks" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.error handling" executed="True" result="Success" success="True" time="0.2" asserts="0" description="Normalize-Scorecard.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-Scorecard.error handling.returns empty array for failed tool output" time="0.0047" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-Scorecard.error handling.returns empty array for null Findings" time="0.0048" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-Scorecard.error handling.returns empty array for empty Findings" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-Scorecard.error handling.handles missing optional fields gracefully" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES)" executed="True" result="Success" success="True" time="0.2415" asserts="0" description="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES)">
-                <results>
-                  <test-case description="canonicalizes GHES repository URL with enterprise host" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).canonicalizes GHES repository URL with enterprise host" time="0.0093" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="canonicalizes GHEC-DR repository URL" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).canonicalizes GHEC-DR repository URL" time="0.0073" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="lowercases enterprise EntityId" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).lowercases enterprise EntityId" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="still works with standard github.com ResourceId" name="Normalize-Scorecard.enterprise GitHub host (GHEC-DR / GHES).still works with standard github.com ResourceId" time="0.0152" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Trivy.Tests.ps1" executed="True" result="Success" success="True" time="0.2797" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Trivy.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-Trivy" executed="True" result="Success" success="True" time="0.2398" asserts="0" description="Normalize-Trivy">
-            <results>
-              <test-suite type="TestFixture" name="Normalize-Trivy.v3 schema conversion" executed="True" result="Success" success="True" time="0.0656" asserts="0" description="Normalize-Trivy.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-Trivy.v3 schema conversion.returns the correct number of findings" time="0.0048" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Trivy.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0087" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to trivy" name="Normalize-Trivy.v3 schema conversion.sets Source to trivy" time="0.0084" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to GitHub" name="Normalize-Trivy.v3 schema conversion.sets Platform to GitHub" time="0.0095" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to Repository" name="Normalize-Trivy.v3 schema conversion.sets EntityType to Repository" time="0.0101" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Trivy.EntityId normalization" executed="True" result="Success" success="True" time="0.0945" asserts="0" description="Normalize-Trivy.EntityId normalization">
-                <results>
-                  <test-case description="generates synthetic EntityId for path-based ResourceId" name="Normalize-Trivy.EntityId normalization.generates synthetic EntityId for path-based ResourceId" time="0.004" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="canonicalizes GitHub repo ResourceId" name="Normalize-Trivy.EntityId normalization.canonicalizes GitHub repo ResourceId" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="has a non-empty EntityId for all findings" name="Normalize-Trivy.EntityId normalization.has a non-empty EntityId for all findings" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Trivy.Supply Chain category" executed="True" result="Success" success="True" time="0.1126" asserts="0" description="Normalize-Trivy.Supply Chain category">
-                <results>
-                  <test-case description="preserves Supply Chain category" name="Normalize-Trivy.Supply Chain category.preserves Supply Chain category" time="0.0086" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Trivy.field preservation" executed="True" result="Success" success="True" time="0.1605" asserts="0" description="Normalize-Trivy.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean (all false for vulnerabilities)" name="Normalize-Trivy.field preservation.preserves Compliant boolean (all false for vulnerabilities)" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-Trivy.field preservation.preserves Severity values" time="0.0085" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title with CVE ID and package name" name="Normalize-Trivy.field preservation.preserves Title with CVE ID and package name" time="0.0048" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-Trivy.field preservation.preserves Detail" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Remediation" name="Normalize-Trivy.field preservation.preserves Remediation" time="0.0042" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves LearnMoreUrl" name="Normalize-Trivy.field preservation.preserves LearnMoreUrl" time="0.0097" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Trivy.Trivy has no Azure subscription context" executed="True" result="Success" success="True" time="0.1836" asserts="0" description="Normalize-Trivy.Trivy has no Azure subscription context">
-                <results>
-                  <test-case description="does not set SubscriptionId" name="Normalize-Trivy.Trivy has no Azure subscription context.does not set SubscriptionId" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not set ResourceGroup" name="Normalize-Trivy.Trivy has no Azure subscription context.does not set ResourceGroup" time="0.0065" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Trivy.Provenance tracking" executed="True" result="Success" success="True" time="0.2088" asserts="0" description="Normalize-Trivy.Provenance tracking">
-                <results>
-                  <test-case description="sets Provenance with RunId" name="Normalize-Trivy.Provenance tracking.sets Provenance with RunId" time="0.0104" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="uses consistent RunId across all findings" name="Normalize-Trivy.Provenance tracking.uses consistent RunId across all findings" time="0.0051" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Trivy.error handling" executed="True" result="Success" success="True" time="0.2346" asserts="0" description="Normalize-Trivy.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-Trivy.error handling.returns empty array for failed tool output" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-Trivy.error handling.returns empty array for null Findings" time="0.005" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-Trivy.error handling.returns empty array for empty Findings" time="0.005" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-Trivy.error handling.handles missing optional fields gracefully" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-WARA.Tests.ps1" executed="True" result="Success" success="True" time="0.1874" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-WARA.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-WARA" executed="True" result="Success" success="True" time="0.147" asserts="0" description="Normalize-WARA">
-            <results>
-              <test-suite type="TestFixture" name="Normalize-WARA.v3 schema conversion" executed="True" result="Success" success="True" time="0.0385" asserts="0" description="Normalize-WARA.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-WARA.v3 schema conversion.returns the correct number of findings" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-WARA.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to wara" name="Normalize-WARA.v3 schema conversion.sets Source to wara" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to Azure" name="Normalize-WARA.v3 schema conversion.sets Platform to Azure" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to AzureResource" name="Normalize-WARA.v3 schema conversion.sets EntityType to AzureResource" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-WARA.WARA-specific: all findings are non-compliant" executed="True" result="Success" success="True" time="0.0533" asserts="0" description="Normalize-WARA.WARA-specific: all findings are non-compliant">
-                <results>
-                  <test-case description="has no compliant findings (WARA never reports compliant)" name="Normalize-WARA.WARA-specific: all findings are non-compliant.has no compliant findings (WARA never reports compliant)" time="0.0047" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="all findings have Compliant set to false" name="Normalize-WARA.WARA-specific: all findings are non-compliant.all findings have Compliant set to false" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-WARA.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0752" asserts="0" description="Normalize-WARA.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases the ARM ResourceId into EntityId" name="Normalize-WARA.CanonicalId normalization.lowercases the ARM ResourceId into EntityId" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not have a trailing slash on EntityId" name="Normalize-WARA.CanonicalId normalization.does not have a trailing slash on EntityId" time="0.0108" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-WARA.ARM path parsing" executed="True" result="Success" success="True" time="0.0955" asserts="0" description="Normalize-WARA.ARM path parsing">
-                <results>
-                  <test-case description="parses SubscriptionId from ARM ResourceId" name="Normalize-WARA.ARM path parsing.parses SubscriptionId from ARM ResourceId" time="0.0075" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="parses ResourceGroup from ARM ResourceId" name="Normalize-WARA.ARM path parsing.parses ResourceGroup from ARM ResourceId" time="0.0074" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-WARA.field preservation" executed="True" result="Success" success="True" time="0.1196" asserts="0" description="Normalize-WARA.field preservation">
-                <results>
-                  <test-case description="preserves Severity values" name="Normalize-WARA.field preservation.preserves Severity values" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Category values" name="Normalize-WARA.field preservation.preserves Category values" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-WARA.field preservation.preserves Title" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-WARA.field preservation.preserves Detail" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-WARA.error handling" executed="True" result="Success" success="True" time="0.1418" asserts="0" description="Normalize-WARA.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-WARA.error handling.returns empty array for failed tool output" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-WARA.error handling.returns empty array for null Findings" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-WARA.error handling.returns empty array for empty Findings" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-WARA.error handling.handles missing optional fields gracefully" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Zizmor.Tests.ps1" executed="True" result="Success" success="True" time="0.2764" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/normalizers/Normalize-Zizmor.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Normalize-Zizmor" executed="True" result="Success" success="True" time="0.2347" asserts="0" description="Normalize-Zizmor">
-            <results>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.v3 schema conversion" executed="True" result="Success" success="True" time="0.0426" asserts="0" description="Normalize-Zizmor.v3 schema conversion">
-                <results>
-                  <test-case description="returns the correct number of findings" name="Normalize-Zizmor.v3 schema conversion.returns the correct number of findings" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets SchemaVersion to 2.0" name="Normalize-Zizmor.v3 schema conversion.sets SchemaVersion to 2.0" time="0.0072" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Source to zizmor" name="Normalize-Zizmor.v3 schema conversion.sets Source to zizmor" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets Platform to GitHub" name="Normalize-Zizmor.v3 schema conversion.sets Platform to GitHub" time="0.007" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets EntityType to Workflow" name="Normalize-Zizmor.v3 schema conversion.sets EntityType to Workflow" time="0.007" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.CanonicalId normalization" executed="True" result="Success" success="True" time="0.0857" asserts="0" description="Normalize-Zizmor.CanonicalId normalization">
-                <results>
-                  <test-case description="lowercases EntityId" name="Normalize-Zizmor.CanonicalId normalization.lowercases EntityId" time="0.0086" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="uses forward slashes in EntityId" name="Normalize-Zizmor.CanonicalId normalization.uses forward slashes in EntityId" time="0.0076" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="has a non-empty EntityId" name="Normalize-Zizmor.CanonicalId normalization.has a non-empty EntityId" time="0.0127" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="canonicalizes workflow file paths" name="Normalize-Zizmor.CanonicalId normalization.canonicalizes workflow file paths" time="0.0058" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.CI/CD Security category" executed="True" result="Success" success="True" time="0.1021" asserts="0" description="Normalize-Zizmor.CI/CD Security category">
-                <results>
-                  <test-case description="preserves CI/CD Security category" name="Normalize-Zizmor.CI/CD Security category.preserves CI/CD Security category" time="0.0097" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.field preservation" executed="True" result="Success" success="True" time="0.1368" asserts="0" description="Normalize-Zizmor.field preservation">
-                <results>
-                  <test-case description="preserves Compliant boolean correctly (all false for security findings)" name="Normalize-Zizmor.field preservation.preserves Compliant boolean correctly (all false for security findings)" time="0.0058" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Severity values" name="Normalize-Zizmor.field preservation.preserves Severity values" time="0.0069" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Title" name="Normalize-Zizmor.field preservation.preserves Title" time="0.0047" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Detail" name="Normalize-Zizmor.field preservation.preserves Detail" time="0.0036" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves LearnMoreUrl" name="Normalize-Zizmor.field preservation.preserves LearnMoreUrl" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="preserves Remediation" name="Normalize-Zizmor.field preservation.preserves Remediation" time="0.0036" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.no Azure subscription context" executed="True" result="Success" success="True" time="0.1713" asserts="0" description="Normalize-Zizmor.no Azure subscription context">
-                <results>
-                  <test-case description="does not set SubscriptionId" name="Normalize-Zizmor.no Azure subscription context.does not set SubscriptionId" time="0.0085" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="does not set ResourceGroup" name="Normalize-Zizmor.no Azure subscription context.does not set ResourceGroup" time="0.0085" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.provenance tracking" executed="True" result="Success" success="True" time="0.1976" asserts="0" description="Normalize-Zizmor.provenance tracking">
-                <results>
-                  <test-case description="sets Provenance.Source to zizmor" name="Normalize-Zizmor.provenance tracking.sets Provenance.Source to zizmor" time="0.0075" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="sets a non-empty Provenance.RunId" name="Normalize-Zizmor.provenance tracking.sets a non-empty Provenance.RunId" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="shares the same RunId across all findings" name="Normalize-Zizmor.provenance tracking.shares the same RunId across all findings" time="0.0049" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.error handling" executed="True" result="Success" success="True" time="0.2201" asserts="0" description="Normalize-Zizmor.error handling">
-                <results>
-                  <test-case description="returns empty array for failed tool output" name="Normalize-Zizmor.error handling.returns empty array for failed tool output" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for null Findings" name="Normalize-Zizmor.error handling.returns empty array for null Findings" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="returns empty array for empty Findings" name="Normalize-Zizmor.error handling.returns empty array for empty Findings" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
-                  <test-case description="handles missing optional fields gracefully" name="Normalize-Zizmor.error handling.handles missing optional fields gracefully" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-              <test-suite type="TestFixture" name="Normalize-Zizmor.backslash path normalization" executed="True" result="Success" success="True" time="0.2291" asserts="0" description="Normalize-Zizmor.backslash path normalization">
-                <results>
-                  <test-case description="converts backslashes to forward slashes in EntityId" name="Normalize-Zizmor.backslash path normalization.converts backslashes to forward slashes in EntityId" time="0.0056" asserts="0" success="True" result="Success" executed="True" />
-                </results>
-              </test-suite>
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Canonicalize.Tests.ps1" executed="True" result="Success" success="True" time="0.1477" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Canonicalize.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="ConvertTo-CanonicalArmId" executed="True" result="Success" success="True" time="0.0358" asserts="0" description="ConvertTo-CanonicalArmId">
-            <results>
-              <test-case description="lowercases and trims trailing slash" name="ConvertTo-CanonicalArmId.lowercases and trims trailing slash" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="throws on empty input" name="ConvertTo-CanonicalArmId.throws on empty input" time="0.0278" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="ConvertTo-CanonicalRepoId" executed="True" result="Success" success="True" time="0.0687" asserts="0" description="ConvertTo-CanonicalRepoId">
-            <results>
-              <test-case description="strips protocol and .git suffix" name="ConvertTo-CanonicalRepoId.strips protocol and .git suffix" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="throws on invalid input" name="ConvertTo-CanonicalRepoId.throws on invalid input" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="accepts GHES enterprise host URL" name="ConvertTo-CanonicalRepoId.accepts GHES enterprise host URL" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="accepts GHEC-DR host URL" name="ConvertTo-CanonicalRepoId.accepts GHEC-DR host URL" time="0.0042" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="strips .git suffix from enterprise URLs" name="ConvertTo-CanonicalRepoId.strips .git suffix from enterprise URLs" time="0.0042" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="handles git@ SSH syntax for enterprise hosts" name="ConvertTo-CanonicalRepoId.handles git@ SSH syntax for enterprise hosts" time="0.005" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="ConvertTo-CanonicalAdoId" executed="True" result="Success" success="True" time="0.0806" asserts="0" description="ConvertTo-CanonicalAdoId">
-            <results>
-              <test-case description="normalizes ado identifiers" name="ConvertTo-CanonicalAdoId.normalizes ado identifiers" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="handles dev.azure.com URLs" name="ConvertTo-CanonicalAdoId.handles dev.azure.com URLs" time="0.0043" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="ConvertTo-CanonicalSpnId" executed="True" result="Success" success="True" time="0.0973" asserts="0" description="ConvertTo-CanonicalSpnId">
-            <results>
-              <test-case description="normalizes appId values" name="ConvertTo-CanonicalSpnId.normalizes appId values" time="0.0066" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="resolves objectId values with lookup" name="ConvertTo-CanonicalSpnId.resolves objectId values with lookup" time="0.0067" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="ConvertTo-CanonicalEntityId" executed="True" result="Success" success="True" time="0.123" asserts="0" description="ConvertTo-CanonicalEntityId">
-            <results>
-              <test-case description="derives platform metadata" name="ConvertTo-CanonicalEntityId.derives platform metadata" time="0.0103" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="throws on empty input" name="ConvertTo-CanonicalEntityId.throws on empty input" time="0.0121" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Checkpoint.Tests.ps1" executed="True" result="Success" success="True" time="0.1539" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Checkpoint.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Get-CheckpointKey" executed="True" result="Success" success="True" time="0.0174" asserts="0" description="Get-CheckpointKey">
-            <results>
-              <test-case description="uses identity-correlator key for identity scope by default" name="Get-CheckpointKey.uses identity-correlator key for identity scope by default" time="0.0088" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="sanitizes path-like values in scope keys" name="Get-CheckpointKey.sanitizes path-like values in scope keys" time="0.0052" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Save-Checkpoint / Get-Checkpoint roundtrip" executed="True" result="Success" success="True" time="0.0991" asserts="0" description="Save-Checkpoint / Get-Checkpoint roundtrip">
-            <results>
-              <test-case description="saves and retrieves a checkpoint correctly" name="Save-Checkpoint / Get-Checkpoint roundtrip.saves and retrieves a checkpoint correctly" time="0.0444" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns null for missing checkpoint" name="Save-Checkpoint / Get-Checkpoint roundtrip.returns null for missing checkpoint" time="0.0069" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="removes a checkpoint and returns true" name="Save-Checkpoint / Get-Checkpoint roundtrip.removes a checkpoint and returns true" time="0.0146" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="uses atomic write (temp file does not persist)" name="Save-Checkpoint / Get-Checkpoint roundtrip.uses atomic write (temp file does not persist)" time="0.0076" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Get-CheckpointPath traversal guard" executed="True" result="Success" success="True" time="0.1179" asserts="0" description="Get-CheckpointPath traversal guard">
-            <results>
-              <test-case description="sanitizes traversal attempts to stay within checkpoint dir" name="Get-CheckpointPath traversal guard.sanitizes traversal attempts to stay within checkpoint dir" time="0.0091" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Get-CheckpointPath cross-platform separator" executed="True" result="Success" success="True" time="0.1283" asserts="0" description="Get-CheckpointPath cross-platform separator">
-            <results>
-              <test-case description="uses platform-native directory separator" name="Get-CheckpointPath cross-platform separator.uses platform-native directory separator" time="0.0071" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/EntityStore.Tests.ps1" executed="True" result="Success" success="True" time="0.1863" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/EntityStore.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="EntityStore spill merge" executed="True" result="Success" success="True" time="0.126" asserts="0" description="EntityStore spill merge">
-            <results>
-              <test-case description="sums aggregate counters when duplicate entities are merged from spill files" name="EntityStore spill merge.sums aggregate counters when duplicate entities are merged from spill files" time="0.1227" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="EntityStore cost metadata merge" executed="True" result="Success" success="True" time="0.1507" asserts="0" description="EntityStore cost metadata merge">
-            <results>
-              <test-case description="updates existing entity monthly cost and currency from later findings without duplicating entity records" name="EntityStore cost metadata merge.updates existing entity monthly cost and currency from later findings without duplicating entity records" time="0.0215" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/IdentityCorrelator.Tests.ps1" executed="True" result="Success" success="True" time="0.2325" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/IdentityCorrelator.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Get-IdentityCandidatesFromStore" executed="True" result="Success" success="True" time="0.039" asserts="0" description="Get-IdentityCandidatesFromStore">
-            <results>
-              <test-case description="extracts candidates from entities with ExternalIds" name="Get-IdentityCandidatesFromStore.extracts candidates from entities with ExternalIds" time="0.0238" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="extracts candidates from observation details containing appId" name="Get-IdentityCandidatesFromStore.extracts candidates from observation details containing appId" time="0.0058" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns empty hashtable when no identity entities exist" name="Get-IdentityCandidatesFromStore.returns empty hashtable when no identity entities exist" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Get-ConfidenceLevel" executed="True" result="Success" success="True" time="0.0732" asserts="0" description="Get-ConfidenceLevel">
-            <results>
-              <test-case description="returns Confirmed for 3+ dimensions with direct evidence" name="Get-ConfidenceLevel.returns Confirmed for 3+ dimensions with direct evidence" time="0.0091" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns Likely for 2 dimensions with direct evidence" name="Get-ConfidenceLevel.returns Likely for 2 dimensions with direct evidence" time="0.0117" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns Unconfirmed for 1 dimension" name="Get-ConfidenceLevel.returns Unconfirmed for 1 dimension" time="0.0041" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns Unconfirmed for name-based correlation regardless of dimension count" name="Get-ConfidenceLevel.returns Unconfirmed for name-based correlation regardless of dimension count" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Invoke-IdentityCorrelation" executed="True" result="Success" success="True" time="0.1797" asserts="0" description="Invoke-IdentityCorrelation">
-            <results>
-              <test-case description="produces FindingRow objects for cross-dimensional SPNs" name="Invoke-IdentityCorrelation.produces FindingRow objects for cross-dimensional SPNs" time="0.0422" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns empty array when no cross-dimensional candidates exist" name="Invoke-IdentityCorrelation.returns empty array when no cross-dimensional candidates exist" time="0.0047" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="works without Graph connection (no -IncludeGraphLookup)" name="Invoke-IdentityCorrelation.works without Graph connection (no -IncludeGraphLookup)" time="0.0076" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="validates findings pass Test-FindingRow" name="Invoke-IdentityCorrelation.validates findings pass Test-FindingRow" time="0.0221" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="sets MissingDimensions correctly" name="Invoke-IdentityCorrelation.sets MissingDimensions correctly" time="0.026" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Normalize-IdentityCorrelation" executed="True" result="Success" success="True" time="0.1985" asserts="0" description="Normalize-IdentityCorrelation">
-            <results>
-              <test-case description="passes through valid findings" name="Normalize-IdentityCorrelation.passes through valid findings" time="0.0081" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns empty for failed tool result" name="Normalize-IdentityCorrelation.returns empty for failed tool result" time="0.0042" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Mask.Tests.ps1" executed="True" result="Success" success="True" time="0.0635" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Mask.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="ConvertTo-MaskedId" executed="True" result="Success" success="True" time="0.0422" asserts="0" description="ConvertTo-MaskedId">
-            <results>
-              <test-case description="masks appId values" name="ConvertTo-MaskedId.masks appId values" time="0.0185" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="masks objectId values" name="ConvertTo-MaskedId.masks objectId values" time="0.0053" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts tenantId values" name="ConvertTo-MaskedId.redacts tenantId values" time="0.0044" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="bypasses masking when IncludeSensitiveDetails is set" name="ConvertTo-MaskedId.bypasses masking when IncludeSensitiveDetails is set" time="0.0041" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns null inputs as null" name="ConvertTo-MaskedId.returns null inputs as null" time="0.0051" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Retry.Tests.ps1" executed="True" result="Success" success="True" time="0.082" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Retry.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Invoke-WithRetry" executed="True" result="Success" success="True" time="0.0643" asserts="0" description="Invoke-WithRetry">
-            <results>
-              <test-case description="returns on first success" name="Invoke-WithRetry.returns on first success" time="0.0154" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="retries retryable failures" name="Invoke-WithRetry.retries retryable failures" time="0.0236" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="fails fast on non-retryable errors" name="Invoke-WithRetry.fails fast on non-retryable errors" time="0.0107" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="throws after max retries" name="Invoke-WithRetry.throws after max retries" time="0.0108" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Sanitize.Tests.ps1" executed="True" result="Success" success="True" time="0.0953" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Sanitize.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="Remove-Credentials" executed="True" result="Success" success="True" time="0.0751" asserts="0" description="Remove-Credentials">
-            <results>
-              <test-case description="redacts ghp tokens" name="Remove-Credentials.redacts ghp tokens" time="0.0151" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts gho tokens" name="Remove-Credentials.redacts gho tokens" time="0.0062" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts ghs tokens" name="Remove-Credentials.redacts ghs tokens" time="0.0058" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts ghr tokens" name="Remove-Credentials.redacts ghr tokens" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts fine-grained GitHub PATs" name="Remove-Credentials.redacts fine-grained GitHub PATs" time="0.006" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts ADO PAT basic auth headers" name="Remove-Credentials.redacts ADO PAT basic auth headers" time="0.0125" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts Authorization headers" name="Remove-Credentials.redacts Authorization headers" time="0.0047" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts bearer tokens outside headers" name="Remove-Credentials.redacts bearer tokens outside headers" time="0.0046" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="redacts connection string secrets" name="Remove-Credentials.redacts connection string secrets" time="0.0055" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="does not alter normal text" name="Remove-Credentials.does not alter normal text" time="0.0045" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Schema.Tests.ps1" executed="True" result="Success" success="True" time="0.0765" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/Schema.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="New-FindingRow" executed="True" result="Success" success="True" time="0.0179" asserts="0" description="New-FindingRow">
-            <results>
-              <test-case description="creates a finding with required fields and defaults" name="New-FindingRow.creates a finding with required fields and defaults" time="0.0088" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="throws when required fields are missing" name="New-FindingRow.throws when required fields are missing" time="0.0057" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="New-EntityStub" executed="True" result="Success" success="True" time="0.0358" asserts="0" description="New-EntityStub">
-            <results>
-              <test-case description="creates an entity stub with empty observations" name="New-EntityStub.creates an entity stub with empty observations" time="0.0147" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Test-FindingRow" executed="True" result="Success" success="True" time="0.0559" asserts="0" description="Test-FindingRow">
-            <results>
-              <test-case description="returns true for valid finding rows" name="Test-FindingRow.returns true for valid finding rows" time="0.0063" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="returns false with errors for non-canonical IDs" name="Test-FindingRow.returns false with errors for non-canonical IDs" time="0.0104" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-        </results>
-      </test-suite>
-      <test-suite type="TestFixture" name="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/WorkerPool.Tests.ps1" executed="True" result="Success" success="True" time="0.3357" asserts="0" description="/home/runner/work/azure-analyzer/azure-analyzer/tests/shared/WorkerPool.Tests.ps1">
-        <results>
-          <test-suite type="TestFixture" name="WorkerPool module syntax" executed="True" result="Success" success="True" time="0.0143" asserts="0" description="WorkerPool module syntax">
-            <results>
-              <test-case description="parses without syntax errors" name="WorkerPool module syntax.parses without syntax errors" time="0.0111" asserts="0" success="True" result="Success" executed="True" />
-            </results>
-          </test-suite>
-          <test-suite type="TestFixture" name="Invoke-ParallelTools" executed="True" result="Success" success="True" time="0.3154" asserts="0" description="Invoke-ParallelTools">
-            <results>
-              <test-case description="executes tool scriptblocks in parallel and returns results" name="Invoke-ParallelTools.executes tool scriptblocks in parallel and returns results" time="0.177" asserts="0" success="True" result="Success" executed="True" />
-              <test-case description="captures tool failures without crashing the pool" name="Invoke-ParallelTools.captures tool failures without crashing the pool" time="0.1206" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="derives platform metadata" name="ConvertTo-CanonicalEntityId.derives platform metadata" time="0.0034" asserts="0" success="True" result="Success" executed="True" />
+              <test-case description="throws on empty input" name="ConvertTo-CanonicalEntityId.throws on empty input" time="0.0037" asserts="0" success="True" result="Success" executed="True" />
             </results>
           </test-suite>
         </results>
