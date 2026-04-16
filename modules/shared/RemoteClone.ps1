@@ -101,6 +101,36 @@ function Resolve-RemoteRepoToken {
     return ''
 }
 
+function Resolve-ScanTargetUrl {
+    <#
+    .SYNOPSIS
+        Normalize a -Repository argument (either 'owner/repo' shorthand or a
+        full HTTPS URL) into a full HTTPS URL suitable for Invoke-RemoteRepoClone.
+        Returns $null for invalid / disallowed inputs.
+    #>
+    param (
+        [string] $Repository,
+        [string] $AdoRepoUrl,
+        [string] $GitHubHost = 'github.com'
+    )
+    if ($AdoRepoUrl) {
+        if (Test-RemoteRepoUrl -Url $AdoRepoUrl) { return $AdoRepoUrl }
+        return $null
+    }
+    if (-not $Repository) { return $null }
+    if ($Repository -match '^https://') {
+        if (Test-RemoteRepoUrl -Url $Repository) { return $Repository }
+        return $null
+    }
+    # Shorthand: owner/repo -> https://<host>/owner/repo
+    if ($Repository -match '^[^/\s]+/[^/\s]+$') {
+        $hostPart = if ($GitHubHost) { $GitHubHost } else { 'github.com' }
+        $candidate = "https://$hostPart/$Repository"
+        if (Test-RemoteRepoUrl -Url $candidate) { return $candidate }
+    }
+    return $null
+}
+
 function Invoke-RemoteRepoClone {
     <#
     .SYNOPSIS
