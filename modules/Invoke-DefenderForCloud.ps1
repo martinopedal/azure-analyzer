@@ -37,6 +37,12 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock, [int]$MaxAttempts = 3) & $ScriptBlock }
 }
 
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'defender-for-cloud'
