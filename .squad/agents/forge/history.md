@@ -14,6 +14,7 @@
 - **2024-12-19:** Made `go:needs-research` conditional (not unconditional application)
 - **2024-12-19:** Commits c588589 (SHA-pinning), 506ae8c (triage + docs + code)
 - **2026-04-18:** Fixed PR #120 canonical-ID regressions after origin/main merge by updating wrapper fixtures/tests to canonical repository/subscription IDs and aligning Azure Cost + Defender subscription normalizers with strict `New-FindingRow` canonicalization. Final local Pester: 490/490 passing.
+- **2026-04-18:** Extended PR #116 runspace sanitizer fix to remaining parallel paths (AzureCost, DefenderForCloud, Kubescape, orchestrator `$runnerBlock`); Pester 398/398 green.
 
 ## Learnings
 
@@ -50,6 +51,9 @@ Stored these in `tools/install-manifest.json` with `pinningNote` field per platf
 - Self-skip pattern for `workflow_run` watchers should include workflow-name exclusion to avoid recursive self-processing.
 - Repeated CI failures should comment `still failing — {run_url}` on the open hash-matched issue instead of creating duplicates.
 - Treat `workflow_run` payload fields as untrusted input: pass through `env` and reference shell variables in `run:` blocks to reduce expression-injection risk.
+- workflow_run payload does not expose 'head_branch'; branch checks in watchdog logic must use API lookup or avoid branch gating in job-level expressions.
+
+- Any script that runs under `ForEach-Object -Parallel` must dot-source shared helpers (like `Sanitize.ps1`) inside that runspace and provide a local fallback to avoid `CommandNotFoundException`.
 
 - PR #118 gate fix: avoid parameter attributes in New-FindingRow for required/enum checks when the intended behavior is to return $null; perform those checks inside the function so normalizers can drop invalid rows safely.
 - PR #120 gate fix: wrappers that scan multiple targets should return `PartialSuccess` when at least one target succeeds and at least one fails, preserving successful findings instead of collapsing the whole run to `Failed`.

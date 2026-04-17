@@ -393,10 +393,10 @@ Describe 'Normalize-IdentityCorrelation' {
             -Category 'Identity Correlation' `
             -Severity 'Info'
 
-        $result = Normalize-IdentityCorrelation -ToolResult ([PSCustomObject]@{
+        $result = @(Normalize-IdentityCorrelation -ToolResult ([PSCustomObject]@{
             Status   = 'Success'
             Findings = @($finding)
-        })
+        }))
 
         $result.Count | Should -Be 1
         $result[0].Source | Should -Be 'identity-correlator'

@@ -128,11 +128,11 @@ try {
 
         # Non-zero exit with no report = hard failure
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
-            Write-Warning "trivy exited with code $exitCode and produced no report"
+            Write-Warning (Remove-Credentials "trivy exited with code $exitCode and produced no report")
             return [PSCustomObject]@{
                 Source   = 'trivy'
                 Status   = 'Failed'
-                Message  = "trivy exited with code $exitCode and produced no report"
+                Message  = (Remove-Credentials "trivy exited with code $exitCode and produced no report")
                 Findings = @()
             }
         }
@@ -280,7 +280,7 @@ try {
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
     }
-} finally {
+}finally {
     if ($cleanupClone) {
         try { & $cleanupClone } catch { Write-Verbose "trivy clone cleanup failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))" }
     }

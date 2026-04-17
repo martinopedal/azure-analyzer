@@ -201,6 +201,29 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 
 **Repository security (Scorecard)** works best with `GITHUB_AUTH_TOKEN` set (5,000 req/hr vs 60 without). Not needed if you skip Scorecard.
 
+## Developer Setup
+
+### Pre-commit Hook (Optional)
+
+Install a local pre-commit hook that runs **gitleaks** and **zizmor** on every commit to catch secrets and workflow injection risks before pushing:
+
+```powershell
+# Install the hook (one-time setup)
+.\tools\Install-PreCommitHook.ps1
+```
+
+The hook will:
+- ✅ Run gitleaks in v8-compatible pre-commit mode (`gitleaks git --pre-commit` when supported, otherwise `gitleaks protect --staged`)
+- ✅ Run `zizmor` on staged `.github/workflows/*.yml` files, including renamed workflows
+- ⚠️ Skip gracefully with warnings if tools aren't installed
+- 🚫 Block commits if issues are found (use `git commit --no-verify` to bypass)
+
+**Install dependencies:**
+- **gitleaks:** `winget install gitleaks` (Windows) / `brew install gitleaks` (macOS) / [GitHub releases](https://github.com/gitleaks/gitleaks/releases) (Linux)
+- **zizmor:** `pipx install zizmor` (all platforms) / `cargo install zizmor`
+
+The hook is **opt-in** — developers must run the installer manually. It won't be installed automatically.
+
 ## Usage
 
 ```powershell

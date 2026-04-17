@@ -88,7 +88,13 @@ function Normalize-DefenderForCloud {
             }
         }
 
-        $normalized.Add($row)
+        # Skip null rows (validation failed)
+
+        if ($null -ne $row) {
+
+            $normalized.Add($row)
+
+        }
     }
 
     return @($normalized)

@@ -189,7 +189,7 @@ Resources
             Priority    = $priority
             Compliant   = $false
             Title       = "Falco: $ruleDisplay"
-            Detail      = [string]$a.description
+            Detail      = Remove-Credentials ([string]$a.description)
             Remediation = 'Investigate Falco runtime behavior and validate if process/pod activity is expected.'
             ResourceId  = $rid
             RuleName    = $rule
@@ -267,7 +267,7 @@ foreach ($cluster in $clusters) {
                 Priority    = $priority
                 Compliant   = $false
                 Title       = if ($rule) { "Falco: $rule" } else { 'Falco runtime alert' }
-                Detail      = [string]$line
+                Detail      = Remove-Credentials ([string]$line)
                 Remediation = 'Investigate Falco runtime behavior and validate if process/pod activity is expected.'
                 ResourceId  = [string]$cluster.id
                 RuleName    = $rule

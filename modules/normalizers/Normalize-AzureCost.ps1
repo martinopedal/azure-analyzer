@@ -46,7 +46,7 @@ function Normalize-AzureCost {
 
         if ($isSubscription) {
             $entityType  = 'Subscription'
-            $canonicalId = $subId
+            $canonicalId = $subId.ToLowerInvariant()
         } else {
             $entityType = 'AzureResource'
             try   { $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId }
@@ -72,7 +72,10 @@ function Normalize-AzureCost {
         # Attach them to the finding so the orchestrator can fold them onto the entity.
         $row | Add-Member -NotePropertyName MonthlyCost -NotePropertyValue $monthlyCost -Force
         $row | Add-Member -NotePropertyName Currency    -NotePropertyValue $currency    -Force
-        $normalized.Add($row)
+        # Skip null rows (validation failed)
+        if ($null -ne $row) {
+            $normalized.Add($row)
+        }
     }
 
     return @($normalized)

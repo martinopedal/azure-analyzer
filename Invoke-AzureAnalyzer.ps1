@@ -223,6 +223,11 @@ $runnerBlock = {
             Findings = @()
         }
     }
+    $sanitizePath = Join-Path ([System.IO.Path]::GetDirectoryName($ScriptPath)) 'shared' 'Sanitize.ps1'
+    if (Test-Path $sanitizePath) { . $sanitizePath }
+    if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+        function Remove-Credentials { param ([string]$Text) return $Text }
+    }
     try {
         $result = & $ScriptPath @ToolParams
         return $result
@@ -230,7 +235,7 @@ $runnerBlock = {
         return [PSCustomObject]@{
             Source   = [System.IO.Path]::GetFileNameWithoutExtension($ScriptPath)
             Status   = 'Failed'
-            Message  = $_.Exception.Message
+            Message  = (Remove-Credentials $_.Exception.Message)
             Findings = @()
         }
     }
