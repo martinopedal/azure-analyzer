@@ -21,7 +21,7 @@ Describe 'scorecard wrapper: GH_HOST handling' {
         Remove-Variable -Name seenGhHost -Scope Global -ErrorAction SilentlyContinue
     }
 
-    It 'defaults GH_HOST to github.com for the scorecard invocation and restores prior value' {
+    It 'sets GH_HOST to github.com during scorecard invocation and restores original value afterward' {
         $original = 'already.set.host'
         $env:GH_HOST = $original
 
