@@ -24,6 +24,13 @@ param (
 )
 
 Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
 
 # Check WARA module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name WARA)) {
@@ -60,8 +67,8 @@ try {
     Pop-Location
 } catch {
     Pop-Location
-    Write-Warning "WARA collector failed: $_. Returning empty result."
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = "$_"; Findings = @() }
+    Write-Warning "WARA collector failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
 }
 
 # Find the newest JSON output file
@@ -78,8 +85,8 @@ if (-not $jsonFile) {
 try {
     $raw = Get-Content $jsonFile.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
 } catch {
-    Write-Warning "Could not parse WARA JSON: $_"
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = "JSON parse error: $_"; Findings = @() }
+    Write-Warning "Could not parse WARA JSON: $(Remove-Credentials -Text ([string]$_))"
+    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @() }
 }
 
 # Map to flat finding objects — WARA JSON has a 'ImpactedResources' or 'Recommendations' array

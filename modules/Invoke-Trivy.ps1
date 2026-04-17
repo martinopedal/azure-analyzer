@@ -144,11 +144,11 @@ try {
                 try {
                     $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
                 } catch {
-                    Write-Warning "trivy report JSON parse failed: $_"
+                    Write-Warning "trivy report JSON parse failed: $(Remove-Credentials -Text ([string]$_))"
                     return [PSCustomObject]@{
                         Source   = 'trivy'
                         Status   = 'Failed'
-                        Message  = "Report JSON parse failed: $_"
+                        Message  = Remove-Credentials -Text "Report JSON parse failed: $([string]$_)"
                         Findings = @()
                     }
                 }
@@ -273,15 +273,15 @@ try {
         Findings = $findings
     }
 } catch {
-    Write-Warning "Trivy scan failed: $_"
+    Write-Warning "Trivy scan failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'trivy'
         Status   = 'Failed'
-        Message  = "$_"
+        Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
     }
 } finally {
     if ($cleanupClone) {
-        try { & $cleanupClone } catch { Write-Verbose "trivy clone cleanup failed: $($_.Exception.Message)" }
+        try { & $cleanupClone } catch { Write-Verbose "trivy clone cleanup failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))" }
     }
 }

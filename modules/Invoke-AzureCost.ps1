@@ -39,6 +39,12 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock, [int]$MaxAttempts = 3) & $ScriptBlock }
 }
 
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'azure-cost'
@@ -105,7 +111,7 @@ try {
     }
 } catch {
     $result.Status  = 'Failed'
-    $result.Message = "Consumption API query failed: $($_.Exception.Message)"
+    $result.Message = "Consumption API query failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     return [pscustomobject]$result
 }
 
@@ -189,7 +195,7 @@ if ($OutputPath) {
         $raw = Join-Path $OutputPath "cost-$SubscriptionId-$(Get-Date -Format yyyyMMddHHmmss).json"
         ($result | ConvertTo-Json -Depth 20) | Set-Content -Path $raw -Encoding utf8
     } catch {
-        Write-Warning "Failed to write raw cost JSON: $($_.Exception.Message)"
+        Write-Warning "Failed to write raw cost JSON: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     }
 }
 

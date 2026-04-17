@@ -271,6 +271,6 @@ try {
     }
 } finally {
     if ($cleanupClone) {
-        try { & $cleanupClone } catch { Write-Verbose "zizmor clone cleanup failed: $($_.Exception.Message)" }
+        try { & $cleanupClone } catch { Write-Verbose "zizmor clone cleanup failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))" }
     }
 }
