@@ -50,6 +50,8 @@ $script:AllowedGitHosts       = @('github.com')
 # Covers winget IDs (Publisher.Package), brew taps (org/tap/pkg), pipx, pip.
 $script:PackageNamePattern    = '^[A-Za-z0-9][A-Za-z0-9._\-/@]{0,127}$'
 $script:DefaultInstallTimeoutSec = 300
+# Install manifest for version pinning + SHA-256 verification
+$script:InstallManifestPath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'tools' 'install-manifest.json')
 
 # Lightweight credential scrubber used when Remove-Credentials isn't in scope.
 if (-not (Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue)) {
@@ -155,13 +157,89 @@ function Invoke-WithInstallRetry {
     }
 }
 
-function Install-PSModules {
+function Test-SafePackageName {
     <#
     .SYNOPSIS
         Guard against shell injection via manifest-supplied package names.
     #>
     param ([Parameter(Mandatory)][string] $Name)
     return ($Name -match $script:PackageNamePattern)
+}
+
+function Get-FileHash256 {
+    <#
+    .SYNOPSIS
+        Compute SHA-256 hash of a file and return lowercase hex string.
+    #>
+    param ([Parameter(Mandatory)][string] $Path)
+    if (-not (Test-Path $Path)) {
+        throw "File not found for hash computation: $Path"
+    }
+    $hash = (Get-FileHash -Path $Path -Algorithm SHA256).Hash
+    return $hash.ToLowerInvariant()
+}
+
+function Test-InstallManifestHash {
+    <#
+    .SYNOPSIS
+        Verify a downloaded file's SHA-256 against install-manifest.json.
+        Returns $true if hash matches, $false if mismatch or no hash in manifest.
+    #>
+    param (
+        [Parameter(Mandatory)][string] $FilePath,
+        [Parameter(Mandatory)][string] $ToolName,
+        [string] $Platform = (Get-CurrentOS)
+    )
+    
+    if (-not (Test-Path $script:InstallManifestPath)) {
+        Write-Verbose "[hash] install-manifest.json not found; skipping verification for $ToolName"
+        return $true
+    }
+    
+    try {
+        $manifest = Get-Content $script:InstallManifestPath -Raw | ConvertFrom-Json
+        $tool = $manifest.tools | Where-Object { $_.name -eq $ToolName } | Select-Object -First 1
+        
+        if (-not $tool) {
+            Write-Verbose "[hash] $ToolName not found in install manifest; skipping hash check"
+            return $true
+        }
+        
+        if (-not $tool.platforms -or -not $tool.platforms.PSObject.Properties[$Platform]) {
+            Write-Verbose "[hash] No $Platform entry for $ToolName; skipping hash check"
+            return $true
+        }
+        
+        $platformData = $tool.platforms.$Platform
+        
+        # Check if sha256 property exists
+        if (-not $platformData.PSObject.Properties['sha256']) {
+            Write-Verbose "[hash] No sha256 property for $ToolName on $Platform; delegating to package manager"
+            return $true
+        }
+        
+        if (-not $platformData.sha256 -or $platformData.sha256 -like '*PLACEHOLDER*') {
+            Write-Verbose "[hash] No SHA-256 pin for $ToolName on $Platform; delegating to package manager"
+            return $true
+        }
+        
+        $expectedHash = $platformData.sha256.ToLowerInvariant()
+        $actualHash = Get-FileHash256 -Path $FilePath
+        
+        if ($actualHash -eq $expectedHash) {
+            Write-Verbose "[hash] ✓ $ToolName SHA-256 verified: $actualHash"
+            return $true
+        } else {
+            Write-Warning "[hash] ✗ $ToolName SHA-256 MISMATCH!"
+            Write-Warning "       Expected: $expectedHash"
+            Write-Warning "       Actual:   $actualHash"
+            Write-Warning "       File:     $FilePath"
+            return $false
+        }
+    } catch {
+        Write-Warning "[hash] Could not verify $ToolName hash: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 function Test-SafeGitUrl {

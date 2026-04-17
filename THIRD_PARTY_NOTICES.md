@@ -108,18 +108,37 @@ This project invokes, wraps, or depends on the following open-source tools. None
 # First-Party Components (azure-analyzer)
 
 The following components are developed as part of this repository and are
-licensed under the MIT License in [LICENSE](LICENSE):
+licensed under the MIT License in [LICENSE](LICENSE). They are listed here with
+the same structure as the third-party sections above so each component has an
+equivalent, discoverable notice.
 
-- **ADO Service Connections scanner** - Native REST API collector (no external
-  dependency). Source: `modules/Invoke-ADOServiceConnections.ps1` +
-  `modules/normalizers/Normalize-ADOConnections.ps1`.
-- **Identity Correlator** - Post-processor that links entities across Azure,
-  Entra, and repositories. Source: `modules/shared/IdentityCorrelator.ps1`.
-- **Manifest-driven prerequisite installer** - Source: `modules/shared/Installer.ps1`.
-- **Unified HTML / Markdown reports** - Source: `New-HtmlReport.ps1`,
-  `New-MdReport.ps1`, `report-template.html`.
-- **Orchestrator, schema, normalizers, and entity store** - Source:
-  `Invoke-AzureAnalyzer.ps1`, `modules/shared/Schema.ps1`,
-  `modules/normalizers/*`, `modules/shared/EntityStore.ps1`.
+## ADO Service Connections Scanner (first-party)
+- **Source:** `modules/Invoke-ADOServiceConnections.ps1` + `modules/normalizers/Normalize-ADOConnections.ps1`
+- **Copyright:** Copyright (c) 2026 martinopedal
+- **License:** MIT License (see [LICENSE](LICENSE))
+- **Upstream APIs consumed:** Azure DevOps REST API (`dev.azure.com/{org}/_apis/serviceendpoint/endpoints`) — used under the [Microsoft Services Agreement](https://azure.microsoft.com/support/legal/) / Azure DevOps Terms of Use. No Azure DevOps source code is redistributed.
+- **Dependencies:** None beyond PowerShell 7.4+ and an ADO PAT (or env var). Native REST collector — no external CLI or module required.
+- **Usage:** Invoked automatically when `-AdoOrg` is supplied. Inventories service connections, federation status, authorization schemes, and sharing. Normalized into v3 `FindingRow` + `ServiceConnection` entity.
+
+## Identity Correlator (first-party)
+- **Source:** `modules/shared/IdentityCorrelator.ps1`
+- **Copyright:** Copyright (c) 2026 martinopedal
+- **License:** MIT License (see [LICENSE](LICENSE))
+- **Usage:** Post-processor that links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO. Emits relationship findings and risk findings (privileged CI identities, PAT-based ADO auth, multi-binding reuse).
+
+## Manifest-Driven Prerequisite Installer (first-party)
+- **Source:** `modules/shared/Installer.ps1` + `tools/tool-manifest.json`
+- **Copyright:** Copyright (c) 2026 martinopedal
+- **License:** MIT License (see [LICENSE](LICENSE))
+
+## Unified HTML / Markdown Reports (first-party)
+- **Source:** `New-HtmlReport.ps1`, `New-MdReport.ps1`, `report-template.html`
+- **Copyright:** Copyright (c) 2026 martinopedal
+- **License:** MIT License (see [LICENSE](LICENSE))
+
+## Orchestrator, Schema, Normalizers, and Entity Store (first-party)
+- **Source:** `Invoke-AzureAnalyzer.ps1`, `modules/shared/Schema.ps1`, `modules/normalizers/*`, `modules/shared/EntityStore.ps1`
+- **Copyright:** Copyright (c) 2026 martinopedal
+- **License:** MIT License (see [LICENSE](LICENSE))
 
 Copyright (c) 2026 martinopedal. See [LICENSE](LICENSE) for the full text.

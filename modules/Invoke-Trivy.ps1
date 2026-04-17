@@ -280,7 +280,7 @@ try {
         Message  = (Remove-Credentials "$_")
         Findings = @()
     }
-} finally {
+}finally {
     if ($cleanupClone) {
         try { & $cleanupClone } catch { Write-Verbose (Remove-Credentials "trivy clone cleanup failed: $($_.Exception.Message)") }
     }

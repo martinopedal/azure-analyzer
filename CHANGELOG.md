@@ -4,19 +4,40 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **FindingRow schema validation at normalizer boundary (#99)**: All normalizers now validate findings at construction time via `New-FindingRow` factory. Validation enforces required fields (Id, Source, EntityId, EntityType, Title, Compliant, Provenance.RunId), checks Severity/Platform/EntityType against allowed values, and verifies EntityId canonicalization. Invalid rows are dropped with a sanitized warning logged to stderr; validation failures are tracked via `Get-SchemaValidationFailures` for observability. New `Test-FindingRow` function supports both silent (returns bool + error array) and strict modes (throws exception). Covered by 21 comprehensive tests in `tests/shared/Schema-Validation.Tests.ps1`.
+- **Pre-commit hook infrastructure for gitleaks + zizmor (#103)**: Opt-in `hooks/pre-commit.ps1` runs gitleaks on staged changes and zizmor on modified workflow files. `tools/Install-PreCommitHook.ps1` installer creates a cross-platform hook (Windows .cmd shim / Unix symlink). Hook gracefully skips with warnings if tools aren't installed. Blocks commits when issues are found (bypassable with `--no-verify`). Covered by 16 Pester tests in `tests/hooks/PreCommit.Tests.ps1`. Added Developer Setup section to README.md with install instructions.
+
 ### Fixed
 - **Security:** All error messages written to disk (JSON, HTML, logs) are now sanitized via `Remove-Credentials` to prevent credentials, tokens, connection strings, or SAS URIs from being written to disk. Applies to all tool wrappers and the main orchestrator (#100)
 - **Security:** `Invoke-Trivy.ps1` now sanitizes non-success warning/message paths for missing-report and JSON-parse failures; `Invoke-Falco.ps1` now self-loads `Sanitize.ps1` with local fallback (parallel-safe) and sanitizes emitted alert/log detail fields plus log-collection warnings.
 - **Security:** Added parallel/runspace-safe `Sanitize.ps1` self-load + local `Remove-Credentials` fallback in `Invoke-AzureCost.ps1`, `Invoke-DefenderForCloud.ps1`, `Invoke-Kubescape.ps1`, and the orchestrator `$runnerBlock` in `Invoke-AzureAnalyzer.ps1` to prevent `CommandNotFoundException` in `ForEach-Object -Parallel` error paths. Also normalized minor Trivy formatting (`} finally {`, indentation) with no behavior change.
 
 ### Changed
+- **Schema validation hardening for PR #118 / issue #126**:
+  - `New-FindingRow` now performs in-function manual validation for required and enum-constrained fields and returns `$null` (with tracked warning) instead of parameter-binding exceptions.
+  - `Test-FindingRow` now null-guards `Compliant` and reports null as invalid instead of risking a null dereference.
+  - `Normalize-Gitleaks.ps1` and `Normalize-Azqr.ps1` now emit canonical-compatible `EntityId` values (`Repository` IDs in `host/owner/repo` format; `AzureResource` IDs as canonical ARM-shaped IDs), with gitleaks file paths preserved in `ResourceId`.
+- **Security:** All error messages written to disk (JSON, HTML, logs) are now sanitized via `Remove-Credentials` to prevent credentials, tokens, connection strings, or SAS URIs from being written to disk. Applies to all tool wrappers and the main orchestrator (#100)
+- **Pre-commit hook compatibility and coverage (#117/#126):** `tools/Install-PreCommitHook.ps1` now writes a POSIX `#!/bin/sh` wrapper that `exec`s `pwsh.exe`/`pwsh` (instead of batch syntax) so hooks run correctly under git's bash-based runner on Windows. `hooks/pre-commit.ps1` now includes renamed files in staged workflow detection (`--diff-filter=ACMR`) and verifies gitleaks v8 pre-commit syntax by preferring `gitleaks git --pre-commit` with fallback to `gitleaks protect --staged`.
+
+### Documentation
+- **Tool licensing surfaced in-table + first-party components promoted in THIRD_PARTY_NOTICES.md**: the `## What each tool does` table in `README.md` now carries a `License` column for all 17 tools (MIT / Apache-2.0 / Azure REST API service terms, with a link back to `THIRD_PARTY_NOTICES.md`). The old `## Data Sources & Attribution` table (which duplicated the tool list with stale licenses — zizmor wrongly MIT, ADO Service Connections blank) has been collapsed to a brief pointer. `THIRD_PARTY_NOTICES.md` promotes each first-party component (**ADO Service Connections Scanner**, Identity Correlator, Installer, Reports, Orchestrator) to its own `##` section, parallel in structure to third-party tool entries. ADO SC now explicitly names the Azure DevOps REST API (`dev.azure.com/{org}/_apis/serviceendpoint/endpoints`) used under the Microsoft Services Agreement; no ADO source code is redistributed. Consumer/maintainer doc separation: CI workflow table (codeql, docs-check, pr-review-gate, ci-failure-watchdog, squad-*) moved from `README.md` into `CONTRIBUTING.md` under a "maintainer-only" heading so README stays consumer-focused.
+
+### Changed
+- **Schema validation hardening for PR #118 / issue #126**:
+  - `New-FindingRow` now performs in-function manual validation for required and enum-constrained fields and returns `$null` (with tracked warning) instead of parameter-binding exceptions.
+  - `Test-FindingRow` now null-guards `Compliant` and reports null as invalid instead of risking a null dereference.
+  - `Normalize-Gitleaks.ps1` and `Normalize-Azqr.ps1` now emit canonical-compatible `EntityId` values (`Repository` IDs in `host/owner/repo` format; `AzureResource` IDs as canonical ARM-shaped IDs), with gitleaks file paths preserved in `ResourceId`.
 - **Roadmap / proposal label (prevents auto-pickup of improvement plans)**: New `type:roadmap` label marks issues that are improvement plans or phase proposals, not actionable work. `.squad/templates/ralph-triage.js` `isUntriagedIssue()` now skips any issue tagged `type:roadmap`, so the heartbeat cron and Squad coordinator will no longer pick them up for agent execution. Applied to #91–#97 (phase plans), #106, #108, #109, #110 (review-loop improvements); all `squad:{member}` labels stripped so they render as backlog only.
 - **Notification hygiene (#113)** — reduce email noise from the automation loop:
   - `modules/shared/Invoke-PRReviewGate.ps1` `Post-PRSummaryComment` now upserts a single PR summary comment via a `<!-- squad-pr-review-gate -->` marker. On re-runs, the existing comment is updated in place with `PATCH /repos/{owner}/{repo}/issues/comments/{id}` instead of creating a new comment each time. Review threads are no longer spammed with duplicate gate summaries.
   - `.squad/templates/issue-lifecycle.md` spawn prompts now instruct agents to open PRs as drafts (`gh pr create --draft`) and flip to ready-for-review only after CI is green and self-review is complete. Cuts notification traffic during iteration.
 
 ### Added
+- **Hardened retry helper (#101)**: `modules/shared/Retry.ps1` `Invoke-WithRetry` now supports HTTP status code detection (408/429/503/504 via `Response.StatusCode`), `Retry-After` header parsing (integer seconds and RFC 7231 HTTP-date), and AWS-style full jitter (`random(0, backoffCap)`) for exponential backoff. `Retry-After` values are honored as returned (not capped by `MaxDelaySeconds`). Final exception messages sanitized via `Remove-Credentials`, with `Write-Verbose` attempt logging. New `-MaxAttempts` / `-InitialDelaySeconds` / `-MaxDelaySeconds` parameters plus backward-compatible `-MaxRetries` (legacy semantics: retries-after-first-attempt) / `-BaseDelaySec` / `-MaxDelaySec`. `Invoke-AzureAnalyzer.ps1` `Get-ChildSubscriptions` now wraps `Search-AzGraph` in `Invoke-WithRetry`. Added `tests/shared/Retry.Tests.ps1` (17 tests).
 - Added CI failure watchdog (workflow + local helper) - #104
+- **SBOM + pinned installer manifest hardening (#102)**: Added CycloneDX SBOM generation (`tools/Generate-SBOM.ps1`) and a version-pinned `tools/install-manifest.json` with concrete SHA-256 hashes for pinned download artifacts.
 
 ### Fixed
 - **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
