@@ -9,8 +9,10 @@ function Invoke-WithRetry {
         [scriptblock] $ScriptBlock,
 
         # New-style params
-        [Alias('MaxRetries')]
-        [int] $MaxAttempts,
+        [Nullable[int]] $MaxAttempts,
+
+        # Legacy param: retries after first try (total attempts = MaxRetries + 1)
+        [Nullable[int]] $MaxRetries,
 
         [Alias('BaseDelaySec')]
         [Nullable[int]] $InitialDelaySeconds,
@@ -27,13 +29,17 @@ function Invoke-WithRetry {
         )
     )
 
-    # Normalize params. MaxRetries (legacy) meant "retries after first try" (total = MaxRetries+1).
+    # Normalize params. MaxRetries (legacy) means "retries after first try" (total = MaxRetries+1).
     # MaxAttempts (new) means "total attempts including first".
-    if (-not $PSBoundParameters.ContainsKey('MaxAttempts')) {
+    $hasMaxAttempts = $PSBoundParameters.ContainsKey('MaxAttempts')
+    $hasMaxRetries = $PSBoundParameters.ContainsKey('MaxRetries')
+    if ($hasMaxAttempts -and $hasMaxRetries) {
+        throw [System.ArgumentException]::new('Use either -MaxAttempts or legacy -MaxRetries, not both.')
+    }
+    if ($hasMaxRetries) {
+        $MaxAttempts = [int]$MaxRetries + 1
+    } elseif (-not $hasMaxAttempts) {
         $MaxAttempts = 4   # default: 1 try + 3 retries
-    } elseif ($PSBoundParameters.ContainsKey('MaxRetries')) {
-        # invoked via alias MaxRetries; preserve legacy semantics: total = value + 1
-        $MaxAttempts = $MaxAttempts + 1
     }
     $baseDelay = if ($null -ne $InitialDelaySeconds) { [int]$InitialDelaySeconds } else { 2 }
     $maxDelay  = if ($null -ne $MaxDelaySeconds) { [int]$MaxDelaySeconds } else { 60 }
@@ -81,7 +87,7 @@ function Invoke-WithRetry {
             # Honor Retry-After header if present and parseable
             $retryAfter = Get-RetryAfterSeconds -ErrorRecord $err
             $delay = if ($retryAfter -gt 0) {
-                [math]::Min($maxDelay, $retryAfter)
+                $retryAfter
             } else {
                 Get-JitteredDelay -RetryIndex ($attempt - 1) -BaseDelaySec $baseDelay -MaxDelaySec $maxDelay
             }
@@ -162,18 +168,11 @@ function Get-JitteredDelay {
         [int] $MaxDelaySec
     )
 
-    $baseDelay = [math]::Min($MaxDelaySec, $BaseDelaySec * [math]::Pow(2, $RetryIndex))
-    if ($baseDelay -le 0) {
+    $backoff = [math]::Min($MaxDelaySec, $BaseDelaySec * [math]::Pow(2, $RetryIndex))
+    if ($backoff -le 0) {
         return 0
     }
 
-    $bytes = New-Object byte[] 4
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-    $rand = [BitConverter]::ToUInt32($bytes, 0) / [uint32]::MaxValue
-
-    # Full jitter: multiplier between 0.5x and 1.5x of baseDelay
-    $multiplier = 0.5 + $rand
-    $jittered = $baseDelay * $multiplier
-
-    return [math]::Min($MaxDelaySec, [math]::Max(0, [math]::Round($jittered, 2)))
+    # Full jitter: random delay between 0 and the exponential backoff cap.
+    return [math]::Round((Get-Random -Minimum 0.0 -Maximum ([double]$backoff)), 2)
 }

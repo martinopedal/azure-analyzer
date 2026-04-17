@@ -192,9 +192,9 @@ Describe 'Invoke-WithRetry' {
 
         $result | Should -Be 'success'
         $script:sleepSeconds.Count | Should -Be 1
-        # Should use jittered exponential backoff (base 2): between 1.0 and 3.0
-        $script:sleepSeconds[0] | Should -BeGreaterOrEqual 1.0
-        $script:sleepSeconds[0] | Should -BeLessOrEqual 3.0
+        # Full jitter over exponential backoff (base 2): between 0 and 2
+        $script:sleepSeconds[0] | Should -BeGreaterOrEqual 0
+        $script:sleepSeconds[0] | Should -BeLessOrEqual 2
     }
 
     It 'uses exponential backoff with full jitter' {
@@ -219,17 +219,17 @@ Describe 'Invoke-WithRetry' {
         $script:attempts | Should -Be 4
         $script:sleepSeconds.Count | Should -Be 3
         
-        # First delay should be between 1.0 (2*0.5) and 3.0 (2*1.5)
-        $script:sleepSeconds[0] | Should -BeGreaterOrEqual 1.0
-        $script:sleepSeconds[0] | Should -BeLessOrEqual 3.0
+        # First delay should be between 0 and 2
+        $script:sleepSeconds[0] | Should -BeGreaterOrEqual 0
+        $script:sleepSeconds[0] | Should -BeLessOrEqual 2
         
-        # Second delay should be between 2.0 (4*0.5) and 6.0 (4*1.5)
-        $script:sleepSeconds[1] | Should -BeGreaterOrEqual 2.0
-        $script:sleepSeconds[1] | Should -BeLessOrEqual 6.0
+        # Second delay should be between 0 and 4
+        $script:sleepSeconds[1] | Should -BeGreaterOrEqual 0
+        $script:sleepSeconds[1] | Should -BeLessOrEqual 4
         
-        # Third delay should be between 4.0 (8*0.5) and 12.0 (8*1.5)
-        $script:sleepSeconds[2] | Should -BeGreaterOrEqual 4.0
-        $script:sleepSeconds[2] | Should -BeLessOrEqual 12.0
+        # Third delay should be between 0 and 8
+        $script:sleepSeconds[2] | Should -BeGreaterOrEqual 0
+        $script:sleepSeconds[2] | Should -BeLessOrEqual 8
     }
 
     It 'throws after MaxAttempts with non-retryable error' {
@@ -327,5 +327,52 @@ Describe 'Invoke-WithRetry' {
 
         $result | Should -Be 'ok'
         $script:attempts | Should -Be 2
+    }
+
+    It 'does not cap Retry-After by MaxDelaySeconds' {
+        $script:attempts = 0
+        $script:sleepSeconds = @()
+
+        Mock Start-Sleep {
+            param([double]$Seconds)
+            $script:sleepSeconds += $Seconds
+        }
+
+        Mock Invoke-RestMethod {
+            $script:attempts++
+            if ($script:attempts -lt 2) {
+                $headers = @{ 'Retry-After' = '10' }
+                $response = New-Object PSObject -Property @{
+                    StatusCode = 429
+                    Headers = $headers
+                }
+                $ex = New-Object System.Net.Http.HttpRequestException('Too Many Requests')
+                Add-Member -InputObject $ex -MemberType NoteProperty -Name Response -Value $response -Force
+                throw $ex
+            }
+            return 'success'
+        }
+
+        $result = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -MaxDelaySeconds 3 -ScriptBlock {
+            Invoke-RestMethod -Uri 'http://example.com'
+        }
+
+        $result | Should -Be 'success'
+        $script:sleepSeconds.Count | Should -Be 1
+        $script:sleepSeconds[0] | Should -Be 10
+    }
+
+    It 'treats MaxRetries as retries after first attempt' {
+        $script:attempts = 0
+        {
+            Invoke-WithRetry -MaxRetries 2 -BaseDelaySec 0 -MaxDelaySec 0 -ScriptBlock {
+                $script:attempts++
+                $ex = [System.Exception]::new('timeout')
+                $ex | Add-Member -NotePropertyName Category -NotePropertyValue 'Timeout'
+                throw $ex
+            }
+        } | Should -Throw
+
+        $script:attempts | Should -Be 3
     }
 }
