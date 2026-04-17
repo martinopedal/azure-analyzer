@@ -60,7 +60,27 @@ try {
 
     try {
         Write-Verbose "Running scorecard for repository $Repository (threshold=$Threshold)"
-        $rawOutput = scorecard --repo=$Repository --format=json 2>&1
+        # Real scorecard CLIs are external binaries; Pester mocks register it as a PS function.
+        # For external binaries, run under a hard 300s Start-Job / Wait-Job timeout.
+        # For functions/cmdlets (tests), call directly — no hang risk and Start-Job can't see in-process mocks.
+        $scCmd = Get-Command scorecard -ErrorAction SilentlyContinue
+        if ($scCmd -and $scCmd.CommandType -eq 'Application') {
+            $scorecardJob = Start-Job -ScriptBlock {
+                param($repo, $ghHost)
+                if ($ghHost) { $env:GH_HOST = $ghHost }
+                scorecard --repo=$repo --format=json 2>&1
+            } -ArgumentList $Repository, $GitHubHost
+            if (Wait-Job -Job $scorecardJob -Timeout 300) {
+                $rawOutput = Receive-Job -Job $scorecardJob
+            } else {
+                Stop-Job -Job $scorecardJob -ErrorAction SilentlyContinue
+                Remove-Job -Job $scorecardJob -Force -ErrorAction SilentlyContinue
+                throw "scorecard CLI timed out after 300 seconds for repo $Repository"
+            }
+            Remove-Job -Job $scorecardJob -Force -ErrorAction SilentlyContinue
+        } else {
+            $rawOutput = scorecard --repo=$Repository --format=json 2>&1
+        }
         $json = $rawOutput | Out-String | ConvertFrom-Json -ErrorAction Stop
     } finally {
         # Restore original GH_HOST

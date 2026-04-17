@@ -105,8 +105,9 @@ function Get-AdoProjects {
     )
     $projects = [System.Collections.Generic.List[string]]::new()
     $continuationToken = $null
+    $orgEnc = [uri]::EscapeDataString($Org)
     do {
-        $uri = "https://dev.azure.com/$Org/_apis/projects?api-version=7.1&`$top=100"
+        $uri = "https://dev.azure.com/$orgEnc/_apis/projects?api-version=7.1&`$top=100"
         if ($continuationToken) {
             $uri += "&continuationToken=$continuationToken"
         }
@@ -133,8 +134,10 @@ function Get-AdoServiceConnections {
     )
     $connections = [System.Collections.Generic.List[PSCustomObject]]::new()
     $continuationToken = $null
+    $orgEnc     = [uri]::EscapeDataString($Org)
+    $projectEnc = [uri]::EscapeDataString($Project)
     do {
-        $uri = "https://dev.azure.com/$Org/$Project/_apis/serviceendpoint/endpoints?api-version=7.1&`$top=100"
+        $uri = "https://dev.azure.com/$orgEnc/$projectEnc/_apis/serviceendpoint/endpoints?api-version=7.1&`$top=100"
         if ($continuationToken) {
             $uri += "&continuationToken=$continuationToken"
         }

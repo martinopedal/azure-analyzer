@@ -218,6 +218,13 @@ $captureMinutes = $CaptureMinutes
 $scanned = 0
 $failed = 0
 foreach ($cluster in $clusters) {
+    # Defense-in-depth: reject resources whose names contain shell metacharacters.
+    if ($cluster.resourceGroup -notmatch '^[A-Za-z0-9._()-]{1,90}$' -or
+        $cluster.name          -notmatch '^[A-Za-z0-9-]{1,63}$') {
+        Write-Warning "Skipping cluster with unsafe name/resourceGroup: $($cluster.name) in $($cluster.resourceGroup)"
+        $failed++
+        continue
+    }
     $ctx = "falco-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
     $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$ctx.yaml"
     try {

@@ -167,6 +167,15 @@ $scanned  = 0
 $failed   = 0
 
 foreach ($cluster in $clusters) {
+    # Defense-in-depth: reject resources whose names contain shell metacharacters.
+    # Azure RG names allow [A-Za-z0-9._()-]; AKS cluster names allow [A-Za-z0-9-].
+    if ($cluster.resourceGroup -notmatch '^[A-Za-z0-9._()-]{1,90}$' -or
+        $cluster.name          -notmatch '^[A-Za-z0-9-]{1,63}$') {
+        Write-Warning "Skipping cluster with unsafe name/resourceGroup: $($cluster.name) in $($cluster.resourceGroup)"
+        $failed++
+        continue
+    }
+
     $context = "kb-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
     $tmpKubeconfig = $null
     $jobManifest = $null
