@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **Pre-commit hook infrastructure for gitleaks + zizmor (#103)**: Opt-in `hooks/pre-commit.ps1` runs gitleaks on staged changes and zizmor on modified workflow files. `tools/Install-PreCommitHook.ps1` installer creates a cross-platform hook (Windows .cmd shim / Unix symlink). Hook gracefully skips with warnings if tools aren't installed. Blocks commits when issues are found (bypassable with `--no-verify`). Covered by 16 Pester tests in `tests/hooks/PreCommit.Tests.ps1`. Added Developer Setup section to README.md with install instructions.
+
 ### Fixed
 - **Security:** All error messages written to disk (JSON, HTML, logs) are now sanitized via `Remove-Credentials` to prevent credentials, tokens, connection strings, or SAS URIs from being written to disk. Applies to all tool wrappers and the main orchestrator (#100)
 
