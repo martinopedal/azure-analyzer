@@ -45,13 +45,17 @@ function Normalize-AzGovViz {
             # Bare /subscriptions/{id} → Subscription; deeper paths → AzureResource
             if ($rawId -match '^/subscriptions/[^/]+$') {
                 $entityType = 'Subscription'
+                # For Subscription EntityType, EntityId must be just the GUID
+                if ($rawId -match '/subscriptions/([^/]+)') {
+                    $canonicalId = $Matches[1].ToLowerInvariant()
+                }
             } else {
                 $entityType = 'AzureResource'
-            }
-            try {
-                $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId
-            } catch {
-                $canonicalId = $rawId.ToLowerInvariant()
+                try {
+                    $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId
+                } catch {
+                    $canonicalId = $rawId.ToLowerInvariant()
+                }
             }
             if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
             if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }

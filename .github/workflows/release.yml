@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release with SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            $tag = '${{ inputs.tag }}'
+          } else {
+            $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+          }
+          Write-Host "Release version: $tag"
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Generate SBOM
+        shell: pwsh
+        run: |
+          ./tools/Generate-SBOM.ps1 -Verbose
+          
+          if (-not (Test-Path output/sbom.json)) {
+            Write-Error "SBOM generation failed"
+            exit 1
+          }
+          
+          Write-Host "✓ SBOM generated at output/sbom.json" -ForegroundColor Green
+
+      - name: Validate SBOM
+        shell: pwsh
+        run: |
+          $sbom = Get-Content output/sbom.json -Raw | ConvertFrom-Json
+          
+          if ($sbom.bomFormat -ne 'CycloneDX') {
+            Write-Error "Invalid SBOM format"
+            exit 1
+          }
+          
+          if ($sbom.specVersion -ne '1.5') {
+            Write-Error "Invalid SBOM spec version"
+            exit 1
+          }
+          
+          $componentCount = $sbom.components.Count
+          Write-Host "✓ SBOM validated: $componentCount components" -ForegroundColor Green
+
+      - name: Create Release
+        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.2.0
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## Release ${{ steps.version.outputs.tag }}
+            
+            ### 📦 Supply Chain Artifacts
+            
+            This release includes:
+            - **SBOM (Software Bill of Materials)**: `sbom.json` — CycloneDX 1.5 format
+            - Version-pinned dependencies with SHA-256 checksums (where available)
+            - Audit trail for all included tools and their upstream sources
+            
+            ### 📋 SBOM Details
+            
+            The SBOM lists all bundled assessment tools with:
+            - Exact versions
+            - SHA-256 checksums (for direct downloads)
+            - Package manager checksums (for winget/brew/pipx installs)
+            - Upstream repository URLs
+            - Pinning strategy per tool
+            
+            See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+          files: |
+            output/sbom.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        shell: pwsh
+        run: |
+          Write-Host "`n=== Release Summary ===" -ForegroundColor Cyan
+          Write-Host "Tag:       ${{ steps.version.outputs.tag }}" -ForegroundColor Yellow
+          Write-Host "SBOM:      output/sbom.json" -ForegroundColor Yellow
+          Write-Host "Artifacts: Attached to release" -ForegroundColor Yellow
+          Write-Host "Status:    ✓ Complete" -ForegroundColor Green
