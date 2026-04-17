@@ -230,7 +230,7 @@ $runnerBlock = {
         return [PSCustomObject]@{
             Source   = [System.IO.Path]::GetFileNameWithoutExtension($ScriptPath)
             Status   = 'Failed'
-            Message  = $_.Exception.Message
+            Message  = (Remove-Credentials $_.Exception.Message)
             Findings = @()
         }
     }
