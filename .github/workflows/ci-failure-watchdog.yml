@@ -1,0 +1,111 @@
+name: CI failure watchdog
+
+on:
+  workflow_run:
+    types: [completed]
+
+permissions:
+  issues: write
+  actions: read
+  contents: read
+
+jobs:
+  triage-failure:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.name != 'CI failure watchdog' && (github.event.workflow_run.head_branch == github.event.repository.default_branch || startsWith(github.event.workflow_run.head_branch, 'squad/'))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ci-failure-watchdog
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Triage failed workflow run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          EVENT_NAME: ${{ github.event.workflow_run.event }}
+          PR_URL: ${{ github.event.workflow_run.pull_requests[0].html_url || '' }}
+        run: |
+          set -euo pipefail
+
+          sanitize_text() {
+            local input="$1"
+            printf '%s' "$input" \
+              | sed -E \
+                -e 's/ghp_[A-Za-z0-9]{36}/[GITHUB-PAT-REDACTED]/g' \
+                -e 's/gho_[A-Za-z0-9]{36}/[GITHUB-OAUTH-REDACTED]/g' \
+                -e 's/ghs_[A-Za-z0-9]{36}/[GITHUB-TOKEN-REDACTED]/g' \
+                -e 's/ghr_[A-Za-z0-9]{36}/[GITHUB-REFRESH-REDACTED]/g' \
+                -e 's/github_pat_[A-Za-z0-9_]{82}/[GITHUB-PAT-REDACTED]/g' \
+                -e 's/(Bearer|Basic)[[:space:]]+[^[:space:]]+/\1 [REDACTED]/Ig' \
+                -e 's/(AccountKey|SharedAccessKey|Password)=[^;[:space:]]+/\1=[REDACTED]/Ig' \
+                -e 's/sig=[A-Za-z0-9%+/=]{10,}/sig=[REDACTED]/Ig' \
+                -e 's/client_secret=[^&[:space:]]+/client_secret=[REDACTED]/Ig' \
+                -e 's/SharedAccessSignature=[^;[:space:]]+/SharedAccessSignature=[REDACTED]/Ig'
+          }
+
+          failed_log_raw="$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 || true)"
+          failed_log_head="$(printf '%s\n' "$failed_log_raw" | head -n 500)"
+
+          first_error_line="$(printf '%s\n' "$failed_log_head" | grep -Eim1 '(error|failed|fatal):' || true)"
+          if [ -z "${first_error_line}" ]; then
+            first_error_line="No explicit error line found in failed log output."
+          fi
+          first_error_line="$(sanitize_text "$first_error_line")"
+
+          failed_jobs_json="$(gh run view "$RUN_ID" --repo "$REPO" --json jobs --jq '[.jobs[] | select(.conclusion == "failure") | .name]' 2>/dev/null || echo '[]')"
+          failed_jobs="$(printf '%s' "$failed_jobs_json" | jq -r 'if length == 0 then "unknown" else join(", ") end')"
+          failed_jobs="$(sanitize_text "$failed_jobs")"
+
+          hash_input="${WORKFLOW_NAME}|${first_error_line}"
+          error_hash="$(printf '%s' "$hash_input" | sha256sum | cut -c1-12)"
+
+          short_error="$(printf '%s' "$first_error_line" | tr '\r\n' ' ' | sed -E 's/[[:space:]]+/ /g' | cut -c1-120)"
+          short_error="$(sanitize_text "$short_error")"
+
+          issue_title="fix: CI failure in ${WORKFLOW_NAME} — ${short_error} [${error_hash}]"
+          existing_issue="$(gh issue list --repo "$REPO" --label ci-failure --state open --search "[${error_hash}] in:title" --json number --jq '.[0].number // empty' 2>/dev/null || true)"
+
+          gh label create ci-failure --repo "$REPO" --color B60205 --description "Automated CI failure report" --force >/dev/null 2>&1 || true
+
+          body_lines=$'## CI failure detected\n\n'
+          body_lines+="- Workflow: ${WORKFLOW_NAME}"$'\n'
+          body_lines+="- Run URL: ${RUN_URL}"$'\n'
+          if [ "${EVENT_NAME}" = "pull_request" ] && [ -n "${PR_URL}" ]; then
+            body_lines+="- PR URL: ${PR_URL}"$'\n'
+          fi
+          body_lines+="- Failed jobs: ${failed_jobs}"$'\n'
+          body_lines+="- First error line: ${first_error_line}"
+
+          if [ -n "$existing_issue" ]; then
+            gh issue comment "$existing_issue" --repo "$REPO" --body "still failing — ${RUN_URL}" || true
+          else
+            if ! gh issue create \
+              --repo "$REPO" \
+              --title "$issue_title" \
+              --body "$body_lines" \
+              --label squad \
+              --label type:bug \
+              --label priority:p1 \
+              --label ci-failure; then
+              existing_issue="$(gh issue list --repo "$REPO" --label ci-failure --state open --search "[${error_hash}] in:title" --json number --jq '.[0].number // empty' 2>/dev/null || true)"
+              if [ -n "$existing_issue" ]; then
+                gh issue comment "$existing_issue" --repo "$REPO" --body "still failing — ${RUN_URL}" || true
+              else
+                echo "Failed to create or reconcile ci-failure issue for hash [${error_hash}]."
+                exit 1
+              fi
+            fi
+          fi
+
+          mapfile -t matching_issues < <(gh issue list --repo "$REPO" --label ci-failure --state open --search "[${error_hash}] in:title" --json number --jq '.[].number' 2>/dev/null || true)
+          if [ "${#matching_issues[@]}" -gt 1 ]; then
+            canonical_issue="${matching_issues[0]}"
+            for duplicate_issue in "${matching_issues[@]:1}"; do
+              gh issue comment "$duplicate_issue" --repo "$REPO" --body "Closing duplicate ci-failure issue in favor of #${canonical_issue} for hash [${error_hash}]." || true
+              gh issue close "$duplicate_issue" --repo "$REPO" --comment "Duplicate of #${canonical_issue}" || true
+            done
+          fi

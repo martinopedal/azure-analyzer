@@ -433,6 +433,9 @@ The `.squad/` directory contains AI team infrastructure for automated triage and
 |---|---|---|
 | `codeql.yml` | Push / PR / weekly | Static analysis for security vulnerabilities (CodeQL, SHA-pinned) |
 | `docs-check.yml` | PR | Ensures documentation is updated with code changes |
+| `ci-failure-watchdog.yml` | `workflow_run` on failure | Files or updates a deduplicated CI failure bug issue (hash = workflow + first error line) |
+
+Set `SQUAD_WATCH_CI=1` to opt in to the local polling helper (`tools/Watch-GithubActions.ps1`) that applies the same dedup triage loop outside GitHub Actions.
 
 <details>
 <summary>Maintainer workflows (squad infrastructure)</summary>
@@ -445,7 +448,7 @@ These workflows support the AI development team and are excluded from archive do
 | `squad-triage.yml` | Issue routing to squad members |
 | `squad-issue-assign.yml` | Auto-assignment of issues to squad agents |
 | `sync-squad-labels.yml` | Syncs squad labels across the repo |
-| `ci-failure-analysis.yml` | Auto-creates bug issues with log excerpts on workflow failures |
+| `ci-failure-watchdog.yml` | Auto-files or updates `ci-failure` issues for failed workflow runs |
 | `auto-label-issues.yml` | Adds the `squad` label to new issues |
 
 </details>
