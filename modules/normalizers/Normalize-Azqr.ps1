@@ -39,21 +39,29 @@ function Normalize-Azqr {
         $subId = ''
         $rg = ''
         $canonicalId = ''
+        $findingId = Get-PropertyValue $finding 'Id' ([guid]::NewGuid().ToString())
 
         if ($rawId -and $rawId -match '^/subscriptions/') {
             try {
-                $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId
+                $canonicalMeta = ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource'
+                $canonicalId = $canonicalMeta.CanonicalId
             } catch {
                 $canonicalId = $rawId.ToLowerInvariant()
             }
-            if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
-            if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }
+            if ($rawId -match '(?i)/subscriptions/([^/]+)') { $subId = $Matches[1].ToLowerInvariant() }
+            if ($rawId -match '(?i)/resourcegroups/([^/]+)') { $rg = $Matches[1] }
         }
 
         # Synthesize entity ID when no ARM ID is available
-        $findingId = Get-PropertyValue $finding 'Id' ([guid]::NewGuid().ToString())
         if (-not $canonicalId) {
-            $canonicalId = "azqr/$findingId"
+            $fallbackSub = if ($subId -match '^[0-9a-fA-F-]{36}$') {
+                $subId.ToLowerInvariant()
+            } else {
+                '00000000-0000-0000-0000-000000000000'
+            }
+            $fallbackArmId = "/subscriptions/$fallbackSub/providers/microsoft.resourcegraph/azqrfindings/$findingId"
+            $canonicalMeta = ConvertTo-CanonicalEntityId -RawId $fallbackArmId -EntityType 'AzureResource'
+            $canonicalId = $canonicalMeta.CanonicalId
         }
 
         $title = Get-PropertyValue $finding 'Recommendation' (Get-PropertyValue $finding 'Title' (Get-PropertyValue $finding 'Description' 'Unknown'))

@@ -295,25 +295,16 @@ Describe 'New-FindingRow validation integration' {
         It 'returns null and logs warning when validation fails' {
             Reset-SchemaValidationFailures
 
-            # Manually construct a finding with an empty required field
-            # (can't use New-FindingRow because it has ValidateNotNullOrEmpty)
-            $finding = [PSCustomObject]@{
-                Id               = 'f-test'
-                Source           = 'test-tool'
-                EntityId         = ''
-                EntityType       = 'AzureResource'
-                Title            = 'Test'
-                Compliant        = $true
-                SchemaVersion    = '2.0'
-                Platform         = 'Azure'
-                Provenance       = [PSCustomObject]@{ RunId = 'run-1'; Source = 'test-tool'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
-            }
+            $row = New-FindingRow `
+                -Id 'f-test' `
+                -Source 'test-tool' `
+                -EntityId '' `
+                -EntityType 'AzureResource' `
+                -Title 'Test' `
+                -Compliant $true `
+                -ProvenanceRunId 'run-1'
 
-            # Test-FindingRow should return false
-            $errors = @()
-            $result = Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)
-            $result | Should -BeFalse
-            ($errors -join '; ') | Should -Match 'EntityId'
+            $row | Should -BeNullOrEmpty
         }
     }
 

@@ -116,54 +116,44 @@ function New-FindingRow {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string] $Id,
 
         [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string] $Source,
 
         [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string] $EntityId,
 
         [Parameter(Mandatory)]
-        [ValidateSet(
-            'AzureResource',
-            'ServicePrincipal',
-            'ManagedIdentity',
-            'Application',
-            'Repository',
-            'Pipeline',
-            'ServiceConnection',
-            'User',
-            'Subscription',
-            'ManagementGroup',
-            'Workflow',
-            'Tenant'
-        )]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string] $EntityType,
 
         [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string] $Title,
 
         [Parameter(Mandatory)]
-        [ValidateNotNull()]
-        [bool] $Compliant,
+        [object] $Compliant,
 
         [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string] $ProvenanceRunId,
 
         [string] $Category,
-        [ValidateSet('Critical', 'High', 'Medium', 'Low', 'Info')]
         [string] $Severity,
         [string] $Detail,
         [string] $Remediation,
         [string] $ResourceId,
         [string] $LearnMoreUrl,
-        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO')]
         [string] $Platform,
         [string] $SubscriptionId,
         [string] $SubscriptionName,
@@ -171,7 +161,6 @@ function New-FindingRow {
         [string[]] $ManagementGroupPath,
         [object[]] $Frameworks,
         [string[]] $Controls,
-        [ValidateSet('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')]
         [string] $Confidence,
         [int] $EvidenceCount,
         [string[]] $MissingDimensions,
@@ -180,6 +169,56 @@ function New-FindingRow {
         [datetime] $ProvenanceTimestamp,
         [string] $SchemaVersion = $script:SchemaVersion
     )
+
+    $preValidationErrors = [System.Collections.Generic.List[string]]::new()
+    foreach ($required in @(
+            @{ Name = 'Id'; Value = $Id },
+            @{ Name = 'Source'; Value = $Source },
+            @{ Name = 'EntityId'; Value = $EntityId },
+            @{ Name = 'EntityType'; Value = $EntityType },
+            @{ Name = 'Title'; Value = $Title },
+            @{ Name = 'ProvenanceRunId'; Value = $ProvenanceRunId }
+        )) {
+        if ([string]::IsNullOrWhiteSpace([string]$required.Value)) {
+            $preValidationErrors.Add("Required parameter '$($required.Name)' is missing or empty.")
+        }
+    }
+
+    if ($EntityType -and $EntityType -notin $script:EntityTypes) {
+        $preValidationErrors.Add("EntityType '$EntityType' is not valid. Valid types: $($script:EntityTypes -join ', ').")
+    }
+    if ($Severity -and $Severity -notin $script:SeverityLevels) {
+        $preValidationErrors.Add("Severity '$Severity' is not valid. Valid levels: $($script:SeverityLevels -join ', ').")
+    }
+    if ($Platform -and $Platform -notin $script:Platforms) {
+        $preValidationErrors.Add("Platform '$Platform' is not valid. Valid platforms: $($script:Platforms -join ', ').")
+    }
+    if ($Confidence -and $Confidence -notin $script:ConfidenceLevels) {
+        $preValidationErrors.Add("Confidence '$Confidence' is not valid. Valid confidence levels: $($script:ConfidenceLevels -join ', ').")
+    }
+
+    if ($null -eq $Compliant) {
+        $preValidationErrors.Add("Required parameter 'Compliant' is missing.")
+    } elseif ($Compliant -isnot [bool]) {
+        $preValidationErrors.Add("Compliant must be a boolean value, got '$($Compliant.GetType().Name)'.")
+    }
+
+    if ($preValidationErrors.Count -gt 0) {
+        $sourceForLog = if ([string]::IsNullOrWhiteSpace([string]$Source)) { 'unknown' } else { $Source }
+        $sanitizedError = if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            Remove-Credentials ($preValidationErrors -join '; ')
+        } else {
+            $preValidationErrors -join '; '
+        }
+
+        $script:ValidationFailures.Add([PSCustomObject]@{
+                Source    = $sourceForLog
+                Error     = $sanitizedError
+                Timestamp = Get-Date
+            })
+        Write-Warning "FindingRow validation failed [$sourceForLog]: $sanitizedError"
+        return $null
+    }
 
     $resolvedPlatform = if ($Platform) { $Platform } else { Get-PlatformForEntityType -EntityType $EntityType }
     $provenance = [PSCustomObject]@{
@@ -195,7 +234,7 @@ function New-FindingRow {
         Category         = $Category
         Title            = $Title
         Severity         = $Severity
-        Compliant        = $Compliant
+        Compliant        = [bool]$Compliant
         Detail           = $Detail
         Remediation      = $Remediation
         ResourceId       = $ResourceId
@@ -373,6 +412,8 @@ function Test-FindingRow {
     # Compliant must be present and boolean
     if (-not $Finding.PSObject.Properties['Compliant']) {
         $errors.Add("Required field 'Compliant' is missing.")
+    } elseif ($null -eq $Finding.Compliant) {
+        $errors.Add("Compliant must be a boolean value, got 'null'.")
     } elseif ($Finding.Compliant -isnot [bool]) {
         $errors.Add("Compliant must be a boolean value, got '$($Finding.Compliant.GetType().Name)'.")
     }

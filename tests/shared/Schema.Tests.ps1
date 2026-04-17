@@ -22,8 +22,9 @@ Describe 'New-FindingRow' {
         $finding.Provenance.RunId | Should -Be 'azqr-run-1'
     }
 
-    It 'throws when required fields are missing' {
-        { New-FindingRow -Id '' -Source 'azqr' -EntityId 'x' -EntityType 'AzureResource' -Title 'x' -Compliant $true -ProvenanceRunId 'run' } | Should -Throw
+    It 'returns null when required fields are missing' {
+        $row = New-FindingRow -Id '' -Source 'azqr' -EntityId 'x' -EntityType 'AzureResource' -Title 'x' -Compliant $true -ProvenanceRunId 'run'
+        $row | Should -BeNullOrEmpty
     }
 }
 
@@ -71,5 +72,23 @@ Describe 'Test-FindingRow' {
         $errors = @()
         (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeFalse
         ($errors -join '; ') | Should -Match 'EntityId'
+    }
+
+    It 'returns false when Compliant is null' {
+        $finding = [PSCustomObject]@{
+            Id               = 'f-004'
+            Source           = 'azqr'
+            EntityId         = '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.storage/storageaccounts/foo'
+            EntityType       = 'AzureResource'
+            Title            = 'Invalid'
+            Compliant        = $null
+            SchemaVersion    = '2.0'
+            Platform         = 'Azure'
+            Provenance       = [PSCustomObject]@{ RunId = 'azqr-run-3'; Source = 'azqr'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
+        }
+
+        $errors = @()
+        (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeFalse
+        ($errors -join '; ') | Should -Match "Compliant must be a boolean value, got 'null'"
     }
 }

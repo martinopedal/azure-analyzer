@@ -24,6 +24,23 @@ function Normalize-Gitleaks {
     }
 
     $runId = [guid]::NewGuid().ToString()
+    $repoIdRaw = @(
+        $ToolResult.PSObject.Properties['RepositoryId']?.Value,
+        $ToolResult.PSObject.Properties['Repository']?.Value,
+        $ToolResult.PSObject.Properties['RepositoryUrl']?.Value,
+        $ToolResult.PSObject.Properties['RemoteUrl']?.Value
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -First 1
+    if (-not $repoIdRaw) {
+        $repoIdRaw = 'github.com/local/local'
+    }
+
+    try {
+        $repoMeta = ConvertTo-CanonicalEntityId -RawId ([string]$repoIdRaw) -EntityType 'Repository'
+        $canonicalRepoId = $repoMeta.CanonicalId
+    } catch {
+        $canonicalRepoId = 'github.com/local/local'
+    }
+
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     foreach ($finding in $ToolResult.Findings) {
@@ -32,14 +49,13 @@ function Normalize-Gitleaks {
             $rawId = [string]$finding.ResourceId
         }
 
-        # For gitleaks, EntityId is the file path where the secret was found
-        $canonicalId = ''
+        $canonicalPath = ''
         if ($rawId) {
-            $canonicalId = $rawId.Trim().ToLowerInvariant() -replace '\\', '/'
-            $canonicalId = $canonicalId -replace '^\.\/', ''
+            $canonicalPath = $rawId.Trim().ToLowerInvariant() -replace '\\', '/'
+            $canonicalPath = $canonicalPath -replace '^\.\/', ''
         }
-        if (-not $canonicalId) {
-            $canonicalId = "gitleaks/$([guid]::NewGuid().ToString())"
+        if (-not $canonicalPath) {
+            $canonicalPath = "unknown/$([guid]::NewGuid().ToString())"
         }
 
         $findingId = if ($finding.PSObject.Properties['Id'] -and $finding.Id) {
@@ -67,11 +83,11 @@ function Normalize-Gitleaks {
         $learnMore = if ($finding.PSObject.Properties['LearnMoreUrl'] -and $finding.LearnMoreUrl) { $finding.LearnMoreUrl } else { '' }
 
         $row = New-FindingRow -Id $findingId `
-            -Source 'gitleaks' -EntityId $canonicalId -EntityType 'Repository' `
+            -Source 'gitleaks' -EntityId $canonicalRepoId -EntityType 'Repository' `
             -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
             -Platform 'GitHub' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
-            -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '')
+            -LearnMoreUrl $learnMore -ResourceId $canonicalPath
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)
