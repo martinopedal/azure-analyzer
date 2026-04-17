@@ -15,7 +15,10 @@
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
-    [string] $OutputPath
+    [string] $OutputPath,
+    [ValidateRange(60, 3600)]
+    [int] $JobTimeoutSeconds = 600,
+    [string] $KubeBenchImage = 'aquasec/kube-bench:v0.7.2'
 )
 
 Set-StrictMode -Version Latest
@@ -87,6 +90,18 @@ function Get-KubeBenchFailedChecks {
     }
 
     return @($items)
+}
+
+function Get-ShortSha256 {
+    param([Parameter(Mandatory)][string]$InputText)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($InputText)
+        $hash = $sha.ComputeHash($bytes)
+        return ([System.BitConverter]::ToString($hash) -replace '-', '').Substring(0, 12).ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
 }
 
 $result = [ordered]@{
@@ -190,7 +205,7 @@ spec:
       hostPID: true
       containers:
       - name: kube-bench
-        image: aquasec/kube-bench:latest
+        image: $KubeBenchImage
         command: ["kube-bench", "run", "--json"]
         volumeMounts:
         - { name: var-lib-kubelet, mountPath: /var/lib/kubelet, readOnly: true }
@@ -213,7 +228,7 @@ spec:
         }
         $jobApplied = $true
 
-        & kubectl --context $context -n kube-system wait --for=condition=complete "job/$jobName" --timeout=600s 2>&1 | Out-Null
+        & kubectl --context $context -n kube-system wait --for=condition=complete "job/$jobName" --timeout="$($JobTimeoutSeconds)s" 2>&1 | Out-Null
         & kubectl --context $context -n kube-system logs "job/$jobName" 2>&1 | Set-Variable -Name kubeBenchLogs
         if ([string]::IsNullOrWhiteSpace($kubeBenchLogs)) {
             $failed++
@@ -233,10 +248,11 @@ spec:
 
         $clusterFindings = @(Get-KubeBenchFailedChecks -Report $parsed)
         $idx = 0
+        $clusterKey = Get-ShortSha256 -InputText ([string]$cluster.id)
         foreach ($f in $clusterFindings) {
             $idx++
             $findings.Add([pscustomobject]@{
-                Id           = "kube-bench/$($cluster.id)/$($f.ControlId)/$idx"
+                Id           = "kube-bench/$($cluster.name)/$clusterKey/$($f.ControlId)/$idx"
                 Source       = 'kube-bench'
                 Category     = 'KubernetesNodeSecurity'
                 Severity     = $f.Severity

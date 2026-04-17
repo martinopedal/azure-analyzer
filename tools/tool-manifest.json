@@ -80,7 +80,7 @@
     },
     {
       "name": "kube-bench",
-      "displayName": "kube-bench (AKS node CIS)",
+      "displayName": "kube-bench (AKS node-level CIS compliance)",
       "source": "kube-bench",
       "provider": "azure",
       "scope": "subscription",
@@ -89,7 +89,7 @@
       "type": "scanner",
       "script": "modules/Invoke-KubeBench.ps1",
       "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["ClusterArmIds", "OutputPath"],
+      "optionalParams": ["ClusterArmIds", "OutputPath", "JobTimeoutSeconds", "KubeBenchImage"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
       "enabled": true,
