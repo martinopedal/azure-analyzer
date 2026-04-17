@@ -34,15 +34,11 @@ jobs:
               });
               core.info(`Requested Copilot code review on PR #${pr.number}`);
             } catch (err) {
-              core.warning(`Could not request Copilot review (may need repo-level Copilot code review enabled): ${err.message}`);
-              // Fallback: post a comment asking the agent to self-review
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                body: '🤖 **Copilot code review requested.** If auto-review is not triggered, a maintainer should invoke `/copilot review` from the PR conversation before merge.\n\n> **Policy:** This PR was authored by the coding agent. All Copilot review comments must be resolved (or explicitly dismissed with justification) before squash-merge.'
-              });
+              core.warning(`Could not request Copilot review (repo-level auto-review may need to be enabled in Settings → Copilot → Code review): ${err.message}`);
             }
+
+            // Also comment-ping the issue's squad reviewer so the reviewer-protocol
+            // ceremony from .squad/ceremonies.md is triggered for the authoring agent.
 
             // Post a policy reminder comment so the agent and maintainers see the review contract
             await github.rest.issues.createComment({
