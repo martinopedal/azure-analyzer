@@ -57,9 +57,15 @@ When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `sq
 
 1. The `copilot-agent-pr-review.yml` workflow auto-requests Copilot code review on PR open.
 2. The authoring agent **MUST** address every Copilot review comment — either with a code change or an explicit reply explaining why it does not apply.
-3. Maintainers **MUST NOT** squash-merge an agent PR until **all Copilot review threads are Resolved** and all required checks (`Analyze (actions)`, `Docs Check`) are green.
-4. If the agent is unresponsive for >24h, reassign the issue to a squad member or take it over locally.
-5. Stale agent draft PRs that are superseded by a direct merge MUST be closed with a `--delete-branch` to keep the branch list clean.
+3. **Comments from Copilot on the PR *or* on the linked issue enter the Comment Triage Loop** (see `.squad/ceremonies.md` → Cloud Agent PR Review):
+   - Every Copilot comment is rubber-ducked against the 3-model gate (**Opus 4.6 + Goldeneye + GPT-5.3-codex**).
+   - 2-of-3 verdict → add triaged todos to `plan.md` + SQL `todos` table.
+   - Updated plan is itself rubber-ducked before any code change.
+   - Code is implemented, then the 3-model gate re-runs on the diff (Build → Review → Fix → Re-gate → CI → Merge).
+   - Every Copilot thread gets a reply: either the addressing commit SHA, or the multi-model rejection justification.
+4. Maintainers **MUST NOT** squash-merge an agent PR until **all Copilot review threads are Resolved**, the 3-model gate is green, the squad reviewer has approved, and required checks (`Analyze (actions)`, `Docs Check`) are green.
+5. If the agent is unresponsive for >24h, reassign the issue to a squad member or take it over locally.
+6. Stale agent draft PRs that are superseded by a direct merge MUST be closed with a `--delete-branch` to keep the branch list clean.
 
 ## Shared infrastructure — REUSE, don't reinvent
 
