@@ -87,7 +87,7 @@ if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
         $clusters = @($argResp)
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "AKS discovery failed: $(Remove-Credentials $_.Exception.Message)"
+        $result.Message = "AKS discovery failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
         return [pscustomobject]$result
     }
 }
@@ -162,7 +162,7 @@ Resources
         })
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "Falco query mode failed: $(Remove-Credentials $_.Exception.Message)"
+        $result.Message = "Falco query mode failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
         return [pscustomobject]$result
     }
 
@@ -247,7 +247,7 @@ foreach ($cluster in $clusters) {
         $rawLogs = @(& kubectl --context $ctx -n falco logs daemonset/falco --since "$($captureMinutes)m" --tail 5000 2>&1)
         if ($LASTEXITCODE -ne 0) {
             $failed++
-            Write-Warning (Remove-Credentials "Falco log collection failed for cluster $($cluster.name): $($rawLogs -join ' ')")
+            Write-Warning "Falco log collection failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]($rawLogs -join ' ')))"
             continue
         }
         foreach ($line in @($rawLogs)) {
@@ -283,7 +283,7 @@ foreach ($cluster in $clusters) {
         $scanned++
     } catch {
         $failed++
-        Write-Warning "Falco install mode failed for cluster $($cluster.name): $(Remove-Credentials $_.Exception.Message)"
+        Write-Warning "Falco install mode failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     } finally {
         if ($env:KUBECONFIG) { Remove-Item Env:\KUBECONFIG -ErrorAction SilentlyContinue }
         if (Test-Path $tmpKubeconfig) {
@@ -296,6 +296,8 @@ $result.Findings = @($findings)
 $result.Message  = "Install mode: scanned $scanned AKS cluster(s); $failed failed; emitted $($findings.Count) Falco alert finding(s)."
 if ($scanned -eq 0 -and $failed -gt 0) {
     $result.Status = 'Failed'
+} elseif ($scanned -gt 0 -and $failed -gt 0) {
+    $result.Status = 'PartialSuccess'
 }
 
 return [pscustomobject]$result

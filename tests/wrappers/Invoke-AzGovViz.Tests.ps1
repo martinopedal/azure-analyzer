@@ -1,0 +1,45 @@
+#Requires -Version 7.4
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+BeforeAll {
+    $script:Here = Split-Path $PSCommandPath -Parent
+    $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
+    $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-AzGovViz.ps1'
+}
+
+Describe 'Invoke-AzGovViz: error paths' {
+    Context 'when AzGovVizParallel.ps1 script is not found' {
+        BeforeAll {
+            # Mock environment vars and location to avoid null Join-Path
+            Mock Get-Location { 'C:\NonExistent' }
+            $oldUserProfile = $env:USERPROFILE
+            $oldHome = $env:HOME
+            $env:USERPROFILE = 'C:\NonExistent'
+            $env:HOME = 'C:\NonExistent'
+            
+            $result = & $script:Wrapper -ManagementGroupId 'mg-test'
+            
+            # Restore
+            $env:USERPROFILE = $oldUserProfile
+            $env:HOME = $oldHome
+        }
+
+        It 'returns Status = Skipped' {
+            $result.Status | Should -Be 'Skipped'
+        }
+
+        It 'returns empty Findings' {
+            @($result.Findings).Count | Should -Be 0
+        }
+
+        It 'includes message about AzGovViz not found' {
+            $result.Message | Should -Match 'not found'
+        }
+
+        It 'sets Source to azgovviz' {
+            $result.Source | Should -Be 'azgovviz'
+        }
+    }
+}
+

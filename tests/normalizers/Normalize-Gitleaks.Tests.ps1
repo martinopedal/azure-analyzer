@@ -77,10 +77,16 @@ Describe 'Normalize-Gitleaks' {
             }
         }
 
-        It 'canonicalizes file paths into ResourceId' {
-            $results[0].ResourceId | Should -BeExactly 'src/config.js'
-            $results[1].ResourceId | Should -BeExactly 'deploy/secrets.env'
-            $results[2].ResourceId | Should -BeExactly '.env'
+        It 'canonicalizes repository EntityId' {
+            foreach ($r in $results) {
+                $r.EntityId | Should -BeExactly 'github.com/local/local'
+            }
+        }
+
+        It 'normalizes ResourceId with canonical slashes/lowercase' {
+            $results[0].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
+            $results[1].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
+            $results[2].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
         }
     }
 
@@ -211,7 +217,7 @@ Describe 'Normalize-Gitleaks' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'gitleaks'
-                        ResourceId   = 'secret-file.txt'
+                        ResourceId   = 'github.com/test-org/test-repo'
                         Category     = 'Secret Detection'
                         Title        = 'Secret detected'
                         Compliant    = $false
@@ -234,7 +240,7 @@ Describe 'Normalize-Gitleaks' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'gitleaks'
-                        ResourceId   = 'src\secrets\config.env'
+                        ResourceId   = 'github.com\test-org\test-repo'
                         Category     = 'Secret Detection'
                         Title        = 'Secret found'
                         Compliant    = $false
@@ -246,7 +252,7 @@ Describe 'Normalize-Gitleaks' {
             }
             $results = Normalize-Gitleaks -ToolResult $windowsPathInput
             $results[0].EntityId | Should -Be 'github.com/local/local'
-            $results[0].ResourceId | Should -BeExactly 'src/secrets/config.env'
+            $results[0].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
         }
     }
 }

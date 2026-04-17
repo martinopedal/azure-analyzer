@@ -107,7 +107,7 @@ try {
     }) | Out-Null
 } catch {
     $result.Status  = 'Failed'
-    $result.Message = "Secure Score query failed: $(Remove-Credentials $_.Exception.Message)"
+    $result.Message = "Secure Score query failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     return [pscustomobject]$result
 }
 
@@ -169,7 +169,7 @@ try {
     }
 } catch {
     $result.Status  = 'Failed'
-    $result.Message = "Assessments query failed: $(Remove-Credentials $_.Exception.Message)"
+    $result.Message = "Assessments query failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     return [pscustomobject]$result
 }
 
@@ -182,7 +182,7 @@ if ($OutputPath) {
         $raw = Join-Path $OutputPath "defender-$SubscriptionId-$(Get-Date -Format yyyyMMddHHmmss).json"
         ($result | ConvertTo-Json -Depth 20) | Set-Content -Path $raw -Encoding utf8
     } catch {
-        Write-Warning "Failed to write raw Defender JSON: $(Remove-Credentials $_.Exception.Message)"
+        Write-Warning "Failed to write raw Defender JSON: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     }
 }
 

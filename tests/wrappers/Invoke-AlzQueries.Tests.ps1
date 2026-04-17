@@ -1,0 +1,35 @@
+#Requires -Version 7.4
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+BeforeAll {
+    $script:Here = Split-Path $PSCommandPath -Parent
+    $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
+    $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-AlzQueries.ps1'
+}
+
+Describe 'Invoke-AlzQueries: error paths' {
+    Context 'when Az.ResourceGraph module is missing' {
+        BeforeAll {
+            Mock Get-Module { return $null }
+            $result = & $script:Wrapper -ManagementGroupId 'mg-test'
+        }
+
+        It 'returns Status = Skipped' {
+            $result.Status | Should -Be 'Skipped'
+        }
+
+        It 'returns empty Findings' {
+            @($result.Findings).Count | Should -Be 0
+        }
+
+        It 'includes message about module not installed' {
+            $result.Message | Should -Match 'not installed'
+        }
+
+        It 'sets Source to alz-queries' {
+            $result.Source | Should -Be 'alz-queries'
+        }
+    }
+}
+

@@ -7,7 +7,7 @@ function Invoke-WithRetry {
     param (
         [Parameter(Mandatory)]
         [scriptblock] $ScriptBlock,
-
+        
         # New-style params
         [Nullable[int]] $MaxAttempts,
 
@@ -19,7 +19,6 @@ function Invoke-WithRetry {
 
         [Alias('MaxDelaySec')]
         [Nullable[int]] $MaxDelaySeconds,
-
         [string[]] $TransientMessagePatterns = @(
             '\b429\b', '\b503\b', '\b504\b', '\b408\b',
             'throttl', 'rate limit', 'too many requests',

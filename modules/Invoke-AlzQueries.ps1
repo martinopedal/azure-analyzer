@@ -31,6 +31,12 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
 # Dot-source retry helper so Search-AzGraph calls transparently handle
 # Azure Resource Graph throttling (429) and transient service errors.
 . (Join-Path $PSScriptRoot 'shared' 'Retry.ps1')
@@ -82,7 +88,7 @@ $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($item in $queryable) {
     try {
-        $rows = Invoke-WithRetry -MaxRetries 3 -BaseDelaySec 2 -MaxDelaySec 30 -ScriptBlock {
+        $rows = Invoke-WithRetry -MaxAttempts 3 -BaseDelaySec 2 -MaxDelaySec 30 -ScriptBlock {
             Search-AzGraph -Query $item.graph @graphParams -First 1000 -ErrorAction Stop
         }
         # Queries return a 'compliant' boolean column.
@@ -119,14 +125,14 @@ foreach ($item in $queryable) {
             LearnMoreUrl = ''
         })
     } catch {
-        Write-Warning "ALZ query failed for $($item.guid): $_"
+        Write-Warning "ALZ query failed for $($item.guid): $(Remove-Credentials -Text ([string]$_))"
         $findings.Add([PSCustomObject]@{
             Id           = $item.guid
             Title        = $item.text
             Category     = $item.category
             Severity     = $item.severity
             Compliant    = $false
-            Detail       = "Query error: $_"
+            Detail       = (Remove-Credentials -Text "Query error: $([string]$_)")
             ResourceId   = ''
             LearnMoreUrl = ''
         })

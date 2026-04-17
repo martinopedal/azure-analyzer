@@ -15,6 +15,13 @@
 param()
 
 Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
 
 # Check Maester module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name Maester)) {
@@ -39,8 +46,8 @@ if (-not $mgContext) {
 try {
     $container = Invoke-Maester -PassThru -Quiet -ErrorAction Stop
 } catch {
-    Write-Warning "Maester assessment failed: $_. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = "$_"; Findings = @() }
+    Write-Warning "Maester assessment failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
+    return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
 }
 
 if (-not $container -or -not $container.Result) {

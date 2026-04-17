@@ -1,0 +1,35 @@
+#Requires -Version 7.4
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+BeforeAll {
+    $script:Here = Split-Path $PSCommandPath -Parent
+    $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
+    $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Maester.ps1'
+}
+
+Describe 'Invoke-Maester: error paths' {
+    Context 'when Maester module is missing' {
+        BeforeAll {
+            Mock Get-Module { return $null }
+            $result = & $script:Wrapper
+        }
+
+        It 'returns Status = Skipped' {
+            $result.Status | Should -Be 'Skipped'
+        }
+
+        It 'returns empty Findings' {
+            @($result.Findings).Count | Should -Be 0
+        }
+
+        It 'includes message about Maester not installed' {
+            $result.Message | Should -Match 'not installed|not found'
+        }
+
+        It 'sets Source to maester' {
+            $result.Source | Should -Be 'maester'
+        }
+    }
+}
+

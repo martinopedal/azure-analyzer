@@ -53,14 +53,12 @@ Describe 'Normalize-Trivy' {
             $results = Normalize-Trivy -ToolResult $fixture
         }
 
-        It 'generates synthetic EntityId for path-based ResourceId' {
-            # ResourceId="." => synthetic trivy/local
-            $results[0].EntityId | Should -Match '^trivy/'
+        It 'canonicalizes GitHub repo ResourceId for every finding' {
+            $results[0].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
         }
 
         It 'canonicalizes GitHub repo ResourceId' {
-            # ResourceId="github.com/contoso/myapp" => canonical repo ID
-            $results[2].EntityId | Should -BeExactly 'github.com/contoso/myapp'
+            $results[2].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
         }
 
         It 'has a non-empty EntityId for all findings' {
@@ -179,6 +177,7 @@ Describe 'Normalize-Trivy' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source    = 'trivy'
+                        ResourceId = 'github.com/test-org/test-repo'
                         Title    = 'CVE-2024-0001 (testpkg)'
                         Compliant = $false
                         Severity = 'High'
