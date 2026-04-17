@@ -49,6 +49,11 @@
     { "source": "ado-connections", "match": { "Category": "Identity" }, "controls": { "NIST": ["AC-2","AC-6","IA-5"], "PCI": ["7.2","8.2"] } },
     { "source": "identity-correlator", "match": { "Category": "Identity" }, "controls": { "NIST": ["AC-2","AC-6","IA-2"], "PCI": ["7.2","8.2"] } },
 
+    { "source": "kubescape",  "match": { "Category": "KubernetesPosture" },              "controls": { "CIS": ["5.1"], "NIST": ["CM-2","CM-6","SC-7"], "PCI": ["2.2","6.1"] } },
+    { "source": "kube-bench", "match": { "Category": "KubernetesNodeSecurity" },         "controls": { "CIS": ["5.1"], "NIST": ["CM-2","CM-6"], "PCI": ["2.2"] } },
+    { "source": "falco",      "match": { "Category": "KubernetesRuntimeThreatDetection" }, "controls": { "NIST": ["SI-4","AU-6"], "PCI": ["10.6","11.4"] } },
+    { "source": "defender-for-cloud", "match": { "Category": "Security" },               "controls": { "CIS": ["2.1","2.2"], "NIST": ["SI-4","RA-5"], "PCI": ["6.3.3","10.6","11.3"] } },
+
     { "source": "azgovviz",    "match": { "Category": "Policy" },     "controls": { "CIS": ["5.1"], "NIST": ["CM-6"], "PCI": ["2.2"] } },
     { "source": "alz-queries", "match": { "Category": "Governance" }, "controls": { "CIS": ["1.22"], "NIST": ["CM-2","CM-6"], "PCI": ["2.2"] } },
     { "source": "wara",        "match": { "Category": "Reliability" }, "controls": { "NIST": ["CP-2","CP-10"], "PCI": ["12.10"] } }

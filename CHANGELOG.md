@@ -5,6 +5,12 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
+- **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
+  - `modules/Invoke-KubeBench.ps1` + `modules/Invoke-Falco.ps1` now reject AKS clusters whose `name` or `resourceGroup` contains shell metacharacters (defense-in-depth before calling `az`/`kubectl`). Cluster names must match `^[A-Za-z0-9-]{1,63}$`; resource groups `^[A-Za-z0-9._()-]{1,90}$`.
+  - `modules/Invoke-ADOServiceConnections.ps1` now URL-encodes `$Org` and `$Project` via `[uri]::EscapeDataString()` before interpolating into ADO REST URLs (projects list + service-endpoint list).
+  - `modules/Invoke-Scorecard.ps1` now runs the `scorecard` CLI under a hard 300 s `Start-Job` / `Wait-Job` timeout so a hung scorecard process can't block the orchestrator.
+  - `tools/framework-mappings.json` gains mappings for `kube-bench` (CIS 5.1 / NIST CM-2,CM-6 / PCI 2.2), `falco` (NIST SI-4,AU-6 / PCI 10.6,11.4), `kubescape` and `defender-for-cloud` so runtime findings render with compliance badges in reports.
+  - `New-HtmlReport.ps1` + `New-MdReport.ps1` fallback source/label/color arrays (only used if `tools/tool-manifest.json` is missing at report time) now include `defender-for-cloud`, `kubescape`, `kube-bench`, and `falco`.
 - **`.github/workflows/squad-issue-assign.yml` — graceful fallback when `COPILOT_ASSIGN_TOKEN` is not configured**: The `Assign @copilot coding agent` step previously failed with `Error: Input required and not supplied: github-token` whenever a `squad:copilot` label was added to an issue in a repo without the PAT secret configured, filing a spurious `ci: failure in Squad Issue Assign` issue on every label event. Now falls back to `secrets.GITHUB_TOKEN` so `actions/github-script` receives a valid token, the API call runs through the existing try/catch, and a single `core.warning` documents the missing PAT instead of aborting the workflow. Matches the fallback pattern already used by `squad-heartbeat.yml`.
 
 ### Added
