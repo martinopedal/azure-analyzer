@@ -4,6 +4,11 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- **Notification hygiene (#113)** — reduce email noise from the automation loop:
+  - `modules/shared/Invoke-PRReviewGate.ps1` `Post-PRSummaryComment` now upserts a single PR summary comment via a `<!-- squad-pr-review-gate -->` marker. On re-runs, the existing comment is updated in place with `PATCH /repos/{owner}/{repo}/issues/comments/{id}` instead of creating a new comment each time. Review threads are no longer spammed with duplicate gate summaries.
+  - `.squad/templates/issue-lifecycle.md` spawn prompts now instruct agents to open PRs as drafts (`gh pr create --draft`) and flip to ready-for-review only after CI is green and self-review is complete. Cuts notification traffic during iteration.
+
 ### Added
 - Added CI failure watchdog (workflow + local helper) - #104
 

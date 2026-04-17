@@ -562,8 +562,10 @@ function Post-PRSummaryComment {
         [switch] $DryRun
     )
 
+    $marker = '<!-- squad-pr-review-gate -->'
     $actions = @($Consensus.ActionPlan | ForEach-Object { "- $_" })
     $body = @"
+$marker
 ### PR Review Gate Summary
 
 - Verdict: **$($Consensus.ReviewerVerdict)**
@@ -573,12 +575,29 @@ function Post-PRSummaryComment {
 
 What will change:
 $($actions -join "`n")
+
+_Updated in place on each review event — see PR timeline for full history._
 "@
     $safeBody = Remove-Credentials $body
 
     if ($DryRun) {
-        Write-Host "[DryRun] gh pr comment $PRNumber --repo $Repo --body-file <temp-file>"
+        Write-Host "[DryRun] Upsert squad-pr-review-gate comment on PR $PRNumber (repo $Repo)"
         return
+    }
+
+    # Look for existing gate comment to update in place (prevents email noise on re-runs)
+    $existingId = $null
+    try {
+        $commentsJson = & gh api "repos/$Repo/issues/$PRNumber/comments" --paginate 2> $null
+        if ($LASTEXITCODE -eq 0 -and $commentsJson) {
+            $existing = $commentsJson | ConvertFrom-Json
+            $match = @($existing | Where-Object { $_.body -and $_.body.Contains($marker) } | Select-Object -First 1)
+            if ($match.Count -gt 0) {
+                $existingId = [string]$match[0].id
+            }
+        }
+    } catch {
+        Write-Verbose "Could not list existing comments, will post new: $_"
     }
 
     $bodyFilePath = New-RepoTempFile -Prefix 'pr-review-comment'
@@ -587,7 +606,11 @@ $($actions -join "`n")
     try {
         Set-Content -Path $bodyFilePath -Value $safeBody -Encoding utf8
         for ($attempt = 0; $attempt -lt $maxRetries; $attempt++) {
-            & gh pr comment $PRNumber --repo $Repo --body-file $bodyFilePath 1> $null 2> $stderrPath
+            if ($existingId) {
+                & gh api --method PATCH "repos/$Repo/issues/comments/$existingId" -F "body=@$bodyFilePath" 1> $null 2> $stderrPath
+            } else {
+                & gh pr comment $PRNumber --repo $Repo --body-file $bodyFilePath 1> $null 2> $stderrPath
+            }
             $exitCode = 0
             $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
             if ($exitCodeVar) {
