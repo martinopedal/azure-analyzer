@@ -8,8 +8,8 @@ name: Squad Heartbeat (Ralph)
 
 on:
   schedule:
-    # Every 30 minutes — adjust via cron expression as needed
-    - cron: '*/30 * * * *'
+    # Every 15 minutes — drives CI watchdog (#104) + PR review gate (#105)
+    - cron: '*/15 * * * *'
 
   # React to completed work or new squad work
   issues:
