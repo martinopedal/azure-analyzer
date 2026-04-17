@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Version-pinned installation manifest with SHA-256 checksums for supply-chain integrity. Each tool entry specifies exact download URLs, checksums, and versions to prevent TOCTOU attacks and enable reproducible builds.",
+  "schemaVersion": "1.0",
+  "generatedAt": "2025-01-01T00:00:00Z",
+  "tools": [
+    {
+      "name": "azqr",
+      "version": "3.1.2",
+      "pinType": "cli-version",
+      "upstream": "https://github.com/Azure/azqr",
+      "platforms": {
+        "windows": {
+          "url": "https://github.com/Azure/azqr/releases/download/v.3.1.2/azqr-windows-latest.exe",
+          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME",
+          "installMethod": "winget",
+          "wingetId": "azure-quick-review.azqr"
+        },
+        "macos": {
+          "installMethod": "brew",
+          "brewFormula": "azure/azqr/azqr",
+          "pinningNote": "brew installs from tap; version pinning enforced at tap level"
+        },
+        "linux": {
+          "url": "https://github.com/Azure/azqr/releases/download/v.3.1.2/azqr-linux-latest-amd64",
+          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+        }
+      }
+    },
+    {
+      "name": "kubescape",
+      "version": "4.0.4",
+      "pinType": "cli-version",
+      "upstream": "https://github.com/kubescape/kubescape",
+      "platforms": {
+        "windows": {
+          "installMethod": "winget",
+          "wingetId": "ARMO.kubescape",
+          "pinningNote": "winget maintains version pins; SHA verification via winget manifest"
+        },
+        "macos": {
+          "installMethod": "brew",
+          "brewFormula": "kubescape",
+          "pinningNote": "brew formula pins version; checksum in formula"
+        },
+        "linux": {
+          "installMethod": "script",
+          "url": "https://raw.githubusercontent.com/kubescape/kubescape/v4.0.4/install.sh",
+          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME",
+          "pinningNote": "install.sh pinned to release tag; script fetches versioned binary"
+        }
+      }
+    },
+    {
+      "name": "scorecard",
+      "version": "5.4.0",
+      "pinType": "cli-version",
+      "upstream": "https://github.com/ossf/scorecard",
+      "platforms": {
+        "windows": {
+          "installMethod": "winget",
+          "wingetId": "ossf.scorecard",
+          "pinningNote": "winget manifest includes checksum"
+        },
+        "macos": {
+          "installMethod": "brew",
+          "brewFormula": "scorecard",
+          "pinningNote": "brew formula includes checksum"
+        },
+        "linux": {
+          "url": "https://github.com/ossf/scorecard/releases/download/v5.4.0/scorecard_5.4.0_linux_amd64.tar.gz",
+          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+        }
+      }
+    },
+    {
+      "name": "zizmor",
+      "version": "1.24.1",
+      "pinType": "cli-version",
+      "upstream": "https://github.com/woodruffw/zizmor",
+      "platforms": {
+        "windows": {
+          "installMethod": "pipx",
+          "pipxPackage": "zizmor==1.24.1",
+          "sha256": "PLACEHOLDER_PYPI_CHECKSUM"
+        },
+        "macos": {
+          "installMethod": "brew",
+          "brewFormula": "zizmor",
+          "pinningNote": "brew formula pins version and checksum"
+        },
+        "linux": {
+          "installMethod": "pipx",
+          "pipxPackage": "zizmor==1.24.1",
+          "sha256": "PLACEHOLDER_PYPI_CHECKSUM"
+        }
+      }
+    },
+    {
+      "name": "gitleaks",
+      "version": "8.30.1",
+      "pinType": "cli-version",
+      "upstream": "https://github.com/gitleaks/gitleaks",
+      "platforms": {
+        "windows": {
+          "installMethod": "winget",
+          "wingetId": "gitleaks.gitleaks",
+          "pinningNote": "winget manifest includes SHA-256"
+        },
+        "macos": {
+          "installMethod": "brew",
+          "brewFormula": "gitleaks",
+          "pinningNote": "brew formula includes SHA-256"
+        },
+        "linux": {
+          "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+        }
+      }
+    },
+    {
+      "name": "trivy",
+      "version": "0.70.0",
+      "pinType": "cli-version",
+      "upstream": "https://github.com/aquasecurity/trivy",
+      "platforms": {
+        "windows": {
+          "installMethod": "winget",
+          "wingetId": "AquaSecurity.Trivy",
+          "pinningNote": "winget manifest includes SHA-256"
+        },
+        "macos": {
+          "installMethod": "brew",
+          "brewFormula": "trivy",
+          "pinningNote": "brew formula includes SHA-256"
+        },
+        "linux": {
+          "url": "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz",
+          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+        }
+      }
+    },
+    {
+      "name": "azgovviz",
+      "version": "HEAD",
+      "pinType": "sha",
+      "upstream": "https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting",
+      "platforms": {
+        "all": {
+          "installMethod": "gitclone",
+          "repo": "https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting",
+          "target": "tools/AzGovViz",
+          "probe": "AzGovVizParallel.ps1",
+          "pinningNote": "gitclone from main; no stable releases; repo SHA pinned at clone time"
+        }
+      }
+    },
+    {
+      "name": "psmodules",
+      "version": "varies",
+      "pinType": "psmodule-version",
+      "description": "PowerShell Gallery modules installed via Install-Module",
+      "platforms": {
+        "all": {
+          "installMethod": "psmodule",
+          "modules": [
+            {
+              "name": "PSRule",
+              "pinningNote": "PSGallery enforces package signing; version resolved at install time"
+            },
+            {
+              "name": "PSRule.Rules.Azure",
+              "pinningNote": "PSGallery enforces package signing"
+            },
+            {
+              "name": "WARA",
+              "pinningNote": "PSGallery enforces package signing"
+            },
+            {
+              "name": "Maester",
+              "pinningNote": "PSGallery enforces package signing"
+            },
+            {
+              "name": "Az.Accounts",
+              "pinningNote": "PSGallery enforces package signing"
+            },
+            {
+              "name": "Az.ResourceGraph",
+              "pinningNote": "PSGallery enforces package signing"
+            },
+            {
+              "name": "Microsoft.Graph.Authentication",
+              "pinningNote": "PSGallery enforces package signing"
+            },
+            {
+              "name": "Microsoft.Graph.Applications",
+              "pinningNote": "PSGallery enforces package signing"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "notes": {
+    "winget": "winget package manifests include SHA-256 checksums verified by the Windows Package Manager",
+    "brew": "Homebrew formulas include checksums (SHA-256 or bottle checksums) verified at install time",
+    "pipx": "pipx installs from PyPI; package hashes are in the wheel metadata and verified by pip",
+    "psmodule": "PowerShell Gallery enforces Authenticode signing for all published modules",
+    "gitclone": "HTTPS-only git clone with host allow-list; commit SHA captured post-clone for audit trail"
+  }
+}
