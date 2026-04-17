@@ -147,7 +147,7 @@ if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
         $clusters = @($argResp)
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "ARG discovery failed: $($_.Exception.Message)"
+        $result.Message = "ARG discovery failed: $(Remove-Credentials $_.Exception.Message)"
         return [pscustomobject]$result
     }
 }
@@ -279,7 +279,7 @@ spec:
         $scanned++
     } catch {
         $failed++
-        Write-Warning "kube-bench scan failed for cluster $($cluster.name): $($_.Exception.Message)"
+        Write-Warning "kube-bench scan failed for cluster $($cluster.name): $(Remove-Credentials $_.Exception.Message)"
     } finally {
         if ($jobApplied) {
             & kubectl --context $context -n kube-system delete "job/$jobName" --ignore-not-found=true 2>&1 | Out-Null

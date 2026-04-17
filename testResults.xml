@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+´╗┐<?xml version="1.0" encoding="utf-8" standalone="no"?>
 <test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="407" errors="0" failures="65" not-run="0" inconclusive="0" ignored="0" skipped="0" invalid="0" date="2026-04-17" time="13:36:59">
   <environment user="martinopedal" machine-name="DESKTOP-ILS5UVV" cwd="C:\git\azure-analyzer" clr-version="10.0.5" user-domain="REDMOND" os-version="10.0.26200" nunit-version="2.5.8.0" platform="Microsoft Windows 11 Enterprise|C:\WINDOWS|\Device\Harddisk0\Partition3" />
   <culture-info current-culture="nb-NO" current-uiculture="nb-NO" />

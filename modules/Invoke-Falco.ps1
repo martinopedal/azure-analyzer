@@ -81,7 +81,7 @@ if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
         $clusters = @($argResp)
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "AKS discovery failed: $($_.Exception.Message)"
+        $result.Message = "AKS discovery failed: $(Remove-Credentials $_.Exception.Message)"
         return [pscustomobject]$result
     }
 }
@@ -156,7 +156,7 @@ Resources
         })
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "Falco query mode failed: $($_.Exception.Message)"
+        $result.Message = "Falco query mode failed: $(Remove-Credentials $_.Exception.Message)"
         return [pscustomobject]$result
     }
 
@@ -277,7 +277,7 @@ foreach ($cluster in $clusters) {
         $scanned++
     } catch {
         $failed++
-        Write-Warning "Falco install mode failed for cluster $($cluster.name): $($_.Exception.Message)"
+        Write-Warning "Falco install mode failed for cluster $($cluster.name): $(Remove-Credentials $_.Exception.Message)"
     } finally {
         if ($env:KUBECONFIG) { Remove-Item Env:\KUBECONFIG -ErrorAction SilentlyContinue }
         if (Test-Path $tmpKubeconfig) {
