@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Documentation
+- **Tool licensing surfaced in-table + first-party components promoted in THIRD_PARTY_NOTICES.md**: the `## What each tool does` table in `README.md` now carries a `License` column for all 17 tools (MIT / Apache-2.0 / Azure REST API service terms, with a link back to `THIRD_PARTY_NOTICES.md`). The old `## Data Sources & Attribution` table (which duplicated the tool list with stale licenses — zizmor wrongly MIT, ADO Service Connections blank) has been collapsed to a brief pointer. `THIRD_PARTY_NOTICES.md` promotes each first-party component (**ADO Service Connections Scanner**, Identity Correlator, Installer, Reports, Orchestrator) to its own `##` section, parallel in structure to third-party tool entries. ADO SC now explicitly names the Azure DevOps REST API (`dev.azure.com/{org}/_apis/serviceendpoint/endpoints`) used under the Microsoft Services Agreement; no ADO source code is redistributed. Consumer/maintainer doc separation: CI workflow table (codeql, docs-check, pr-review-gate, ci-failure-watchdog, squad-*) moved from `README.md` into `CONTRIBUTING.md` under a "maintainer-only" heading so README stays consumer-focused.
+
 ### Changed
 - **Roadmap / proposal label (prevents auto-pickup of improvement plans)**: New `type:roadmap` label marks issues that are improvement plans or phase proposals, not actionable work. `.squad/templates/ralph-triage.js` `isUntriagedIssue()` now skips any issue tagged `type:roadmap`, so the heartbeat cron and Squad coordinator will no longer pick them up for agent execution. Applied to #91–#97 (phase plans), #106, #108, #109, #110 (review-loop improvements); all `squad:{member}` labels stripped so they render as backlog only.
 - **Notification hygiene (#113)** — reduce email noise from the automation loop:
