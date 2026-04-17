@@ -11,8 +11,8 @@
       "upstream": "https://github.com/Azure/azqr",
       "platforms": {
         "windows": {
-          "url": "https://github.com/Azure/azqr/releases/download/v.3.1.2/azqr-windows-latest.exe",
-          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME",
+          "url": "https://github.com/Azure/azqr/releases/download/v%2E3.1.2/azqr-win-amd64.zip",
+          "sha256": "e5b6be9d64ddf5ddf3d22cb815060f45a398406075829247621d6db2fb90820c",
           "installMethod": "winget",
           "wingetId": "azure-quick-review.azqr"
         },
@@ -22,8 +22,8 @@
           "pinningNote": "brew installs from tap; version pinning enforced at tap level"
         },
         "linux": {
-          "url": "https://github.com/Azure/azqr/releases/download/v.3.1.2/azqr-linux-latest-amd64",
-          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+          "url": "https://github.com/Azure/azqr/releases/download/v%2E3.1.2/azqr-linux-amd64.zip",
+          "sha256": "49fb8cc66252c64cf41cd7060369a2455ec8d28c4108fdb5d2b6bfabe96c411b"
         }
       }
     },
@@ -46,7 +46,7 @@
         "linux": {
           "installMethod": "script",
           "url": "https://raw.githubusercontent.com/kubescape/kubescape/v4.0.4/install.sh",
-          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME",
+          "sha256": "315c284ff16d1c2cbb61edc2b408da06f51999be127cf1e30866a8b5d3410562",
           "pinningNote": "install.sh pinned to release tag; script fetches versioned binary"
         }
       }
@@ -69,7 +69,7 @@
         },
         "linux": {
           "url": "https://github.com/ossf/scorecard/releases/download/v5.4.0/scorecard_5.4.0_linux_amd64.tar.gz",
-          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+          "sha256": "e5183aeaa5aa548fbb7318a6deb3e1038be0ef9aca24e655422ae88dfbe67502"
         }
       }
     },
@@ -82,7 +82,7 @@
         "windows": {
           "installMethod": "pipx",
           "pipxPackage": "zizmor==1.24.1",
-          "sha256": "PLACEHOLDER_PYPI_CHECKSUM"
+          "sha256": "54ebb7a7061ebaa3a373126dcbafe970c9228fe274cfc40776a9714d2095b5e6"
         },
         "macos": {
           "installMethod": "brew",
@@ -92,7 +92,7 @@
         "linux": {
           "installMethod": "pipx",
           "pipxPackage": "zizmor==1.24.1",
-          "sha256": "PLACEHOLDER_PYPI_CHECKSUM"
+          "sha256": "54ebb7a7061ebaa3a373126dcbafe970c9228fe274cfc40776a9714d2095b5e6"
         }
       }
     },
@@ -114,7 +114,7 @@
         },
         "linux": {
           "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
-          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+          "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
         }
       }
     },
@@ -136,7 +136,7 @@
         },
         "linux": {
           "url": "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz",
-          "sha256": "PLACEHOLDER_COMPUTED_AT_RUNTIME"
+          "sha256": "8b4376d5d6befe5c24d503f10ff136d9e0c49f9127a4279fd110b727929a5aa9"
         }
       }
     },

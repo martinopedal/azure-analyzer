@@ -12,6 +12,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 - Added CI failure watchdog (workflow + local helper) - #104
+- **SBOM + pinned installer manifest hardening (#102)**: Added CycloneDX SBOM generation (`tools/Generate-SBOM.ps1`) and a version-pinned `tools/install-manifest.json` with concrete SHA-256 hashes for pinned download artifacts.
 
 ### Fixed
 - **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
