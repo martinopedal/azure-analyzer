@@ -32,6 +32,167 @@ Describe 'Installer helpers' {
     }
 }
 
+Describe 'SHA-256 hash verification' {
+    BeforeAll {
+        $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+        # Cross-platform temp directory
+        $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+        $testDir = Join-Path $tempDir "installer-tests-$(New-Guid)"
+        $null = New-Item -ItemType Directory -Path $testDir -Force
+    }
+    
+    AfterAll {
+        if (Test-Path $testDir) {
+            Remove-Item $testDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    
+    Context 'Get-FileHash256' {
+        It 'computes SHA-256 hash of a file' {
+            $testFile = Join-Path $testDir 'test.txt'
+            'test content' | Set-Content -Path $testFile -NoNewline
+            
+            $hash = Get-FileHash256 -Path $testFile
+            $hash | Should -Match '^[a-f0-9]{64}$'
+        }
+        
+        It 'returns lowercase hex string' {
+            $testFile = Join-Path $testDir 'lowercase.txt'
+            'lowercase test' | Set-Content -Path $testFile -NoNewline
+            
+            $hash = Get-FileHash256 -Path $testFile
+            
+            # Should be 64 hex chars, all lowercase
+            $hash | Should -MatchExactly '^[a-f0-9]{64}$'
+        }
+        
+        It 'throws when file does not exist' {
+            { Get-FileHash256 -Path (Join-Path $testDir 'nonexistent.txt') } | 
+                Should -Throw '*not found*'
+        }
+        
+        It 'computes consistent hash for same content' {
+            $testFile1 = Join-Path $testDir 'consistent1.txt'
+            $testFile2 = Join-Path $testDir 'consistent2.txt'
+            
+            'same content' | Set-Content -Path $testFile1 -NoNewline
+            'same content' | Set-Content -Path $testFile2 -NoNewline
+            
+            $hash1 = Get-FileHash256 -Path $testFile1
+            $hash2 = Get-FileHash256 -Path $testFile2
+            
+            $hash1 | Should -Be $hash2
+        }
+    }
+    
+    Context 'Test-InstallManifestHash' {
+        BeforeAll {
+            # Create a mock install manifest
+            $mockManifest = @{
+                schemaVersion = '1.0'
+                tools = @(
+                    @{
+                        name = 'test-tool'
+                        version = '1.0.0'
+                        platforms = @{
+                            windows = @{
+                                url = 'https://example.com/test.exe'
+                                sha256 = 'abc123def456789012345678901234567890123456789012345678901234567890'
+                            }
+                            linux = @{
+                                url = 'https://example.com/test-linux'
+                                sha256 = 'PLACEHOLDER_COMPUTED_AT_RUNTIME'
+                            }
+                        }
+                    }
+                    @{
+                        name = 'no-hash-tool'
+                        version = '2.0.0'
+                        platforms = @{
+                            windows = @{
+                                installMethod = 'winget'
+                                wingetId = 'test.package'
+                            }
+                        }
+                    }
+                )
+            } | ConvertTo-Json -Depth 10
+            
+            $mockManifestPath = Join-Path $testDir 'install-manifest.json'
+            $mockManifest | Set-Content -Path $mockManifestPath -Encoding utf8
+            
+            # Override the script-level manifest path for testing
+            $script:InstallManifestPath = $mockManifestPath
+        }
+        
+        It 'returns true when hash matches' {
+            $testFile = Join-Path $testDir 'matching.exe'
+            'test content' | Set-Content -Path $testFile -NoNewline
+            
+            $actualHash = Get-FileHash256 -Path $testFile
+            
+            # Update mock manifest with actual hash
+            $manifest = Get-Content $mockManifestPath -Raw | ConvertFrom-Json
+            $manifest.tools[0].platforms.windows.sha256 = $actualHash
+            $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $mockManifestPath -Encoding utf8
+            
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'test-tool' -Platform 'windows'
+            $result | Should -BeTrue
+        }
+        
+        It 'returns false when hash mismatches' {
+            $testFile = Join-Path $testDir 'mismatching.exe'
+            'different content' | Set-Content -Path $testFile -NoNewline
+            
+            # Manifest still has the old hash from previous test
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'test-tool' -Platform 'windows'
+            $result | Should -BeFalse
+        }
+        
+        It 'returns true when tool not in manifest' {
+            $testFile = Join-Path $testDir 'unknown.exe'
+            'content' | Set-Content -Path $testFile -NoNewline
+            
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'unknown-tool' -Platform 'windows'
+            $result | Should -BeTrue
+        }
+        
+        It 'returns true when platform not in manifest' {
+            $testFile = Join-Path $testDir 'noplatform.exe'
+            'content' | Set-Content -Path $testFile -NoNewline
+            
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'test-tool' -Platform 'macos'
+            $result | Should -BeTrue
+        }
+        
+        It 'returns true when SHA-256 is placeholder' {
+            $testFile = Join-Path $testDir 'placeholder.bin'
+            'content' | Set-Content -Path $testFile -NoNewline
+            
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'test-tool' -Platform 'linux'
+            $result | Should -BeTrue
+        }
+        
+        It 'returns true when tool has no SHA-256 (delegated to package manager)' {
+            $testFile = Join-Path $testDir 'nohash.exe'
+            'content' | Set-Content -Path $testFile -NoNewline
+            
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'no-hash-tool' -Platform 'windows'
+            $result | Should -BeTrue
+        }
+        
+        It 'returns true when manifest does not exist' {
+            $script:InstallManifestPath = Join-Path $testDir 'nonexistent-manifest.json'
+            
+            $testFile = Join-Path $testDir 'nomanifest.exe'
+            'content' | Set-Content -Path $testFile -NoNewline
+            
+            $result = Test-InstallManifestHash -FilePath $testFile -ToolName 'any-tool' -Platform 'windows'
+            $result | Should -BeTrue
+        }
+    }
+}
+
 Describe 'Install-PrerequisitesFromManifest' {
     BeforeAll {
         $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')

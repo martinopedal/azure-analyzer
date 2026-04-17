@@ -16,6 +16,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Added
 - **Hardened retry helper (#101)**: `modules/shared/Retry.ps1` `Invoke-WithRetry` now supports HTTP status code detection (408/429/503/504 via `Response.StatusCode`), `Retry-After` header parsing (integer seconds and RFC 7231 HTTP-date), and AWS-style full jitter (`random(0, backoffCap)`) for exponential backoff. `Retry-After` values are honored as returned (not capped by `MaxDelaySeconds`). Final exception messages sanitized via `Remove-Credentials`, with `Write-Verbose` attempt logging. New `-MaxAttempts` / `-InitialDelaySeconds` / `-MaxDelaySeconds` parameters plus backward-compatible `-MaxRetries` (legacy semantics: retries-after-first-attempt) / `-BaseDelaySec` / `-MaxDelaySec`. `Invoke-AzureAnalyzer.ps1` `Get-ChildSubscriptions` now wraps `Search-AzGraph` in `Invoke-WithRetry`. Added `tests/shared/Retry.Tests.ps1` (17 tests).
 - Added CI failure watchdog (workflow + local helper) - #104
+- **SBOM + pinned installer manifest hardening (#102)**: Added CycloneDX SBOM generation (`tools/Generate-SBOM.ps1`) and a version-pinned `tools/install-manifest.json` with concrete SHA-256 hashes for pinned download artifacts.
 
 ### Fixed
 - **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
