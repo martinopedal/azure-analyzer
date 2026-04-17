@@ -12,3 +12,5 @@ __pycache__/
 *.crt
 secrets.*
 credentials.*
+
+.atlas-stash/
