@@ -511,6 +511,9 @@ function issueHasLabel(issue, labelName) {
 function isUntriagedIssue(issue, memberLabels) {
   if (issue.pull_request) return false;
   if (!issueHasLabel(issue, 'squad')) return false;
+  // Skip roadmap / proposal issues — these are improvement plans, not actionable work.
+  // Squad members or Ralph must NOT auto-pick these up. They are framed as backlog only.
+  if (issueHasLabel(issue, 'type:roadmap')) return false;
   return !memberLabels.some((label) => issueHasLabel(issue, label));
 }
 
