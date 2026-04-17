@@ -27,7 +27,8 @@ param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
     [switch] $InstallFalco,
-    [switch] $UninstallFalco
+    [switch] $UninstallFalco,
+    [ValidateRange(1, 60)] [int] $CaptureMinutes = 5
 )
 
 Set-StrictMode -Version Latest
@@ -213,7 +214,7 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
     return [pscustomobject]$result
 }
 
-$captureMinutes = 5
+$captureMinutes = $CaptureMinutes
 $scanned = 0
 $failed = 0
 foreach ($cluster in $clusters) {
@@ -230,7 +231,12 @@ foreach ($cluster in $clusters) {
         if ($LASTEXITCODE -ne 0) { $failed++; continue }
 
         Start-Sleep -Seconds ($captureMinutes * 60)
-        $rawLogs = & kubectl --context $ctx -n falco logs daemonset/falco --since "$($captureMinutes)m" --tail 5000 2>$null
+        $rawLogs = @(& kubectl --context $ctx -n falco logs daemonset/falco --since "$($captureMinutes)m" --tail 5000 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            $failed++
+            Write-Warning "Falco log collection failed for cluster $($cluster.name): $($rawLogs -join ' ')"
+            continue
+        }
         foreach ($line in @($rawLogs)) {
             if (-not $line) { continue }
             $priority = Get-MatchValue -Text $line -Pattern '(?i)"priority"\s*:\s*"([^"]+)"'

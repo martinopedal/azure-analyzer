@@ -257,6 +257,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-PreviousRun` | string | -- | Path to a prior `results.json`; HTML report renders New/Resolved/Unchanged badges + a delta summary banner |
 | `-InstallFalco` | switch | `$false` | Opt-in Falco install mode for AKS (Helm deploy, short capture window, then collect alerts) |
 | `-UninstallFalco` | switch | `$false` | With `-InstallFalco`, uninstall Falco release after collection |
+| `-FalcoCaptureMinutes` | int (1-60) | 5 | Capture window in minutes for Falco install mode before collecting daemonset alerts |
 | `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
 | `-ScorecardThreshold` | int (0-10) | 7 | Minimum score for a Scorecard check to be compliant |
 | `-ScanPath` | string | `.` | Filesystem path for Trivy dependency scanning |

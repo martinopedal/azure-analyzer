@@ -72,6 +72,8 @@ param (
     [string] $PreviousRun,
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
+    [ValidateRange(1, 60)]
+    [int] $FalcoCaptureMinutes = 5,
     [switch] $EnableAiTriage
 )
 
@@ -257,6 +259,7 @@ foreach ($toolDef in $manifest.tools) {
                 if ($toolDef.name -eq 'falco') {
                     if ($InstallFalco)  { $params['InstallFalco'] = $true }
                     if ($UninstallFalco) { $params['UninstallFalco'] = $true }
+                    $params['CaptureMinutes'] = $FalcoCaptureMinutes
                 }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{

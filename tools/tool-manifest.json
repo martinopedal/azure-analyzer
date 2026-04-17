@@ -110,7 +110,7 @@
       "type": "scanner",
       "script": "modules/Invoke-Falco.ps1",
       "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["ClusterArmIds", "InstallFalco", "UninstallFalco"],
+      "optionalParams": ["ClusterArmIds", "InstallFalco", "UninstallFalco", "CaptureMinutes"],
       "requiredPermissionTier": 0,
       "platforms": ["windows", "macos", "linux"],
       "enabled": true,
@@ -123,7 +123,7 @@
         "repo": "falcosecurity/falco",
         "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "0.42.0"
       }
     },
     {
