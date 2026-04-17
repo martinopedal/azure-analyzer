@@ -279,6 +279,100 @@ Describe 'Invoke-IdentityCorrelation' {
         $results[0].MissingDimensions | Should -Contain 'GitHub'
         $results[0].MissingDimensions | Should -Contain 'ADO'
     }
+
+    It 'flags high risk when privileged Azure role is linked to CI/CD identity usage' {
+        $entities = @(
+            [PSCustomObject]@{
+                EntityId    = 'spn/55555555-6666-7777-8888-999999999999'
+                EntityType  = 'ServicePrincipal'
+                Platform    = 'Entra'
+                DisplayName = 'priv-spn'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = 'ffffffff-0000-1111-2222-333333333333' }
+                )
+                Observations = @()
+            },
+            [PSCustomObject]@{
+                EntityId    = '/subscriptions/sub-1/providers/microsoft.authorization/roleassignments/ra1'
+                EntityType  = 'AzureResource'
+                Platform    = 'Azure'
+                DisplayName = 'rbac-assignment'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = 'ffffffff-0000-1111-2222-333333333333' }
+                )
+                Observations = @(
+                    [PSCustomObject]@{
+                        Title    = 'SPN has Contributor on subscription'
+                        Detail   = 'appId: ffffffff-0000-1111-2222-333333333333 assigned Contributor role'
+                        Source   = 'alz-queries'
+                        Platform = 'Azure'
+                    }
+                )
+            },
+            [PSCustomObject]@{
+                EntityId    = 'ado://contoso/proj/serviceconnection/sc1'
+                EntityType  = 'ServiceConnection'
+                Platform    = 'ADO'
+                DisplayName = 'sc1'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = 'ffffffff-0000-1111-2222-333333333333' }
+                )
+                Observations = @()
+            }
+        )
+
+        $results = Invoke-IdentityCorrelation -EntityStore $entities -TenantId 'test-tenant-id'
+        $highRisk = @($results | Where-Object { $_.Category -eq 'Identity Correlation Risk' -and $_.Severity -eq 'High' })
+        $highRisk.Count | Should -Be 1
+        $highRisk[0].Compliant | Should -BeFalse
+    }
+
+    It 'flags medium risk when PAT-based ADO authentication is detected' {
+        $entities = @(
+            [PSCustomObject]@{
+                EntityId    = 'spn/66666666-7777-8888-9999-aaaaaaaaaaaa'
+                EntityType  = 'ServicePrincipal'
+                Platform    = 'Entra'
+                DisplayName = 'pat-spn'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = '11111111-aaaa-bbbb-cccc-222222222222' }
+                )
+                Observations = @()
+            },
+            [PSCustomObject]@{
+                EntityId    = 'ado://contoso/proj/serviceconnection/sc-pat'
+                EntityType  = 'ServiceConnection'
+                Platform    = 'ADO'
+                DisplayName = 'sc-pat'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = '11111111-aaaa-bbbb-cccc-222222222222' }
+                )
+                Observations = @(
+                    [PSCustomObject]@{
+                        Title    = 'GitHub connection: sc-pat'
+                        Detail   = 'Type=GitHub; AuthScheme=Token; AuthMechanism=Token; IsShared=False'
+                        Source   = 'ado-connections'
+                        Platform = 'ADO'
+                    }
+                )
+            },
+            [PSCustomObject]@{
+                EntityId    = 'github.com/contoso/repo1'
+                EntityType  = 'Repository'
+                Platform    = 'GitHub'
+                DisplayName = 'contoso/repo1'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = '11111111-aaaa-bbbb-cccc-222222222222' }
+                )
+                Observations = @()
+            }
+        )
+
+        $results = Invoke-IdentityCorrelation -EntityStore $entities -TenantId 'test-tenant-id'
+        $patRisk = @($results | Where-Object { $_.Category -eq 'Identity Correlation Risk' -and $_.Title -match 'PAT-based ADO service connection' })
+        $patRisk.Count | Should -Be 1
+        $patRisk[0].Severity | Should -Be 'Medium'
+    }
 }
 
 Describe 'Normalize-IdentityCorrelation' {

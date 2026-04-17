@@ -13,17 +13,19 @@
 .PARAMETER AdoProject
     Project name. When omitted, all projects in the organization are scanned.
 .PARAMETER AdoPat
-    Personal access token. Falls back to AZURE_DEVOPS_EXT_PAT or AZ_DEVOPS_PAT
-    environment variables when not provided.
+    Personal access token. Falls back to ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT,
+    or AZ_DEVOPS_PAT environment variables when not provided.
 #>
 [CmdletBinding()]
 param (
     [Parameter(Mandatory)]
+    [Alias('AdoOrganization')]
     [ValidateNotNullOrEmpty()]
     [string] $AdoOrg,
 
     [string] $AdoProject,
 
+    [Alias('AdoPatToken')]
     [string] $AdoPat
 )
 
@@ -41,6 +43,7 @@ $sharedDir = Join-Path $PSScriptRoot 'shared'
 function Resolve-AdoPat {
     param ([string]$Explicit)
     if ($Explicit) { return $Explicit }
+    if ($env:ADO_PAT_TOKEN) { return $env:ADO_PAT_TOKEN }
     if ($env:AZURE_DEVOPS_EXT_PAT) { return $env:AZURE_DEVOPS_EXT_PAT }
     if ($env:AZ_DEVOPS_PAT) { return $env:AZ_DEVOPS_PAT }
     return $null
@@ -51,7 +54,7 @@ if (-not $pat) {
     return [PSCustomObject]@{
         Source   = 'ado-connections'
         Status   = 'Skipped'
-        Message  = 'No ADO PAT provided. Set -AdoPat, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
+        Message  = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
     }
 }
