@@ -150,6 +150,16 @@ OpenSSF Scorecard evaluates repository security practices. Authentication is opt
 | Classic PAT | `repo` (or `public_repo` for public repos only) | 5,000 requests/hour | Free tier with GitHub account |
 | Fine-grained PAT | Repository access: **Read** | 15,000 requests/hour | Free; more secure |
 
+#### PR review gate workflow permissions
+
+The PR review gate workflow (`.github/workflows/pr-review-gate.yml`) uses least-privilege workflow permissions:
+
+| Permission | Access | Why |
+|---|---|---|
+| `pull-requests` | `write` | Post consensus summary comments on PRs |
+| `issues` | `write` | Future-proof for thread-linked issue comment sync and gate annotations |
+| `contents` | `read` | Read repository scripts and workflow context during execution |
+
 #### CI failure watchdog workflow permissions
 
 The CI failure watchdog workflow (`.github/workflows/ci-failure-watchdog.yml`) uses `GITHUB_TOKEN` with least-privilege workflow permissions:

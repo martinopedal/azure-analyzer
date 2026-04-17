@@ -433,6 +433,7 @@ The `.squad/` directory contains AI team infrastructure for automated triage and
 |---|---|---|
 | `codeql.yml` | Push / PR / weekly | Static analysis for security vulnerabilities (CodeQL, SHA-pinned) |
 | `docs-check.yml` | PR | Ensures documentation is updated with code changes |
+| `pr-review-gate.yml` | `pull_request_review` + `pull_request_review_comment` | Auto-ingests review feedback, writes lockout-aware consensus plan to `.squad/decisions/inbox/`, and posts PR gate summary comment |
 | `ci-failure-watchdog.yml` | `workflow_run` on failure | Files or updates a deduplicated CI failure bug issue (hash = workflow + first error line) |
 
 Set `SQUAD_WATCH_CI=1` to opt in to the local polling helper (`tools/Watch-GithubActions.ps1`) that applies the same dedup triage loop outside GitHub Actions.
@@ -450,6 +451,7 @@ These workflows support the AI development team and are excluded from archive do
 | `sync-squad-labels.yml` | Syncs squad labels across the repo |
 | `ci-failure-watchdog.yml` | Auto-files or updates `ci-failure` issues for failed workflow runs |
 | `auto-label-issues.yml` | Adds the `squad` label to new issues |
+| `pr-review-gate.yml` | Ingests Copilot/human review feedback and enforces Reviewer Rejection Lockout planning |
 
 </details>
 
