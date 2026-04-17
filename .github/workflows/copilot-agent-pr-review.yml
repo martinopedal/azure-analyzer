@@ -1,0 +1,58 @@
+name: Copilot Agent PR Review
+
+# When copilot-swe-agent[bot] opens a PR, automatically request Copilot code review
+# so that review feedback is generated and the agent can iterate on it before merge.
+#
+# Maintainer policy (see .github/copilot-instructions.md): PRs authored by the cloud
+# coding agent MUST have all Copilot review comments resolved before squash-merge.
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  request-copilot-review:
+    if: github.event.pull_request.user.login == 'copilot-swe-agent[bot]' || github.event.pull_request.user.login == 'Copilot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request Copilot code review
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            try {
+              await github.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                reviewers: ['copilot-pull-request-reviewer'],
+                headers: { 'X-GitHub-Api-Version': '2022-11-28' }
+              });
+              core.info(`Requested Copilot code review on PR #${pr.number}`);
+            } catch (err) {
+              core.warning(`Could not request Copilot review (repo-level auto-review may need to be enabled in Settings → Copilot → Code review): ${err.message}`);
+            }
+
+            // Also comment-ping the issue's squad reviewer so the reviewer-protocol
+            // ceremony from .squad/ceremonies.md is triggered for the authoring agent.
+
+            // Post a policy reminder comment so the agent and maintainers see the review contract
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: [
+                '### 🔁 Cloud agent PR review contract',
+                '',
+                '1. Copilot code review has been requested on this PR.',
+                '2. @copilot (the authoring agent) MUST address every Copilot review comment with either a code change or an explicit reply explaining why it does not apply.',
+                '3. Maintainers MUST NOT squash-merge this PR until all Copilot review threads are **Resolved**.',
+                '4. CI (`Analyze (actions)`, `Docs Check`) must be green.',
+                '',
+                'If the agent is unresponsive for >24h, the issue can be reassigned to a squad member.'
+              ].join('\n')
+            });
