@@ -21,3 +21,6 @@
 - Self-skip pattern for `workflow_run` watchers should include workflow-name exclusion to avoid recursive self-processing.
 - Repeated CI failures should comment `still failing — {run_url}` on the open hash-matched issue instead of creating duplicates.
 - Treat `workflow_run` payload fields as untrusted input: pass through `env` and reference shell variables in `run:` blocks to reduce expression-injection risk.
+- workflow_run payload does not expose 'head_branch'; branch checks in watchdog logic must use API lookup or avoid branch gating in job-level expressions.
+
+
