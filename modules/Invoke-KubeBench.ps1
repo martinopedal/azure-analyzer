@@ -252,7 +252,7 @@ spec:
         foreach ($f in $clusterFindings) {
             $idx++
             $findings.Add([pscustomobject]@{
-                Id           = "kube-bench/$($cluster.name)/$clusterKey/$($f.ControlId)/$idx"
+                Id           = "kube-bench/$clusterKey/$($f.ControlId)/$idx"
                 Source       = 'kube-bench'
                 Category     = 'KubernetesNodeSecurity'
                 Severity     = $f.Severity
