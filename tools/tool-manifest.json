@@ -79,6 +79,26 @@
       }
     },
     {
+      "name": "kube-bench",
+      "displayName": "kube-bench (AKS node CIS)",
+      "source": "kube-bench",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-KubeBench",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-KubeBench.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["ClusterArmIds", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#5e35b1", "phase": 6 },
+      "install": {
+        "kind": "none"
+      }
+    },
+    {
       "name": "defender-for-cloud",
       "displayName": "Microsoft Defender for Cloud",
       "source": "defender-for-cloud",
