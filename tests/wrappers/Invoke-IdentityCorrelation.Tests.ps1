@@ -1,5 +1,6 @@
 #Requires -Version 7.4
 Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 
 BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
@@ -37,3 +38,4 @@ Describe 'Invoke-IdentityCorrelation: error paths' {
         }
     }
 }
+
