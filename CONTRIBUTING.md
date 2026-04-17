@@ -31,3 +31,23 @@ All commits must include a `Signed-off-by` trailer. Use `git commit -s` to add i
 ## Review
 
 PRs are reviewed by the maintainer. There are no required reviewers beyond the maintainer. `enforce_admins` is enabled, so branch protection applies to everyone including the maintainer.
+
+## CI workflows and squad infrastructure (maintainer-only)
+
+These workflows support repo development and the AI squad workflow. They're not relevant if you're only running the tool.
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `codeql.yml` | Push / PR / weekly | CodeQL static analysis (SHA-pinned) |
+| `docs-check.yml` | PR | Enforces docs updates with code changes |
+| `pr-review-gate.yml` | `pull_request_review` + `_comment` | Ingests review feedback, writes consensus plan to `.squad/decisions/inbox/`, posts gate summary |
+| `ci-failure-watchdog.yml` | `workflow_run` on failure | Deduplicated CI failure issue (hash = workflow + first error line) |
+| `squad-heartbeat.yml` | Cron | Automated triage and CI gate via Ralph |
+| `squad-triage.yml` | Issue events | Routes issues to squad members |
+| `squad-issue-assign.yml` | Label event | Assigns issues to squad agents |
+| `sync-squad-labels.yml` | Push | Syncs squad labels |
+| `auto-label-issues.yml` | Issue opened | Adds `squad` label |
+
+Set `SQUAD_WATCH_CI=1` to opt into the local polling helper (`tools/Watch-GithubActions.ps1`) that applies the same dedup loop outside GitHub Actions.
+
+The `.squad/` directory contains AI team infrastructure for automated triage and development. It is **not** part of the tool itself and is excluded from archive downloads.

@@ -47,8 +47,7 @@ function Normalize-AzGovViz {
                 $entityType = 'Subscription'
                 # For Subscription EntityType, EntityId is just the GUID
                 if ($rawId -match '/subscriptions/([^/]+)') {
-                    $subId = $Matches[1]
-                    $canonicalId = $subId.ToLowerInvariant()
+                    $canonicalId = $Matches[1].ToLowerInvariant()
                 }
             } else {
                 $entityType = 'AzureResource'
@@ -58,9 +57,9 @@ function Normalize-AzGovViz {
                 } catch {
                     $canonicalId = $rawId.ToLowerInvariant()
                 }
-                if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
-                if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }
             }
+            if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
+            if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }
         }
 
         if (-not $canonicalId) {

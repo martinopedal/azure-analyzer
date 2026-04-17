@@ -32,6 +32,29 @@ $script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
 $script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+# Validation failure tracking
+$script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+function Get-SchemaValidationFailures {
+    <#
+    .SYNOPSIS
+        Retrieve logged validation failures.
+    .DESCRIPTION
+        Returns a list of validation failures logged during FindingRow construction.
+    #>
+    return ,$script:ValidationFailures.ToArray()
+}
+
+function Reset-SchemaValidationFailures {
+    <#
+    .SYNOPSIS
+        Clear validation failure log.
+    .DESCRIPTION
+        Clears the internal list of validation failures.
+    #>
+    $script:ValidationFailures.Clear()
+}
+
 function Get-PlatformForEntityType {
     param (
         [Parameter(Mandatory)]

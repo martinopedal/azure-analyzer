@@ -292,6 +292,26 @@ Describe 'New-FindingRow validation integration' {
             $row.EntityType | Should -Be 'AzureResource'
         }
 
+        It 'returns null for non-canonical EntityIds' {
+            Reset-SchemaValidationFailures
+
+            $row = New-FindingRow `
+                -Id 'f-test' `
+                -Source 'test-tool' `
+                -EntityId '/Subscriptions/UPPERCASE/ResourceGroups/TEST' `
+                -EntityType 'AzureResource' `
+                -Title 'Test' `
+                -Compliant $true `
+                -ProvenanceRunId 'run-1' `
+                -WarningAction SilentlyContinue
+
+            $row | Should -BeNullOrEmpty
+
+            $failures = Get-SchemaValidationFailures
+            $failures.Count | Should -BeGreaterThan 0
+            $failures[0].Source | Should -Be 'test-tool'
+        }
+
         It 'returns null and logs warning when validation fails' {
             Reset-SchemaValidationFailures
 

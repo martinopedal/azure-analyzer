@@ -7,6 +7,9 @@ All notable changes to azure-analyzer will be documented here.
 ### Added
 - **FindingRow schema validation at normalizer boundary (#99)**: All normalizers now validate findings at construction time via `New-FindingRow` factory. Validation enforces required fields (Id, Source, EntityId, EntityType, Title, Compliant, Provenance.RunId), checks Severity/Platform/EntityType against allowed values, and verifies EntityId canonicalization. Invalid rows are dropped with a sanitized warning logged to stderr; validation failures are tracked via `Get-SchemaValidationFailures` for observability. New `Test-FindingRow` function supports both silent (returns bool + error array) and strict modes (throws exception). Covered by 21 comprehensive tests in `tests/shared/Schema-Validation.Tests.ps1`.
 
+### Documentation
+- **Tool licensing surfaced in-table + first-party components promoted in THIRD_PARTY_NOTICES.md**: the `## What each tool does` table in `README.md` now carries a `License` column for all 17 tools (MIT / Apache-2.0 / Azure REST API service terms, with a link back to `THIRD_PARTY_NOTICES.md`). The old `## Data Sources & Attribution` table (which duplicated the tool list with stale licenses — zizmor wrongly MIT, ADO Service Connections blank) has been collapsed to a brief pointer. `THIRD_PARTY_NOTICES.md` promotes each first-party component (**ADO Service Connections Scanner**, Identity Correlator, Installer, Reports, Orchestrator) to its own `##` section, parallel in structure to third-party tool entries. ADO SC now explicitly names the Azure DevOps REST API (`dev.azure.com/{org}/_apis/serviceendpoint/endpoints`) used under the Microsoft Services Agreement; no ADO source code is redistributed. Consumer/maintainer doc separation: CI workflow table (codeql, docs-check, pr-review-gate, ci-failure-watchdog, squad-*) moved from `README.md` into `CONTRIBUTING.md` under a "maintainer-only" heading so README stays consumer-focused.
+
 ### Changed
 - **Schema validation hardening for PR #118 / issue #126**:
   - `New-FindingRow` now performs in-function manual validation for required and enum-constrained fields and returns `$null` (with tracked warning) instead of parameter-binding exceptions.
@@ -18,7 +21,9 @@ All notable changes to azure-analyzer will be documented here.
   - `.squad/templates/issue-lifecycle.md` spawn prompts now instruct agents to open PRs as drafts (`gh pr create --draft`) and flip to ready-for-review only after CI is green and self-review is complete. Cuts notification traffic during iteration.
 
 ### Added
+- **Hardened retry helper (#101)**: `modules/shared/Retry.ps1` `Invoke-WithRetry` now supports HTTP status code detection (408/429/503/504 via `Response.StatusCode`), `Retry-After` header parsing (integer seconds and RFC 7231 HTTP-date), and AWS-style full jitter (`random(0, backoffCap)`) for exponential backoff. `Retry-After` values are honored as returned (not capped by `MaxDelaySeconds`). Final exception messages sanitized via `Remove-Credentials`, with `Write-Verbose` attempt logging. New `-MaxAttempts` / `-InitialDelaySeconds` / `-MaxDelaySeconds` parameters plus backward-compatible `-MaxRetries` (legacy semantics: retries-after-first-attempt) / `-BaseDelaySec` / `-MaxDelaySec`. `Invoke-AzureAnalyzer.ps1` `Get-ChildSubscriptions` now wraps `Search-AzGraph` in `Invoke-WithRetry`. Added `tests/shared/Retry.Tests.ps1` (17 tests).
 - Added CI failure watchdog (workflow + local helper) - #104
+- **SBOM + pinned installer manifest hardening (#102)**: Added CycloneDX SBOM generation (`tools/Generate-SBOM.ps1`) and a version-pinned `tools/install-manifest.json` with concrete SHA-256 hashes for pinned download artifacts.
 
 ### Fixed
 - **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
