@@ -128,11 +128,11 @@ try {
 
         # Non-zero exit with no report = hard failure
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
-            Write-Warning "trivy exited with code $exitCode and produced no report"
+            Write-Warning (Remove-Credentials "trivy exited with code $exitCode and produced no report")
             return [PSCustomObject]@{
                 Source   = 'trivy'
                 Status   = 'Failed'
-                Message  = "trivy exited with code $exitCode and produced no report"
+                Message  = (Remove-Credentials "trivy exited with code $exitCode and produced no report")
                 Findings = @()
             }
         }
@@ -144,11 +144,11 @@ try {
                 try {
                     $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
                 } catch {
-                    Write-Warning "trivy report JSON parse failed: $_"
+                    Write-Warning (Remove-Credentials "trivy report JSON parse failed: $_")
                     return [PSCustomObject]@{
                         Source   = 'trivy'
                         Status   = 'Failed'
-                        Message  = "Report JSON parse failed: $_"
+                        Message  = (Remove-Credentials "Report JSON parse failed: $_")
                         Findings = @()
                     }
                 }
@@ -273,15 +273,15 @@ try {
         Findings = $findings
     }
 } catch {
-    Write-Warning "Trivy scan failed: $_"
+    Write-Warning (Remove-Credentials "Trivy scan failed: $_")
     return [PSCustomObject]@{
         Source   = 'trivy'
         Status   = 'Failed'
-        Message  = "$_"
+        Message  = (Remove-Credentials "$_")
         Findings = @()
     }
-} finally {
+}finally {
     if ($cleanupClone) {
-        try { & $cleanupClone } catch { Write-Verbose "trivy clone cleanup failed: $($_.Exception.Message)" }
+        try { & $cleanupClone } catch { Write-Verbose (Remove-Credentials "trivy clone cleanup failed: $($_.Exception.Message)") }
     }
 }

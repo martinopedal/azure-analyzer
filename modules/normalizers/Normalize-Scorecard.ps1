@@ -84,7 +84,10 @@ function Normalize-Scorecard {
             -Platform 'GitHub' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '')
-        $normalized.Add($row)
+        # Skip null rows (validation failed)
+        if ($null -ne $row) {
+            $normalized.Add($row)
+        }
     }
 
     return @($normalized)

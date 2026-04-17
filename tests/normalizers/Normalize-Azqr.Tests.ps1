@@ -157,5 +157,26 @@ Describe 'Normalize-Azqr' {
             $results = Normalize-Azqr -ToolResult $minimalInput
             @($results).Count | Should -Be 1
         }
+
+        It 'uses canonical ARM-shaped fallback EntityId when ResourceId is missing' {
+            $input = [PSCustomObject]@{
+                Source   = 'azqr'
+                Status   = 'Success'
+                Findings = @(
+                    [PSCustomObject]@{
+                        Id         = 'finding-123'
+                        Category   = 'Security'
+                        Title      = 'No resource id finding'
+                        Compliant  = $false
+                        Severity   = 'High'
+                        Detail     = 'Test detail'
+                    }
+                )
+            }
+
+            $results = Normalize-Azqr -ToolResult $input
+            @($results).Count | Should -Be 1
+            $results[0].EntityId | Should -Match '^/subscriptions/[0-9a-f-]{36}/providers/microsoft\.resourcegraph/azqrfindings/finding-123$'
+        }
     }
 }

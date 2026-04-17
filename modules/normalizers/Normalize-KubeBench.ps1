@@ -72,7 +72,13 @@ function Normalize-KubeBench {
             $row | Add-Member -NotePropertyName ControlId -NotePropertyValue ([string]$f.ControlId) -Force
         }
 
-        $normalized.Add($row)
+        # Skip null rows (validation failed)
+
+        if ($null -ne $row) {
+
+            $normalized.Add($row)
+
+        }
     }
 
     return @($normalized)

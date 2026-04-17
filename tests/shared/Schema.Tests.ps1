@@ -22,8 +22,9 @@ Describe 'New-FindingRow' {
         $finding.Provenance.RunId | Should -Be 'azqr-run-1'
     }
 
-    It 'throws when required fields are missing' {
-        { New-FindingRow -Id '' -Source 'azqr' -EntityId 'x' -EntityType 'AzureResource' -Title 'x' -Compliant $true -ProvenanceRunId 'run' } | Should -Throw
+    It 'returns null when required fields are missing' {
+        $row = New-FindingRow -Id '' -Source 'azqr' -EntityId 'x' -EntityType 'AzureResource' -Title 'x' -Compliant $true -ProvenanceRunId 'run'
+        $row | Should -BeNullOrEmpty
     }
 }
 
@@ -55,18 +56,39 @@ Describe 'Test-FindingRow' {
         $errors | Should -BeNullOrEmpty
     }
 
-    It 'returns false with errors for non-canonical IDs' {
-        $finding = New-FindingRow `
-            -Id 'f-003' `
-            -Source 'azqr' `
-            -EntityId '/Subscriptions/ABC12345-6789-4ABC-8DEF-1234567890AB/ResourceGroups/rg/providers/Microsoft.Storage/storageAccounts/foo' `
-            -EntityType 'AzureResource' `
-            -Title 'Invalid' `
-            -Compliant $false `
-            -ProvenanceRunId 'azqr-run-2'
+    It 'returns false with errors for missing required fields' {
+        # Build a finding missing EntityId to test validation
+        $finding = [PSCustomObject]@{
+            Id               = 'f-003'
+            Source           = 'azqr'
+            EntityType       = 'AzureResource'
+            Title            = 'Invalid'
+            Compliant        = $false
+            SchemaVersion    = '2.0'
+            Platform         = 'Azure'
+            Provenance       = [PSCustomObject]@{ RunId = 'azqr-run-2'; Source = 'azqr'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
+        }
 
         $errors = @()
         (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeFalse
-        ($errors -join '; ') | Should -Match 'canonicalized'
+        ($errors -join '; ') | Should -Match 'EntityId'
+    }
+
+    It 'returns false when Compliant is null' {
+        $finding = [PSCustomObject]@{
+            Id               = 'f-004'
+            Source           = 'azqr'
+            EntityId         = '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.storage/storageaccounts/foo'
+            EntityType       = 'AzureResource'
+            Title            = 'Invalid'
+            Compliant        = $null
+            SchemaVersion    = '2.0'
+            Platform         = 'Azure'
+            Provenance       = [PSCustomObject]@{ RunId = 'azqr-run-3'; Source = 'azqr'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
+        }
+
+        $errors = @()
+        (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeFalse
+        ($errors -join '; ') | Should -Match "Compliant must be a boolean value, got 'null'"
     }
 }

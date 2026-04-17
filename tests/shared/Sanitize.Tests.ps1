@@ -68,3 +68,80 @@ Describe 'Remove-Credentials' {
         Remove-Credentials $text | Should -Be $text
     }
 }
+
+Describe 'Error Message Sanitization (Disk Write Scenarios)' {
+    It 'sanitizes SAS URI in exception message before disk write' {
+        $testDir = Join-Path $TestDrive 'error-test'
+        New-Item -ItemType Directory -Path $testDir -Force | Out-Null
+        
+        $errorMsg = 'Failed to connect to https://mystorageacct.blob.core.windows.net/container?sig=AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKK&se=2026-01-01'
+        $sanitized = Remove-Credentials $errorMsg
+        $outputFile = Join-Path $testDir 'error.json'
+        
+        @{ tool = 'test-tool'; error = $sanitized } | ConvertTo-Json | Set-Content $outputFile
+        $diskContent = Get-Content $outputFile -Raw
+        
+        $diskContent | Should -Not -Match 'sig=AAAA'
+        $diskContent | Should -Match '\[REDACTED\]'
+    }
+    
+    It 'sanitizes bearer token in exception message before disk write' {
+        $testDir = Join-Path $TestDrive 'bearer-test'
+        New-Item -ItemType Directory -Path $testDir -Force | Out-Null
+        
+        $errorMsg = 'Authorization failed: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0'
+        $sanitized = Remove-Credentials $errorMsg
+        $outputFile = Join-Path $testDir 'auth-error.txt'
+        
+        $sanitized | Set-Content $outputFile
+        $diskContent = Get-Content $outputFile -Raw
+        
+        $diskContent | Should -Not -Match 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+        $diskContent | Should -Match 'Bearer \[REDACTED\]'
+    }
+    
+    It 'sanitizes Azure subscription connection string in exception message' {
+        $errorMsg = 'Connection failed: Endpoint=sb://mybus.servicebus.windows.net/;SharedAccessKey=secretkey123456789abcdefghij;EntityPath=myqueue'
+        $sanitized = Remove-Credentials $errorMsg
+        
+        $sanitized | Should -Not -Match 'secretkey123456789'
+        $sanitized | Should -Match 'SharedAccessKey=\[REDACTED\]'
+    }
+    
+    It 'sanitizes GitHub PAT in exception message before JSON write' {
+        $testDir = Join-Path $TestDrive 'github-test'
+        New-Item -ItemType Directory -Path $testDir -Force | Out-Null
+        
+        $token = 'ghp_' + ('a' * 36)
+        $errorMsg = "GitHub API call failed with token $token"
+        $sanitized = Remove-Credentials $errorMsg
+        $outputFile = Join-Path $testDir 'github-error.json'
+        
+        @{ source = 'github-tool'; status = 'Failed'; message = $sanitized } | ConvertTo-Json | Set-Content $outputFile
+        $diskContent = Get-Content $outputFile -Raw
+        
+        $diskContent | Should -Not -Match $token
+        $diskContent | Should -Match '\[GITHUB-PAT-REDACTED\]'
+    }
+    
+    It 'handles null or empty error messages gracefully' {
+        $sanitized1 = Remove-Credentials $null
+        $sanitized2 = Remove-Credentials ''
+        
+        $sanitized1 | Should -BeNullOrEmpty
+        $sanitized2 | Should -Be ''
+    }
+    
+    It 'sanitizes multiple secrets in single error message' {
+        $errorMsg = 'Multi-auth failed: Authorization: Bearer abc123def456 and AccountKey=supersecret123; also failed SAS query https://storage.blob.core.windows.net/?sig=AAABBBCCCDDDEEEFFF12345%2B%2Fabc'
+        $sanitized = Remove-Credentials $errorMsg
+        
+        $sanitized | Should -Not -Match 'abc123def456'
+        $sanitized | Should -Not -Match 'supersecret123'
+        $sanitized | Should -Not -Match 'sig=AAABBBCCCDDDEEEFFF'
+        $sanitized | Should -Match 'Authorization: \[REDACTED\]'
+        $sanitized | Should -Match 'AccountKey=\[REDACTED\]'
+        $sanitized | Should -Match 'sig=\[REDACTED\]'
+    }
+}
+
