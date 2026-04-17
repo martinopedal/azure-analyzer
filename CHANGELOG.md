@@ -10,6 +10,15 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - **Security:** All error messages written to disk (JSON, HTML, logs) are now sanitized via `Remove-Credentials` to prevent credentials, tokens, connection strings, or SAS URIs from being written to disk. Applies to all tool wrappers and the main orchestrator (#100)
+- **Security:** `Invoke-Trivy.ps1` now sanitizes non-success warning/message paths for missing-report and JSON-parse failures; `Invoke-Falco.ps1` now self-loads `Sanitize.ps1` with local fallback (parallel-safe) and sanitizes emitted alert/log detail fields plus log-collection warnings.
+- **Security:** Added parallel/runspace-safe `Sanitize.ps1` self-load + local `Remove-Credentials` fallback in `Invoke-AzureCost.ps1`, `Invoke-DefenderForCloud.ps1`, `Invoke-Kubescape.ps1`, and the orchestrator `$runnerBlock` in `Invoke-AzureAnalyzer.ps1` to prevent `CommandNotFoundException` in `ForEach-Object -Parallel` error paths. Also normalized minor Trivy formatting (`} finally {`, indentation) with no behavior change.
+
+### Changed
+- **Schema validation hardening for PR #118 / issue #126**:
+  - `New-FindingRow` now performs in-function manual validation for required and enum-constrained fields and returns `$null` (with tracked warning) instead of parameter-binding exceptions.
+  - `Test-FindingRow` now null-guards `Compliant` and reports null as invalid instead of risking a null dereference.
+  - `Normalize-Gitleaks.ps1` and `Normalize-Azqr.ps1` now emit canonical-compatible `EntityId` values (`Repository` IDs in `host/owner/repo` format; `AzureResource` IDs as canonical ARM-shaped IDs), with gitleaks file paths preserved in `ResourceId`.
+- **Security:** All error messages written to disk (JSON, HTML, logs) are now sanitized via `Remove-Credentials` to prevent credentials, tokens, connection strings, or SAS URIs from being written to disk. Applies to all tool wrappers and the main orchestrator (#100)
 - **Pre-commit hook compatibility and coverage (#117/#126):** `tools/Install-PreCommitHook.ps1` now writes a POSIX `#!/bin/sh` wrapper that `exec`s `pwsh.exe`/`pwsh` (instead of batch syntax) so hooks run correctly under git's bash-based runner on Windows. `hooks/pre-commit.ps1` now includes renamed files in staged workflow detection (`--diff-filter=ACMR`) and verifies gitleaks v8 pre-commit syntax by preferring `gitleaks git --pre-commit` with fallback to `gitleaks protect --staged`.
 
 ### Documentation

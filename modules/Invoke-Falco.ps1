@@ -40,6 +40,12 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock, [int]$MaxAttempts = 3) & $ScriptBlock }
 }
 
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'falco'
@@ -183,7 +189,7 @@ Resources
             Priority    = $priority
             Compliant   = $false
             Title       = "Falco: $ruleDisplay"
-            Detail      = [string]$a.description
+            Detail      = Remove-Credentials ([string]$a.description)
             Remediation = 'Investigate Falco runtime behavior and validate if process/pod activity is expected.'
             ResourceId  = $rid
             RuleName    = $rule
@@ -241,7 +247,7 @@ foreach ($cluster in $clusters) {
         $rawLogs = @(& kubectl --context $ctx -n falco logs daemonset/falco --since "$($captureMinutes)m" --tail 5000 2>&1)
         if ($LASTEXITCODE -ne 0) {
             $failed++
-            Write-Warning "Falco log collection failed for cluster $($cluster.name): $($rawLogs -join ' ')"
+            Write-Warning (Remove-Credentials "Falco log collection failed for cluster $($cluster.name): $($rawLogs -join ' ')")
             continue
         }
         foreach ($line in @($rawLogs)) {
@@ -261,7 +267,7 @@ foreach ($cluster in $clusters) {
                 Priority    = $priority
                 Compliant   = $false
                 Title       = if ($rule) { "Falco: $rule" } else { 'Falco runtime alert' }
-                Detail      = [string]$line
+                Detail      = Remove-Credentials ([string]$line)
                 Remediation = 'Investigate Falco runtime behavior and validate if process/pod activity is expected.'
                 ResourceId  = [string]$cluster.id
                 RuleName    = $rule
