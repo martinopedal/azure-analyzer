@@ -32,6 +32,7 @@ jobs:
       - name: Run Pester tests
         shell: pwsh
         run: |
+          Import-Module Pester -MinimumVersion 5.0 -Force
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
           $config.Run.Exit = $true
@@ -88,8 +89,9 @@ jobs:
           # Source the installer module
           . ./modules/shared/Installer.ps1
           
-          # Create a test file with known content
-          $testFile = Join-Path $env:TEMP 'test-hash.txt'
+          # Create a test file with known content (cross-platform temp path)
+          $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+          $testFile = Join-Path $tempDir 'test-hash.txt'
           'test content for hash verification' | Set-Content -Path $testFile -NoNewline
           
           # Compute hash (known SHA-256 of the above string)
