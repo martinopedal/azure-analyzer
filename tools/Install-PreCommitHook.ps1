@@ -4,8 +4,9 @@
     Installs the pre-commit hook for gitleaks and zizmor.
 
 .DESCRIPTION
-    Copies or symlinks hooks/pre-commit.ps1 into .git/hooks/pre-commit with the appropriate
-    shebang wrapper. Makes it executable on Unix-like systems.
+    Writes a POSIX-compatible .git/hooks/pre-commit wrapper that execs pwsh/pwsh.exe and
+    forwards all arguments to hooks/pre-commit.ps1. This works with git's bash-based hook runner
+    on Windows and Unix-like systems.
     
     Idempotent: re-running replaces any existing hook cleanly.
 
@@ -30,17 +31,20 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $hookSource = Join-Path $repoRoot 'hooks' 'pre-commit.ps1'
-$hookTarget = Join-Path $repoRoot '.git' 'hooks' 'pre-commit'
-$gitHooksDir = Join-Path $repoRoot '.git' 'hooks'
+$gitHooksDir = git rev-parse --git-path hooks
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gitHooksDir)) {
+    throw "Failed to resolve git hooks directory with 'git rev-parse --git-path hooks'."
+}
+$hookTarget = Join-Path $gitHooksDir 'pre-commit'
 
 # Validate source exists
 if (-not (Test-Path $hookSource)) {
     throw "Hook source not found: $hookSource"
 }
 
-# Ensure .git/hooks directory exists
+# Ensure hooks directory exists
 if (-not (Test-Path $gitHooksDir)) {
-    throw ".git/hooks directory not found. Is this a valid git repository?"
+    New-Item -ItemType Directory -Path $gitHooksDir -Force | Out-Null
 }
 
 Write-Host "📦 Installing pre-commit hook..." -ForegroundColor Cyan
@@ -51,30 +55,31 @@ if (Test-Path $hookTarget) {
     Remove-Item $hookTarget -Force
 }
 
-# On Windows, create a .cmd shim that calls pwsh
-# On Unix, create a symlink with shebang
-if ($IsWindows -or $PSVersionTable.Platform -eq 'Win32NT' -or (-not $PSVersionTable.Platform)) {
-    # Windows: Create a .cmd shim
-    $shimContent = @"
-@echo off
-pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "$hookSource" %*
-exit /b %ERRORLEVEL%
-"@
-    Set-Content -Path $hookTarget -Value $shimContent -Encoding ASCII
-    Write-Host "   ✅ Hook installed (Windows .cmd shim)." -ForegroundColor Green
-} else {
-    # Unix: Create a symlink and make it executable
-    # Use relative path for portability
-    $relativePath = [System.IO.Path]::GetRelativePath($gitHooksDir, $hookSource)
-    
-    # Create symlink
-    New-Item -ItemType SymbolicLink -Path $hookTarget -Target $relativePath -Force | Out-Null
-    
-    # Make executable
+$wrapperContent = @'
+#!/bin/sh
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$repo_root" ]; then
+  echo "pre-commit: failed to resolve repo root" >&2
+  exit 1
+fi
+hook_script="$repo_root/hooks/pre-commit.ps1"
+if [ ! -f "$hook_script" ]; then
+  echo "pre-commit: hook script not found: $hook_script" >&2
+  exit 1
+fi
+if command -v pwsh.exe >/dev/null 2>&1; then
+  exec pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "$hook_script" "$@"
+fi
+exec pwsh -NoProfile -File "$hook_script" "$@"
+'@
+
+Set-Content -Path $hookTarget -Value $wrapperContent -Encoding ASCII
+try {
     chmod +x $hookTarget
-    
-    Write-Host "   ✅ Hook installed (Unix symlink)." -ForegroundColor Green
+} catch {
+    # Git for Windows can still execute hooks without chmod; ignore when chmod is unavailable.
 }
+Write-Host "   ✅ Hook installed (POSIX shebang wrapper)." -ForegroundColor Green
 
 Write-Host ""
 Write-Host "✅ Pre-commit hook installed successfully!" -ForegroundColor Green

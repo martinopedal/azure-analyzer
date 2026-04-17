@@ -95,9 +95,9 @@ Describe 'Install-PreCommitHook Script' {
     
     It 'Installer handles Windows and Unix differently' {
         $content = Get-Content $installerScript -Raw
-        $content | Should -Match '\$IsWindows'
-        $content | Should -Match 'SymbolicLink'
-        $content | Should -Match '\.cmd'
+        $content | Should -Match '#!/bin/sh'
+        $content | Should -Match 'exec pwsh\.exe'
+        $content | Should -Match '"\$@"'
     }
     
     It 'Installer makes hook executable on Unix' {
@@ -108,6 +108,11 @@ Describe 'Install-PreCommitHook Script' {
     It 'Installer is idempotent (removes existing hook)' {
         $content = Get-Content $installerScript -Raw
         $content | Should -Match 'Remove-Item \$hookTarget'
+    }
+
+    It 'Installer uses git-compatible hook wrapper (not batch syntax)' {
+        $content = Get-Content $installerScript -Raw
+        $content | Should -Not -Match '@echo off'
     }
     
     It 'Installer provides install instructions' {
@@ -164,6 +169,11 @@ Describe 'Hook Behavior (Mocked)' {
         $matched.Count | Should -Be 2
         $matched | Should -Contain '.github/workflows/ci.yml'
         $matched | Should -Contain '.github/workflows/deploy.yaml'
+    }
+
+    It 'Workflow diff filter includes renamed files' {
+        $content = Get-Content $hookScript -Raw
+        $content | Should -Match '--diff-filter=ACMR'
     }
     
     It 'Gitleaks function signature is correct' {

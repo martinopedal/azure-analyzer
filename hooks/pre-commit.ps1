@@ -22,7 +22,7 @@ function Test-ToolInstalled {
 
 function Get-StagedWorkflowFiles {
     # Get staged .yml/.yaml files under .github/workflows/
-    $stagedFiles = git diff --cached --name-only --diff-filter=ACM
+    $stagedFiles = git diff --cached --name-only --diff-filter=ACMR
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "Failed to get staged files. Skipping workflow checks."
         return @()
@@ -39,13 +39,17 @@ function Invoke-Gitleaks {
     Write-Host "🔍 Running gitleaks on staged changes..." -ForegroundColor Cyan
     
     # Check if config exists, use it if present
-    $configArg = if (Test-Path '.gitleaks.toml') { '--config=.gitleaks.toml' } else { '' }
-    
-    # Run gitleaks protect on staged changes
-    if ($configArg) {
-        git diff --staged | gitleaks protect --staged --redact --no-banner $configArg 2>&1 | Write-Host
+    $configArgs = @()
+    if (Test-Path '.gitleaks.toml') {
+        $configArgs += @('--config', '.gitleaks.toml')
+    }
+
+    # Prefer gitleaks v8 git pre-commit mode when supported; fall back to protect --staged.
+    $gitHelp = & gitleaks git --help 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0 -and $gitHelp -match '--pre-commit') {
+        & gitleaks git --pre-commit --redact --no-banner @configArgs 2>&1 | Write-Host
     } else {
-        git diff --staged | gitleaks protect --staged --redact --no-banner 2>&1 | Write-Host
+        & gitleaks protect --staged --redact --no-banner @configArgs 2>&1 | Write-Host
     }
     
     return $LASTEXITCODE -eq 0

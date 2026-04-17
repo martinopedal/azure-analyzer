@@ -211,8 +211,8 @@ Install a local pre-commit hook that runs **gitleaks** and **zizmor** on every c
 ```
 
 The hook will:
-- ✅ Run `gitleaks protect --staged` on all staged changes
-- ✅ Run `zizmor` on any modified `.github/workflows/*.yml` files
+- ✅ Run gitleaks in v8-compatible pre-commit mode (`gitleaks git --pre-commit` when supported, otherwise `gitleaks protect --staged`)
+- ✅ Run `zizmor` on staged `.github/workflows/*.yml` files, including renamed workflows
 - ⚠️ Skip gracefully with warnings if tools aren't installed
 - 🚫 Block commits if issues are found (use `git commit --no-verify` to bypass)
 

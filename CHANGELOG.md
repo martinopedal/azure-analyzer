@@ -9,6 +9,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - **Security:** All error messages written to disk (JSON, HTML, logs) are now sanitized via `Remove-Credentials` to prevent credentials, tokens, connection strings, or SAS URIs from being written to disk. Applies to all tool wrappers and the main orchestrator (#100)
+- **Pre-commit hook compatibility and coverage (#117/#126):** `tools/Install-PreCommitHook.ps1` now writes a POSIX `#!/bin/sh` wrapper that `exec`s `pwsh.exe`/`pwsh` (instead of batch syntax) so hooks run correctly under git's bash-based runner on Windows. `hooks/pre-commit.ps1` now includes renamed files in staged workflow detection (`--diff-filter=ACMR`) and verifies gitleaks v8 pre-commit syntax by preferring `gitleaks git --pre-commit` with fallback to `gitleaks protect --staged`.
 
 ### Changed
 - **Roadmap / proposal label (prevents auto-pickup of improvement plans)**: New `type:roadmap` label marks issues that are improvement plans or phase proposals, not actionable work. `.squad/templates/ralph-triage.js` `isUntriagedIssue()` now skips any issue tagged `type:roadmap`, so the heartbeat cron and Squad coordinator will no longer pick them up for agent execution. Applied to #91–#97 (phase plans), #106, #108, #109, #110 (review-loop improvements); all `squad:{member}` labels stripped so they render as backlog only.
