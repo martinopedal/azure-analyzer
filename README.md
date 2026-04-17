@@ -248,7 +248,7 @@ git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting too
 | `-Repository` | string | -- | GitHub repo for Scorecard / zizmor / gitleaks / trivy (e.g. `github.com/org/repo` or full HTTPS URL) |
 | `-AdoRepoUrl` | string | -- | Azure DevOps Git repo URL for zizmor / gitleaks / trivy (HTTPS only, e.g. `https://dev.azure.com/org/proj/_git/repo`) |
 | `-RepoPath` | string | `.` | Local repo path for CI/CD scanning (zizmor, gitleaks) — fallback when no remote target |
-| `-GitHubHost` | string | -- | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
+| `-GitHubHost` | string | `github.com` | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
