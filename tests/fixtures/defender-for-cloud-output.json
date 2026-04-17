@@ -13,7 +13,7 @@
       "Compliant": true,
       "Title": "Defender Secure Score: 42 / 60 (70%)",
       "Detail": "Secure Score for subscription 11111111-1111-1111-1111-111111111111. Current=42, Max=60, Percentage=70%.",
-      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111",
+      "ResourceId": "11111111-1111-1111-1111-111111111111",
       "ResourceType": "Microsoft.Resources/subscriptions",
       "ScoreCurrent": 42,
       "ScoreMax": 60,
@@ -29,7 +29,7 @@
       "Title": "MFA should be enabled on accounts with owner permissions on your subscription",
       "Detail": "Multi-factor authentication (MFA) should be enabled for all subscription accounts with owner permissions to prevent a breach.",
       "Remediation": "Enable MFA for all owner accounts via Conditional Access or Security Defaults.",
-      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111",
+      "ResourceId": "11111111-1111-1111-1111-111111111111",
       "AssessmentId": "assess-aad-mfa",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/defender-for-cloud/review-security-recommendations"
     },

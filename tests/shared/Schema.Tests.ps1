@@ -56,14 +56,32 @@ Describe 'Test-FindingRow' {
     }
 
     It 'returns false with errors for non-canonical IDs' {
-        $finding = New-FindingRow `
-            -Id 'f-003' `
-            -Source 'azqr' `
-            -EntityId '/Subscriptions/ABC12345-6789-4ABC-8DEF-1234567890AB/ResourceGroups/rg/providers/Microsoft.Storage/storageAccounts/foo' `
-            -EntityType 'AzureResource' `
-            -Title 'Invalid' `
-            -Compliant $false `
-            -ProvenanceRunId 'azqr-run-2'
+        $finding = [PSCustomObject]@{
+            SchemaVersion = '2.0'
+            Id            = 'f-003'
+            Source        = 'azqr'
+            Platform      = 'Azure'
+            EntityType    = 'AzureResource'
+            EntityId      = '/Subscriptions/ABC12345-6789-4ABC-8DEF-1234567890AB/ResourceGroups/rg/providers/Microsoft.Storage/storageAccounts/foo'
+            SubscriptionId = 'abc12345-6789-4abc-8def-1234567890ab'
+            ResourceGroup = 'rg'
+            Category      = 'Security'
+            Severity      = 'High'
+            Title         = 'Invalid'
+            Compliant     = $false
+            RiskAccepted  = $false
+            Description   = ''
+            Recommendation = ''
+            Links         = [PSCustomObject]@{}
+            Evidence      = [PSCustomObject]@{}
+            Tags          = @()
+            Details       = [PSCustomObject]@{}
+            TimestampUtc  = (Get-Date).ToUniversalTime().ToString('o')
+            Provenance    = [PSCustomObject]@{
+                Source = 'azqr'
+                RunId  = 'azqr-run-2'
+            }
+        }
 
         $errors = @()
         (Test-FindingRow -Finding $finding -ErrorDetails ([ref]$errors)) | Should -BeFalse

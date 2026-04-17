@@ -159,7 +159,7 @@ Describe 'Normalize-Scorecard' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'scorecard'
-                        ResourceId   = ''
+                        ResourceId   = 'github.com/test-org/test-repo'
                         Category     = 'Supply Chain'
                         Title        = 'Test scorecard check'
                         Compliant    = $false

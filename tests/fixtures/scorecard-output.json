@@ -5,7 +5,7 @@
   "Findings": [
     {
       "Source": "scorecard",
-      "ResourceId": "",
+      "ResourceId": "github.com/test-org/test-repo",
       "Category": "Supply Chain",
       "Title": "Branch protection is not enabled on default branch",
       "Compliant": false,
@@ -17,7 +17,7 @@
     },
     {
       "Source": "scorecard",
-      "ResourceId": "",
+      "ResourceId": "github.com/test-org/test-repo",
       "Category": "Supply Chain",
       "Title": "Dependencies are pinned to specific versions",
       "Compliant": true,
@@ -29,7 +29,7 @@
     },
     {
       "Source": "scorecard",
-      "ResourceId": "",
+      "ResourceId": "github.com/test-org/test-repo",
       "Category": "Supply Chain",
       "Title": "SAST tool is not integrated in CI pipeline",
       "Compliant": false,
@@ -41,7 +41,7 @@
     },
     {
       "Source": "scorecard",
-      "ResourceId": "",
+      "ResourceId": "github.com/test-org/test-repo",
       "Category": "Supply Chain",
       "Title": "Signed releases are not configured",
       "Compliant": false,

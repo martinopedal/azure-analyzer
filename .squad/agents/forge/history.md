@@ -13,6 +13,7 @@
 - **2024-12-19:** Updated ralph-triage.js `findRoleKeywordMatch()` — improved generic keyword handling
 - **2024-12-19:** Made `go:needs-research` conditional (not unconditional application)
 - **2024-12-19:** Commits c588589 (SHA-pinning), 506ae8c (triage + docs + code)
+- **2026-04-18:** Fixed PR #120 canonical-ID regressions after origin/main merge by updating wrapper fixtures/tests to canonical repository/subscription IDs and aligning Azure Cost + Defender subscription normalizers with strict `New-FindingRow` canonicalization. Final local Pester: 490/490 passing.
 
 ## Learnings
 

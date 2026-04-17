@@ -384,7 +384,7 @@ Describe 'Normalize-IdentityCorrelation' {
         $finding = New-FindingRow `
             -Id 'ic-001' `
             -Source 'identity-correlator' `
-            -EntityId 'spn/test-app-id' `
+            -EntityId 'appId:11111111-aaaa-bbbb-cccc-222222222222' `
             -EntityType 'ServicePrincipal' `
             -Title 'SPN test spans Azure, Entra' `
             -Compliant $true `

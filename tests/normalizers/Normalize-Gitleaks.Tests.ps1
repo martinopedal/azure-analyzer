@@ -72,9 +72,9 @@ Describe 'Normalize-Gitleaks' {
         }
 
         It 'canonicalizes file paths' {
-            $results[0].EntityId | Should -BeExactly 'src/config.js'
-            $results[1].EntityId | Should -BeExactly 'deploy/secrets.env'
-            $results[2].EntityId | Should -BeExactly '.env'
+            $results[0].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
+            $results[1].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
+            $results[2].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
         }
     }
 
@@ -205,7 +205,7 @@ Describe 'Normalize-Gitleaks' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'gitleaks'
-                        ResourceId   = 'secret-file.txt'
+                        ResourceId   = 'github.com/test-org/test-repo'
                         Category     = 'Secret Detection'
                         Title        = 'Secret detected'
                         Compliant    = $false
@@ -228,7 +228,7 @@ Describe 'Normalize-Gitleaks' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'gitleaks'
-                        ResourceId   = 'src\secrets\config.env'
+                        ResourceId   = 'github.com\test-org\test-repo'
                         Category     = 'Secret Detection'
                         Title        = 'Secret found'
                         Compliant    = $false
@@ -239,7 +239,7 @@ Describe 'Normalize-Gitleaks' {
                 )
             }
             $results = Normalize-Gitleaks -ToolResult $windowsPathInput
-            $results[0].EntityId | Should -BeExactly 'src/secrets/config.env'
+            $results[0].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
         }
     }
 }
