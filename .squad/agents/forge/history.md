@@ -13,6 +13,7 @@
 - **2024-12-19:** Updated ralph-triage.js `findRoleKeywordMatch()` — improved generic keyword handling
 - **2024-12-19:** Made `go:needs-research` conditional (not unconditional application)
 - **2024-12-19:** Commits c588589 (SHA-pinning), 506ae8c (triage + docs + code)
+- **2026-04-18:** Extended PR #116 runspace sanitizer fix to remaining parallel paths (AzureCost, DefenderForCloud, Kubescape, orchestrator `$runnerBlock`); Pester 398/398 green.
 
 ## Learnings
 
@@ -21,3 +22,4 @@
 - Self-skip pattern for `workflow_run` watchers should include workflow-name exclusion to avoid recursive self-processing.
 - Repeated CI failures should comment `still failing — {run_url}` on the open hash-matched issue instead of creating duplicates.
 - Treat `workflow_run` payload fields as untrusted input: pass through `env` and reference shell variables in `run:` blocks to reduce expression-injection risk.
+- Any script that runs under `ForEach-Object -Parallel` must dot-source shared helpers (like `Sanitize.ps1`) inside that runspace and provide a local fallback to avoid `CommandNotFoundException`.
