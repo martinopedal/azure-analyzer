@@ -71,6 +71,8 @@ Missing prerequisites are detected and reported with install commands. Use **`-I
 
 The installer enforces a 300s timeout on external commands, scrubs credentials from output via `Remove-Credentials`, returns rich error objects (`New-InstallerError` / `Write-InstallerError`), and retries transient failures via `Invoke-WithInstallRetry` (jittered backoff).
 
+**Supply-chain security**: Version pins + SHA-256 checksums live in `tools/install-manifest.json`. Tools downloaded via direct URLs (Linux azqr, gitleaks, trivy, scorecard) have their SHA-256 verified before use. Package-manager installs (winget/brew/pipx) delegate checksum verification to the respective package manager. Each release includes a **CycloneDX 1.5 SBOM** (`sbom.json`) with exact versions, checksums, and upstream sources for all tools.
+
 **AzGovViz auto-bootstrap:** when `-InstallMissingModules` is set and AzGovViz is enabled, the installer clones `https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting` into `tools/AzGovViz/` on first run — no manual step required.
 
 Results land in `output/` -- multiple JSON files (findings, entities, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
@@ -335,25 +337,27 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 
 ### What each tool does
 
-| # | Tool | What it assesses | How it works |
-|---|------|-----------------|-------------|
-| 1 | **[azqr](https://azure.github.io/azqr)** | Azure resource compliance -- storage encryption, Key Vault config, App Service HTTPS, SQL auditing, 200+ checks | CLI scans a subscription and emits per-resource recommendations with severity |
-| 2 | **[PSRule for Azure](https://azure.github.io/PSRule.Rules.Azure/)** | Infrastructure best practices -- managed disks, network isolation, diagnostic settings, WAF alignment | PowerShell module evaluates resources against 400+ rules, returns pass/fail per rule |
-| 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy -- management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies |
-| 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance -- 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column |
-| 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture -- single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector |
-| 6 | **Azure Cost (Consumption API)** | 30-day subscription spend + top 20 costly resources; folds `MonthlyCost` / `Currency` onto existing entities for blast-radius-weighted reporting | Read-only REST call to `Microsoft.Consumption/usageDetails`; no new role required |
-| 7 | **Defender for Cloud** | Per-subscription Secure Score + non-healthy assessments (MFA, secure transfer, disk encryption, etc.); each recommendation folds onto the same AzureResource entity as azqr/PSRule | Read-only REST call to `Microsoft.Security/secureScores` + `/assessments`; graceful skip when Defender is not enabled |
-| 8 | **[kubescape](https://github.com/kubescape/kubescape)** | AKS runtime posture — CIS Kubernetes Benchmark + NSA/CISA hardening controls run against each discovered AKS cluster via kubectl | CLI scans each cluster using an isolated per-cluster kubeconfig; each failing control folds onto the AKS cluster AzureResource entity |
-| 9 | **[Falco](https://falco.org/)** | AKS runtime anomaly/threat detection — suspicious runtime activity such as unexpected shells, sensitive writes, and process anomalies | Default query mode reads Falco-related alerts already surfaced in Azure; optional `-InstallFalco` mode can deploy Falco via Helm, capture runtime alerts, and map them to the AKS AzureResource entity |
-| 10 | **[kube-bench](https://github.com/aquasecurity/kube-bench)** | AKS node-level CIS checks — worker node, kubelet, and host hardening controls that complement kubescape API-level posture checks | Applies a temporary `kube-system` Job per cluster, collects kube-bench JSON logs, maps FAIL/WARN checks onto the AKS cluster AzureResource entity, and cleans up Job resources afterward |
-| 11 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration |
-| 12 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) |
-| 13 | **ADO Service Connections** | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | REST API queries ADO org/projects and catalogs all service endpoints with auth details |
-| 14 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity |
-| 15 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns |
-| 16 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) |
-| 17 | **Identity Correlator** | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) |
+| # | Tool | What it assesses | How it works | License |
+|---|------|-----------------|-------------|---------|
+| 1 | **[azqr](https://azure.github.io/azqr)** | Azure resource compliance -- storage encryption, Key Vault config, App Service HTTPS, SQL auditing, 200+ checks | CLI scans a subscription and emits per-resource recommendations with severity | MIT |
+| 2 | **[PSRule for Azure](https://azure.github.io/PSRule.Rules.Azure/)** | Infrastructure best practices -- managed disks, network isolation, diagnostic settings, WAF alignment | PowerShell module evaluates resources against 400+ rules, returns pass/fail per rule | MIT |
+| 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy -- management group structure, RBAC assignments, policy compliance, orphaned resources | PowerShell script crawls the tenant tree and reports governance anomalies | MIT |
+| 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance -- 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column | MIT |
+| 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture -- single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector | MIT |
+| 6 | **Azure Cost (Consumption API)** | 30-day subscription spend + top 20 costly resources; folds `MonthlyCost` / `Currency` onto existing entities for blast-radius-weighted reporting | Read-only REST call to `Microsoft.Consumption/usageDetails`; no new role required | Azure REST API (MS Service Terms) |
+| 7 | **Defender for Cloud** | Per-subscription Secure Score + non-healthy assessments (MFA, secure transfer, disk encryption, etc.); each recommendation folds onto the same AzureResource entity as azqr/PSRule | Read-only REST call to `Microsoft.Security/secureScores` + `/assessments`; graceful skip when Defender is not enabled | Azure REST API (MS Service Terms) |
+| 8 | **[kubescape](https://github.com/kubescape/kubescape)** | AKS runtime posture — CIS Kubernetes Benchmark + NSA/CISA hardening controls run against each discovered AKS cluster via kubectl | CLI scans each cluster using an isolated per-cluster kubeconfig; each failing control folds onto the AKS cluster AzureResource entity | Apache-2.0 |
+| 9 | **[Falco](https://falco.org/)** | AKS runtime anomaly/threat detection — suspicious runtime activity such as unexpected shells, sensitive writes, and process anomalies | Default query mode reads Falco-related alerts already surfaced in Azure; optional `-InstallFalco` mode can deploy Falco via Helm, capture runtime alerts, and map them to the AKS AzureResource entity | Apache-2.0 |
+| 10 | **[kube-bench](https://github.com/aquasecurity/kube-bench)** | AKS node-level CIS checks — worker node, kubelet, and host hardening controls that complement kubescape API-level posture checks | Applies a temporary `kube-system` Job per cluster, collects kube-bench JSON logs, maps FAIL/WARN checks onto the AKS cluster AzureResource entity, and cleans up Job resources afterward | Apache-2.0 |
+| 11 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration | MIT |
+| 12 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) | Apache-2.0 |
+| 13 | **ADO Service Connections** *(first-party)* | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | Native REST API collector (`modules/Invoke-ADOServiceConnections.ps1`) queries ADO org/projects and catalogs all service endpoints with auth details | MIT (this project — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md#ado-service-connections-scanner-first-party)) |
+| 14 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity | Apache-2.0 |
+| 15 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
+| 16 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
+| 17 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
+
+Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
@@ -448,54 +452,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process. Key points:
 - ARG queries live in `queries/` as JSON -- every query must return a `compliant` column (boolean)
 - All GitHub Actions must use SHA-pinned versions
 
-The `.squad/` directory contains AI team infrastructure for automated triage and development workflows. It is **not** part of the tool itself and is excluded from archive downloads.
-
-## CI / Automation
-
-| Workflow | Trigger | Purpose |
-|---|---|---|
-| `codeql.yml` | Push / PR / weekly | Static analysis for security vulnerabilities (CodeQL, SHA-pinned) |
-| `docs-check.yml` | PR | Ensures documentation is updated with code changes |
-| `pr-review-gate.yml` | `pull_request_review` + `pull_request_review_comment` | Auto-ingests review feedback, writes lockout-aware consensus plan to `.squad/decisions/inbox/`, and posts PR gate summary comment |
-| `ci-failure-watchdog.yml` | `workflow_run` on failure | Files or updates a deduplicated CI failure bug issue (hash = workflow + first error line) |
-
-Set `SQUAD_WATCH_CI=1` to opt in to the local polling helper (`tools/Watch-GithubActions.ps1`) that applies the same dedup triage loop outside GitHub Actions.
-
-<details>
-<summary>Maintainer workflows (squad infrastructure)</summary>
-
-These workflows support the AI development team and are excluded from archive downloads.
-
-| Workflow | Purpose |
-|---|---|
-| `squad-heartbeat.yml` | Automated triage and CI gate via Ralph |
-| `squad-triage.yml` | Issue routing to squad members |
-| `squad-issue-assign.yml` | Auto-assignment of issues to squad agents |
-| `sync-squad-labels.yml` | Syncs squad labels across the repo |
-| `ci-failure-watchdog.yml` | Auto-files or updates `ci-failure` issues for failed workflow runs |
-| `auto-label-issues.yml` | Adds the `squad` label to new issues |
-| `pr-review-gate.yml` | Ingests Copilot/human review feedback and enforces Reviewer Rejection Lockout planning |
-
-</details>
-
 ## Data Sources & Attribution
 
-This tool wraps the following open-source projects. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for full license details.
+Licenses and copyright for every tool are shown inline in the [**What each tool does**](#what-each-tool-does) table above. Full license text and upstream repository links: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
 
-| Tool | Source | License |
-|------|--------|---------|
-| azqr | [Azure/azqr](https://github.com/Azure/azqr) | MIT |
-| AzGovViz | [JulianHayward/Azure-MG-Sub-Governance-Reporting](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) | MIT |
-| PSRule for Azure | [Azure/PSRule.Rules.Azure](https://github.com/Azure/PSRule.Rules.Azure) | MIT |
-| WARA | [Azure/Azure-Proactive-Resiliency-Library-v2](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2) | MIT |
-| ALZ Query Data | [martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) (derived from [Azure/review-checklists](https://github.com/Azure/review-checklists)) | MIT |
-| Maester | [maester365/maester](https://github.com/maester365/maester) | MIT |
-| OpenSSF Scorecard | [ossf/scorecard](https://github.com/ossf/scorecard) | Apache 2.0 |
-| ADO Service Connections | Native REST API scanner (no external dependency) | -- |
-| zizmor | [woodruffw/zizmor](https://github.com/woodruffw/zizmor) | MIT |
-| gitleaks | [gitleaks/gitleaks](https://github.com/gitleaks/gitleaks) | MIT |
-| Trivy | [aquasecurity/trivy](https://github.com/aquasecurity/trivy) | Apache 2.0 |
+First-party components (MIT, this project): ADO Service Connections scanner, Identity Correlator, orchestrator, schema, normalizers, reports, installer.
 
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE).
