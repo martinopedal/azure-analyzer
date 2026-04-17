@@ -113,12 +113,17 @@ jobs:
 
             core.info(`Issue #${issue.number} assigned to ${assignedMember.name} (${assignedMember.role})`);
 
-      # Separate step: assign @copilot using PAT (required for coding agent)
+      # Separate step: assign @copilot using PAT (required for coding agent).
+      # Falls back to GITHUB_TOKEN when COPILOT_ASSIGN_TOKEN is not configured so
+      # the step runs and API rejection is caught by the script's try/catch
+      # instead of aborting with "Input required and not supplied: github-token".
       - name: Assign @copilot coding agent
         if: github.event.label.name == 'squad:copilot'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          HAS_COPILOT_PAT: ${{ secrets.COPILOT_ASSIGN_TOKEN != '' && '1' || '' }}
         with:
-          github-token: ${{ secrets.COPILOT_ASSIGN_TOKEN }}
+          github-token: ${{ secrets.COPILOT_ASSIGN_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -127,6 +132,10 @@ jobs:
             // Get the default branch name (main, master, etc.)
             const { data: repoData } = await github.rest.repos.get({ owner, repo });
             const baseBranch = repoData.default_branch;
+
+            if (!process.env.HAS_COPILOT_PAT) {
+              core.warning('COPILOT_ASSIGN_TOKEN not configured — attempting assignment with GITHUB_TOKEN. copilot-swe-agent[bot] assignment typically requires a PAT; configure the secret to enable autonomous cloud-agent pickup.');
+            }
 
             try {
               await github.request('POST /repos/{owner}/{repo}/issues/{issue_number}/assignees', {
