@@ -133,10 +133,13 @@ function Get-IdentityCandidatesFromStore {
         # Ensure candidate entry exists
         if (-not $candidates.ContainsKey($candidateKey)) {
             $candidates[$candidateKey] = @{
-                AppId        = $appId
-                ObjectId     = $objectId
-                DisplayName  = $displayName
-                Dimensions   = @{}
+                AppId                 = $appId
+                ObjectId              = $objectId
+                DisplayName           = $displayName
+                Dimensions            = @{}
+                HasPrivilegedAzureRole = $false
+                HasPatBasedAdoAuth    = $false
+                CiEvidenceCount       = 0
             }
         }
 
@@ -167,16 +170,27 @@ function Get-IdentityCandidatesFromStore {
             if (-not $obs) { continue }
             $obsPlatform = $null
             if ($obs.PSObject.Properties['Platform']) { $obsPlatform = $obs.Platform }
-            if ($obsPlatform) {
+            $obsTitle = ''
+            if ($obs.PSObject.Properties['Title']) { $obsTitle = $obs.Title }
+            $obsSource = ''
+            if ($obs.PSObject.Properties['Source']) { $obsSource = $obs.Source }
+            $obsDetail = ''
+            if ($obs.PSObject.Properties['Detail']) { $obsDetail = $obs.Detail }
+            $signalText = @($obsTitle, $obsDetail) -join ' '
+            if ($obsPlatform -eq 'Azure' -and $signalText -match '(?i)\b(owner|contributor)\b') {
+                $candidate.HasPrivilegedAzureRole = $true
+            }
+            if ($obsPlatform -eq 'ADO' -and $signalText -match '(?i)\b(AuthScheme=Token|pat|personal access token)\b') {
+                $candidate.HasPatBasedAdoAuth = $true
+            }
+            if ($obsPlatform -in @('ADO', 'GitHub')) {
+                $candidate.CiEvidenceCount += 1
+            }
+
+            if ($obsPlatform -and $obsPlatform -ne $dimension) {
                 if (-not $candidate.Dimensions.ContainsKey($obsPlatform)) {
                     $candidate.Dimensions[$obsPlatform] = [System.Collections.Generic.List[string]]::new()
                 }
-                $obsTitle = ''
-                if ($obs.PSObject.Properties['Title']) { $obsTitle = $obs.Title }
-                $obsSource = ''
-                if ($obs.PSObject.Properties['Source']) { $obsSource = $obs.Source }
-                $obsDetail = ''
-                if ($obs.PSObject.Properties['Detail']) { $obsDetail = $obs.Detail }
                 $evidenceText = "Finding: $obsSource - $obsTitle"
                 if ($obsDetail) { $evidenceText += " | $obsDetail" }
                 $candidate.Dimensions[$obsPlatform].Add($evidenceText)
@@ -514,8 +528,8 @@ function Invoke-IdentityCorrelation {
 
         $findings.Add($row)
 
-        $hasPrivilegedAzureRole = $false
-        if ($candidate.Dimensions.ContainsKey('Azure')) {
+        $hasPrivilegedAzureRole = [bool]$candidate.HasPrivilegedAzureRole
+        if (-not $hasPrivilegedAzureRole -and $candidate.Dimensions.ContainsKey('Azure')) {
             foreach ($ev in @($candidate.Dimensions['Azure'])) {
                 if ($ev -match '(?i)\b(owner|contributor)\b') {
                     $hasPrivilegedAzureRole = $true
@@ -534,8 +548,8 @@ function Invoke-IdentityCorrelation {
                 -EvidenceCount $evidenceCount))
         }
 
-        $hasPatBasedAuth = $false
-        if ($candidate.Dimensions.ContainsKey('ADO')) {
+        $hasPatBasedAuth = [bool]$candidate.HasPatBasedAdoAuth
+        if (-not $hasPatBasedAuth -and $candidate.Dimensions.ContainsKey('ADO')) {
             foreach ($ev in @($candidate.Dimensions['ADO'])) {
                 if ($ev -match '(?i)\b(AuthScheme=Token|pat|personal access token)\b') {
                     $hasPatBasedAuth = $true
@@ -553,7 +567,7 @@ function Invoke-IdentityCorrelation {
                 -EvidenceCount $evidenceCount))
         }
 
-        $ciBindings = 0
+        $ciBindings = [int]$candidate.CiEvidenceCount
         if ($candidate.Dimensions.ContainsKey('GitHub')) { $ciBindings += @($candidate.Dimensions['GitHub']).Count }
         if ($candidate.Dimensions.ContainsKey('ADO')) { $ciBindings += @($candidate.Dimensions['ADO']).Count }
         if ($ciBindings -gt 1) {
