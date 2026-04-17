@@ -14,6 +14,10 @@ All code changes follow this pipeline:
 6. **CI** - all GitHub Actions must pass (CodeQL, docs-check)
 7. **Merge** - squash merge to main, delete feature branch
 
+## Automated Review Ingestion
+
+When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are added, the `pr-review-gate.yml` workflow triggers automatically. It ingests PR reviews/comments, builds a 3-model triage bundle (Claude premium + GPT codex + Goldeneye), writes the consensus plan to `.squad/decisions/inbox/`, and posts a PR summary comment with ownership and next actions. Reviewer Rejection Lockout is automatic, the rejected PR author agent is mechanically locked out from doing the revision in that gate cycle, and the consensus must name a different revision owner.
+
 ## Code Quality Rules
 
 - PS 7.4+ only. No ?. null-conditional on variables

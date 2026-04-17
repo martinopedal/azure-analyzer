@@ -1,0 +1,45 @@
+name: PR Review Gate
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created, edited]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  review-gate:
+    if: >
+      github.event_name == 'pull_request_review_comment' ||
+      (github.event_name == 'pull_request_review' &&
+      (github.event.review.state == 'CHANGES_REQUESTED' ||
+      (github.event.review.user.login == 'copilot-pull-request-reviewer[bot]' && github.event.review.state != 'APPROVED')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install PowerShell
+        run: |
+          if ! command -v pwsh >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y powershell
+          fi
+
+      - name: Run PR review gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+          PR_AUTHOR_AGENT: ${{ github.event.pull_request.user.login }}
+        shell: pwsh
+        run: |
+          ./modules/shared/Invoke-PRReviewGate.ps1 `
+            -PRNumber ([int]$env:PR_NUMBER) `
+            -Repo $env:REPO_NAME `
+            -OutputPath ".squad/decisions/inbox/" `
+            -PRAuthorAgent $env:PR_AUTHOR_AGENT
