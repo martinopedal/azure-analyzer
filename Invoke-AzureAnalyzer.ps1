@@ -34,6 +34,9 @@
     When provided, ADO tools are included in the run.
 .PARAMETER AdoProject
     Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
+.PARAMETER AdoPat
+    Azure DevOps PAT passed to ADO-scoped wrappers. Optional; wrappers also read
+    ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, and AZ_DEVOPS_PAT.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -57,10 +60,13 @@ param (
     [switch] $InstallMissingModules,
     [switch] $Recurse,
     [string] $Repository,
-    [string] $GitHubHost = '',
+    [string] $GitHubHost = 'github.com',
     [string] $RepoPath,
+    [Alias('AdoOrganization')]
     [string] $AdoOrg,
     [string] $AdoProject,
+    [Alias('AdoPatToken')]
+    [string] $AdoPat,
     [string] $AdoRepoUrl,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
@@ -70,6 +76,10 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [switch] $InstallFalco,
+    [switch] $UninstallFalco,
+    [ValidateRange(1, 60)]
+    [int] $FalcoCaptureMinutes = 5,
     [switch] $EnableAiTriage
 )
 
@@ -252,6 +262,11 @@ foreach ($toolDef in $manifest.tools) {
                 if ($toolDef.name -eq 'azqr') {
                     $params['OutputPath'] = Join-Path $OutputPath "azqr-$subId"
                 }
+                if ($toolDef.name -eq 'falco') {
+                    if ($InstallFalco)  { $params['InstallFalco'] = $true }
+                    if ($UninstallFalco) { $params['UninstallFalco'] = $true }
+                    $params['CaptureMinutes'] = $FalcoCaptureMinutes
+                }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{
                     Name        = $specName
@@ -366,6 +381,7 @@ foreach ($toolDef in $manifest.tools) {
             }
             $params = @{ AdoOrg = $AdoOrg }
             if ($AdoProject) { $params['AdoProject'] = $AdoProject }
+            if ($AdoPat) { $params['AdoPat'] = $AdoPat }
             $specName = "$($toolDef.name)|ado"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName

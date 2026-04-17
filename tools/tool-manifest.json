@@ -120,6 +120,33 @@
       }
     },
     {
+      "name": "falco",
+      "displayName": "Falco (AKS runtime anomaly detection)",
+      "source": "falco",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Falco",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-Falco.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["ClusterArmIds", "InstallFalco", "UninstallFalco", "CaptureMinutes"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#ef6c00", "phase": 6 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.ResourceGraph"]
+      },
+      "upstream": {
+        "repo": "falcosecurity/falco",
+        "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "0.42.0"
+      }
+    },
+    {
       "name": "azure-cost",
       "displayName": "Azure Cost (Consumption API)",
       "source": "azure-cost",
