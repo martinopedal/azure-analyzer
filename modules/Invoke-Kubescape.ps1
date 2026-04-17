@@ -43,6 +43,12 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock, [int]$MaxAttempts = 3) & $ScriptBlock }
 }
 
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'kubescape'
@@ -93,7 +99,7 @@ if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
         $clusters = @($argResp)
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "ARG discovery failed: $($_.Exception.Message)"
+        $result.Message = "ARG discovery failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
         return [pscustomobject]$result
     }
 }
@@ -181,7 +187,7 @@ foreach ($cluster in $clusters) {
         }
     } catch {
         $failed++
-        Write-Warning "kubescape scan failed for cluster $($cluster.name): $($_.Exception.Message)"
+        Write-Warning "kubescape scan failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     } finally {
         # Remove the isolated kubeconfig to avoid leaking cluster auth.
         if ($tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
@@ -195,6 +201,8 @@ $result.Findings = @($findings)
 $result.Message  = "Scanned $scanned AKS cluster(s); $failed failed; emitted $($findings.Count) non-passing control findings."
 if ($scanned -eq 0 -and $failed -gt 0) {
     $result.Status = 'Failed'
+} elseif ($scanned -gt 0 -and $failed -gt 0) {
+    $result.Status = 'PartialSuccess'
 }
 
 return [pscustomobject]$result

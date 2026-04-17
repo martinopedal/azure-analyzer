@@ -53,28 +53,40 @@ Describe 'Normalize-Gitleaks' {
             $results = Normalize-Gitleaks -ToolResult $fixture
         }
 
-        It 'lowercases EntityId' {
+        It 'uses canonical repository EntityId' {
             foreach ($r in $results) {
-                $r.EntityId | Should -BeExactly $r.EntityId.ToLowerInvariant()
+                $r.EntityId | Should -Be 'github.com/local/local'
             }
         }
 
-        It 'uses forward slashes in EntityId' {
+        It 'lowercases ResourceId path' {
             foreach ($r in $results) {
-                $r.EntityId | Should -Not -Match '\\'
+                $r.ResourceId | Should -BeExactly $r.ResourceId.ToLowerInvariant()
             }
         }
 
-        It 'has a non-empty EntityId' {
+        It 'uses forward slashes in ResourceId path' {
             foreach ($r in $results) {
-                $r.EntityId | Should -Not -BeNullOrEmpty
+                $r.ResourceId | Should -Not -Match '\\'
             }
         }
 
-        It 'canonicalizes file paths' {
-            $results[0].EntityId | Should -BeExactly 'src/config.js'
-            $results[1].EntityId | Should -BeExactly 'deploy/secrets.env'
-            $results[2].EntityId | Should -BeExactly '.env'
+        It 'has non-empty ResourceId path' {
+            foreach ($r in $results) {
+                $r.ResourceId | Should -Not -BeNullOrEmpty
+            }
+        }
+
+        It 'canonicalizes repository EntityId' {
+            foreach ($r in $results) {
+                $r.EntityId | Should -BeExactly 'github.com/local/local'
+            }
+        }
+
+        It 'normalizes ResourceId with canonical slashes/lowercase' {
+            $results[0].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
+            $results[1].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
+            $results[2].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
         }
     }
 
@@ -205,7 +217,7 @@ Describe 'Normalize-Gitleaks' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'gitleaks'
-                        ResourceId   = 'secret-file.txt'
+                        ResourceId   = 'github.com/test-org/test-repo'
                         Category     = 'Secret Detection'
                         Title        = 'Secret detected'
                         Compliant    = $false
@@ -228,7 +240,7 @@ Describe 'Normalize-Gitleaks' {
                 Findings = @(
                     [PSCustomObject]@{
                         Source       = 'gitleaks'
-                        ResourceId   = 'src\secrets\config.env'
+                        ResourceId   = 'github.com\test-org\test-repo'
                         Category     = 'Secret Detection'
                         Title        = 'Secret found'
                         Compliant    = $false
@@ -239,7 +251,8 @@ Describe 'Normalize-Gitleaks' {
                 )
             }
             $results = Normalize-Gitleaks -ToolResult $windowsPathInput
-            $results[0].EntityId | Should -BeExactly 'src/secrets/config.env'
+            $results[0].EntityId | Should -Be 'github.com/local/local'
+            $results[0].ResourceId | Should -BeExactly 'github.com/test-org/test-repo'
         }
     }
 }

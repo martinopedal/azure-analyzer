@@ -90,12 +90,15 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
+}
+if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
+    function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
 }
 
 # ---------------------------------------------------------------------------
@@ -135,7 +138,9 @@ function Get-ChildSubscriptions {
     param ([string]$ManagementGroupId)
     $query = "resourcecontainers | where type == 'microsoft.resources/subscriptions'"
     try {
-        $subs = Search-AzGraph -Query $query -ManagementGroup $ManagementGroupId -First 1000 -ErrorAction Stop
+        $subs = Invoke-WithRetry -ScriptBlock {
+            Search-AzGraph -Query $query -ManagementGroup $ManagementGroupId -First 1000 -ErrorAction Stop
+        }
         return @($subs | Select-Object -ExpandProperty subscriptionId -Unique)
     } catch {
         Write-Warning (Remove-Credentials "Failed to enumerate subscriptions under $ManagementGroupId : $_")
@@ -218,6 +223,11 @@ $runnerBlock = {
             Findings = @()
         }
     }
+    $sanitizePath = Join-Path ([System.IO.Path]::GetDirectoryName($ScriptPath)) 'shared' 'Sanitize.ps1'
+    if (Test-Path $sanitizePath) { . $sanitizePath }
+    if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+        function Remove-Credentials { param ([string]$Text) return $Text }
+    }
     try {
         $result = & $ScriptPath @ToolParams
         return $result
@@ -225,7 +235,7 @@ $runnerBlock = {
         return [PSCustomObject]@{
             Source   = [System.IO.Path]::GetFileNameWithoutExtension($ScriptPath)
             Status   = 'Failed'
-            Message  = $_.Exception.Message
+            Message  = (Remove-Credentials $_.Exception.Message)
             Findings = @()
         }
     }

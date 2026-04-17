@@ -23,6 +23,12 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
 function Find-AzGovViz {
     $candidates = @(
         (Join-Path (Get-Location) 'AzGovVizParallel.ps1'),
@@ -70,7 +76,7 @@ try {
             $data = Get-Content -Raw $file.FullName | ConvertFrom-Json -ErrorAction Stop
             $findings += $data
         } catch {
-            Write-Warning "Could not parse AzGovViz output $($file.Name): $_"
+            Write-Warning "Could not parse AzGovViz output $($file.Name): $(Remove-Credentials -Text ([string]$_))"
         }
     }
 
@@ -81,11 +87,11 @@ try {
         Findings = $findings
     }
 } catch {
-    Write-Warning "AzGovViz run failed: $_"
+    Write-Warning "AzGovViz run failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'azgovviz'
         Status   = 'Failed'
-        Message  = "$_"
+        Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
     }
 }

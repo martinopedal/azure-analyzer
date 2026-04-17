@@ -36,15 +36,17 @@ function Normalize-AzureCost {
 
         $subId = ''
         $rg    = ''
-        if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
-        if ($rawId -match '/resourceGroups/([^/]+)') { $rg    = $Matches[1] }
+        if ($rawId -match '^[0-9a-fA-F-]{36}$') { $subId = $rawId }
+        elseif ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
+        if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }
 
-        $isSubscription = ($rawId -match '^/subscriptions/[^/]+/?$') -or `
+        $isSubscription = ($rawId -match '^[0-9a-fA-F-]{36}$') -or `
+                          ($rawId -match '^/subscriptions/[^/]+/?$') -or `
                           ($f.PSObject.Properties['ResourceType'] -and $f.ResourceType -eq 'Microsoft.Resources/subscriptions')
 
         if ($isSubscription) {
             $entityType  = 'Subscription'
-            $canonicalId = "/subscriptions/$subId"
+            $canonicalId = $subId.ToLowerInvariant()
         } else {
             $entityType = 'AzureResource'
             try   { $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId }
@@ -70,7 +72,10 @@ function Normalize-AzureCost {
         # Attach them to the finding so the orchestrator can fold them onto the entity.
         $row | Add-Member -NotePropertyName MonthlyCost -NotePropertyValue $monthlyCost -Force
         $row | Add-Member -NotePropertyName Currency    -NotePropertyValue $currency    -Force
-        $normalized.Add($row)
+        # Skip null rows (validation failed)
+        if ($null -ne $row) {
+            $normalized.Add($row)
+        }
     }
 
     return @($normalized)

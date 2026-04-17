@@ -13,7 +13,7 @@
       "Compliant": true,
       "Title": "30-day subscription spend: 1234.56 USD",
       "Detail": "Aggregated from 3 usageDetails records.",
-      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111",
+      "ResourceId": "11111111-1111-1111-1111-111111111111",
       "ResourceType": "Microsoft.Resources/subscriptions",
       "MonthlyCost": 1234.56,
       "Currency": "USD",

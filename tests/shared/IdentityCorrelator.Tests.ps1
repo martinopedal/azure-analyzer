@@ -384,7 +384,7 @@ Describe 'Normalize-IdentityCorrelation' {
         $finding = New-FindingRow `
             -Id 'ic-001' `
             -Source 'identity-correlator' `
-            -EntityId 'spn/test-app-id' `
+            -EntityId 'appId:11111111-aaaa-bbbb-cccc-222222222222' `
             -EntityType 'ServicePrincipal' `
             -Title 'SPN test spans Azure, Entra' `
             -Compliant $true `
@@ -393,10 +393,10 @@ Describe 'Normalize-IdentityCorrelation' {
             -Category 'Identity Correlation' `
             -Severity 'Info'
 
-        $result = Normalize-IdentityCorrelation -ToolResult ([PSCustomObject]@{
+        $result = @(Normalize-IdentityCorrelation -ToolResult ([PSCustomObject]@{
             Status   = 'Success'
             Findings = @($finding)
-        })
+        }))
 
         $result.Count | Should -Be 1
         $result[0].Source | Should -Be 'identity-correlator'
