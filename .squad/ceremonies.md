@@ -2,6 +2,31 @@
 
 > Team meetings that happen before or after work. Each squad configures their own.
 
+## Cloud Agent PR Review
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | auto |
+| **When** | after |
+| **Condition** | `copilot-swe-agent[bot]` (or any background agent) opens a PR |
+| **Facilitator** | Copilot code review + assigned squad reviewer |
+| **Participants** | authoring agent, Copilot reviewer, squad:<member> reviewer |
+| **Time budget** | until all review threads Resolved |
+| **Enabled** | ✅ yes |
+
+**Agenda:**
+1. `copilot-agent-pr-review.yml` auto-requests Copilot code review on PR open (also applies to local/background agent PRs — opt in by adding reviewer manually).
+2. Authoring agent MUST respond to every Copilot review comment — either with a code change or an explicit reply explaining why it does not apply. **Issue comments from Copilot count as review comments for this ceremony.**
+3. Squad reviewer (the member whose `squad:<name>` label is on the issue) reviews the PR once all Copilot threads are Resolved, applying `reviewer-protocol` semantics (may reject → strict lockout, revision by a different agent).
+4. Merge only after: all Copilot threads **Resolved** + squad reviewer **Approved** + required CI green.
+
+**Anti-patterns:**
+- ❌ Squash-merging a cloud agent PR with unresolved Copilot review threads
+- ❌ Letting the authoring agent self-dismiss Copilot comments without a reply
+- ❌ Skipping the squad reviewer because "Copilot already reviewed"
+
+---
+
 ## Design Review
 
 | Field | Value |
