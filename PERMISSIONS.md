@@ -27,6 +27,8 @@ Azure, Graph, CI/CD, cost, and optional AI access. See
 | **AzGovViz** | Management Group | Reader | Crawls governance hierarchy, policies, and RBAC assignments |
 | **ALZ Resource Graph queries** | Subscription or MG | Reader | Runs 132 custom ARG queries for Azure architecture assessment |
 | **WARA** | Subscription | Reader | Collects Well-Architected Framework reliability assessment data |
+| **kubescape** | Subscription | Reader + AKS cluster-read RBAC | Runs CIS/NSA Kubernetes posture checks against AKS clusters |
+| **falco** | Subscription | Reader (query mode) + optional AKS cluster-read RBAC for install mode | Reads Falco runtime alerts already present in Azure; optional install mode deploys Falco to AKS for short-lived runtime capture |
 
 **How to grant:**
 ```powershell
@@ -315,6 +317,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **Azure Cost** | ✅ Required (Consumption API read) | -- | -- | -- | -- | -- |
 | **Defender for Cloud** | ✅ Required (Microsoft.Security read) | -- | -- | -- | -- | -- |
 | **kubescape** | ✅ Reader (ARG AKS discovery) + AKS cluster-read RBAC (or kubeconfig) | -- | -- | -- | ✅ `kubescape`, `kubectl`, `az` | -- |
+| **falco** | ✅ Reader (ARG + Microsoft.Security alert query); install mode also needs AKS cluster-read RBAC | -- | -- | -- | ⚡ Optional install mode: `helm`, `kubectl`, `az` | -- |
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |

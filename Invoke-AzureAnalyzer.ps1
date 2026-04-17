@@ -70,6 +70,8 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [switch] $InstallFalco,
+    [switch] $UninstallFalco,
     [switch] $EnableAiTriage
 )
 
@@ -251,6 +253,10 @@ foreach ($toolDef in $manifest.tools) {
                 }
                 if ($toolDef.name -eq 'azqr') {
                     $params['OutputPath'] = Join-Path $OutputPath "azqr-$subId"
+                }
+                if ($toolDef.name -eq 'falco') {
+                    if ($InstallFalco)  { $params['InstallFalco'] = $true }
+                    if ($UninstallFalco) { $params['UninstallFalco'] = $true }
                 }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{
