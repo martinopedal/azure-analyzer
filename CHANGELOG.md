@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- **FindingRow schema validation at normalizer boundary (#99)**: All normalizers now validate findings at construction time via `New-FindingRow` factory. Validation enforces required fields (Id, Source, EntityId, EntityType, Title, Compliant, Provenance.RunId), checks Severity/Platform/EntityType against allowed values, and verifies EntityId canonicalization. Invalid rows are dropped with a sanitized warning logged to stderr; validation failures are tracked via `Get-SchemaValidationFailures` for observability. New `Test-FindingRow` function supports both silent (returns bool + error array) and strict modes (throws exception). Covered by 21 comprehensive tests in `tests/shared/Schema-Validation.Tests.ps1`.
+
 ### Changed
 - **Roadmap / proposal label (prevents auto-pickup of improvement plans)**: New `type:roadmap` label marks issues that are improvement plans or phase proposals, not actionable work. `.squad/templates/ralph-triage.js` `isUntriagedIssue()` now skips any issue tagged `type:roadmap`, so the heartbeat cron and Squad coordinator will no longer pick them up for agent execution. Applied to #91–#97 (phase plans), #106, #108, #109, #110 (review-loop improvements); all `squad:{member}` labels stripped so they render as backlog only.
 - **Notification hygiene (#113)** — reduce email noise from the automation loop:

@@ -86,7 +86,10 @@ function Normalize-Azqr {
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '') `
             -SubscriptionId $subId -ResourceGroup $rg
-        $normalized.Add($row)
+        # Skip null rows (validation failed)
+        if ($null -ne $row) {
+            $normalized.Add($row)
+        }
     }
 
     return @($normalized)

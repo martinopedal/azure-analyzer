@@ -30,6 +30,7 @@ $script:EntityTypes = @(
 )
 $script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
+$script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 function Get-PlatformForEntityType {
     param (
@@ -66,6 +67,28 @@ function Get-PlatformForEntityType {
         'ServiceConnection' { 'ADO' }
         default { throw "Unknown EntityType '$EntityType'." }
     }
+}
+
+function Get-SchemaValidationFailures {
+    <#
+    .SYNOPSIS
+        Retrieve the list of schema validation failures recorded during the current session.
+    .DESCRIPTION
+        Returns an array of PSCustomObjects with Source, Error, Timestamp.
+    #>
+    [CmdletBinding()]
+    param ()
+    return $script:ValidationFailures.ToArray()
+}
+
+function Reset-SchemaValidationFailures {
+    <#
+    .SYNOPSIS
+        Clear all recorded schema validation failures.
+    #>
+    [CmdletBinding()]
+    param ()
+    $script:ValidationFailures.Clear()
 }
 
 function New-FindingRow {
@@ -166,7 +189,7 @@ function New-FindingRow {
         Timestamp    = if ($ProvenanceTimestamp) { $ProvenanceTimestamp.ToUniversalTime().ToString('o') } else { (Get-Date).ToUniversalTime().ToString('o') }
     }
 
-    [PSCustomObject]@{
+    $row = [PSCustomObject]@{
         Id               = $Id
         Source           = $Source
         Category         = $Category
@@ -192,6 +215,33 @@ function New-FindingRow {
         MissingDimensions = $MissingDimensions
         SchemaVersion    = $SchemaVersion
     }
+
+    # Validate the row before returning it
+    $validationErrors = @()
+    $isValid = Test-FindingRow -Finding $row -ErrorDetails ([ref]$validationErrors)
+    if (-not $isValid) {
+        # Sanitize error message
+        $sanitizedError = if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            Remove-Credentials ($validationErrors -join '; ')
+        } else {
+            $validationErrors -join '; '
+        }
+
+        # Log the failure
+        $script:ValidationFailures.Add([PSCustomObject]@{
+            Source    = $Source
+            Error     = $sanitizedError
+            Timestamp = Get-Date
+        })
+
+        # Write warning to stderr
+        Write-Warning "FindingRow validation failed [$Source]: $sanitizedError"
+        
+        # Return null to signal failure (caller should skip this row)
+        return $null
+    }
+
+    return $row
 }
 
 function New-EntityStub {
@@ -286,14 +336,17 @@ function New-EntityStub {
 function Test-FindingRow {
     <#
     .SYNOPSIS
-        Validate a finding row.
+        Validate a finding row against schema v2/v3 requirements.
     .DESCRIPTION
-        Returns $true when valid. When invalid, returns $false and provides
-        error details via -ErrorDetails.
+        By default returns $true/$false with errors via -ErrorDetails.
+        Use -Strict to throw a FindingRowSchemaException instead.
     .PARAMETER Finding
         Finding row to validate.
     .PARAMETER ErrorDetails
-        Output array of validation errors.
+        Output array of validation errors (populated when -Strict is not used).
+    .PARAMETER Strict
+        When set, throws a FindingRowSchemaException with all validation errors
+        instead of returning false.
     #>
     [CmdletBinding()]
     param (
@@ -301,54 +354,91 @@ function Test-FindingRow {
         [ValidateNotNull()]
         [pscustomobject] $Finding,
 
-        [ref] $ErrorDetails
+        [ref] $ErrorDetails,
+
+        [switch] $Strict
     )
 
     $errors = [System.Collections.Generic.List[string]]::new()
 
-    foreach ($required in @('Id', 'Source', 'EntityId', 'EntityType', 'Title', 'Compliant', 'SchemaVersion')) {
-        if (-not $Finding.PSObject.Properties[$required] -or [string]::IsNullOrWhiteSpace([string]$Finding.$required)) {
-            $errors.Add("Required field '$required' is missing or empty.")
+    # Required fields
+    foreach ($required in @('Id', 'Source', 'EntityId', 'EntityType', 'Title', 'SchemaVersion')) {
+        if (-not $Finding.PSObject.Properties[$required]) {
+            $errors.Add("Required field '$required' is missing.")
+        } elseif ([string]::IsNullOrWhiteSpace([string]$Finding.$required)) {
+            $errors.Add("Required field '$required' is empty.")
         }
     }
 
-    if ($Finding.Compliant -isnot [bool]) {
-        $errors.Add("Compliant must be a boolean value.")
+    # Compliant must be present and boolean
+    if (-not $Finding.PSObject.Properties['Compliant']) {
+        $errors.Add("Required field 'Compliant' is missing.")
+    } elseif ($Finding.Compliant -isnot [bool]) {
+        $errors.Add("Compliant must be a boolean value, got '$($Finding.Compliant.GetType().Name)'.")
     }
 
-    if ($Finding.EntityType -and $Finding.EntityType -notin $script:EntityTypes) {
-        $errors.Add("EntityType '$($Finding.EntityType)' is not in the allowed set: $($script:EntityTypes -join ', ').")
+    # EntityType validation
+    if ($Finding.PSObject.Properties['EntityType'] -and $Finding.EntityType) {
+        if ($Finding.EntityType -notin $script:EntityTypes) {
+            $errors.Add("EntityType '$($Finding.EntityType)' is not valid. Valid types: $($script:EntityTypes -join ', ').")
+        }
     }
 
-    if ($Finding.Platform -and $Finding.Platform -notin $script:Platforms) {
-        $errors.Add("Platform '$($Finding.Platform)' is not in the allowed set: $($script:Platforms -join ', ').")
+    # Platform validation
+    if ($Finding.PSObject.Properties['Platform'] -and $Finding.Platform) {
+        if ($Finding.Platform -notin $script:Platforms) {
+            $errors.Add("Platform '$($Finding.Platform)' is not valid. Valid platforms: $($script:Platforms -join ', ').")
+        }
     }
 
-    if ($Finding.Severity -and $Finding.Severity -notin $script:SeverityLevels) {
-        $errors.Add("Severity '$($Finding.Severity)' is not in the allowed set: $($script:SeverityLevels -join ', ').")
+    # Severity validation
+    if ($Finding.PSObject.Properties['Severity'] -and $Finding.Severity) {
+        if ($Finding.Severity -notin $script:SeverityLevels) {
+            $errors.Add("Severity '$($Finding.Severity)' is not valid. Valid levels: $($script:SeverityLevels -join ', ').")
+        }
     }
 
-    if (-not $Finding.Provenance -or -not $Finding.Provenance.RunId) {
-        $errors.Add("Provenance.RunId is required.")
+    # Provenance.RunId validation
+    if (-not $Finding.PSObject.Properties['Provenance']) {
+        $errors.Add("Provenance is missing.")
+    } elseif (-not $Finding.Provenance) {
+        $errors.Add("Provenance is null.")
+    } elseif (-not $Finding.Provenance.PSObject.Properties['RunId']) {
+        $errors.Add("Provenance.RunId is missing.")
+    } elseif ([string]::IsNullOrWhiteSpace($Finding.Provenance.RunId)) {
+        $errors.Add("Provenance.RunId is empty.")
     }
 
-    $canonicalizer = Get-Command -Name ConvertTo-CanonicalEntityId -ErrorAction SilentlyContinue
-    if ($canonicalizer -and $Finding.EntityId -and $Finding.EntityType) {
+    # EntityId canonicalization check (when possible)
+    if ($Finding.PSObject.Properties['EntityId'] -and $Finding.EntityId -and 
+        $Finding.PSObject.Properties['EntityType'] -and $Finding.EntityType -and
+        (Get-Command ConvertTo-CanonicalEntityId -ErrorAction SilentlyContinue)) {
         try {
-            $canonical = ConvertTo-CanonicalEntityId -RawId $Finding.EntityId -EntityType $Finding.EntityType
-            if ($canonical.CanonicalId -cne $Finding.EntityId) {
-                $errors.Add("EntityId is not canonicalized. Expected '$($canonical.CanonicalId)'.")
+            $result = ConvertTo-CanonicalEntityId -RawId $Finding.EntityId -EntityType $Finding.EntityType
+            $canonicalId = $result.CanonicalId
+            # Use case-sensitive comparison (-cne)
+            if ($canonicalId -cne $Finding.EntityId) {
+                $errors.Add("EntityId canonicalization check failed: expected '$canonicalId', got '$($Finding.EntityId)'.")
             }
         } catch {
-            $errors.Add("EntityId canonicalization failed: $_")
+            # Canonicalization failed, record the error
+            $errors.Add("EntityId canonicalization check failed: $_")
         }
+    }
+
+    # Return or throw
+    $isValid = $errors.Count -eq 0
+
+    if (-not $isValid -and $Strict) {
+        $aggregatedError = "FindingRow schema validation failed with $($errors.Count) error(s):`n" + ($errors -join "`n")
+        throw [System.Exception]::new($aggregatedError)
     }
 
     if ($ErrorDetails) {
         $ErrorDetails.Value = $errors.ToArray()
     }
 
-    return $errors.Count -eq 0
+    return $isValid
 }
 
 function Test-EntityRecord {
