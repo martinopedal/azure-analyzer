@@ -167,7 +167,7 @@ function Get-IdentityCandidatesFromStore {
             if (-not $obs) { continue }
             $obsPlatform = $null
             if ($obs.PSObject.Properties['Platform']) { $obsPlatform = $obs.Platform }
-            if ($obsPlatform -and $obsPlatform -ne $dimension) {
+            if ($obsPlatform) {
                 if (-not $candidate.Dimensions.ContainsKey($obsPlatform)) {
                     $candidate.Dimensions[$obsPlatform] = [System.Collections.Generic.List[string]]::new()
                 }
@@ -175,7 +175,11 @@ function Get-IdentityCandidatesFromStore {
                 if ($obs.PSObject.Properties['Title']) { $obsTitle = $obs.Title }
                 $obsSource = ''
                 if ($obs.PSObject.Properties['Source']) { $obsSource = $obs.Source }
-                $candidate.Dimensions[$obsPlatform].Add("Finding: $obsSource - $obsTitle")
+                $obsDetail = ''
+                if ($obs.PSObject.Properties['Detail']) { $obsDetail = $obs.Detail }
+                $evidenceText = "Finding: $obsSource - $obsTitle"
+                if ($obsDetail) { $evidenceText += " | $obsDetail" }
+                $candidate.Dimensions[$obsPlatform].Add($evidenceText)
             }
         }
     }
@@ -330,6 +334,39 @@ function Get-ConfidenceLevel {
     return 'Unconfirmed'
 }
 
+function New-CorrelationRiskFinding {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string] $RunId,
+        [Parameter(Mandatory)]
+        [string] $EntityId,
+        [Parameter(Mandatory)]
+        [string] $Title,
+        [Parameter(Mandatory)]
+        [ValidateSet('Critical', 'High', 'Medium', 'Low', 'Info')]
+        [string] $Severity,
+        [Parameter(Mandatory)]
+        [string] $Detail,
+        [int] $EvidenceCount = 0
+    )
+
+    return (New-FindingRow `
+        -Id ([guid]::NewGuid().ToString()) `
+        -Source 'identity-correlator' `
+        -EntityId $EntityId `
+        -EntityType 'ServicePrincipal' `
+        -Title $Title `
+        -Compliant $false `
+        -ProvenanceRunId $RunId `
+        -Platform 'Entra' `
+        -Category 'Identity Correlation Risk' `
+        -Severity $Severity `
+        -Detail $Detail `
+        -Confidence 'Likely' `
+        -EvidenceCount $EvidenceCount)
+}
+
 function Invoke-IdentityCorrelation {
     <#
     .SYNOPSIS
@@ -476,6 +513,58 @@ function Invoke-IdentityCorrelation {
             -MissingDimensions $missingDims
 
         $findings.Add($row)
+
+        $hasPrivilegedAzureRole = $false
+        if ($candidate.Dimensions.ContainsKey('Azure')) {
+            foreach ($ev in @($candidate.Dimensions['Azure'])) {
+                if ($ev -match '(?i)\b(owner|contributor)\b') {
+                    $hasPrivilegedAzureRole = $true
+                    break
+                }
+            }
+        }
+        $isCiIdentity = $dimensionNames -contains 'GitHub' -or $dimensionNames -contains 'ADO'
+        if ($hasPrivilegedAzureRole -and $isCiIdentity) {
+            $findings.Add((New-CorrelationRiskFinding `
+                -RunId $runId `
+                -EntityId $entityId `
+                -Title "Privileged SPN $displayName is used by CI/CD identity chain" `
+                -Severity 'High' `
+                -Detail "Identity has Azure Owner/Contributor evidence and is linked to CI/CD dimensions ($($dimensionNames -join ', '))." `
+                -EvidenceCount $evidenceCount))
+        }
+
+        $hasPatBasedAuth = $false
+        if ($candidate.Dimensions.ContainsKey('ADO')) {
+            foreach ($ev in @($candidate.Dimensions['ADO'])) {
+                if ($ev -match '(?i)\b(AuthScheme=Token|pat|personal access token)\b') {
+                    $hasPatBasedAuth = $true
+                    break
+                }
+            }
+        }
+        if ($hasPatBasedAuth) {
+            $findings.Add((New-CorrelationRiskFinding `
+                -RunId $runId `
+                -EntityId $entityId `
+                -Title "SPN $displayName is linked to PAT-based ADO service connection" `
+                -Severity 'Medium' `
+                -Detail 'ADO evidence indicates token/PAT authentication. Prefer workload identity federation where possible.' `
+                -EvidenceCount $evidenceCount))
+        }
+
+        $ciBindings = 0
+        if ($candidate.Dimensions.ContainsKey('GitHub')) { $ciBindings += @($candidate.Dimensions['GitHub']).Count }
+        if ($candidate.Dimensions.ContainsKey('ADO')) { $ciBindings += @($candidate.Dimensions['ADO']).Count }
+        if ($ciBindings -gt 1) {
+            $findings.Add((New-CorrelationRiskFinding `
+                -RunId $runId `
+                -EntityId $entityId `
+                -Title "SPN $displayName is reused across multiple CI/CD bindings" `
+                -Severity 'Medium' `
+                -Detail "Detected $ciBindings CI/CD evidences (GitHub + ADO). Consider reducing identity reuse and scope." `
+                -EvidenceCount $ciBindings))
+        }
     }
 
     Write-Verbose "IdentityCorrelator: Emitted $($findings.Count) correlation finding(s)."

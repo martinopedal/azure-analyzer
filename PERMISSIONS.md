@@ -223,6 +223,7 @@ For public repos, no token is required. For private repos, use the **minimum-sco
 ### Identity Correlator (cross-dimensional identity mapping)
 
 The Identity Correlator runs in-process after all collectors complete. It seeds candidates from existing findings and cross-references them across dimensions — no additional permissions beyond whatever those collectors already had.
+It also emits risk findings for privileged CI-linked identities, PAT-based ADO service connections, and identity reuse across multiple CI/CD bindings.
 
 | Optional path | Requirement | Why |
 |---|---|---|
@@ -258,10 +259,13 @@ The ADO service connection scanner requires a Personal Access Token (PAT) with r
 # Option 1: Environment variable (recommended for CI)
 $env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
+# Alternative env var:
+$env:ADO_PAT_TOKEN = "<your-ado-pat>"
+.\Invoke-AzureAnalyzer.ps1 -AdoOrganization "contoso"
 
 # Option 2: Explicit parameter
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
-# (PAT resolved from AZURE_DEVOPS_EXT_PAT or AZ_DEVOPS_PAT env vars)
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project" -AdoPatToken "<your-ado-pat>"
+# (PAT can also be resolved from ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT env vars)
 
 # Option 3: Combine with Azure assessment
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"

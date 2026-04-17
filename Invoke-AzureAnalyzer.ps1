@@ -34,6 +34,9 @@
     When provided, ADO tools are included in the run.
 .PARAMETER AdoProject
     Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
+.PARAMETER AdoPat
+    Azure DevOps PAT passed to ADO-scoped wrappers. Optional; wrappers also read
+    ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, and AZ_DEVOPS_PAT.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -59,8 +62,11 @@ param (
     [string] $Repository,
     [string] $GitHubHost = '',
     [string] $RepoPath,
+    [Alias('AdoOrganization')]
     [string] $AdoOrg,
     [string] $AdoProject,
+    [Alias('AdoPatToken')]
+    [string] $AdoPat,
     [string] $AdoRepoUrl,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
@@ -366,6 +372,7 @@ foreach ($toolDef in $manifest.tools) {
             }
             $params = @{ AdoOrg = $AdoOrg }
             if ($AdoProject) { $params['AdoProject'] = $AdoProject }
+            if ($AdoPat) { $params['AdoPat'] = $AdoPat }
             $specName = "$($toolDef.name)|ado"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
