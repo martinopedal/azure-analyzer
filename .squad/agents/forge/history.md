@@ -17,3 +17,7 @@
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- CI failure dedup key uses hash format `sha256("{workflow}|{first-error-line}")` truncated to 12 chars for stable issue-title matching.
+- Self-skip pattern for `workflow_run` watchers should include workflow-name exclusion to avoid recursive self-processing.
+- Repeated CI failures should comment `still failing — {run_url}` on the open hash-matched issue instead of creating duplicates.
+- Treat `workflow_run` payload fields as untrusted input: pass through `env` and reference shell variables in `run:` blocks to reduce expression-injection risk.
