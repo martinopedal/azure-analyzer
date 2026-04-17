@@ -149,7 +149,7 @@ OpenSSF Scorecard evaluates repository security practices. Authentication is opt
 
 #### GHEC-DR and GHES (enterprise instances)
 
-For GitHub Enterprise Cloud with Data Residency (GHEC-DR) or GitHub Enterprise Server (GHES), the token must be created on the **enterprise instance** (not github.com). Use `-GitHubHost` to point Scorecard at the correct host.
+For GitHub Enterprise Cloud with Data Residency (GHEC-DR) or GitHub Enterprise Server (GHES), the token must be created on the **enterprise instance** (not github.com). Use `-GitHubHost` to point Scorecard at the correct host (`github.com` remains the default).
 
 | Requirement | Details |
 |-------------|---------|

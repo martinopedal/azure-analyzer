@@ -25,7 +25,7 @@ param (
     [ValidateRange(0, 10)]
     [int] $Threshold = 7,
 
-    [string] $GitHubHost = ''
+    [string] $GitHubHost = 'github.com'
 )
 
 Set-StrictMode -Version Latest
@@ -135,4 +135,3 @@ try {
         Findings = @()
     }
 }
-

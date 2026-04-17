@@ -60,7 +60,7 @@ param (
     [switch] $InstallMissingModules,
     [switch] $Recurse,
     [string] $Repository,
-    [string] $GitHubHost = '',
+    [string] $GitHubHost = 'github.com',
     [string] $RepoPath,
     [Alias('AdoOrganization')]
     [string] $AdoOrg,
