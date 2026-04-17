@@ -160,6 +160,16 @@ The PR review gate workflow (`.github/workflows/pr-review-gate.yml`) uses least-
 | `issues` | `write` | Future-proof for thread-linked issue comment sync and gate annotations |
 | `contents` | `read` | Read repository scripts and workflow context during execution |
 
+#### CI failure watchdog workflow permissions
+
+The CI failure watchdog workflow (`.github/workflows/ci-failure-watchdog.yml`) uses `GITHUB_TOKEN` with least-privilege workflow permissions:
+
+| Permission | Access | Why |
+|---|---|---|
+| `issues` | `write` | Create and update deduplicated `ci-failure` issues |
+| `actions` | `read` | Read failed run metadata and failed-job logs |
+| `contents` | `read` | Standard workflow repository read access |
+
 #### GHEC-DR and GHES (enterprise instances)
 
 For GitHub Enterprise Cloud with Data Residency (GHEC-DR) or GitHub Enterprise Server (GHES), the token must be created on the **enterprise instance** (not github.com). Use `-GitHubHost` to point Scorecard at the correct host (`github.com` remains the default).

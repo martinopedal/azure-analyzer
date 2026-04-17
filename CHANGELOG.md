@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- Added CI failure watchdog (workflow + local helper) - #104
+
 ### Fixed
 - **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
   - `modules/Invoke-KubeBench.ps1` + `modules/Invoke-Falco.ps1` now reject AKS clusters whose `name` or `resourceGroup` contains shell metacharacters (defense-in-depth before calling `az`/`kubectl`). Cluster names must match `^[A-Za-z0-9-]{1,63}$`; resource groups `^[A-Za-z0-9._()-]{1,90}$`.
