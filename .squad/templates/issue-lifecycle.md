@@ -180,10 +180,15 @@ git push -u origin squad/{issue-number}-{slug}
 
 **GitHub:**
 ```bash
-gh pr create --title "{title}" \
+# Open as draft by default — reduces reviewer email noise during iteration.
+# Flip to ready-for-review once CI is green and self-review is complete.
+gh pr create --draft --title "{title}" \
   --body "Closes #{issue-number}\n\n{description}" \
   --head squad/{issue-number}-{slug} \
   --base main
+
+# When ready:
+# gh pr ready {pr-number}
 ```
 
 **Azure DevOps:**
@@ -314,7 +319,8 @@ When spawning an agent to work on an issue, include this context block:
 2. Push branch
 3. Open PR using:
    ```
-   gh pr create --title "{title}" --body "Closes #{number}\n\n{description}" --head squad/{issue-number}-{slug} --base {base-branch}
+   gh pr create --draft --title "{title}" --body "Closes #{number}\n\n{description}" --head squad/{issue-number}-{slug} --base {base-branch}
+   # Mark ready only after CI green + self-review done: gh pr ready {pr-number}
    ```
 4. Report PR URL to coordinator
 ```
