@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **`.github/workflows/squad-issue-assign.yml` — graceful fallback when `COPILOT_ASSIGN_TOKEN` is not configured**: The `Assign @copilot coding agent` step previously failed with `Error: Input required and not supplied: github-token` whenever a `squad:copilot` label was added to an issue in a repo without the PAT secret configured, filing a spurious `ci: failure in Squad Issue Assign` issue on every label event. Now falls back to `secrets.GITHUB_TOKEN` so `actions/github-script` receives a valid token, the API call runs through the existing try/catch, and a single `core.warning` documents the missing PAT instead of aborting the workflow. Matches the fallback pattern already used by `squad-heartbeat.yml`.
+
 ### Added
 - **Comment Triage Loop via 3-model rubber-duck gate**: Copilot comments on PRs *and* on linked issues are now triaged through **Opus 4.6 + Goldeneye + GPT-5.3-codex** as sync rubber-duck calls before any code change. Majority verdict drives `plan.md` + SQL todos; plan is rubber-ducked; implementation re-runs the 3-model gate on the diff. Codified in `.squad/ceremonies.md` → Cloud Agent PR Review (expanded agenda), `.squad/templates/skills/comment-triage/SKILL.md` (new SKILL), and `.github/copilot-instructions.md` → Cloud agent PR review contract. Applies equally to cloud agents (`copilot-swe-agent[bot]`) and background agents.
 - **Cloud agent PR review contract**:New `.github/workflows/copilot-agent-pr-review.yml` auto-requests Copilot code review on any PR authored by `copilot-swe-agent[bot]` and posts a policy comment stating that all Copilot review threads must be **Resolved** before the PR may be squash-merged. Codified in `.github/copilot-instructions.md` so both the authoring agent and maintainers see the review contract.
