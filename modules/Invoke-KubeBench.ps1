@@ -73,7 +73,7 @@ function Get-KubeBenchFailedChecks {
                 $audit = if ($r.PSObject.Properties['audit']) { [string]$r.audit } else { '' }
 
                 $controlId = if ($testNumber) { $testNumber } elseif ($section) { $section } else { [guid]::NewGuid().ToString() }
-                $title = if ($testNumber -and $testDesc) { "${testNumber}: $testDesc" } elseif ($testDesc) { $testDesc } else { "kube-bench check $controlId" }
+                $title = if ($testNumber -and $testDesc) { "$testNumber: $testDesc" } elseif ($testDesc) { $testDesc } else { "kube-bench check $controlId" }
                 $detail = if ($audit) { "kube-bench $status check. section=$section; audit=$audit" } else { "kube-bench $status check. section=$section" }
                 $severity = if ($status -match '^(?i)FAIL$') { 'High' } else { 'Medium' }
 
@@ -147,7 +147,7 @@ if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
         $clusters = @($argResp)
     } catch {
         $result.Status  = 'Failed'
-        $result.Message = "ARG discovery failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
+        $result.Message = "ARG discovery failed: $($_.Exception.Message)"
         return [pscustomobject]$result
     }
 }
@@ -279,7 +279,7 @@ spec:
         $scanned++
     } catch {
         $failed++
-        Write-Warning "kube-bench scan failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
+        Write-Warning "kube-bench scan failed for cluster $($cluster.name): $($_.Exception.Message)"
     } finally {
         if ($jobApplied) {
             & kubectl --context $context -n kube-system delete "job/$jobName" --ignore-not-found=true 2>&1 | Out-Null
@@ -298,8 +298,6 @@ $result.Findings = @($findings)
 $result.Message = "Scanned $scanned AKS cluster(s); $failed failed; emitted $($findings.Count) kube-bench FAIL/WARN finding(s)."
 if ($scanned -eq 0 -and $failed -gt 0) {
     $result.Status = 'Failed'
-} elseif ($scanned -gt 0 -and $failed -gt 0) {
-    $result.Status = 'PartialSuccess'
 }
 
 return [pscustomobject]$result

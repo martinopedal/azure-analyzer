@@ -31,12 +31,6 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
-if (Test-Path $sanitizePath) { . $sanitizePath }
-if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
-    function Remove-Credentials { param([string]$Text) return $Text }
-}
-
 function Test-ScorecardInstalled {
     $null -ne (Get-Command scorecard -ErrorAction SilentlyContinue)
 }
@@ -153,11 +147,11 @@ try {
         Findings = $findings
     }
 } catch {
-    Write-Warning "Scorecard scan failed: $(Remove-Credentials -Text ([string]$_))"
+    Write-Warning "Scorecard scan failed: $_"
     return [PSCustomObject]@{
         Source   = 'scorecard'
         Status   = 'Failed'
-        Message  = Remove-Credentials -Text ([string]$_)
+        Message  = "$_"
         Findings = @()
     }
 }

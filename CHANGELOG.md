@@ -18,7 +18,6 @@ All notable changes to azure-analyzer will be documented here.
 - Added CI failure watchdog (workflow + local helper) - #104
 
 ### Fixed
-- **PR #120 follow-up hardening (#126):** fixed kube-bench title interpolation (`"${testNumber}: $testDesc"`) to avoid parser scope-qualifier errors; wrapper tests now set `$ErrorActionPreference='Stop'` so ParserError fails fast; retry helper now uses canonical `-MaxAttempts` (with `-MaxRetries` alias compatibility) and `Invoke-AlzQueries.ps1` is aligned; audited all 17 wrappers so exception-derived message/log text is sanitized via `Remove-Credentials`; and multi-target wrappers now emit `PartialSuccess` when some clusters fail (kube-bench, kubescape, falco install mode).
 - **Security hardening of 4 newly-merged cloud-agent tools (post-merge audit by Sentinel + Atlas)**:
   - `modules/Invoke-KubeBench.ps1` + `modules/Invoke-Falco.ps1` now reject AKS clusters whose `name` or `resourceGroup` contains shell metacharacters (defense-in-depth before calling `az`/`kubectl`). Cluster names must match `^[A-Za-z0-9-]{1,63}$`; resource groups `^[A-Za-z0-9._()-]{1,90}$`.
   - `modules/Invoke-ADOServiceConnections.ps1` now URL-encodes `$Org` and `$Project` via `[uri]::EscapeDataString()` before interpolating into ADO REST URLs (projects list + service-endpoint list).

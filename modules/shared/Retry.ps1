@@ -7,8 +7,7 @@ function Invoke-WithRetry {
     param (
         [Parameter(Mandatory)]
         [scriptblock] $ScriptBlock,
-        [int] $MaxAttempts = 3,
-        [int] $MaxRetries,
+        [int] $MaxRetries = 3,
         [int] $BaseDelaySec = 2,
         [int] $MaxDelaySec = 60,
         [string[]] $TransientMessagePatterns = @(
@@ -21,14 +20,9 @@ function Invoke-WithRetry {
     )
 
     $retryable = @('Throttled', 'Timeout', 'ProviderError', 'ServiceUnavailable')
-    $effectiveMaxAttempts = if ($PSBoundParameters.ContainsKey('MaxRetries')) {
-        [Math]::Max(1, $MaxRetries + 1)
-    } else {
-        [Math]::Max(1, $MaxAttempts)
-    }
-    $totalAttempts = $effectiveMaxAttempts
+    $totalAttempts = $MaxRetries + 1
 
-    for ($attempt = 1; $attempt -le $effectiveMaxAttempts; $attempt++) {
+    for ($attempt = 0; $attempt -le $MaxRetries; $attempt++) {
         try {
             return & $ScriptBlock
         } catch {
@@ -53,12 +47,12 @@ function Invoke-WithRetry {
                 throw [System.Exception]::new($message, $_.Exception)
             }
 
-            if ($attempt -ge $effectiveMaxAttempts) {
-                $message = "Retry attempts exhausted after $totalAttempts tries. Last category '$normalized'. Action: wait and retry, or increase MaxAttempts/BaseDelaySec."
+            if ($attempt -ge $MaxRetries) {
+                $message = "Retry attempts exhausted after $totalAttempts tries. Last category '$normalized'. Action: wait and retry, or increase MaxRetries/BaseDelaySec."
                 throw [System.Exception]::new($message, $_.Exception)
             }
 
-            $delay = Get-JitteredDelay -RetryIndex ($attempt - 1) -BaseDelaySec $BaseDelaySec -MaxDelaySec $MaxDelaySec
+            $delay = Get-JitteredDelay -RetryIndex $attempt -BaseDelaySec $BaseDelaySec -MaxDelaySec $MaxDelaySec
             if ($delay -gt 0) {
                 Start-Sleep -Seconds $delay
             }

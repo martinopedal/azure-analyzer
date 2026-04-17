@@ -23,12 +23,6 @@ param (
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
-if (Test-Path $sanitizePath) { . $sanitizePath }
-if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
-    function Remove-Credentials { param([string]$Text) return $Text }
-}
-
 function Test-AzqrInstalled {
     $null -ne (Get-Command azqr -ErrorAction SilentlyContinue)
 }
@@ -63,7 +57,7 @@ try {
                 $findings += $data
             }
         } catch {
-            Write-Warning "Could not parse azqr output file $($file.Name): $(Remove-Credentials -Text ([string]$_))"
+            Write-Warning "Could not parse azqr output file $($file.Name): $_"
         }
     }
 
@@ -74,11 +68,11 @@ try {
         Findings = $findings
     }
 } catch {
-    Write-Warning "azqr scan failed: $(Remove-Credentials -Text ([string]$_))"
+    Write-Warning "azqr scan failed: $_"
     return [PSCustomObject]@{
         Source   = 'azqr'
         Status   = 'Failed'
-        Message  = Remove-Credentials -Text ([string]$_)
+        Message  = "$_"
         Findings = @()
     }
 }

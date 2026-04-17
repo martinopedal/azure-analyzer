@@ -246,6 +246,6 @@ try {
     }
 } finally {
     if ($cleanupClone) {
-        try { & $cleanupClone } catch { Write-Verbose "gitleaks clone cleanup failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))" }
+        try { & $cleanupClone } catch { Write-Verbose "gitleaks clone cleanup failed: $($_.Exception.Message)" }
     }
 }
