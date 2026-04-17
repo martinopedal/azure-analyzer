@@ -31,6 +31,29 @@ $script:EntityTypes = @(
 $script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
 
+# Validation failure tracking
+$script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+function Get-SchemaValidationFailures {
+    <#
+    .SYNOPSIS
+        Retrieve logged validation failures.
+    .DESCRIPTION
+        Returns a list of validation failures logged during FindingRow construction.
+    #>
+    return ,$script:ValidationFailures.ToArray()
+}
+
+function Reset-SchemaValidationFailures {
+    <#
+    .SYNOPSIS
+        Clear validation failure log.
+    .DESCRIPTION
+        Clears the internal list of validation failures.
+    #>
+    $script:ValidationFailures.Clear()
+}
+
 function Get-PlatformForEntityType {
     param (
         [Parameter(Mandatory)]
@@ -166,7 +189,7 @@ function New-FindingRow {
         Timestamp    = if ($ProvenanceTimestamp) { $ProvenanceTimestamp.ToUniversalTime().ToString('o') } else { (Get-Date).ToUniversalTime().ToString('o') }
     }
 
-    [PSCustomObject]@{
+    $row = [PSCustomObject]@{
         Id               = $Id
         Source           = $Source
         Category         = $Category
@@ -192,6 +215,33 @@ function New-FindingRow {
         MissingDimensions = $MissingDimensions
         SchemaVersion    = $SchemaVersion
     }
+
+    # Validate the row before returning it
+    $validationErrors = @()
+    $isValid = Test-FindingRow -Finding $row -ErrorDetails ([ref]$validationErrors)
+    if (-not $isValid) {
+        # Sanitize error message
+        $sanitizedError = if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            Remove-Credentials ($validationErrors -join '; ')
+        } else {
+            $validationErrors -join '; '
+        }
+
+        # Log the failure
+        $script:ValidationFailures.Add([PSCustomObject]@{
+            Source    = $Source
+            Error     = $sanitizedError
+            Timestamp = Get-Date
+        })
+
+        # Write warning to stderr
+        Write-Warning "FindingRow validation failed [$Source]: $sanitizedError"
+        
+        # Return null to signal failure (caller should skip this row)
+        return $null
+    }
+
+    return $row
 }
 
 function New-EntityStub {
