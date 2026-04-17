@@ -1,1 +1,31 @@
-#Requires -Version 7.4Set-StrictMode -Version Latest$ErrorActionPreference = 'Stop'BeforeAll {    $script:Here = Split-Path $PSCommandPath -Parent    $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')    $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-KubeBench.ps1'}Describe 'Invoke-KubeBench: error paths' {    Context 'when kubectl is missing' {        BeforeAll {            Mock Get-Command { return $null } -ParameterFilter { $Name -eq 'kubectl' }            $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000'        }        It 'returns Status = Skipped' {            $result.Status | Should -Be 'Skipped'        }        It 'returns empty Findings' {            @($result.Findings).Count | Should -Be 0        }        It 'sets Source to kube-bench' {            $result.Source | Should -Be 'kube-bench'        }    }}
+#Requires -Version 7.4
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+BeforeAll {
+    $script:Here = Split-Path $PSCommandPath -Parent
+    $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
+    $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-KubeBench.ps1'
+}
+
+Describe 'Invoke-KubeBench: error paths' {
+    Context 'when kubectl is missing' {
+        BeforeAll {
+            Mock Get-Command { return $null } -ParameterFilter { $Name -eq 'kubectl' }
+            $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000'
+        }
+
+        It 'returns Status = Skipped' {
+            $result.Status | Should -Be 'Skipped'
+        }
+
+        It 'returns empty Findings' {
+            @($result.Findings).Count | Should -Be 0
+        }
+
+        It 'sets Source to kube-bench' {
+            $result.Source | Should -Be 'kube-bench'
+        }
+    }
+}
+
