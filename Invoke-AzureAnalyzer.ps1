@@ -40,6 +40,11 @@
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
+.PARAMETER Baseline
+    Controls auto-baseline discovery for the delta banner. Values:
+      auto  — (default) pick the most recent prior results.json under -OutputPath automatically.
+      none  — suppress baseline comparison entirely.
+    The explicit -PreviousRun parameter always wins over -Baseline when both are supplied.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -76,6 +81,8 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [ValidateSet('auto','none')]
+    [string] $Baseline = 'auto',
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
@@ -90,7 +97,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'ReportDelta')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -673,7 +680,36 @@ if ($EnableAiTriage) {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
 $triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
-$prevRunArg = if ($PreviousRun -and (Test-Path $PreviousRun)) { @{ PreviousRun = $PreviousRun } } else { @{} }
+
+# Resolve baseline: explicit -PreviousRun wins; otherwise auto-discover from OutputPath siblings.
+$resolvedBaseline = ''
+if ($PreviousRun -and (Test-Path $PreviousRun)) {
+    $resolvedBaseline = $PreviousRun
+} elseif ($Baseline -eq 'auto' -and (Get-Command Resolve-BaselineRun -ErrorAction SilentlyContinue)) {
+    $currentRunId     = Split-Path $OutputPath -Leaf
+    $parentRoot       = Split-Path $OutputPath -Parent
+    $autoBaseline     = Resolve-BaselineRun -OutputRoot $parentRoot -CurrentRunId $currentRunId
+    if ($autoBaseline) {
+        Write-Host "  [Baseline] Auto-selected prior run: $autoBaseline" -ForegroundColor DarkGray
+        $resolvedBaseline = $autoBaseline
+    }
+}
+
+$prevRunArg = if ($resolvedBaseline) { @{ PreviousRun = $resolvedBaseline } } else { @{} }
+
+# Build trend array for sparklines (last 10 runs from the parent output root).
+$trendArg = @{}
+if (Get-Command Get-RunTrend -ErrorAction SilentlyContinue) {
+    try {
+        $parentRoot = Split-Path $OutputPath -Parent
+        $trend      = Get-RunTrend -OutputRoot $parentRoot -MaxRuns 10
+        if ($trend.Count -ge 2) {
+            $trendArg = @{ Trend = $trend }
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Trend aggregation failed: $_")
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Generate reports
@@ -682,13 +718,14 @@ $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg @trendArg
 } catch {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }
 
+$mdBaselineArg = if ($resolvedBaseline) { @{ Baseline = $resolvedBaseline } } else { @{} }
 try {
-    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg
+    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
 }
