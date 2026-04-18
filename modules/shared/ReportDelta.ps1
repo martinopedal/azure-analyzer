@@ -138,6 +138,10 @@ function Resolve-BaselineRun {
             Write-Warning "Resolve-BaselineRun: unknown index SchemaVersion '$($parsed.SchemaVersion)'; skipping baseline."
             return $null
         }
+        if (-not ($parsed.PSObject.Properties['Entries']) -or $null -eq $parsed.Entries) {
+            Write-Warning "Resolve-BaselineRun: index.json Entries is absent or null; skipping baseline."
+            return $null
+        }
         $entries = @($parsed.Entries)
         if ($entries.Count -eq 0) { return $null }
         # Last entry is the most recently added snapshot.
@@ -186,6 +190,10 @@ function Get-RunTrend {
         }
         if ($parsed.SchemaVersion -ne '1.0') {
             Write-Warning "Get-RunTrend: unknown index SchemaVersion '$($parsed.SchemaVersion)'; skipping trend."
+            return @($result)
+        }
+        if (-not ($parsed.PSObject.Properties['Entries']) -or $null -eq $parsed.Entries) {
+            Write-Warning "Get-RunTrend: index.json Entries is absent or null; skipping trend."
             return @($result)
         }
         $entries = @($parsed.Entries)
@@ -277,7 +285,9 @@ function Add-RunSnapshot {
         try {
             $parsed = Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop
             if ($parsed.PSObject.Properties['SchemaVersion'] -and $parsed.SchemaVersion -eq '1.0') {
-                foreach ($e in @($parsed.Entries)) { $entries.Add($e) | Out-Null }
+                if ($parsed.PSObject.Properties['Entries'] -and $null -ne $parsed.Entries) {
+                    foreach ($e in @($parsed.Entries)) { if ($null -ne $e) { $entries.Add($e) | Out-Null } }
+                }
             } else {
                 Write-Warning "Add-RunSnapshot: existing index has unknown schema; starting fresh."
             }
@@ -300,9 +310,14 @@ function Add-RunSnapshot {
 
     # Prune oldest entries when over the limit.
     while ($entries.Count -gt $MaxHistory) {
-        $oldest  = $entries[0]
-        $oldFile = Join-Path $SnapshotDir ([string]$oldest.SnapshotFile)
-        if (Test-Path $oldFile) { Remove-Item $oldFile -Force -ErrorAction SilentlyContinue }
+        $oldest = $entries[0]
+        $fname  = if ($oldest -and $oldest.PSObject.Properties['SnapshotFile']) {
+            [string]$oldest.SnapshotFile
+        } else { $null }
+        if (-not [string]::IsNullOrWhiteSpace($fname)) {
+            $oldFile = Join-Path $SnapshotDir $fname
+            if (Test-Path $oldFile) { Remove-Item $oldFile -Force -ErrorAction SilentlyContinue }
+        }
         $entries.RemoveAt(0)
     }
 

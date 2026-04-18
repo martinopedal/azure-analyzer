@@ -113,6 +113,30 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $idx.SchemaVersion    | Should -Be '1.0'
             @($idx.Entries).Count | Should -Be 1
         }
+
+        It 'does not delete snapshot directory when pruning a null-SnapshotFile entry' {
+            # Simulates a hand-edited or externally produced index with a null SnapshotFile.
+            # Pruning must skip the file-delete step rather than removing the snapshot directory.
+            $root = Join-Path $TestDrive 'snap-nullfile'
+            $sd   = Join-Path $root 'snapshots'
+            $rf   = Join-Path $root 'results.json'
+            $null = New-Item -ItemType Directory -Path $sd -Force
+            # Inject an entry with null SnapshotFile into an otherwise valid index
+            [pscustomobject]@{
+                SchemaVersion = '1.0'
+                Entries = @([pscustomobject]@{ RunId = 'run-bad'; Timestamp = (Get-Date -Format 'o'); SnapshotFile = $null })
+            } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $sd 'index.json')
+            WriteResults -Path $rf -Findings @(NewFinding 'A')
+
+            # MaxHistory 1: the null-SnapshotFile entry gets pruned to make room for run-ok.
+            { Add-RunSnapshot -SnapshotDir $sd -RunId 'run-ok' -SourceFile $rf -MaxHistory 1 } |
+                Should -Not -Throw
+
+            # Directory must survive
+            Test-Path $sd | Should -BeTrue
+            # New snapshot must exist
+            Test-Path (Join-Path $sd 'run-ok.json') | Should -BeTrue
+        }
     }
 
     Context 'Resolve-BaselineRun' {
@@ -151,6 +175,15 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $warnings = @()
             Resolve-BaselineRun -SnapshotDir $sd -WarningVariable warnings | Should -BeNullOrEmpty
             $warnings | Should -Match 'SchemaVersion'
+        }
+
+        It 'returns $null when Entries field is null (guards @($null) = 1-element array bug)' {
+            $sd = Join-Path $TestDrive 'null-entries-resolve'
+            $null = New-Item -ItemType Directory -Path $sd -Force
+            '{"SchemaVersion":"1.0","Entries":null}' | Set-Content (Join-Path $sd 'index.json')
+            Resolve-BaselineRun -SnapshotDir $sd | Should -BeNullOrEmpty
+            # Snapshot dir must still exist (not treated as the baseline path)
+            Test-Path $sd | Should -BeTrue
         }
 
         It 'returns the most recent snapshot when called before current run is indexed' {
@@ -200,6 +233,13 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $warnings = @()
             @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings).Count | Should -Be 0
             $warnings | Should -Match 'SchemaVersion'
+        }
+
+        It 'returns empty when Entries field is null (guards @($null) = 1-element array bug)' {
+            $sd = Join-Path $TestDrive 'null-entries-trend'
+            $null = New-Item -ItemType Directory -Path $sd -Force
+            '{"SchemaVersion":"1.0","Entries":null}' | Set-Content (Join-Path $sd 'index.json')
+            @(Get-RunTrend -SnapshotDir $sd).Count | Should -Be 0
         }
 
         It 'returns items ordered oldest to newest (left-to-right for sparkline)' {
