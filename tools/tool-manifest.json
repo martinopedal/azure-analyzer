@@ -450,6 +450,38 @@
       }
     },
     {
+      "name": "ado-pipelines",
+      "displayName": "ADO Pipeline Security",
+      "source": "ado-pipelines",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOPipelineSecurity",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADOPipelineSecurity.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#006064",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      }
+    },
+    {
       "name": "identity-correlator",
       "displayName": "Identity Correlator",
       "source": "identity-correlator",

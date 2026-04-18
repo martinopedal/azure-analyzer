@@ -30,7 +30,7 @@
     Local repository path for CI/CD security scanning tools (zizmor, gitleaks).
     Defaults to the current directory. Tools scan workflow files and git history at this path.
 .PARAMETER AdoOrg
-    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections).
+    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections, ado-pipelines).
     When provided, ADO tools are included in the run.
 .PARAMETER AdoProject
     Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
