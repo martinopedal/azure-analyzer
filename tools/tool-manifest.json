@@ -716,6 +716,9 @@
         "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
+      }
+    },
+    {
       "name": "sentinel-incidents",
       "displayName": "Microsoft Sentinel (Active Incidents)",
       "source": "sentinel-incidents",
