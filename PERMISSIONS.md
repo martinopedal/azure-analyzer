@@ -100,6 +100,90 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 
 ---
 
+### Azure Cost (Consumption API -- 30-day spend)
+
+The Azure Cost wrapper queries `Microsoft.Consumption/usageDetails` for a trailing 30-day window per subscription, aggregates spend per resource ID, and folds `MonthlyCost` / `Currency` onto existing AzureResource entities. No new role is required beyond subscription `Reader`, since the Consumption API authorizes off subscription-level read.
+
+| Token / scope | Why |
+|---------------|-----|
+| **Reader** at subscription scope | Required for `Invoke-AzRestMethod` to call `Microsoft.Consumption/usageDetails` |
+| (Optional) **Cost Management Reader** at subscription scope | Recommended for environments where tenant policy restricts Consumption data to the dedicated Cost role; functionally equivalent for this read path |
+
+**Parameters:**
+
+- `-SubscriptionId <guid>` (required, passed by orchestrator).
+- `-TopN <int>` (default `20`): number of top costly resources emitted as findings (range 1..100).
+- `-OutputPath <dir>` (optional): write raw API JSON for audit.
+
+**Sample command:**
+
+```powershell
+# Single subscription
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" -IncludeTools 'azure-cost'
+
+# Across an MG (per-subscription discovery applies; cost runs per child sub)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "<mg-id>" -IncludeTools 'azure-cost'
+```
+
+**What it scans:**
+
+- 30-day usage records via `Microsoft.Consumption/usageDetails` (paged, up to 20 pages of 5,000 records).
+- Subscription roll-up (total spend, billing currency).
+- Top-N costly resources (resource ID, type, location, total cost).
+
+**What it does NOT do:**
+
+- No budget creation or modification.
+- No resource modification (no scaling, deletion, tagging).
+- No forecasting or anomaly alerting (point-in-time aggregation only).
+- No cross-subscription rebilling or chargeback writes.
+- Gracefully **skips** when the subscription has no Consumption data (new sub, trial, CSP without Consumption API access; HTTP 204/404).
+
+---
+
+### Microsoft Defender for Cloud (Secure Score + recommendations)
+
+The Defender for Cloud wrapper reads two endpoints under `Microsoft.Security/*`: the subscription Secure Score (`secureScores/ascScore`) and non-healthy assessments (`assessments`, paged). The Secure Score lands on the Subscription entity; each non-healthy assessment lands on its target AzureResource so Defender recommendations fold next to existing azqr/PSRule findings on the same resource.
+
+| Token / scope | Why |
+|---------------|-----|
+| **Security Reader** at subscription scope | Required to read `Microsoft.Security/secureScores` and `Microsoft.Security/assessments` |
+| (Alternative) **Reader** at subscription scope | Sufficient in tenants where Reader is permitted to read `Microsoft.Security/*`; Security Reader is the documented least-privilege role |
+
+**API namespace used:** `Microsoft.Security/*` (read).
+
+**Parameters:**
+
+- `-SubscriptionId <guid>` (required, passed by orchestrator).
+- `-OutputPath <dir>` (optional): write raw API JSON for audit.
+
+**Sample command:**
+
+```powershell
+# Single subscription
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" -IncludeTools 'defender-for-cloud'
+
+# Across an MG (runs per child subscription)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "<mg-id>" -IncludeTools 'defender-for-cloud'
+```
+
+**What it scans:**
+
+- Secure Score (current, max, percentage) for the subscription.
+- Non-healthy assessments only (status `Unhealthy`); paged across up to 20 pages.
+- Per-assessment metadata: display name, severity, description, remediation guidance, target resource ID.
+- Regulatory compliance posture (surfaced indirectly via the assessment recommendations that map to compliance controls).
+
+**What it does NOT do:**
+
+- No remediation, no Quick Fix execution.
+- No policy creation or modification (no `Microsoft.Authorization/policyAssignments` writes).
+- No alert acknowledgment, dismissal, or rule changes.
+- No Defender plan enable/disable on subscriptions.
+- Gracefully **skips** when Defender for Cloud is not enabled on the subscription (HTTP 404/409 on `secureScores`).
+
+---
+
 ### Microsoft Graph (Maester -- identity security)
 
 Maester requires delegated or application permissions to read Entra ID security configuration.
@@ -295,6 +379,8 @@ $env:ADO_PAT_TOKEN = "<your-ado-pat>"
 ```
 
 **Important:** The ADO scanner does **NOT** modify service connections or project settings. All API calls are read-only (`GET`).
+
+**Planned:** see issue #138 (ADO pipeline security scanning: build/release defs, variable groups, environments) for the next ADO surface tracked under this scope.
 
 ---
 
