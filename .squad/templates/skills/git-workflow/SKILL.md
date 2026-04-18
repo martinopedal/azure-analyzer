@@ -1,6 +1,6 @@
 ---
 name: "git-workflow"
-description: "Squad branching model: dev-first workflow with insiders preview channel"
+description: "Squad branching model: main-as-trunk workflow with short-lived issue branches"
 domain: "version-control"
 confidence: "high"
 source: "team-decision"
@@ -8,13 +8,13 @@ source: "team-decision"
 
 ## Context
 
-Squad uses a three-branch model. **All feature work starts from `dev`, not `main`.**
+Squad uses a **main-as-trunk** model. **All feature work branches from `main` and PRs target `main`.** There is no long-lived `dev` integration branch.
 
 | Branch | Purpose | Publishes |
 |--------|---------|-----------|
-| `main` | Released, tagged, in-npm code only | `npm publish` on tag |
-| `dev` | Integration branch — all feature work lands here | `npm publish --tag preview` on merge |
-| `insiders` | Early-access channel — synced from dev | `npm publish --tag insiders` on sync |
+| `main` | Trunk - all feature work merges here via PR | `npm publish` on tag |
+| `squad/{issue}-{slug}` | Short-lived issue branches | (deleted after merge) |
+| `hotfix/{slug}` | Urgent fixes branched from main | (PR back to main) |
 
 ## Branch Naming Convention
 
@@ -24,12 +24,14 @@ Examples:
 - `squad/195-fix-version-stamp-bug`
 - `squad/42-add-profile-api`
 
+Agent-prefixed names (e.g., `iris/134-main-trunk-docs`) are also acceptable when an agent owns the branch end-to-end.
+
 ## Workflow for Issue Work
 
-1. **Branch from dev:**
+1. **Branch from main:**
    ```bash
-   git checkout dev
-   git pull origin dev
+   git checkout main
+   git pull origin main
    git checkout -b squad/{issue-number}-{slug}
    ```
 
@@ -38,9 +40,9 @@ Examples:
    gh issue edit {number} --add-label "status:in-progress"
    ```
 
-3. **Create draft PR targeting dev:**
+3. **Create draft PR targeting main:**
    ```bash
-   gh pr create --base dev --title "{description}" --body "Closes #{issue-number}
+   gh pr create --base main --title "{description}" --body "Closes #{issue-number}
 
 ## Self-review
 
@@ -71,10 +73,10 @@ Examples:
    gh pr ready
    ```
 
-6. **After merge to dev:**
+6. **After merge to main:**
    ```bash
-   git checkout dev
-   git pull origin dev
+   git checkout main
+   git pull origin main
    git branch -d squad/{issue-number}-{slug}
    git push origin --delete squad/{issue-number}-{slug}
    ```
@@ -93,22 +95,22 @@ When the coordinator routes multiple issues simultaneously (e.g., "fix bugs X, Y
 
 ### Setup
 
-From the main clone (must be on dev or any branch):
+From the main clone (must be on main or any branch):
 
 ```bash
-# Ensure dev is current
-git fetch origin dev
+# Ensure main is current
+git fetch origin main
 
 # Create a worktree per issue — siblings to the main clone
-git worktree add ../squad-195 -b squad/195-fix-stamp-bug origin/dev
-git worktree add ../squad-193 -b squad/193-refactor-loader origin/dev
+git worktree add ../squad-195 -b squad/195-fix-stamp-bug origin/main
+git worktree add ../squad-193 -b squad/193-refactor-loader origin/main
 ```
 
 **Naming convention:** `../{repo-name}-{issue-number}` (e.g., `../squad-195`, `../squad-pr-42`).
 
 Each worktree:
 - Has its own working directory and index
-- Is on its own `squad/{issue-number}-{slug}` branch from dev
+- Is on its own `squad/{issue-number}-{slug}` branch from main
 - Shares the same `.git` object store (disk-efficient)
 
 ### Per-Worktree Agent Workflow
@@ -122,8 +124,8 @@ cd ../squad-195
 git add -A && git commit -m "fix: stamp bug (#195)"
 git push -u origin squad/195-fix-stamp-bug
 
-# Create PR targeting dev (include ## Self-review block in body, see PR template above)
-gh pr create --base dev --title "fix: stamp bug" --body "Closes #195
+# Create PR targeting main (include ## Self-review block in body, see PR template above)
+gh pr create --base main --title "fix: stamp bug" --body "Closes #195
 
 ## Self-review
 
@@ -143,18 +145,18 @@ gh pr create --base dev --title "fix: stamp bug" --body "Closes #195
 " --draft
 ```
 
-All PRs target `dev` independently. Agents never interfere with each other's filesystem.
+All PRs target `main` independently. Agents never interfere with each other's filesystem.
 
 ### .squad/ State in Worktrees
 
 The `.squad/` directory exists in each worktree as a copy. This is safe because:
 - `.gitattributes` declares `merge=union` on append-only files (history.md, decisions.md, logs)
-- Each agent appends to its own section; union merge reconciles on PR merge to dev
+- Each agent appends to its own section; union merge reconciles on PR merge to main
 - **Rule:** Never rewrite or reorder `.squad/` files in a worktree — append only
 
 ### Cleanup After Merge
 
-After a worktree's PR is merged to dev:
+After a worktree's PR is merged to main:
 
 ```bash
 # From the main clone
@@ -226,16 +228,14 @@ These compose naturally. You can have:
 
 ## Anti-Patterns
 
-- ❌ Branching from main (branch from dev)
-- ❌ PR targeting main directly (target dev)
-- ❌ Non-conforming branch names (must be squad/{number}-{slug})
-- ❌ Committing directly to main or dev (use PRs)
+- ❌ Long-lived integration branches (no `dev`; branch from `main`, PR to `main`)
+- ❌ PR targeting anything other than `main` for normal feature work
+- ❌ Non-conforming branch names (must be `squad/{number}-{slug}` or `{agent}/{number}-{slug}`)
+- ❌ Committing directly to `main` (use PRs)
 - ❌ Switching branches in the main clone while worktrees are active (use worktrees instead)
 - ❌ Using worktrees for cross-repo work (use separate clones)
 - ❌ Leaving stale worktrees after PR merge (clean up immediately)
 
-## Promotion Pipeline
+## Hotfixes
 
-- dev → insiders: Automated sync on green build
-- dev → main: Manual merge when ready for stable release, then tag
-- Hotfixes: Branch from main as `hotfix/{slug}`, PR to dev, cherry-pick to main if urgent
+Hotfixes follow the same model: branch from `main` as `hotfix/{slug}`, PR back to `main`. Tag and release once merged.
