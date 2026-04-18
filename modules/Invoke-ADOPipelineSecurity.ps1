@@ -36,6 +36,19 @@ $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
 
+$script:ServiceConnectionInputNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($inputName in @(
+        'azureSubscription',
+        'azureServiceConnection',
+        'azureResourceManagerConnection',
+        'connectedServiceName',
+        'connectedServiceNameARM',
+        'serviceConnection',
+        'serviceEndpoint'
+    )) {
+    $null = $script:ServiceConnectionInputNames.Add($inputName)
+}
+
 function Resolve-AdoPat {
     param ([string] $Explicit)
     if ($Explicit) { return $Explicit }
@@ -201,17 +214,32 @@ function Get-EnvironmentChecks {
         [hashtable] $Headers
     )
 
-    if ($EnvironmentId -le 0) { return @() }
+    if ($EnvironmentId -le 0) {
+        return [PSCustomObject]@{
+            Success = $true
+            Checks  = @()
+            Error   = ''
+        }
+    }
 
     $orgEnc = [uri]::EscapeDataString($Org)
     $projectEnc = [uri]::EscapeDataString($Project)
     $uri = "https://dev.azure.com/$orgEnc/$projectEnc/_apis/pipelines/checks/configurations?resourceType=environment&resourceId=$EnvironmentId&api-version=7.1-preview.1"
 
     try {
-        return @(Get-AdoPagedValues -Uri $uri -Headers $Headers)
+        return [PSCustomObject]@{
+            Success = $true
+            Checks  = @(Get-AdoPagedValues -Uri $uri -Headers $Headers)
+            Error   = ''
+        }
     } catch {
-        Write-Verbose (Remove-Credentials "Could not read environment checks for '$Project/$EnvironmentId': $_")
-        return @()
+        $sanitized = Remove-Credentials "Could not read environment checks for '$Project/$EnvironmentId': $($_.Exception.Message)"
+        Write-Verbose $sanitized
+        return [PSCustomObject]@{
+            Success = $false
+            Checks  = @()
+            Error   = $sanitized
+        }
     }
 }
 
@@ -248,6 +276,47 @@ function Test-IsSensitiveVariableName {
     return $Name -match '(?i)(secret|password|token|key|credential|connectionstring|clientsecret|apikey|pat)'
 }
 
+function Test-IsGuidLike {
+    param ([AllowNull()] [object] $Value)
+
+    if ($null -eq $Value) { return $false }
+
+    $candidate = if ($Value -is [string]) {
+        $Value.Trim()
+    } else {
+        [string]$Value
+    }
+
+    if ([string]::IsNullOrWhiteSpace($candidate)) { return $false }
+
+    $guidValue = [guid]::Empty
+    return [guid]::TryParse($candidate, [ref]$guidValue)
+}
+
+function Test-IsServiceConnectionProperty {
+    param (
+        [string] $Name,
+        [AllowNull()] [object] $Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Name)) { return $false }
+    if ($script:ServiceConnectionInputNames.Contains($Name)) { return $true }
+
+    if ($Name -notmatch '(?i)(connectedservice(name(arm)?)?|serviceconnection(id)?|serviceendpoint(id)?|endpointid)$') {
+        return $false
+    }
+
+    if (Test-IsGuidLike -Value $Value) {
+        return $true
+    }
+
+    if ($null -ne $Value -and $Value.PSObject.Properties['id'] -and (Test-IsGuidLike -Value $Value.id)) {
+        return $true
+    }
+
+    return $false
+}
+
 function Add-ServiceConnectionRefs {
     param (
         [object] $Node,
@@ -270,7 +339,7 @@ function Add-ServiceConnectionRefs {
         $propName = [string]$property.Name
         $propValue = $property.Value
 
-        if ($propName -match '(?i)(connectedservice|serviceconnection|serviceendpoint|azure(subscription)?|endpointid)') {
+        if (Test-IsServiceConnectionProperty -Name $propName -Value $propValue) {
             if ($propValue -is [string]) {
                 $candidate = $propValue.Trim()
                 if ($candidate -and $candidate.Length -le 200) {
@@ -457,6 +526,7 @@ try {
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
     $failedProjects = [System.Collections.Generic.List[string]]::new()
+    $partialProjects = [System.Collections.Generic.List[string]]::new()
     $serviceConnectionUsage = [System.Collections.Hashtable]::new([System.StringComparer]::OrdinalIgnoreCase)
 
     foreach ($project in $projects) {
@@ -585,10 +655,14 @@ try {
                 $environmentKey = if ($environmentName) { $environmentName } else { $environmentId }
                 $resourceId = "ado://$(Format-AdoSegment $AdoOrg)/$(Format-AdoSegment $project)/environment/$(Format-AdoSegment $environmentKey)"
 
-                $checks = @(Get-EnvironmentChecks -Org $AdoOrg -Project $project -EnvironmentId $environmentId -Headers $headers)
+                $checkResult = Get-EnvironmentChecks -Org $AdoOrg -Project $project -EnvironmentId $environmentId -Headers $headers
+                $checks = @($checkResult.Checks)
                 $checkCount = Get-CollectionCount -Value $checks
 
-                if ((Test-IsProductionName -Name $environmentName) -and $checkCount -eq 0) {
+                if (-not $checkResult.Success) {
+                    $partialProjects.Add($project)
+                    $findings.Add((New-PipelineFinding -Org $AdoOrg -Project $project -AssetType 'Environment' -AssetId ([string]$environmentId) -AssetName $environmentName -Category 'Environment' -Title "Environment '$environmentName' check coverage could not be verified" -Compliant $false -Severity 'Info' -Detail 'Environment checks could not be retrieved for this scan, so the result is partial and should be re-run once the Azure DevOps checks API is reachable.' -Remediation 'Verify that the token can read environment checks, then re-run the scan to confirm approvals are configured.' -LearnMoreUrl 'https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops' -ResourceId $resourceId))
+                } elseif ((Test-IsProductionName -Name $environmentName) -and $checkCount -eq 0) {
                     $findings.Add((New-PipelineFinding -Org $AdoOrg -Project $project -AssetType 'Environment' -AssetId ([string]$environmentId) -AssetName $environmentName -Category 'Environment' -Title "Environment '$environmentName' has no approval checks" -Compliant $false -Severity 'High' -Detail 'No approval, branch control, or other environment checks were returned for this production-like environment.' -Remediation 'Configure environment approvals or checks before allowing production deployments.' -LearnMoreUrl 'https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops' -ResourceId $resourceId))
                 } else {
                     $findings.Add((New-PipelineFinding -Org $AdoOrg -Project $project -AssetType 'Environment' -AssetId ([string]$environmentId) -AssetName $environmentName -Category 'Environment' -Title "Environment '$environmentName' has check coverage" -Compliant $true -Severity 'Info' -Detail "Environment checks detected: $checkCount." -Remediation '' -LearnMoreUrl 'https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops' -ResourceId $resourceId))
@@ -613,6 +687,8 @@ try {
         'PartialSuccess'
     } elseif ($failedProjects.Count -ge $projects.Count -and $projects.Count -gt 0) {
         'Failed'
+    } elseif ($partialProjects.Count -gt 0) {
+        'PartialSuccess'
     } else {
         'Success'
     }
@@ -620,6 +696,9 @@ try {
     $message = "Scanned $($projects.Count) project(s), produced $($findings.Count) pipeline security finding(s)."
     if ($failedProjects.Count -gt 0) {
         $message += " Failed projects: $($failedProjects -join ', ')."
+    }
+    if ($partialProjects.Count -gt 0) {
+        $message += " Partial environment-check coverage in: $((@($partialProjects | Select-Object -Unique)) -join ', ')."
     }
 
     return [PSCustomObject]@{

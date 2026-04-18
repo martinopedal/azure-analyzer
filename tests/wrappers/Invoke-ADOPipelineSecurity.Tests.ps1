@@ -70,6 +70,7 @@ Describe 'Invoke-ADOPipelineSecurity' {
                                             @{
                                                 steps = @(
                                                     @{ inputs = @{ ConnectedServiceNameARM = 'Azure-Prod' } }
+                                                    @{ inputs = @{ ConnectedServiceNameARM = 'Azure-Prod'; azurePowerShellVersion = 'LatestVersion'; azureResourceGroup = 'rg-payments-prod' } }
                                                 )
                                             }
                                         )
@@ -81,9 +82,9 @@ Describe 'Invoke-ADOPipelineSecurity' {
                                     repository = @{ defaultBranch = 'refs/heads/main' }
                                     process = @{
                                         phases = @(
-                                            @{
-                                                steps = @(
-                                                    @{ inputs = @{ azureSubscription = 'azure-prod' } }
+                                                @{
+                                                    steps = @(
+                                                        @{ inputs = @{ azureSubscription = 'azure-prod'; azurePowerShellVersion = 'LatestVersion'; azureResourceGroup = 'rg-payments-prod' } }
                                                 )
                                             }
                                         )
@@ -107,7 +108,7 @@ Describe 'Invoke-ADOPipelineSecurity' {
                                             deployPhases = @(
                                                 @{
                                                     workflowTasks = @(
-                                                        @{ inputs = @{ ConnectedServiceNameARM = 'Azure-Prod' } }
+                                                        @{ inputs = @{ ConnectedServiceNameARM = 'Azure-Prod'; azurePowerShellVersion = 'LatestVersion'; azureResourceGroup = 'rg-payments-prod' } }
                                                     )
                                                 }
                                             )
@@ -181,6 +182,13 @@ Describe 'Invoke-ADOPipelineSecurity' {
         It 'does not leak plaintext variable values into details' {
             ($result.Findings.Detail -join ' ') | Should -Not -Match 'super-secret'
         }
+
+        It 'only reports reuse for actual service connections' {
+            $reuseFindings = @($result.Findings | Where-Object Category -eq 'Service Connection Usage')
+            $reuseFindings.Count | Should -Be 1
+            ($reuseFindings.Title -join ' ') | Should -Match 'Azure-Prod'
+            ($reuseFindings.Title -join ' ') | Should -Not -Match 'LatestVersion|rg-payments-prod'
+        }
     }
 
     Context 'when an ADO API call fails' {
@@ -196,6 +204,50 @@ Describe 'Invoke-ADOPipelineSecurity' {
 
         It 'returns Status = Failed' {
             $result.Status | Should -Be 'Failed'
+        }
+    }
+
+    Context 'when environment checks cannot be queried' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+
+                if ($Uri -match '_apis/pipelines/checks/configurations') {
+                    throw 'Checks API unavailable'
+                }
+
+                $body = switch -Regex ($Uri) {
+                    '_apis/build/definitions' { '{"count":0,"value":[]}' }
+                    '_apis/release/definitions' { '{"count":0,"value":[]}' }
+                    '_apis/distributedtask/variablegroups' { '{"count":0,"value":[]}' }
+                    '_apis/distributedtask/environments' {
+                        '{"count":1,"value":[{"id":12,"name":"prod-west"}]}'
+                    }
+                    default { throw "Unexpected URI: $Uri" }
+                }
+
+                [PSCustomObject]@{
+                    Content = $body
+                    Headers = @{}
+                }
+            }
+
+            $result = & $script:Wrapper -AdoOrg 'contoso' -AdoProject 'payments'
+        }
+
+        AfterAll {
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+        }
+
+        It 'returns PartialSuccess instead of a false High finding' {
+            $result.Status | Should -Be 'PartialSuccess'
+            $environmentFindings = @($result.Findings | Where-Object Category -eq 'Environment')
+            $environmentFindings.Count | Should -Be 1
+            $environmentFindings[0].Title | Should -Match 'could not be verified'
+            $environmentFindings[0].Severity | Should -Be 'Info'
+            $environmentFindings[0].Compliant | Should -Be $false
+            ($environmentFindings[0].Title + ' ' + $environmentFindings[0].Detail) | Should -Not -Match 'has no approval checks'
         }
     }
 }
