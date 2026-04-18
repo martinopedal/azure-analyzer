@@ -20,6 +20,10 @@ on:
   # Manual trigger
   workflow_dispatch:
 
+concurrency:
+  group: squad-heartbeat-${{ github.repository }}
+  cancel-in-progress: false
+
 permissions:
   issues: write
   contents: read
@@ -68,6 +72,10 @@ jobs:
               return;
             }
             
+            // In-place comment upsert via HTML marker (#113) — re-runs update the
+            // same comment instead of spamming new ones.
+            const marker = '<!-- squad-heartbeat -->';
+
             for (const decision of results) {
               try {
                 await github.rest.issues.addLabels({
@@ -76,23 +84,46 @@ jobs:
                   issue_number: decision.issueNumber,
                   labels: [decision.label]
                 });
-                
-                await github.rest.issues.createComment({
+
+                const body = [
+                  marker,
+                  '### 🔄 Ralph — Auto-Triage',
+                  '',
+                  `**Assigned to:** ${decision.assignTo}`,
+                  `**Reason:** ${decision.reason}`,
+                  `**Source:** ${decision.source}`,
+                  '',
+                  '> Ralph auto-triaged this issue using routing rules.',
+                  '> To reassign, swap the `squad:*` label.'
+                ].join('\n');
+
+                // Look for an existing heartbeat comment on this issue.
+                // Paginate so the marker is found even on long threads (#113 fix).
+                const allComments = await github.paginate(github.rest.issues.listComments, {
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: decision.issueNumber,
-                  body: [
-                    '### 🔄 Ralph — Auto-Triage',
-                    '',
-                    `**Assigned to:** ${decision.assignTo}`,
-                    `**Reason:** ${decision.reason}`,
-                    `**Source:** ${decision.source}`,
-                    '',
-                    '> Ralph auto-triaged this issue using routing rules.',
-                    '> To reassign, swap the `squad:*` label.'
-                  ].join('\n')
+                  per_page: 100
                 });
-                
+                const prior = allComments.find(c => c.body && c.body.includes(marker));
+
+                if (prior) {
+                  await github.rest.issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: prior.id,
+                    body
+                  });
+                  core.info(`Updated heartbeat comment on #${decision.issueNumber}`);
+                } else {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: decision.issueNumber,
+                    body
+                  });
+                }
+
                 core.info(`Triaged #${decision.issueNumber} → ${decision.assignTo} (${decision.source})`);
               } catch (e) {
                 core.warning(`Failed to triage #${decision.issueNumber}: ${e.message}`);
