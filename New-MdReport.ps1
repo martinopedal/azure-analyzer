@@ -155,7 +155,7 @@ if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
         $lines.Add('|---|---:|---:|---:|---:|---:|---:|---|---|')
         foreach ($sub in $portfolioSubs) {
             $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
-            $subLabel = ($subName -replace '\|', '\|')
+            $subLabel = ($subName -replace '\|', '\\|')
             $anchor = Get-PortfolioSlug -text ([string]$sub.SubscriptionId)
             $costText = if ($null -ne $sub.MonthlyCost -and [double]$sub.MonthlyCost -gt 0) {
                 "{0:N2} {1}" -f [double]$sub.MonthlyCost, ($(if ($sub.Currency) { [string]$sub.Currency } else { 'USD' }))
@@ -172,8 +172,8 @@ if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
             $lines.Add('| Identity | Severity | Subscriptions | Detail |')
             $lines.Add('|---|---|---:|---|')
             foreach ($corr in $portfolioCorrelations) {
-                $corrTitle = ([string]$corr.Title -replace '\|', '\|' -replace "`n|`r", ' ')
-                $corrDetail = ([string]$corr.Detail -replace '\|', '\|' -replace "`n|`r", ' ')
+                $corrTitle = ([string]$corr.Title -replace '\|', '\\|' -replace "`n|`r", ' ')
+                $corrDetail = ([string]$corr.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
                 $lines.Add("| $corrTitle | $($corr.Severity) | $($corr.EvidenceCount) | $corrDetail |")
             }
         } else {

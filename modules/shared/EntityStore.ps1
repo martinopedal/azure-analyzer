@@ -335,7 +335,11 @@ class EntityStore {
                     MissingDimensions   = $(if ($Finding.PSObject.Properties['MissingDimensions']) { $Finding.MissingDimensions } else { $null })
                 })
             } catch {
-                Write-Verbose "EntityStore metadata merge skipped for $($Finding.EntityId): $($_.Exception.Message)"
+                $exceptionMessage = [string]$_.Exception.Message
+                if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+                    $exceptionMessage = Remove-Credentials -Text $exceptionMessage
+                }
+                Write-Verbose "EntityStore metadata merge skipped for $($Finding.EntityId): $exceptionMessage"
             }
 
             if ($entity.Observations -isnot [System.Collections.Generic.List[pscustomobject]]) {
@@ -578,6 +582,26 @@ function Resolve-SubscriptionId {
     return $null
 }
 
+function Get-SubscriptionBucketKey {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [object] $InputObject
+    )
+
+    $subscriptionId = Resolve-SubscriptionId -InputObject $InputObject
+    if (-not [string]::IsNullOrWhiteSpace([string]$subscriptionId)) {
+        return "id::$($subscriptionId.ToLowerInvariant())"
+    }
+
+    $subscriptionName = [string](Get-ObjectPropertyValue -Object $InputObject -PropertyName 'SubscriptionName' -Default '')
+    if (-not [string]::IsNullOrWhiteSpace($subscriptionName)) {
+        return "name::$subscriptionName"
+    }
+
+    return $null
+}
+
 function Get-TopPortfolioEntities {
     [CmdletBinding()]
     param (
@@ -652,12 +676,13 @@ function Get-PortfolioRollup {
         if ($rawPath) { $path = @($rawPath | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }) }
 
         if (-not $subscriptionId -and [string]::IsNullOrWhiteSpace([string]$subscriptionName)) { continue }
-        $key = if ($subscriptionId) { $subscriptionId.ToLowerInvariant() } else { "name:$subscriptionName" }
+        $key = Get-SubscriptionBucketKey -InputObject $item
+        if (-not $key) { continue }
 
         if (-not $subscriptionIndex.ContainsKey($key)) {
             $subscriptionIndex[$key] = [ordered]@{
-                SubscriptionId   = $subscriptionId
-                SubscriptionName = if ($subscriptionName) { $subscriptionName } else { $subscriptionId }
+                SubscriptionId      = $subscriptionId
+                SubscriptionName    = if ($subscriptionName) { $subscriptionName } else { $subscriptionId }
                 ManagementGroupPath = $path
             }
             continue
@@ -671,26 +696,41 @@ function Get-PortfolioRollup {
         }
     }
 
+    $findingsBySubscription = @{}
+    foreach ($finding in $Findings) {
+        if (-not $finding -or (Get-ObjectPropertyValue -Object $finding -PropertyName 'Category') -eq 'CrossSubscriptionCorrelation') {
+            continue
+        }
+
+        $bucketKey = Get-SubscriptionBucketKey -InputObject $finding
+        if (-not $bucketKey) { continue }
+
+        if (-not $findingsBySubscription.ContainsKey($bucketKey)) {
+            $findingsBySubscription[$bucketKey] = [System.Collections.Generic.List[object]]::new()
+        }
+        $findingsBySubscription[$bucketKey].Add($finding) | Out-Null
+    }
+
+    $entitiesBySubscription = @{}
+    foreach ($entity in $Entities) {
+        if (-not $entity) { continue }
+
+        $bucketKey = Get-SubscriptionBucketKey -InputObject $entity
+        if (-not $bucketKey) { continue }
+
+        if (-not $entitiesBySubscription.ContainsKey($bucketKey)) {
+            $entitiesBySubscription[$bucketKey] = [System.Collections.Generic.List[object]]::new()
+        }
+        $entitiesBySubscription[$bucketKey].Add($entity) | Out-Null
+    }
+
     $subscriptionRows = [System.Collections.Generic.List[object]]::new()
-    foreach ($entry in $subscriptionIndex.Values) {
+    foreach ($bucketKey in $subscriptionIndex.Keys) {
+        $entry = $subscriptionIndex[$bucketKey]
         $subId = $entry.SubscriptionId
         $subName = if ($entry.SubscriptionName) { $entry.SubscriptionName } elseif ($subId) { $subId } else { 'unknown-subscription' }
-
-        $subFindings = @($Findings | Where-Object {
-                $_ -and
-                $_.Category -ne 'CrossSubscriptionCorrelation' -and
-                (
-                    ((Resolve-SubscriptionId -InputObject $_) -and $subId -and ((Resolve-SubscriptionId -InputObject $_) -eq $subId)) -or
-                    (-not $subId -and (Get-ObjectPropertyValue -Object $_ -PropertyName 'SubscriptionName') -eq $subName)
-                )
-            })
-        $subEntities = @($Entities | Where-Object {
-                $_ -and
-                (
-                    ((Resolve-SubscriptionId -InputObject $_) -and $subId -and ((Resolve-SubscriptionId -InputObject $_) -eq $subId)) -or
-                    (-not $subId -and (Get-ObjectPropertyValue -Object $_ -PropertyName 'SubscriptionName') -eq $subName)
-                )
-            })
+        $subFindings = if ($findingsBySubscription.ContainsKey($bucketKey)) { @($findingsBySubscription[$bucketKey]) } else { @() }
+        $subEntities = if ($entitiesBySubscription.ContainsKey($bucketKey)) { @($entitiesBySubscription[$bucketKey]) } else { @() }
 
         $severityCounts = New-PortfolioSeverityCounts -Findings $subFindings
         $sourceCounts = @(
