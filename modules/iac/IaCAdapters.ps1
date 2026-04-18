@@ -199,6 +199,8 @@ function Invoke-BicepValidation {
                     }
                 }
             } catch {
+                # Re-throw safety primitive failures (missing timeout helper)
+                if ($_.Exception.Message -match 'Invoke-WithTimeout') { throw }
                 $findings.Add([PSCustomObject]@{
                     Id          = [guid]::NewGuid().ToString()
                     Category    = 'IaC Validation'
@@ -371,6 +373,8 @@ function Invoke-TerraformValidateDir {
             }
         }
     } catch {
+        # Re-throw safety primitive failures (missing timeout helper)
+        if ($_.Exception.Message -match 'Invoke-WithTimeout') { throw }
         Write-Verbose "terraform validate failed in $Dir`: $(Remove-Credentials ([string]$_))"
     }
 }
