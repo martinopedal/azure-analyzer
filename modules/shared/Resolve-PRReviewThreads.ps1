@@ -89,11 +89,15 @@ function Get-PRReviewThreads {
     )
 
     $r = Resolve-RepoOwnerName -Repo $Repo
+    # Pagination (#137 gate fix, Codex-2): cursor through reviewThreads until
+    # hasNextPage=false. PRs with >100 unresolved threads were silently missing
+    # candidates with the previous single-page query.
     $query = @'
-query($owner: String!, $name: String!, $number: Int!) {
+query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           id
           isResolved
@@ -103,7 +107,7 @@ query($owner: String!, $name: String!, $number: Int!) {
           originalLine
           startLine
           originalStartLine
-          comments(first: 10) {
+          comments(first: 100) {
             nodes {
               id
               databaseId
@@ -119,16 +123,45 @@ query($owner: String!, $name: String!, $number: Int!) {
 }
 '@
 
-    $resp = Invoke-GhGraphQl -Query $query -Fields @{
-        owner  = $r.Owner
-        name   = $r.Name
-        number = $PRNumber
-    }
+    $allNodes = [System.Collections.Generic.List[object]]::new()
+    $cursor = $null
+    $safetyMax = 50  # 50 * 100 = 5000 threads upper bound; defends against runaway loops.
+    $iter = 0
+    do {
+        $fields = @{
+            owner  = $r.Owner
+            name   = $r.Name
+            number = $PRNumber
+        }
+        if ($null -ne $cursor) { $fields['cursor'] = $cursor }
 
-    if (-not $resp) { return @() }
-    $nodes = @($resp.data.repository.pullRequest.reviewThreads.nodes)
+        $resp = Invoke-GhGraphQl -Query $query -Fields $fields
+        if (-not $resp) { break }
 
-    $threads = foreach ($n in $nodes) {
+        $page = $resp.data.repository.pullRequest.reviewThreads
+        foreach ($n in @($page.nodes)) { $allNodes.Add($n) | Out-Null }
+
+        $hasNext = $false
+        if ($page.PSObject.Properties['pageInfo'] -and $page.pageInfo) {
+            if ($page.pageInfo.PSObject.Properties['hasNextPage']) {
+                $hasNext = [bool]$page.pageInfo.hasNextPage
+            }
+            if ($hasNext -and $page.pageInfo.PSObject.Properties['endCursor']) {
+                $cursor = [string]$page.pageInfo.endCursor
+            } else {
+                $cursor = $null
+            }
+        }
+        $iter++
+        if ($iter -ge $safetyMax) {
+            Write-Warning "Get-PRReviewThreads: pagination safety cap ($safetyMax pages) reached for PR #$PRNumber"
+            break
+        }
+    } while ($hasNext -and $cursor)
+
+    if ($allNodes.Count -eq 0) { return @() }
+
+    $threads = foreach ($n in $allNodes) {
         $comments = @($n.comments.nodes)
         $first = if ($comments.Count -gt 0) { $comments[0] } else { $null }
 
@@ -239,16 +272,39 @@ function Get-CommitChangedRanges {
         $patch = ''
         if ($f.PSObject.Properties['patch']) { $patch = [string]$f.patch }
         if ([string]::IsNullOrWhiteSpace($patch)) {
-            # Renames or binary diffs: assume the whole file was touched.
-            $map[$path] += , @(1, [int]::MaxValue)
+            # Missing patch (#137 gate fix, Codex-1 / Goldeneye-1):
+            # Renames, binary diffs, and oversized diffs all arrive without
+            # `patch`. The previous behavior marked the WHOLE file as touched
+            # (line 1..MaxValue), which would auto-resolve any thread on that
+            # file even if the change was unrelated. Conservative path: skip
+            # the file with a warning and let the thread stay open for human
+            # review.
+            Write-Warning "Skipping file '$path' for commit ${Sha}: no patch in API response (binary, rename, or oversized diff)."
             continue
         }
 
         foreach ($line in ($patch -split "`n")) {
             if ($line -match '^@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,(\d+))?\s+@@') {
                 $start = [int]$Matches[1]
-                $count = if ($Matches[2]) { [int]$Matches[2] } else { 1 }
-                if ($count -lt 1) { $count = 1 }
+                # Right-side count semantics:
+                #   `+c`        -> count = 1   (single added line at $start)
+                #   `+c,n`      -> count = n   (n lines on the right)
+                #   `+c,0`      -> count = 0   (deletion-only hunk, NO right-side range)
+                # (#137 gate fix, Codex-1 / Goldeneye-1): when count is 0,
+                # treat the hunk as having no right-side line range and skip
+                # it entirely. The previous coercion to 1 fabricated a
+                # right-side line at $start and overlap-matched threads on
+                # untouched context.
+                $hasCount = [bool]$Matches[2]
+                if ($hasCount) {
+                    $count = [int]$Matches[2]
+                    if ($count -lt 1) {
+                        # Deletion-only hunk: no right-side line was added or modified.
+                        continue
+                    }
+                } else {
+                    $count = 1
+                }
                 $end = $start + $count - 1
                 $map[$path] += , @($start, $end)
             }
@@ -408,9 +464,26 @@ function Invoke-AutoResolveThreads {
 
             $hasFirstComment = $thread.Comments -and $thread.Comments.Count -gt 0
             if ($hasFirstComment -and $thread.Comments[0].PSObject.Properties['databaseId'] -and $null -ne $thread.Comments[0].databaseId) {
-                Add-ResolutionReply -PRNumber $PRNumber -Repo $Repo `
-                    -InReplyToCommentDatabaseId ([string]$thread.Comments[0].databaseId) `
-                    -Sha $check.Sha -DryRun:$DryRun | Out-Null
+                # Idempotency guard (#137 gate fix, Codex-3):
+                # Two overlapping workflow runs can both reach this point
+                # before concurrency cancellation lands. The
+                # resolveReviewThread mutation is server-side idempotent on a
+                # resolved thread, but the reply POST is NOT, so we'd post the
+                # marker twice. Scan existing comments for our marker first
+                # and skip the reply if it's already there.
+                $markerAlreadyPresent = $false
+                foreach ($c in $thread.Comments) {
+                    if ($c -and $c.PSObject.Properties['body'] -and $c.body -and `
+                        ([string]$c.body).Contains($script:AutoResolveMarker)) {
+                        $markerAlreadyPresent = $true
+                        break
+                    }
+                }
+                if (-not $markerAlreadyPresent) {
+                    Add-ResolutionReply -PRNumber $PRNumber -Repo $Repo `
+                        -InReplyToCommentDatabaseId ([string]$thread.Comments[0].databaseId) `
+                        -Sha $check.Sha -DryRun:$DryRun | Out-Null
+                }
             }
             $resolved.Add($thread.Id) | Out-Null
         }

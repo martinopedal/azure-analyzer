@@ -5,8 +5,17 @@ name: PR Auto-Resolve Review Threads
 # Threads whose file/line range was NOT touched by the new commits stay open
 # (the reviewer decides). Disable with `SQUAD_AUTO_RESOLVE_THREADS=0`.
 
+# SECURITY (#137 gate fix, Goldeneye-2):
+# We use `pull_request_target` (not `pull_request`) so the workflow runs in the
+# context of the BASE ref with the BASE token. This prevents a fork PR from
+# substituting a malicious resolver script and exfiltrating the
+# `pull-requests: write` token. We deliberately do NOT check out the PR head;
+# `actions/checkout@v6` with no `ref` defaults to the base SHA for
+# `pull_request_target`, so the resolver we execute is always the trusted
+# base-ref copy. As an additional belt-and-braces guard, the job is skipped
+# entirely when the PR head repo is a fork.
 on:
-  pull_request:
+  pull_request_target:
     types: [synchronize, ready_for_review, reopened]
   pull_request_review:
     types: [submitted, edited]
@@ -21,11 +30,17 @@ concurrency:
 
 jobs:
   auto-resolve:
-    # Skip drafts that have not had a review yet — nothing to resolve.
-    if: github.event.pull_request != null
+    # Skip drafts that have not had a review yet, nothing to resolve.
+    # Also skip fork PRs entirely (defense in depth on top of pull_request_target).
+    if: >-
+      github.event.pull_request != null
+      && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout base ref (trusted resolver)
+        # No `ref:` -> checks out the base SHA for pull_request_target events,
+        # so we run the trusted base-ref copy of Resolve-PRReviewThreads.ps1,
+        # never the PR head's (potentially malicious) version.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install PowerShell
