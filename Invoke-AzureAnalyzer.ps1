@@ -760,7 +760,9 @@ try {
         if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
             $runMetaJson = Remove-Credentials $runMetaJson
         }
-        Set-Content -Path $runMetadataFile -Value $runMetaJson -Encoding UTF8
+        $runMetaTemp = "$runMetadataFile.tmp-$([Guid]::NewGuid().ToString('N'))"
+        Set-Content -Path $runMetaTemp -Value $runMetaJson -Encoding UTF8
+        Move-Item -Path $runMetaTemp -Destination $runMetadataFile -Force
     }
 } catch {
     Write-Warning (Remove-Credentials "Scan-state persistence failed: $_")

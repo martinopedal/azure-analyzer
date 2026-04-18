@@ -59,7 +59,7 @@ jobs:
       - name: Restore previous scan state
         # Grabs the most recent successful artifact named "azure-analyzer-state"
         # so that results-baseline.json and state/scan-state.json carry forward.
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11  # v6
         with:
           name: azure-analyzer-state
           path: output
@@ -67,26 +67,31 @@ jobs:
           if_no_artifact_found: warn
 
       - name: Azure login
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Run azure-analyzer (incremental)
         shell: pwsh
+        # All user-controlled inputs are routed through env: and read as
+        # $env:<NAME> inside the script to prevent template injection
+        # (dispatch inputs and repo vars are not trusted input surfaces).
         env:
           GITHUB_AUTH_TOKEN: ${{ secrets.GH_PAT }}
+          FULL_SCAN: ${{ github.event.inputs.full_scan }}
+          AZA_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
         run: |
-          $incremental = '${{ github.event.inputs.full_scan }}' -ne 'true'
-          $args = @{
-            SubscriptionId = '${{ vars.AZURE_SUBSCRIPTION_ID }}'
+          $incremental = $env:FULL_SCAN -ne 'true'
+          $params = @{
+            SubscriptionId = $env:AZA_SUBSCRIPTION_ID
             OutputPath     = 'output'
           }
-          if ($incremental) { $args['Incremental'] = $true }
-          ./Invoke-AzureAnalyzer.ps1 @args
+          if ($incremental) { $params['Incremental'] = $true }
+          ./Invoke-AzureAnalyzer.ps1 @params
 
       - name: Upload scan-state artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: azure-analyzer-state
           path: |
@@ -101,7 +106,7 @@ jobs:
 
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: azure-analyzer-report
           path: |
