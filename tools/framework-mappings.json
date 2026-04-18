@@ -65,7 +65,9 @@
     { "source": "defender-for-cloud", "match": { "Category": "Security" },                       "wafPillar": "Security", "controls": { "CIS": ["2.1","2.2"], "NIST": ["SI-4","RA-5"], "PCI": ["6.3.3","10.6","11.3"] } },
 
     { "source": "azgovviz",    "match": { "Category": "Policy" },      "wafPillar": "OperationalExcellence", "controls": { "CIS": ["5.1"], "NIST": ["CM-6"], "PCI": ["2.2"] } },
+    { "source": "azgovviz",    "match": { "Category": "Identity" },    "wafPillar": "Security",              "controls": { "CIS": ["1.1","1.2","1.23"], "NIST": ["AC-2","AC-6"], "PCI": ["7.1","7.2"] } },
+    { "source": "azgovviz",    "match": { "Category": "Operations" },  "wafPillar": "OperationalExcellence", "controls": { "CIS": ["5.1","5.2"], "NIST": ["AU-2","AU-6"], "PCI": ["10.1","10.2"] } },
     { "source": "alz-queries", "match": { "Category": "Governance" },  "wafPillar": "OperationalExcellence", "controls": { "CIS": ["1.22"], "NIST": ["CM-2","CM-6"], "PCI": ["2.2"] } },
-    { "source": "wara",        "match": { "Category": "Reliability" }, "wafPillar": "Reliability",          "controls": { "NIST": ["CP-2","CP-10"], "PCI": ["12.10"] } }
+    { "source": "wara",        "match": { "Category": "Reliability" }, "wafPillar": "Reliability",           "controls": { "NIST": ["CP-2","CP-10"], "PCI": ["12.10"] } }
   ]
 }

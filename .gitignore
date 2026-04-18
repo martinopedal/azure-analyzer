@@ -14,3 +14,5 @@ secrets.*
 credentials.*
 
 .atlas-stash/
+testResults.xml
+pester.log
