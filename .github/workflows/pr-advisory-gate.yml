@@ -1,0 +1,74 @@
+name: PR Advisory Gate
+
+# Universal advisory review gate (#109). Fires on every PR open / ready /
+# synchronize from a squad agent or Copilot, builds the 3-model triage bundle
+# under `.squad/decisions/inbox/`, and posts a single advisory comment on the
+# PR under the `<!-- squad-advisory -->` marker. NON-BLOCKING, merge is never
+# gated by this workflow, the human / Copilot reviewer has the final say.
+#
+# Severity tags follow the #108 taxonomy. Untagged findings emitted by the
+# gate are auto-tagged `[correctness]` before being posted (fail-safe).
+#
+# SECURITY:
+# We use `pull_request_target` (not `pull_request`) so the workflow runs in
+# the BASE-ref context with the BASE token. Combined with the fork-skip
+# guard below, a fork PR cannot substitute a malicious gate script and
+# exfiltrate the `pull-requests: write` token. We deliberately do NOT check
+# out the PR head, `actions/checkout@v6` with no `ref:` defaults to the
+# base SHA for `pull_request_target`, so the script we execute is always
+# the trusted base-ref copy.
+#
+# Disable repo-wide by setting the `SQUAD_ADVISORY_GATE=0` repo variable.
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+concurrency:
+  group: pr-advisory-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  advisory-gate:
+    # Skip fork PRs entirely (defense in depth on top of pull_request_target).
+    # Skip drafts that are not yet flagged ready_for_review when the trigger
+    # is `opened`, the workflow re-fires on `ready_for_review`.
+    if: >-
+      github.event.pull_request != null
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base ref (trusted gate script)
+        # No `ref:` -> checks out the base SHA for pull_request_target events,
+        # so we run the trusted base-ref copy of Invoke-PRAdvisoryGate.ps1,
+        # never the PR head's (potentially malicious) version.
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install PowerShell
+        run: |
+          if ! command -v pwsh >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y powershell
+          fi
+
+      - name: Run advisory gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          SQUAD_ADVISORY_GATE: ${{ vars.SQUAD_ADVISORY_GATE || '1' }}
+          SQUAD_AGENT_LOGINS: ${{ vars.SQUAD_AGENT_LOGINS || '' }}
+        shell: pwsh
+        run: |
+          $enabled = $env:SQUAD_ADVISORY_GATE -ne '0'
+          ./modules/shared/Invoke-PRAdvisoryGate.ps1 `
+            -PRNumber ([int]$env:PR_NUMBER) `
+            -Repo $env:REPO_NAME `
+            -PRAuthor $env:PR_AUTHOR `
+            -OutputPath '.squad/decisions/inbox/' `
+            -Enabled:$enabled

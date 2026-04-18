@@ -152,7 +152,7 @@ OpenSSF Scorecard evaluates repository security practices. Authentication is opt
 
 #### PR review gate workflow permissions
 
-The PR review gate workflow (`.github/workflows/pr-review-gate.yml`) uses least-privilege workflow permissions:
+The PR review gate workflow (`.github/workflows/pr-review-gate.yml`) and the PR advisory gate workflow (`.github/workflows/pr-advisory-gate.yml`, #109) use least-privilege workflow permissions:
 
 | Permission | Access | Why |
 |---|---|---|
