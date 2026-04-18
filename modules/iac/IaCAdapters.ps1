@@ -7,8 +7,8 @@
     helpers (bicep, terraform). Each adapter returns a v1 wrapper envelope
     (SchemaVersion 1.0, Status, Findings[]) consistent with other wrappers.
 
-    All external process launches go through Invoke-WithTimeout (300s hard cap)
-    and Invoke-WithRetry (transient-error resilience).
+    All external process launches go through Invoke-WithTimeout (300s hard cap).
+    Invoke-WithTimeout is required; the adapter fails closed if it is unavailable.
     All written output passes through Remove-Credentials.
     All clones go through Invoke-RemoteRepoClone (cloud-first invariant).
 #>
@@ -139,9 +139,9 @@ function Invoke-BicepValidation {
     )
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $bicepFiles = Get-ChildItem -Path $RepoPath -Filter '*.bicep' -Recurse -File -ErrorAction SilentlyContinue
+    $bicepFiles = @(Get-ChildItem -Path $RepoPath -Filter '*.bicep' -Recurse -File -ErrorAction SilentlyContinue)
 
-    if (-not $bicepFiles -or $bicepFiles.Count -eq 0) {
+    if ($bicepFiles.Count -eq 0) {
         return [PSCustomObject]@{
             Source = 'bicep-iac'; Status = 'Success'
             Message = 'No .bicep files found'; Findings = @()
@@ -249,9 +249,9 @@ function Invoke-TerraformValidation {
     )
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $tfFiles = Get-ChildItem -Path $RepoPath -Filter '*.tf' -Recurse -File -ErrorAction SilentlyContinue
+    $tfFiles = @(Get-ChildItem -Path $RepoPath -Filter '*.tf' -Recurse -File -ErrorAction SilentlyContinue)
 
-    if (-not $tfFiles -or $tfFiles.Count -eq 0) {
+    if ($tfFiles.Count -eq 0) {
         return [PSCustomObject]@{
             Source = 'terraform-iac'; Status = 'Success'
             Message = 'No .tf files found'; Findings = @()
@@ -298,6 +298,7 @@ function Invoke-TerraformValidateDir {
         [string] $RelativeDir,
 
         [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
         [System.Collections.Generic.List[PSCustomObject]] $Findings
     )
 
@@ -391,6 +392,7 @@ function Invoke-TrivyConfigDir {
         [string] $RelativeDir,
 
         [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
         [System.Collections.Generic.List[PSCustomObject]] $Findings
     )
 
@@ -403,7 +405,17 @@ function Invoke-TrivyConfigDir {
         Assert-TimeoutHelperLoaded
         $result = Invoke-WithTimeout -Command 'trivy' -Arguments @('config', '--format', 'json', '--output', $reportFile, $Dir) -TimeoutSec $script:IaCTimeoutSec
         if ($result.ExitCode -eq -1) {
-            Write-Verbose "trivy config timed out for $Dir"
+            $Findings.Add([PSCustomObject]@{
+                Id          = [guid]::NewGuid().ToString()
+                Category    = 'IaC Security'
+                Title       = "Trivy scan incomplete: timed out after $($script:IaCTimeoutSec)s"
+                Severity    = 'High'
+                Compliant   = $false
+                Detail      = Remove-Credentials "trivy config timed out after $($script:IaCTimeoutSec) seconds scanning $RelativeDir. Security findings may be missing."
+                Remediation = "Reduce the scan scope or increase the timeout budget. Consider scanning subdirectories individually."
+                ResourceId  = $RelativeDir
+                LearnMoreUrl = 'https://github.com/aquasecurity/trivy'
+            })
             return
         }
 
