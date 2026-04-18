@@ -222,7 +222,7 @@ correlator already emits valid FindingRow objects.
 
 ## EntityType taxonomy
 
-The v3 schema defines **12 EntityTypes** across **4 platforms**. Every finding and entity MUST use one of these. The taxonomy is the authoritative join key for cross-tool correlation.
+The v3 schema defines **14 EntityTypes** across **4 platforms**. Every finding and entity MUST use one of these. The taxonomy is the authoritative join key for cross-tool correlation.
 
 | EntityType | Platform | Emitted by |
 |---|---|---|
@@ -236,7 +236,9 @@ The v3 schema defines **12 EntityTypes** across **4 platforms**. Every finding a
 | `Tenant` | Entra | **Maester synthetic entity** (tenant-wide baseline checks that don't belong to any single app) |
 | `Repository` | GitHub | Scorecard, gitleaks, Trivy (when repo-scoped) |
 | `Workflow` | GitHub | zizmor |
-| `Pipeline` | ADO | (reserved -- future ADO pipeline scanner) |
+| `Pipeline` | ADO | ADO Pipeline Security, service-connection correlation |
+| `VariableGroup` | ADO | ADO Pipeline Security |
+| `Environment` | ADO | ADO Pipeline Security |
 | `ServiceConnection` | ADO | ADO Connections |
 
 Platform mapping is deterministic: given an EntityType, `Get-PlatformForEntityType` (in `Schema.ps1`) returns exactly one platform.

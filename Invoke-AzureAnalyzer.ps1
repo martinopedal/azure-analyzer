@@ -30,7 +30,7 @@
     Local repository path for CI/CD security scanning tools (zizmor, gitleaks).
     Defaults to the current directory. Tools scan workflow files and git history at this path.
 .PARAMETER AdoOrg
-    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections).
+    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections, ado-pipelines).
     When provided, ADO tools are included in the run.
 .PARAMETER AdoProject
     Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
@@ -276,7 +276,8 @@ function Get-SubscriptionContextLookup {
         $lookup[$subId.ToLowerInvariant()] = [pscustomobject]@{
             SubscriptionId      = $subId
             SubscriptionName    = $subId
-            ManagementGroupPath = if ($ManagementGroupId) { @($ManagementGroupId) } else { @() }
+            ManagementGroupPath = @()
+            IsInMgSubtree       = $false
         }
     }
 
@@ -333,7 +334,8 @@ resourcecontainers
             $lookup[$subId.ToLowerInvariant()] = [pscustomobject]@{
                 SubscriptionId      = $subId
                 SubscriptionName    = if ($record.PSObject.Properties['subscriptionName'] -and $record.subscriptionName) { [string]$record.subscriptionName } elseif ($record.PSObject.Properties['name'] -and $record.name) { [string]$record.name } else { $subId }
-                ManagementGroupPath = @($path | Select-Object -Unique)
+                ManagementGroupPath = @($path)
+                IsInMgSubtree       = $true
             }
         }
     } catch {
@@ -391,7 +393,14 @@ function Update-FindingScopeContext {
             if ($Finding.PSObject.Properties['ManagementGroupPath'] -and $Finding.ManagementGroupPath) {
                 $existingPath = @($Finding.ManagementGroupPath | Where-Object { $_ })
             }
-            if ($existingPath.Count -eq 0 -and $ctx.ManagementGroupPath) {
+            $isConfirmedMgContext = $false
+            if (-not $ManagementGroupId) {
+                $isConfirmedMgContext = $true
+            } elseif ($ctx.PSObject.Properties['IsInMgSubtree']) {
+                $isConfirmedMgContext = [bool]$ctx.IsInMgSubtree
+            }
+
+            if ($existingPath.Count -eq 0 -and $isConfirmedMgContext -and @($ctx.ManagementGroupPath).Count -gt 0) {
                 $Finding | Add-Member -NotePropertyName ManagementGroupPath -NotePropertyValue @($ctx.ManagementGroupPath) -Force
             }
         }

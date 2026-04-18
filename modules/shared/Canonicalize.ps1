@@ -199,6 +199,8 @@ function ConvertTo-CanonicalEntityId {
             'Application',
             'Repository',
             'Pipeline',
+            'VariableGroup',
+            'Environment',
             'ServiceConnection',
             'User',
             'Subscription',
@@ -219,6 +221,8 @@ function ConvertTo-CanonicalEntityId {
         'ServicePrincipal' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
         'Application' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
         'Pipeline' { ConvertTo-CanonicalAdoId -AdoId $RawId }
+        'VariableGroup' { ConvertTo-CanonicalAdoId -AdoId $RawId }
+        'Environment' { ConvertTo-CanonicalAdoId -AdoId $RawId }
         'ServiceConnection' { ConvertTo-CanonicalAdoId -AdoId $RawId }
         'User' {
             $raw = $RawId.Trim()
@@ -264,6 +268,8 @@ function ConvertTo-CanonicalEntityId {
         'Tenant' { 'Entra' }
         'Repository' { 'GitHub' }
         'Pipeline' { 'ADO' }
+        'VariableGroup' { 'ADO' }
+        'Environment' { 'ADO' }
         'ServiceConnection' { 'ADO' }
         default { 'Unknown' }
     }

@@ -87,4 +87,61 @@ Describe 'Get-PortfolioRollup' {
             }
         }
     }
+
+    It 'handles a single-segment management-group path without throwing' {
+        $outputPath = Join-Path $PSScriptRoot '..\..\output-test\portfolio-rollup-single-segment'
+        if (Test-Path $outputPath) {
+            Remove-Item -Path $outputPath -Recurse -Force
+        }
+        $null = New-Item -ItemType Directory -Path $outputPath -Force
+
+        try {
+            $store = [EntityStore]::new(50000, $outputPath)
+            $mgPath = @('Connectivity')
+            $subscriptionId = '44444444-4444-4444-4444-444444444444'
+            $entityId = "/subscriptions/$subscriptionId/resourceGroups/rg-one/providers/Microsoft.Storage/storageAccounts/onesa"
+
+            $store.MergeEntityMetadata([pscustomobject]@{
+                    EntityId            = $entityId
+                    EntityType          = 'AzureResource'
+                    Platform            = 'Azure'
+                    DisplayName         = 'onesa'
+                    SubscriptionId      = $subscriptionId
+                    SubscriptionName    = 'sub-single'
+                    ManagementGroupPath = $mgPath
+                    MonthlyCost         = [double]5.0
+                    Currency            = 'USD'
+                    Observations        = @()
+                })
+
+            $store.AddFinding((New-FindingRow `
+                    -Id 'single-segment-0' `
+                    -Source 'azqr' `
+                    -EntityId $entityId `
+                    -EntityType 'AzureResource' `
+                    -Title 'single-segment-finding' `
+                    -Compliant $false `
+                    -ProvenanceRunId 'run-portfolio-2' `
+                    -Platform 'Azure' `
+                    -Category 'Security' `
+                    -Severity 'High' `
+                    -SubscriptionId $subscriptionId `
+                    -SubscriptionName 'sub-single' `
+                    -ManagementGroupPath $mgPath))
+
+            { Get-PortfolioRollup -Store $store -ManagementGroupId 'connectivity' } | Should -Not -Throw
+
+            $portfolio = Get-PortfolioRollup -Store $store -ManagementGroupId 'connectivity'
+            @($portfolio.ManagementGroups).Count | Should -Be 1
+            $portfolio.ManagementGroups[0].ManagementGroupName | Should -Be 'Connectivity'
+            @($portfolio.ManagementGroups[0].ManagementGroupPath) | Should -Be @('Connectivity')
+        } finally {
+            if ($null -ne $store) {
+                $store.CleanupSpillFiles()
+            }
+            if (Test-Path $outputPath) {
+                Remove-Item -Path $outputPath -Recurse -Force
+            }
+        }
+    }
 }

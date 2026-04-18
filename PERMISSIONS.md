@@ -74,7 +74,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 | **Workspace-scoped** (Sentinel Incidents) | Runs when `-SentinelWorkspaceId` is provided |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
 | **CLI-scoped** (zizmor, gitleaks, Trivy) | Local filesystem tools; run automatically, no cloud scope needed |
-| **ADO-scoped** (ADO Connections) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
+| **ADO-scoped** (ADO Connections, ADO Pipeline Security) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
 
 **Required permissions for recursion:**
 - `Reader` on the management group (auto-inherited to all child subscriptions)
@@ -443,7 +443,63 @@ $env:ADO_PAT_TOKEN = "<your-ado-pat>"
 
 **Important:** The ADO scanner does **NOT** modify service connections or project settings. All API calls are read-only (`GET`).
 
-**Planned:** see issue #138 (ADO pipeline security scanning: build/release defs, variable groups, environments) for the next ADO surface tracked under this scope.
+This inventory surface pairs well with `ado-pipelines`, which answers where those identities are consumed.
+
+---
+
+### Azure DevOps (ADO Pipeline Security -- build/release definitions, variable groups, environments)
+
+The ADO pipeline security collector inspects build definitions, classic release definitions, variable groups, and environments through the Azure DevOps REST API. It focuses on read-only posture signals: missing approvals on production-like environments, classic releases without approval coverage, plaintext secret-like library variables, and service-connection reuse across multiple pipeline assets.
+
+| Token scope | Why |
+|-------------|-----|
+| **Build (Read)** | Read build definition metadata and trigger settings |
+| **Release (Read)** | Read classic release definitions and stage approval metadata |
+| **Library / Variable Groups (Read)** | Read variable-group metadata, secret flags, and Key Vault linkage state |
+| **Environment (Read)** | Read environment definitions plus approval/check configuration |
+| **Project and Team (Read)** | List projects when `-AdoProject` is omitted |
+
+**How to grant:**
+
+1. Go to **Azure DevOps** → **User settings** → **Personal access tokens**
+2. Click **New Token**
+3. Set **Organization** to the target org (or "All accessible organizations")
+4. Under **Scopes**, select:
+   - **Build**: Read
+   - **Release**: Read
+   - **Library / Variable Groups**: Read
+   - **Environment**: Read
+   - **Project and Team**: Read
+5. Set expiration (recommended: 90 days)
+6. Copy the token
+
+**Usage:**
+
+```powershell
+# Recommended for CI or repeat runs
+$env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-pipelines'
+
+# Single project
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "payments" -IncludeTools 'ado-pipelines'
+
+# Run both ADO collectors together
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
+```
+
+**What it scans:**
+
+- Build definitions for broad CI trigger patterns and deployment identity references.
+- Classic release definitions for production stages that lack approvals or gates.
+- Variable groups for plaintext secret-like variables and missing Key Vault linkage.
+- Environments for missing approval/check coverage on production-like targets.
+
+**What it does NOT do:**
+
+- No writes back to Azure DevOps.
+- No log scraping or pipeline-run mutation.
+- No emission of plaintext variable values; only metadata and variable names are surfaced.
+- No task reputation scoring or YAML linting outside the scoped posture checks above.
 
 ---
 
@@ -497,6 +553,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **Maester** | -- | ✅ Required | -- | -- | -- | -- |
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
+| **ADO Pipeline Security** | -- | -- | -- | ✅ Required | -- | -- |
 | **zizmor** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
 | **gitleaks** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
 | **Trivy** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
@@ -536,7 +593,7 @@ Azure-analyzer follows the principle of least privilege:
 - ❌ **Write permissions** to any Azure resource
 - ❌ **Key Vault access** -- No secrets are read from or stored in Key Vault
 - ❌ **Network permissions** -- No virtual network or firewall rules are modified
-- ❌ **Azure DevOps write permissions** -- ADO service connection scanner requires only read access to service endpoints
+- ❌ **Azure DevOps write permissions** -- ADO service connection and pipeline scanners require only read access to metadata
 - ❌ **Service Principal Password** -- Only object ID is needed for role assignment
 
 ### AI Triage (optional)

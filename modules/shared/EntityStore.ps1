@@ -795,11 +795,7 @@ function Get-PortfolioRollup {
     foreach ($row in $subscriptionRows) {
         $path = @($row.ManagementGroupPath)
         if ($path.Count -eq 0) {
-            if ($ManagementGroupId) {
-                $path = @($ManagementGroupId)
-            } else {
-                continue
-            }
+            continue
         }
 
         $key = $path -join ' > '
@@ -812,7 +808,12 @@ function Get-PortfolioRollup {
     $managementGroupRows = [System.Collections.Generic.List[object]]::new()
     foreach ($bucketKey in $managementGroupBuckets.Keys) {
         $rows = @($managementGroupBuckets[$bucketKey])
-        $mgPath = if ($rows.Count -gt 0) { @($rows[0].ManagementGroupPath) } else { @($ManagementGroupId) }
+        $mgPath = @()
+        if ($rows.Count -gt 0) {
+            $mgPath = @($rows[0].ManagementGroupPath)
+        } elseif ($ManagementGroupId) {
+            $mgPath = @($ManagementGroupId)
+        }
         $criticalCount = 0
         $highCount = 0
         $mediumCount = 0
