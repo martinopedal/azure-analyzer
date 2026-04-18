@@ -4,8 +4,8 @@
     Normalizer for Microsoft Sentinel incidents wrapper output.
 .DESCRIPTION
     Converts v1 sentinel-incidents wrapper output to v2 FindingRows.
-    - Each active incident maps to EntityType=Subscription (workspace-scoped,
-      keyed to the subscription hosting the Log Analytics workspace).
+    - Each active incident maps to EntityType=AzureResource (workspace ARM resource),
+      keyed to the Log Analytics workspace hosting Sentinel.
     - Severity is mapped from Sentinel's native values (High/Medium/Low/Informational).
     - All incidents are Compliant=false (active, unresolved incidents).
     - Extra fields (IncidentNumber, IncidentStatus, AlertCount, Classification,

@@ -96,7 +96,8 @@ $incidentKql = @"
 SecurityIncident
 | where TimeGenerated > ago(${LookbackDays}d)
 | where Status != 'Closed'
-| summarize AlertCount = dcount(AlertIds) by
+| extend AlertCount = array_length(AlertIds)
+| project
     IncidentNumber,
     Title,
     Severity,
@@ -107,21 +108,32 @@ SecurityIncident
     ProviderName,
     CreatedTime,
     LastModifiedTime,
-    Description
-| order by Severity asc, CreatedTime desc
+    Description,
+    AlertCount
+| order by case(Severity, "High", 1, "Medium", 2, "Low", 3, "Informational", 4, 5), CreatedTime desc
 "@
 
 try {
     $body = @{ query = $incidentKql } | ConvertTo-Json -Depth 5
     $incResp = Invoke-WithRetry -MaxAttempts 3 -ScriptBlock {
-        Invoke-AzRestMethod -Method POST -Uri $using:queryUri -Payload $using:body -ErrorAction Stop
+        Invoke-AzRestMethod -Method POST -Uri $queryUri -Payload $body -ErrorAction Stop
     }
 
     if (-not $incResp -or $incResp.StatusCode -ge 400) {
         $statusCode = if ($incResp) { $incResp.StatusCode } else { 'null' }
         $content = if ($incResp) { $incResp.Content } else { 'No response' }
-        # Table not found (404/BadRequest with table-not-found) means Sentinel not enabled
-        if ($incResp -and $incResp.StatusCode -in 400, 404) {
+
+        # HTTP 404: workspace or resource not found
+        $isTableNotFound = ($incResp -and $incResp.StatusCode -eq 404)
+
+        # HTTP 400 with semantic error indicating table does not exist
+        # Log Analytics returns SemanticError with "could not be resolved" for missing tables
+        if (-not $isTableNotFound -and $incResp -and $incResp.StatusCode -eq 400) {
+            $isTableNotFound = ($content -match 'SemanticError' -and $content -match 'could not be resolved') -or
+                               ($content -match "'SecurityIncident'" -and $content -match 'not found')
+        }
+
+        if ($isTableNotFound) {
             $result.Status  = 'Skipped'
             $result.Message = "SecurityIncident table not available (HTTP $statusCode). Sentinel may not be enabled on this workspace."
             return [pscustomobject]$result
