@@ -43,6 +43,7 @@ function Normalize-AzGovViz {
         $rg = ''
         $canonicalId = ''
         $entityType = 'ManagementGroup'
+        $platformOverride = $null
 
         if ($category -eq 'Identity' -and $principalId) {
             $principalTypeValue = $principalType.ToLowerInvariant()
@@ -53,6 +54,8 @@ function Normalize-AzGovViz {
                 $entityType = 'ServicePrincipal'
                 $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
             }
+            # AzGovViz Identity findings represent Azure RBAC assignments.
+            $platformOverride = 'Azure'
         }
 
         if (-not $canonicalId -and $rawId -and $rawId -match '^/subscriptions/') {
@@ -111,13 +114,28 @@ function Normalize-AzGovViz {
         $remediation = Get-PropertyValue $finding 'Remediation' ''
         $learnMore = Get-PropertyValue $finding 'LearnMoreUrl' (Get-PropertyValue $finding 'LearnMoreLink' '')
 
-        $row = New-FindingRow -Id ([guid]::NewGuid().ToString()) `
-            -Source 'azgovviz' -EntityId $canonicalId -EntityType $entityType `
-            -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
-            -Category $category -Severity $severity `
-            -Detail $detail -Remediation $remediation `
-            -LearnMoreUrl ($learnMore ?? '') -ResourceId ($rawId ?? '') `
-            -SubscriptionId $subId -ResourceGroup $rg
+        $newFindingParams = @{
+            Id              = ([guid]::NewGuid().ToString())
+            Source          = 'azgovviz'
+            EntityId        = $canonicalId
+            EntityType      = $entityType
+            Title           = $title
+            Compliant       = [bool]$compliant
+            ProvenanceRunId = $runId
+            Category        = $category
+            Severity        = $severity
+            Detail          = $detail
+            Remediation     = $remediation
+            LearnMoreUrl    = ($learnMore ?? '')
+            ResourceId      = ($rawId ?? '')
+            SubscriptionId  = $subId
+            ResourceGroup   = $rg
+        }
+        if ($platformOverride) {
+            $newFindingParams.Platform = $platformOverride
+        }
+
+        $row = New-FindingRow @newFindingParams
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)

@@ -35,13 +35,9 @@ Describe 'Normalize-AzGovViz' {
             }
         }
 
-        It 'sets Platform based on EntityType' {
+        It 'sets Platform to Azure for AzGovViz findings including RBAC identities' {
             foreach ($r in $results) {
-                if ($r.EntityType -in @('User', 'ServicePrincipal')) {
-                    $r.Platform | Should -Be 'Entra'
-                } else {
-                    $r.Platform | Should -Be 'Azure'
-                }
+                $r.Platform | Should -Be 'Azure'
             }
         }
     }
