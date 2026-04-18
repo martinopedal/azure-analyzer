@@ -15,7 +15,8 @@
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md'),
-    [string] $TriagePath
+    [string] $TriagePath,
+    [object] $Portfolio
 )
 
 Set-StrictMode -Version Latest
@@ -38,6 +39,16 @@ if (-not (Test-Path $InputPath)) {
 }
 
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+if (-not $Portfolio) {
+    $portfolioPath = Join-Path (Split-Path $InputPath -Parent) 'portfolio.json'
+    if (Test-Path $portfolioPath) {
+        try {
+            $Portfolio = Get-Content $portfolioPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            Write-Warning (Remove-Credentials "Could not load portfolio data from ${portfolioPath}: $_")
+        }
+    }
+}
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = @($findings).Count
@@ -49,6 +60,12 @@ $compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
 $nonCompliantCount = $total - $compliantCount
 
 $lines = [System.Collections.Generic.List[string]]::new()
+
+function Get-PortfolioSlug([string] $text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return 'unknown' }
+    return (($text.ToLowerInvariant() -replace '[^a-z0-9]+', '-') -replace '(^-|-$)', '')
+}
+
 $lines.Add("# Azure Analyzer Report — $date")
 $lines.Add('')
 $lines.Add('## Summary')
@@ -64,7 +81,7 @@ $lines.Add("| Low severity | $low |")
 $lines.Add("| Info | $info |")
 $lines.Add('')
 
-$bySource = $findings | Group-Object -Property Source
+$bySource = @($findings | Group-Object -Property Source)
 $sourceCountMap = @{}
 foreach ($sg in $bySource) { $sourceCountMap[$sg.Name] = $sg }
 
@@ -114,6 +131,90 @@ foreach ($src in $allSources) {
 }
 $lines.Add('')
 
+if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
+    $portfolioSubs = @($Portfolio.Subscriptions)
+    $portfolioCorrelations = if ($Portfolio.PSObject.Properties['Correlations']) { @($Portfolio.Correlations) } else { @() }
+    $portfolioMgs = if ($Portfolio.PSObject.Properties['ManagementGroups']) { @($Portfolio.ManagementGroups) } else { @() }
+
+    if (@($portfolioSubs).Count -gt 0) {
+        $lines.Add('## Portfolio rollup')
+        $lines.Add('')
+
+        $breadcrumbPath = @()
+        if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
+            $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
+        } elseif ($portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
+            $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
+        }
+        if (@($breadcrumbPath).Count -gt 0) {
+            $lines.Add("**Management group path:** $($breadcrumbPath -join ' > ')")
+            $lines.Add('')
+        }
+
+        $lines.Add('| Subscription | Critical | High | Medium | Low | Info | Non-compliant | Monthly cost | Worst |')
+        $lines.Add('|---|---:|---:|---:|---:|---:|---:|---|---|')
+        foreach ($sub in $portfolioSubs) {
+            $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
+            $subLabel = ($subName -replace '\|', '\|')
+            $anchor = Get-PortfolioSlug -text ([string]$sub.SubscriptionId)
+            $costText = if ($null -ne $sub.MonthlyCost -and [double]$sub.MonthlyCost -gt 0) {
+                "{0:N2} {1}" -f [double]$sub.MonthlyCost, ($(if ($sub.Currency) { [string]$sub.Currency } else { 'USD' }))
+            } else {
+                'n/a'
+            }
+            $lines.Add("| [$subLabel](#portfolio-sub-$anchor) | $([int]$sub.SeverityCounts.Critical) | $([int]$sub.SeverityCounts.High) | $([int]$sub.SeverityCounts.Medium) | $([int]$sub.SeverityCounts.Low) | $([int]$sub.SeverityCounts.Info) | $([int]$sub.NonCompliantCount) | $costText | $($sub.WorstSeverity) |")
+        }
+        $lines.Add('')
+
+        $lines.Add('### Cross-subscription identities')
+        $lines.Add('')
+        if (@($portfolioCorrelations).Count -gt 0) {
+            $lines.Add('| Identity | Severity | Subscriptions | Detail |')
+            $lines.Add('|---|---|---:|---|')
+            foreach ($corr in $portfolioCorrelations) {
+                $corrTitle = ([string]$corr.Title -replace '\|', '\|' -replace "`n|`r", ' ')
+                $corrDetail = ([string]$corr.Detail -replace '\|', '\|' -replace "`n|`r", ' ')
+                $lines.Add("| $corrTitle | $($corr.Severity) | $($corr.EvidenceCount) | $corrDetail |")
+            }
+        } else {
+            $lines.Add('No cross-subscription identity reuse was detected in this run.')
+        }
+        $lines.Add('')
+
+        foreach ($sub in $portfolioSubs) {
+            $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
+            $anchor = Get-PortfolioSlug -text ([string]$sub.SubscriptionId)
+            $lines.Add("<a id=`"portfolio-sub-$anchor`"></a>")
+            $lines.Add("### Portfolio sub $subName")
+            $lines.Add('')
+            if ($sub.PSObject.Properties['ManagementGroupPath'] -and @($sub.ManagementGroupPath).Count -gt 0) {
+                $lines.Add("- **Management group path:** $(@($sub.ManagementGroupPath) -join ' > ')")
+            }
+            $lines.Add("- **Worst severity:** $($sub.WorstSeverity)")
+            if ($null -ne $sub.MonthlyCost -and [double]$sub.MonthlyCost -gt 0) {
+                $lines.Add(("- **Monthly cost:** {0:N2} {1}" -f [double]$sub.MonthlyCost, ($(if ($sub.Currency) { [string]$sub.Currency } else { 'USD' }))))
+            }
+            if ($sub.PSObject.Properties['SourceCounts'] -and @($sub.SourceCounts).Count -gt 0) {
+                $sourceSummary = @($sub.SourceCounts | ForEach-Object { "$($_.Source)=$($_.Count)" }) -join ', '
+                $lines.Add("- **By source:** $sourceSummary")
+            }
+            $lines.Add('')
+            $lines.Add('| Top entity | Type | Worst severity | Non-compliant | Monthly cost |')
+            $lines.Add('|---|---|---|---:|---:|')
+            if ($sub.PSObject.Properties['TopEntities'] -and @($sub.TopEntities).Count -gt 0) {
+                foreach ($entity in @($sub.TopEntities)) {
+                    $entityName = if ($entity.DisplayName) { [string]$entity.DisplayName } else { [string]$entity.EntityId }
+                    $entityName = $entityName -replace '\|', '\|'
+                    $lines.Add("| $entityName | $($entity.EntityType) | $($entity.WorstSeverity) | $([int]$entity.NonCompliantCount) | $([double]$entity.MonthlyCost) |")
+                }
+            } else {
+                $lines.Add('| No entities captured |  |  | 0 | 0 |')
+            }
+            $lines.Add('')
+        }
+    }
+}
+
 # AI Triage section
 if ($TriagePath -and (Test-Path $TriagePath)) {
     try {
@@ -156,7 +257,7 @@ if (Get-Command Get-FrameworkCoverage -ErrorAction SilentlyContinue) {
 # Per-category sections
 $lines.Add('## Findings by category')
 $lines.Add('')
-$byCategory = $findings | Group-Object -Property Category | Sort-Object Name
+$byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
 foreach ($cat in $byCategory) {
     $lines.Add("### $($cat.Name)")
     $lines.Add('')
@@ -174,9 +275,9 @@ foreach ($cat in $byCategory) {
 }
 
 # Action sections
-$fixNow = $findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title
-$planFix = $findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title
-$track = $findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title
+$fixNow = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title)
+$planFix = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title)
+$track = @($findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title)
 
 $lines.Add('## Action plan')
 $lines.Add('')

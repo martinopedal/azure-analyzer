@@ -75,7 +75,7 @@ The installer enforces a 300s timeout on external commands, scrubs credentials f
 
 **AzGovViz auto-bootstrap:** when `-InstallMissingModules` is set and AzGovViz is enabled, the installer clones `https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting` into `tools/AzGovViz/` on first run — no manual step required.
 
-Results land in `output/` -- multiple JSON files (findings, entities, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
+Results land in `output/` -- multiple JSON files (findings, entities, portfolio rollup, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
 Sensitive tokens are scrubbed from console output, errors.json, and report files before writing.
 
 **Data quality**: Normalizer output is validated at the boundary via `New-FindingRow` schema enforcement — invalid findings are dropped with a tracked warning, not silently passed through (#99). External API calls use `Invoke-WithRetry` with HTTP 429/503 detection, `Retry-After` header support, and jittered exponential backoff (#101).
@@ -88,6 +88,7 @@ After a run, `output/` contains:
 |---|---|
 | `results.json` | Backward-compatible flat findings (v1 format, all tools' observations in single array) |
 | `entities.json` | Entity-centric view (v3 format, observations per entity with platform/type hierarchy) |
+| `portfolio.json` | Management-group / multi-subscription rollup with heatmap data, source counts, top entities, and cross-sub identity correlations |
 | `tool-status.json` | Per-tool execution status (Success, Skipped, Failed) with message and finding count |
 | `errors.json` | Tool failures and error details (only written when errors occur) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
@@ -102,6 +103,7 @@ After a run, `output/` contains:
 - **Pure-CSS donut chart** -- compliance percentage with conic-gradient (no JavaScript)
 - **Clickable stat cards** -- filter findings by severity with keyboard-accessible buttons
 - **Per-source breakdown** -- horizontal bar chart showing finding counts per tool
+- **Portfolio rollup** -- management-group breadcrumb, per-subscription severity heatmap, and cross-subscription identity reuse summary when you scan an MG
 - **Severity borders** -- color-coded left border on each finding row (High=red, Medium=orange, Low=yellow)
 - **Zebra striping** -- alternating row backgrounds for readability
 - **Search and filter** -- text input for instant filtering across all finding tables
@@ -172,6 +174,24 @@ The report groups findings by category, then prioritizes action:
 - **Plan** -- Medium severity
 - **Track** -- Low + Info severity
 - Per-category breakdown with finding counts
+
+### Portfolio mode
+
+When you run against a management group, azure-analyzer now rolls child subscriptions into a single portfolio view.
+
+```powershell
+# Portfolio scan across an MG subtree
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "platform-connectivity" -Repository "github.com/org/repo"
+```
+
+The generated reports add:
+
+- A management-group breadcrumb at the top of the report
+- A per-subscription heatmap for Critical/High/Medium/Low/Info findings
+- A cross-subscription identity reuse section powered by the identity correlator
+- A stable `portfolio.json` artifact for dashboards and downstream automation
+
+Screenshot placeholder: the HTML report now opens with the portfolio heatmap section above the per-source breakdown whenever `-ManagementGroupId` fans out to multiple subscriptions.
 
 ## Architecture & contributor docs
 

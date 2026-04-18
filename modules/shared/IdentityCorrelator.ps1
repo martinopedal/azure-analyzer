@@ -19,6 +19,132 @@ $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\Sanitize.ps1"
 . "$PSScriptRoot\Retry.ps1"
 
+function Get-PropertyText {
+    [CmdletBinding()]
+    param (
+        [object] $InputObject,
+        [string[]] $PropertyNames
+    )
+
+    if (-not $InputObject) { return $null }
+    foreach ($name in $PropertyNames) {
+        $property = $InputObject.PSObject.Properties[$name]
+        if ($null -eq $property) { continue }
+        $value = $property.Value
+        if ($null -eq $value) { continue }
+        if ($value -is [string]) {
+            if (-not [string]::IsNullOrWhiteSpace($value)) { return $value }
+            continue
+        }
+        return [string]$value
+    }
+
+    return $null
+}
+
+function Get-SubscriptionIdFromContextObject {
+    [CmdletBinding()]
+    param (
+        [object] $InputObject
+    )
+
+    $subscriptionId = Get-PropertyText -InputObject $InputObject -PropertyNames @('SubscriptionId')
+    if ($subscriptionId) { return $subscriptionId.ToLowerInvariant() }
+
+    foreach ($propertyName in @('ResourceId', 'EntityId', 'Detail')) {
+        $text = Get-PropertyText -InputObject $InputObject -PropertyNames @($propertyName)
+        if (-not $text) { continue }
+        if ($text -match '(?i)/subscriptions/([0-9a-f-]{36})') {
+            return $Matches[1].ToLowerInvariant()
+        }
+    }
+
+    return $null
+}
+
+function Get-TenantIdFromContextObject {
+    [CmdletBinding()]
+    param (
+        [object] $InputObject
+    )
+
+    $tenantId = Get-PropertyText -InputObject $InputObject -PropertyNames @('TenantId', 'TenantID')
+    if ($tenantId) { return $tenantId.ToLowerInvariant() }
+
+    foreach ($propertyName in @('EntityId', 'Detail')) {
+        $text = Get-PropertyText -InputObject $InputObject -PropertyNames @($propertyName)
+        if (-not $text) { continue }
+        if ($text -match '(?i)tenant(?:id)?[:=\s/]+([0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12})') {
+            return $Matches[1].ToLowerInvariant()
+        }
+    }
+
+    return $null
+}
+
+function Add-UniqueCandidateValue {
+    [CmdletBinding()]
+    param (
+        [hashtable] $Set,
+        [string] $Value
+    )
+
+    if ($null -eq $Set -or [string]::IsNullOrWhiteSpace($Value)) { return }
+    $normalized = $Value.ToLowerInvariant()
+    if (-not $Set.ContainsKey($normalized)) {
+        $Set[$normalized] = $Value
+    }
+}
+
+function Update-CandidateScopeMetadata {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [hashtable] $Candidate,
+
+        [object] $Entity,
+
+        [object[]] $Observations
+    )
+
+    $subscriptionId = Get-SubscriptionIdFromContextObject -InputObject $Entity
+    Add-UniqueCandidateValue -Set $Candidate.Subscriptions -Value $subscriptionId
+
+    $tenantId = Get-TenantIdFromContextObject -InputObject $Entity
+    Add-UniqueCandidateValue -Set $Candidate.Tenants -Value $tenantId
+
+    $rawPath = $null
+    if ($Entity -and $Entity.PSObject.Properties['ManagementGroupPath']) {
+        $pathValue = $Entity.ManagementGroupPath
+        if ($pathValue -is [System.Collections.IEnumerable] -and $pathValue -isnot [string]) {
+            $rawPath = (@($pathValue | Where-Object { $_ }) -join ' > ')
+        } else {
+            $rawPath = [string]$pathValue
+        }
+    }
+    if ($rawPath -and -not $Candidate.ManagementGroupPaths.Contains($rawPath)) {
+        $Candidate.ManagementGroupPaths.Add($rawPath) | Out-Null
+    }
+
+    foreach ($obs in @($Observations)) {
+        if (-not $obs) { continue }
+        Add-UniqueCandidateValue -Set $Candidate.Subscriptions -Value (Get-SubscriptionIdFromContextObject -InputObject $obs)
+        Add-UniqueCandidateValue -Set $Candidate.Tenants -Value (Get-TenantIdFromContextObject -InputObject $obs)
+        $obsPath = $null
+        if ($obs.PSObject.Properties['ManagementGroupPath']) {
+            $pathValue = $obs.ManagementGroupPath
+            if ($pathValue -is [System.Collections.IEnumerable] -and $pathValue -isnot [string]) {
+                $obsPath = (@($pathValue | Where-Object { $_ }) -join ' > ')
+            } else {
+                $obsPath = [string]$pathValue
+            }
+        }
+        if ($obsPath -and -not $Candidate.ManagementGroupPaths.Contains($obsPath)) {
+            $Candidate.ManagementGroupPaths.Add($obsPath) | Out-Null
+        }
+    }
+}
+
 function Get-IdentityCandidatesFromStore {
     <#
     .SYNOPSIS
@@ -140,6 +266,9 @@ function Get-IdentityCandidatesFromStore {
                 HasPrivilegedAzureRole = $false
                 HasPatBasedAdoAuth    = $false
                 CiEvidenceCount       = 0
+                Subscriptions         = @{}
+                Tenants               = @{}
+                ManagementGroupPaths  = [System.Collections.Generic.List[string]]::new()
             }
         }
 
@@ -196,6 +325,8 @@ function Get-IdentityCandidatesFromStore {
                 $candidate.Dimensions[$obsPlatform].Add($evidenceText)
             }
         }
+
+        Update-CandidateScopeMetadata -Candidate $candidate -Entity $entity -Observations $observations
     }
 
     return $candidates
@@ -274,6 +405,20 @@ function Merge-CandidateAliases {
                     $appCandidate.Dimensions[$dim].Add($ev)
                 }
             }
+            foreach ($subId in $objCandidate.Subscriptions.Keys) {
+                Add-UniqueCandidateValue -Set $appCandidate.Subscriptions -Value $objCandidate.Subscriptions[$subId]
+            }
+            foreach ($tenantId in $objCandidate.Tenants.Keys) {
+                Add-UniqueCandidateValue -Set $appCandidate.Tenants -Value $objCandidate.Tenants[$tenantId]
+            }
+            foreach ($mgPath in @($objCandidate.ManagementGroupPaths)) {
+                if ($mgPath -and -not $appCandidate.ManagementGroupPaths.Contains($mgPath)) {
+                    $appCandidate.ManagementGroupPaths.Add($mgPath) | Out-Null
+                }
+            }
+            $appCandidate.HasPrivilegedAzureRole = $appCandidate.HasPrivilegedAzureRole -or $objCandidate.HasPrivilegedAzureRole
+            $appCandidate.HasPatBasedAdoAuth = $appCandidate.HasPatBasedAdoAuth -or $objCandidate.HasPatBasedAdoAuth
+            $appCandidate.CiEvidenceCount += [int]$objCandidate.CiEvidenceCount
         } else {
             # Re-key the obj candidate as an app candidate
             $objCandidate.AppId = $appId
@@ -348,6 +493,20 @@ function Get-ConfidenceLevel {
     return 'Unconfirmed'
 }
 
+function Get-PortfolioCorrelationSeverity {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [int] $SubscriptionCount,
+
+        [switch] $CrossTenant
+    )
+
+    if ($CrossTenant -or $SubscriptionCount -ge 6) { return 'High' }
+    if ($SubscriptionCount -ge 3) { return 'Medium' }
+    return 'Low'
+}
+
 function New-CorrelationRiskFinding {
     [CmdletBinding()]
     param (
@@ -405,7 +564,9 @@ function Invoke-IdentityCorrelation {
         [ValidateNotNullOrEmpty()]
         [string] $TenantId,
 
-        [switch] $IncludeGraphLookup
+        [switch] $IncludeGraphLookup,
+
+        [switch] $PortfolioMode
     )
 
     $runId = [guid]::NewGuid().ToString()
@@ -473,13 +634,61 @@ function Invoke-IdentityCorrelation {
         }
 
         $dimCount = $candidate.Dimensions.Count
-        if ($dimCount -lt 2) { continue }
-
         $isNameBased = $candidateKey.StartsWith('name:')
         $confidence = Get-ConfidenceLevel -DimensionCount $dimCount -IsNameBasedOnly $isNameBased
 
         $displayName = $candidate.DisplayName
         if (-not $displayName) { $displayName = $candidate.AppId ?? $candidate.ObjectId ?? 'Unknown' }
+        $entityId = if ($candidate.AppId) {
+            "appId:$($candidate.AppId.ToLowerInvariant())"
+        } elseif ($candidate.ObjectId) {
+            "objectId:$($candidate.ObjectId.ToLowerInvariant())"
+        } else {
+            "spn/$($displayName.ToLowerInvariant() -replace '[^a-z0-9-]', '-')"
+        }
+
+        if ($PortfolioMode) {
+            $subscriptionIds = @($candidate.Subscriptions.Values | Sort-Object -Unique)
+            $tenantIds = @($candidate.Tenants.Values | Sort-Object -Unique)
+            if ($subscriptionIds.Count -ge 2) {
+                $crossTenant = $tenantIds.Count -gt 1
+                $portfolioSeverity = Get-PortfolioCorrelationSeverity -SubscriptionCount $subscriptionIds.Count -CrossTenant:$crossTenant
+                $portfolioConfidence = $confidence
+                if ($crossTenant -and $portfolioConfidence -eq 'Confirmed') {
+                    $portfolioConfidence = 'Likely'
+                }
+
+                $managementGroupPath = @()
+                if ($candidate.ManagementGroupPaths.Count -gt 0) {
+                    $managementGroupPath = @($candidate.ManagementGroupPaths[0] -split ' > ' | Where-Object { $_ })
+                }
+
+                $detailParts = [System.Collections.Generic.List[string]]::new()
+                if ($candidate.AppId) { $detailParts.Add("AppId: $($candidate.AppId)") }
+                $detailParts.Add("Observed in $($subscriptionIds.Count) subscriptions: $($subscriptionIds -join ', ')")
+                if ($tenantIds.Count -gt 0) { $detailParts.Add("Tenants: $($tenantIds -join ', ')") }
+                if ($candidate.ManagementGroupPaths.Count -gt 0) { $detailParts.Add("Management groups: $($candidate.ManagementGroupPaths -join '; ')") }
+
+                $findings.Add((New-FindingRow `
+                        -Id ([guid]::NewGuid().ToString()) `
+                        -Source 'identity-correlator' `
+                        -EntityId $entityId `
+                        -EntityType 'ServicePrincipal' `
+                        -Title "SPN $displayName is reused across $($subscriptionIds.Count) subscriptions" `
+                        -Compliant $false `
+                        -ProvenanceRunId $runId `
+                        -Platform 'Entra' `
+                        -Category 'CrossSubscriptionCorrelation' `
+                        -Severity $portfolioSeverity `
+                        -Detail ($detailParts -join ' | ') `
+                        -Confidence $portfolioConfidence `
+                        -EvidenceCount $subscriptionIds.Count `
+                        -SubscriptionId $subscriptionIds[0] `
+                        -ManagementGroupPath $managementGroupPath))
+            }
+        }
+
+        if ($dimCount -lt 2) { continue }
 
         $dimensionNames = @($candidate.Dimensions.Keys | Sort-Object)
         $missingDims = @($allDimensions | Where-Object { $dimensionNames -notcontains $_ })
@@ -499,14 +708,6 @@ function Invoke-IdentityCorrelation {
         }
         if ($graphEnriched) { $detailParts.Add('Enriched via Graph federated identity credentials') }
         $detail = $detailParts -join ' | '
-
-        $entityId = if ($candidate.AppId) {
-            "appId:$($candidate.AppId.ToLowerInvariant())"
-        } elseif ($candidate.ObjectId) {
-            "objectId:$($candidate.ObjectId.ToLowerInvariant())"
-        } else {
-            "spn/$($displayName.ToLowerInvariant() -replace '[^a-z0-9-]', '-')"
-        }
 
         $title = "SPN $displayName spans $($dimensionNames -join ', ')"
 
