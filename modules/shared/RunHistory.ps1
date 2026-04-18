@@ -85,31 +85,40 @@ function Save-RunSnapshot {
     $sevCounts = [ordered]@{
         Critical = 0; High = 0; Medium = 0; Low = 0; Info = 0
     }
+    $nonCompliantSevCounts = [ordered]@{
+        Critical = 0; High = 0; Medium = 0; Low = 0; Info = 0
+    }
     $nonCompliant = 0
     foreach ($f in $findings) {
         if (-not $f) { continue }
         $sev = $null
         if ($f.PSObject.Properties['Severity'] -and $f.Severity) { $sev = [string]$f.Severity }
+        $bucket = $null
         switch -Regex ($sev) {
-            '^(?i)critical$' { $sevCounts['Critical']++ ; break }
-            '^(?i)high$'     { $sevCounts['High']++ ; break }
-            '^(?i)medium$'   { $sevCounts['Medium']++ ; break }
-            '^(?i)low$'      { $sevCounts['Low']++ ; break }
-            '^(?i)info$'     { $sevCounts['Info']++ ; break }
-            default          { }
+            '^(?i)critical$' { $bucket = 'Critical'; break }
+            '^(?i)high$'     { $bucket = 'High'; break }
+            '^(?i)medium$'   { $bucket = 'Medium'; break }
+            '^(?i)low$'      { $bucket = 'Low'; break }
+            '^(?i)info$'     { $bucket = 'Info'; break }
         }
-        if ($f.PSObject.Properties['Compliant'] -and -not $f.Compliant) { $nonCompliant++ }
+        if ($bucket) { $sevCounts[$bucket]++ }
+        $isNonCompliant = $f.PSObject.Properties['Compliant'] -and -not $f.Compliant
+        if ($isNonCompliant) {
+            $nonCompliant++
+            if ($bucket) { $nonCompliantSevCounts[$bucket]++ }
+        }
     }
 
     $meta = [pscustomobject]@{
-        Timestamp        = $Timestamp.ToString('o')
-        Stamp            = $stamp
-        Tools            = @($Tools)
-        Subscriptions    = @($Subscriptions)
-        FindingCount     = @($findings).Count
-        NonCompliantCount = $nonCompliant
-        SeverityCounts   = $sevCounts
-        SchemaVersion    = '1.0'
+        Timestamp                     = $Timestamp.ToString('o')
+        Stamp                         = $stamp
+        Tools                         = @($Tools)
+        Subscriptions                 = @($Subscriptions)
+        FindingCount                  = @($findings).Count
+        NonCompliantCount             = $nonCompliant
+        SeverityCounts                = $sevCounts
+        NonCompliantSeverityCounts    = $nonCompliantSevCounts
+        SchemaVersion                 = '1.1'
     }
     $metaPath = Join-Path $runDir 'run-meta.json'
     $meta | ConvertTo-Json -Depth 5 | Set-Content -Path $metaPath -Encoding UTF8

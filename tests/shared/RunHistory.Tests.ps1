@@ -42,10 +42,16 @@ Describe 'RunHistory' {
             $snap.Stamp | Should -Be '2025-01-15-103000'
 
             $meta = Get-Content $snap.MetaPath -Raw | ConvertFrom-Json
+            # SeverityCounts is volume over all findings (unchanged in schema 1.1).
             $meta.SeverityCounts.Critical    | Should -Be 1
             $meta.SeverityCounts.High        | Should -Be 1
             $meta.SeverityCounts.Low         | Should -Be 1
             $meta.NonCompliantCount          | Should -Be 2
+            # NonCompliantSeverityCounts is the risk-over-time counter - excludes the compliant Low.
+            $meta.SchemaVersion                              | Should -Be '1.1'
+            $meta.NonCompliantSeverityCounts.Critical        | Should -Be 1
+            $meta.NonCompliantSeverityCounts.High            | Should -Be 1
+            $meta.NonCompliantSeverityCounts.Low             | Should -Be 0
             $meta.Tools                      | Should -Contain 'azqr'
         }
 

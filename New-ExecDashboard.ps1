@@ -100,12 +100,38 @@ function HE([string]$s) {
     $s -replace '&','&amp;' -replace '<','&lt;' -replace '>','&gt;' -replace '"','&quot;' -replace "'", '&#39;'
 }
 
+# Whitelist-normalize severity -> lowercase token safe for CSS class interpolation.
+# Anything off-list (including tool-injected noise) collapses to 'info'.
+function Get-SafeSeverityClass([string]$Raw) {
+    if (-not $Raw) { return 'info' }
+    switch -Regex ($Raw.ToLowerInvariant()) {
+        '^critical$' { return 'critical' }
+        '^high$'     { return 'high' }
+        '^medium$'   { return 'medium' }
+        '^low$'      { return 'low' }
+        '^info$'     { return 'info' }
+        default      { return 'info' }
+    }
+}
+
 function Get-SeverityCounts {
-    param ([object[]] $Rows)
+    <#
+    .SYNOPSIS
+        Bucket Critical/High/Medium/Low/Info counts from a finding array.
+    .PARAMETER NonCompliantOnly
+        When set (default for the dashboard - risk-over-time view), only findings where
+        Compliant -eq $false are counted. Off for volume-over-time views.
+    #>
+    param (
+        [object[]] $Rows,
+        [switch]   $NonCompliantOnly
+    )
     $sev = [ordered]@{ Critical = 0; High = 0; Medium = 0; Low = 0; Info = 0 }
     foreach ($r in $Rows) {
         if (-not $r) { continue }
-        if (-not ($r.PSObject.Properties['Compliant']) -or $r.Compliant) { continue }
+        if ($NonCompliantOnly) {
+            if (-not ($r.PSObject.Properties['Compliant']) -or $r.Compliant) { continue }
+        }
         $s = if ($r.PSObject.Properties['Severity']) { [string]$r.Severity } else { '' }
         switch -Regex ($s) {
             '^(?i)critical$' { $sev['Critical']++ ; break }
@@ -122,7 +148,9 @@ $total          = @($findings).Count
 $compliantCount = @($findings | Where-Object { $_.PSObject.Properties['Compliant'] -and $_.Compliant }).Count
 $nonCompliant   = $total - $compliantCount
 $compliancePct  = if ($total -gt 0) { [math]::Round(($compliantCount / $total) * 100, 1) } else { 0 }
-$currentSev     = Get-SeverityCounts -Rows $findings
+# Risk-over-time view: severity trend uses non-compliant counts for BOTH current + history
+# points to keep the sparkline math consistent (fix for PR #149 R1 correctness #1).
+$currentSev     = Get-SeverityCounts -Rows $findings -NonCompliantOnly
 
 # Previous run (for delta + signed compliance change)
 $prevRun  = if ($history.Count -ge 2) { $history[$history.Count - 2] } else { $null }
@@ -143,12 +171,17 @@ if ($prevRun -and (Test-Path $prevRun.ResultsPath)) {
 }
 $pctDelta = if ($null -ne $prevPct) { [math]::Round($compliancePct - $prevPct, 1) } else { $null }
 
-# Build per-run severity history (newest run = current results.json + meta)
+# Build per-run severity history using non-compliant counts ONLY for both history +
+# current point (risk-over-time). Prefer run-meta.NonCompliantSeverityCounts; fall back
+# to recomputing from the snapshot's results.json when the meta predates schema 1.1.
 $historyPoints = [System.Collections.Generic.List[object]]::new()
 foreach ($h in $history) {
     $sev = $null
-    if ($h.Meta -and $h.Meta.PSObject.Properties['SeverityCounts']) {
-        $sc = $h.Meta.SeverityCounts
+    $sc = $null
+    if ($h.Meta -and $h.Meta.PSObject.Properties['NonCompliantSeverityCounts']) {
+        $sc = $h.Meta.NonCompliantSeverityCounts
+    }
+    if ($sc) {
         $sev = [ordered]@{
             Critical = if ($sc.PSObject.Properties['Critical']) { [int]$sc.Critical } else { 0 }
             High     = if ($sc.PSObject.Properties['High'])     { [int]$sc.High }     else { 0 }
@@ -157,9 +190,11 @@ foreach ($h in $history) {
             Info     = if ($sc.PSObject.Properties['Info'])     { [int]$sc.Info }     else { 0 }
         }
     } else {
+        # Older snapshot (pre schema 1.1) - recompute non-compliant counts from the snapshot rows
+        # so the trend line stays apples-to-apples with the current run.
         try {
             $rows = @(Get-Content $h.ResultsPath -Raw | ConvertFrom-Json -ErrorAction Stop)
-            $sev = Get-SeverityCounts -Rows $rows
+            $sev = Get-SeverityCounts -Rows $rows -NonCompliantOnly
         } catch { $sev = [ordered]@{ Critical = 0; High = 0; Medium = 0; Low = 0; Info = 0 } }
     }
     $historyPoints.Add([pscustomobject]@{ Stamp = $h.Stamp; Timestamp = $h.Timestamp; Severity = $sev }) | Out-Null
@@ -319,12 +354,13 @@ $sparklinesHtml = ($severitiesForTrend | ForEach-Object {
 
 $topResourcesRows = ($topResources | ForEach-Object {
     $sevBadge = if ($_.HighestSev) { $_.HighestSev } else { '-' }
+    $sevClass = Get-SafeSeverityClass $_.HighestSev
     $srcs = ($_.Sources | Sort-Object) -join ', '
     @"
     <tr>
       <td class="ridcol" title="$(HE $_.ResourceId)">$(HE $_.ResourceId)</td>
       <td>$([int]$_.FindingCount)</td>
-      <td><span class="sev sev-$($sevBadge.ToLower())">$(HE $sevBadge)</span></td>
+      <td><span class="sev sev-$sevClass">$(HE $sevBadge)</span></td>
       <td class="src">$(HE $srcs)</td>
     </tr>
 "@
@@ -378,9 +414,10 @@ if (-not $frameworkTableRows) { $frameworkTableRows = "<tr><td colspan='3' class
 $mttrTableRows = ($mttrRows | ForEach-Object {
     $median = if ($null -eq $_.MedianDays) { 'N/A' } else { "$($_.MedianDays) d" }
     $mean   = if ($null -eq $_.MeanDays)   { 'N/A' } else { "$($_.MeanDays) d" }
+    $sevClass = Get-SafeSeverityClass $_.Severity
     @"
     <tr>
-      <td><span class="sev sev-$($_.Severity.ToLower())">$(HE $_.Severity)</span></td>
+      <td><span class="sev sev-$sevClass">$(HE $_.Severity)</span></td>
       <td>$($_.ResolvedCount)</td>
       <td>$median</td>
       <td>$mean</td>

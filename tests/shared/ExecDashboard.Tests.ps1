@@ -86,4 +86,72 @@ Describe 'ExecDashboard' {
         $html = Get-Content $output -Raw
         $html | Should -Match 'first run|first snapshot|insufficient'
     }
+
+    It 'renders a dashboard when every finding is Critical (edge case)' {
+        $tmp = Join-Path $TestDrive 'dashboard-only-crit'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        $sub = '22222222-2222-2222-2222-222222222222'
+        $rows = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/x" 'Critical'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/y" 'Critical'
+        )
+        $rows | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        $html | Should -Match 'sev-critical'
+        # The injection-shaped severity test separately proves the CSS class is whitelisted;
+        # here we just confirm the dashboard renders cleanly with an all-Critical input.
+        $html | Should -Match 'Compliance score'
+    }
+
+    It 'renders a dashboard when every finding is Info (low-risk-only edge case)' {
+        $tmp = Join-Path $TestDrive 'dashboard-only-info'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        $sub = '33333333-3333-3333-3333-333333333333'
+        $rows = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/x" 'Info'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/y" 'Info'
+        )
+        $rows | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        $html | Should -Match 'sev-info'
+        $html | Should -Match 'Compliance score'
+    }
+
+    It 'whitelist-normalizes unknown / injection-shaped severity into sev-info (CSS-class safety)' {
+        $tmp = Join-Path $TestDrive 'dashboard-inject'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        $sub = '44444444-4444-4444-4444-444444444444'
+        # Severity contains a quote / class-break attempt - dashboard must NOT interpolate it.
+        $rows = @(
+            [pscustomobject]@{
+                Source     = 'evil'
+                ResourceId = "/subscriptions/$sub/rg/x/y"
+                Category   = 'Security'
+                Title      = 'tool-injected severity'
+                Severity   = 'High"><script>alert(1)</script>'
+                Compliant  = $false
+            }
+        )
+        $rows | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        $html | Should -Not -Match '<script>alert\(1\)</script>'
+        $html | Should -Match 'sev-info'
+        # HTML-escaped severity text is rendered but the CSS class is whitelisted.
+        $html | Should -Match 'sev sev-info'
+    }
 }
