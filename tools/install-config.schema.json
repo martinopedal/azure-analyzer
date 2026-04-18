@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/martinopedal/azure-analyzer/tools/install-config.schema.json",
+  "title": "azure-analyzer install configuration",
+  "description": "Declarative allow/deny and package-manager override config for the azure-analyzer installer.",
+  "type": "object",
+  "required": ["schemaVersion"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Must be 1.0."
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "autoInstall": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, missing tools are installed automatically (requires -InstallMissingModules)."
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "description": "Per-tool overrides keyed by tool name (must match a name in tool-manifest.json).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "When false, the tool is skipped at install and scan time (Status=Skipped)."
+          },
+          "manager": {
+            "type": "string",
+            "enum": ["winget", "brew", "pipx", "pip", "snap"],
+            "description": "Override the default package manager. Must be in the security allow-list."
+          }
+        }
+      }
+    }
+  }
+}

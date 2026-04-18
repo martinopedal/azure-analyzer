@@ -1,0 +1,62 @@
+{
+  "Source": "bicep-iac",
+  "Status": "Success",
+  "Message": "",
+  "Findings": [
+    {
+      "Id": "f1a2b3c4-d5e6-7890-abcd-ef1234560001",
+      "Category": "IaC Validation",
+      "Title": "Bicep build error: infra/main.bicep",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Error BCP062: The referenced declaration with name 'storageAccountNameInvalid' is not valid.",
+      "Remediation": "Fix the Bicep syntax or reference error in infra/main.bicep",
+      "ResourceId": "infra/main.bicep",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    },
+    {
+      "Id": "f1a2b3c4-d5e6-7890-abcd-ef1234560002",
+      "Category": "IaC Validation",
+      "Title": "Bicep build error: modules/storage.bicep",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Warning BCP036: The property 'sku' expected type 'SkuName' but received type 'string'.",
+      "Remediation": "Fix the Bicep syntax or reference error in modules/storage.bicep",
+      "ResourceId": "modules/storage.bicep",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    },
+    {
+      "Id": "f1a2b3c4-d5e6-7890-abcd-ef1234560003",
+      "Category": "IaC Validation",
+      "Title": "Bicep build failed: network/vnet.bicep",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Detail": "Error BCP018: Expected the ':' character at this location. Malformed resource declaration.",
+      "Remediation": "Fix the Bicep file at network/vnet.bicep",
+      "ResourceId": "network/vnet.bicep",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    },
+    {
+      "Id": "f1a2b3c4-d5e6-7890-abcd-ef1234560004",
+      "Category": "IaC Validation",
+      "Title": "Bicep build warning: infra/params.bicep",
+      "Severity": "Low",
+      "Compliant": false,
+      "Detail": "Warning BCP081: Resource type 'Microsoft.Storage/storageAccounts@2021-02-01' may not be available in all regions.",
+      "Remediation": "Fix the Bicep syntax or reference error in infra/params.bicep",
+      "ResourceId": "infra/params.bicep",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    },
+    {
+      "Id": "f1a2b3c4-d5e6-7890-abcd-ef1234560005",
+      "Category": "IaC Validation",
+      "Title": "Bicep info: infra/outputs.bicep",
+      "Severity": "Info",
+      "Compliant": true,
+      "Detail": "Informational: Consider using a more specific API version for Microsoft.Storage/storageAccounts.",
+      "Remediation": "",
+      "ResourceId": "infra/outputs.bicep",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview"
+    }
+  ]
+}

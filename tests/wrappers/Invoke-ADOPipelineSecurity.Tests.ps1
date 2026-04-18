@@ -191,6 +191,74 @@ Describe 'Invoke-ADOPipelineSecurity' {
         }
     }
 
+    Context 'when evaluating pipeline trigger types' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+
+                $body = switch -Regex ($Uri) {
+                    '_apis/build/definitions' {
+                        @{
+                            count = 3
+                            value = @(
+                                @{
+                                    id = 201
+                                    name = 'nightly-prod'
+                                    repository = @{ defaultBranch = 'refs/heads/main' }
+                                    triggers = @(@{ triggerType = 'schedule' })
+                                },
+                                @{
+                                    id = 202
+                                    name = 'upstream-sync-prod'
+                                    repository = @{ defaultBranch = 'refs/heads/main' }
+                                    triggers = @(@{ triggerType = 'buildCompletion' })
+                                },
+                                @{
+                                    id = 203
+                                    name = 'payments-ci-prod'
+                                    repository = @{ defaultBranch = 'refs/heads/main' }
+                                    triggers = @(@{ triggerType = 'continuousIntegration'; branchFilters = @() })
+                                }
+                            )
+                        } | ConvertTo-Json -Depth 20
+                    }
+                    '_apis/release/definitions' { '{"count":0,"value":[]}' }
+                    '_apis/distributedtask/variablegroups' { '{"count":0,"value":[]}' }
+                    '_apis/distributedtask/environments' { '{"count":0,"value":[]}' }
+                    default { throw "Unexpected URI: $Uri" }
+                }
+
+                [PSCustomObject]@{
+                    Content = $body
+                    Headers = @{}
+                }
+            }
+
+            $result = & $script:Wrapper -AdoOrg 'contoso' -AdoProject 'payments'
+            $branchFindings = @($result.Findings | Where-Object {
+                    $_.Category -eq 'Pipeline Definition' -and $_.Title -match 'broad branch triggers'
+                })
+        }
+
+        AfterAll {
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+        }
+
+        It 'does not flag schedule-only pipelines as broad branch triggers' {
+            ($branchFindings.Title -join ' ') | Should -Not -Match 'nightly-prod'
+        }
+
+        It 'does not flag build-completion-only pipelines as broad branch triggers' {
+            ($branchFindings.Title -join ' ') | Should -Not -Match 'upstream-sync-prod'
+        }
+
+        It 'still flags CI pipelines without branch filters' {
+            $branchFindings.Count | Should -Be 1
+            $branchFindings[0].Title | Should -Match 'payments-ci-prod'
+        }
+    }
+
     Context 'when an ADO API call fails' {
         BeforeAll {
             $env:ADO_PAT_TOKEN = 'fake-token'

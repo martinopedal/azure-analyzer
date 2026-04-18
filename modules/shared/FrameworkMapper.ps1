@@ -122,6 +122,113 @@ function Add-FrameworkMapping {
     }
 }
 
+function Get-FindingWafPillar {
+    <#
+    .SYNOPSIS
+        Returns the wafPillar name for a finding, or $null if no mapping rule matches.
+    .DESCRIPTION
+        Walks the same source/match rules used by Add-FrameworkMapping and returns the
+        first rule's wafPillar value. Pure read — does not mutate the finding.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $Finding,
+        [object]$MappingData
+    )
+    if (-not $Finding) { return $null }
+    $mappings = if ($MappingData) { $MappingData } else { Get-FrameworkMappings }
+    if (-not $mappings) { return $null }
+
+    foreach ($rule in $mappings.mappings) {
+        if ($rule.source -ne $Finding.Source) { continue }
+        if (-not (Test-MappingMatch -Finding $Finding -Match $rule.match)) { continue }
+        if ($rule.PSObject.Properties['wafPillar'] -and $rule.wafPillar) {
+            return [string]$rule.wafPillar
+        }
+    }
+    return $null
+}
+
+function Get-WafPillarCoverage {
+    <#
+    .SYNOPSIS
+        Aggregates per-WAF-pillar finding counts and a R/A/G health status.
+    .DESCRIPTION
+        For every pillar declared in framework-mappings.json (`wafPillars`), counts the
+        non-compliant findings whose source/match maps to that pillar. Returns an array
+        ordered by the pillar declaration order with:
+          - Pillar          (key, e.g. 'Security')
+          - DisplayName     (human label)
+          - Color           (hex tile color)
+          - Total           (mapped findings)
+          - NonCompliant    (mapped findings where Compliant -eq $false)
+          - CriticalHigh    (subset with Critical/High severity)
+          - Status          ('green' | 'amber' | 'red')
+
+        Status thresholds:
+          red   when CriticalHigh > 0
+          amber when NonCompliant > 0 (no critical/high)
+          green when NonCompliant -eq 0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [object[]] $Findings,
+        [object]$MappingData
+    )
+
+    $mappings = if ($MappingData) { $MappingData } else { Get-FrameworkMappings }
+    if (-not $mappings) { return @() }
+
+    $pillarOrder = @('Reliability','Security','CostOptimization','OperationalExcellence','PerformanceEfficiency')
+    $pillarMeta  = @{}
+    if ($mappings.PSObject.Properties['wafPillars'] -and $mappings.wafPillars) {
+        foreach ($p in $mappings.wafPillars.PSObject.Properties) {
+            $pillarMeta[$p.Name] = $p.Value
+        }
+    }
+
+    $totals = @{}
+    foreach ($key in $pillarOrder) {
+        $totals[$key] = [pscustomobject]@{
+            Pillar       = $key
+            DisplayName  = if ($pillarMeta.ContainsKey($key) -and $pillarMeta[$key].name) { $pillarMeta[$key].name } else { $key }
+            Color        = if ($pillarMeta.ContainsKey($key) -and $pillarMeta[$key].PSObject.Properties['color']) { $pillarMeta[$key].color } else { '#666' }
+            Total           = 0
+            NonCompliant    = 0
+            CriticalHigh    = 0
+            Status          = 'green'
+            CoveragePercent = 100.0
+        }
+    }
+
+    foreach ($f in $Findings) {
+        if (-not $f) { continue }
+        $pillar = Get-FindingWafPillar -Finding $f -MappingData $mappings
+        if (-not $pillar -or -not $totals.ContainsKey($pillar)) { continue }
+
+        $row = $totals[$pillar]
+        $row.Total++
+        $isNonCompliant = $f.PSObject.Properties['Compliant'] -and -not $f.Compliant
+        if ($isNonCompliant) { $row.NonCompliant++ }
+        $sev = if ($f.PSObject.Properties['Severity']) { [string]$f.Severity } else { '' }
+        if ($isNonCompliant -and ($sev -match '^(?i)(critical|high)$')) { $row.CriticalHigh++ }
+    }
+
+    foreach ($key in $pillarOrder) {
+        $row = $totals[$key]
+        if ($row.CriticalHigh -gt 0)      { $row.Status = 'red' }
+        elseif ($row.NonCompliant -gt 0)  { $row.Status = 'amber' }
+        else                              { $row.Status = 'green' }
+        if ($row.Total -gt 0) {
+            $row.CoveragePercent = [math]::Round((($row.Total - $row.NonCompliant) / $row.Total) * 100, 1)
+        } else {
+            $row.CoveragePercent = 100.0
+        }
+    }
+
+    return @($pillarOrder | ForEach-Object { $totals[$_] })
+}
+
 function Get-FrameworkCoverage {
     <#
     .SYNOPSIS

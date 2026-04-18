@@ -52,6 +52,8 @@ $script:PackageNamePattern    = '^[A-Za-z0-9][A-Za-z0-9._\-/@]{0,127}$'
 $script:DefaultInstallTimeoutSec = 300
 # Install manifest for version pinning + SHA-256 verification
 $script:InstallManifestPath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'tools' 'install-manifest.json')
+# Default path for optional install configuration
+$script:DefaultInstallConfigPath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'tools' 'install-config.json')
 
 # Lightweight credential scrubber used when Remove-Credentials isn't in scope.
 if (-not (Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue)) {
@@ -351,7 +353,8 @@ function Invoke-PackageManager {
 function Install-CliTool {
     param (
         [Parameter(Mandatory)][PSCustomObject] $InstallSpec,
-        [Parameter(Mandatory)][string] $ToolName
+        [Parameter(Mandatory)][string] $ToolName,
+        [string] $ManagerOverride
     )
 
     $cmd = $InstallSpec.command
@@ -367,7 +370,40 @@ function Install-CliTool {
         return $false
     }
 
-    foreach ($mgr in $script:AllowedPackageManagers) {
+    # Try manager override first (from install config)
+    if ($ManagerOverride) {
+        if ($script:AllowedPackageManagers -notcontains $ManagerOverride) {
+            Write-Warning "[install-config] Manager override '$ManagerOverride' for $ToolName is not in the allow-list. Falling back to manifest."
+        } elseif ($osBlock.PSObject.Properties[$ManagerOverride]) {
+            $pkg = [string]$osBlock.$ManagerOverride
+            Write-Host "  Installing $ToolName via $ManagerOverride (config override, $pkg) ..." -ForegroundColor Yellow
+            if (Invoke-PackageManager -Manager $ManagerOverride -Package $pkg) {
+                if (Test-CliAvailable -Command $cmd) {
+                    Write-Host "  v $ToolName installed (config override)" -ForegroundColor Green
+                    return $true
+                }
+            }
+            Write-Verbose "[install-config] Override manager $ManagerOverride failed for $ToolName; falling back to manifest."
+        } else {
+            Write-Verbose "[install-config] Override manager $ManagerOverride has no package for $ToolName on $os; falling back to manifest."
+        }
+    }
+
+    # Use preferredManagers from manifest when present (ordered list);
+    # fall back to global allow-list otherwise. Defense-in-depth: each
+    # manager is re-checked against the allow-list before use.
+    $mgrList = $script:AllowedPackageManagers
+    if ($InstallSpec.PSObject.Properties['preferredManagers'] -and $InstallSpec.preferredManagers) {
+        $mgrList = @($InstallSpec.preferredManagers)
+    }
+
+    foreach ($mgr in $mgrList) {
+        # Defense-in-depth: reject any manager not in the global allow-list,
+        # even if it somehow ended up in preferredManagers.
+        if ($script:AllowedPackageManagers -notcontains $mgr) {
+            Write-Warning "Skipping disallowed manager '$mgr' in preferredManagers for $ToolName."
+            continue
+        }
         if ($osBlock.PSObject.Properties[$mgr]) {
             $pkg = [string]$osBlock.$mgr
             Write-Host "  Installing $ToolName via $mgr ($pkg) ..." -ForegroundColor Yellow
@@ -436,6 +472,130 @@ function Install-GitClone {
     }
 }
 
+function Test-InstallConfig {
+    <#
+    .SYNOPSIS
+        Validate an install config object against the expected schema.
+        Returns a PSCustomObject with Valid (bool) and Errors (string[]).
+    .PARAMETER Config
+        The parsed install-config.json object.
+    .PARAMETER Manifest
+        The parsed tool-manifest.json object, used to validate tool names.
+    #>
+    param (
+        [Parameter(Mandatory)] $Config,
+        [Parameter(Mandatory)] $Manifest
+    )
+    $errors = [System.Collections.Generic.List[string]]::new()
+
+    # Schema version check
+    $hasSchemaVer = $Config.PSObject.Properties['schemaVersion']
+    if (-not $hasSchemaVer -or $Config.schemaVersion -ne '1.0') {
+        $actual = if ($hasSchemaVer) { Remove-Credentials ([string]$Config.schemaVersion) } else { '<missing>' }
+        $errors.Add("schemaVersion must be '1.0', got '${actual}'.")
+    }
+
+    # Validate defaults block
+    if ($Config.PSObject.Properties['defaults']) {
+        $defaults = $Config.defaults
+        $allowedDefaultKeys = @('autoInstall')
+        foreach ($prop in $defaults.PSObject.Properties) {
+            if ($prop.Name -notin $allowedDefaultKeys) {
+                $errors.Add("Unknown key 'defaults.$(Remove-Credentials $prop.Name)'.")
+            }
+        }
+        if ($defaults.PSObject.Properties['autoInstall'] -and $defaults.autoInstall -isnot [bool]) {
+            $errors.Add("defaults.autoInstall must be a boolean.")
+        }
+    }
+
+    # Validate tools block
+    if ($Config.PSObject.Properties['tools'] -and $null -ne $Config.tools) {
+        $manifestNames = @($Manifest.tools | ForEach-Object { $_.name })
+        $allowedToolKeys = @('enabled', 'manager')
+
+        foreach ($prop in $Config.tools.PSObject.Properties) {
+            $toolName = Remove-Credentials $prop.Name
+            $toolCfg  = $prop.Value
+
+            if ($prop.Name -notin $manifestNames) {
+                $errors.Add("Tool '${toolName}' not found in tool-manifest.json.")
+            }
+
+            foreach ($k in $toolCfg.PSObject.Properties) {
+                if ($k.Name -notin $allowedToolKeys) {
+                    $errors.Add("Unknown key 'tools.${toolName}.$(Remove-Credentials $k.Name)'.")
+                }
+            }
+
+            if ($toolCfg.PSObject.Properties['enabled'] -and $toolCfg.enabled -isnot [bool]) {
+                $errors.Add("tools.${toolName}.enabled must be a boolean.")
+            }
+
+            if ($toolCfg.PSObject.Properties['manager']) {
+                $mgr = Remove-Credentials ([string]$toolCfg.manager)
+                if ($script:AllowedPackageManagers -notcontains $mgr) {
+                    $errors.Add("tools.${toolName}.manager '${mgr}' is not in the allow-list ($($script:AllowedPackageManagers -join ', ')).")
+                }
+            }
+        }
+    }
+
+    # Reject unknown top-level keys
+    $allowedTopLevel = @('schemaVersion', 'defaults', 'tools')
+    foreach ($prop in $Config.PSObject.Properties) {
+        if ($prop.Name -notin $allowedTopLevel) {
+            $errors.Add("Unknown top-level key '$(Remove-Credentials $prop.Name)'.")
+        }
+    }
+
+    return [PSCustomObject]@{
+        Valid  = ($errors.Count -eq 0)
+        Errors = $errors.ToArray()
+    }
+}
+
+function Read-InstallConfig {
+    <#
+    .SYNOPSIS
+        Load and validate tools/install-config.json. Returns $null if the
+        file is missing (backward-compatible) or invalid (warning emitted).
+    .PARAMETER Path
+        Path to the install-config.json file.
+    .PARAMETER Manifest
+        The parsed tool-manifest.json object, used for tool-name validation.
+    #>
+    param (
+        [string] $Path,
+        [Parameter(Mandatory)] $Manifest
+    )
+
+    if (-not $Path) { $Path = $script:DefaultInstallConfigPath }
+    if (-not (Test-Path $Path)) {
+        Write-Verbose "[install-config] No config file at $Path; using manifest defaults."
+        return $null
+    }
+
+    try {
+        $config = Get-Content $Path -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        Write-Warning (Remove-Credentials "[install-config] Failed to parse ${Path}: $($_.Exception.Message). Using manifest defaults.")
+        return $null
+    }
+
+    $validation = Test-InstallConfig -Config $config -Manifest $Manifest
+    if (-not $validation.Valid) {
+        foreach ($err in $validation.Errors) {
+            Write-Warning (Remove-Credentials "[install-config] $err")
+        }
+        Write-Warning "[install-config] Config validation failed; falling back to manifest defaults."
+        return $null
+    }
+
+    Write-Verbose "[install-config] Loaded install config from $Path"
+    return $config
+}
+
 function Install-PrerequisitesFromManifest {
     <#
     .SYNOPSIS
@@ -449,21 +609,47 @@ function Install-PrerequisitesFromManifest {
         (honours -IncludeTools / -ExcludeTools in the caller).
     .PARAMETER SkipInstall
         When set, only reports what's missing without installing.
+    .PARAMETER InstallConfig
+        Optional parsed install-config.json object. Tools with
+        enabled=false are skipped; manager overrides are applied.
+    .PARAMETER CliIncludedTools
+        Tool names explicitly passed via -IncludeTools. These override
+        config enabled=false (CLI > config > manifest).
     #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)] $Manifest,
         [Parameter(Mandatory)][string] $RepoRoot,
         [Parameter(Mandatory)][scriptblock] $ShouldRunTool,
-        [switch] $SkipInstall
+        [switch] $SkipInstall,
+        $InstallConfig,
+        [string[]] $CliIncludedTools
     )
 
     Write-Host "`n[prereq] Checking prerequisites (manifest-driven)..." -ForegroundColor Yellow
     $missing = [System.Collections.Generic.List[string]]::new()
+    $skipped = [System.Collections.Generic.List[string]]::new()
 
     foreach ($tool in $Manifest.tools) {
         if (-not $tool.enabled) { continue }
         if (-not (& $ShouldRunTool $tool.name)) { continue }
+
+        # Check install config for enabled=false override, but CLI
+        # -IncludeTools takes precedence (CLI > config > manifest).
+        $cliExplicit = $CliIncludedTools -and ($tool.name -in $CliIncludedTools)
+        if (-not $cliExplicit -and
+            $null -ne $InstallConfig -and
+            $InstallConfig.PSObject.Properties['tools'] -and
+            $null -ne $InstallConfig.tools -and
+            $InstallConfig.tools.PSObject.Properties[$tool.name]) {
+            $toolCfg = $InstallConfig.tools.($tool.name)
+            if ($toolCfg.PSObject.Properties['enabled'] -and $toolCfg.enabled -eq $false) {
+                Write-Verbose "[prereq] $($tool.name) disabled by install config; skipping."
+                $skipped.Add($tool.name)
+                continue
+            }
+        }
+
         if (-not $tool.PSObject.Properties['install'] -or -not $tool.install) { continue }
         $install = $tool.install
         $kind = [string]$install.kind
@@ -471,6 +657,18 @@ function Install-PrerequisitesFromManifest {
         if ($script:AllowedInstallKinds -notcontains $kind) {
             Write-Warning "Refusing to honour unknown install kind '$kind' for $($tool.name)."
             continue
+        }
+
+        # Resolve manager override from install config
+        $managerOverride = $null
+        if ($null -ne $InstallConfig -and
+            $InstallConfig.PSObject.Properties['tools'] -and
+            $null -ne $InstallConfig.tools -and
+            $InstallConfig.tools.PSObject.Properties[$tool.name]) {
+            $toolCfg = $InstallConfig.tools.($tool.name)
+            if ($toolCfg.PSObject.Properties['manager']) {
+                $managerOverride = [string]$toolCfg.manager
+            }
         }
 
         switch ($kind) {
@@ -494,7 +692,7 @@ function Install-PrerequisitesFromManifest {
                 if ($SkipInstall) {
                     $missing.Add("$($tool.displayName) ($($install.command))")
                 } else {
-                    $ok = Install-CliTool -InstallSpec $install -ToolName $tool.displayName
+                    $ok = Install-CliTool -InstallSpec $install -ToolName $tool.displayName -ManagerOverride $managerOverride
                     if (-not $ok) { $missing.Add($tool.displayName) }
                 }
             }
@@ -511,6 +709,9 @@ function Install-PrerequisitesFromManifest {
         }
     }
 
+    if ($skipped.Count -gt 0) {
+        Write-Host "[prereq] $($skipped.Count) tool(s) disabled by install config: $($skipped -join ', ')" -ForegroundColor DarkGray
+    }
     if ($missing.Count -gt 0) {
         Write-Host "`n[prereq] $($missing.Count) tool(s) still missing: $($missing -join '; ')" -ForegroundColor DarkYellow
     } else {

@@ -409,7 +409,11 @@ function Test-AnyBranchTrigger {
 
     foreach ($trigger in @($Definition.triggers)) {
         $triggerType = if ($trigger.PSObject.Properties['triggerType']) { [string]$trigger.triggerType } else { '' }
-        if ($triggerType -and $triggerType -notmatch '(?i)(continuousintegration|buildcompletion|schedule)') {
+        if ([string]::IsNullOrWhiteSpace($triggerType)) {
+            continue
+        }
+
+        if ($triggerType -notmatch '(?i)^(continuousintegration|batchedcontinuousintegration|gatedcheckin|pullrequest)$') {
             continue
         }
 
