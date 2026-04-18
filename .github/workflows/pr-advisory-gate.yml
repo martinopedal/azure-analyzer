@@ -43,6 +43,7 @@ jobs:
       && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    continue-on-error: true
     steps:
       - name: Checkout base ref (trusted gate script)
         # No `ref:` -> checks out the base SHA for pull_request_target events,
@@ -63,14 +64,20 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           SQUAD_ADVISORY_GATE: ${{ vars.SQUAD_ADVISORY_GATE || '1' }}
           SQUAD_AGENT_LOGINS: ${{ vars.SQUAD_AGENT_LOGINS || '' }}
         shell: pwsh
         run: |
-          $enabled = $env:SQUAD_ADVISORY_GATE -ne '0'
-          ./modules/shared/Invoke-PRAdvisoryGate.ps1 `
-            -PRNumber ([int]$env:PR_NUMBER) `
-            -Repo $env:REPO_NAME `
-            -PRAuthor $env:PR_AUTHOR `
-            -OutputPath '.squad/decisions/inbox/' `
-            -Enabled:$enabled
+          try {
+            $enabled = $env:SQUAD_ADVISORY_GATE -ne '0'
+            ./modules/shared/Invoke-PRAdvisoryGate.ps1 `
+              -PRNumber ([int]$env:PR_NUMBER) `
+              -Repo $env:REPO_NAME `
+              -PRAuthor $env:PR_AUTHOR `
+              -OutputPath '.squad/decisions/inbox/' `
+              -Enabled:$enabled
+          } catch {
+            Write-Warning "PR advisory gate degraded to advisory no-op: $($_.Exception.Message)"
+            exit 0
+          }

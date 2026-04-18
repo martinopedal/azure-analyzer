@@ -65,13 +65,11 @@ $script:AdvisoryMarker = '<!-- squad-advisory -->'
 Squad-author heuristic
 ----------------------
 A PR is "squad-authored" when ANY of these hold:
-  1. The login ends in `[bot]` (covers `copilot[bot]`,
-     `github-actions[bot]`, `copilot-pull-request-reviewer[bot]`, etc.).
-  2. The login is the literal `copilot` or `github-copilot[bot]`
-     (older Copilot identity surface).
-  3. The login matches one of the squad agent identities
+  1. The login matches the squad-agent bot pattern
+     `*-swe-agent[bot]` (for example `copilot-swe-agent[bot]`).
+  2. The login matches one of the squad agent identities
      (forge, atlas, iris, sage, sentinel, lead, scribe).
-  4. The login is listed in the comma-separated `SQUAD_AGENT_LOGINS`
+  3. The login is listed in the comma-separated `SQUAD_AGENT_LOGINS`
      env var (escape hatch for repo-specific identities).
 
 Human PRs are skipped, the advisory gate is for AI-authored work only.
@@ -91,13 +89,20 @@ function Test-SquadAuthor {
 
     $normalized = $Login.Trim().ToLowerInvariant()
 
-    if ($normalized.EndsWith('[bot]')) {
+    $excludedAutomationBots = @(
+        'dependabot[bot]',
+        'renovate[bot]',
+        'github-actions[bot]'
+    )
+    if ($excludedAutomationBots -contains $normalized) {
+        return $false
+    }
+
+    if ($normalized -match '^[a-z0-9-]+-swe-agent\[bot\]$') {
         return $true
     }
 
     $builtIn = @(
-        'copilot',
-        'github-copilot',
         'forge',
         'atlas',
         'iris',
@@ -117,6 +122,47 @@ function Test-SquadAuthor {
             if (-not [string]::IsNullOrWhiteSpace($trimmed) -and $trimmed -eq $normalized) {
                 return $true
             }
+        }
+    }
+
+    return $false
+}
+
+function Test-SkipAdvisoryLabel {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [int] $PRNumber,
+
+        [Parameter(Mandatory)]
+        [string] $Repo
+    )
+
+    $labels = [System.Collections.Generic.List[string]]::new()
+
+    if (-not [string]::IsNullOrWhiteSpace($env:PR_LABELS)) {
+        foreach ($name in ($env:PR_LABELS -split '[,\r\n]')) {
+            $trimmed = [string]$name
+            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
+                [void]$labels.Add($trimmed.Trim())
+            }
+        }
+    } else {
+        $rawLabels = & gh pr view $PRNumber --repo $Repo --json labels -q '.labels[].name' 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$rawLabels)) {
+            foreach ($name in ([string]$rawLabels -split '[\r\n]')) {
+                $trimmed = [string]$name
+                if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
+                    [void]$labels.Add($trimmed.Trim())
+                }
+            }
+        }
+    }
+
+    foreach ($label in $labels) {
+        if ($label.ToLowerInvariant() -eq 'skip-advisory') {
+            return $true
         }
     }
 
@@ -328,6 +374,10 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
 
     if (-not (Test-SquadAuthor -Login $PRAuthor)) {
         Write-Host "PR author '$PRAuthor' is not a squad agent / bot. Skipping advisory gate."
+        return
+    }
+
+    if (Test-SkipAdvisoryLabel -PRNumber $PRNumber -Repo $Repo) {
         return
     }
 

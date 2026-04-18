@@ -3,7 +3,7 @@
 Tests for `modules/shared/Invoke-PRAdvisoryGate.ps1` (#109).
 
 Coverage:
-  (a) squad-author detection (bot suffix, built-in identities,
+  (a) squad-author detection (swe-agent bot pattern, built-in identities,
       SQUAD_AGENT_LOGINS escape hatch, plain humans rejected)
   (b) fork-skip guard semantics (workflow-level expression is asserted
       via the workflow YAML check, runtime helper rejects empty author)
@@ -32,17 +32,22 @@ Describe 'Test-SquadAuthor' {
         Remove-Item Env:SQUAD_AGENT_LOGINS -ErrorAction SilentlyContinue
     }
 
-    It 'accepts any login ending in [bot]' {
-        Test-SquadAuthor -Login 'copilot[bot]'                       | Should -BeTrue
-        Test-SquadAuthor -Login 'github-actions[bot]'                | Should -BeTrue
-        Test-SquadAuthor -Login 'copilot-pull-request-reviewer[bot]' | Should -BeTrue
+    It 'accepts squad swe-agent bot logins' {
+        Test-SquadAuthor -Login 'copilot-swe-agent[bot]' | Should -BeTrue
+        Test-SquadAuthor -Login 'atlas-swe-agent[bot]'   | Should -BeTrue
     }
 
     It 'accepts built-in squad identities (case-insensitive)' {
         Test-SquadAuthor -Login 'forge'    | Should -BeTrue
         Test-SquadAuthor -Login 'Atlas'    | Should -BeTrue
         Test-SquadAuthor -Login 'SENTINEL' | Should -BeTrue
-        Test-SquadAuthor -Login 'copilot'  | Should -BeTrue
+    }
+
+    It 'rejects non-squad automation bots' {
+        Test-SquadAuthor -Login 'dependabot[bot]'     | Should -BeFalse
+        Test-SquadAuthor -Login 'renovate[bot]'       | Should -BeFalse
+        Test-SquadAuthor -Login 'github-actions[bot]' | Should -BeFalse
+        Test-SquadAuthor -Login 'copilot[bot]'        | Should -BeFalse
     }
 
     It 'rejects plain human logins by default' {
@@ -177,6 +182,30 @@ Describe 'Disable switch short-circuits (Enabled = $false)' {
     }
 }
 
+Describe 'Skip-advisory label bypass' {
+    BeforeEach {
+        $env:PR_LABELS = 'skip-advisory,bug'
+        function global:gh {
+            throw 'gh must NOT be invoked when skip-advisory label is present'
+        }
+    }
+
+    AfterEach {
+        Remove-Item Env:PR_LABELS -ErrorAction SilentlyContinue
+        Remove-Item Function:\gh -ErrorAction SilentlyContinue
+    }
+
+    It 'short-circuits silently when skip-advisory label is present' {
+        {
+            & $script:GatePath `
+                -PRNumber 139 `
+                -Repo 'martinopedal/azure-analyzer' `
+                -PRAuthor 'copilot-swe-agent[bot]' `
+                -Enabled:$true
+        } | Should -Not -Throw
+    }
+}
+
 Describe 'Workflow YAML safety (#109)' {
     BeforeAll {
         $script:WorkflowPath = Join-Path $PSScriptRoot '..' '..' '.github' 'workflows' 'pr-advisory-gate.yml'
@@ -207,6 +236,11 @@ Describe 'Workflow YAML safety (#109)' {
     It 'sets timeout-minutes to 5 on the advisory job' {
         $content = Get-Content -Path $script:WorkflowPath -Raw
         $content | Should -Match '(?ms)advisory-gate:\s+.*?timeout-minutes:\s*5'
+    }
+
+    It 'marks the advisory job as continue-on-error' {
+        $content = Get-Content -Path $script:WorkflowPath -Raw
+        $content | Should -Match '(?ms)advisory-gate:\s+.*?continue-on-error:\s*true'
     }
 
     It 'never interpolates ${{ }} into bash run blocks (uses env vars)' {
