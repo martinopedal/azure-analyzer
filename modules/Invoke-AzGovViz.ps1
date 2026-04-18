@@ -195,7 +195,7 @@ function Import-AzGovVizCsvFindings {
                     $findings.Add([pscustomobject]@{
                             Source        = 'azgovviz'
                             Category      = 'Operations'
-                            Title         = 'Resource diagnostics settings configured'
+                            Title         = 'Resource diagnostics settings not configured'
                             Compliant     = $false
                             Severity      = 'Medium'
                             Detail        = "DiagnosticsCapable=$capable; DiagnosticsConfigured=$configured"

@@ -43,7 +43,7 @@
       "Source": "azgovviz",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-prod-01",
       "Category": "Operations",
-      "Title": "Resource diagnostics settings configured",
+      "Title": "Resource diagnostics settings not configured",
       "Compliant": false,
       "Severity": "Medium",
       "Detail": "DiagnosticsCapable=True; DiagnosticsConfigured=False",

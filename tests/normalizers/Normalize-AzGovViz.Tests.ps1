@@ -126,14 +126,14 @@ Describe 'Normalize-AzGovViz' {
             ($results | Where-Object { $_.Title -eq 'Subscription has no resource locks configured' }).Severity | Should -Be 'Medium'
             ($results | Where-Object { $_.Title -eq 'Management group has orphaned custom policy definitions' }).Severity | Should -Be 'Low'
             ($results | Where-Object { $_.Title -eq 'Role assignment: Owner' }).Severity | Should -Be 'High'
-            ($results | Where-Object { $_.Title -eq 'Resource diagnostics settings configured' }).Severity | Should -Be 'Medium'
+            ($results | Where-Object { $_.Title -eq 'Resource diagnostics settings not configured' }).Severity | Should -Be 'Medium'
         }
 
         It 'preserves Category values' {
             ($results | Where-Object { $_.Title -eq 'Subscription has no resource locks configured' }).Category | Should -Be 'Governance'
             ($results | Where-Object { $_.Title -eq 'Management group has orphaned custom policy definitions' }).Category | Should -Be 'Policy'
             ($results | Where-Object { $_.Title -eq 'Role assignment: Owner' }).Category | Should -Be 'Identity'
-            ($results | Where-Object { $_.Title -eq 'Resource diagnostics settings configured' }).Category | Should -Be 'Operations'
+            ($results | Where-Object { $_.Title -eq 'Resource diagnostics settings not configured' }).Category | Should -Be 'Operations'
         }
 
         It 'preserves Title' {
