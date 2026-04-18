@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **17 tools** — **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **Defender for Cloud**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **Identity Correlator**, **zizmor**, **gitleaks**, and **Trivy** — into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, Defender Secure Score, AKS runtime posture (CIS Kubernetes Benchmark + NSA/CISA hardening), AKS runtime threat/anomaly detection, AKS node-level CIS checks (kubelet and worker-node configuration), identity security, cross-dimensional identity correlation, supply chain security, CI/CD workflow security, secrets detection, and DevOps service connection dimensions.
+Automated Azure assessment that bundles **18 tools** — **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **Defender for Cloud**, **Sentinel (Active Incidents)**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **Identity Correlator**, **zizmor**, **gitleaks**, and **Trivy** — into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, Defender Secure Score, active Sentinel incidents and threat detection, AKS runtime posture (CIS Kubernetes Benchmark + NSA/CISA hardening), AKS runtime threat/anomaly detection, AKS node-level CIS checks (kubelet and worker-node configuration), identity security, cross-dimensional identity correlation, supply chain security, CI/CD workflow security, secrets detection, and DevOps service connection dimensions.
 
 Findings are normalized to a single v2 schema with 5 severity levels (**Critical**, **High**, **Medium**, **Low**, **Info**) and 12 entity types (AzureResource, Subscription, ManagementGroup, ServicePrincipal, ManagedIdentity, Application, User, Tenant, Repository, Workflow, Pipeline, ServiceConnection) across 4 platforms (Azure, Entra, GitHub, ADO).
 
@@ -60,6 +60,14 @@ $env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
 .\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"
 ```
 
+**Scenario 7: Azure + Sentinel threat detection**
+
+```powershell
+Connect-AzAccount -TenantId "<your-tenant-id>"
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" `
+  -SentinelWorkspaceId "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws>"
+```
+
 Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
 
 Missing prerequisites are detected and reported with install commands. Use **`-InstallMissingModules`** to auto-install them: the installer is **manifest-driven** — it reads each tool's `install` block in `tools/tool-manifest.json` and supports four kinds:
@@ -74,6 +82,25 @@ The installer enforces a 300s timeout on external commands, scrubs credentials f
 **Supply-chain security**: Version pins + SHA-256 checksums live in `tools/install-manifest.json`. Tools downloaded via direct URLs (Linux azqr, gitleaks, trivy, scorecard) have their SHA-256 verified before use. Package-manager installs (winget/brew/pipx) delegate checksum verification to the respective package manager. Each release includes a **CycloneDX 1.5 SBOM** (`sbom.json`) with exact versions, checksums, and upstream sources for all tools.
 
 **AzGovViz auto-bootstrap:** when `-InstallMissingModules` is set and AzGovViz is enabled, the installer clones `https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting` into `tools/AzGovViz/` on first run — no manual step required.
+
+**Declarative install config:** Drop a `tools/install-config.json` to allow/deny tools and override the package manager per tool. The file is optional; its absence changes nothing. Schema:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "defaults": { "autoInstall": true },
+  "tools": {
+    "trivy":    { "enabled": true,  "manager": "winget" },
+    "gitleaks": { "enabled": false }
+  }
+}
+```
+
+- `enabled: false` skips the tool at both install and scan time (Status=Skipped).
+- `manager` must be in the security allow-list (winget/brew/pipx/pip/snap); other values are rejected.
+- `defaults.autoInstall: true` enables auto-install even without `-InstallMissingModules` (equivalent to passing the flag).
+- **Precedence:** CLI flags > config file > manifest defaults. `-IncludeTools trivy` re-enables trivy even if config sets `enabled: false`. `-InstallMissingModules` (explicit) overrides `defaults.autoInstall`.
+- Pass `-InstallConfigPath` to point at a custom location (defaults to `tools/install-config.json`).
 
 Results land in `output/` -- multiple JSON files (findings, entities, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
 Sensitive tokens are scrubbed from console output, errors.json, and report files before writing.
@@ -194,7 +221,7 @@ The report groups findings by category, then prioritizes action:
 | gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
 | trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
 
-- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 17 tools** — PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts for azure-cost), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy), and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands — nothing is mutated.
+- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 18 tools** — PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts for azure-cost and Sentinel), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy), and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands — nothing is mutated.
 
 **AzGovViz** is a standalone script, not a module. With `-InstallMissingModules` it is auto-cloned into `tools/AzGovViz/` on first run. To clone manually:
 ```
@@ -360,6 +387,7 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 15 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
 | 16 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
 | 17 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
+| 18 | **Sentinel (Active Incidents)** | Active Sentinel incidents from a Log Analytics workspace -- severity, status, classification, alert count, owner, provider | Read-only KQL query against `SecurityIncident` table via the workspace query API; graceful skip when the table does not exist (Sentinel not enabled) | Azure REST API (MS Service Terms) |
 
 Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
@@ -379,7 +407,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `kubescape`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `identity-correlator`, `zizmor`, `gitleaks`, or `trivy` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `identity-correlator`, `zizmor`, `gitleaks`, or `trivy` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
