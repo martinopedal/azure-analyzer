@@ -502,7 +502,7 @@
     "Title": "Service principal with Owner role is also an ADO service connection",
     "Severity": "High",
     "Compliant": false,
-    "Detail": "SPN 'sp-prod-deploy' has Owner on subscription prod-01 AND is used by ADO service connection 'prod-deploy'. A compromised ADO pipeline would gain tenant-level control.",
+    "Detail": "SPN 'sp-prod-deploy' has Owner on subscription prod-01 AND is used by ADO service connection 'prod-deploy'. A compromised ADO pipeline would gain subscription-scoped Owner privileges.",
     "Remediation": "Split responsibilities: use one SPN for role management (User Access Administrator) and a separate, scoped SPN for deployments.",
     "ResourceId": "appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     "LearnMoreUrl": "",
