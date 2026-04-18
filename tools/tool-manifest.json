@@ -618,6 +618,27 @@
         "pinType": "cli-version",
         "currentPin": "latest"
       }
+    },
+    {
+      "name": "sentinel-incidents",
+      "displayName": "Microsoft Sentinel (Active Incidents)",
+      "source": "sentinel-incidents",
+      "provider": "azure",
+      "scope": "workspace",
+      "normalizer": "Normalize-SentinelIncidents",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-SentinelIncidents.ps1",
+      "requiredParams": ["WorkspaceResourceId"],
+      "optionalParams": ["LookbackDays", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#0078d4", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts"]
+      }
     }
   ]
 }

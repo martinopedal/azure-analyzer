@@ -62,6 +62,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 | **Subscription-scoped** (azqr, PSRule, WARA) | Runs **per discovered subscription** |
 | **MG-scoped** (AzGovViz, ALZ Queries) | Runs **once at the MG level** |
 | **Tenant-scoped** (Maester) | Runs **once for the entire tenant** |
+| **Workspace-scoped** (Sentinel Incidents) | Runs when `-SentinelWorkspaceId` is provided |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
 | **CLI-scoped** (zizmor, gitleaks, Trivy) | Local filesystem tools; run automatically, no cloud scope needed |
 | **ADO-scoped** (ADO Connections) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
@@ -181,6 +182,55 @@ The Defender for Cloud wrapper reads two endpoints under `Microsoft.Security/*`:
 - No alert acknowledgment, dismissal, or rule changes.
 - No Defender plan enable/disable on subscriptions.
 - Gracefully **skips** when Defender for Cloud is not enabled on the subscription (HTTP 404/409 on `secureScores`).
+
+---
+
+### Microsoft Sentinel (Active Incidents via Log Analytics)
+
+The Sentinel incidents wrapper queries the Log Analytics workspace API (`/api/query`) with KQL against the `SecurityIncident` table. It reads active (non-closed) incidents including severity, status, classification, owner, and linked alert counts. Incidents are scoped to the workspace ARM resource and fold into the EntityStore alongside Defender for Cloud findings.
+
+| Token / scope | Why |
+|---------------|-----|
+| **Log Analytics Reader** on the workspace | Required to query the `SecurityIncident` and `SecurityAlert` tables via the workspace query API |
+| (Alternative) **Reader** on the workspace resource group | Sufficient in tenants where Reader permits `Microsoft.OperationalInsights/workspaces/api/query` |
+
+**API endpoint used:** `Microsoft.OperationalInsights/workspaces/{name}/api/query` (read).
+
+**Parameters:**
+
+- `-SentinelWorkspaceId <ARM-resource-id>` (required): full ARM resource ID of the Log Analytics workspace linked to Sentinel.
+- `-SentinelLookbackDays <int>` (default `30`): number of days to look back for active incidents (range 1-365).
+
+**Sample command:**
+
+```powershell
+# Query active Sentinel incidents (last 30 days)
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" \
+  -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>"
+
+# Custom lookback window (7 days)
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" \
+  -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>" \
+  -SentinelLookbackDays 7
+
+# Sentinel-only run
+.\Invoke-AzureAnalyzer.ps1 -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>" \
+  -IncludeTools 'sentinel-incidents'
+```
+
+**What it scans:**
+
+- Active (non-closed) SecurityIncident records within the lookback window.
+- Per-incident metadata: title, severity, status, classification, owner, provider name, alert count, creation and last-modified timestamps.
+- Incident URL for portal deep-link.
+
+**What it does NOT do:**
+
+- No incident closure, assignment, or status modification.
+- No analytics rule creation or deployment.
+- No alert suppression or dismissal.
+- No custom table ingestion or DCR operations.
+- Gracefully **skips** when the `SecurityIncident` table does not exist (Sentinel not enabled on the workspace).
 
 ---
 
@@ -427,6 +477,7 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **WARA** | ✅ Required | -- | -- | -- | -- | -- |
 | **Azure Cost** | ✅ Required (Consumption API read) | -- | -- | -- | -- | -- |
 | **Defender for Cloud** | ✅ Required (Microsoft.Security read) | -- | -- | -- | -- | -- |
+| **Sentinel Incidents** | ✅ Required (Log Analytics Reader on workspace) | -- | -- | -- | -- | -- |
 | **kubescape** | ✅ Reader (ARG AKS discovery) + AKS cluster-read RBAC (or kubeconfig) | -- | -- | -- | ✅ `kubescape`, `kubectl`, `az` | -- |
 | **falco** | ✅ Reader (ARG + Microsoft.Security alert query); install mode also needs AKS cluster-read RBAC | -- | -- | -- | ⚡ Optional install mode: `helm`, `kubectl`, `az` | -- |
 | **kube-bench** | ✅ Reader (ARG AKS discovery) + AKS RBAC Admin (create/delete Job in `kube-system`) | -- | -- | -- | ✅ `kubectl`, `az` | -- |
