@@ -113,6 +113,22 @@ $nonCompliantCount = $total - $compliantCount
 $lines = [System.Collections.Generic.List[string]]::new()
 $lines.Add("# Azure Analyzer Report - $date")
 $lines.Add('')
+
+# Run-mode metadata (incremental / scheduled — issue #94)
+$runMetadata = $null
+$runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
+if (Test-Path $runMetadataPath) {
+    try { $runMetadata = Get-Content $runMetadataPath -Raw | ConvertFrom-Json -ErrorAction Stop }
+    catch { Write-Warning (Remove-Credentials "Failed to read run-metadata.json: $_") }
+}
+if ($runMetadata) {
+    $rmMode = if ($runMetadata.PSObject.Properties['runMode'] -and $runMetadata.runMode) { [string]$runMetadata.runMode } else { 'Full' }
+    $rmSince = if ($runMetadata.PSObject.Properties['sinceUtc'] -and $runMetadata.sinceUtc) { [string]$runMetadata.sinceUtc } else { '' }
+    $rmBaseline = if ($runMetadata.PSObject.Properties['baselineUtc'] -and $runMetadata.baselineUtc) { [string]$runMetadata.baselineUtc } else { '' }
+    $lines.Add("**Run mode:** $rmMode" + $(if ($rmSince) { " | **Since:** $rmSince" } else { '' }) + $(if ($rmBaseline) { " | **Baseline:** $rmBaseline" } else { '' }))
+    $lines.Add('')
+}
+
 $lines.Add('## Summary')
 $lines.Add('')
 $lines.Add('| Metric | Count |')
@@ -160,6 +176,14 @@ if ($allSources.Count -eq 0) {
     $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
 }
 $toolStatusMap = @{}
+$toolRunModeMap = @{}
+if ($runMetadata -and $runMetadata.PSObject.Properties['tools'] -and $runMetadata.tools) {
+    foreach ($rt in @($runMetadata.tools)) {
+        if ($rt.PSObject.Properties['tool']) {
+            $toolRunModeMap[[string]$rt.tool] = if ($rt.PSObject.Properties['runMode']) { [string]$rt.runMode } else { '' }
+        }
+    }
+}
 $statusJsonPath = Join-Path (Split-Path $InputPath -Parent) 'tool-status.json'
 if (Test-Path $statusJsonPath) {
     try {
@@ -170,17 +194,18 @@ if (Test-Path $statusJsonPath) {
 
 $lines.Add('### By source')
 $lines.Add('')
-$lines.Add('| Source | Status | Findings | Non-compliant |')
-$lines.Add('|---|---|---|---|')
+$lines.Add('| Source | Status | Mode | Findings | Non-compliant |')
+$lines.Add('|---|---|---|---|---|')
 foreach ($src in $allSources) {
     $label = $sourceLabels[$src]
     $status = if ($toolStatusMap.ContainsKey($src)) { $toolStatusMap[$src] } else { if ($sourceCountMap.ContainsKey($src)) { 'Success' } else { 'Skipped' } }
+    $mode   = if ($toolRunModeMap.ContainsKey($src) -and $toolRunModeMap[$src]) { $toolRunModeMap[$src] } else { '-' }
     if ($sourceCountMap.ContainsKey($src)) {
         $grp = $sourceCountMap[$src]
         $nc = @($grp.Group | Where-Object { -not $_.Compliant }).Count
-        $lines.Add("| $label | $status | $($grp.Count) | $nc |")
+        $lines.Add("| $label | $status | $mode | $($grp.Count) | $nc |")
     } else {
-        $lines.Add("| $label | $status | 0 | 0 |")
+        $lines.Add("| $label | $status | $mode | 0 | 0 |")
     }
 }
 $lines.Add('')

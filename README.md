@@ -320,6 +320,9 @@ The hook is **opt-in** — developers must run the installer manually. It won't 
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
+| `-PreviousRun` | string | -- | Path to a prior `results.json`; HTML report renders New/Resolved/Unchanged badges + a delta summary banner |
+| `-Incremental` | switch | `$false` | Run in incremental mode. Auto-resolves baseline from `output/results-baseline.json` when present, persists per-tool last-success timestamps in `output/state/scan-state.json`, and surfaces the run mode (Full / Incremental / FullFallback / Cached / Partial) in HTML and Markdown reports. Falls back to a full bootstrap on the first run. |
+| `-Since` | datetime | -- | Operator-controlled start of the scan window. Wins over the per-tool timestamp when set. Forces incremental run mode. |
 | `-PreviousRun` | string | -- | Explicit path to a prior `results.json`; wins over `-BaselineMode`; HTML renders New/Resolved/Unchanged badges + delta banner |
 | `-BaselineMode` | `auto`\|`none` | `auto` | Controls auto-baseline discovery. `auto` picks the most recent prior `results.json` from `$OutputPath/snapshots/` (logs chosen path); `none` disables comparison AND snapshot archival entirely |
 | `-InstallFalco` | switch | `$false` | Opt-in Falco install mode for AKS (Helm deploy, short capture window, then collect alerts) |
@@ -374,6 +377,29 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 **Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `falco`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, `terraform-iac`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
+
+### Incremental & scheduled scans
+
+For long-lived deployments where you want trend data instead of one-shot reports, use `-Incremental`:
+
+```powershell
+# First run -- bootstraps baseline + state.
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -OutputPath .\output
+
+# Subsequent runs -- delta vs results-baseline.json, per-tool last-success used as -Since.
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -OutputPath .\output -Incremental
+```
+
+What this gives you:
+
+- `output/results-baseline.json` -- last full-run snapshot, refreshed on each non-incremental success.
+- `output/state/scan-state.json` -- per-tool `lastScanUtc` / `lastSuccessUtc` / `runMode` plus per-finding `FirstSeenUtc` / `LastSeenUtc` history.
+- `output/run-metadata.json` -- run mode, baseline timestamp, per-tool mode badges (consumed by the HTML and Markdown reports).
+- HTML and Markdown reports show a **Run mode** banner with per-tool badges (Full / Incremental / FullFallback / Cached / Partial) on top of the existing **Delta vs previous run** banner.
+
+Tools opt in to true incremental queries over time. Until they do, they are marked `FullFallback` so the report never falsely advertises incremental coverage.
+
+For unattended scheduled runs, copy [`templates/azure-analyzer-scheduled.yml`](templates/azure-analyzer-scheduled.yml) into the consuming repo's `.github/workflows/` folder. It downloads the previous artifact (baseline + state), runs `-Incremental`, and uploads the new state for the next cycle.
 
 ### What each tool does
 

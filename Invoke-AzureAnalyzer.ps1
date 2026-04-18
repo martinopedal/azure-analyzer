@@ -89,6 +89,8 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [switch] $Incremental,
+    [Nullable[datetime]] $Since,
     [ValidateSet('auto','none')]
     [string] $BaselineMode = 'auto',
     [switch] $InstallFalco,
@@ -110,7 +112,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'ScanState')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -125,6 +127,51 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
 # Read tool manifest
 # ---------------------------------------------------------------------------
 $manifest = Get-Content (Join-Path $PSScriptRoot 'tools' 'tool-manifest.json') -Raw | ConvertFrom-Json
+
+# ---------------------------------------------------------------------------
+# Incremental defaults (#94): auto-resolve baseline when -Incremental is set.
+# An explicit -PreviousRun always wins; -Since alone does not auto-rebase.
+# When -Incremental is requested but no baseline exists, this is the first
+# bootstrap run: we must fall through to Full semantics so this run SEEDS the
+# baseline + state. Otherwise subsequent -Incremental runs would keep running
+# against an empty state and never produce a baseline (#94 R1 Goldeneye).
+# ---------------------------------------------------------------------------
+$bootstrapRun = $false
+if ($Incremental -and -not $PreviousRun) {
+    $autoBaseline = Join-Path $OutputPath 'results-baseline.json'
+    if (Test-Path $autoBaseline) {
+        $PreviousRun = $autoBaseline
+        Write-Host "[incremental] Using baseline $autoBaseline for delta comparison." -ForegroundColor DarkCyan
+    } else {
+        $bootstrapRun = $true
+        Write-Host "[incremental] No baseline found at $autoBaseline; bootstrapping a full run to seed the baseline." -ForegroundColor DarkYellow
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Load scan-state BEFORE tool dispatch so Resolve-IncrementalSince can
+# inform the per-tool -Since hint passed into wrappers (#94 R1 Goldeneye).
+# ---------------------------------------------------------------------------
+$scanStatePreRun = $null
+$incrementalSinceMap = @{}
+try {
+    $scanStateModulePath = Join-Path $PSScriptRoot 'modules' 'shared' 'ScanState.ps1'
+    if (Test-Path $scanStateModulePath) {
+        if (-not (Get-Command Read-ScanState -ErrorAction SilentlyContinue)) { . $scanStateModulePath }
+        $scanStatePreRun = Read-ScanState -OutputPath $OutputPath
+        $passIncremental = ($Incremental -and -not $bootstrapRun)
+        foreach ($toolDef in $manifest.tools) {
+            if (-not $toolDef.enabled) { continue }
+            $resolved = Resolve-IncrementalSince -State $scanStatePreRun -Tool $toolDef.name `
+                -Incremental:$passIncremental -Override $Since
+            if ($null -ne $resolved) {
+                $incrementalSinceMap[$toolDef.name] = [datetime]$resolved
+            }
+        }
+    }
+} catch {
+    Write-Warning (Remove-Credentials "Failed to preload scan-state: $_")
+}
 
 # ---------------------------------------------------------------------------
 # Tool selection (manifest-driven)
@@ -403,6 +450,9 @@ foreach ($toolDef in $manifest.tools) {
                         $localPath = if ($RepoPath) { $RepoPath } else { '.' }
                         $params['Repository'] = $localPath
                     }
+                    if ($incrementalSinceMap.ContainsKey('zizmor')) {
+                        $params['Since'] = $incrementalSinceMap['zizmor']
+                    }
                 }
                 if ($toolDef.name -eq 'gitleaks') {
                     if (-not $scanTargetUrl -and $RepoPath) { $params['RepoPath'] = $RepoPath }
@@ -522,7 +572,7 @@ foreach ($wr in $parallelResults) {
 
     # Initialise aggregation bucket
     if (-not $toolAgg.ContainsKey($toolName)) {
-        $toolAgg[$toolName] = @{ WorstStatus = 'Success'; Messages = [System.Collections.Generic.List[string]]::new(); Count = 0 }
+        $toolAgg[$toolName] = @{ WorstStatus = 'Success'; Messages = [System.Collections.Generic.List[string]]::new(); Count = 0; RunMode = $null }
     }
     $agg = $toolAgg[$toolName]
 
@@ -536,6 +586,12 @@ foreach ($wr in $parallelResults) {
         $wrapperStatus = 'Failed'
     } elseif ($toolResult.PSObject.Properties['Status'] -and $toolResult.Status) {
         $wrapperStatus = $toolResult.Status
+    }
+
+    # Capture wrapper-reported RunMode (#94 R1): wrappers that opt into -Since
+    # report their actual coverage so orchestrator state records it accurately.
+    if ($toolResult.PSObject.Properties['RunMode'] -and $toolResult.RunMode) {
+        $agg.RunMode = [string]$toolResult.RunMode
     }
 
     # Track errors
@@ -634,6 +690,7 @@ foreach ($entry in $toolAgg.GetEnumerator()) {
         Status   = $entry.Value.WorstStatus
         Message  = ($entry.Value.Messages -join '; ')
         Findings = $entry.Value.Count
+        RunMode  = $entry.Value.RunMode
     })
 }
 
@@ -786,6 +843,99 @@ if ($BaselineMode -ne 'none') {
 }
 
 # ---------------------------------------------------------------------------
+# Persist scan state and run metadata for incremental / scheduled runs (#94)
+# ---------------------------------------------------------------------------
+$runMode = if ($bootstrapRun) { 'Full' }
+           elseif ($Incremental) { 'Incremental' }
+           elseif (($null -ne $Since)) { 'Incremental' }
+           else { 'Full' }
+$baselineFile = Join-Path $OutputPath 'results-baseline.json'
+$runMetadataFile = Join-Path $OutputPath 'run-metadata.json'
+
+try {
+    if (Get-Command Read-ScanState -ErrorAction SilentlyContinue) {
+        $scanState = if ($scanStatePreRun) { $scanStatePreRun } else { Read-ScanState -OutputPath $OutputPath }
+        $nowUtc = (Get-Date).ToUniversalTime()
+        $sinceUsed = if (($null -ne $Since)) { ([datetime]$Since).ToUniversalTime() } else { $null }
+
+        foreach ($ts in $toolStatus) {
+            # Prefer wrapper-reported RunMode. If the wrapper opted in ($null -ne RunMode)
+            # we trust it. Otherwise under -Incremental default to FullFallback so
+            # reports do not falsely advertise incremental coverage. Bootstrap runs
+            # and pure full runs always record Full (#94 R1 Goldeneye).
+            $wrapperRunMode = if ($ts.PSObject.Properties['RunMode']) { $ts.RunMode } else { $null }
+            $entryRunMode =
+                if ($bootstrapRun) {
+                    'Full'
+                } elseif ($wrapperRunMode) {
+                    [string]$wrapperRunMode
+                } elseif ($Incremental -or ($null -ne $Since)) {
+                    'FullFallback'
+                } else {
+                    'Full'
+                }
+            $toolSinceUsed = if ($incrementalSinceMap.ContainsKey($ts.Tool)) { [datetime]$incrementalSinceMap[$ts.Tool] } else { $sinceUsed }
+            $statusForState = switch ($ts.Status) {
+                'Success' { 'Success'; break }
+                'Failed'  { 'Failed';  break }
+                'Skipped' { 'Skipped'; break }
+                default   { 'Partial' }
+            }
+            $null = Update-ScanStateToolEntry -State $scanState -Tool $ts.Tool `
+                -Status $statusForState -RunMode $entryRunMode `
+                -FindingCount ([int]$ts.Findings) -SinceUsed $toolSinceUsed -Now $nowUtc
+        }
+
+        if (Get-Command Update-FindingHistoryFromDelta -ErrorAction SilentlyContinue) {
+            $null = Update-FindingHistoryFromDelta -State $scanState -Current $allResults -Now $nowUtc
+        }
+
+        # Bootstrap runs MUST seed the baseline so subsequent -Incremental runs
+        # have something to diff against (#94 R1 Goldeneye).
+        $shouldRefreshBaseline = $bootstrapRun -or (-not $Incremental -and -not ($null -ne $Since))
+        $null = Update-ScanStateRun -State $scanState -RunMode $runMode -Now $nowUtc -UpdateBaseline:$shouldRefreshBaseline
+        $null = Write-ScanState -OutputPath $OutputPath -State $scanState
+
+        if ($shouldRefreshBaseline -and (Test-Path $outputFile)) {
+            try {
+                Copy-Item -Path $outputFile -Destination $baselineFile -Force
+            } catch {
+                Write-Warning (Remove-Credentials "Failed to refresh baseline ${baselineFile}: $_")
+            }
+        }
+
+        $runMeta = [ordered]@{
+            schemaVersion   = 1
+            runMode         = $runMode
+            generatedUtc    = $nowUtc.ToString('o')
+            sinceUtc        = if ($sinceUsed) { $sinceUsed.ToString('o') } else { $null }
+            baselineUtc     = if ($scanState.runs.lastBaselineUtc) { [string]$scanState.runs.lastBaselineUtc } else { $null }
+            previousRunPath = if ($PreviousRun) { $PreviousRun } else { $null }
+            tools = @($toolStatus | ForEach-Object {
+                $entry = Get-ScanStateToolEntry -State $scanState -Tool $_.Tool
+                [ordered]@{
+                    tool          = $_.Tool
+                    status        = $_.Status
+                    findingCount  = [int]$_.Findings
+                    runMode       = if ($entry) { [string]$entry.runMode } else { $runMode }
+                    lastSuccessUtc = if ($entry) { [string]$entry.lastSuccessUtc } else { $null }
+                    sinceUsedUtc  = if ($entry) { [string]$entry.sinceUsedUtc } else { $null }
+                }
+            })
+        }
+        $runMetaJson = $runMeta | ConvertTo-Json -Depth 6
+        if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            $runMetaJson = Remove-Credentials $runMetaJson
+        }
+        $runMetaTemp = "$runMetadataFile.tmp-$([Guid]::NewGuid().ToString('N'))"
+        Set-Content -Path $runMetaTemp -Value $runMetaJson -Encoding UTF8
+        Move-Item -Path $runMetaTemp -Destination $runMetadataFile -Force
+    }
+} catch {
+    Write-Warning (Remove-Credentials "Scan-state persistence failed: $_")
+}
+
+# ---------------------------------------------------------------------------
 # Generate reports
 # ---------------------------------------------------------------------------
 $htmlReport = Join-Path $OutputPath 'report.html'
@@ -858,3 +1008,4 @@ if ($toolErrors.Count -gt 0) {
         Write-Host (Remove-Credentials "  - $($te.Tool): $($te.Error)") -ForegroundColor Red
     }
 }
+
