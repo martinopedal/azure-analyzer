@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.1",
+  "schemaVersion": "2.2",
   "tools": [
     {
       "name": "azqr",
@@ -31,6 +31,7 @@
       "install": {
         "kind": "cli",
         "command": "azqr",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "azure-quick-review.azqr"
         },
@@ -67,6 +68,7 @@
       "install": {
         "kind": "cli",
         "command": "kubescape",
+        "preferredManagers": ["winget", "brew"],
         "windows": { "manager": "winget", "package": "ARMO.kubescape" },
         "macos":   { "manager": "brew",   "package": "kubescape" },
         "linux":   { "manager": "script", "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh" }
@@ -397,6 +399,7 @@
       "install": {
         "kind": "cli",
         "command": "scorecard",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "ossf.scorecard"
         },
@@ -510,6 +513,7 @@
       "install": {
         "kind": "cli",
         "command": "zizmor",
+        "preferredManagers": ["pipx", "brew"],
         "windows": {
           "pipx": "zizmor"
         },
@@ -556,6 +560,7 @@
       "install": {
         "kind": "cli",
         "command": "gitleaks",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "gitleaks.gitleaks"
         },
@@ -602,6 +607,7 @@
       "install": {
         "kind": "cli",
         "command": "trivy",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "AquaSecurity.Trivy"
         },
@@ -617,6 +623,120 @@
         "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
+      }
+    },
+    {
+      "name": "bicep-iac",
+      "displayName": "Bicep IaC Validation",
+      "source": "bicep-iac",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-IaCBicep",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-IaCBicep.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "RepoPath",
+        "RemoteUrl"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#0d47a1",
+        "phase": 7
+      },
+      "install": {
+        "kind": "cli",
+        "command": "bicep",
+        "windows": {
+          "winget": "Microsoft.Bicep"
+        },
+        "macos": {
+          "brew": "bicep"
+        },
+        "linux": {
+          "url": "https://github.com/Azure/bicep/releases/latest",
+          "note": "No package manager available for Linux; download the binary from the releases page and place on PATH. See https://learn.microsoft.com/azure/azure-resource-manager/bicep/install#linux"
+        }
+      },
+      "upstream": {
+        "repo": "Azure/bicep",
+        "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      }
+    },
+    {
+      "name": "terraform-iac",
+      "displayName": "Terraform IaC Validation",
+      "source": "terraform-iac",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-IaCTerraform",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-IaCTerraform.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "RepoPath",
+        "RemoteUrl"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5c4ee5",
+        "phase": 7
+      },
+      "install": {
+        "kind": "cli",
+        "command": "terraform",
+        "windows": {
+          "winget": "Hashicorp.Terraform"
+        },
+        "macos": {
+          "brew": "terraform"
+        },
+        "linux": {
+          "url": "https://developer.hashicorp.com/terraform/install"
+        }
+      },
+      "upstream": {
+        "repo": "hashicorp/terraform",
+        "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      }
+    },
+    {
+      "name": "sentinel-incidents",
+      "displayName": "Microsoft Sentinel (Active Incidents)",
+      "source": "sentinel-incidents",
+      "provider": "azure",
+      "scope": "workspace",
+      "normalizer": "Normalize-SentinelIncidents",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-SentinelIncidents.ps1",
+      "requiredParams": ["WorkspaceResourceId"],
+      "optionalParams": ["LookbackDays", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#0078d4", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts"]
       }
     }
   ]

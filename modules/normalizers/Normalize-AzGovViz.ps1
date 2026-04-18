@@ -36,12 +36,29 @@ function Normalize-AzGovViz {
 
     foreach ($finding in $ToolResult.Findings) {
         $rawId = Get-PropertyValue $finding 'ResourceId' ''
+        $category = Get-PropertyValue $finding 'Category' 'Governance'
+        $principalId = Get-PropertyValue $finding 'PrincipalId' ''
+        $principalType = Get-PropertyValue $finding 'PrincipalType' ''
         $subId = ''
         $rg = ''
         $canonicalId = ''
         $entityType = 'ManagementGroup'
+        $platformOverride = $null
 
-        if ($rawId -and $rawId -match '^/subscriptions/') {
+        if ($category -eq 'Identity' -and $principalId) {
+            $principalTypeValue = $principalType.ToLowerInvariant()
+            if ($principalTypeValue -match 'user') {
+                $entityType = 'User'
+                $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
+            } else {
+                $entityType = 'ServicePrincipal'
+                $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
+            }
+            # AzGovViz Identity findings represent Azure RBAC assignments.
+            $platformOverride = 'Azure'
+        }
+
+        if (-not $canonicalId -and $rawId -and $rawId -match '^/subscriptions/') {
             # Bare /subscriptions/{id} → Subscription; deeper paths → AzureResource
             if ($rawId -match '^/subscriptions/[^/]+$') {
                 $entityType = 'Subscription'
@@ -78,7 +95,6 @@ function Normalize-AzGovViz {
         }
 
         $title = Get-PropertyValue $finding 'Title' (Get-PropertyValue $finding 'Description' 'Unknown')
-        $category = Get-PropertyValue $finding 'Category' 'Governance'
 
         $rawSev = Get-PropertyValue $finding 'Severity' 'Info'
         $severity = switch -Regex ($rawSev.ToString().ToLowerInvariant()) {
@@ -98,13 +114,28 @@ function Normalize-AzGovViz {
         $remediation = Get-PropertyValue $finding 'Remediation' ''
         $learnMore = Get-PropertyValue $finding 'LearnMoreUrl' (Get-PropertyValue $finding 'LearnMoreLink' '')
 
-        $row = New-FindingRow -Id ([guid]::NewGuid().ToString()) `
-            -Source 'azgovviz' -EntityId $canonicalId -EntityType $entityType `
-            -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
-            -Platform 'Azure' -Category $category -Severity $severity `
-            -Detail $detail -Remediation $remediation `
-            -LearnMoreUrl ($learnMore ?? '') -ResourceId ($rawId ?? '') `
-            -SubscriptionId $subId -ResourceGroup $rg
+        $newFindingParams = @{
+            Id              = ([guid]::NewGuid().ToString())
+            Source          = 'azgovviz'
+            EntityId        = $canonicalId
+            EntityType      = $entityType
+            Title           = $title
+            Compliant       = [bool]$compliant
+            ProvenanceRunId = $runId
+            Category        = $category
+            Severity        = $severity
+            Detail          = $detail
+            Remediation     = $remediation
+            LearnMoreUrl    = ($learnMore ?? '')
+            ResourceId      = ($rawId ?? '')
+            SubscriptionId  = $subId
+            ResourceGroup   = $rg
+        }
+        if ($platformOverride) {
+            $newFindingParams.Platform = $platformOverride
+        }
+
+        $row = New-FindingRow @newFindingParams
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)

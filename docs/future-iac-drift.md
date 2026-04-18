@@ -1,7 +1,11 @@
 # Future feature: IaC validation + drift detection
 
-**Status:** Design only. Not implemented. No tracking issue. Do not
-prioritize until explicitly scheduled.
+> **Phase A shipped** (PR from issue #93). Bicep and Terraform validation
+> wrappers are live. Phase B (declared-set inventory), Phase C (drift engine),
+> Phase D (shadow resources), and Phase E (extended languages) are tracked as
+> follow-up issues.
+
+**Status:** Phase A implemented. Phases B-E are design only.
 
 ## Problem
 

@@ -9,13 +9,18 @@
     Path to results.json. Defaults to .\output\results.json.
 .PARAMETER OutputPath
     Path for report.html. Defaults to .\output\report.html.
+.PARAMETER Trend
+    Optional array of run-trend objects from Get-RunTrend. When provided, an inline
+    SVG sparkline is rendered alongside the delta banner showing NonCompliant counts
+    across the last N runs (oldest left, newest right). Omit to suppress the sparkline.
 #>
 [CmdletBinding()]
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.html'),
     [string] $TriagePath = '',
-    [string] $PreviousRun = ''
+    [string] $PreviousRun = '',
+    [object[]] $Trend = @()
 )
 
 Set-StrictMode -Version Latest
@@ -345,6 +350,39 @@ if ($deltaSummary) {
 "@
 }
 
+# Build inline SVG sparkline when trend data is provided (one point per run).
+$sparklineHtml = ''
+$trendArr = @($Trend | Where-Object { $_ })
+if ($trendArr.Count -ge 2) {
+    $svgW   = 200
+    $svgH   = 40
+    $padX   = 4
+    $padY   = 4
+    $plotW  = $svgW - 2 * $padX
+    $plotH  = $svgH - 2 * $padY
+    $vals   = @($trendArr | ForEach-Object { [int]$_.NonCompliant })
+    $maxVal = ($vals | Measure-Object -Maximum).Maximum
+    if ($maxVal -eq 0) { $maxVal = 1 }
+    $step   = if ($vals.Count -gt 1) { $plotW / ($vals.Count - 1) } else { $plotW }
+    $points = for ($i = 0; $i -lt $vals.Count; $i++) {
+        $x = [math]::Round($padX + $i * $step, 1)
+        $y = [math]::Round($padY + $plotH - ($vals[$i] / $maxVal) * $plotH, 1)
+        "$x,$y"
+    }
+    $firstLabel = [string]$trendArr[0].RunId
+    $lastLabel  = [string]$trendArr[-1].RunId
+    $sparklineHtml = @"
+<div class="trend-sparkline-wrap" role="img" aria-label="Trend: non-compliant findings over last $($trendArr.Count) runs">
+  <span class="trend-label">Trend ($($trendArr.Count) runs):</span>
+  <svg class="trend-sparkline" width="$svgW" height="$svgH" viewBox="0 0 $svgW $svgH" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="$($points -join ' ')" fill="none" stroke="#1565c0" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="$padX" y="$($svgH - 1)" font-size="8" fill="#666">$(HE $firstLabel)</text>
+    <text x="$($svgW - $padX)" y="$($svgH - 1)" font-size="8" fill="#666" text-anchor="end">$(HE $lastLabel)</text>
+  </svg>
+</div>
+"@
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -446,6 +484,9 @@ $html = @"
   .delta-chip.unchanged { background: #eceff1; color: #37474f; }
   .delta-chip.net-up { background: #ffebee; color: #b71c1c; }
   .delta-chip.net-down { background: #e8f5e9; color: #1b5e20; }
+  .trend-sparkline-wrap { background: #fff; border-radius: 8px; padding: 12px 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 12px; align-items: center; }
+  .trend-label { font-size: 13px; font-weight: 600; color: #37474f; white-space: nowrap; }
+  .trend-sparkline { display: block; overflow: visible; }
 
   /* Filter banner */
   .filter-banner { display: none; background: #e3f2fd; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; align-items: center; gap: 8px; }
@@ -496,6 +537,8 @@ $html = @"
 
 $runModeBannerHtml
 $deltaBannerHtml
+
+$sparklineHtml
 
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
