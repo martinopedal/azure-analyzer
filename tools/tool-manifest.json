@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "2.1",
+  "schemaVersion": "2.2",
   "tools": [
     {
       "name": "azqr",
@@ -31,6 +31,7 @@
       "install": {
         "kind": "cli",
         "command": "azqr",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "azure-quick-review.azqr"
         },
@@ -67,6 +68,7 @@
       "install": {
         "kind": "cli",
         "command": "kubescape",
+        "preferredManagers": ["winget", "brew"],
         "windows": { "manager": "winget", "package": "ARMO.kubescape" },
         "macos":   { "manager": "brew",   "package": "kubescape" },
         "linux":   { "manager": "script", "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh" }
@@ -397,6 +399,7 @@
       "install": {
         "kind": "cli",
         "command": "scorecard",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "ossf.scorecard"
         },
@@ -510,6 +513,7 @@
       "install": {
         "kind": "cli",
         "command": "zizmor",
+        "preferredManagers": ["pipx", "brew"],
         "windows": {
           "pipx": "zizmor"
         },
@@ -556,6 +560,7 @@
       "install": {
         "kind": "cli",
         "command": "gitleaks",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "gitleaks.gitleaks"
         },
@@ -602,6 +607,7 @@
       "install": {
         "kind": "cli",
         "command": "trivy",
+        "preferredManagers": ["winget", "brew"],
         "windows": {
           "winget": "AquaSecurity.Trivy"
         },

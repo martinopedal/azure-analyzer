@@ -324,4 +324,19 @@ Describe 'Manifest wiring' {
             $t.install.probe  | Should -Not -BeNullOrEmpty
         }
     }
+
+    It 'cli install entries have preferredManagers containing only allowed managers' {
+        foreach ($t in $manifest.tools) {
+            if (-not $t.enabled) { continue }
+            if ($t.install.kind -ne 'cli') { continue }
+            if (-not $t.install.PSObject.Properties['preferredManagers']) { continue }
+            foreach ($mgr in $t.install.preferredManagers) {
+                $mgr | Should -BeIn @('winget', 'brew', 'pipx', 'pip', 'snap') -Because "$($t.name) preferredManagers must be in allow-list"
+            }
+        }
+    }
+
+    It 'manifest schema version is 2.2' {
+        $manifest.schemaVersion | Should -Be '2.2'
+    }
 }

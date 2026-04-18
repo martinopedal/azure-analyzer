@@ -58,6 +58,7 @@ param (
     [string[]] $ExcludeTools,
     [switch] $SkipPrereqCheck,
     [switch] $InstallMissingModules,
+    [string] $InstallConfigPath,
     [switch] $Recurse,
     [string] $Repository,
     [string] $GitHubHost = 'github.com',
@@ -165,13 +166,15 @@ if ($shouldRecurse) {
 # ---------------------------------------------------------------------------
 # Prerequisite check (manifest-driven auto-installer)
 # ---------------------------------------------------------------------------
+$installConfig = Read-InstallConfig -Path $InstallConfigPath -Manifest $manifest
 if (-not $SkipPrereqCheck) {
     $shouldRunRef = { param($name) ShouldRunTool $name }.GetNewClosure()
     $null = Install-PrerequisitesFromManifest `
         -Manifest $manifest `
         -RepoRoot $PSScriptRoot `
         -ShouldRunTool $shouldRunRef `
-        -SkipInstall:(-not $InstallMissingModules)
+        -SkipInstall:(-not $InstallMissingModules) `
+        -InstallConfig $installConfig
 }
 
 # ---------------------------------------------------------------------------
@@ -249,6 +252,18 @@ foreach ($toolDef in $manifest.tools) {
     if (-not (ShouldRunTool $toolDef.name)) {
         $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
         continue
+    }
+
+    # Check install config for enabled=false override (skips scan as well as install)
+    if ($null -ne $installConfig -and
+        $installConfig.PSObject.Properties['tools'] -and
+        $null -ne $installConfig.tools -and
+        $installConfig.tools.PSObject.Properties[$toolDef.name]) {
+        $cfgEntry = $installConfig.tools.($toolDef.name)
+        if ($cfgEntry.PSObject.Properties['enabled'] -and $cfgEntry.enabled -eq $false) {
+            $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'Disabled by install config'; Findings = 0 })
+            continue
+        }
     }
 
     # Correlators run post-collection, not in the parallel tool loop
