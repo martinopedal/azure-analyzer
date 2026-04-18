@@ -12,9 +12,9 @@ Squad uses a **main-as-trunk** model. **All feature work branches from `main` an
 
 | Branch | Purpose | Publishes |
 |--------|---------|-----------|
-| `main` | Trunk — all feature work merges here via PR | `npm publish` on tag |
-| `squad/{issue}-{slug}` | Short-lived issue branches | — (deleted after merge) |
-| `hotfix/{slug}` | Urgent fixes branched from main | — (PR back to main) |
+| `main` | Trunk - all feature work merges here via PR | `npm publish` on tag |
+| `squad/{issue}-{slug}` | Short-lived issue branches | (deleted after merge) |
+| `hotfix/{slug}` | Urgent fixes branched from main | (PR back to main) |
 
 ## Branch Naming Convention
 
@@ -228,7 +228,7 @@ These compose naturally. You can have:
 
 ## Anti-Patterns
 
-- ❌ Long-lived integration branches (no `dev` — branch from `main`, PR to `main`)
+- ❌ Long-lived integration branches (no `dev`; branch from `main`, PR to `main`)
 - ❌ PR targeting anything other than `main` for normal feature work
 - ❌ Non-conforming branch names (must be `squad/{number}-{slug}` or `{agent}/{number}-{slug}`)
 - ❌ Committing directly to `main` (use PRs)
