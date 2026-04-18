@@ -10,7 +10,7 @@
     Path to results.json. Defaults to .\output\results.json.
 .PARAMETER OutputPath
     Path for report.md. Defaults to .\output\report.md.
-.PARAMETER Baseline
+.PARAMETER BaselinePath
     Path to a prior results.json to diff against. When provided, a "Changes since last run"
     section is emitted with New / Resolved / Unchanged / Net non-compliant delta counts.
 .PARAMETER Trend
@@ -23,7 +23,7 @@ param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md'),
     [string] $TriagePath,
-    [string] $Baseline = '',
+    [string] $BaselinePath = '',
     [object[]] $Trend = @()
 )
 
@@ -54,9 +54,9 @@ $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 # --- Report v2 delta vs previous run ---
 $mdDeltaSection = ''
-if ($Baseline -and (Test-Path $Baseline) -and (Get-Command Get-ReportDelta -ErrorAction SilentlyContinue)) {
+if ($BaselinePath -and (Test-Path $BaselinePath) -and (Get-Command Get-ReportDelta -ErrorAction SilentlyContinue)) {
     try {
-        $prev       = @(Get-Content $Baseline -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $prev       = @(Get-Content $BaselinePath -Raw | ConvertFrom-Json -ErrorAction Stop)
         $delta      = Get-ReportDelta -Current $findings -Previous $prev
         $netSign    = if ($delta.Summary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
         $mdDeltaSection = @(

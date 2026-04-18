@@ -122,7 +122,7 @@ After a run, `output/` contains:
 - **Severity badges** -- per-source emoji indicators
 - **Collapsible sections** -- per-category finding tables via `<details>` tags
 - **Tool coverage matrix** -- shows which tools ran, with status column
-- **Changes since last run** -- `## Changes since last run` table (New / Resolved / Unchanged / Net non-compliant delta) emitted after Summary when `-Baseline` resolves a prior run
+- **Changes since last run** -- `## Changes since last run` table (New / Resolved / Unchanged / Net non-compliant delta) emitted after Summary when `-BaselineMode` resolves a prior run
 - **ASCII sparkline** -- `## Trend` section renders block characters (`▁▂▃▄▅▆▇█`, normalised, oldest left) across the last N runs; renders in any Markdown viewer or terminal
 
 <details>
@@ -288,8 +288,8 @@ The hook is **opt-in** — developers must run the installer manually. It won't 
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
-| `-PreviousRun` | string | -- | Explicit path to a prior `results.json`; wins over `-Baseline`; HTML renders New/Resolved/Unchanged badges + delta banner |
-| `-Baseline` | `auto`\|`none` | `auto` | Controls auto-baseline discovery. `auto` picks the most recent prior `results.json` sibling under `-OutputPath` (logs chosen path); `none` disables comparison entirely |
+| `-PreviousRun` | string | -- | Explicit path to a prior `results.json`; wins over `-BaselineMode`; HTML renders New/Resolved/Unchanged badges + delta banner |
+| `-BaselineMode` | `auto`\|`none` | `auto` | Controls auto-baseline discovery. `auto` picks the most recent prior `results.json` from `$OutputPath/snapshots/` (logs chosen path); `none` disables comparison entirely |
 | `-InstallFalco` | switch | `$false` | Opt-in Falco install mode for AKS (Helm deploy, short capture window, then collect alerts) |
 | `-UninstallFalco` | switch | `$false` | With `-InstallFalco`, uninstall Falco release after collection |
 | `-FalcoCaptureMinutes` | int (1-60) | 5 | Capture window in minutes for Falco install mode before collecting daemonset alerts |

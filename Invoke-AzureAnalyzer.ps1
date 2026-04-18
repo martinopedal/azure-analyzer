@@ -40,11 +40,11 @@
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
-.PARAMETER Baseline
+.PARAMETER BaselineMode
     Controls auto-baseline discovery for the delta banner. Values:
-      auto  — (default) pick the most recent prior results.json under -OutputPath automatically.
+      auto  — (default) pick the most recent snapshot from $OutputPath\snapshots\ automatically.
       none  — suppress baseline comparison entirely.
-    The explicit -PreviousRun parameter always wins over -Baseline when both are supplied.
+    The explicit -PreviousRun parameter always wins over -BaselineMode when both are supplied.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -82,7 +82,7 @@ param (
     [string] $Framework,
     [string] $PreviousRun,
     [ValidateSet('auto','none')]
-    [string] $Baseline = 'auto',
+    [string] $BaselineMode = 'auto',
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
@@ -679,16 +679,17 @@ if ($EnableAiTriage) {
 } else {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
-$triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
+$triageArg    = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
+$snapshotDir  = Join-Path $OutputPath 'snapshots'
+$runId        = Get-Date -Format 'yyyyMMdd-HHmmss'
 
-# Resolve baseline: explicit -PreviousRun wins; otherwise auto-discover from OutputPath siblings.
+# 1. Resolve baseline BEFORE archiving the current run so it is not in the index yet.
+#    Explicit -PreviousRun always wins over -BaselineMode auto-discovery.
 $resolvedBaseline = ''
 if ($PreviousRun -and (Test-Path $PreviousRun)) {
     $resolvedBaseline = $PreviousRun
-} elseif ($Baseline -eq 'auto' -and (Get-Command Resolve-BaselineRun -ErrorAction SilentlyContinue)) {
-    $currentRunId     = Split-Path $OutputPath -Leaf
-    $parentRoot       = Split-Path $OutputPath -Parent
-    $autoBaseline     = Resolve-BaselineRun -OutputRoot $parentRoot -CurrentRunId $currentRunId
+} elseif ($BaselineMode -eq 'auto' -and (Get-Command Resolve-BaselineRun -ErrorAction SilentlyContinue)) {
+    $autoBaseline = Resolve-BaselineRun -SnapshotDir $snapshotDir
     if ($autoBaseline) {
         Write-Host "  [Baseline] Auto-selected prior run: $autoBaseline" -ForegroundColor DarkGray
         $resolvedBaseline = $autoBaseline
@@ -697,12 +698,20 @@ if ($PreviousRun -and (Test-Path $PreviousRun)) {
 
 $prevRunArg = if ($resolvedBaseline) { @{ PreviousRun = $resolvedBaseline } } else { @{} }
 
-# Build trend array for sparklines (last 10 runs from the parent output root).
+# 2. Archive current results.json into the snapshot index so trend includes it.
+if (Get-Command Add-RunSnapshot -ErrorAction SilentlyContinue) {
+    try {
+        Add-RunSnapshot -SnapshotDir $snapshotDir -RunId $runId -SourceFile $outputFile -MaxHistory 10
+    } catch {
+        Write-Warning (Remove-Credentials "Snapshot archive failed: $_")
+    }
+}
+
+# 3. Build trend array AFTER snapshot so current run is included in the sparkline.
 $trendArg = @{}
 if (Get-Command Get-RunTrend -ErrorAction SilentlyContinue) {
     try {
-        $parentRoot = Split-Path $OutputPath -Parent
-        $trend      = Get-RunTrend -OutputRoot $parentRoot -MaxRuns 10
+        $trend = Get-RunTrend -SnapshotDir $snapshotDir -MaxRuns 10
         if ($trend.Count -ge 2) {
             $trendArg = @{ Trend = $trend }
         }
@@ -723,7 +732,7 @@ try {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }
 
-$mdBaselineArg = if ($resolvedBaseline) { @{ Baseline = $resolvedBaseline } } else { @{} }
+$mdBaselineArg = if ($resolvedBaseline) { @{ BaselinePath = $resolvedBaseline } } else { @{} }
 try {
     & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg
 } catch {
