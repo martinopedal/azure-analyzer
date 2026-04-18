@@ -69,3 +69,42 @@ Describe 'ReportDelta' {
         $delta.Summary.Unchanged | Should -Be 1
     }
 }
+
+
+Describe 'ReportDelta as input to incremental history (#94)' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..' '..' 'modules' 'shared' 'ScanState.ps1')
+
+        function NewRow2 {
+            param($Source, $ResourceId, $Category, $Title, $Compliant = $false)
+            [pscustomobject]@{ Source = $Source; ResourceId = $ResourceId; Category = $Category; Title = $Title; Compliant = $Compliant }
+        }
+    }
+
+    It 'feeds Get-ReportDelta keys into Update-FindingHistoryFromDelta consistently' {
+        $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "delta-inc-$([Guid]::NewGuid().ToString('N'))"
+        New-Item -ItemType Directory -Path $tmpDir | Out-Null
+        try {
+            $prev = @( NewRow2 -Source 'azqr' -ResourceId '/s/1' -Category 'Storage' -Title 'TLS' )
+            $curr = @(
+                NewRow2 -Source 'azqr' -ResourceId '/s/1' -Category 'Storage' -Title 'TLS'
+                NewRow2 -Source 'azqr' -ResourceId '/s/2' -Category 'Storage' -Title 'TLS'
+            )
+
+            $delta = Get-ReportDelta -Current $curr -Previous $prev
+            $delta.Summary.New | Should -Be 1
+            $delta.Summary.Unchanged | Should -Be 1
+
+            $state = Read-ScanState -OutputPath $tmpDir
+            $state = Update-FindingHistoryFromDelta -State $state -Current $curr
+            $state.findings.Count | Should -Be 2
+
+            foreach ($row in $curr) {
+                $key = Get-ReportDeltaKey -Row $row
+                $state.findings.Contains($key) | Should -BeTrue
+            }
+        } finally {
+            Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}

@@ -1,0 +1,112 @@
+# Scheduled azure-analyzer scan template (#94)
+#
+# Drop this file into <consumer-repo>/.github/workflows/, set the secrets
+# below, and you have a daily incremental scan with baseline + state carried
+# across runs via GitHub Actions artifacts.
+#
+# Required secrets:
+#   AZURE_CREDENTIALS    JSON output of `az ad sp create-for-rbac --sdk-auth`
+#                        (Reader on the subscription is enough for most tools)
+#   GH_PAT (optional)    GitHub PAT for tools that need authenticated GitHub
+#                        access (Scorecard, gitleaks remote scans, etc.)
+#
+# Required vars:
+#   AZURE_SUBSCRIPTION_ID   The subscription to scan.
+#
+# How it works:
+#   1. Download the most recent state artifact (results.json, results-baseline.json,
+#      entities.json, run-metadata.json, state/ folder) into ./output.
+#   2. Run Invoke-AzureAnalyzer.ps1 with -Incremental -- the orchestrator picks
+#      results-baseline.json automatically when present and uses each tool's
+#      lastSuccessUtc from state/scan-state.json as its -Since window.
+#   3. Upload the new output/ folder as the next run's artifact.
+#
+# Notes:
+#   * Artifact retention is 30 days by default; bump if you want longer trends.
+#   * Without a previous artifact this becomes a regular full scan and writes
+#     the first baseline.
+
+name: azure-analyzer-scheduled
+
+on:
+  schedule:
+    # Daily at 03:17 UTC. Pick a non-rounded minute to avoid GitHub's cron storm.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: 'Force a full (non-incremental) scan and refresh the baseline'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: azure-analyzer-scheduled
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Restore previous scan state
+        # Grabs the most recent successful artifact named "azure-analyzer-state"
+        # so that results-baseline.json and state/scan-state.json carry forward.
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: azure-analyzer-state
+          path: output
+          workflow_conclusion: success
+          if_no_artifact_found: warn
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Run azure-analyzer (incremental)
+        shell: pwsh
+        env:
+          GITHUB_AUTH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          $incremental = '${{ github.event.inputs.full_scan }}' -ne 'true'
+          $args = @{
+            SubscriptionId = '${{ vars.AZURE_SUBSCRIPTION_ID }}'
+            OutputPath     = 'output'
+          }
+          if ($incremental) { $args['Incremental'] = $true }
+          ./Invoke-AzureAnalyzer.ps1 @args
+
+      - name: Upload scan-state artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-analyzer-state
+          path: |
+            output/results.json
+            output/results-baseline.json
+            output/entities.json
+            output/tool-status.json
+            output/run-metadata.json
+            output/state/**
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-analyzer-report
+          path: |
+            output/report.html
+            output/report.md
+          retention-days: 14
+          if-no-files-found: warn
+

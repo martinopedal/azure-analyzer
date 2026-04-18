@@ -43,6 +43,14 @@ if (-not (Test-Path $InputPath)) {
 
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
+# --- Run-mode metadata (incremental / scheduled — issue #94) ---
+$runMetadata = $null
+$runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
+if (Test-Path $runMetadataPath) {
+    try { $runMetadata = Get-Content $runMetadataPath -Raw | ConvertFrom-Json -ErrorAction Stop }
+    catch { Write-Warning (Remove-Credentials "Failed to read run-metadata.json: $_") }
+}
+
 # --- Report v2 delta vs previous run ---
 $deltaStatus  = @{}
 $deltaSummary = $null
@@ -295,6 +303,34 @@ $($rows -join "`n")
 }
 
 $deltaBannerHtml = ''
+$runModeBannerHtml = ''
+if ($runMetadata) {
+    $rmMode = if ($runMetadata.PSObject.Properties['runMode'] -and $runMetadata.runMode) { [string]$runMetadata.runMode } else { 'Full' }
+    $rmSince = if ($runMetadata.PSObject.Properties['sinceUtc'] -and $runMetadata.sinceUtc) { [string]$runMetadata.sinceUtc } else { '' }
+    $rmBaseline = if ($runMetadata.PSObject.Properties['baselineUtc'] -and $runMetadata.baselineUtc) { [string]$runMetadata.baselineUtc } else { '' }
+    $rmModeClass = ($rmMode -replace '\s','').ToLowerInvariant()
+    $sinceChip = if ($rmSince) { "<span class='run-chip since'>Since: $(HE $rmSince)</span>" } else { '' }
+    $baseChip  = if ($rmBaseline) { "<span class='run-chip baseline'>Baseline: $(HE $rmBaseline)</span>" } else { '' }
+    $toolBadges = ''
+    if ($runMetadata.PSObject.Properties['tools'] -and $runMetadata.tools) {
+        $perTool = foreach ($t in @($runMetadata.tools)) {
+            $toolName = if ($t.PSObject.Properties['tool']) { [string]$t.tool } else { '' }
+            $toolMode = if ($t.PSObject.Properties['runMode'] -and $t.runMode) { [string]$t.runMode } else { 'Full' }
+            $cls = ($toolMode -replace '\s','').ToLowerInvariant()
+            "<span class='run-chip mode-$cls' title='$(HE $toolName) - $(HE $toolMode)'>$(HE $toolName): $(HE $toolMode)</span>"
+        }
+        $toolBadges = $perTool -join ' '
+    }
+    $runModeBannerHtml = @"
+<div class="run-mode-banner" role="region" aria-label="Run mode">
+  <strong>Run mode:</strong>
+  <span class="run-chip mode-$rmModeClass">$(HE $rmMode)</span>
+  $sinceChip
+  $baseChip
+  <div class="run-tool-badges">$toolBadges</div>
+</div>
+"@
+}
 if ($deltaSummary) {
     $netClass = if ($deltaSummary.NetNonCompliantDelta -gt 0) { 'net-up' } elseif ($deltaSummary.NetNonCompliantDelta -lt 0) { 'net-down' } else { 'unchanged' }
     $netSign  = if ($deltaSummary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
@@ -390,6 +426,17 @@ $html = @"
   .badge-resolved { background: #e8f5e9; color: #1b5e20; }
   .badge-unchanged { background: #eceff1; color: #37474f; }
 
+  /* Run mode banner */
+  .run-mode-banner { background: #fff; border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .run-mode-banner strong { font-size: 14px; }
+  .run-chip { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 12px; font-weight: 600; background: #eceff1; color: #37474f; }
+  .run-chip.mode-full { background: #e3f2fd; color: #0d47a1; }
+  .run-chip.mode-incremental { background: #e8f5e9; color: #1b5e20; }
+  .run-chip.mode-cached { background: #fff8e1; color: #6d4c41; }
+  .run-chip.mode-fullfallback { background: #fff3e0; color: #bf360c; }
+  .run-chip.mode-partial { background: #f3e5f5; color: #4a148c; }
+  .run-chip.since, .run-chip.baseline { background: #f5f5f5; color: #424242; font-weight: 500; }
+  .run-tool-badges { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin-top: 4px; }
   /* Delta summary */
   .delta-summary { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
   .delta-summary strong { font-size: 16px; }
@@ -447,6 +494,7 @@ $html = @"
   <button onclick="clearSeverityFilter()">Clear filter</button>
 </div>
 
+$runModeBannerHtml
 $deltaBannerHtml
 
 <!-- Per-Source Breakdown -->

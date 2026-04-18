@@ -76,6 +76,8 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [switch] $Incremental,
+    [Nullable[datetime]] $Since,
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
@@ -90,7 +92,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'ReportDelta', 'ScanState')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -105,6 +107,20 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
 # Read tool manifest
 # ---------------------------------------------------------------------------
 $manifest = Get-Content (Join-Path $PSScriptRoot 'tools' 'tool-manifest.json') -Raw | ConvertFrom-Json
+
+# ---------------------------------------------------------------------------
+# Incremental defaults (#94): auto-resolve baseline when -Incremental is set.
+# An explicit -PreviousRun always wins; -Since alone does not auto-rebase.
+# ---------------------------------------------------------------------------
+if ($Incremental -and -not $PreviousRun) {
+    $autoBaseline = Join-Path $OutputPath 'results-baseline.json'
+    if (Test-Path $autoBaseline) {
+        $PreviousRun = $autoBaseline
+        Write-Host "[incremental] Using baseline $autoBaseline for delta comparison." -ForegroundColor DarkCyan
+    } else {
+        Write-Host "[incremental] No baseline found at $autoBaseline; treating run as full bootstrap." -ForegroundColor DarkYellow
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Tool selection (manifest-driven)
@@ -676,6 +692,81 @@ $triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else {
 $prevRunArg = if ($PreviousRun -and (Test-Path $PreviousRun)) { @{ PreviousRun = $PreviousRun } } else { @{} }
 
 # ---------------------------------------------------------------------------
+# Persist scan state and run metadata for incremental / scheduled runs (#94)
+# ---------------------------------------------------------------------------
+$runMode = if ($Incremental) { 'Incremental' } elseif (($null -ne $Since)) { 'Incremental' } else { 'Full' }
+$baselineFile = Join-Path $OutputPath 'results-baseline.json'
+$runMetadataFile = Join-Path $OutputPath 'run-metadata.json'
+
+try {
+    if (Get-Command Read-ScanState -ErrorAction SilentlyContinue) {
+        $scanState = Read-ScanState -OutputPath $OutputPath
+        $nowUtc = (Get-Date).ToUniversalTime()
+        $sinceUsed = if (($null -ne $Since)) { ([datetime]$Since).ToUniversalTime() } else { $null }
+
+        foreach ($ts in $toolStatus) {
+            $entryRunMode = if ($Incremental -or ($null -ne $Since)) {
+                # Wrappers will opt in over time; default is FullFallback so reports
+                # do not falsely advertise incremental coverage.
+                'FullFallback'
+            } else { 'Full' }
+            $statusForState = switch ($ts.Status) {
+                'Success' { 'Success'; break }
+                'Failed'  { 'Failed';  break }
+                'Skipped' { 'Skipped'; break }
+                default   { 'Partial' }
+            }
+            $null = Update-ScanStateToolEntry -State $scanState -Tool $ts.Tool `
+                -Status $statusForState -RunMode $entryRunMode `
+                -FindingCount ([int]$ts.Findings) -SinceUsed $sinceUsed -Now $nowUtc
+        }
+
+        if (Get-Command Update-FindingHistoryFromDelta -ErrorAction SilentlyContinue) {
+            $null = Update-FindingHistoryFromDelta -State $scanState -Current $allResults -Now $nowUtc
+        }
+
+        $shouldRefreshBaseline = -not $Incremental -and -not ($null -ne $Since)
+        $null = Update-ScanStateRun -State $scanState -RunMode $runMode -Now $nowUtc -UpdateBaseline:$shouldRefreshBaseline
+        $null = Write-ScanState -OutputPath $OutputPath -State $scanState
+
+        if ($shouldRefreshBaseline -and (Test-Path $outputFile)) {
+            try {
+                Copy-Item -Path $outputFile -Destination $baselineFile -Force
+            } catch {
+                Write-Warning (Remove-Credentials "Failed to refresh baseline ${baselineFile}: $_")
+            }
+        }
+
+        $runMeta = [ordered]@{
+            schemaVersion   = 1
+            runMode         = $runMode
+            generatedUtc    = $nowUtc.ToString('o')
+            sinceUtc        = if ($sinceUsed) { $sinceUsed.ToString('o') } else { $null }
+            baselineUtc     = if ($scanState.runs.lastBaselineUtc) { [string]$scanState.runs.lastBaselineUtc } else { $null }
+            previousRunPath = if ($PreviousRun) { $PreviousRun } else { $null }
+            tools = @($toolStatus | ForEach-Object {
+                $entry = Get-ScanStateToolEntry -State $scanState -Tool $_.Tool
+                [ordered]@{
+                    tool          = $_.Tool
+                    status        = $_.Status
+                    findingCount  = [int]$_.Findings
+                    runMode       = if ($entry) { [string]$entry.runMode } else { $runMode }
+                    lastSuccessUtc = if ($entry) { [string]$entry.lastSuccessUtc } else { $null }
+                    sinceUsedUtc  = if ($entry) { [string]$entry.sinceUsedUtc } else { $null }
+                }
+            })
+        }
+        $runMetaJson = $runMeta | ConvertTo-Json -Depth 6
+        if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            $runMetaJson = Remove-Credentials $runMetaJson
+        }
+        Set-Content -Path $runMetadataFile -Value $runMetaJson -Encoding UTF8
+    }
+} catch {
+    Write-Warning (Remove-Credentials "Scan-state persistence failed: $_")
+}
+
+# ---------------------------------------------------------------------------
 # Generate reports
 # ---------------------------------------------------------------------------
 $htmlReport = Join-Path $OutputPath 'report.html'
@@ -723,3 +814,4 @@ if ($toolErrors.Count -gt 0) {
         Write-Host (Remove-Credentials "  - $($te.Tool): $($te.Error)") -ForegroundColor Red
     }
 }
+
