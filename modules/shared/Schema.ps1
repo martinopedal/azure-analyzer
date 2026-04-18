@@ -21,6 +21,8 @@ $script:EntityTypes = @(
     'Application',
     'Repository',
     'Pipeline',
+    'VariableGroup',
+    'Environment',
     'ServiceConnection',
     'User',
     'Subscription',
@@ -65,6 +67,8 @@ function Get-PlatformForEntityType {
             'Application',
             'Repository',
             'Pipeline',
+            'VariableGroup',
+            'Environment',
             'ServiceConnection',
             'User',
             'Subscription',
@@ -87,6 +91,8 @@ function Get-PlatformForEntityType {
         'Repository' { 'GitHub' }
         'Workflow' { 'GitHub' }
         'Pipeline' { 'ADO' }
+        'VariableGroup' { 'ADO' }
+        'Environment' { 'ADO' }
         'ServiceConnection' { 'ADO' }
         default { throw "Unknown EntityType '$EntityType'." }
     }

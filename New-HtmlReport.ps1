@@ -125,9 +125,9 @@ if (Test-Path $manifestPath) {
 # Safety net: if manifest is missing, keep the legacy hardcoded set so a
 # report can still be generated in degraded environments.
 if ($allSources.Count -eq 0) {
-    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','defender-for-cloud','kubescape','kube-bench','falco','maester','scorecard','ado-connections','identity-correlator','zizmor','gitleaks','trivy')
-    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
-    $sourceColors = @{ 'azqr'='#1565c0'; 'psrule'='#6a1b9a'; 'azgovviz'='#00838f'; 'alz-queries'='#e65100'; 'wara'='#2e7d32'; 'defender-for-cloud'='#0078d4'; 'kubescape'='#7b1fa2'; 'kube-bench'='#5e35b1'; 'falco'='#ef6c00'; 'maester'='#7b1fa2'; 'scorecard'='#ff6f00'; 'ado-connections'='#0277bd'; 'identity-correlator'='#ad1457'; 'zizmor'='#4527a0'; 'gitleaks'='#c62828'; 'trivy'='#00695c' }
+    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','defender-for-cloud','kubescape','kube-bench','falco','maester','scorecard','ado-connections','ado-pipelines','identity-correlator','zizmor','gitleaks','trivy')
+    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
+    $sourceColors = @{ 'azqr'='#1565c0'; 'psrule'='#6a1b9a'; 'azgovviz'='#00838f'; 'alz-queries'='#e65100'; 'wara'='#2e7d32'; 'defender-for-cloud'='#0078d4'; 'kubescape'='#7b1fa2'; 'kube-bench'='#5e35b1'; 'falco'='#ef6c00'; 'maester'='#7b1fa2'; 'scorecard'='#ff6f00'; 'ado-connections'='#0277bd'; 'ado-pipelines'='#006064'; 'identity-correlator'='#ad1457'; 'zizmor'='#4527a0'; 'gitleaks'='#c62828'; 'trivy'='#00695c' }
 }
 $sourceGroups = $findings | Group-Object -Property Source
 $sourceCountMap = @{}
