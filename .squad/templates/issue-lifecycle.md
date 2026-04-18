@@ -360,6 +360,30 @@ See `.squad/templates/ralph-reference.md` for Ralph's full lifecycle.
 
 ## PR Review Handling
 
+### Severity Taxonomy (#108)
+
+PR review feedback is tagged with one of four severity labels. Only `[blocker]` and `[correctness]` block merge; `[style]` and `[nit]` are advisory.
+
+| Tag | Meaning | Gate behavior |
+|-----|---------|---------------|
+| `[blocker]` | Data corruption, security vuln, breaks build/tests | **Blocks merge.** Triggers gate + Lockout. |
+| `[correctness]` | Wrong behavior, missing error handling, contract violation | **Blocks merge.** Triggers gate + Lockout. |
+| `[style]` | Formatting, naming, idiom | **Non-blocking.** Logged only. |
+| `[nit]` | Trivial polish, opinion | **Non-blocking.** Optional follow-up issue. |
+
+**3-model gate spawn convention:** Reviewer prompts (Opus 4.6, Goldeneye, GPT-5.3-codex) MUST instruct each model to prefix every finding with one of the four tags in square brackets (e.g. `[blocker] secrets leaked to logs in line 42`). One tag per finding line; split multi-concern comments into separate lines. When ambiguous, reviewers pick the more severe tag.
+
+**Gate-pass criteria:** A PR passes the gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto):
+
+1. **No `[blocker]` or `[correctness]` finding from any reviewer.** Even one such finding fails the gate.
+2. **Either**:
+   - **2-of-3 APPROVE** from the 3-model gate, OR
+   - **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only**.
+
+Untagged findings are treated as `[correctness]` (fail-safe toward the gate). Authors are not required to address `[style]`/`[nit]` before merge.
+
+> Full taxonomy contract and reviewer instructions live in `.copilot/copilot-instructions.md` -> "Review Severity Taxonomy". Auto-classification (#109) and workflow enforcement (`pr-review-gate.yml` updates) are tracked separately and out of scope here.
+
 ### Automated Approval (CI-only projects)
 
 If the project has no human reviewers configured:
