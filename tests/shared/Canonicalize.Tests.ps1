@@ -62,6 +62,10 @@ Describe 'ConvertTo-CanonicalSpnId' {
         $lookup = @{ '11111111-1111-1111-1111-111111111111' = '22222222-2222-2222-2222-222222222222' }
         ConvertTo-CanonicalSpnId -SpnId 'objectId:11111111-1111-1111-1111-111111111111' -ObjectIdToAppId $lookup | Should -Be 'appId:22222222-2222-2222-2222-222222222222'
     }
+
+    It 'preserves objectId values when lookup is unavailable' {
+        ConvertTo-CanonicalSpnId -SpnId 'objectId:11111111-1111-1111-1111-111111111111' | Should -Be 'objectId:11111111-1111-1111-1111-111111111111'
+    }
 }
 
 Describe 'ConvertTo-CanonicalEntityId' {
