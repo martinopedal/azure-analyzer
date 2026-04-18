@@ -155,24 +155,25 @@ function ConvertTo-CanonicalSpnId {
 
     if ($raw -match '^(?i:appid):(?<id>[0-9a-f-]{36})$') {
         $guid = $matches['id']
+        return "appId:$($guid.ToLowerInvariant())"
     } elseif ($raw -match '^(?i:objectid):(?<id>[0-9a-f-]{36})$') {
         $objectId = $matches['id'].ToLowerInvariant()
         if (-not $ObjectIdToAppId -or -not $ObjectIdToAppId.ContainsKey($objectId)) {
-            throw "ObjectId '$objectId' requires a lookup map to resolve to appId."
+            return "objectId:$objectId"
         }
         $guid = [string]$ObjectIdToAppId[$objectId]
+        $guid = $guid.ToLowerInvariant()
+        if ($guid -notmatch $script:GuidPattern) {
+            throw "Resolved appId '$guid' is not a valid GUID."
+        }
+        return "appId:$guid"
     } elseif ($raw -match $script:GuidPattern) {
         $guid = $raw
+        $guid = $guid.ToLowerInvariant()
+        return "appId:$guid"
     } else {
         throw "SPN identifier must be appId:{guid}, objectId:{guid}, or a GUID. Provided: '$SpnId'."
     }
-
-    $guid = $guid.ToLowerInvariant()
-    if ($guid -notmatch $script:GuidPattern) {
-        throw "Resolved appId '$guid' is not a valid GUID."
-    }
-
-    return "appId:$guid"
 }
 
 function ConvertTo-CanonicalEntityId {

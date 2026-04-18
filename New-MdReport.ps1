@@ -10,13 +10,22 @@
     Path to results.json. Defaults to .\output\results.json.
 .PARAMETER OutputPath
     Path for report.md. Defaults to .\output\report.md.
+.PARAMETER BaselinePath
+    Path to a prior results.json to diff against. When provided, a "Changes since last run"
+    section is emitted with New / Resolved / Unchanged / Net non-compliant delta counts.
+.PARAMETER Trend
+    Optional array of run-trend objects from Get-RunTrend. When provided, an ASCII sparkline
+    using block characters (normalised, max 10 cells) is rendered on a single line so it
+    displays in any Markdown viewer.
 #>
 [CmdletBinding()]
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md'),
     [string] $TriagePath,
-    [object] $Portfolio
+    [object] $Portfolio,
+    [string] $BaselinePath = '',
+    [object[]] $Trend = @()
 )
 
 Set-StrictMode -Version Latest
@@ -29,6 +38,10 @@ if (Test-Path $sanitizePath) {
 $frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapper.ps1'
 if (Test-Path $frameworkMapperPath) {
     . $frameworkMapperPath
+}
+$reportDeltaPath = Join-Path $PSScriptRoot 'modules' 'shared' 'ReportDelta.ps1'
+if (Test-Path $reportDeltaPath) {
+    . $reportDeltaPath
 }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
@@ -50,8 +63,57 @@ if (-not $Portfolio) {
     }
 }
 
+# --- Report v2 delta vs previous run ---
+$mdDeltaSection = ''
+if ($BaselinePath -and (Test-Path $BaselinePath) -and (Get-Command Get-ReportDelta -ErrorAction SilentlyContinue)) {
+    try {
+        $prev       = @(Get-Content $BaselinePath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $delta      = Get-ReportDelta -Current $findings -Previous $prev
+        $netSign    = if ($delta.Summary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
+        $mdDeltaSection = @(
+            '## Changes since last run'
+            ''
+            "| Change | Count |"
+            "|---|---|"
+            "| New findings | $($delta.Summary.New) |"
+            "| Resolved findings | $($delta.Summary.Resolved) |"
+            "| Unchanged findings | $($delta.Summary.Unchanged) |"
+            "| Net non-compliant delta | $netSign$($delta.Summary.NetNonCompliantDelta) |"
+            ''
+        ) -join "`n"
+    } catch {
+        Write-Warning (Remove-Credentials "MD report delta computation failed: $_")
+    }
+}
+
+# --- ASCII sparkline from trend data ---
+$mdSparklineSection = ''
+$trendArr = @($Trend | Where-Object { $_ })
+if ($trendArr.Count -ge 2) {
+    $blocks  = [char[]]@(0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, 0x2588)
+    $vals    = @($trendArr | ForEach-Object { [int]$_.NonCompliant })
+    $maxVal  = ($vals | Measure-Object -Maximum).Maximum
+    if ($maxVal -eq 0) { $maxVal = 1 }
+    $cells   = $vals | ForEach-Object {
+        $idx = [math]::Floor(($_ / $maxVal) * ($blocks.Length - 1))
+        $blocks[$idx]
+    }
+    $sparkStr = $cells -join ''
+    $firstId  = [string]$trendArr[0].RunId
+    $lastId   = [string]$trendArr[-1].RunId
+    $mdSparklineSection = @(
+        '## Trend'
+        ''
+        "Non-compliant findings over the last $($trendArr.Count) runs (oldest left, newest right):"
+        ''
+        "``$sparkStr`` — $firstId to $lastId"
+        ''
+    ) -join "`n"
+}
+
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = @($findings).Count
+$critical = @($findings | Where-Object { $_.Severity -eq 'Critical' }).Count
 $high = @($findings | Where-Object { $_.Severity -eq 'High' }).Count
 $medium = @($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
 $low = @($findings | Where-Object { $_.Severity -eq 'Low' }).Count
@@ -66,8 +128,24 @@ function Get-PortfolioSlug([string] $text) {
     return (($text.ToLowerInvariant() -replace '[^a-z0-9]+', '-') -replace '(^-|-$)', '')
 }
 
-$lines.Add("# Azure Analyzer Report — $date")
+$lines.Add("# Azure Analyzer Report - $date")
 $lines.Add('')
+
+# Run-mode metadata (incremental / scheduled — issue #94)
+$runMetadata = $null
+$runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
+if (Test-Path $runMetadataPath) {
+    try { $runMetadata = Get-Content $runMetadataPath -Raw | ConvertFrom-Json -ErrorAction Stop }
+    catch { Write-Warning (Remove-Credentials "Failed to read run-metadata.json: $_") }
+}
+if ($runMetadata) {
+    $rmMode = if ($runMetadata.PSObject.Properties['runMode'] -and $runMetadata.runMode) { [string]$runMetadata.runMode } else { 'Full' }
+    $rmSince = if ($runMetadata.PSObject.Properties['sinceUtc'] -and $runMetadata.sinceUtc) { [string]$runMetadata.sinceUtc } else { '' }
+    $rmBaseline = if ($runMetadata.PSObject.Properties['baselineUtc'] -and $runMetadata.baselineUtc) { [string]$runMetadata.baselineUtc } else { '' }
+    $lines.Add("**Run mode:** $rmMode" + $(if ($rmSince) { " | **Since:** $rmSince" } else { '' }) + $(if ($rmBaseline) { " | **Baseline:** $rmBaseline" } else { '' }))
+    $lines.Add('')
+}
+
 $lines.Add('## Summary')
 $lines.Add('')
 $lines.Add('| Metric | Count |')
@@ -75,11 +153,20 @@ $lines.Add('|---|---|')
 $lines.Add("| Total findings | $total |")
 $lines.Add("| Non-compliant | $nonCompliantCount |")
 $lines.Add("| Compliant | $compliantCount |")
+$lines.Add("| Critical severity | $critical |")
 $lines.Add("| High severity | $high |")
 $lines.Add("| Medium severity | $medium |")
 $lines.Add("| Low severity | $low |")
 $lines.Add("| Info | $info |")
 $lines.Add('')
+
+# Emit delta and trend sections right after Summary
+if ($mdDeltaSection) {
+    foreach ($l in ($mdDeltaSection -split "`n")) { $lines.Add($l) }
+}
+if ($mdSparklineSection) {
+    foreach ($l in ($mdSparklineSection -split "`n")) { $lines.Add($l) }
+}
 
 $bySource = @($findings | Group-Object -Property Source)
 $sourceCountMap = @{}
@@ -106,6 +193,14 @@ if ($allSources.Count -eq 0) {
     $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
 }
 $toolStatusMap = @{}
+$toolRunModeMap = @{}
+if ($runMetadata -and $runMetadata.PSObject.Properties['tools'] -and $runMetadata.tools) {
+    foreach ($rt in @($runMetadata.tools)) {
+        if ($rt.PSObject.Properties['tool']) {
+            $toolRunModeMap[[string]$rt.tool] = if ($rt.PSObject.Properties['runMode']) { [string]$rt.runMode } else { '' }
+        }
+    }
+}
 $statusJsonPath = Join-Path (Split-Path $InputPath -Parent) 'tool-status.json'
 if (Test-Path $statusJsonPath) {
     try {
@@ -116,17 +211,18 @@ if (Test-Path $statusJsonPath) {
 
 $lines.Add('### By source')
 $lines.Add('')
-$lines.Add('| Source | Status | Findings | Non-compliant |')
-$lines.Add('|---|---|---|---|')
+$lines.Add('| Source | Status | Mode | Findings | Non-compliant |')
+$lines.Add('|---|---|---|---|---|')
 foreach ($src in $allSources) {
     $label = $sourceLabels[$src]
     $status = if ($toolStatusMap.ContainsKey($src)) { $toolStatusMap[$src] } else { if ($sourceCountMap.ContainsKey($src)) { 'Success' } else { 'Skipped' } }
+    $mode   = if ($toolRunModeMap.ContainsKey($src) -and $toolRunModeMap[$src]) { $toolRunModeMap[$src] } else { '-' }
     if ($sourceCountMap.ContainsKey($src)) {
         $grp = $sourceCountMap[$src]
         $nc = @($grp.Group | Where-Object { -not $_.Compliant }).Count
-        $lines.Add("| $label | $status | $($grp.Count) | $nc |")
+        $lines.Add("| $label | $status | $mode | $($grp.Count) | $nc |")
     } else {
-        $lines.Add("| $label | $status | 0 | 0 |")
+        $lines.Add("| $label | $status | $mode | 0 | 0 |")
     }
 }
 $lines.Add('')
@@ -136,21 +232,26 @@ if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
     $portfolioCorrelations = if ($Portfolio.PSObject.Properties['Correlations']) { @($Portfolio.Correlations) } else { @() }
     $portfolioMgs = if ($Portfolio.PSObject.Properties['ManagementGroups']) { @($Portfolio.ManagementGroups) } else { @() }
 
-    if (@($portfolioSubs).Count -gt 0) {
-        $lines.Add('## Portfolio rollup')
+    $portfolioSummary = if ($Portfolio.PSObject.Properties['Summary']) { $Portfolio.Summary } else { $null }
+    $lines.Add('## Portfolio rollup')
+    $lines.Add('')
+
+    $breadcrumbPath = @()
+    if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
+        $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
+    } elseif (@($portfolioSubs).Count -gt 0 -and $portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
+        $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
+    } elseif ($portfolioSummary -and $portfolioSummary.PSObject.Properties['ManagementGroupId'] -and $portfolioSummary.ManagementGroupId) {
+        $breadcrumbPath = @([string]$portfolioSummary.ManagementGroupId)
+    }
+    if (@($breadcrumbPath).Count -gt 0) {
+        $lines.Add("**Management group path:** $($breadcrumbPath -join ' > ')")
         $lines.Add('')
+    }
 
-        $breadcrumbPath = @()
-        if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
-            $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
-        } elseif ($portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
-            $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
-        }
-        if (@($breadcrumbPath).Count -gt 0) {
-            $lines.Add("**Management group path:** $($breadcrumbPath -join ' > ')")
-            $lines.Add('')
-        }
-
+    if (@($portfolioSubs).Count -gt 0) {
+        $lines.Add("**Subscriptions scanned:** $(@($portfolioSubs).Count)")
+        $lines.Add('')
         $lines.Add('| Subscription | Critical | High | Medium | Low | Info | Non-compliant | Monthly cost | Worst |')
         $lines.Add('|---|---:|---:|---:|---:|---:|---:|---|---|')
         foreach ($sub in $portfolioSubs) {
@@ -212,6 +313,9 @@ if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
             }
             $lines.Add('')
         }
+    } else {
+        $lines.Add('No findings in portfolio.')
+        $lines.Add('')
     }
 }
 
@@ -278,13 +382,16 @@ foreach ($cat in $byCategory) {
 $fixNow = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title)
 $planFix = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title)
 $track = @($findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title)
+$fixNow = @($findings | Where-Object { ($_.Severity -eq 'Critical' -or $_.Severity -eq 'High') -and -not $_.Compliant } | Sort-Object @{Expression={if($_.Severity -eq 'Critical'){0}else{1}}}, Title)
+$planFix = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title)
+$track = @($findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title)
 
 $lines.Add('## Action plan')
 $lines.Add('')
-$lines.Add('### Fix now (High, non-compliant)')
+$lines.Add('### Fix now (Critical/High, non-compliant)')
 $lines.Add('')
 if ($fixNow.Count -eq 0) {
-    $lines.Add('No high-severity non-compliant findings.')
+    $lines.Add('No critical or high-severity non-compliant findings.')
 } else {
     $lines.Add('| Title | Source | Detail | Remediation | Resource ID | Learn More |')
     $lines.Add('|---|---|---|---|---|---|')

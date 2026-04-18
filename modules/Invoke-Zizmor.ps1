@@ -21,11 +21,22 @@ param (
 
     [string] $WorkflowPath = '.github/workflows',
 
-    [string] $RemoteUrl
+    [string] $RemoteUrl,
+
+    # Incremental hint (#94). When non-null, the wrapper reports RunMode=Incremental
+    # in its result envelope so the orchestrator state layer can record accurate
+    # per-tool run modes. Zizmor itself scans static workflow YAML, so the
+    # timestamp does not narrow the scan -- but the hint still flows through
+    # so reports and state correctly reflect incremental coverage.
+    [Nullable[datetime]] $Since
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Incremental run-mode tag (#94). Orchestrator uses this to distinguish genuine
+# incremental coverage from a FullFallback when -Since is not supplied.
+$effectiveRunMode = if ($null -ne $Since) { 'Incremental' } else { 'Full' }
 
 # Dot-source shared modules for Remove-Credentials, Invoke-WithRetry, Invoke-RemoteRepoClone
 $sharedDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'modules' 'shared'
@@ -54,6 +65,7 @@ if (-not (Test-ZizmorInstalled)) {
         Status   = 'Skipped'
         Message  = 'zizmor CLI not installed. Install from https://github.com/woodruffw/zizmor/releases or: pip install zizmor'
         Findings = @()
+        RunMode  = 'Full'
     }
 }
 
@@ -68,6 +80,7 @@ try {
             return [PSCustomObject]@{
                 Source = 'zizmor'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                RunMode = $effectiveRunMode
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
@@ -76,6 +89,7 @@ try {
                 Source = 'zizmor'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                RunMode = $effectiveRunMode
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -86,6 +100,7 @@ try {
         return [PSCustomObject]@{
             Source = 'zizmor'; Status = 'Skipped'
             Message = 'No -RemoteUrl or -Repository provided'; Findings = @()
+            RunMode = $effectiveRunMode
         }
     }
     $scanPath = Join-Path $Repository $WorkflowPath
@@ -96,6 +111,7 @@ try {
             Status   = 'Skipped'
             Message  = "Workflow path not found: $scanPath"
             Findings = @()
+            RunMode  = $effectiveRunMode
         }
     }
 
@@ -132,6 +148,7 @@ try {
                 Status   = 'Failed'
                 Message  = Remove-Credentials "zizmor exited with code $exitCode and produced no report"
                 Findings = @()
+                RunMode  = $effectiveRunMode
             }
         }
 
@@ -148,6 +165,7 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
+                        RunMode  = $effectiveRunMode
                     }
                 }
             } else {
@@ -260,6 +278,8 @@ try {
         Status   = 'Success'
         Message  = ''
         Findings = $findings
+        RunMode  = $effectiveRunMode
+        SinceUtc = if ($null -ne $Since) { ([datetime]$Since).ToUniversalTime().ToString('o') } else { $null }
     }
 } catch {
     Write-Warning (Remove-Credentials "zizmor scan failed: $_")
@@ -268,6 +288,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
+        RunMode  = $effectiveRunMode
     }
 } finally {
     if ($cleanupClone) {

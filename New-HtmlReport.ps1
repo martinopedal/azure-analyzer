@@ -9,6 +9,10 @@
     Path to results.json. Defaults to .\output\results.json.
 .PARAMETER OutputPath
     Path for report.html. Defaults to .\output\report.html.
+.PARAMETER Trend
+    Optional array of run-trend objects from Get-RunTrend. When provided, an inline
+    SVG sparkline is rendered alongside the delta banner showing NonCompliant counts
+    across the last N runs (oldest left, newest right). Omit to suppress the sparkline.
 #>
 [CmdletBinding()]
 param (
@@ -16,7 +20,8 @@ param (
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.html'),
     [string] $TriagePath = '',
     [string] $PreviousRun = '',
-    [object] $Portfolio
+    [object] $Portfolio,
+    [object[]] $Trend = @()
 )
 
 Set-StrictMode -Version Latest
@@ -52,6 +57,14 @@ if (-not $Portfolio) {
             Write-Warning (Remove-Credentials "Could not load portfolio data from ${portfolioPath}: $_")
         }
     }
+}
+
+# --- Run-mode metadata (incremental / scheduled — issue #94) ---
+$runMetadata = $null
+$runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
+if (Test-Path $runMetadataPath) {
+    try { $runMetadata = Get-Content $runMetadataPath -Raw | ConvertFrom-Json -ErrorAction Stop }
+    catch { Write-Warning (Remove-Credentials "Failed to read run-metadata.json: $_") }
 }
 
 # --- Report v2 delta vs previous run ---
@@ -157,7 +170,7 @@ if ($allSources.Count -eq 0) {
     $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
     $sourceColors = @{ 'azqr'='#1565c0'; 'psrule'='#6a1b9a'; 'azgovviz'='#00838f'; 'alz-queries'='#e65100'; 'wara'='#2e7d32'; 'defender-for-cloud'='#0078d4'; 'kubescape'='#7b1fa2'; 'kube-bench'='#5e35b1'; 'falco'='#ef6c00'; 'maester'='#7b1fa2'; 'scorecard'='#ff6f00'; 'ado-connections'='#0277bd'; 'identity-correlator'='#ad1457'; 'zizmor'='#4527a0'; 'gitleaks'='#c62828'; 'trivy'='#00695c' }
 }
-$sourceGroups = $findings | Group-Object -Property Source
+$sourceGroups = @($findings | Group-Object -Property Source)
 $sourceCountMap = @{}
 foreach ($sg in $sourceGroups) { $sourceCountMap[$sg.Name] = $sg.Count }
 $maxSourceCount = if ($sourceGroups.Count -gt 0) { ($sourceGroups | Measure-Object -Property Count -Maximum).Maximum } else { 1 }
@@ -202,7 +215,7 @@ $rowsJson = ($findings | ForEach-Object {
 "@
 }) -join ','
 
-$byCategory = $findings | Group-Object -Property Category | Sort-Object Name
+$byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
 $tableIndex = 0
 
 $categoryHtml = foreach ($cat in $byCategory) {
@@ -323,6 +336,34 @@ $($rows -join "`n")
 }
 
 $deltaBannerHtml = ''
+$runModeBannerHtml = ''
+if ($runMetadata) {
+    $rmMode = if ($runMetadata.PSObject.Properties['runMode'] -and $runMetadata.runMode) { [string]$runMetadata.runMode } else { 'Full' }
+    $rmSince = if ($runMetadata.PSObject.Properties['sinceUtc'] -and $runMetadata.sinceUtc) { [string]$runMetadata.sinceUtc } else { '' }
+    $rmBaseline = if ($runMetadata.PSObject.Properties['baselineUtc'] -and $runMetadata.baselineUtc) { [string]$runMetadata.baselineUtc } else { '' }
+    $rmModeClass = ($rmMode -replace '\s','').ToLowerInvariant()
+    $sinceChip = if ($rmSince) { "<span class='run-chip since'>Since: $(HE $rmSince)</span>" } else { '' }
+    $baseChip  = if ($rmBaseline) { "<span class='run-chip baseline'>Baseline: $(HE $rmBaseline)</span>" } else { '' }
+    $toolBadges = ''
+    if ($runMetadata.PSObject.Properties['tools'] -and $runMetadata.tools) {
+        $perTool = foreach ($t in @($runMetadata.tools)) {
+            $toolName = if ($t.PSObject.Properties['tool']) { [string]$t.tool } else { '' }
+            $toolMode = if ($t.PSObject.Properties['runMode'] -and $t.runMode) { [string]$t.runMode } else { 'Full' }
+            $cls = ($toolMode -replace '\s','').ToLowerInvariant()
+            "<span class='run-chip mode-$cls' title='$(HE $toolName) - $(HE $toolMode)'>$(HE $toolName): $(HE $toolMode)</span>"
+        }
+        $toolBadges = $perTool -join ' '
+    }
+    $runModeBannerHtml = @"
+<div class="run-mode-banner" role="region" aria-label="Run mode">
+  <strong>Run mode:</strong>
+  <span class="run-chip mode-$rmModeClass">$(HE $rmMode)</span>
+  $sinceChip
+  $baseChip
+  <div class="run-tool-badges">$toolBadges</div>
+</div>
+"@
+}
 if ($deltaSummary) {
     $netClass = if ($deltaSummary.NetNonCompliantDelta -gt 0) { 'net-up' } elseif ($deltaSummary.NetNonCompliantDelta -lt 0) { 'net-down' } else { 'unchanged' }
     $netSign  = if ($deltaSummary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
@@ -342,15 +383,18 @@ if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
     $portfolioSubs = @($Portfolio.Subscriptions)
     $portfolioCorrelations = if ($Portfolio.PSObject.Properties['Correlations']) { @($Portfolio.Correlations) } else { @() }
     $portfolioMgs = if ($Portfolio.PSObject.Properties['ManagementGroups']) { @($Portfolio.ManagementGroups) } else { @() }
+    $portfolioSummary = if ($Portfolio.PSObject.Properties['Summary']) { $Portfolio.Summary } else { $null }
+    $breadcrumbPath = @()
+
+    if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
+        $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
+    } elseif (@($portfolioSubs).Count -gt 0 -and $portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
+        $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
+    } elseif ($portfolioSummary -and $portfolioSummary.PSObject.Properties['ManagementGroupId'] -and $portfolioSummary.ManagementGroupId) {
+        $breadcrumbPath = @([string]$portfolioSummary.ManagementGroupId)
+    }
 
     if (@($portfolioSubs).Count -gt 0) {
-        $breadcrumbPath = @()
-        if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
-            $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
-        } elseif ($portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
-            $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
-        }
-
         $heatmapRows = foreach ($sub in $portfolioSubs) {
             $anchorId = Get-AnchorId -text ([string]$sub.SubscriptionId)
             $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
@@ -439,7 +483,50 @@ if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
   $($subscriptionDetailsHtml -join "`n")
 </div>
 "@
+    } else {
+        $portfolioPathLabel = if (@($breadcrumbPath).Count -gt 0) { HE (($breadcrumbPath -join ' > ')) } else { 'n/a' }
+        $portfolioSectionHtml = @"
+<h2>Portfolio rollup</h2>
+<div class="source-section">
+  <p class="portfolio-breadcrumb"><strong>Management group path:</strong> $portfolioPathLabel</p>
+  <p class="subtitle">Subscriptions scanned: 0</p>
+  <p class="empty-state">No findings in portfolio.</p>
+</div>
+"@
     }
+}
+
+# Build inline SVG sparkline when trend data is provided (one point per run).
+$sparklineHtml = ''
+$trendArr = @($Trend | Where-Object { $_ })
+if ($trendArr.Count -ge 2) {
+    $svgW   = 200
+    $svgH   = 40
+    $padX   = 4
+    $padY   = 4
+    $plotW  = $svgW - 2 * $padX
+    $plotH  = $svgH - 2 * $padY
+    $vals   = @($trendArr | ForEach-Object { [int]$_.NonCompliant })
+    $maxVal = ($vals | Measure-Object -Maximum).Maximum
+    if ($maxVal -eq 0) { $maxVal = 1 }
+    $step   = if ($vals.Count -gt 1) { $plotW / ($vals.Count - 1) } else { $plotW }
+    $points = for ($i = 0; $i -lt $vals.Count; $i++) {
+        $x = [math]::Round($padX + $i * $step, 1)
+        $y = [math]::Round($padY + $plotH - ($vals[$i] / $maxVal) * $plotH, 1)
+        "$x,$y"
+    }
+    $firstLabel = [string]$trendArr[0].RunId
+    $lastLabel  = [string]$trendArr[-1].RunId
+    $sparklineHtml = @"
+<div class="trend-sparkline-wrap" role="img" aria-label="Trend: non-compliant findings over last $($trendArr.Count) runs">
+  <span class="trend-label">Trend ($($trendArr.Count) runs):</span>
+  <svg class="trend-sparkline" width="$svgW" height="$svgH" viewBox="0 0 $svgW $svgH" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="$($points -join ' ')" fill="none" stroke="#1565c0" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="$padX" y="$($svgH - 1)" font-size="8" fill="#666">$(HE $firstLabel)</text>
+    <text x="$($svgW - $padX)" y="$($svgH - 1)" font-size="8" fill="#666" text-anchor="end">$(HE $lastLabel)</text>
+  </svg>
+</div>
+"@
 }
 
 $html = @"
@@ -494,6 +581,7 @@ $html = @"
 
   /* Portfolio rollup */
   .portfolio-breadcrumb { margin-bottom: 10px; color: #37474f; }
+  .empty-state { margin-top: 8px; color: #546e7a; font-style: italic; }
   .heatmap-wrap { overflow-x: auto; margin-bottom: 16px; }
   .heatmap-scroll { max-height: 420px; overflow-y: auto; }
   .heatmap-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
@@ -540,6 +628,17 @@ $html = @"
   .badge-resolved { background: #e8f5e9; color: #1b5e20; }
   .badge-unchanged { background: #eceff1; color: #37474f; }
 
+  /* Run mode banner */
+  .run-mode-banner { background: #fff; border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .run-mode-banner strong { font-size: 14px; }
+  .run-chip { display: inline-block; padding: 3px 9px; border-radius: 4px; font-size: 12px; font-weight: 600; background: #eceff1; color: #37474f; }
+  .run-chip.mode-full { background: #e3f2fd; color: #0d47a1; }
+  .run-chip.mode-incremental { background: #e8f5e9; color: #1b5e20; }
+  .run-chip.mode-cached { background: #fff8e1; color: #6d4c41; }
+  .run-chip.mode-fullfallback { background: #fff3e0; color: #bf360c; }
+  .run-chip.mode-partial { background: #f3e5f5; color: #4a148c; }
+  .run-chip.since, .run-chip.baseline { background: #f5f5f5; color: #424242; font-weight: 500; }
+  .run-tool-badges { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin-top: 4px; }
   /* Delta summary */
   .delta-summary { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
   .delta-summary strong { font-size: 16px; }
@@ -549,6 +648,9 @@ $html = @"
   .delta-chip.unchanged { background: #eceff1; color: #37474f; }
   .delta-chip.net-up { background: #ffebee; color: #b71c1c; }
   .delta-chip.net-down { background: #e8f5e9; color: #1b5e20; }
+  .trend-sparkline-wrap { background: #fff; border-radius: 8px; padding: 12px 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 12px; align-items: center; }
+  .trend-label { font-size: 13px; font-weight: 600; color: #37474f; white-space: nowrap; }
+  .trend-sparkline { display: block; overflow: visible; }
 
   /* Filter banner */
   .filter-banner { display: none; background: #e3f2fd; padding: 8px 16px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; align-items: center; gap: 8px; }
@@ -597,8 +699,9 @@ $html = @"
   <button onclick="clearSeverityFilter()">Clear filter</button>
 </div>
 
+$runModeBannerHtml
 $deltaBannerHtml
-
+$sparklineHtml
 $portfolioSectionHtml
 
 <!-- Per-Source Breakdown -->
