@@ -88,3 +88,27 @@ Describe 'Get-CheckpointPath cross-platform separator' {
         }
     }
 }
+
+
+Describe 'Checkpoint reuse for incremental scans (#94)' {
+    BeforeAll {
+        $script:incDir = Join-Path ([System.IO.Path]::GetTempPath()) "checkpoint-inc-$([Guid]::NewGuid().ToString('N'))"
+    }
+    AfterAll {
+        if (Test-Path $script:incDir) { Remove-Item $script:incDir -Recurse -Force }
+    }
+
+    It 'reloads a saved per-tool checkpoint as a cache hit on the next incremental run' {
+        $cached = [PSCustomObject]@{
+            RunMode      = 'Incremental'
+            FindingCount = 12
+            CompletedAt  = (Get-Date).ToUniversalTime().ToString('o')
+        }
+        Save-Checkpoint -CheckpointDir $script:incDir -Tool 'azqr' -ScopeType Subscription -SubscriptionId 'sub-inc-1' -Result $cached | Out-Null
+
+        $loaded = Get-Checkpoint -CheckpointDir $script:incDir -Tool 'azqr' -ScopeType Subscription -SubscriptionId 'sub-inc-1'
+        $loaded | Should -Not -BeNull
+        $loaded.RunMode | Should -Be 'Incremental'
+        $loaded.FindingCount | Should -Be 12
+    }
+}
