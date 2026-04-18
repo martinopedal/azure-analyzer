@@ -41,6 +41,7 @@ $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = @($findings).Count
+$critical = @($findings | Where-Object { $_.Severity -eq 'Critical' }).Count
 $high = @($findings | Where-Object { $_.Severity -eq 'High' }).Count
 $medium = @($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
 $low = @($findings | Where-Object { $_.Severity -eq 'Low' }).Count
@@ -49,7 +50,7 @@ $compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
 $nonCompliantCount = $total - $compliantCount
 
 $lines = [System.Collections.Generic.List[string]]::new()
-$lines.Add("# Azure Analyzer Report — $date")
+$lines.Add("# Azure Analyzer Report - $date")
 $lines.Add('')
 $lines.Add('## Summary')
 $lines.Add('')
@@ -58,6 +59,7 @@ $lines.Add('|---|---|')
 $lines.Add("| Total findings | $total |")
 $lines.Add("| Non-compliant | $nonCompliantCount |")
 $lines.Add("| Compliant | $compliantCount |")
+$lines.Add("| Critical severity | $critical |")
 $lines.Add("| High severity | $high |")
 $lines.Add("| Medium severity | $medium |")
 $lines.Add("| Low severity | $low |")
@@ -174,16 +176,16 @@ foreach ($cat in $byCategory) {
 }
 
 # Action sections
-$fixNow = $findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title
+$fixNow = $findings | Where-Object { ($_.Severity -eq 'Critical' -or $_.Severity -eq 'High') -and -not $_.Compliant } | Sort-Object @{Expression={if($_.Severity -eq 'Critical'){0}else{1}}}, Title
 $planFix = $findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title
 $track = $findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title
 
 $lines.Add('## Action plan')
 $lines.Add('')
-$lines.Add('### Fix now (High, non-compliant)')
+$lines.Add('### Fix now (Critical/High, non-compliant)')
 $lines.Add('')
 if ($fixNow.Count -eq 0) {
-    $lines.Add('No high-severity non-compliant findings.')
+    $lines.Add('No critical or high-severity non-compliant findings.')
 } else {
     $lines.Add('| Title | Source | Detail | Remediation | Resource ID | Learn More |')
     $lines.Add('|---|---|---|---|---|---|')
