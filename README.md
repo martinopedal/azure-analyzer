@@ -192,7 +192,7 @@ The report groups findings by category, then prioritizes action:
 | gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
 | trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
 
-- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 13 tools** — PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts for azure-cost), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy), and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands — nothing is mutated.
+- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 17 tools** — PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts for azure-cost), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy), and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands — nothing is mutated.
 
 **AzGovViz** is a standalone script, not a module. With `-InstallMissingModules` it is auto-cloned into `tools/AzGovViz/` on first run. To clone manually:
 ```
