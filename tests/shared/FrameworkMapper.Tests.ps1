@@ -71,4 +71,67 @@ Describe 'FrameworkMapper' {
             $row.Status | Should -BeIn @('green','yellow','red')
         }
     }
+
+    Context 'WAF pillar coverage' {
+        It 'classifies azqr Security as the Security pillar' {
+            $f = [pscustomobject]@{
+                Id = 'p1'; Source = 'azqr'; Category = 'Security'; Severity = 'High'
+                Compliant = $false; Title = 'x'; RuleId = $null
+            }
+            (Get-FindingWafPillar -Finding $f) | Should -Be 'Security'
+        }
+
+        It 'classifies azqr Reliability as the Reliability pillar' {
+            $f = [pscustomobject]@{
+                Id = 'p2'; Source = 'azqr'; Category = 'Reliability'; Severity = 'Medium'
+                Compliant = $false; Title = 'x'; RuleId = $null
+            }
+            (Get-FindingWafPillar -Finding $f) | Should -Be 'Reliability'
+        }
+
+        It 'returns five pillar rows with R/A/G status from a mixed finding set' {
+            $findings = @(
+                [pscustomobject]@{ Id='1'; Source='azqr'; Category='Security';     Severity='Critical'; Compliant=$false; Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='2'; Source='azqr'; Category='Reliability';  Severity='Medium';   Compliant=$false; Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='3'; Source='azqr'; Category='Cost';         Severity='Low';      Compliant=$true;  Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='4'; Source='azqr'; Category='Performance';  Severity='Low';      Compliant=$false; Title='x'; RuleId=$null }
+            )
+            $rows = Get-WafPillarCoverage -Findings $findings
+            @($rows).Count | Should -Be 5
+            ($rows | ForEach-Object Pillar) | Should -Be @('Reliability','Security','CostOptimization','OperationalExcellence','PerformanceEfficiency')
+
+            $sec = $rows | Where-Object Pillar -eq 'Security'
+            $sec.NonCompliant | Should -Be 1
+            $sec.CriticalHigh | Should -Be 1
+            $sec.Status       | Should -Be 'red'
+
+            $rel = $rows | Where-Object Pillar -eq 'Reliability'
+            $rel.Status       | Should -Be 'amber'
+
+            $cost = $rows | Where-Object Pillar -eq 'CostOptimization'
+            $cost.NonCompliant | Should -Be 0
+            $cost.Status       | Should -Be 'green'
+
+            $perf = $rows | Where-Object Pillar -eq 'PerformanceEfficiency'
+            $perf.Status       | Should -Be 'amber'
+        }
+
+        It 'computes CoveragePercent = (Total - NonCompliant) / Total * 100 per pillar' {
+            $findings = @(
+                [pscustomobject]@{ Id='1'; Source='azqr'; Category='Security'; Severity='High';   Compliant=$false; Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='2'; Source='azqr'; Category='Security'; Severity='Medium'; Compliant=$true;  Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='3'; Source='azqr'; Category='Security'; Severity='Low';    Compliant=$true;  Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='4'; Source='azqr'; Category='Security'; Severity='Low';    Compliant=$true;  Title='x'; RuleId=$null }
+            )
+            $rows = Get-WafPillarCoverage -Findings $findings
+            $sec = $rows | Where-Object Pillar -eq 'Security'
+            $sec.Total           | Should -Be 4
+            $sec.NonCompliant    | Should -Be 1
+            $sec.CoveragePercent | Should -Be 75.0
+            # Pillars with zero findings default to 100% (nothing to fail).
+            $rel = $rows | Where-Object Pillar -eq 'Reliability'
+            $rel.Total           | Should -Be 0
+            $rel.CoveragePercent | Should -Be 100.0
+        }
+    }
 }
