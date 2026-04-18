@@ -37,6 +37,12 @@
 .PARAMETER AdoPat
     Azure DevOps PAT passed to ADO-scoped wrappers. Optional; wrappers also read
     ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, and AZ_DEVOPS_PAT.
+.PARAMETER SentinelWorkspaceId
+    Full ARM resource ID of the Log Analytics workspace linked to Microsoft Sentinel.
+    When provided, the sentinel-incidents tool queries active incidents via KQL.
+    Example: /subscriptions/<guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>
+.PARAMETER SentinelLookbackDays
+    Number of days to look back for Sentinel incidents. Default 30. Range 1-365.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -47,6 +53,7 @@
     .\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
     .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
     .\Invoke-AzureAnalyzer.ps1 -RepoPath "C:\repos\my-app"
+    .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SentinelWorkspaceId "/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/..."
 #>
 [CmdletBinding()]
 param (
@@ -58,6 +65,7 @@ param (
     [string[]] $ExcludeTools,
     [switch] $SkipPrereqCheck,
     [switch] $InstallMissingModules,
+    [string] $InstallConfigPath,
     [switch] $Recurse,
     [string] $Repository,
     [string] $GitHubHost = 'github.com',
@@ -80,7 +88,12 @@ param (
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
     [int] $FalcoCaptureMinutes = 5,
-    [switch] $EnableAiTriage
+    [string] $SentinelWorkspaceId,
+    [ValidateRange(1, 365)]
+    [int] $SentinelLookbackDays = 30,
+    [switch] $EnableAiTriage,
+    [ValidateRange(1, 365)]
+    [int] $HistoryRetention = 30
 )
 
 Set-StrictMode -Version Latest
@@ -90,7 +103,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -125,8 +138,10 @@ function ShouldRunTool { param ([string]$ToolName)
     return $true
 }
 
-# PSRule can run in path-mode without Azure scope, so exempt it from the guard
-$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' }
+# PSRule can run in path-mode without Azure scope; workspace-scoped tools
+# (sentinel-incidents) only need -SentinelWorkspaceId, not a subscription.
+$workspaceScopedTools = @($manifest.tools | Where-Object { $_.scope -eq 'workspace' } | ForEach-Object { $_.name })
+$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' -and $_ -notin $workspaceScopedTools }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
@@ -165,13 +180,30 @@ if ($shouldRecurse) {
 # ---------------------------------------------------------------------------
 # Prerequisite check (manifest-driven auto-installer)
 # ---------------------------------------------------------------------------
+$installConfig = Read-InstallConfig -Path $InstallConfigPath -Manifest $manifest
+
+# defaults.autoInstall from config enables auto-install when the CLI flag
+# was not explicitly passed (CLI > config > off).
+$effectiveInstallMissing = $InstallMissingModules
+if (-not $PSBoundParameters.ContainsKey('InstallMissingModules') -and
+    $null -ne $installConfig -and
+    $installConfig.PSObject.Properties['defaults'] -and
+    $null -ne $installConfig.defaults -and
+    $installConfig.defaults.PSObject.Properties['autoInstall'] -and
+    $installConfig.defaults.autoInstall -eq $true) {
+    $effectiveInstallMissing = $true
+    Write-Verbose "[install-config] defaults.autoInstall=true; enabling auto-install."
+}
+
 if (-not $SkipPrereqCheck) {
     $shouldRunRef = { param($name) ShouldRunTool $name }.GetNewClosure()
     $null = Install-PrerequisitesFromManifest `
         -Manifest $manifest `
         -RepoRoot $PSScriptRoot `
         -ShouldRunTool $shouldRunRef `
-        -SkipInstall:(-not $InstallMissingModules)
+        -SkipInstall:(-not $effectiveInstallMissing) `
+        -InstallConfig $installConfig `
+        -CliIncludedTools $IncludeTools
 }
 
 # ---------------------------------------------------------------------------
@@ -249,6 +281,21 @@ foreach ($toolDef in $manifest.tools) {
     if (-not (ShouldRunTool $toolDef.name)) {
         $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
         continue
+    }
+
+    # Check install config for enabled=false override (skips scan as well as install),
+    # but CLI -IncludeTools takes precedence (CLI > config > manifest).
+    $cliExplicitInclude = $IncludeTools -and ($toolDef.name -in $IncludeTools)
+    if (-not $cliExplicitInclude -and
+        $null -ne $installConfig -and
+        $installConfig.PSObject.Properties['tools'] -and
+        $null -ne $installConfig.tools -and
+        $installConfig.tools.PSObject.Properties[$toolDef.name]) {
+        $cfgEntry = $installConfig.tools.($toolDef.name)
+        if ($cfgEntry.PSObject.Properties['enabled'] -and $cfgEntry.enabled -eq $false) {
+            $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'Disabled by install config'; Findings = 0 })
+            continue
+        }
     }
 
     # Correlators run post-collection, not in the parallel tool loop
@@ -393,6 +440,22 @@ foreach ($toolDef in $manifest.tools) {
             if ($AdoProject) { $params['AdoProject'] = $AdoProject }
             if ($AdoPat) { $params['AdoPat'] = $AdoPat }
             $specName = "$($toolDef.name)|ado"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $toolDef.provider
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
+        'workspace' {
+            if (-not $SentinelWorkspaceId) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No -SentinelWorkspaceId provided'; Findings = 0 })
+                continue
+            }
+            $params = @{ WorkspaceResourceId = $SentinelWorkspaceId; LookbackDays = $SentinelLookbackDays }
+            $specName = "$($toolDef.name)|workspace"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
                 Provider    = $toolDef.provider
@@ -691,6 +754,30 @@ try {
     & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
+}
+
+# ---------------------------------------------------------------------------
+# Run history snapshot + executive dashboard (#97)
+# ---------------------------------------------------------------------------
+if (Get-Command Save-RunSnapshot -ErrorAction SilentlyContinue) {
+    try {
+        $toolNames = @($manifest.tools | Where-Object { ShouldRunTool $_.name } | ForEach-Object { $_.name })
+        $null = Save-RunSnapshot `
+            -OutputPath $OutputPath `
+            -ResultsPath $outputFile `
+            -Tools $toolNames `
+            -Subscriptions @($subscriptionsToScan)
+        $null = Remove-OldRunSnapshots -OutputPath $OutputPath -Retention $HistoryRetention
+    } catch {
+        Write-Warning (Remove-Credentials "Run history snapshot failed: $_")
+    }
+}
+
+try {
+    $dashboardReport = Join-Path $OutputPath 'dashboard.html'
+    & "$PSScriptRoot\New-ExecDashboard.ps1" -InputPath $outputFile -OutputPath $dashboardReport
+} catch {
+    Write-Warning (Remove-Credentials "Executive dashboard generation failed: $_")
 }
 
 $critical = @($allResults | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count
