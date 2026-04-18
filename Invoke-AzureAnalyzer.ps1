@@ -37,6 +37,12 @@
 .PARAMETER AdoPat
     Azure DevOps PAT passed to ADO-scoped wrappers. Optional; wrappers also read
     ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, and AZ_DEVOPS_PAT.
+.PARAMETER SentinelWorkspaceId
+    Full ARM resource ID of the Log Analytics workspace linked to Microsoft Sentinel.
+    When provided, the sentinel-incidents tool queries active incidents via KQL.
+    Example: /subscriptions/<guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>
+.PARAMETER SentinelLookbackDays
+    Number of days to look back for Sentinel incidents. Default 30. Range 1-365.
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
@@ -47,6 +53,7 @@
     .\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
     .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
     .\Invoke-AzureAnalyzer.ps1 -RepoPath "C:\repos\my-app"
+    .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SentinelWorkspaceId "/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/..."
 #>
 [CmdletBinding()]
 param (
@@ -80,6 +87,9 @@ param (
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
     [int] $FalcoCaptureMinutes = 5,
+    [string] $SentinelWorkspaceId,
+    [ValidateRange(1, 365)]
+    [int] $SentinelLookbackDays = 30,
     [switch] $EnableAiTriage
 )
 
@@ -125,8 +135,10 @@ function ShouldRunTool { param ([string]$ToolName)
     return $true
 }
 
-# PSRule can run in path-mode without Azure scope, so exempt it from the guard
-$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' }
+# PSRule can run in path-mode without Azure scope; workspace-scoped tools
+# (sentinel-incidents) only need -SentinelWorkspaceId, not a subscription.
+$workspaceScopedTools = @($manifest.tools | Where-Object { $_.scope -eq 'workspace' } | ForEach-Object { $_.name })
+$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' -and $_ -notin $workspaceScopedTools }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
@@ -393,6 +405,22 @@ foreach ($toolDef in $manifest.tools) {
             if ($AdoProject) { $params['AdoProject'] = $AdoProject }
             if ($AdoPat) { $params['AdoPat'] = $AdoPat }
             $specName = "$($toolDef.name)|ado"
+            $toolSpecs.Add([PSCustomObject]@{
+                Name        = $specName
+                Provider    = $toolDef.provider
+                Scope       = $toolDef.scope
+                ScriptBlock = $runnerBlock
+                Arguments   = @{ ScriptPath = $scriptPath; ToolParams = $params }
+            })
+            $toolMetaMap[$specName] = $toolDef
+        }
+        'workspace' {
+            if (-not $SentinelWorkspaceId) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No -SentinelWorkspaceId provided'; Findings = 0 })
+                continue
+            }
+            $params = @{ WorkspaceResourceId = $SentinelWorkspaceId; LookbackDays = $SentinelLookbackDays }
+            $specName = "$($toolDef.name)|workspace"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
                 Provider    = $toolDef.provider
