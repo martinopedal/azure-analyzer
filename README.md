@@ -90,7 +90,8 @@ The installer enforces a 300s timeout on external commands, scrubs credentials f
 
 - `enabled: false` skips the tool at both install and scan time (Status=Skipped).
 - `manager` must be in the security allow-list (winget/brew/pipx/pip/snap); other values are rejected.
-- CLI flags (`-IncludeTools`/`-ExcludeTools`) take precedence over the config file.
+- `defaults.autoInstall: true` enables auto-install even without `-InstallMissingModules` (equivalent to passing the flag).
+- **Precedence:** CLI flags > config file > manifest defaults. `-IncludeTools trivy` re-enables trivy even if config sets `enabled: false`. `-InstallMissingModules` (explicit) overrides `defaults.autoInstall`.
 - Pass `-InstallConfigPath` to point at a custom location (defaults to `tools/install-config.json`).
 
 Results land in `output/` -- multiple JSON files (findings, entities, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.

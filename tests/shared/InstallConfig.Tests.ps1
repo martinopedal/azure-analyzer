@@ -326,4 +326,77 @@ Describe 'Install-PrerequisitesFromManifest with InstallConfig' {
             -InstallConfig $config
         $missing | Should -Be 0
     }
+
+    It '-IncludeTools re-enables a tool disabled by config (CLI > config)' {
+        $subset = [PSCustomObject]@{
+            tools = @(
+                [PSCustomObject]@{
+                    name = 'fake-cli'
+                    displayName = 'Fake CLI'
+                    enabled = $true
+                    install = [PSCustomObject]@{
+                        kind = 'cli'
+                        command = 'definitely-not-a-real-command-xyz123'
+                        windows = [PSCustomObject]@{ url = 'https://example.com' }
+                        macos   = [PSCustomObject]@{ url = 'https://example.com' }
+                        linux   = [PSCustomObject]@{ url = 'https://example.com' }
+                    }
+                }
+            )
+        }
+        $config = [PSCustomObject]@{
+            schemaVersion = '1.0'
+            tools = [PSCustomObject]@{
+                'fake-cli' = [PSCustomObject]@{ enabled = $false }
+            }
+        }
+        # ShouldRunTool returns $true AND CliIncludedTools lists the tool
+        $missing = Install-PrerequisitesFromManifest `
+            -Manifest $subset `
+            -RepoRoot (Resolve-Path (Join-Path $PSScriptRoot '..\..')) `
+            -ShouldRunTool { param($n) $true } `
+            -SkipInstall `
+            -InstallConfig $config `
+            -CliIncludedTools @('fake-cli')
+        # Tool is NOT skipped (CLI overrides config), so it's listed as missing
+        $missing | Should -Be 1
+    }
+}
+
+Describe 'Validation output sanitization' {
+    BeforeAll {
+        $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+        . (Join-Path $repoRoot 'modules\shared\Installer.ps1')
+        $manifest = Get-Content (Join-Path $repoRoot 'tools\tool-manifest.json') -Raw | ConvertFrom-Json
+    }
+
+    It 'sanitizes user-controlled values in validation error messages' {
+        $cfg = [PSCustomObject]@{
+            schemaVersion = '1.0'
+            tools = [PSCustomObject]@{
+                'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' = [PSCustomObject]@{ enabled = $false }
+            }
+        }
+        $result = Test-InstallConfig -Config $cfg -Manifest $manifest
+        $result.Valid | Should -BeFalse
+        # The token-shaped tool name must be redacted in the error message
+        foreach ($err in $result.Errors) {
+            $err | Should -Not -Match 'ghp_AAAA'
+            $err | Should -Match '\[redacted'
+        }
+    }
+
+    It 'sanitizes manager values in validation error messages' {
+        $cfg = [PSCustomObject]@{
+            schemaVersion = '1.0'
+            tools = [PSCustomObject]@{
+                trivy = [PSCustomObject]@{ manager = 'ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB' }
+            }
+        }
+        $result = Test-InstallConfig -Config $cfg -Manifest $manifest
+        $result.Valid | Should -BeFalse
+        foreach ($err in $result.Errors) {
+            $err | Should -Not -Match 'ghp_BBBB'
+        }
+    }
 }
