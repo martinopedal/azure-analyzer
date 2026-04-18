@@ -147,6 +147,38 @@ Describe 'Update-FindingHistoryFromDelta' {
     }
 }
 
+Describe 'Update-ScanStateToolEntry watermark semantics (#94 R1)' {
+    BeforeAll {
+        $script:outDir = Join-Path ([System.IO.Path]::GetTempPath()) "scanstate-watermark-$([Guid]::NewGuid().ToString('N'))"
+        New-Item -ItemType Directory -Path $script:outDir | Out-Null
+    }
+    AfterAll {
+        if (Test-Path $script:outDir) { Remove-Item $script:outDir -Recurse -Force }
+    }
+
+    It 'Partial status does NOT advance lastSuccessUtc' {
+        $state = Read-ScanState -OutputPath $script:outDir
+        $past = [datetime]::Parse('2025-06-01T00:00:00Z').ToUniversalTime()
+        $state = Update-ScanStateToolEntry -State $state -Tool 'azqr' -Status 'Success' -RunMode 'Full' -FindingCount 5 -Now $past
+        $afterSuccess = (Get-ScanStateToolEntry -State $state -Tool 'azqr').lastSuccessUtc
+
+        $later = [datetime]::Parse('2025-09-01T00:00:00Z').ToUniversalTime()
+        $state = Update-ScanStateToolEntry -State $state -Tool 'azqr' -Status 'Partial' -RunMode 'FullFallback' -FindingCount 1 -Now $later
+        $afterPartial = (Get-ScanStateToolEntry -State $state -Tool 'azqr').lastSuccessUtc
+
+        $afterPartial | Should -Be $afterSuccess
+        (Get-ScanStateToolEntry -State $state -Tool 'azqr').status | Should -Be 'Partial'
+    }
+
+    It 'Partial on a never-succeeded tool leaves lastSuccessUtc null' {
+        $state = Read-ScanState -OutputPath $script:outDir
+        $now = [datetime]::Parse('2025-10-01T00:00:00Z').ToUniversalTime()
+        $state = Update-ScanStateToolEntry -State $state -Tool 'brand-new-tool' -Status 'Partial' -RunMode 'FullFallback' -FindingCount 0 -Now $now
+        $entry = Get-ScanStateToolEntry -State $state -Tool 'brand-new-tool'
+        $entry.lastSuccessUtc | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'Update-ScanStateRun' {
     BeforeAll {
         $script:outDir = Join-Path ([System.IO.Path]::GetTempPath()) "scanstate-run-$([Guid]::NewGuid().ToString('N'))"

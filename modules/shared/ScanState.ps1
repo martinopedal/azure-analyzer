@@ -270,7 +270,10 @@ function Update-ScanStateToolEntry {
     $entry['status']       = $Status
     $entry['findingCount'] = [int]$FindingCount
     $entry['sinceUsedUtc'] = if ($null -ne $SinceUsed) { ([datetime]$SinceUsed).ToUniversalTime().ToString('o') } else { $null }
-    if ($Status -eq 'Success' -or $Status -eq 'Partial') {
+    # Only fully-successful runs advance the incremental watermark. A Partial run
+    # means some findings may have been missed; advancing would cause the next
+    # -Incremental run to skip the window that contained the misses (#94 R1).
+    if ($Status -eq 'Success') {
         $entry['lastSuccessUtc'] = $iso
     }
 

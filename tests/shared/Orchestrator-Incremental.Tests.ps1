@@ -40,6 +40,30 @@ Describe 'Invoke-AzureAnalyzer incremental surface (#94)' {
         $text = Get-Content $script:Orchestrator -Raw
         $text | Should -Match "ScanState"
     }
+
+    It 'bootstraps (runMode=Full, shouldRefreshBaseline=true) when -Incremental is set but no baseline exists (#94 R1)' {
+        $text = Get-Content $script:Orchestrator -Raw
+        # The orchestrator must set a bootstrap flag and force shouldRefreshBaseline
+        # so the first -Incremental run seeds the baseline.
+        $text | Should -Match 'bootstrapRun\s*=\s*\$true'
+        $text | Should -Match 'shouldRefreshBaseline\s*=\s*\$bootstrapRun\s*-or'
+    }
+
+    It 'calls Resolve-IncrementalSince per tool before dispatch (#94 R1)' {
+        $text = Get-Content $script:Orchestrator -Raw
+        $text | Should -Match 'Resolve-IncrementalSince'
+        # The call must happen before parallel dispatch. A simple heuristic:
+        # Resolve-IncrementalSince appears earlier in the file than Invoke-ParallelTools.
+        $resolveIdx = $text.IndexOf('Resolve-IncrementalSince')
+        $dispatchIdx = $text.IndexOf('Invoke-ParallelTools -ToolSpecs')
+        $resolveIdx | Should -BeLessThan $dispatchIdx
+    }
+
+    It 'passes -Since into the zizmor param splat when the per-tool since map resolves (#94 R1)' {
+        $text = Get-Content $script:Orchestrator -Raw
+        $text | Should -Match "incrementalSinceMap\.ContainsKey\('zizmor'\)"
+        $text | Should -Match "params\['Since'\]\s*=\s*\`$incrementalSinceMap\['zizmor'\]"
+    }
 }
 
 Describe 'Run-metadata persistence (#94)' {
