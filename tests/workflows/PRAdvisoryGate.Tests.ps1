@@ -81,6 +81,11 @@ Describe 'Add-SeverityTag (untagged -> correctness, #108 fail-safe)' {
             Should -Be '[nit] typo in comment'
     }
 
+    It 'preserves an existing [security] tag verbatim' {
+        Add-SeverityTag -Finding '[security] token leak in logs' |
+            Should -Be '[security] token leak in logs'
+    }
+
     It 'normalizes tag casing to lowercase' {
         Add-SeverityTag -Finding '[BLOCKER] crash on empty input' |
             Should -Be '[blocker] crash on empty input'
@@ -118,6 +123,14 @@ Describe 'Format-AdvisoryComment' {
     It 'escalates verdict to "blockers" when any finding is veto-class' {
         $body = Format-AdvisoryComment -PRNumber 3 -Findings @(
             '[blocker] panics on null',
+            '[style] minor'
+        ) -Verdict 'clean'
+        $body | Should -Match '(?m)\*\*Verdict:\*\*\s+\[X\]\s+blockers'
+    }
+
+    It 'escalates verdict to "blockers" when a [security] finding exists' {
+        $body = Format-AdvisoryComment -PRNumber 3 -Findings @(
+            '[security] token leak in logs',
             '[style] minor'
         ) -Verdict 'clean'
         $body | Should -Match '(?m)\*\*Verdict:\*\*\s+\[X\]\s+blockers'
@@ -191,6 +204,11 @@ Describe 'Workflow YAML safety (#109)' {
         $content | Should -Match 'cancel-in-progress:\s*true'
     }
 
+    It 'sets timeout-minutes to 5 on the advisory job' {
+        $content = Get-Content -Path $script:WorkflowPath -Raw
+        $content | Should -Match '(?ms)advisory-gate:\s+.*?timeout-minutes:\s*5'
+    }
+
     It 'never interpolates ${{ }} into bash run blocks (uses env vars)' {
         $content = Get-Content -Path $script:WorkflowPath -Raw
         # PR_NUMBER, REPO_NAME, PR_AUTHOR must come from env, not inline.
@@ -202,5 +220,93 @@ Describe 'Workflow YAML safety (#109)' {
     It 'honors the SQUAD_ADVISORY_GATE repo variable with a default of 1' {
         $content = Get-Content -Path $script:WorkflowPath -Raw
         $content | Should -Match "vars\.SQUAD_ADVISORY_GATE \|\| '1'"
+    }
+}
+
+Describe 'Get-AdvisoryCommentId pagination and marker selection' {
+    BeforeEach {
+        function global:gh {
+            param([Parameter(ValueFromRemainingArguments = $true)] [object[]]$Args)
+
+            if ($Args[0] -eq 'api' -and $Args[1] -eq 'repos/martinopedal/azure-analyzer/issues/139/comments') {
+                if (-not ($Args -contains '--paginate')) { throw 'expected --paginate' }
+                if (-not ($Args -contains '--slurp')) { throw 'expected --slurp' }
+                return @'
+[
+  [
+    {"id": 11, "body": "first page comment"},
+    {"id": 21, "body": "<!-- squad-advisory --> old marker"}
+  ],
+  [
+    {"id": 31, "body": "second page comment"},
+    {"id": 42, "body": "<!-- squad-advisory --> newest marker"}
+  ]
+]
+'@
+            }
+
+            throw "unexpected gh invocation: $($Args -join ' ')"
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:\gh -ErrorAction SilentlyContinue
+    }
+
+    It 'parses paginated slurped comments and returns the newest marker id' {
+        $id = Get-AdvisoryCommentId -PRNumber 139 -Repo 'martinopedal/azure-analyzer'
+        $id | Should -Be 42
+    }
+}
+
+Describe 'Publish-AdvisoryComment idempotent update target' {
+    BeforeEach {
+        $script:PatchedEndpoint = $null
+        $script:PostedEndpoint = $null
+
+        function global:gh {
+            param([Parameter(ValueFromRemainingArguments = $true)] [object[]]$Args)
+
+            if ($Args[0] -eq 'api' -and $Args[1] -eq 'repos/martinopedal/azure-analyzer/issues/139/comments') {
+                if (-not ($Args -contains '--paginate')) { throw 'expected --paginate' }
+                if (-not ($Args -contains '--slurp')) { throw 'expected --slurp' }
+                return @'
+[
+  [
+    {"id": 77, "body": "<!-- squad-advisory --> older marker"},
+    {"id": 99, "body": "<!-- squad-advisory --> newest marker"}
+  ]
+]
+'@
+            }
+
+            if ($Args[0] -eq 'api' -and $Args[1] -eq '-X' -and $Args[2] -eq 'PATCH') {
+                $script:PatchedEndpoint = [string]$Args[3]
+                return '{}'
+            }
+
+            if ($Args[0] -eq 'api' -and $Args[1] -eq '-X' -and $Args[2] -eq 'POST') {
+                $script:PostedEndpoint = [string]$Args[3]
+                return '{}'
+            }
+
+            throw "unexpected gh invocation: $($Args -join ' ')"
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:\gh -ErrorAction SilentlyContinue
+        Remove-Variable -Name PatchedEndpoint -Scope Script -ErrorAction SilentlyContinue
+        Remove-Variable -Name PostedEndpoint -Scope Script -ErrorAction SilentlyContinue
+    }
+
+    It 'patches the newest advisory marker comment when duplicates exist' {
+        Publish-AdvisoryComment `
+            -PRNumber 139 `
+            -Repo 'martinopedal/azure-analyzer' `
+            -Body "<!-- squad-advisory -->`nhello" | Out-Null
+
+        $script:PatchedEndpoint | Should -Be 'repos/martinopedal/azure-analyzer/issues/comments/99'
+        $script:PostedEndpoint | Should -BeNullOrEmpty
     }
 }

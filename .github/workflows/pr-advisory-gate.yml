@@ -40,7 +40,9 @@ jobs:
     if: >-
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout base ref (trusted gate script)
         # No `ref:` -> checks out the base SHA for pull_request_target events,

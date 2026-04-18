@@ -144,7 +144,7 @@ function Add-SeverityTag {
     }
 
     $trimmed = $Finding.TrimStart()
-    $tagPattern = '^\[(blocker|correctness|style|nit)\]'
+    $tagPattern = '^\[(blocker|correctness|security|style|nit)\]'
 
     if ($trimmed -match $tagPattern) {
         # Normalize tag casing while preserving the rest verbatim.
@@ -178,7 +178,7 @@ function Format-AdvisoryComment {
         $tagged += Add-SeverityTag -Finding $f
     }
 
-    $hasVeto = $tagged | Where-Object { $_ -match '^\[(blocker|correctness)\]' }
+    $hasVeto = $tagged | Where-Object { $_ -match '^\[(blocker|correctness|security)\]' }
     if ($hasVeto) {
         $Verdict = 'blockers'
     } elseif ($tagged.Count -gt 0 -and $Verdict -eq 'clean') {
@@ -231,19 +231,38 @@ function Get-AdvisoryCommentId {
     )
 
     $endpoint = "repos/$Repo/issues/$PRNumber/comments"
-    $raw = & gh api $endpoint --paginate 2>$null
+    $raw = & gh api $endpoint --paginate --slurp 2>$null
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$raw)) {
         return $null
     }
 
     $parsed = $raw | ConvertFrom-Json -ErrorAction Stop
-    foreach ($c in @($parsed)) {
+    $pages = @($parsed)
+    $comments = [System.Collections.Generic.List[object]]::new()
+    foreach ($page in $pages) {
+        if ($null -eq $page) {
+            continue
+        }
+        if ($page -is [System.Collections.IEnumerable] -and -not ($page -is [string])) {
+            foreach ($comment in @($page)) {
+                [void]$comments.Add($comment)
+            }
+            continue
+        }
+        [void]$comments.Add($page)
+    }
+
+    $latestMatchId = $null
+    foreach ($c in $comments) {
         $body = [string]$c.body
         if ($body -and $body.Contains($script:AdvisoryMarker)) {
-            return [long]$c.id
+            $id = [long]$c.id
+            if ($null -eq $latestMatchId -or $id -gt $latestMatchId) {
+                $latestMatchId = $id
+            }
         }
     }
-    return $null
+    return $latestMatchId
 }
 
 <#
