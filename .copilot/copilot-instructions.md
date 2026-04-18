@@ -18,7 +18,7 @@ All code changes follow this pipeline:
 
 When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are added, the `pr-review-gate.yml` workflow triggers automatically. It ingests PR reviews/comments, builds a 3-model triage bundle (Claude premium + GPT codex + Goldeneye), writes the consensus plan to `.squad/decisions/inbox/`, and posts a PR summary comment with ownership and next actions. Reviewer Rejection Lockout is automatic, the rejected PR author agent is mechanically locked out from doing the revision in that gate cycle, and the consensus must name a different revision owner.
 
-## Squad PRs — Draft by Default (#113)
+## Squad PRs - Draft by Default (#113)
 
 Squad agents MUST open PRs as drafts to suppress reviewer-request emails during iteration:
 
