@@ -238,8 +238,10 @@ foreach ($f in $findings) {
     }
     if ($f.PSObject.Properties['Source'] -and $f.Source) { [void]$g.Sources.Add([string]$f.Source) }
 }
+# Acceptance criterion (issue #97): Top-10 is sorted by finding count descending.
+# HighestScore is only used as a tiebreaker so that equal-count rows order by severity.
 $topResources = @($resourceGroups.Values |
-    Sort-Object -Property @{ Expression = 'HighestScore'; Descending = $true }, @{ Expression = 'FindingCount'; Descending = $true } |
+    Sort-Object -Property @{ Expression = 'FindingCount'; Descending = $true }, @{ Expression = 'HighestScore'; Descending = $true } |
     Select-Object -First 10)
 
 # Subscription heat map (group by subscription GUID parsed from /subscriptions/{guid}/...)
@@ -270,10 +272,36 @@ foreach ($f in $findings) {
 }
 $subRows = @($subAggs.Values | Sort-Object -Property @{ Expression = 'Critical'; Descending = $true }, @{ Expression = 'High'; Descending = $true }, @{ Expression = 'NonCompliant'; Descending = $true })
 
-# WAF pillar coverage
+# WAF pillar coverage. Compare each pillar's coverage % vs the previous snapshot so we can
+# render an up/down/flat trend arrow (issue #97 acceptance: "coverage % and up/down trend").
 $wafRows = @()
+$prevWafByPillar = @{}
 if ($findings -and @($findings).Count -gt 0 -and (Get-Command Get-WafPillarCoverage -ErrorAction SilentlyContinue)) {
     try { $wafRows = @(Get-WafPillarCoverage -Findings $findings) } catch { Write-Warning "WAF coverage failed: $_" }
+    if ($prevRun -and (Test-Path $prevRun.ResultsPath)) {
+        try {
+            $prevFindings = @(Get-Content $prevRun.ResultsPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+            $prevWafRows = @(Get-WafPillarCoverage -Findings $prevFindings)
+            foreach ($r in $prevWafRows) { $prevWafByPillar[$r.Pillar] = $r }
+        } catch {
+            Write-Warning (Remove-Credentials "Previous WAF coverage computation failed: $_")
+        }
+    }
+}
+foreach ($r in $wafRows) {
+    $prev = if ($prevWafByPillar.ContainsKey($r.Pillar)) { $prevWafByPillar[$r.Pillar] } else { $null }
+    $trend = 'flat'
+    $trendGlyph = '→'
+    $trendDelta = $null
+    if ($prev) {
+        $d = [math]::Round($r.CoveragePercent - $prev.CoveragePercent, 1)
+        $trendDelta = $d
+        if     ($d -gt 0) { $trend = 'up';   $trendGlyph = '↑' }
+        elseif ($d -lt 0) { $trend = 'down'; $trendGlyph = '↓' }
+    }
+    $r | Add-Member -NotePropertyName Trend      -NotePropertyValue $trend      -Force
+    $r | Add-Member -NotePropertyName TrendGlyph -NotePropertyValue $trendGlyph -Force
+    $r | Add-Member -NotePropertyName TrendDelta -NotePropertyValue $trendDelta -Force
 }
 
 # Framework gap analysis
@@ -390,11 +418,16 @@ if (-not $subTilesHtml) { $subTilesHtml = "<div class='empty'>No subscription-sc
 
 $wafTilesHtml = ($wafRows | ForEach-Object {
     $statusClass = "waf-$($_.Status)"
+    $trendClass  = "trend-$($_.Trend)"
+    $trendTitle  = if ($null -eq $_.TrendDelta) { 'no prior run' } else {
+        $sign = if ($_.TrendDelta -ge 0) { '+' } else { '' }
+        "$sign$($_.TrendDelta)% vs previous run"
+    }
     @"
     <div class="waf-tile $statusClass" style="border-top-color:$($_.Color)">
       <div class="waf-name">$(HE $_.DisplayName)</div>
-      <div class="waf-num">$($_.NonCompliant)</div>
-      <div class="waf-sub">$($_.Total) total • $($_.CriticalHigh) C/H</div>
+      <div class="waf-num">$($_.CoveragePercent)% <span class="waf-trend $trendClass" title="$(HE $trendTitle)">$($_.TrendGlyph)</span></div>
+      <div class="waf-sub">$($_.NonCompliant) non-compliant of $($_.Total) • $($_.CriticalHigh) C/H</div>
     </div>
 "@
 }) -join ''
@@ -534,6 +567,11 @@ $html = @"
   .waf-name { font-size: 11px; font-weight: 600; color: #57606a; text-transform: uppercase; }
   .waf-num  { font-size: 28px; font-weight: 700; color: #1f2328; margin: 4px 0; }
   .waf-sub  { font-size: 10px; color: #6b7280; }
+  .waf-trend { font-size: 16px; vertical-align: middle; margin-left: 4px; }
+  .trend-up   { color: #1a7f37; }
+  .trend-down { color: #cf222e; }
+  .trend-flat { color: #6b7280; }
+  .card-sub { margin: -4px 0 8px; }
   .net-row { display: flex; gap: 14px; align-items: center; font-size: 13px; padding: 4px 0; }
   .net-new { color: #a80000; font-weight: 600; }
   .net-res { color: #107c10; font-weight: 600; }
@@ -565,6 +603,7 @@ $html = @"
     </div>
     <div class="card">
       <h2>Severity mix trend</h2>
+      <div class="muted card-sub">Non-compliant findings only (risk over time).</div>
       $sparklinesHtml
     </div>
   </div>

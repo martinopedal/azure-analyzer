@@ -115,5 +115,23 @@ Describe 'FrameworkMapper' {
             $perf = $rows | Where-Object Pillar -eq 'PerformanceEfficiency'
             $perf.Status       | Should -Be 'amber'
         }
+
+        It 'computes CoveragePercent = (Total - NonCompliant) / Total * 100 per pillar' {
+            $findings = @(
+                [pscustomobject]@{ Id='1'; Source='azqr'; Category='Security'; Severity='High';   Compliant=$false; Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='2'; Source='azqr'; Category='Security'; Severity='Medium'; Compliant=$true;  Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='3'; Source='azqr'; Category='Security'; Severity='Low';    Compliant=$true;  Title='x'; RuleId=$null }
+                [pscustomobject]@{ Id='4'; Source='azqr'; Category='Security'; Severity='Low';    Compliant=$true;  Title='x'; RuleId=$null }
+            )
+            $rows = Get-WafPillarCoverage -Findings $findings
+            $sec = $rows | Where-Object Pillar -eq 'Security'
+            $sec.Total           | Should -Be 4
+            $sec.NonCompliant    | Should -Be 1
+            $sec.CoveragePercent | Should -Be 75.0
+            # Pillars with zero findings default to 100% (nothing to fail).
+            $rel = $rows | Where-Object Pillar -eq 'Reliability'
+            $rel.Total           | Should -Be 0
+            $rel.CoveragePercent | Should -Be 100.0
+        }
     }
 }

@@ -193,10 +193,11 @@ function Get-WafPillarCoverage {
             Pillar       = $key
             DisplayName  = if ($pillarMeta.ContainsKey($key) -and $pillarMeta[$key].name) { $pillarMeta[$key].name } else { $key }
             Color        = if ($pillarMeta.ContainsKey($key) -and $pillarMeta[$key].PSObject.Properties['color']) { $pillarMeta[$key].color } else { '#666' }
-            Total        = 0
-            NonCompliant = 0
-            CriticalHigh = 0
-            Status       = 'green'
+            Total           = 0
+            NonCompliant    = 0
+            CriticalHigh    = 0
+            Status          = 'green'
+            CoveragePercent = 100.0
         }
     }
 
@@ -218,6 +219,11 @@ function Get-WafPillarCoverage {
         if ($row.CriticalHigh -gt 0)      { $row.Status = 'red' }
         elseif ($row.NonCompliant -gt 0)  { $row.Status = 'amber' }
         else                              { $row.Status = 'green' }
+        if ($row.Total -gt 0) {
+            $row.CoveragePercent = [math]::Round((($row.Total - $row.NonCompliant) / $row.Total) * 100, 1)
+        } else {
+            $row.CoveragePercent = 100.0
+        }
     }
 
     return @($pillarOrder | ForEach-Object { $totals[$_] })

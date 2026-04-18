@@ -183,4 +183,76 @@ Describe 'ExecDashboard' {
         ($rendered -ge $windowStart) | Should -BeTrue -Because "rendered=$($rendered.ToString('o')) start=$($windowStart.ToString('o'))"
         ($rendered -le $windowEnd)   | Should -BeTrue -Because "rendered=$($rendered.ToString('o')) end=$($windowEnd.ToString('o'))"
     }
+
+    It 'top-10 risky resources are ordered by finding count descending (AC #97)' {
+        $tmp = Join-Path $TestDrive 'dashboard-top10-order'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        $sub = '55555555-5555-5555-5555-555555555555'
+        # LOW-severity resource gets 5 findings (highest count, lowest severity).
+        # CRITICAL-severity resource gets 1 finding (lowest count, highest severity).
+        # AC says count-descending, so LOW must appear BEFORE CRITICAL in the top-10.
+        $rows = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/many" 'Low' 'Cat1'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/many" 'Low' 'Cat2'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/many" 'Low' 'Cat3'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/many" 'Low' 'Cat4'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/many" 'Low' 'Cat5'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/one"  'Critical' 'Cat1'
+        )
+        $rows | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        $manyIdx = $html.IndexOf('/rg/a/many')
+        $oneIdx  = $html.IndexOf('/rg/a/one')
+        $manyIdx | Should -BeGreaterThan -1
+        $oneIdx  | Should -BeGreaterThan -1
+        ($manyIdx -lt $oneIdx) | Should -BeTrue -Because "high-count resource must render before high-severity/low-count resource"
+    }
+
+    It 'WAF tiles render coverage %% and a trend arrow vs the previous run (AC #97)' {
+        $tmp = Join-Path $TestDrive 'dashboard-waf-trend'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        $sub = '66666666-6666-6666-6666-666666666666'
+
+        # Prior run: 2 findings, both non-compliant (low coverage)
+        $prev = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/x" 'Critical'
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/y" 'High'
+        )
+        $prev | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+        $null = Save-RunSnapshot -OutputPath $tmp -ResultsPath $resultsPath -Timestamp ([datetime]'2025-02-01T00:00:00Z')
+
+        # Current run: same resources but now compliant (coverage improved)
+        $curr = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/x" 'Critical' 'Security' $true
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/y" 'High'     'Security' $true
+        )
+        $curr | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        # Coverage percent renders
+        $html | Should -Match 'waf-num[^>]*>\s*\d+(\.\d+)?%'
+        # At least one trend glyph rendered (↑ because prior was lower coverage)
+        $html | Should -Match 'waf-trend'
+        ($html -match '↑|↓|→') | Should -BeTrue
+    }
+
+    It 'severity trend sparklines are labeled as non-compliant (risk over time)' {
+        $tmp = Join-Path $TestDrive 'dashboard-trend-label'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        '[]' | Set-Content -Path $resultsPath -Encoding UTF8
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        $html | Should -Match 'Non-compliant findings only'
+    }
 }
