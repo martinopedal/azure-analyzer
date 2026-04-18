@@ -96,3 +96,122 @@ function Get-ReportDelta {
         }
     }
 }
+
+function Get-MttrBySeverity {
+    <#
+    .SYNOPSIS
+        Compute median Mean-Time-To-Remediate (in days) per severity from a run history.
+    .DESCRIPTION
+        Walks an ordered (oldest-first) array of run history entries (as produced by
+        Get-RunHistory). For each consecutive pair of runs, any finding present in the
+        earlier run but absent from the later run is treated as resolved at the later
+        run's timestamp. Days-to-resolve = laterTimestamp - firstSeenTimestamp, where
+        firstSeenTimestamp is the earliest run in which that finding appeared.
+
+        Returns one row per severity (Critical/High/Medium/Low/Info) with:
+          - Severity
+          - ResolvedCount
+          - MedianDays  ([double] or $null when ResolvedCount -eq 0)
+          - MeanDays    ([double] or $null when ResolvedCount -eq 0)
+
+        MTTR is only meaningful with 3+ runs containing resolved findings; for shorter
+        histories the per-severity rows still return with ResolvedCount = 0 and null
+        timing values so the caller can render "N/A".
+
+    .PARAMETER History
+        Array of objects each with { Timestamp; ResultsPath } (the shape returned by
+        modules/shared/RunHistory.ps1::Get-RunHistory). May be empty.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $History
+    )
+
+    $severities = @('Critical','High','Medium','Low','Info')
+    $stats = @{}
+    foreach ($sev in $severities) { $stats[$sev] = [System.Collections.Generic.List[double]]::new() }
+
+    if (-not $History -or $History.Count -lt 2) {
+        return @($severities | ForEach-Object {
+            [pscustomobject]@{ Severity = $_; ResolvedCount = 0; MedianDays = $null; MeanDays = $null }
+        })
+    }
+
+    # First-seen index: key -> earliest timestamp + canonical row.
+    $firstSeen = @{}
+    $previousKeys = $null
+    $previousRows = $null
+    $previousTs   = $null
+
+    foreach ($run in $History) {
+        if (-not $run -or -not (Test-Path $run.ResultsPath)) { continue }
+        $rows = @()
+        try {
+            $rows = @(Get-Content $run.ResultsPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        } catch {
+            Write-Warning "Get-MttrBySeverity: could not parse '$($run.ResultsPath)': $_"
+            continue
+        }
+
+        $thisKeys = @{}
+        foreach ($r in $rows) {
+            if (-not $r) { continue }
+            $k = Get-ReportDeltaKey -Row $r
+            if (-not $thisKeys.ContainsKey($k)) { $thisKeys[$k] = $r }
+            if (-not $firstSeen.ContainsKey($k)) {
+                $firstSeen[$k] = [pscustomobject]@{ Timestamp = $run.Timestamp; Row = $r }
+            }
+        }
+
+        if ($previousKeys -and $previousTs -and $run.Timestamp) {
+            foreach ($k in $previousKeys.Keys) {
+                if ($thisKeys.ContainsKey($k)) { continue }
+                # Resolved in this run: earlier had it, current does not.
+                $row = $previousKeys[$k]
+                $sev = if ($row.PSObject.Properties['Severity'] -and $row.Severity) {
+                    [string]$row.Severity
+                } else { '' }
+                $bucket = $null
+                switch -Regex ($sev) {
+                    '^(?i)critical$' { $bucket = 'Critical'; break }
+                    '^(?i)high$'     { $bucket = 'High'; break }
+                    '^(?i)medium$'   { $bucket = 'Medium'; break }
+                    '^(?i)low$'      { $bucket = 'Low'; break }
+                    '^(?i)info$'     { $bucket = 'Info'; break }
+                }
+                if (-not $bucket) { continue }
+                $first = if ($firstSeen.ContainsKey($k)) { $firstSeen[$k].Timestamp } else { $previousTs }
+                $days = ($run.Timestamp - $first).TotalDays
+                if ($days -lt 0) { $days = 0 }
+                $stats[$bucket].Add([double]$days) | Out-Null
+            }
+        }
+
+        $previousKeys = $thisKeys
+        $previousRows = $rows
+        $previousTs   = $run.Timestamp
+    }
+
+    return @($severities | ForEach-Object {
+        $sev = $_
+        $vals = @($stats[$sev])
+        if ($vals.Count -eq 0) {
+            [pscustomobject]@{ Severity = $sev; ResolvedCount = 0; MedianDays = $null; MeanDays = $null }
+        } else {
+            $sorted = @($vals | Sort-Object)
+            $count  = $sorted.Count
+            $median = if ($count % 2 -eq 1) {
+                $sorted[[math]::Floor($count / 2)]
+            } else {
+                ($sorted[$count / 2 - 1] + $sorted[$count / 2]) / 2.0
+            }
+            $mean = ($sorted | Measure-Object -Average).Average
+            [pscustomobject]@{
+                Severity      = $sev
+                ResolvedCount = $count
+                MedianDays    = [math]::Round([double]$median, 2)
+                MeanDays      = [math]::Round([double]$mean, 2)
+            }
+        }
+    })
+}
