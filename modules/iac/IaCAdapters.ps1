@@ -39,6 +39,13 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 
 $script:IaCTimeoutSec = 300
 
+# Fail closed if the timeout helper is unavailable
+function Assert-TimeoutHelperLoaded {
+    if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+        throw "Required safety primitive Invoke-WithTimeout is not loaded. Ensure Installer.ps1 is available."
+    }
+}
+
 function Invoke-IaCAdapter {
     <#
     .SYNOPSIS
@@ -150,16 +157,10 @@ function Invoke-BicepValidation {
             $generatedJsonFiles.Add($jsonPath)
 
             try {
-                $hasTimeout = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
-                if ($hasTimeout) {
-                    $result = Invoke-WithTimeout -Command 'bicep' -Arguments @('build', $file.FullName) -TimeoutSec $script:IaCTimeoutSec
-                    $exitCode = $result.ExitCode
-                    $outputText = $result.Output
-                } else {
-                    $output = & bicep build $file.FullName 2>&1
-                    $exitCode = $LASTEXITCODE
-                    $outputText = Remove-Credentials ($output | Out-String)
-                }
+                Assert-TimeoutHelperLoaded
+                $result = Invoke-WithTimeout -Command 'bicep' -Arguments @('build', $file.FullName) -TimeoutSec $script:IaCTimeoutSec
+                $exitCode = $result.ExitCode
+                $outputText = $result.Output
 
                 if ($exitCode -ne 0) {
                     $errorLines = @($outputText -split "`n" | Where-Object { $_ -match '(Error|Warning)\s' })
@@ -305,24 +306,30 @@ function Invoke-TerraformValidateDir {
     }
 
     try {
-        $hasTimeout = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
-        $exitCode = 0
-        $jsonText = ''
+        Assert-TimeoutHelperLoaded
 
-        if ($hasTimeout) {
-            $result = Invoke-WithTimeout -Command 'terraform' -Arguments @('-chdir', $Dir, 'validate', '-json') -TimeoutSec $script:IaCTimeoutSec
-            $exitCode = $result.ExitCode
-            $jsonText = $result.Output
-        } else {
-            Push-Location $Dir
-            try {
-                $raw = & terraform validate -json 2>&1
-                $exitCode = $LASTEXITCODE
-                $jsonText = ($raw | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) | Out-String
-            } finally {
-                Pop-Location
-            }
+        # terraform validate requires init on fresh clones; run init -backend=false
+        # to download provider schemas without configuring remote state
+        $initResult = Invoke-WithTimeout -Command 'terraform' -Arguments @('-chdir', $Dir, 'init', '-backend=false', '-input=false') -TimeoutSec $script:IaCTimeoutSec
+        if ($initResult.ExitCode -ne 0) {
+            # init failed; emit a finding and skip validate for this directory
+            $Findings.Add([PSCustomObject]@{
+                Id          = [guid]::NewGuid().ToString()
+                Category    = 'IaC Validation'
+                Title       = "Terraform init required: $RelativeDir"
+                Severity    = 'Medium'
+                Compliant   = $false
+                Detail      = Remove-Credentials "terraform init -backend=false failed. Provider plugins may be unavailable. Output: $($initResult.Output.Substring(0, [Math]::Min($initResult.Output.Length, 500)))"
+                Remediation = "Run 'terraform init' in $RelativeDir before validation, or ensure provider plugins are accessible."
+                ResourceId  = $RelativeDir
+                LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/init'
+            })
+            return
         }
+
+        $result = Invoke-WithTimeout -Command 'terraform' -Arguments @('-chdir', $Dir, 'validate', '-json') -TimeoutSec $script:IaCTimeoutSec
+        $exitCode = $result.ExitCode
+        $jsonText = $result.Output
 
         if ($exitCode -ne 0 -and $jsonText) {
             try {
@@ -393,19 +400,11 @@ function Invoke-TrivyConfigDir {
 
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-config-$([guid]::NewGuid().ToString('N')).json"
     try {
-        $hasTimeout = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
-        if ($hasTimeout) {
-            $result = Invoke-WithTimeout -Command 'trivy' -Arguments @('config', '--format', 'json', '--output', $reportFile, $Dir) -TimeoutSec $script:IaCTimeoutSec
-            if ($result.ExitCode -eq -1) {
-                Write-Verbose "trivy config timed out for $Dir"
-                return
-            }
-        } else {
-            & trivy config --format json --output $reportFile $Dir 2>&1 | ForEach-Object {
-                if ($_ -is [System.Management.Automation.ErrorRecord]) {
-                    Write-Verbose "trivy config stderr: $_"
-                }
-            }
+        Assert-TimeoutHelperLoaded
+        $result = Invoke-WithTimeout -Command 'trivy' -Arguments @('config', '--format', 'json', '--output', $reportFile, $Dir) -TimeoutSec $script:IaCTimeoutSec
+        if ($result.ExitCode -eq -1) {
+            Write-Verbose "trivy config timed out for $Dir"
+            return
         }
 
         if (Test-Path $reportFile) {
