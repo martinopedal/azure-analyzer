@@ -35,9 +35,13 @@ Describe 'Normalize-AzGovViz' {
             }
         }
 
-        It 'sets Platform to Azure' {
+        It 'sets Platform based on EntityType' {
             foreach ($r in $results) {
-                $r.Platform | Should -Be 'Azure'
+                if ($r.EntityType -in @('User', 'ServicePrincipal')) {
+                    $r.Platform | Should -Be 'Entra'
+                } else {
+                    $r.Platform | Should -Be 'Azure'
+                }
             }
         }
     }

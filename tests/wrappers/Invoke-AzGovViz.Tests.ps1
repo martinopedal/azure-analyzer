@@ -75,9 +75,9 @@ Compliant,Audit,Audit vnet flow logs,/subscriptions/00000000-0000-0000-0000-0000
 "@ | Set-Content -Path (Join-Path $outputPath 'tenant_PolicyComplianceStates.csv')
 
             @"
-ObjectId,PrincipalType,RoleDefinitionName,Scope
-11111111-1111-1111-1111-111111111111,User,Owner,/subscriptions/00000000-0000-0000-0000-000000000001
-33333333-3333-3333-3333-333333333333,ServicePrincipal,Reader,/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1
+RoleAssignmentIdentityObjectId,RoleAssignmentIdentityObjectType,RoleDefinitionName,RoleAssignmentScopeType,RoleAssignmentScope
+11111111-1111-1111-1111-111111111111,User,Owner,Subscription,/subscriptions/00000000-0000-0000-0000-000000000001
+33333333-3333-3333-3333-333333333333,ServicePrincipal,Reader,ResourceGroup,/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1
 "@ | Set-Content -Path (Join-Path $outputPath 'tenant_RoleAssignments.csv')
 
             @"
@@ -127,6 +127,34 @@ ResourceId,MissingTags
             ($result.Findings | Where-Object { $_.Category -eq 'Policy' }).Count | Should -Be 1
             ($result.Findings | Where-Object { $_.Category -eq 'Identity' }).Count | Should -Be 1
             ($result.Findings | Where-Object { $_.Category -eq 'Operations' }).Count | Should -Be 1
+        }
+    }
+
+    Context 'when role assignments use legacy alias column names' {
+        BeforeAll {
+            $workRoot = Join-Path $TestDrive 'azgovviz-legacy'
+            $outputPath = Join-Path $workRoot 'output'
+            $null = New-Item -ItemType Directory -Path $outputPath -Force
+            $oldUserProfile = $env:USERPROFILE
+            $oldHome = $env:HOME
+            $env:USERPROFILE = $workRoot
+            $env:HOME = $workRoot
+
+            @"
+ObjectId,PrincipalType,RoleDefinitionName,Scope
+aaaaaaaa-1111-1111-1111-111111111111,User,Owner,/subscriptions/00000000-0000-0000-0000-000000000001
+"@ | Set-Content -Path (Join-Path $outputPath 'tenant_RoleAssignments.csv')
+            Set-Content -Path (Join-Path $workRoot 'AzGovVizParallel.ps1') -Value "Write-Output 'ok'"
+
+            Mock Get-Location { $workRoot }
+            $result = & $script:Wrapper -ManagementGroupId 'mg-test' -OutputPath $outputPath
+
+            $env:USERPROFILE = $oldUserProfile
+            $env:HOME = $oldHome
+        }
+
+        It 'still parses legacy principal aliases' {
+            ($result.Findings | Where-Object { $_.Category -eq 'Identity' }).Count | Should -Be 1
         }
     }
 }

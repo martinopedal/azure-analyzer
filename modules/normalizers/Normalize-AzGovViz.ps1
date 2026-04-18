@@ -114,7 +114,7 @@ function Normalize-AzGovViz {
         $row = New-FindingRow -Id ([guid]::NewGuid().ToString()) `
             -Source 'azgovviz' -EntityId $canonicalId -EntityType $entityType `
             -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
-            -Platform 'Azure' -Category $category -Severity $severity `
+            -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl ($learnMore ?? '') -ResourceId ($rawId ?? '') `
             -SubscriptionId $subId -ResourceGroup $rg

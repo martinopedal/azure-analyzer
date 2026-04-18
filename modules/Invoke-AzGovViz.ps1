@@ -153,17 +153,21 @@ function Import-AzGovVizCsvFindings {
             }
             'roleassignments' {
                 foreach ($row in $rows) {
-                    $principalId = Get-RowValue -Row $row -Names @('ObjectId', 'PrincipalId', 'principalId', 'AssigneeObjectId')
+                    $principalId = Get-RowValue -Row $row -Names @('RoleAssignmentIdentityObjectId', 'ObjectId', 'PrincipalId', 'principalId', 'AssigneeObjectId')
                     if (-not $principalId) { continue }
 
                     $roleName = Get-RowValue -Row $row -Names @('RoleDefinitionName', 'RoleName', 'roleDefinitionName')
-                    $scope = Get-RowValue -Row $row -Names @('Scope', 'scope')
-                    $principalType = Get-RowValue -Row $row -Names @('PrincipalType', 'principalType', 'ObjectType')
+                    $scope = Get-RowValue -Row $row -Names @('RoleAssignmentScope', 'Scope', 'scope')
+                    $scopeType = Get-RowValue -Row $row -Names @('RoleAssignmentScopeType', 'ScopeType', 'scopeType')
+                    $principalType = Get-RowValue -Row $row -Names @('RoleAssignmentIdentityObjectType', 'PrincipalType', 'principalType', 'ObjectType')
                     $isPrivilegedRole = $roleName -match '^(Owner|Contributor|User Access Administrator)$'
-                    $isBroadScope = $scope -match '^/subscriptions/[^/]+$' -or $scope -match '^/providers/microsoft\.management/managementgroups/'
+                    $isBroadScopeType = $scopeType -match '^(tenant|managementgroup|subscription)$'
+                    $isBroadScopePath = $scope -match '^/subscriptions/[^/]+$' -or $scope -match '^/providers/microsoft\.management/managementgroups/'
+                    $isBroadScope = $isBroadScopeType -or $isBroadScopePath
                     $isCompliant = -not ($isPrivilegedRole -and $isBroadScope)
                     if ($isCompliant) { continue }
                     $severity = 'High'
+                    $resourceId = if ($scope) { $scope } else { '' }
 
                     $findings.Add([pscustomobject]@{
                             Source        = 'azgovviz'
@@ -171,8 +175,8 @@ function Import-AzGovVizCsvFindings {
                             Title         = "Role assignment: $roleName"
                             Compliant     = $false
                             Severity      = $severity
-                            Detail        = "PrincipalType=$principalType; Scope=$scope"
-                            ResourceId    = $scope
+                            Detail        = "PrincipalType=$principalType; Scope=$scope; ScopeType=$scopeType"
+                            ResourceId    = $resourceId
                             PrincipalId   = $principalId
                             PrincipalType = $principalType
                             SchemaVersion = '1.0'
