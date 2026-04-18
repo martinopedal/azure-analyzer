@@ -1234,7 +1234,7 @@ Store `## Issue Source` in `team.md` with repository, connection date, and filte
 
 ### Issue → PR → Merge Lifecycle
 
-Agents create branch (`squad/{issue-number}-{slug}`), do work, commit referencing issue, push, and open PR via `gh pr create`. See `.squad/templates/issue-lifecycle.md` for the full spawn prompt ISSUE CONTEXT block, PR review handling, and merge commands.
+Agents create branch (`squad/{issue-number}-{slug}`), do work, commit referencing issue, push, and open PR via `gh pr create --draft` (drafts are required for squad agents to suppress reviewer-request emails during iteration — #113). The squad coordinator (or the author agent after self-review) flips the PR to ready-for-review with `gh pr ready <pr>` only when CI is green, the `## Self-review` section is filled in (#110), and no unresolved advisory findings remain (#109). See `.squad/templates/issue-lifecycle.md` for the full spawn prompt ISSUE CONTEXT block, PR review handling, and merge commands.
 
 After issue work completes, follow standard After Agent Work flow.
 
