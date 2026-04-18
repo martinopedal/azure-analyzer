@@ -191,7 +191,7 @@ The Sentinel incidents wrapper queries the Log Analytics workspace API (`/api/qu
 
 | Token / scope | Why |
 |---------------|-----|
-| **Log Analytics Reader** on the workspace | Required to query the `SecurityIncident` and `SecurityAlert` tables via the workspace query API |
+| **Log Analytics Reader** on the workspace | Required to query the `SecurityIncident` table via the workspace query API |
 | (Alternative) **Reader** on the workspace resource group | Sufficient in tenants where Reader permits `Microsoft.OperationalInsights/workspaces/api/query` |
 
 **API endpoint used:** `Microsoft.OperationalInsights/workspaces/{name}/api/query` (read).
@@ -205,16 +205,16 @@ The Sentinel incidents wrapper queries the Log Analytics workspace API (`/api/qu
 
 ```powershell
 # Query active Sentinel incidents (last 30 days)
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" \
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" `
   -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>"
 
 # Custom lookback window (7 days)
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" \
-  -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>" \
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" `
+  -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>" `
   -SentinelLookbackDays 7
 
 # Sentinel-only run
-.\Invoke-AzureAnalyzer.ps1 -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>" \
+.\Invoke-AzureAnalyzer.ps1 -SentinelWorkspaceId "/subscriptions/<sub-guid>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws-name>" `
   -IncludeTools 'sentinel-incidents'
 ```
 

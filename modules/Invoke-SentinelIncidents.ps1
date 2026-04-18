@@ -4,12 +4,12 @@
     Wrapper for Microsoft Sentinel -- active incidents and alerts from a Log Analytics workspace.
 
 .DESCRIPTION
-    Queries the Log Analytics workspace API with KQL against the SecurityIncident and
-    SecurityAlert tables. Emits a v1 tool-result shape that the
-    Normalize-SentinelIncidents normalizer converts into v2 FindingRows.
+    Queries the Log Analytics workspace API with KQL against the SecurityIncident
+    table. Emits a v1 tool-result shape that the Normalize-SentinelIncidents
+    normalizer converts into v2 FindingRows.
 
-    Incidents land on the Subscription entity (or AzureResource when an ARM resource
-    context is present). Each incident carries severity, status, classification, and
+    Incidents land on the AzureResource entity (workspace ARM resource). Each
+    incident carries severity, status, classification, and
     linked alert count so the EntityStore can fold Sentinel findings next to existing
     Defender for Cloud recommendations.
 

@@ -135,8 +135,10 @@ function ShouldRunTool { param ([string]$ToolName)
     return $true
 }
 
-# PSRule can run in path-mode without Azure scope, so exempt it from the guard
-$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' }
+# PSRule can run in path-mode without Azure scope; workspace-scoped tools
+# (sentinel-incidents) only need -SentinelWorkspaceId, not a subscription.
+$workspaceScopedTools = @($manifest.tools | Where-Object { $_.scope -eq 'workspace' } | ForEach-Object { $_.name })
+$needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' -and $_ -notin $workspaceScopedTools }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
 }
