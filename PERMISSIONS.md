@@ -137,7 +137,7 @@ The Azure Cost wrapper queries `Microsoft.Consumption/usageDetails` for a traili
 - No resource modification (no scaling, deletion, tagging).
 - No forecasting or anomaly alerting (point-in-time aggregation only).
 - No cross-subscription rebilling or chargeback writes.
-- Gracefully **skips** when the subscription has no Consumption data (new sub, trial, CSP without Consumption API access; HTTP 204/404).
+- Gracefully **skips** when the subscription has no Consumption data (new sub, trial, CSP without Consumption API access), typically as an empty result set (HTTP 200 with empty `value` array); HTTP 404 is treated as an access/scope/availability edge case.
 
 ---
 
