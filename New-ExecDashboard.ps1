@@ -328,7 +328,7 @@ function Format-SignedDelta([double] $Val, [string] $Suffix = '') {
 # ---------------------------------------------------------------------------
 # Compose HTML
 # ---------------------------------------------------------------------------
-$date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
+$date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm 'UTC'")
 
 $severitiesForTrend = @('Critical','High','Medium','Low','Info')
 $sevColor = @{

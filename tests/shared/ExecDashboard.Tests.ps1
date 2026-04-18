@@ -154,4 +154,33 @@ Describe 'ExecDashboard' {
         # HTML-escaped severity text is rendered but the CSS class is whitelisted.
         $html | Should -Match 'sev sev-info'
     }
+
+    It 'header timestamp is genuine UTC (not local time mislabeled)' {
+        $tmp = Join-Path $TestDrive 'dashboard-utc'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        '[]' | Set-Content -Path $resultsPath -Encoding UTF8
+
+        # Window the dashboard render in true UTC min/max and assert the header
+        # timestamp falls inside [min, max]. Gives the clock up to 2 minutes of drift
+        # so a minute-boundary transition during the test does not flake.
+        $before = (Get-Date).ToUniversalTime()
+        $output = Join-Path $tmp 'dashboard.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') -InputPath $resultsPath -OutputPath $output | Out-Null
+        $after = (Get-Date).ToUniversalTime()
+
+        $html = Get-Content $output -Raw
+        if ($html -notmatch '(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC') {
+            throw "Expected header timestamp in 'YYYY-MM-DD HH:MM UTC' form; got none."
+        }
+        $rendered = [datetime]::ParseExact(
+            $Matches[1], 'yyyy-MM-dd HH:mm',
+            [System.Globalization.CultureInfo]::InvariantCulture)
+        $rendered = [datetime]::SpecifyKind($rendered, [System.DateTimeKind]::Utc)
+
+        $windowStart = $before.AddMinutes(-1)
+        $windowEnd   = $after.AddMinutes(1)
+        ($rendered -ge $windowStart) | Should -BeTrue -Because "rendered=$($rendered.ToString('o')) start=$($windowStart.ToString('o'))"
+        ($rendered -le $windowEnd)   | Should -BeTrue -Because "rendered=$($rendered.ToString('o')) end=$($windowEnd.ToString('o'))"
+    }
 }
