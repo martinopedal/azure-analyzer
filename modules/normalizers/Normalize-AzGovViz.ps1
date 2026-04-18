@@ -36,12 +36,34 @@ function Normalize-AzGovViz {
 
     foreach ($finding in $ToolResult.Findings) {
         $rawId = Get-PropertyValue $finding 'ResourceId' ''
+        $category = Get-PropertyValue $finding 'Category' 'Governance'
+        $principalId = Get-PropertyValue $finding 'PrincipalId' ''
+        $principalType = Get-PropertyValue $finding 'PrincipalType' ''
         $subId = ''
         $rg = ''
         $canonicalId = ''
         $entityType = 'ManagementGroup'
 
-        if ($rawId -and $rawId -match '^/subscriptions/') {
+        if ($category -eq 'Identity' -and $principalId) {
+            $principalTypeValue = $principalType.ToLowerInvariant()
+            if ($principalTypeValue -match 'user') {
+                $entityType = 'User'
+            } else {
+                $entityType = 'ServicePrincipal'
+            }
+
+            try {
+                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $principalId -EntityType $entityType).CanonicalId
+            } catch {
+                if ($entityType -eq 'User') {
+                    $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
+                } else {
+                    $canonicalId = "appId:$($principalId.ToLowerInvariant())"
+                }
+            }
+        }
+
+        if (-not $canonicalId -and $rawId -and $rawId -match '^/subscriptions/') {
             # Bare /subscriptions/{id} → Subscription; deeper paths → AzureResource
             if ($rawId -match '^/subscriptions/[^/]+$') {
                 $entityType = 'Subscription'
@@ -78,7 +100,6 @@ function Normalize-AzGovViz {
         }
 
         $title = Get-PropertyValue $finding 'Title' (Get-PropertyValue $finding 'Description' 'Unknown')
-        $category = Get-PropertyValue $finding 'Category' 'Governance'
 
         $rawSev = Get-PropertyValue $finding 'Severity' 'Info'
         $severity = switch -Regex ($rawSev.ToString().ToLowerInvariant()) {

@@ -26,6 +26,50 @@
       "LearnMoreUrl": "https://learn.microsoft.com/azure/governance/policy/overview",
       "Remediation": "Review and remove orphaned custom policy definitions that are no longer in use.",
       "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azgovviz",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001",
+      "Category": "Identity",
+      "Title": "Role assignment: Owner",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "PrincipalType=User; Scope=/subscriptions/00000000-0000-0000-0000-000000000001",
+      "PrincipalId": "11111111-1111-1111-1111-111111111111",
+      "PrincipalType": "User",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azgovviz",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-prod-01",
+      "Category": "Operations",
+      "Title": "Resource diagnostics settings configured",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "DiagnosticsCapable=True; DiagnosticsConfigured=False",
+      "Remediation": "Enable diagnostic settings to route logs and metrics to an approved destination.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azgovviz",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.storage/storageaccounts/stprod01",
+      "Category": "Governance",
+      "Title": "Resource missing required tags",
+      "Compliant": false,
+      "Severity": "Low",
+      "Detail": "MissingTags=Owner,Environment",
+      "Remediation": "Apply required governance tags according to your tagging policy.",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azgovviz",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-prod-02",
+      "Category": "Policy",
+      "Title": "Policy compliance state: Deny public IP on workloads",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "ComplianceState=NonCompliant; Effect=Deny; Scope=/subscriptions/00000000-0000-0000-0000-000000000001",
+      "SchemaVersion": "1.0"
     }
   ]
 }
