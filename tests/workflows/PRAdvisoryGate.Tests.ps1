@@ -262,6 +262,7 @@ Describe 'Get-AdvisoryCommentId pagination and marker selection' {
         function global:gh {
             param([Parameter(ValueFromRemainingArguments = $true)] [object[]]$Args)
 
+            $global:LASTEXITCODE = 0
             if ($Args[0] -eq 'api' -and $Args[1] -eq 'repos/martinopedal/azure-analyzer/issues/139/comments') {
                 if (-not ($Args -contains '--paginate')) { throw 'expected --paginate' }
                 if (-not ($Args -contains '--slurp')) { throw 'expected --slurp' }
@@ -301,6 +302,7 @@ Describe 'Publish-AdvisoryComment idempotent update target' {
         function global:gh {
             param([Parameter(ValueFromRemainingArguments = $true)] [object[]]$Args)
 
+            $global:LASTEXITCODE = 0
             if ($Args[0] -eq 'api' -and $Args[1] -eq 'repos/martinopedal/azure-analyzer/issues/139/comments') {
                 if (-not ($Args -contains '--paginate')) { throw 'expected --paginate' }
                 if (-not ($Args -contains '--slurp')) { throw 'expected --slurp' }
