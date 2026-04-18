@@ -10,12 +10,21 @@
     Path to results.json. Defaults to .\output\results.json.
 .PARAMETER OutputPath
     Path for report.md. Defaults to .\output\report.md.
+.PARAMETER BaselinePath
+    Path to a prior results.json to diff against. When provided, a "Changes since last run"
+    section is emitted with New / Resolved / Unchanged / Net non-compliant delta counts.
+.PARAMETER Trend
+    Optional array of run-trend objects from Get-RunTrend. When provided, an ASCII sparkline
+    using block characters (normalised, max 10 cells) is rendered on a single line so it
+    displays in any Markdown viewer.
 #>
 [CmdletBinding()]
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md'),
-    [string] $TriagePath
+    [string] $TriagePath,
+    [string] $BaselinePath = '',
+    [object[]] $Trend = @()
 )
 
 Set-StrictMode -Version Latest
@@ -29,6 +38,10 @@ $frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapp
 if (Test-Path $frameworkMapperPath) {
     . $frameworkMapperPath
 }
+$reportDeltaPath = Join-Path $PSScriptRoot 'modules' 'shared' 'ReportDelta.ps1'
+if (Test-Path $reportDeltaPath) {
+    . $reportDeltaPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -38,6 +51,54 @@ if (-not (Test-Path $InputPath)) {
 }
 
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+
+# --- Report v2 delta vs previous run ---
+$mdDeltaSection = ''
+if ($BaselinePath -and (Test-Path $BaselinePath) -and (Get-Command Get-ReportDelta -ErrorAction SilentlyContinue)) {
+    try {
+        $prev       = @(Get-Content $BaselinePath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $delta      = Get-ReportDelta -Current $findings -Previous $prev
+        $netSign    = if ($delta.Summary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
+        $mdDeltaSection = @(
+            '## Changes since last run'
+            ''
+            "| Change | Count |"
+            "|---|---|"
+            "| New findings | $($delta.Summary.New) |"
+            "| Resolved findings | $($delta.Summary.Resolved) |"
+            "| Unchanged findings | $($delta.Summary.Unchanged) |"
+            "| Net non-compliant delta | $netSign$($delta.Summary.NetNonCompliantDelta) |"
+            ''
+        ) -join "`n"
+    } catch {
+        Write-Warning (Remove-Credentials "MD report delta computation failed: $_")
+    }
+}
+
+# --- ASCII sparkline from trend data ---
+$mdSparklineSection = ''
+$trendArr = @($Trend | Where-Object { $_ })
+if ($trendArr.Count -ge 2) {
+    $blocks  = [char[]]@(0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, 0x2588)
+    $vals    = @($trendArr | ForEach-Object { [int]$_.NonCompliant })
+    $maxVal  = ($vals | Measure-Object -Maximum).Maximum
+    if ($maxVal -eq 0) { $maxVal = 1 }
+    $cells   = $vals | ForEach-Object {
+        $idx = [math]::Floor(($_ / $maxVal) * ($blocks.Length - 1))
+        $blocks[$idx]
+    }
+    $sparkStr = $cells -join ''
+    $firstId  = [string]$trendArr[0].RunId
+    $lastId   = [string]$trendArr[-1].RunId
+    $mdSparklineSection = @(
+        '## Trend'
+        ''
+        "Non-compliant findings over the last $($trendArr.Count) runs (oldest left, newest right):"
+        ''
+        "``$sparkStr`` — $firstId to $lastId"
+        ''
+    ) -join "`n"
+}
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = @($findings).Count
@@ -65,6 +126,14 @@ $lines.Add("| Medium severity | $medium |")
 $lines.Add("| Low severity | $low |")
 $lines.Add("| Info | $info |")
 $lines.Add('')
+
+# Emit delta and trend sections right after Summary
+if ($mdDeltaSection) {
+    foreach ($l in ($mdDeltaSection -split "`n")) { $lines.Add($l) }
+}
+if ($mdSparklineSection) {
+    foreach ($l in ($mdSparklineSection -split "`n")) { $lines.Add($l) }
+}
 
 $bySource = $findings | Group-Object -Property Source
 $sourceCountMap = @{}

@@ -46,6 +46,11 @@
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
+.PARAMETER BaselineMode
+    Controls auto-baseline discovery for the delta banner. Values:
+      auto  — (default) pick the most recent snapshot from $OutputPath\snapshots\ automatically.
+      none  — suppress baseline comparison entirely.
+    The explicit -PreviousRun parameter always wins over -BaselineMode when both are supplied.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -84,6 +89,8 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [ValidateSet('auto','none')]
+    [string] $BaselineMode = 'auto',
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
@@ -103,7 +110,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -735,8 +742,48 @@ if ($EnableAiTriage) {
 } else {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
-$triageArg = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
-$prevRunArg = if ($PreviousRun -and (Test-Path $PreviousRun)) { @{ PreviousRun = $PreviousRun } } else { @{} }
+$triageArg    = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
+$snapshotDir  = Join-Path $OutputPath 'snapshots'
+
+# 1. Resolve baseline BEFORE archiving the current run so it is not in the index yet.
+#    Explicit -PreviousRun always wins over -BaselineMode auto-discovery.
+$resolvedBaseline = ''
+if ($PreviousRun -and (Test-Path $PreviousRun)) {
+    $resolvedBaseline = $PreviousRun
+} elseif ($BaselineMode -eq 'auto' -and (Get-Command Resolve-BaselineRun -ErrorAction SilentlyContinue)) {
+    $autoBaseline = Resolve-BaselineRun -SnapshotDir $snapshotDir
+    if ($autoBaseline) {
+        Write-Host "  [Baseline] Auto-selected prior run: $autoBaseline" -ForegroundColor DarkGray
+        $resolvedBaseline = $autoBaseline
+    }
+}
+
+$prevRunArg = if ($resolvedBaseline) { @{ PreviousRun = $resolvedBaseline } } else { @{} }
+
+# 2. Archive + trend are both suppressed when -BaselineMode none.
+#    RunId uses millisecond precision + random suffix to avoid second-resolution collision
+#    on concurrent or rapid successive runs.
+$trendArg = @{}
+if ($BaselineMode -ne 'none') {
+    $runId = "$((Get-Date -Format 'yyyyMMdd-HHmmssfff'))-$(Get-Random -Max 9999)"
+    if (Get-Command Add-RunSnapshot -ErrorAction SilentlyContinue) {
+        try {
+            Add-RunSnapshot -SnapshotDir $snapshotDir -RunId $runId -SourceFile $outputFile -MaxHistory 10
+        } catch {
+            Write-Warning (Remove-Credentials "Snapshot archive failed: $_")
+        }
+    }
+    if (Get-Command Get-RunTrend -ErrorAction SilentlyContinue) {
+        try {
+            $trend = Get-RunTrend -SnapshotDir $snapshotDir -MaxRuns 10
+            if ($trend.Count -ge 2) {
+                $trendArg = @{ Trend = $trend }
+            }
+        } catch {
+            Write-Warning (Remove-Credentials "Trend aggregation failed: $_")
+        }
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Generate reports
@@ -745,13 +792,14 @@ $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg @trendArg
 } catch {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }
 
+$mdBaselineArg = if ($resolvedBaseline) { @{ BaselinePath = $resolvedBaseline } } else { @{} }
 try {
-    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg
+    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
 }
