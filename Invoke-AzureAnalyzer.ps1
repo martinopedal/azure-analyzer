@@ -203,18 +203,218 @@ if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
 # ---------------------------------------------------------------------------
 # Management group subscription discovery
 # ---------------------------------------------------------------------------
+function Invoke-SearchAzGraphAllResults {
+    param (
+        [Parameter(Mandatory)]
+        [string] $Query,
+
+        [string] $ManagementGroupId,
+
+        [int] $PageSize = 1000
+    )
+
+    $allRows = [System.Collections.Generic.List[object]]::new()
+    $skipToken = $null
+
+    do {
+        $pageResult = Invoke-WithRetry -ScriptBlock {
+            $params = @{
+                Query       = $Query
+                First       = $PageSize
+                ErrorAction = 'Stop'
+            }
+            if ($ManagementGroupId) { $params['ManagementGroup'] = $ManagementGroupId }
+            if ($skipToken) { $params['SkipToken'] = $skipToken }
+            Search-AzGraph @params
+        }
+
+        $pageRows = @()
+        $nextToken = $null
+        if ($pageResult -and $pageResult.PSObject.Properties['Data']) {
+            $pageRows = @($pageResult.Data)
+            if ($pageResult.PSObject.Properties['SkipToken']) {
+                $nextToken = [string]$pageResult.SkipToken
+            }
+        } else {
+            $pageRows = @($pageResult)
+        }
+
+        foreach ($row in $pageRows) {
+            if ($row) { $allRows.Add($row) | Out-Null }
+        }
+
+        if ([string]::IsNullOrWhiteSpace($nextToken)) {
+            $skipToken = $null
+        } else {
+            $skipToken = $nextToken
+        }
+    } while ($skipToken)
+
+    return @($allRows)
+}
+
 function Get-ChildSubscriptions {
     param ([string]$ManagementGroupId)
     $query = "resourcecontainers | where type == 'microsoft.resources/subscriptions'"
     try {
-        $subs = Invoke-WithRetry -ScriptBlock {
-            Search-AzGraph -Query $query -ManagementGroup $ManagementGroupId -First 1000 -ErrorAction Stop
-        }
+        $subs = Invoke-SearchAzGraphAllResults -Query $query -ManagementGroupId $ManagementGroupId
         return @($subs | Select-Object -ExpandProperty subscriptionId -Unique)
     } catch {
         Write-Warning (Remove-Credentials "Failed to enumerate subscriptions under $ManagementGroupId : $_")
         return @()
     }
+}
+
+function Get-SubscriptionContextLookup {
+    param (
+        [string] $ManagementGroupId,
+        [string[]] $SubscriptionIds
+    )
+
+    $lookup = @{}
+    foreach ($subId in @($SubscriptionIds | Where-Object { $_ } | Select-Object -Unique)) {
+        $lookup[$subId.ToLowerInvariant()] = [pscustomobject]@{
+            SubscriptionId      = $subId
+            SubscriptionName    = $subId
+            ManagementGroupPath = @()
+            IsInMgSubtree       = $false
+        }
+    }
+
+    if (-not $ManagementGroupId) {
+        return $lookup
+    }
+
+    $query = @"
+resourcecontainers
+| where type =~ 'microsoft.resources/subscriptions'
+| project subscriptionId, subscriptionName = name, mgChain = properties.managementGroupAncestorsChain
+"@
+
+    try {
+        $records = Invoke-SearchAzGraphAllResults -Query $query -ManagementGroupId $ManagementGroupId
+
+        foreach ($record in @($records)) {
+            $subId = [string]($record.subscriptionId ?? $record.SubscriptionId)
+            if ([string]::IsNullOrWhiteSpace($subId)) { continue }
+
+            $path = @()
+            $mgChain = $null
+            if ($record.PSObject.Properties['mgChain']) { $mgChain = $record.mgChain }
+            elseif ($record.PSObject.Properties['ManagementGroupPath']) { $mgChain = $record.ManagementGroupPath }
+
+            $orderedChain = @($mgChain)
+            if (@($orderedChain).Count -gt 1) {
+                [array]::Reverse($orderedChain)
+            }
+
+            foreach ($entry in @($orderedChain)) {
+                if (-not $entry) { continue }
+                if ($entry -is [string]) {
+                    $path += $entry
+                    continue
+                }
+
+                foreach ($candidateProp in @('displayName', 'name', 'id')) {
+                    if ($entry.PSObject.Properties[$candidateProp] -and -not [string]::IsNullOrWhiteSpace([string]$entry.$candidateProp)) {
+                        $value = [string]$entry.$candidateProp
+                        if ($candidateProp -eq 'id' -and $value -match '/([^/]+)$') {
+                            $value = $Matches[1]
+                        }
+                        $path += $value
+                        break
+                    }
+                }
+            }
+
+            if ($path.Count -eq 0) {
+                $path = @($ManagementGroupId)
+            }
+
+            $lookup[$subId.ToLowerInvariant()] = [pscustomobject]@{
+                SubscriptionId      = $subId
+                SubscriptionName    = if ($record.PSObject.Properties['subscriptionName'] -and $record.subscriptionName) { [string]$record.subscriptionName } elseif ($record.PSObject.Properties['name'] -and $record.name) { [string]$record.name } else { $subId }
+                ManagementGroupPath = @($path)
+                IsInMgSubtree       = $true
+            }
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Failed to resolve management-group context for $ManagementGroupId : $_")
+    }
+
+    return $lookup
+}
+
+function Get-DefaultSubscriptionId {
+    param ([string] $ToolSpecName)
+    if ([string]::IsNullOrWhiteSpace($ToolSpecName)) { return $null }
+    $parts = $ToolSpecName -split '\|'
+    if ($parts.Count -eq 2 -and $parts[1] -match '^[0-9a-f-]{36}$') {
+        return $parts[1].ToLowerInvariant()
+    }
+    return $null
+}
+
+function Update-FindingScopeContext {
+    param (
+        [pscustomobject] $Finding,
+        [hashtable] $SubscriptionContextLookup,
+        [string] $DefaultSubscriptionId,
+        [string] $ManagementGroupId
+    )
+
+    if (-not $Finding) { return $null }
+
+    $subscriptionId = if ($Finding.PSObject.Properties['SubscriptionId']) { [string]$Finding.SubscriptionId } else { '' }
+    if ([string]::IsNullOrWhiteSpace($subscriptionId) -and -not [string]::IsNullOrWhiteSpace($DefaultSubscriptionId)) {
+        $subscriptionId = $DefaultSubscriptionId
+    }
+    if ([string]::IsNullOrWhiteSpace($subscriptionId)) {
+        foreach ($textProp in @('ResourceId', 'EntityId', 'Detail')) {
+            if (-not $Finding.PSObject.Properties[$textProp]) { continue }
+            $textValue = [string]$Finding.$textProp
+            if ($textValue -match '(?i)/subscriptions/([0-9a-f-]{36})') {
+                $subscriptionId = $Matches[1].ToLowerInvariant()
+                break
+            }
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($subscriptionId)) {
+        $Finding.SubscriptionId = $subscriptionId
+        $ctx = $SubscriptionContextLookup[$subscriptionId.ToLowerInvariant()]
+        if ($ctx) {
+            $currentSubscriptionName = if ($Finding.PSObject.Properties['SubscriptionName']) { [string]$Finding.SubscriptionName } else { '' }
+            if ([string]::IsNullOrWhiteSpace($currentSubscriptionName) -or $currentSubscriptionName -eq $subscriptionId) {
+                $Finding | Add-Member -NotePropertyName SubscriptionName -NotePropertyValue $ctx.SubscriptionName -Force
+            }
+
+            $existingPath = @()
+            if ($Finding.PSObject.Properties['ManagementGroupPath'] -and $Finding.ManagementGroupPath) {
+                $existingPath = @($Finding.ManagementGroupPath | Where-Object { $_ })
+            }
+            $isConfirmedMgContext = $false
+            if (-not $ManagementGroupId) {
+                $isConfirmedMgContext = $true
+            } elseif ($ctx.PSObject.Properties['IsInMgSubtree']) {
+                $isConfirmedMgContext = [bool]$ctx.IsInMgSubtree
+            }
+
+            if ($existingPath.Count -eq 0 -and $isConfirmedMgContext -and @($ctx.ManagementGroupPath).Count -gt 0) {
+                $Finding | Add-Member -NotePropertyName ManagementGroupPath -NotePropertyValue @($ctx.ManagementGroupPath) -Force
+            }
+        }
+    } elseif ($ManagementGroupId) {
+        $existingPath = @()
+        if ($Finding.PSObject.Properties['ManagementGroupPath'] -and $Finding.ManagementGroupPath) {
+            $existingPath = @($Finding.ManagementGroupPath | Where-Object { $_ })
+        }
+        if ($existingPath.Count -eq 0) {
+            $Finding | Add-Member -NotePropertyName ManagementGroupPath -NotePropertyValue @($ManagementGroupId) -Force
+        }
+    }
+
+    return $Finding
 }
 
 $subscriptionsToScan = [System.Collections.Generic.List[string]]::new()
@@ -230,6 +430,7 @@ if ($shouldRecurse) {
 } elseif ($ManagementGroupId -and -not $shouldRecurse) {
     Write-Host "Management group '$ManagementGroupId' provided without -Recurse; subscription-scoped tools will only scan explicitly provided subscriptions" -ForegroundColor DarkGray
 }
+$subscriptionContextLookup = Get-SubscriptionContextLookup -ManagementGroupId $ManagementGroupId -SubscriptionIds @($subscriptionsToScan)
 
 # ---------------------------------------------------------------------------
 # Prerequisite check (manifest-driven auto-installer)
@@ -569,6 +770,7 @@ $toolAgg = @{}   # toolName → @{ WorstStatus; Messages; Count }
 foreach ($wr in $parallelResults) {
     $meta     = $toolMetaMap[$wr.Tool]
     $toolName = if ($meta) { $meta.name } else { $wr.Tool }
+    $defaultSubscriptionId = Get-DefaultSubscriptionId -ToolSpecName $wr.Tool
 
     # Initialise aggregation bucket
     if (-not $toolAgg.ContainsKey($toolName)) {
@@ -630,7 +832,14 @@ foreach ($wr in $parallelResults) {
 
     # Feed v3 findings into EntityStore
     foreach ($finding in $v3Findings) {
+        if (-not $finding) { continue }
         try {
+            $finding = Update-FindingScopeContext `
+                -Finding $finding `
+                -SubscriptionContextLookup $subscriptionContextLookup `
+                -DefaultSubscriptionId $defaultSubscriptionId `
+                -ManagementGroupId $ManagementGroupId
+
             if (Get-Command Add-FrameworkMapping -ErrorAction SilentlyContinue) {
                 $null = Add-FrameworkMapping -Finding $finding -FilterFramework $Framework
             }
@@ -649,7 +858,9 @@ foreach ($wr in $parallelResults) {
                         Currency       = $finding.Currency
                         CostTrend      = if ($finding.PSObject.Properties['CostTrend']) { $finding.CostTrend } else { $null }
                         SubscriptionId = $finding.SubscriptionId
+                        SubscriptionName = if ($finding.PSObject.Properties['SubscriptionName']) { $finding.SubscriptionName } else { $null }
                         ResourceGroup  = $finding.ResourceGroup
+                        ManagementGroupPath = if ($finding.PSObject.Properties['ManagementGroupPath']) { $finding.ManagementGroupPath } else { $null }
                     }
                     try { $store.MergeEntityMetadata($stub) } catch {
                         Write-Warning (Remove-Credentials "MergeEntityMetadata failed for cost enrichment: $_")
@@ -676,6 +887,16 @@ foreach ($wr in $parallelResults) {
             Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
             ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
             LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+            EntityId     = if ($f.PSObject.Properties['EntityId']) { $f.EntityId } else { '' }
+            EntityType   = if ($f.PSObject.Properties['EntityType']) { $f.EntityType } else { '' }
+            Platform     = if ($f.PSObject.Properties['Platform']) { $f.Platform } else { '' }
+            SubscriptionId = if ($f.PSObject.Properties['SubscriptionId']) { $f.SubscriptionId } else { '' }
+            SubscriptionName = if ($f.PSObject.Properties['SubscriptionName']) { $f.SubscriptionName } else { '' }
+            ResourceGroup = if ($f.PSObject.Properties['ResourceGroup']) { $f.ResourceGroup } else { '' }
+            ManagementGroupPath = if ($f.PSObject.Properties['ManagementGroupPath']) { $f.ManagementGroupPath } else { @() }
+            Confidence   = if ($f.PSObject.Properties['Confidence']) { $f.Confidence } else { '' }
+            EvidenceCount = if ($f.PSObject.Properties['EvidenceCount']) { $f.EvidenceCount } else { 0 }
+            MissingDimensions = if ($f.PSObject.Properties['MissingDimensions']) { $f.MissingDimensions } else { @() }
             Frameworks   = if ($f.PSObject.Properties['Frameworks']   -and $f.Frameworks)   { $f.Frameworks }   else { @() }
             Controls     = if ($f.PSObject.Properties['Controls']     -and $f.Controls)     { $f.Controls }     else { @() }
         })
@@ -715,6 +936,9 @@ foreach ($corrDef in $correlators) {
             $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
             if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
         }
+        if ($ManagementGroupId -and $subscriptionsToScan.Count -gt 1) {
+            $corrParams['PortfolioMode'] = $true
+        }
 
         $corrFindings = @(Invoke-IdentityCorrelation @corrParams)
 
@@ -727,6 +951,12 @@ foreach ($corrDef in $correlators) {
         }
 
         foreach ($finding in $corrV3) {
+            if (-not $finding) { continue }
+            $finding = Update-FindingScopeContext `
+                -Finding $finding `
+                -SubscriptionContextLookup $subscriptionContextLookup `
+                -DefaultSubscriptionId $null `
+                -ManagementGroupId $ManagementGroupId
             try { $store.AddFinding($finding) }
             catch { Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $corrName : $_") }
         }
@@ -743,6 +973,16 @@ foreach ($corrDef in $correlators) {
                 Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
                 ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
                 LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+                EntityId     = if ($f.PSObject.Properties['EntityId']) { $f.EntityId } else { '' }
+                EntityType   = if ($f.PSObject.Properties['EntityType']) { $f.EntityType } else { '' }
+                Platform     = if ($f.PSObject.Properties['Platform']) { $f.Platform } else { '' }
+                SubscriptionId = if ($f.PSObject.Properties['SubscriptionId']) { $f.SubscriptionId } else { '' }
+                SubscriptionName = if ($f.PSObject.Properties['SubscriptionName']) { $f.SubscriptionName } else { '' }
+                ResourceGroup = if ($f.PSObject.Properties['ResourceGroup']) { $f.ResourceGroup } else { '' }
+                ManagementGroupPath = if ($f.PSObject.Properties['ManagementGroupPath']) { $f.ManagementGroupPath } else { @() }
+                Confidence   = if ($f.PSObject.Properties['Confidence']) { $f.Confidence } else { '' }
+                EvidenceCount = if ($f.PSObject.Properties['EvidenceCount']) { $f.EvidenceCount } else { 0 }
+                MissingDimensions = if ($f.PSObject.Properties['MissingDimensions']) { $f.MissingDimensions } else { @() }
             })
         }
 
@@ -758,6 +998,8 @@ foreach ($corrDef in $correlators) {
 # ---------------------------------------------------------------------------
 # Write output
 # ---------------------------------------------------------------------------
+$portfolio = $null
+$portfolioFile = Join-Path $OutputPath 'portfolio.json'
 try {
     if (-not (Test-Path $OutputPath)) {
         $null = New-Item -ItemType Directory -Path $OutputPath -Force
@@ -766,18 +1008,24 @@ try {
     # v1-compatible flat findings (backward compat for reports)
     $outputFile = Join-Path $OutputPath 'results.json'
     $resultsJson = if ($allResults.Count -eq 0) { '[]' } else { $allResults | ConvertTo-Json -Depth 5 }
-    Set-Content -Path $outputFile -Value $resultsJson -Encoding UTF8
+    Set-Content -Path $outputFile -Value (Remove-Credentials $resultsJson) -Encoding UTF8
 
     # v3 entity-centric output
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
     if ($null -eq $entities) { $entities = @() }
     $entitiesJson = if (@($entities).Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
-    Set-Content -Path $entitiesFile -Value $entitiesJson -Encoding UTF8
+    Set-Content -Path $entitiesFile -Value (Remove-Credentials $entitiesJson) -Encoding UTF8
+
+    $portfolio = Get-PortfolioRollup -Store $store -Entities $entities -ManagementGroupId $ManagementGroupId
+    $portfolioJson = if ($null -eq $portfolio) { '{}' } else { $portfolio | ConvertTo-Json -Depth 30 }
+    Set-Content -Path $portfolioFile -Value (Remove-Credentials $portfolioJson) -Encoding UTF8
 
     # Tool status
     $statusFile = Join-Path $OutputPath 'tool-status.json'
-    $toolStatus | ConvertTo-Json -Depth 3 | Set-Content -Path $statusFile -Encoding UTF8
+    $statusJson = $toolStatus | ConvertTo-Json -Depth 3
+    $statusJson = Remove-Credentials $statusJson
+    $statusJson | Set-Content -Path $statusFile -Encoding UTF8
 
     $store.CleanupSpillFiles()
 } catch {
@@ -800,6 +1048,7 @@ if ($EnableAiTriage) {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }
 }
 $triageArg    = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
+$portfolioArg = if ($portfolio) { @{ Portfolio = $portfolio } } else { @{} }
 $snapshotDir  = Join-Path $OutputPath 'snapshots'
 
 # 1. Resolve baseline BEFORE archiving the current run so it is not in the index yet.
@@ -942,14 +1191,14 @@ $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg @trendArg
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg @trendArg @portfolioArg
 } catch {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }
 
 $mdBaselineArg = if ($resolvedBaseline) { @{ BaselinePath = $resolvedBaseline } } else { @{} }
 try {
-    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg
+    & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg @portfolioArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
 }
@@ -989,6 +1238,9 @@ Write-Host "  Non-compliant — Critical: $critical  High: $high  Medium: $mediu
 Write-Host "  Output: $outputFile" -ForegroundColor Green
 if (Test-Path $entitiesFile) {
     Write-Host "  Entities: $entitiesFile" -ForegroundColor Green
+}
+if (Test-Path $portfolioFile) {
+    Write-Host "  Portfolio: $portfolioFile" -ForegroundColor Green
 }
 
 # ---------------------------------------------------------------------------

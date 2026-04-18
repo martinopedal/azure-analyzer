@@ -85,6 +85,10 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 - **Specific MG:** Include only the MG and its direct children (recursive)
 - **No recursion:** Use `-Recurse:$false` to scan only the specified MG, without discovering child subscriptions
 
+**Portfolio rollup note:**
+- The portfolio heatmap and management-group breadcrumb perform one extra Azure Resource Graph read over the `subscriptions` entries in `resourcecontainers`, projecting `properties.managementGroupAncestorsChain` for management-group ancestry context.
+- This is still covered by the same **Reader** role at the management-group scope. No new Azure role, no write action, and no role-assignment permission is required.
+
 **Examples:**
 
 ```powershell

@@ -319,6 +319,29 @@ class EntityStore {
                 $this.Entities[$entityKey] = $entity
             }
 
+            try {
+                $this.MergeEntityMetadata([pscustomobject]@{
+                    EntityId            = $Finding.EntityId
+                    EntityType          = $Finding.EntityType
+                    Platform            = $Finding.Platform
+                    DisplayName         = $(if ($Finding.PSObject.Properties['DisplayName']) { $Finding.DisplayName } else { $null })
+                    SubscriptionId      = $(if ($Finding.PSObject.Properties['SubscriptionId']) { $Finding.SubscriptionId } else { $null })
+                    SubscriptionName    = $(if ($Finding.PSObject.Properties['SubscriptionName']) { $Finding.SubscriptionName } else { $null })
+                    ResourceGroup       = $(if ($Finding.PSObject.Properties['ResourceGroup']) { $Finding.ResourceGroup } else { $null })
+                    ManagementGroupPath = $(if ($Finding.PSObject.Properties['ManagementGroupPath']) { $Finding.ManagementGroupPath } else { $null })
+                    Frameworks          = $(if ($Finding.PSObject.Properties['Frameworks']) { $Finding.Frameworks } else { $null })
+                    Controls            = $(if ($Finding.PSObject.Properties['Controls']) { $Finding.Controls } else { $null })
+                    Confidence          = $(if ($Finding.PSObject.Properties['Confidence']) { $Finding.Confidence } else { $null })
+                    MissingDimensions   = $(if ($Finding.PSObject.Properties['MissingDimensions']) { $Finding.MissingDimensions } else { $null })
+                })
+            } catch {
+                $exceptionMessage = [string]$_.Exception.Message
+                if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+                    $exceptionMessage = Remove-Credentials -Text $exceptionMessage
+                }
+                Write-Verbose "EntityStore metadata merge skipped for $($Finding.EntityId): $exceptionMessage"
+            }
+
             if ($entity.Observations -isnot [System.Collections.Generic.List[pscustomobject]]) {
                 $observations = [System.Collections.Generic.List[pscustomobject]]::new()
                 foreach ($obs in @($entity.Observations)) {
@@ -518,4 +541,335 @@ function Export-Results {
     $results = $Store.GetFindings()
     $Store.CleanupSpillFiles()
     return $results
+}
+
+function New-PortfolioSeverityCounts {
+    [CmdletBinding()]
+    param (
+        [object[]] $Findings
+    )
+
+    $relevant = @($Findings | Where-Object { $_ -and $_.PSObject.Properties['Compliant'] -and -not $_.Compliant })
+    [pscustomobject]@{
+        Critical = @($relevant | Where-Object { $_.Severity -eq 'Critical' }).Count
+        High     = @($relevant | Where-Object { $_.Severity -eq 'High' }).Count
+        Medium   = @($relevant | Where-Object { $_.Severity -eq 'Medium' }).Count
+        Low      = @($relevant | Where-Object { $_.Severity -eq 'Low' }).Count
+        Info     = @($relevant | Where-Object { $_.Severity -eq 'Info' }).Count
+    }
+}
+
+function Resolve-SubscriptionId {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [object] $InputObject
+    )
+
+    $subscriptionId = Get-ObjectPropertyValue -Object $InputObject -PropertyName 'SubscriptionId'
+    if (-not [string]::IsNullOrWhiteSpace([string]$subscriptionId)) {
+        return [string]$subscriptionId
+    }
+
+    foreach ($propertyName in @('ResourceId', 'EntityId')) {
+        $textValue = Get-ObjectPropertyValue -Object $InputObject -PropertyName $propertyName
+        if ([string]::IsNullOrWhiteSpace([string]$textValue)) { continue }
+        if ([string]$textValue -match '(?i)/subscriptions/([0-9a-f-]{36})') {
+            return $Matches[1].ToLowerInvariant()
+        }
+    }
+
+    return $null
+}
+
+function Get-SubscriptionBucketKey {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [object] $InputObject
+    )
+
+    $subscriptionId = Resolve-SubscriptionId -InputObject $InputObject
+    if (-not [string]::IsNullOrWhiteSpace([string]$subscriptionId)) {
+        return "id::$($subscriptionId.ToLowerInvariant())"
+    }
+
+    $subscriptionName = [string](Get-ObjectPropertyValue -Object $InputObject -PropertyName 'SubscriptionName' -Default '')
+    if (-not [string]::IsNullOrWhiteSpace($subscriptionName)) {
+        return "name::$subscriptionName"
+    }
+
+    return $null
+}
+
+function Get-TopPortfolioEntities {
+    [CmdletBinding()]
+    param (
+        [object[]] $Entities,
+        [int] $MaxCount = 5
+    )
+
+    $sorted = @(
+        $Entities |
+            Where-Object { $_ } |
+            Sort-Object `
+                @{ Expression = { Get-SeverityRank (Get-ObjectPropertyValue -Object $_ -PropertyName 'WorstSeverity') }; Descending = $true }, `
+                @{ Expression = { [int](Get-ObjectPropertyValue -Object $_ -PropertyName 'NonCompliantCount' -Default 0) }; Descending = $true }, `
+                @{ Expression = { [double](Get-ObjectPropertyValue -Object $_ -PropertyName 'MonthlyCost' -Default 0) }; Descending = $true }, `
+                @{ Expression = { [string](Get-ObjectPropertyValue -Object $_ -PropertyName 'DisplayName' -Default (Get-ObjectPropertyValue -Object $_ -PropertyName 'EntityId')) } }
+    )
+
+    return @(
+        $sorted |
+            Select-Object -First $MaxCount |
+            ForEach-Object {
+                [pscustomobject]@{
+                    EntityId          = Get-ObjectPropertyValue -Object $_ -PropertyName 'EntityId'
+                    EntityType        = Get-ObjectPropertyValue -Object $_ -PropertyName 'EntityType'
+                    DisplayName       = Get-ObjectPropertyValue -Object $_ -PropertyName 'DisplayName' -Default (Get-ObjectPropertyValue -Object $_ -PropertyName 'EntityId')
+                    WorstSeverity     = Get-ObjectPropertyValue -Object $_ -PropertyName 'WorstSeverity'
+                    NonCompliantCount = [int](Get-ObjectPropertyValue -Object $_ -PropertyName 'NonCompliantCount' -Default 0)
+                    MonthlyCost       = [double](Get-ObjectPropertyValue -Object $_ -PropertyName 'MonthlyCost' -Default 0)
+                    Currency          = Get-ObjectPropertyValue -Object $_ -PropertyName 'Currency'
+                }
+            }
+    )
+}
+
+function Get-PortfolioRollup {
+    <#
+    .SYNOPSIS
+        Aggregates the current entity and finding stores into a portfolio view.
+    .DESCRIPTION
+        Produces subscription and management-group rollups for multi-subscription
+        scans. The returned object is stable JSON-friendly shape suitable for
+        portfolio.json and report rendering.
+    #>
+    [CmdletBinding()]
+    param (
+        [object] $Store,
+        [object[]] $Entities,
+        [object[]] $Findings,
+        [string] $ManagementGroupId
+    )
+
+    if ($Store) {
+        if ($null -eq $Entities -and $Store.PSObject.Methods['GetEntities']) {
+            $Entities = @($Store.GetEntities())
+        }
+        if ($null -eq $Findings -and $Store.PSObject.Methods['GetFindings']) {
+            $Findings = @($Store.GetFindings())
+        }
+    }
+
+    if ($null -eq $Entities) { $Entities = @() }
+    if ($null -eq $Findings) { $Findings = @() }
+
+    $subscriptionIndex = @{}
+    foreach ($item in @($Entities) + @($Findings)) {
+        if (-not $item) { continue }
+
+        $subscriptionId = Resolve-SubscriptionId -InputObject $item
+        $subscriptionName = Get-ObjectPropertyValue -Object $item -PropertyName 'SubscriptionName'
+        $path = @()
+        $rawPath = Get-ObjectPropertyValue -Object $item -PropertyName 'ManagementGroupPath'
+        if ($rawPath) { $path = @($rawPath | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }) }
+
+        if (-not $subscriptionId -and [string]::IsNullOrWhiteSpace([string]$subscriptionName)) { continue }
+        $key = Get-SubscriptionBucketKey -InputObject $item
+        if (-not $key) { continue }
+
+        if (-not $subscriptionIndex.ContainsKey($key)) {
+            $subscriptionIndex[$key] = [ordered]@{
+                SubscriptionId      = $subscriptionId
+                SubscriptionName    = if ($subscriptionName) { $subscriptionName } else { $subscriptionId }
+                ManagementGroupPath = $path
+            }
+            continue
+        }
+
+        if (-not $subscriptionIndex[$key].SubscriptionName -and $subscriptionName) {
+            $subscriptionIndex[$key].SubscriptionName = $subscriptionName
+        }
+        if ((@($path).Count -gt 0) -and (@($subscriptionIndex[$key].ManagementGroupPath).Count -eq 0 -or @($path).Count -gt @($subscriptionIndex[$key].ManagementGroupPath).Count)) {
+            $subscriptionIndex[$key].ManagementGroupPath = $path
+        }
+    }
+
+    $findingsBySubscription = @{}
+    foreach ($finding in $Findings) {
+        if (-not $finding -or (Get-ObjectPropertyValue -Object $finding -PropertyName 'Category') -eq 'CrossSubscriptionCorrelation') {
+            continue
+        }
+
+        $bucketKey = Get-SubscriptionBucketKey -InputObject $finding
+        if (-not $bucketKey) { continue }
+
+        if (-not $findingsBySubscription.ContainsKey($bucketKey)) {
+            $findingsBySubscription[$bucketKey] = [System.Collections.Generic.List[object]]::new()
+        }
+        $findingsBySubscription[$bucketKey].Add($finding) | Out-Null
+    }
+
+    $entitiesBySubscription = @{}
+    foreach ($entity in $Entities) {
+        if (-not $entity) { continue }
+
+        $bucketKey = Get-SubscriptionBucketKey -InputObject $entity
+        if (-not $bucketKey) { continue }
+
+        if (-not $entitiesBySubscription.ContainsKey($bucketKey)) {
+            $entitiesBySubscription[$bucketKey] = [System.Collections.Generic.List[object]]::new()
+        }
+        $entitiesBySubscription[$bucketKey].Add($entity) | Out-Null
+    }
+
+    $subscriptionRows = [System.Collections.Generic.List[object]]::new()
+    foreach ($bucketKey in $subscriptionIndex.Keys) {
+        $entry = $subscriptionIndex[$bucketKey]
+        $subId = $entry.SubscriptionId
+        $subName = if ($entry.SubscriptionName) { $entry.SubscriptionName } elseif ($subId) { $subId } else { 'unknown-subscription' }
+        $subFindings = if ($findingsBySubscription.ContainsKey($bucketKey)) { @($findingsBySubscription[$bucketKey]) } else { @() }
+        $subEntities = if ($entitiesBySubscription.ContainsKey($bucketKey)) { @($entitiesBySubscription[$bucketKey]) } else { @() }
+
+        $severityCounts = New-PortfolioSeverityCounts -Findings $subFindings
+        $sourceCounts = @(
+            $subFindings |
+                Where-Object { $_ -and $_.PSObject.Properties['Compliant'] -and -not $_.Compliant } |
+                Group-Object -Property Source |
+                Sort-Object `
+                    @{ Expression = 'Count'; Descending = $true }, `
+                    @{ Expression = 'Name' } |
+                ForEach-Object {
+                    [pscustomobject]@{
+                        Source = $_.Name
+                        Count  = $_.Count
+                    }
+                }
+        )
+
+        $monthlyCost = [double]0
+        $currency = ''
+        foreach ($entity in $subEntities) {
+            $cost = Get-ObjectPropertyValue -Object $entity -PropertyName 'MonthlyCost'
+            if ($null -ne $cost -and "$cost" -ne '') {
+                $monthlyCost += [double]$cost
+            }
+            if (-not $currency) {
+                $currency = [string](Get-ObjectPropertyValue -Object $entity -PropertyName 'Currency' -Default '')
+            }
+        }
+
+        $worstSeverity = 'Info'
+        foreach ($level in @('Critical', 'High', 'Medium', 'Low', 'Info')) {
+            if ([int]$severityCounts.$level -gt 0) {
+                $worstSeverity = $level
+                break
+            }
+        }
+
+        $subscriptionRows.Add([pscustomobject]@{
+                SubscriptionId      = $subId
+                SubscriptionName    = $subName
+                ManagementGroupPath = @($entry.ManagementGroupPath)
+                FindingCount        = @($subFindings).Count
+                NonCompliantCount   = @($subFindings | Where-Object { $_ -and $_.PSObject.Properties['Compliant'] -and -not $_.Compliant }).Count
+                SeverityCounts      = $severityCounts
+                SourceCounts        = $sourceCounts
+                TopEntities         = @(Get-TopPortfolioEntities -Entities $subEntities)
+                MonthlyCost         = [math]::Round($monthlyCost, 2)
+                Currency            = $currency
+                WorstSeverity       = $worstSeverity
+            }) | Out-Null
+    }
+
+    $subscriptionRows = @(
+        $subscriptionRows |
+            Sort-Object `
+                @{ Expression = { Get-SeverityRank $_.WorstSeverity }; Descending = $true }, `
+                @{ Expression = { [int]$_.NonCompliantCount }; Descending = $true }, `
+                @{ Expression = { [string]$_.SubscriptionName } }
+    )
+
+    $managementGroupBuckets = @{}
+    foreach ($row in $subscriptionRows) {
+        $path = @($row.ManagementGroupPath)
+        if ($path.Count -eq 0) {
+            continue
+        }
+
+        $key = $path -join ' > '
+        if (-not $managementGroupBuckets.ContainsKey($key)) {
+            $managementGroupBuckets[$key] = [System.Collections.Generic.List[object]]::new()
+        }
+        $managementGroupBuckets[$key].Add($row) | Out-Null
+    }
+
+    $managementGroupRows = [System.Collections.Generic.List[object]]::new()
+    foreach ($bucketKey in $managementGroupBuckets.Keys) {
+        $rows = @($managementGroupBuckets[$bucketKey])
+        $mgPath = @()
+        if ($rows.Count -gt 0) {
+            $mgPath = @($rows[0].ManagementGroupPath)
+        } elseif ($ManagementGroupId) {
+            $mgPath = @($ManagementGroupId)
+        }
+        $criticalCount = 0
+        $highCount = 0
+        $mediumCount = 0
+        $lowCount = 0
+        $infoCount = 0
+        foreach ($row in $rows) {
+            $criticalCount += [int]$row.SeverityCounts.Critical
+            $highCount += [int]$row.SeverityCounts.High
+            $mediumCount += [int]$row.SeverityCounts.Medium
+            $lowCount += [int]$row.SeverityCounts.Low
+            $infoCount += [int]$row.SeverityCounts.Info
+        }
+        $severityCounts = [pscustomobject]@{
+            Critical = $criticalCount
+            High     = $highCount
+            Medium   = $mediumCount
+            Low      = $lowCount
+            Info     = $infoCount
+        }
+
+        $managementGroupRows.Add([pscustomobject]@{
+                ManagementGroupName = if ($mgPath.Count -gt 0) { $mgPath[-1] } elseif ($ManagementGroupId) { $ManagementGroupId } else { 'portfolio' }
+                ManagementGroupPath = $mgPath
+                SubscriptionCount   = $rows.Count
+                NonCompliantCount   = (@($rows | Measure-Object -Property NonCompliantCount -Sum).Sum ?? 0)
+                SeverityCounts      = $severityCounts
+                MonthlyCost         = [math]::Round((@($rows | Measure-Object -Property MonthlyCost -Sum).Sum ?? 0), 2)
+                Currency            = [string]($rows | ForEach-Object { $_.Currency } | Where-Object { $_ } | Select-Object -First 1)
+            }) | Out-Null
+    }
+
+    $correlations = @(
+        $Findings |
+            Where-Object {
+                $_ -and
+                $_.Source -eq 'identity-correlator' -and
+                $_.Category -eq 'CrossSubscriptionCorrelation'
+            } |
+            Sort-Object `
+                @{ Expression = { Get-SeverityRank $_.Severity }; Descending = $true }, `
+                @{ Expression = { [string]$_.Title } }
+    )
+
+    return [pscustomobject]@{
+        SchemaVersion = '1.0'
+        GeneratedAt   = (Get-Date).ToUniversalTime().ToString('o')
+        Summary       = [pscustomobject]@{
+            ManagementGroupId  = $ManagementGroupId
+            SubscriptionCount  = @($subscriptionRows).Count
+            ManagementGroupCount = @($managementGroupRows).Count
+            CorrelationCount   = @($correlations).Count
+            TotalFindings      = @($Findings).Count
+            TotalNonCompliant  = @($Findings | Where-Object { $_ -and $_.PSObject.Properties['Compliant'] -and -not $_.Compliant }).Count
+        }
+        Subscriptions = $subscriptionRows
+        ManagementGroups = @($managementGroupRows)
+        Correlations  = $correlations
+    }
 }

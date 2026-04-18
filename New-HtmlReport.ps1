@@ -20,6 +20,7 @@ param (
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.html'),
     [string] $TriagePath = '',
     [string] $PreviousRun = '',
+    [object] $Portfolio,
     [object[]] $Trend = @()
 )
 
@@ -47,6 +48,16 @@ if (-not (Test-Path $InputPath)) {
 }
 
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+if (-not $Portfolio) {
+    $portfolioPath = Join-Path (Split-Path $InputPath -Parent) 'portfolio.json'
+    if (Test-Path $portfolioPath) {
+        try {
+            $Portfolio = Get-Content $portfolioPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            Write-Warning (Remove-Credentials "Could not load portfolio data from ${portfolioPath}: $_")
+        }
+    }
+}
 
 # --- Run-mode metadata (incremental / scheduled — issue #94) ---
 $runMetadata = $null
@@ -93,10 +104,27 @@ function HE([string]$s) {
 
 function SeverityClass([string]$s) {
     switch ($s) {
+        'Critical' { return 'sev-high' }
         'High'   { return 'sev-high' }
         'Medium' { return 'sev-medium' }
         'Low'    { return 'sev-low' }
         default  { return 'sev-info' }
+    }
+}
+
+function Get-AnchorId([string]$text) {
+    if ([string]::IsNullOrWhiteSpace($text)) { return 'portfolio-sub-unknown' }
+    return ('portfolio-sub-' + (($text.ToLowerInvariant() -replace '[^a-z0-9]+', '-') -replace '(^-|-$)', ''))
+}
+
+function Get-HeatClass([string]$Severity, [int]$Count) {
+    if ($Count -le 0) { return 'heat-zero' }
+    switch ($Severity) {
+        'Critical' { return 'heat-critical' }
+        'High'     { return 'heat-high' }
+        'Medium'   { return 'heat-medium' }
+        'Low'      { return 'heat-low' }
+        default    { return 'heat-info' }
     }
 }
 
@@ -142,7 +170,7 @@ if ($allSources.Count -eq 0) {
     $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy' }
     $sourceColors = @{ 'azqr'='#1565c0'; 'psrule'='#6a1b9a'; 'azgovviz'='#00838f'; 'alz-queries'='#e65100'; 'wara'='#2e7d32'; 'defender-for-cloud'='#0078d4'; 'kubescape'='#7b1fa2'; 'kube-bench'='#5e35b1'; 'falco'='#ef6c00'; 'maester'='#7b1fa2'; 'scorecard'='#ff6f00'; 'ado-connections'='#0277bd'; 'ado-pipelines'='#006064'; 'identity-correlator'='#ad1457'; 'zizmor'='#4527a0'; 'gitleaks'='#c62828'; 'trivy'='#00695c' }
 }
-$sourceGroups = $findings | Group-Object -Property Source
+$sourceGroups = @($findings | Group-Object -Property Source)
 $sourceCountMap = @{}
 foreach ($sg in $sourceGroups) { $sourceCountMap[$sg.Name] = $sg.Count }
 $maxSourceCount = if ($sourceGroups.Count -gt 0) { ($sourceGroups | Measure-Object -Property Count -Maximum).Maximum } else { 1 }
@@ -187,7 +215,7 @@ $rowsJson = ($findings | ForEach-Object {
 "@
 }) -join ','
 
-$byCategory = $findings | Group-Object -Property Category | Sort-Object Name
+$byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
 $tableIndex = 0
 
 $categoryHtml = foreach ($cat in $byCategory) {
@@ -346,8 +374,126 @@ if ($deltaSummary) {
   <span class="delta-chip resolved">$($deltaSummary.Resolved) resolved</span>
   <span class="delta-chip unchanged">$($deltaSummary.Unchanged) unchanged</span>
   <span class="delta-chip $netClass">Net non-compliant: $netSign$($deltaSummary.NetNonCompliantDelta)</span>
+    </div>
+"@
+}
+
+$portfolioSectionHtml = ''
+if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
+    $portfolioSubs = @($Portfolio.Subscriptions)
+    $portfolioCorrelations = if ($Portfolio.PSObject.Properties['Correlations']) { @($Portfolio.Correlations) } else { @() }
+    $portfolioMgs = if ($Portfolio.PSObject.Properties['ManagementGroups']) { @($Portfolio.ManagementGroups) } else { @() }
+    $portfolioSummary = if ($Portfolio.PSObject.Properties['Summary']) { $Portfolio.Summary } else { $null }
+    $breadcrumbPath = @()
+
+    if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
+        $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
+    } elseif (@($portfolioSubs).Count -gt 0 -and $portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
+        $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
+    } elseif ($portfolioSummary -and $portfolioSummary.PSObject.Properties['ManagementGroupId'] -and $portfolioSummary.ManagementGroupId) {
+        $breadcrumbPath = @([string]$portfolioSummary.ManagementGroupId)
+    }
+
+    if (@($portfolioSubs).Count -gt 0) {
+        $heatmapRows = foreach ($sub in $portfolioSubs) {
+            $anchorId = Get-AnchorId -text ([string]$sub.SubscriptionId)
+            $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
+            $costText = if ($null -ne $sub.MonthlyCost -and [double]$sub.MonthlyCost -gt 0) {
+                "{0:N2} {1}" -f [double]$sub.MonthlyCost, ($(if ($sub.Currency) { [string]$sub.Currency } else { 'USD' }))
+            } else {
+                'n/a'
+            }
+            "<tr><td><a href='#$anchorId'>$(HE $subName)</a></td><td>$(HE ([string]$sub.SubscriptionId))</td><td class='$(Get-HeatClass -Severity 'Critical' -Count ([int]$sub.SeverityCounts.Critical))'>$([int]$sub.SeverityCounts.Critical)</td><td class='$(Get-HeatClass -Severity 'High' -Count ([int]$sub.SeverityCounts.High))'>$([int]$sub.SeverityCounts.High)</td><td class='$(Get-HeatClass -Severity 'Medium' -Count ([int]$sub.SeverityCounts.Medium))'>$([int]$sub.SeverityCounts.Medium)</td><td class='$(Get-HeatClass -Severity 'Low' -Count ([int]$sub.SeverityCounts.Low))'>$([int]$sub.SeverityCounts.Low)</td><td class='$(Get-HeatClass -Severity 'Info' -Count ([int]$sub.SeverityCounts.Info))'>$([int]$sub.SeverityCounts.Info)</td><td>$([int]$sub.NonCompliantCount)</td><td>$(HE $costText)</td><td><span class='badge $(SeverityClass ([string]$sub.WorstSeverity))'>$(HE ([string]$sub.WorstSeverity))</span></td></tr>"
+        }
+
+        $subscriptionDetailsHtml = foreach ($sub in $portfolioSubs) {
+            $anchorId = Get-AnchorId -text ([string]$sub.SubscriptionId)
+            $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
+
+            $sourceChips = if ($sub.PSObject.Properties['SourceCounts'] -and @($sub.SourceCounts).Count -gt 0) {
+                @($sub.SourceCounts | ForEach-Object { "<span class='source-chip'>$(HE $_.Source): $($_.Count)</span>" }) -join ' '
+            } else {
+                "<span class='source-chip'>No non-compliant findings</span>"
+            }
+
+            $topEntityRows = if ($sub.PSObject.Properties['TopEntities'] -and @($sub.TopEntities).Count -gt 0) {
+                @($sub.TopEntities | ForEach-Object {
+                    $entityName = if ($_.DisplayName) { $_.DisplayName } else { $_.EntityId }
+                    "<tr><td>$(HE ([string]$entityName))</td><td>$(HE ([string]$_.EntityType))</td><td><span class='badge $(SeverityClass ([string]$_.WorstSeverity))'>$(HE ([string]$_.WorstSeverity))</span></td><td>$([int]$_.NonCompliantCount)</td><td>$([double]$_.MonthlyCost)</td></tr>"
+                }) -join "`n"
+            } else {
+                "<tr><td colspan='5'>No top entities captured for this subscription.</td></tr>"
+            }
+
+            @"
+<details id="$anchorId">
+  <summary><strong>$(HE $subName)</strong> subscription details</summary>
+  <div class="portfolio-detail">
+    <p><strong>Management group path:</strong> $(HE ((@($sub.ManagementGroupPath) -join ' > ')))</p>
+    <p><strong>By source:</strong> $sourceChips</p>
+    <table class="findings-table">
+      <thead>
+        <tr><th>Top entity</th><th>Type</th><th>Worst severity</th><th>Non-compliant</th><th>Monthly cost</th></tr>
+      </thead>
+      <tbody>
+        $topEntityRows
+      </tbody>
+    </table>
+  </div>
+</details>
+"@
+        }
+
+        $correlationHtml = if (@($portfolioCorrelations).Count -gt 0) {
+            $corrRows = foreach ($corr in $portfolioCorrelations) {
+                "<tr><td>$(HE ([string]$corr.Title))</td><td><span class='badge $(SeverityClass ([string]$corr.Severity))'>$(HE ([string]$corr.Severity))</span></td><td>$([int]$corr.EvidenceCount)</td><td>$(HE ([string]$corr.Detail))</td></tr>"
+            }
+            @"
+<h3>Cross-subscription identities</h3>
+<table class="findings-table">
+  <thead>
+    <tr><th>Identity</th><th>Severity</th><th>Subscriptions</th><th>Detail</th></tr>
+  </thead>
+  <tbody>
+    $($corrRows -join "`n")
+  </tbody>
+</table>
+"@
+        } else {
+            "<p>No cross-subscription identity reuse was detected in this run.</p>"
+        }
+
+        $portfolioSectionHtml = @"
+<h2>Portfolio rollup</h2>
+<div class="source-section">
+  <p class="portfolio-breadcrumb"><strong>Management group path:</strong> $(HE (($breadcrumbPath -join ' > ')))</p>
+  <p class="subtitle">Subscriptions scanned: $(@($portfolioSubs).Count)</p>
+  <div class="heatmap-wrap $(if (@($portfolioSubs).Count -gt 20) { 'heatmap-scroll' } else { '' })">
+    <table class="heatmap-table">
+      <thead>
+        <tr><th>Subscription</th><th>ID</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Info</th><th>Non-compliant</th><th>Monthly cost</th><th>Worst</th></tr>
+      </thead>
+      <tbody>
+        $($heatmapRows -join "`n")
+      </tbody>
+    </table>
+  </div>
+  $correlationHtml
+  <h3>Subscription details</h3>
+  $($subscriptionDetailsHtml -join "`n")
 </div>
 "@
+    } else {
+        $portfolioPathLabel = if (@($breadcrumbPath).Count -gt 0) { HE (($breadcrumbPath -join ' > ')) } else { 'n/a' }
+        $portfolioSectionHtml = @"
+<h2>Portfolio rollup</h2>
+<div class="source-section">
+  <p class="portfolio-breadcrumb"><strong>Management group path:</strong> $portfolioPathLabel</p>
+  <p class="subtitle">Subscriptions scanned: 0</p>
+  <p class="empty-state">No findings in portfolio.</p>
+</div>
+"@
+    }
 }
 
 # Build inline SVG sparkline when trend data is provided (one point per run).
@@ -432,6 +578,24 @@ $html = @"
   .tool-badge { display: inline-block; padding: 6px 14px; border-radius: 5px; font-size: 13px; font-weight: 500; }
   .tool-active { background: #e8f5e9; color: #1b5e20; }
   .tool-skipped { background: #fff3e0; color: #bf360c; }
+
+  /* Portfolio rollup */
+  .portfolio-breadcrumb { margin-bottom: 10px; color: #37474f; }
+  .empty-state { margin-top: 8px; color: #546e7a; font-style: italic; }
+  .heatmap-wrap { overflow-x: auto; margin-bottom: 16px; }
+  .heatmap-scroll { max-height: 420px; overflow-y: auto; }
+  .heatmap-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+  .heatmap-table th, .heatmap-table td { border: 1px solid #eceff1; padding: 8px 10px; text-align: left; }
+  .heatmap-table th { background: #f5f7fa; }
+  .heat-zero { background: #fafafa; color: #90a4ae; }
+  .heat-critical { background: #ffebee; color: #b71c1c; font-weight: 700; }
+  .heat-high { background: #fff3e0; color: #bf360c; font-weight: 700; }
+  .heat-medium { background: #fff8e1; color: #ef6c00; font-weight: 700; }
+  .heat-low { background: #fffde7; color: #827717; font-weight: 700; }
+  .heat-info { background: #eceff1; color: #455a64; font-weight: 700; }
+  .portfolio-detail { padding: 0 16px 12px; }
+  .portfolio-detail p { margin: 8px 0; }
+  .source-chip { display: inline-block; margin: 2px 6px 2px 0; padding: 4px 8px; border-radius: 999px; background: #edf2f7; color: #334155; font-size: 12px; }
 
   /* Findings tables */
   details { background: #fff; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
@@ -537,8 +701,8 @@ $html = @"
 
 $runModeBannerHtml
 $deltaBannerHtml
-
 $sparklineHtml
+$portfolioSectionHtml
 
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
