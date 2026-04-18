@@ -141,9 +141,16 @@ function Get-RunHistory {
         Empty array when no history exists.
     #>
     [CmdletBinding()]
-    param ([Parameter(Mandatory)] [string] $OutputPath)
+    param (
+        [Parameter(Mandatory)] [string] $OutputPath,
+        [string] $HistoryPath
+    )
 
-    $historyRoot = Get-RunHistoryRoot -OutputPath $OutputPath
+    if ($HistoryPath) {
+        $historyRoot = $HistoryPath
+    } else {
+        $historyRoot = Get-RunHistoryRoot -OutputPath $OutputPath
+    }
     if (-not (Test-Path $historyRoot)) { return @() }
 
     $dirs = @(Get-ChildItem -Path $historyRoot -Directory -ErrorAction SilentlyContinue) |

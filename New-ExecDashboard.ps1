@@ -77,7 +77,7 @@ if (-not $ToolStatusPath) { $ToolStatusPath = Join-Path $inputDir 'tool-status.j
 $findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
 $history  = @()
 if (Get-Command Get-RunHistory -ErrorAction SilentlyContinue) {
-    $history = @(Get-RunHistory -OutputPath $inputDir)
+    $history = @(Get-RunHistory -OutputPath $inputDir -HistoryPath $HistoryPath)
 }
 
 $entities = @()

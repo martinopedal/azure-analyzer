@@ -255,4 +255,42 @@ Describe 'ExecDashboard' {
         $html = Get-Content $output -Raw
         $html | Should -Match 'Non-compliant findings only'
     }
+
+    It 'uses -HistoryPath when supplied instead of InputPath\history (R2 GPT-5.4 fix)' {
+        $dirA = Join-Path $TestDrive 'dashboard-hp-inputdir'
+        $dirB = Join-Path $TestDrive 'dashboard-hp-altdir'
+        $null = New-Item -ItemType Directory -Path $dirA -Force
+        $null = New-Item -ItemType Directory -Path $dirB -Force
+
+        $resultsPath = Join-Path $dirA 'results.json'
+        $sub = '22222222-2222-2222-2222-222222222222'
+        $current = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/storage/x" 'High'
+        )
+        $current | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8
+
+        # Populate ONLY dirB with historical snapshots carrying a distinctive stamp.
+        $snapResults = Join-Path $dirB 'results.json'
+        $prior = @(
+            NewFinding 'azqr' "/subscriptions/$sub/rg/a/storage/x" 'Critical'
+        )
+        $prior | ConvertTo-Json -Depth 5 | Set-Content -Path $snapResults -Encoding UTF8
+        $null = Save-RunSnapshot -OutputPath $dirB -ResultsPath $snapResults -Timestamp ([datetime]'2020-06-15T12:00:00Z')
+        $null = Save-RunSnapshot -OutputPath $dirB -ResultsPath $snapResults -Timestamp ([datetime]'2020-06-16T12:00:00Z')
+
+        # dirA has NO history/ subdir - if -HistoryPath is ignored, dashboard would show "first run".
+        $altHistoryDir = Join-Path $dirB 'history'
+        (Test-Path (Join-Path $dirA 'history')) | Should -BeFalse
+        (Test-Path $altHistoryDir) | Should -BeTrue
+
+        $output = Join-Path $TestDrive 'dashboard-hp.html'
+        & (Join-Path $RootDir 'New-ExecDashboard.ps1') `
+            -InputPath $resultsPath `
+            -HistoryPath $altHistoryDir `
+            -OutputPath $output | Out-Null
+
+        $html = Get-Content $output -Raw
+        # Distinctive stamp from dirB's snapshots must appear in the "vs <prevRun.Stamp>" delta label.
+        $html | Should -Match '2020-06-15-120000'
+    }
 }
