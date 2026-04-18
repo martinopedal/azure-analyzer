@@ -20,6 +20,10 @@ on:
   # Manual trigger
   workflow_dispatch:
 
+concurrency:
+  group: squad-heartbeat-${{ github.repository }}
+  cancel-in-progress: false
+
 permissions:
   issues: write
   contents: read
@@ -94,13 +98,14 @@ jobs:
                 ].join('\n');
 
                 // Look for an existing heartbeat comment on this issue.
-                const { data: existing } = await github.rest.issues.listComments({
+                // Paginate so the marker is found even on long threads (#113 fix).
+                const allComments = await github.paginate(github.rest.issues.listComments, {
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: decision.issueNumber,
                   per_page: 100
                 });
-                const prior = existing.find(c => c.body && c.body.includes(marker));
+                const prior = allComments.find(c => c.body && c.body.includes(marker));
 
                 if (prior) {
                   await github.rest.issues.updateComment({
