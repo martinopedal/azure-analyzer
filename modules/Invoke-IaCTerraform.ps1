@@ -96,27 +96,16 @@ try {
 
     Write-Verbose "Running Terraform IaC validation on '$RepoPath'"
 
-    if (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue) {
-        return Invoke-IaCAdapter -Flavour 'terraform' -RepoPath $RepoPath
-    }
-
-    # Fallback: direct validation if adapter not loaded
-    $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $tfFiles = Get-ChildItem -Path $RepoPath -Filter '*.tf' -Recurse -File -ErrorAction SilentlyContinue
-
-    if (-not $tfFiles -or $tfFiles.Count -eq 0) {
+    if (-not (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue)) {
+        Write-Warning "IaCAdapters module not loaded. Terraform IaC validation cannot proceed."
         return [PSCustomObject]@{
-            Source = 'terraform-iac'; Status = 'Success'
-            Message = 'No .tf files found'; Findings = @()
+            Source = 'terraform-iac'; Status = 'Failed'
+            Message = 'IaCAdapters module not loaded. Ensure modules/iac/IaCAdapters.ps1 is present.'
+            Findings = @()
         }
     }
 
-    return [PSCustomObject]@{
-        Source   = 'terraform-iac'
-        Status   = 'Success'
-        Message  = ''
-        Findings = $findings
-    }
+    return Invoke-IaCAdapter -Flavour 'terraform' -RepoPath $RepoPath
 } catch {
     Write-Warning "Terraform IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{

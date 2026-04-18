@@ -3,7 +3,7 @@
 .SYNOPSIS
     Normalizer for Bicep IaC validation findings.
 .DESCRIPTION
-    Converts raw Bicep wrapper output to v3 FindingRow objects.
+    Converts raw Bicep wrapper output to v2 FindingRow objects.
     Platform=GitHub, EntityType=Repository.
 #>
 [CmdletBinding()]

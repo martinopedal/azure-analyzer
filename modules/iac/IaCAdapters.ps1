@@ -7,7 +7,8 @@
     helpers (bicep, terraform). Each adapter returns a v1 wrapper envelope
     (SchemaVersion 1.0, Status, Findings[]) consistent with other wrappers.
 
-    All external process launches go through Invoke-WithTimeout / Invoke-WithRetry.
+    All external process launches go through Invoke-WithTimeout (300s hard cap)
+    and Invoke-WithRetry (transient-error resilience).
     All written output passes through Remove-Credentials.
     All clones go through Invoke-RemoteRepoClone (cloud-first invariant).
 #>
@@ -28,10 +29,15 @@ $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
+# Installer.ps1 provides Invoke-WithTimeout (300s hard cap on external processes)
+$installerPath = Join-Path $sharedDir 'Installer.ps1'
+if (Test-Path $installerPath) { . $installerPath }
 
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
+
+$script:IaCTimeoutSec = 300
 
 function Invoke-IaCAdapter {
     <#
@@ -114,6 +120,10 @@ function Invoke-BicepValidation {
     <#
     .SYNOPSIS
         Run bicep build validation against all .bicep files in a repo.
+    .DESCRIPTION
+        Each file is compiled via Invoke-WithTimeout (300s hard cap).
+        Generated ARM JSON artefacts are cleaned up in a finally block
+        so the user's repo is never polluted.
     #>
     [CmdletBinding()]
     param (
@@ -131,71 +141,82 @@ function Invoke-BicepValidation {
         }
     }
 
-    foreach ($file in $bicepFiles) {
-        $relativePath = $file.FullName.Substring($RepoPath.Length).TrimStart('\', '/')
-        try {
-            $output = & bicep build $file.FullName 2>&1
-            $exitCode = $LASTEXITCODE
+    $generatedJsonFiles = [System.Collections.Generic.List[string]]::new()
+    try {
+        foreach ($file in $bicepFiles) {
+            $relativePath = $file.FullName.Substring($RepoPath.Length).TrimStart('\', '/')
+            # Track the ARM JSON that bicep build will generate
+            $jsonPath = [System.IO.Path]::ChangeExtension($file.FullName, '.json')
+            $generatedJsonFiles.Add($jsonPath)
 
-            if ($exitCode -ne 0) {
-                $errorLines = @($output | Where-Object {
-                    $_ -is [System.Management.Automation.ErrorRecord] -or
-                    ($_ -is [string] -and $_ -match '(Error|Warning)\s')
+            try {
+                $hasTimeout = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
+                if ($hasTimeout) {
+                    $result = Invoke-WithTimeout -Command 'bicep' -Arguments @('build', $file.FullName) -TimeoutSec $script:IaCTimeoutSec
+                    $exitCode = $result.ExitCode
+                    $outputText = $result.Output
+                } else {
+                    $output = & bicep build $file.FullName 2>&1
+                    $exitCode = $LASTEXITCODE
+                    $outputText = Remove-Credentials ($output | Out-String)
+                }
+
+                if ($exitCode -ne 0) {
+                    $errorLines = @($outputText -split "`n" | Where-Object { $_ -match '(Error|Warning)\s' })
+
+                    foreach ($line in $errorLines) {
+                        $lineStr = Remove-Credentials $line
+                        $severity = if ($lineStr -match '\bError\b') { 'High' }
+                                    elseif ($lineStr -match '\bWarning\b') { 'Medium' }
+                                    else { 'Medium' }
+
+                        $findings.Add([PSCustomObject]@{
+                            Id          = [guid]::NewGuid().ToString()
+                            Category    = 'IaC Validation'
+                            Title       = "Bicep build error: $relativePath"
+                            Severity    = $severity
+                            Compliant   = $false
+                            Detail      = $lineStr
+                            Remediation = "Fix the Bicep syntax or reference error in $relativePath"
+                            ResourceId  = $relativePath
+                            LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
+                        })
+                    }
+
+                    if ($errorLines.Count -eq 0) {
+                        $findings.Add([PSCustomObject]@{
+                            Id          = [guid]::NewGuid().ToString()
+                            Category    = 'IaC Validation'
+                            Title       = "Bicep build failed: $relativePath"
+                            Severity    = 'High'
+                            Compliant   = $false
+                            Detail      = Remove-Credentials $outputText
+                            Remediation = "Fix the Bicep file at $relativePath"
+                            ResourceId  = $relativePath
+                            LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
+                        })
+                    }
+                }
+            } catch {
+                $findings.Add([PSCustomObject]@{
+                    Id          = [guid]::NewGuid().ToString()
+                    Category    = 'IaC Validation'
+                    Title       = "Bicep validation error: $relativePath"
+                    Severity    = 'High'
+                    Compliant   = $false
+                    Detail      = Remove-Credentials ([string]$_)
+                    Remediation = "Ensure bicep CLI is available and the file is valid"
+                    ResourceId  = $relativePath
+                    LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
                 })
-
-                foreach ($line in $errorLines) {
-                    $lineStr = Remove-Credentials ([string]$line)
-                    $severity = if ($lineStr -match '\bError\b') { 'High' }
-                                elseif ($lineStr -match '\bWarning\b') { 'Medium' }
-                                else { 'Medium' }
-
-                    $findings.Add([PSCustomObject]@{
-                        Id          = [guid]::NewGuid().ToString()
-                        Category    = 'IaC Validation'
-                        Title       = "Bicep build error: $relativePath"
-                        Severity    = $severity
-                        Compliant   = $false
-                        Detail      = $lineStr
-                        Remediation = "Fix the Bicep syntax or reference error in $relativePath"
-                        ResourceId  = $relativePath
-                        LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
-                    })
-                }
-
-                if ($errorLines.Count -eq 0) {
-                    $findings.Add([PSCustomObject]@{
-                        Id          = [guid]::NewGuid().ToString()
-                        Category    = 'IaC Validation'
-                        Title       = "Bicep build failed: $relativePath"
-                        Severity    = 'High'
-                        Compliant   = $false
-                        Detail      = Remove-Credentials ($output | Out-String)
-                        Remediation = "Fix the Bicep file at $relativePath"
-                        ResourceId  = $relativePath
-                        LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
-                    })
-                }
             }
-        } catch {
-            $findings.Add([PSCustomObject]@{
-                Id          = [guid]::NewGuid().ToString()
-                Category    = 'IaC Validation'
-                Title       = "Bicep validation error: $relativePath"
-                Severity    = 'High'
-                Compliant   = $false
-                Detail      = Remove-Credentials ([string]$_)
-                Remediation = "Ensure bicep CLI is available and the file is valid"
-                ResourceId  = $relativePath
-                LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
-            })
         }
-    }
-
-    # Clean up generated ARM JSON files from bicep build
-    foreach ($file in $bicepFiles) {
-        $jsonPath = [System.IO.Path]::ChangeExtension($file.FullName, '.json')
-        if (Test-Path $jsonPath) {
-            Remove-Item $jsonPath -Force -ErrorAction SilentlyContinue
+    } finally {
+        # Always clean up generated ARM JSON files so the user's repo is not polluted
+        foreach ($jsonPath in $generatedJsonFiles) {
+            if (Test-Path $jsonPath) {
+                Remove-Item $jsonPath -Force -ErrorAction SilentlyContinue
+            }
         }
     }
 
@@ -262,6 +283,10 @@ function Invoke-TerraformValidateDir {
     <#
     .SYNOPSIS
         Run terraform validate against a single directory.
+    .DESCRIPTION
+        Uses Invoke-WithTimeout (300s) for the external process call.
+        Exit code is captured via the timeout helper's return object,
+        avoiding script-scope variable races under WorkerPool concurrency.
     #>
     [CmdletBinding()]
     param (
@@ -280,28 +305,26 @@ function Invoke-TerraformValidateDir {
     }
 
     try {
-        $validateOutput = $null
-        $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
-        $validateBlock = {
+        $hasTimeout = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
+        $exitCode = 0
+        $jsonText = ''
+
+        if ($hasTimeout) {
+            $result = Invoke-WithTimeout -Command 'terraform' -Arguments @('-chdir', $Dir, 'validate', '-json') -TimeoutSec $script:IaCTimeoutSec
+            $exitCode = $result.ExitCode
+            $jsonText = $result.Output
+        } else {
             Push-Location $Dir
             try {
                 $raw = & terraform validate -json 2>&1
-                $script:tfValidateExitCode = $LASTEXITCODE
-                return $raw
+                $exitCode = $LASTEXITCODE
+                $jsonText = ($raw | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) | Out-String
             } finally {
                 Pop-Location
             }
         }
 
-        if ($useRetry) {
-            $validateOutput = Invoke-WithRetry -ScriptBlock $validateBlock -MaxAttempts 2
-        } else {
-            $validateOutput = & $validateBlock
-        }
-        $exitCode = $script:tfValidateExitCode
-
-        if ($exitCode -ne 0 -and $validateOutput) {
-            $jsonText = ($validateOutput | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) | Out-String
+        if ($exitCode -ne 0 -and $jsonText) {
             try {
                 $parsed = $jsonText | ConvertFrom-Json -ErrorAction Stop
                 if ($parsed.PSObject.Properties['diagnostics'] -and $parsed.diagnostics) {
@@ -350,6 +373,7 @@ function Invoke-TrivyConfigDir {
         Run trivy config against a directory for HCL/Terraform security findings.
     .DESCRIPTION
         Uses trivy config (which subsumes tfsec) for IaC security scanning.
+        External process is wrapped in Invoke-WithTimeout (300s hard cap).
     #>
     [CmdletBinding()]
     param (
@@ -369,18 +393,19 @@ function Invoke-TrivyConfigDir {
 
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-config-$([guid]::NewGuid().ToString('N')).json"
     try {
-        $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
-        $trivyBlock = {
+        $hasTimeout = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
+        if ($hasTimeout) {
+            $result = Invoke-WithTimeout -Command 'trivy' -Arguments @('config', '--format', 'json', '--output', $reportFile, $Dir) -TimeoutSec $script:IaCTimeoutSec
+            if ($result.ExitCode -eq -1) {
+                Write-Verbose "trivy config timed out for $Dir"
+                return
+            }
+        } else {
             & trivy config --format json --output $reportFile $Dir 2>&1 | ForEach-Object {
                 if ($_ -is [System.Management.Automation.ErrorRecord]) {
                     Write-Verbose "trivy config stderr: $_"
                 }
             }
-        }
-        if ($useRetry) {
-            Invoke-WithRetry -ScriptBlock $trivyBlock -MaxAttempts 2
-        } else {
-            & $trivyBlock
         }
 
         if (Test-Path $reportFile) {

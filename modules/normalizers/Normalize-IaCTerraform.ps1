@@ -3,7 +3,7 @@
 .SYNOPSIS
     Normalizer for Terraform IaC validation findings.
 .DESCRIPTION
-    Converts raw Terraform wrapper output to v3 FindingRow objects.
+    Converts raw Terraform wrapper output to v2 FindingRow objects.
     Platform=GitHub, EntityType=Repository.
 
     Findings carry Source = terraform-iac with subkeys validate and trivy-config

@@ -655,7 +655,8 @@
           "brew": "bicep"
         },
         "linux": {
-          "url": "https://github.com/Azure/bicep/releases/latest"
+          "url": "https://github.com/Azure/bicep/releases/latest",
+          "note": "No package manager available for Linux; download the binary from the releases page and place on PATH. See https://learn.microsoft.com/azure/azure-resource-manager/bicep/install#linux"
         }
       },
       "upstream": {

@@ -358,12 +358,14 @@ Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if yo
 | 15 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
 | 16 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
 | 17 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
+| 18 | **Bicep IaC Validation** *(first-party)* | Bicep syntax and reference validation -- runs `bicep build` against all `.bicep` files to detect compilation errors, unresolved references, and type mismatches | CLI wrapper (`modules/Invoke-IaCBicep.ps1`) dispatches via `IaCAdapters.ps1`; each file is compiled with a 300s timeout; generated ARM JSON artefacts are cleaned up | MIT (this project) |
+| 19 | **Terraform IaC Validation** *(first-party)* | Terraform syntax + HCL security scanning -- runs `terraform validate` for syntax checks and `trivy config` (tfsec engine) for misconfigurations (open security groups, public storage, missing encryption) | CLI wrapper (`modules/Invoke-IaCTerraform.ps1`) dispatches via `IaCAdapters.ps1`; uses trivy's built-in tfsec rules instead of standalone tfsec | MIT (this project) |
 
 Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
-> **Note:** zizmor, gitleaks, and Trivy are cloud-first. When `-Repository` / `-AdoOrg` is provided they scan the **remote** repo via a vetted HTTPS clone (`modules/shared/RemoteClone.ps1`: allow-listed hosts github.com, dev.azure.com, `*.visualstudio.com`, `*.ghe.com`; auth tokens scrubbed from `.git/config` after clone). When neither is provided they fall back to scanning `-RepoPath` / `-ScanPath` on the local filesystem. gitleaks is invoked with `--redact` so report files never contain plaintext secrets.
+> **Note:** zizmor, gitleaks, Trivy, Bicep IaC Validation, and Terraform IaC Validation are cloud-first. When `-Repository` / `-AdoOrg` is provided they scan the **remote** repo via a vetted HTTPS clone (`modules/shared/RemoteClone.ps1`: allow-listed hosts github.com, dev.azure.com, `*.visualstudio.com`, `*.ghe.com`; auth tokens scrubbed from `.git/config` after clone). When neither is provided they fall back to scanning `-RepoPath` / `-ScanPath` on the local filesystem. gitleaks is invoked with `--redact` so report files never contain plaintext secrets.
 
 ## Schema reference
 
@@ -377,7 +379,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `kubescape`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `identity-correlator`, `zizmor`, `gitleaks`, or `trivy` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `kubescape`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |

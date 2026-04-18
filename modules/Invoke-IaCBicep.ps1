@@ -88,61 +88,16 @@ try {
 
     Write-Verbose "Running Bicep IaC validation on '$RepoPath'"
 
-    if (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue) {
-        return Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $RepoPath
-    }
-
-    # Fallback: direct call if adapter not loaded
-    $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $bicepFiles = Get-ChildItem -Path $RepoPath -Filter '*.bicep' -Recurse -File -ErrorAction SilentlyContinue
-
-    if (-not $bicepFiles -or $bicepFiles.Count -eq 0) {
+    if (-not (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue)) {
+        Write-Warning "IaCAdapters module not loaded. Bicep IaC validation cannot proceed."
         return [PSCustomObject]@{
-            Source = 'bicep-iac'; Status = 'Success'
-            Message = 'No .bicep files found'; Findings = @()
+            Source = 'bicep-iac'; Status = 'Failed'
+            Message = 'IaCAdapters module not loaded. Ensure modules/iac/IaCAdapters.ps1 is present.'
+            Findings = @()
         }
     }
 
-    foreach ($file in $bicepFiles) {
-        $relativePath = $file.FullName.Substring($RepoPath.Length).TrimStart('\', '/')
-        try {
-            $output = & bicep build $file.FullName 2>&1
-            $exitCode = $LASTEXITCODE
-
-            if ($exitCode -ne 0) {
-                $findings.Add([PSCustomObject]@{
-                    Id          = [guid]::NewGuid().ToString()
-                    Category    = 'IaC Validation'
-                    Title       = "Bicep build failed: $relativePath"
-                    Severity    = 'High'
-                    Compliant   = $false
-                    Detail      = Remove-Credentials ($output | Out-String)
-                    Remediation = "Fix the Bicep file at $relativePath"
-                    ResourceId  = $relativePath
-                    LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
-                })
-            }
-        } catch {
-            $findings.Add([PSCustomObject]@{
-                Id          = [guid]::NewGuid().ToString()
-                Category    = 'IaC Validation'
-                Title       = "Bicep validation error: $relativePath"
-                Severity    = 'High'
-                Compliant   = $false
-                Detail      = Remove-Credentials ([string]$_)
-                Remediation = "Ensure bicep CLI is available and the file is valid"
-                ResourceId  = $relativePath
-                LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
-            })
-        }
-    }
-
-    return [PSCustomObject]@{
-        Source   = 'bicep-iac'
-        Status   = 'Success'
-        Message  = ''
-        Findings = $findings
-    }
+    return Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $RepoPath
 } catch {
     Write-Warning "Bicep IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
