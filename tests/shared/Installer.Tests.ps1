@@ -340,3 +340,95 @@ Describe 'Manifest wiring' {
         $manifest.schemaVersion | Should -Be '2.2'
     }
 }
+
+Describe 'Install-CliTool preferredManagers ordering' {
+    BeforeAll {
+        $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+        . (Join-Path $repoRoot 'modules\shared\Installer.ps1')
+    }
+
+    It 'uses preferredManagers order when present in install spec' {
+        # Build an install spec with preferredManagers: [pipx, pip]
+        # and OS blocks that have both managers available.
+        # Since neither manager is installed on CI, both will "fail"
+        # but we can verify the function tries them in order via
+        # mocking Invoke-PackageManager.
+        $triedManagers = [System.Collections.Generic.List[string]]::new()
+        Mock Invoke-PackageManager {
+            param($Manager, $Package)
+            $triedManagers.Add($Manager)
+            return $false
+        }
+        Mock Test-CliAvailable { param($Command)
+            if ($Command -eq 'fake-preferred-cmd') { return $false }
+            # Return true for package manager binaries so they are "available"
+            if ($Command -in @('pipx', 'pip')) { return $true }
+            return $false
+        }
+
+        $spec = [PSCustomObject]@{
+            kind = 'cli'
+            command = 'fake-preferred-cmd'
+            preferredManagers = @('pipx', 'pip')
+            windows = [PSCustomObject]@{ pipx = 'mypkg'; pip = 'mypkg' }
+            macos   = [PSCustomObject]@{ pipx = 'mypkg'; pip = 'mypkg' }
+            linux   = [PSCustomObject]@{ pipx = 'mypkg'; pip = 'mypkg' }
+        }
+
+        $result = Install-CliTool -InstallSpec $spec -ToolName 'FakePreferred'
+        $result | Should -BeFalse
+
+        # Verify order: pipx tried before pip
+        $triedManagers.Count | Should -BeGreaterOrEqual 2
+        $triedManagers[0] | Should -Be 'pipx'
+        $triedManagers[1] | Should -Be 'pip'
+    }
+
+    It 'ManagerOverride beats preferredManagers' {
+        $triedManagers = [System.Collections.Generic.List[string]]::new()
+        Mock Invoke-PackageManager {
+            param($Manager, $Package)
+            $triedManagers.Add($Manager)
+            return $false
+        }
+        Mock Test-CliAvailable { param($Command)
+            if ($Command -eq 'fake-override-cmd') { return $false }
+            if ($Command -in @('brew', 'pipx', 'pip')) { return $true }
+            return $false
+        }
+
+        $spec = [PSCustomObject]@{
+            kind = 'cli'
+            command = 'fake-override-cmd'
+            preferredManagers = @('pipx', 'pip')
+            windows = [PSCustomObject]@{ pipx = 'mypkg'; pip = 'mypkg'; brew = 'mypkg' }
+            macos   = [PSCustomObject]@{ pipx = 'mypkg'; pip = 'mypkg'; brew = 'mypkg' }
+            linux   = [PSCustomObject]@{ pipx = 'mypkg'; pip = 'mypkg'; brew = 'mypkg' }
+        }
+
+        $result = Install-CliTool -InstallSpec $spec -ToolName 'FakeOverride' -ManagerOverride 'brew'
+        $result | Should -BeFalse
+
+        # brew (override) must be tried first
+        $triedManagers[0] | Should -Be 'brew'
+    }
+
+    It 'defense-in-depth: rejects disallowed manager in preferredManagers' {
+        Mock Invoke-PackageManager { return $false }
+        Mock Test-CliAvailable { param($Command) return $false }
+
+        $spec = [PSCustomObject]@{
+            kind = 'cli'
+            command = 'fake-defense-cmd'
+            preferredManagers = @('curl', 'pipx')
+            windows = [PSCustomObject]@{ curl = 'mypkg'; pipx = 'mypkg' }
+            macos   = [PSCustomObject]@{ curl = 'mypkg'; pipx = 'mypkg' }
+            linux   = [PSCustomObject]@{ curl = 'mypkg'; pipx = 'mypkg' }
+        }
+
+        # Should warn about curl but not throw
+        $result = Install-CliTool -InstallSpec $spec -ToolName 'FakeDefense' 3>&1
+        $warnings = $result | Where-Object { $_ -is [System.Management.Automation.WarningRecord] }
+        ($warnings | Where-Object { $_.Message -match 'disallowed.*curl' }) | Should -Not -BeNullOrEmpty
+    }
+}

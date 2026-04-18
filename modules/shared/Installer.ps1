@@ -389,7 +389,21 @@ function Install-CliTool {
         }
     }
 
-    foreach ($mgr in $script:AllowedPackageManagers) {
+    # Use preferredManagers from manifest when present (ordered list);
+    # fall back to global allow-list otherwise. Defense-in-depth: each
+    # manager is re-checked against the allow-list before use.
+    $mgrList = $script:AllowedPackageManagers
+    if ($InstallSpec.PSObject.Properties['preferredManagers'] -and $InstallSpec.preferredManagers) {
+        $mgrList = @($InstallSpec.preferredManagers)
+    }
+
+    foreach ($mgr in $mgrList) {
+        # Defense-in-depth: reject any manager not in the global allow-list,
+        # even if it somehow ended up in preferredManagers.
+        if ($script:AllowedPackageManagers -notcontains $mgr) {
+            Write-Warning "Skipping disallowed manager '$mgr' in preferredManagers for $ToolName."
+            continue
+        }
         if ($osBlock.PSObject.Properties[$mgr]) {
             $pkg = [string]$osBlock.$mgr
             Write-Host "  Installing $ToolName via $mgr ($pkg) ..." -ForegroundColor Yellow

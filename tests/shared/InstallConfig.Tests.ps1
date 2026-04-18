@@ -192,13 +192,13 @@ Describe 'Read-InstallConfig' {
         $result.schemaVersion | Should -Be '1.0'
     }
 
-    It 'uses default path when -Path is empty' {
-        # Just verifying it doesn't throw
+    It 'uses default path when -Path is empty and returns valid config or null' {
         $result = Read-InstallConfig -Path '' -Manifest $manifest
-        # Result depends on whether tools/install-config.json exists
-        # (it does in our repo, with an empty tools block)
-        # Just verify no exception
-        $true | Should -BeTrue
+        # install-config.json exists in repo with empty tools block, so we get a config
+        if ($null -ne $result) {
+            $result.schemaVersion | Should -Be '1.0'
+        }
+        # Either way, no exception is the point
     }
 }
 
