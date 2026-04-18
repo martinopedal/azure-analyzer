@@ -1234,7 +1234,7 @@ Store `## Issue Source` in `team.md` with repository, connection date, and filte
 
 ### Issue → PR → Merge Lifecycle
 
-Agents create branch (`squad/{issue-number}-{slug}`), do work, commit referencing issue, push, and open PR via `gh pr create`. See `.squad/templates/issue-lifecycle.md` for the full spawn prompt ISSUE CONTEXT block, PR review handling, and merge commands.
+Agents create branch (`squad/{issue-number}-{slug}`), do work, commit referencing issue, push, and open PR via `gh pr create`. **Before** calling `gh pr create`, every agent MUST populate a `## Self-review` section in the PR body (Diff summary — 3 bullets max, Risks considered including "out of scope on purpose", Testing evidence). See `.squad/templates/issue-lifecycle.md` for the full PR description template and `.copilot/copilot-instructions.md` → "Squad Pre-PR Self-Review" for the enforcement contract.
 
 After issue work completes, follow standard After Agent Work flow.
 
