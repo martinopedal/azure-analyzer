@@ -65,6 +65,7 @@ param (
     [string[]] $ExcludeTools,
     [switch] $SkipPrereqCheck,
     [switch] $InstallMissingModules,
+    [string] $InstallConfigPath,
     [switch] $Recurse,
     [string] $Repository,
     [string] $GitHubHost = 'github.com',
@@ -177,13 +178,30 @@ if ($shouldRecurse) {
 # ---------------------------------------------------------------------------
 # Prerequisite check (manifest-driven auto-installer)
 # ---------------------------------------------------------------------------
+$installConfig = Read-InstallConfig -Path $InstallConfigPath -Manifest $manifest
+
+# defaults.autoInstall from config enables auto-install when the CLI flag
+# was not explicitly passed (CLI > config > off).
+$effectiveInstallMissing = $InstallMissingModules
+if (-not $PSBoundParameters.ContainsKey('InstallMissingModules') -and
+    $null -ne $installConfig -and
+    $installConfig.PSObject.Properties['defaults'] -and
+    $null -ne $installConfig.defaults -and
+    $installConfig.defaults.PSObject.Properties['autoInstall'] -and
+    $installConfig.defaults.autoInstall -eq $true) {
+    $effectiveInstallMissing = $true
+    Write-Verbose "[install-config] defaults.autoInstall=true; enabling auto-install."
+}
+
 if (-not $SkipPrereqCheck) {
     $shouldRunRef = { param($name) ShouldRunTool $name }.GetNewClosure()
     $null = Install-PrerequisitesFromManifest `
         -Manifest $manifest `
         -RepoRoot $PSScriptRoot `
         -ShouldRunTool $shouldRunRef `
-        -SkipInstall:(-not $InstallMissingModules)
+        -SkipInstall:(-not $effectiveInstallMissing) `
+        -InstallConfig $installConfig `
+        -CliIncludedTools $IncludeTools
 }
 
 # ---------------------------------------------------------------------------
@@ -261,6 +279,21 @@ foreach ($toolDef in $manifest.tools) {
     if (-not (ShouldRunTool $toolDef.name)) {
         $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Excluded'; Message = 'Excluded by user'; Findings = 0 })
         continue
+    }
+
+    # Check install config for enabled=false override (skips scan as well as install),
+    # but CLI -IncludeTools takes precedence (CLI > config > manifest).
+    $cliExplicitInclude = $IncludeTools -and ($toolDef.name -in $IncludeTools)
+    if (-not $cliExplicitInclude -and
+        $null -ne $installConfig -and
+        $installConfig.PSObject.Properties['tools'] -and
+        $null -ne $installConfig.tools -and
+        $installConfig.tools.PSObject.Properties[$toolDef.name]) {
+        $cfgEntry = $installConfig.tools.($toolDef.name)
+        if ($cfgEntry.PSObject.Properties['enabled'] -and $cfgEntry.enabled -eq $false) {
+            $toolStatus.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'Disabled by install config'; Findings = 0 })
+            continue
+        }
     }
 
     # Correlators run post-collection, not in the parallel tool loop

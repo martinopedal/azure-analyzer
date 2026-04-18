@@ -83,6 +83,25 @@ The installer enforces a 300s timeout on external commands, scrubs credentials f
 
 **AzGovViz auto-bootstrap:** when `-InstallMissingModules` is set and AzGovViz is enabled, the installer clones `https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting` into `tools/AzGovViz/` on first run — no manual step required.
 
+**Declarative install config:** Drop a `tools/install-config.json` to allow/deny tools and override the package manager per tool. The file is optional; its absence changes nothing. Schema:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "defaults": { "autoInstall": true },
+  "tools": {
+    "trivy":    { "enabled": true,  "manager": "winget" },
+    "gitleaks": { "enabled": false }
+  }
+}
+```
+
+- `enabled: false` skips the tool at both install and scan time (Status=Skipped).
+- `manager` must be in the security allow-list (winget/brew/pipx/pip/snap); other values are rejected.
+- `defaults.autoInstall: true` enables auto-install even without `-InstallMissingModules` (equivalent to passing the flag).
+- **Precedence:** CLI flags > config file > manifest defaults. `-IncludeTools trivy` re-enables trivy even if config sets `enabled: false`. `-InstallMissingModules` (explicit) overrides `defaults.autoInstall`.
+- Pass `-InstallConfigPath` to point at a custom location (defaults to `tools/install-config.json`).
+
 Results land in `output/` -- multiple JSON files (findings, entities, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
 Sensitive tokens are scrubbed from console output, errors.json, and report files before writing.
 
