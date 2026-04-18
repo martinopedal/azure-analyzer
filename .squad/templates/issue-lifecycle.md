@@ -373,13 +373,16 @@ PR review feedback is tagged with one of four severity labels. Only `[blocker]` 
 
 **3-model gate spawn convention:** Reviewer prompts (Opus 4.6, Goldeneye, GPT-5.3-codex) MUST instruct each model to prefix every finding with one of the four tags in square brackets (e.g. `[blocker] secrets leaked to logs in line 42`). One tag per finding line; split multi-concern comments into separate lines. When ambiguous, reviewers pick the more severe tag.
 
-**Gate-pass criteria:** A PR passes the gate when **either** holds:
-1. **2-of-3 APPROVE** from the 3-model gate, OR
-2. **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only** (no `[blocker]` / `[correctness]` present).
+**Gate-pass criteria:** A PR passes the gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto):
+
+1. **No `[blocker]` or `[correctness]` finding from any reviewer.** Even one such finding fails the gate.
+2. **Either**:
+   - **2-of-3 APPROVE** from the 3-model gate, OR
+   - **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only**.
 
 Untagged findings are treated as `[correctness]` (fail-safe toward the gate). Authors are not required to address `[style]`/`[nit]` before merge.
 
-> Full taxonomy contract and reviewer instructions live in `.copilot/copilot-instructions.md` → "Review Severity Taxonomy". Auto-classification (#109) and workflow enforcement (`pr-review-gate.yml` updates) are tracked separately and out of scope here.
+> Full taxonomy contract and reviewer instructions live in `.copilot/copilot-instructions.md` -> "Review Severity Taxonomy". Auto-classification (#109) and workflow enforcement (`pr-review-gate.yml` updates) are tracked separately and out of scope here.
 
 ### Automated Approval (CI-only projects)
 

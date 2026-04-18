@@ -93,11 +93,11 @@ For every Copilot comment on a PR or on the linked issue:
 | **When** | before-merge |
 | **Condition** | any code PR |
 | **Participants** | opus-4.6, goldeneye, gpt-5.3-codex |
-| **Gate** | all-approve |
+| **Gate** | severity-aware (see `.copilot/copilot-instructions.md` -> "Review Severity Taxonomy") |
 | **Enabled** | yes |
 
 **Process:**
 1. All 3 models review independently
 2. Parse-check all .ps1 files, verify no ?. syntax
 3. Check error handling and CLI tool wrapper compliance
-4. All 3 must APPROVE before merge gate opens
+4. Gate-pass rules per `.copilot/copilot-instructions.md` -> "Review Severity Taxonomy" (no `[blocker]`/`[correctness]` AND either 2-of-3 APPROVE or only `[style]`/`[nit]` change-requests)

@@ -6,7 +6,7 @@ All code changes follow this pipeline:
 
 1. **Build** - implement on a feature branch, run tests locally
 2. **Review Gate** - 3-model code review (Opus 4.6 + Goldeneye + GPT-5.3-codex)
-   - All 3 must APPROVE before merge
+   - Gate-pass rules are defined in "Review Severity Taxonomy" below (this supersedes the older "all 3 must APPROVE" rule)
    - Parse-check all .ps1 files, verify no ?. syntax, check error handling
 3. **Fix** - address all findings from reviewers
 4. **Re-gate** - re-run review with the models that rejected, verify fixes
@@ -20,7 +20,7 @@ When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are ad
 
 ## Review Severity Taxonomy (#108)
 
-PR review feedback (Copilot, the 3-model gate, or humans) currently mixes blockers, correctness defects, style preferences, and trivial nits — and the gate treats them all the same. To stop burning premium tokens on low-value feedback and to keep the Reviewer Rejection Lockout signal sharp, every reviewer finding **must** be tagged with one of four severity labels.
+PR review feedback (Copilot, the 3-model gate, or humans) currently mixes blockers, correctness defects, style preferences, and trivial nits, and the gate treats them all the same. To stop burning premium tokens on low-value feedback and to keep the Reviewer Rejection Lockout signal sharp, every reviewer finding **must** be tagged with one of four severity labels.
 
 **Reviewers MUST prefix each finding with one of these tags:**
 
@@ -33,17 +33,22 @@ PR review feedback (Copilot, the 3-model gate, or humans) currently mixes blocke
 
 **Gate-pass criteria (severity-aware):**
 
-A PR passes the review gate when **either** condition holds:
-1. **2-of-3 APPROVE** from the 3-model gate (Opus + Goldeneye + GPT codex), OR
-2. **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only** — no `[blocker]` or `[correctness]` tags present in any reviewer's findings.
+This section supersedes the older "all 3 must APPROVE" rule referenced in the Development Process above.
 
-If even one finding is tagged `[blocker]` or `[correctness]`, the gate fails and Reviewer Rejection Lockout activates regardless of how many reviewers approved overall. Untagged findings are treated as `[correctness]` (fail-safe toward the gate) until a reviewer or follow-up classifier (#109) labels them.
+A PR passes the review gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto):
+
+1. **No `[blocker]` or `[correctness]` finding from any reviewer.** Even one such finding fails the gate and activates Reviewer Rejection Lockout, regardless of how many reviewers approved overall.
+2. **Either** of the following:
+   - **2-of-3 APPROVE** from the 3-model gate (Opus + Goldeneye + GPT codex), OR
+   - **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only.**
+
+Untagged findings are treated as `[correctness]` (fail-safe toward the gate) until a reviewer or follow-up classifier (#109) labels them.
 
 **Reviewer instructions:**
 - Prefix every finding line with the tag in square brackets, e.g. `[blocker] secrets written to logs in line 42`.
 - One tag per finding. If a single comment contains multiple concerns, split them into separate tagged lines.
 - When in doubt between two severities, pick the more severe one. Reviewers can downgrade in re-review; upgrading after merge is harder.
-- `[style]` and `[nit]` are advice, not gates — authors may address them but are not required to before merge.
+- `[style]` and `[nit]` are advice, not gates; authors may address them but are not required to before merge.
 
 ## Squad PRs - Draft by Default (#113)
 
