@@ -1,0 +1,48 @@
+name: PR Auto-Resolve Review Threads
+
+# Closes part of #106. When a squad agent pushes a fix that addresses an
+# inline review comment, the corresponding review thread is auto-resolved.
+# Threads whose file/line range was NOT touched by the new commits stay open
+# (the reviewer decides). Disable with `SQUAD_AUTO_RESOLVE_THREADS=0`.
+
+on:
+  pull_request:
+    types: [synchronize, ready_for_review, reopened]
+  pull_request_review:
+    types: [submitted, edited]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+concurrency:
+  group: pr-auto-resolve-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-resolve:
+    # Skip drafts that have not had a review yet — nothing to resolve.
+    if: github.event.pull_request != null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install PowerShell
+        run: |
+          if ! command -v pwsh >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y powershell
+          fi
+
+      - name: Resolve addressed review threads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+          SQUAD_AUTO_RESOLVE_THREADS: ${{ vars.SQUAD_AUTO_RESOLVE_THREADS || '1' }}
+        shell: pwsh
+        run: |
+          ./modules/shared/Resolve-PRReviewThreads.ps1 `
+            -PRNumber ([int]$env:PR_NUMBER) `
+            -Repo $env:REPO_NAME
