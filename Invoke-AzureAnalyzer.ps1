@@ -681,7 +681,6 @@ if ($EnableAiTriage) {
 }
 $triageArg    = if (Test-Path $triageFile) { @{ TriagePath = $triageFile } } else { @{} }
 $snapshotDir  = Join-Path $OutputPath 'snapshots'
-$runId        = Get-Date -Format 'yyyyMMdd-HHmmss'
 
 # 1. Resolve baseline BEFORE archiving the current run so it is not in the index yet.
 #    Explicit -PreviousRun always wins over -BaselineMode auto-discovery.
@@ -698,25 +697,28 @@ if ($PreviousRun -and (Test-Path $PreviousRun)) {
 
 $prevRunArg = if ($resolvedBaseline) { @{ PreviousRun = $resolvedBaseline } } else { @{} }
 
-# 2. Archive current results.json into the snapshot index so trend includes it.
-if (Get-Command Add-RunSnapshot -ErrorAction SilentlyContinue) {
-    try {
-        Add-RunSnapshot -SnapshotDir $snapshotDir -RunId $runId -SourceFile $outputFile -MaxHistory 10
-    } catch {
-        Write-Warning (Remove-Credentials "Snapshot archive failed: $_")
-    }
-}
-
-# 3. Build trend array AFTER snapshot so current run is included in the sparkline.
+# 2. Archive + trend are both suppressed when -BaselineMode none.
+#    RunId uses millisecond precision + random suffix to avoid second-resolution collision
+#    on concurrent or rapid successive runs.
 $trendArg = @{}
-if (Get-Command Get-RunTrend -ErrorAction SilentlyContinue) {
-    try {
-        $trend = Get-RunTrend -SnapshotDir $snapshotDir -MaxRuns 10
-        if ($trend.Count -ge 2) {
-            $trendArg = @{ Trend = $trend }
+if ($BaselineMode -ne 'none') {
+    $runId = "$((Get-Date -Format 'yyyyMMdd-HHmmssfff'))-$(Get-Random -Max 9999)"
+    if (Get-Command Add-RunSnapshot -ErrorAction SilentlyContinue) {
+        try {
+            Add-RunSnapshot -SnapshotDir $snapshotDir -RunId $runId -SourceFile $outputFile -MaxHistory 10
+        } catch {
+            Write-Warning (Remove-Credentials "Snapshot archive failed: $_")
         }
-    } catch {
-        Write-Warning (Remove-Credentials "Trend aggregation failed: $_")
+    }
+    if (Get-Command Get-RunTrend -ErrorAction SilentlyContinue) {
+        try {
+            $trend = Get-RunTrend -SnapshotDir $snapshotDir -MaxRuns 10
+            if ($trend.Count -ge 2) {
+                $trendArg = @{ Trend = $trend }
+            }
+        } catch {
+            Write-Warning (Remove-Credentials "Trend aggregation failed: $_")
+        }
     }
 }
 

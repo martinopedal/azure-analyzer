@@ -289,7 +289,7 @@ The hook is **opt-in** — developers must run the installer manually. It won't 
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
 | `-PreviousRun` | string | -- | Explicit path to a prior `results.json`; wins over `-BaselineMode`; HTML renders New/Resolved/Unchanged badges + delta banner |
-| `-BaselineMode` | `auto`\|`none` | `auto` | Controls auto-baseline discovery. `auto` picks the most recent prior `results.json` from `$OutputPath/snapshots/` (logs chosen path); `none` disables comparison entirely |
+| `-BaselineMode` | `auto`\|`none` | `auto` | Controls auto-baseline discovery. `auto` picks the most recent prior `results.json` from `$OutputPath/snapshots/` (logs chosen path); `none` disables comparison AND snapshot archival entirely |
 | `-InstallFalco` | switch | `$false` | Opt-in Falco install mode for AKS (Helm deploy, short capture window, then collect alerts) |
 | `-UninstallFalco` | switch | `$false` | With `-InstallFalco`, uninstall Falco release after collection |
 | `-FalcoCaptureMinutes` | int (1-60) | 5 | Capture window in minutes for Falco install mode before collecting daemonset alerts |

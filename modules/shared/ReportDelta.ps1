@@ -106,8 +106,8 @@ function Resolve-BaselineRun {
     .SYNOPSIS
         Returns the path to the most recent snapshot in a snapshot index, for use as a delta baseline.
     .DESCRIPTION
-        Reads SnapshotDir/index.json (written by Add-RunSnapshot) and returns the full path to the
-        most recent entry's snapshot file, or $null when no prior snapshot exists.
+        Reads SnapshotDir/index.json (SchemaVersion 1.0, written by Add-RunSnapshot) and returns
+        the full path to the most recent entry's snapshot file, or $null when no prior snapshot exists.
 
         Call this BEFORE Add-RunSnapshot so the current run is not yet in the index.
         The snapshot-index design avoids scanning parent directories for sibling results.json files,
@@ -129,10 +129,19 @@ function Resolve-BaselineRun {
     $indexPath = Join-Path $SnapshotDir 'index.json'
     if (-not (Test-Path $indexPath)) { return $null }
     try {
-        $index = @(Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop)
-        if ($index.Count -eq 0) { return $null }
+        $parsed = Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (-not ($parsed.PSObject.Properties['SchemaVersion'])) {
+            Write-Warning "Resolve-BaselineRun: index.json has no SchemaVersion; skipping baseline."
+            return $null
+        }
+        if ($parsed.SchemaVersion -ne '1.0') {
+            Write-Warning "Resolve-BaselineRun: unknown index SchemaVersion '$($parsed.SchemaVersion)'; skipping baseline."
+            return $null
+        }
+        $entries = @($parsed.Entries)
+        if ($entries.Count -eq 0) { return $null }
         # Last entry is the most recently added snapshot.
-        $latest = $index[-1]
+        $latest = $entries[-1]
         $snapshotPath = Join-Path $SnapshotDir ([string]$latest.SnapshotFile)
         if (Test-Path $snapshotPath) { return $snapshotPath }
     } catch {
@@ -146,8 +155,8 @@ function Get-RunTrend {
     .SYNOPSIS
         Aggregates the last N snapshots from a snapshot index into a trend array ordered oldest to newest.
     .DESCRIPTION
-        Reads SnapshotDir/index.json (written by Add-RunSnapshot) and returns an array of run-summary
-        objects ordered oldest to newest so a sparkline reads left to right.
+        Reads SnapshotDir/index.json (SchemaVersion 1.0, written by Add-RunSnapshot) and returns an
+        array of run-summary objects ordered oldest to newest so a sparkline reads left to right.
 
         Call this AFTER Add-RunSnapshot so the current run is included in the trend.
 
@@ -170,14 +179,23 @@ function Get-RunTrend {
     $indexPath = Join-Path $SnapshotDir 'index.json'
     if (-not (Test-Path $indexPath)) { return @($result) }
     try {
-        $index = @(Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $parsed = Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (-not ($parsed.PSObject.Properties['SchemaVersion'])) {
+            Write-Warning "Get-RunTrend: index.json has no SchemaVersion; skipping trend."
+            return @($result)
+        }
+        if ($parsed.SchemaVersion -ne '1.0') {
+            Write-Warning "Get-RunTrend: unknown index SchemaVersion '$($parsed.SchemaVersion)'; skipping trend."
+            return @($result)
+        }
+        $entries = @($parsed.Entries)
     } catch {
         Write-Warning "Get-RunTrend: could not read index at ${SnapshotDir}: $_"
         return @($result)
     }
     # Take the most recent MaxRuns entries; they are already in insertion (oldest-first) order.
-    $entries = @($index | Select-Object -Last $MaxRuns)
-    foreach ($entry in $entries) {
+    $selected = @($entries | Select-Object -Last $MaxRuns)
+    foreach ($entry in $selected) {
         $snapshotPath = Join-Path $SnapshotDir ([string]$entry.SnapshotFile)
         if (-not (Test-Path $snapshotPath)) {
             Write-Warning "Get-RunTrend: snapshot file missing, skipping: $snapshotPath"
@@ -217,10 +235,12 @@ function Get-RunTrend {
 function Add-RunSnapshot {
     <#
     .SYNOPSIS
-        Archives a results.json into the snapshot directory and updates the snapshot index.
+        Archives a results.json into the snapshot directory and updates the snapshot index atomically.
     .DESCRIPTION
         Copies SourceFile into SnapshotDir as <RunId>.json and appends an entry to
-        SnapshotDir/index.json.  Entries older than MaxHistory are pruned and their files deleted.
+        SnapshotDir/index.json (SchemaVersion 1.0).  The index is written atomically via a
+        .tmp file + Move-Item -Force to guard against corruption from concurrent runs.
+        Entries older than MaxHistory are pruned and their snapshot files deleted.
 
         Call this AFTER writing results.json and AFTER calling Resolve-BaselineRun (so the
         current run does not appear in the baseline lookup) but BEFORE calling Get-RunTrend
@@ -228,7 +248,9 @@ function Add-RunSnapshot {
     .PARAMETER SnapshotDir
         Destination snapshot directory.
     .PARAMETER RunId
-        Unique identifier for this run (e.g. 'yyyyMMdd-HHmmss').
+        Unique identifier for this run.  Use millisecond-precision timestamps plus a random
+        suffix (e.g. 'yyyyMMdd-HHmmssfff-NNNN') to avoid second-resolution collisions on
+        concurrent or rapid successive runs.
     .PARAMETER SourceFile
         Path to the results.json file to archive.
     .PARAMETER MaxHistory
@@ -247,29 +269,48 @@ function Add-RunSnapshot {
     }
     $null = New-Item -ItemType Directory -Path $SnapshotDir -Force -ErrorAction SilentlyContinue
     $indexPath = Join-Path $SnapshotDir 'index.json'
-    $index     = [System.Collections.Generic.List[object]]::new()
+    $tmpPath   = Join-Path $SnapshotDir 'index.json.tmp'
+    $entries   = [System.Collections.Generic.List[object]]::new()
+
+    # Read existing index; tolerates absent file (first run) or malformed JSON (fresh start).
     if (Test-Path $indexPath) {
         try {
-            $existing = @(Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop)
-            foreach ($e in $existing) { $index.Add($e) | Out-Null }
+            $parsed = Get-Content $indexPath -Raw | ConvertFrom-Json -ErrorAction Stop
+            if ($parsed.PSObject.Properties['SchemaVersion'] -and $parsed.SchemaVersion -eq '1.0') {
+                foreach ($e in @($parsed.Entries)) { $entries.Add($e) | Out-Null }
+            } else {
+                Write-Warning "Add-RunSnapshot: existing index has unknown schema; starting fresh."
+            }
         } catch {
             Write-Warning "Add-RunSnapshot: could not read existing index, starting fresh: $_"
         }
     }
+
+    # Archive the snapshot before updating the index so a crash between the two
+    # leaves the index consistent (entry absent) rather than pointing at a missing file.
     $snapshotFile = "$RunId.json"
     $snapshotDest = Join-Path $SnapshotDir $snapshotFile
     Copy-Item -Path $SourceFile -Destination $snapshotDest -Force
-    $index.Add([pscustomobject]@{
+
+    $entries.Add([pscustomobject]@{
         RunId        = $RunId
         Timestamp    = (Get-Date -Format 'o')
         SnapshotFile = $snapshotFile
     }) | Out-Null
+
     # Prune oldest entries when over the limit.
-    while ($index.Count -gt $MaxHistory) {
-        $oldest     = $index[0]
-        $oldFile    = Join-Path $SnapshotDir ([string]$oldest.SnapshotFile)
+    while ($entries.Count -gt $MaxHistory) {
+        $oldest  = $entries[0]
+        $oldFile = Join-Path $SnapshotDir ([string]$oldest.SnapshotFile)
         if (Test-Path $oldFile) { Remove-Item $oldFile -Force -ErrorAction SilentlyContinue }
-        $index.RemoveAt(0)
+        $entries.RemoveAt(0)
     }
-    @($index) | ConvertTo-Json -Depth 3 | Set-Content -Path $indexPath -Encoding UTF8
+
+    # Atomic write: write to .tmp then rename so a reader never sees a partial file.
+    $indexObj = [pscustomobject]@{
+        SchemaVersion = '1.0'
+        Entries       = @($entries)
+    }
+    $indexObj | ConvertTo-Json -Depth 4 | Set-Content -Path $tmpPath -Encoding UTF8
+    Move-Item -Path $tmpPath -Destination $indexPath -Force
 }
