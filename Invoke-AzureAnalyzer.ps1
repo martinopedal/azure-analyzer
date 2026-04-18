@@ -80,7 +80,9 @@ param (
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
     [int] $FalcoCaptureMinutes = 5,
-    [switch] $EnableAiTriage
+    [switch] $EnableAiTriage,
+    [ValidateRange(1, 365)]
+    [int] $HistoryRetention = 30
 )
 
 Set-StrictMode -Version Latest
@@ -90,7 +92,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -691,6 +693,30 @@ try {
     & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
+}
+
+# ---------------------------------------------------------------------------
+# Run history snapshot + executive dashboard (#97)
+# ---------------------------------------------------------------------------
+if (Get-Command Save-RunSnapshot -ErrorAction SilentlyContinue) {
+    try {
+        $toolNames = @($manifest.tools | Where-Object { ShouldRunTool $_.name } | ForEach-Object { $_.name })
+        $null = Save-RunSnapshot `
+            -OutputPath $OutputPath `
+            -ResultsPath $outputFile `
+            -Tools $toolNames `
+            -Subscriptions @($subscriptionsToScan)
+        $null = Remove-OldRunSnapshots -OutputPath $OutputPath -Retention $HistoryRetention
+    } catch {
+        Write-Warning (Remove-Credentials "Run history snapshot failed: $_")
+    }
+}
+
+try {
+    $dashboardReport = Join-Path $OutputPath 'dashboard.html'
+    & "$PSScriptRoot\New-ExecDashboard.ps1" -InputPath $outputFile -OutputPath $dashboardReport
+} catch {
+    Write-Warning (Remove-Credentials "Executive dashboard generation failed: $_")
 }
 
 $critical = @($allResults | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count

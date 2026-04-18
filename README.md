@@ -92,6 +92,8 @@ After a run, `output/` contains:
 | `errors.json` | Tool failures and error details (only written when errors occur) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
+| `dashboard.html` | Single-page **executive dashboard** (#97) -- compliance score, severity-mix sparklines, top-10 risky resources, subscription R/A/G heat map, WAF 5-pillar tiles, MTTR by severity, framework gap analysis. Self-contained, no CDN |
+| `history/{yyyy-MM-dd-HHmmss}/` | Per-run snapshot directory (`results.json` + `run-meta.json`) used by the dashboard for trend lines and MTTR. Default retention: 30 runs (`-HistoryRetention <n>`) |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
 
 **Reports are auto-generated** after the run writes `results.json` -- no manual step needed.

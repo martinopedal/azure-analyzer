@@ -68,4 +68,70 @@ Describe 'ReportDelta' {
         $delta = Get-ReportDelta -Current @($a) -Previous @($a)
         $delta.Summary.Unchanged | Should -Be 1
     }
+
+    Context 'Get-MttrBySeverity' {
+        BeforeAll {
+            . (Join-Path $PSScriptRoot '..' '..' 'modules' 'shared' 'RunHistory.ps1')
+
+            function NewMttrFinding($Source, $Rid, $Sev) {
+                [pscustomobject]@{
+                    Source = $Source; ResourceId = $Rid; Category = 'X'
+                    Title = "T-$Rid"; Severity = $Sev; Compliant = $false
+                }
+            }
+
+            function WriteResults($Path, $Rows) {
+                $dir = Split-Path $Path -Parent
+                if (-not (Test-Path $dir)) { $null = New-Item -ItemType Directory -Path $dir -Force }
+                $Rows | ConvertTo-Json -Depth 5 | Set-Content -Path $Path -Encoding UTF8
+            }
+        }
+
+        It 'returns empty buckets when history has fewer than 2 runs' {
+            $rows = Get-MttrBySeverity -History @()
+            @($rows).Count | Should -Be 5
+            ($rows | Where-Object { $_.Severity -eq 'Critical' }).MedianDays | Should -BeNullOrEmpty
+        }
+
+        It 'computes median days per severity from a 3-run history' {
+            $tmp = Join-Path $TestDrive 'mttr-3'
+            $null = New-Item -ItemType Directory -Path $tmp -Force
+            $r = Join-Path $tmp 'results.json'
+
+            # Run 1: A(High), B(Critical)
+            WriteResults $r @(
+                NewMttrFinding 'azqr' '/x/A' 'High'
+                NewMttrFinding 'azqr' '/x/B' 'Critical'
+            )
+            $null = Save-RunSnapshot -OutputPath $tmp -ResultsPath $r -Timestamp ([datetime]'2025-01-01T00:00:00Z')
+
+            # Run 2 (3 days later): A still there, B resolved (3 days) -> Critical median 3.
+            WriteResults $r @(
+                NewMttrFinding 'azqr' '/x/A' 'High'
+                NewMttrFinding 'azqr' '/x/C' 'High'  # newly seen
+            )
+            $null = Save-RunSnapshot -OutputPath $tmp -ResultsPath $r -Timestamp ([datetime]'2025-01-04T00:00:00Z')
+
+            # Run 3 (5 days after run 1, 2 days after run 2): A resolved (4 days), C still there.
+            WriteResults $r @(
+                NewMttrFinding 'azqr' '/x/C' 'High'
+            )
+            $null = Save-RunSnapshot -OutputPath $tmp -ResultsPath $r -Timestamp ([datetime]'2025-01-05T00:00:00Z')
+
+            $history = @(Get-RunHistory -OutputPath $tmp)
+            $mttr    = Get-MttrBySeverity -History $history
+
+            $crit = $mttr | Where-Object { $_.Severity -eq 'Critical' }
+            $crit.ResolvedCount | Should -Be 1
+            $crit.MedianDays    | Should -Be 3
+
+            $high = $mttr | Where-Object { $_.Severity -eq 'High' }
+            $high.ResolvedCount | Should -Be 1
+            $high.MedianDays    | Should -Be 4
+
+            $low = $mttr | Where-Object { $_.Severity -eq 'Low' }
+            $low.ResolvedCount  | Should -Be 0
+            $low.MedianDays     | Should -BeNullOrEmpty
+        }
+    }
 }
