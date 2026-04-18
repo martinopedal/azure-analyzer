@@ -198,7 +198,7 @@ Describe 'Normalize-AzGovViz' {
             $results = Normalize-AzGovViz -ToolResult $spInput
             @($results).Count | Should -Be 1
             $results[0].EntityType | Should -Be 'ServicePrincipal'
-            $results[0].EntityId | Should -Be 'appId:22222222-2222-2222-2222-222222222222'
+            $results[0].EntityId | Should -Be 'objectId:22222222-2222-2222-2222-222222222222'
         }
     }
 }

@@ -48,18 +48,10 @@ function Normalize-AzGovViz {
             $principalTypeValue = $principalType.ToLowerInvariant()
             if ($principalTypeValue -match 'user') {
                 $entityType = 'User'
+                $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
             } else {
                 $entityType = 'ServicePrincipal'
-            }
-
-            try {
-                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $principalId -EntityType $entityType).CanonicalId
-            } catch {
-                if ($entityType -eq 'User') {
-                    $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
-                } else {
-                    $canonicalId = "appId:$($principalId.ToLowerInvariant())"
-                }
+                $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
             }
         }
 

@@ -70,16 +70,19 @@ Describe 'Invoke-AzGovViz: CSV ingestion' {
             @"
 ComplianceState,PolicyEffect,PolicyAssignmentName,Scope,ResourceId
 NonCompliant,Deny,Deny public IP,/subscriptions/00000000-0000-0000-0000-000000000001,/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1
+Compliant,Audit,Audit vnet flow logs,/subscriptions/00000000-0000-0000-0000-000000000001,/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1/providers/Microsoft.Network/networkSecurityGroups/nsg1
 "@ | Set-Content -Path (Join-Path $outputPath 'tenant_PolicyComplianceStates.csv')
 
             @"
 ObjectId,PrincipalType,RoleDefinitionName,Scope
 11111111-1111-1111-1111-111111111111,User,Owner,/subscriptions/00000000-0000-0000-0000-000000000001
+33333333-3333-3333-3333-333333333333,ServicePrincipal,Reader,/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1
 "@ | Set-Content -Path (Join-Path $outputPath 'tenant_RoleAssignments.csv')
 
             @"
 ResourceId,DiagnosticsCapable,DiagnosticsConfigured
 /subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/stprod01,true,false
+/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm2,true,true
 "@ | Set-Content -Path (Join-Path $outputPath 'tenant_ResourceDiagnosticsCapabilities.csv')
 
             @"
@@ -90,7 +93,6 @@ ResourceId,MissingTags
             Set-Content -Path (Join-Path $workRoot 'AzGovVizParallel.ps1') -Value "Write-Output 'ok'"
 
             Mock Get-Location { $workRoot }
-            Mock pwsh { return }
 
             $result = & $script:Wrapper -ManagementGroupId 'mg-test' -OutputPath $outputPath
 
@@ -118,6 +120,12 @@ ResourceId,MissingTags
             $rbac | Should -Not -BeNullOrEmpty
             $rbac.PrincipalId | Should -Be '11111111-1111-1111-1111-111111111111'
             $rbac.PrincipalType | Should -Be 'User'
+        }
+
+        It 'filters compliant CSV rows' {
+            ($result.Findings | Where-Object { $_.Category -eq 'Policy' }).Count | Should -Be 1
+            ($result.Findings | Where-Object { $_.Category -eq 'Identity' }).Count | Should -Be 1
+            ($result.Findings | Where-Object { $_.Category -eq 'Operations' }).Count | Should -Be 1
         }
     }
 }

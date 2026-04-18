@@ -25,8 +25,29 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$retryPath = Join-Path $PSScriptRoot 'shared' 'Retry.ps1'
+if (Test-Path $retryPath) { . $retryPath }
+$installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
+if (Test-Path $installerPath) { . $installerPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
+}
+if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
+    function Invoke-WithRetry {
+        param ([Parameter(Mandatory)][scriptblock]$ScriptBlock)
+        return & $ScriptBlock
+    }
+}
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output.Trim() }
+    }
 }
 
 function Find-AzGovViz {
@@ -115,12 +136,14 @@ function Import-AzGovVizCsvFindings {
                     $resourceId = Get-RowValue -Row $row -Names @('ResourceId', 'resourceId', 'ResourceID', 'Scope', 'scope')
                     $scope = Get-RowValue -Row $row -Names @('Scope', 'scope')
                     $stateText = if ($complianceState) { $complianceState } else { 'Unknown' }
+                    $isCompliant = ($complianceState -eq 'Compliant')
+                    if ($isCompliant) { continue }
                     $titleSuffix = if ($policyAssignment) { ": $policyAssignment" } else { '' }
                     $findings.Add([pscustomobject]@{
                             Source      = 'azgovviz'
                             Category    = 'Policy'
                             Title       = "Policy compliance state$titleSuffix"
-                            Compliant   = ($complianceState -eq 'Compliant')
+                            Compliant   = $false
                             Severity    = Get-PolicyEffectSeverity -Effect $effect
                             Detail      = "ComplianceState=$stateText; Effect=$effect; Scope=$scope"
                             ResourceId  = $resourceId
@@ -138,13 +161,15 @@ function Import-AzGovVizCsvFindings {
                     $principalType = Get-RowValue -Row $row -Names @('PrincipalType', 'principalType', 'ObjectType')
                     $isPrivilegedRole = $roleName -match '^(Owner|Contributor|User Access Administrator)$'
                     $isBroadScope = $scope -match '^/subscriptions/[^/]+$' -or $scope -match '^/providers/microsoft\.management/managementgroups/'
-                    $severity = if ($isPrivilegedRole -and $isBroadScope) { 'High' } elseif ($isPrivilegedRole) { 'Medium' } else { 'Low' }
+                    $isCompliant = -not ($isPrivilegedRole -and $isBroadScope)
+                    if ($isCompliant) { continue }
+                    $severity = 'High'
 
                     $findings.Add([pscustomobject]@{
                             Source        = 'azgovviz'
                             Category      = 'Identity'
                             Title         = "Role assignment: $roleName"
-                            Compliant     = -not ($isPrivilegedRole -and $isBroadScope)
+                            Compliant     = $false
                             Severity      = $severity
                             Detail        = "PrincipalType=$principalType; Scope=$scope"
                             ResourceId    = $scope
@@ -161,13 +186,14 @@ function Import-AzGovVizCsvFindings {
                     $capable = ConvertTo-BooleanValue (Get-RowValue -Row $row -Names @('DiagnosticsCapable', 'diagnosticsCapable'))
                     $configured = ConvertTo-BooleanValue (Get-RowValue -Row $row -Names @('DiagnosticsConfigured', 'diagnosticsConfigured'))
                     if (-not $capable) { continue }
+                    if ($configured) { continue }
 
                     $findings.Add([pscustomobject]@{
                             Source        = 'azgovviz'
                             Category      = 'Operations'
                             Title         = 'Resource diagnostics settings configured'
-                            Compliant     = $configured
-                            Severity      = if ($configured) { 'Low' } else { 'Medium' }
+                            Compliant     = $false
+                            Severity      = 'Medium'
                             Detail        = "DiagnosticsCapable=$capable; DiagnosticsConfigured=$configured"
                             ResourceId    = $resourceId
                             Remediation   = 'Enable diagnostic settings to route logs and metrics to an approved destination.'
@@ -221,12 +247,19 @@ if (-not (Test-Path $OutputPath)) {
 
 try {
     Write-Verbose "Running AzGovViz for management group: $ManagementGroupId"
-    pwsh -File $azGovVizScript `
-        -ManagementGroupId $ManagementGroupId `
-        -OutputPath $OutputPath `
-        -AzureDevOpsWikiAsCode $false `
-        -HierarchyTreeOnly $false `
-        -ErrorAction Stop
+    $runAzGovViz = {
+        $result = Invoke-WithTimeout -Command 'pwsh' -Arguments @(
+            '-File', $azGovVizScript,
+            '-ManagementGroupId', $ManagementGroupId,
+            '-OutputPath', $OutputPath,
+            '-AzureDevOpsWikiAsCode', 'False',
+            '-HierarchyTreeOnly', 'False'
+        ) -TimeoutSec 300
+        if ($result.ExitCode -ne 0) {
+            throw "AzGovViz exited with code $($result.ExitCode): $($result.Output)"
+        }
+    }
+    Invoke-WithRetry -ScriptBlock $runAzGovViz -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 10 | Out-Null
 
     $summaryFiles = Get-ChildItem -Path $OutputPath -Filter '*Summary*.json' -Recurse -ErrorAction SilentlyContinue
     $findings = [System.Collections.Generic.List[psobject]]::new()
