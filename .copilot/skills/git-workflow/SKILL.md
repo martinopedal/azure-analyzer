@@ -40,8 +40,28 @@ Examples:
 
 3. **Create draft PR targeting dev:**
    ```bash
-   gh pr create --base dev --title "{description}" --body "Closes #{issue-number}" --draft
+   gh pr create --base dev --title "{description}" --body "Closes #{issue-number}
+
+## Self-review
+
+### Diff summary
+- {bullet 1: what changed at a high level, 3 bullets max}
+- {bullet 2}
+- {bullet 3}
+
+### Risks considered
+- {risk 1}: {mitigation, or 'accepted because ...'}
+- {risk 2}: ...
+- Out of scope on purpose: {what was deliberately NOT touched}
+
+### Testing
+- Ran: {test command(s) and pass/fail counts}
+- Added: {new tests, or 'none, doc/template-only change'}
+- Skipped: {tests that don't apply}, {reason, or 'n/a'}
+" --draft
    ```
+
+   The `## Self-review` block is mandatory for every squad PR (policy gate, CI enforcement deferred). See `.copilot/copilot-instructions.md` → "Squad Pre-PR Self-Review" for the full contract.
 
 4. **Do the work.** Make changes, write tests, commit with issue reference.
 
@@ -102,8 +122,25 @@ cd ../squad-195
 git add -A && git commit -m "fix: stamp bug (#195)"
 git push -u origin squad/195-fix-stamp-bug
 
-# Create PR targeting dev
-gh pr create --base dev --title "fix: stamp bug" --body "Closes #195" --draft
+# Create PR targeting dev (include ## Self-review block in body, see PR template above)
+gh pr create --base dev --title "fix: stamp bug" --body "Closes #195
+
+## Self-review
+
+### Diff summary
+- {bullet 1: what changed, 3 bullets max}
+- {bullet 2}
+- {bullet 3}
+
+### Risks considered
+- {risk 1}: {mitigation}
+- Out of scope on purpose: {what was deliberately NOT touched}
+
+### Testing
+- Ran: {test command(s) and pass/fail counts}
+- Added: {new tests, or 'none, doc-only'}
+- Skipped: {tests that don't apply}, {reason or 'n/a'}
+" --draft
 ```
 
 All PRs target `dev` independently. Agents never interfere with each other's filesystem.

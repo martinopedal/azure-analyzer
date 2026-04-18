@@ -210,8 +210,22 @@ Closes #{issue-number}
 - {change 1}
 - {change 2}
 
-## Testing
-{how this was tested}
+## Self-review
+
+### Diff summary
+- {bullet 1: what changed at a high level, 3 bullets max}
+- {bullet 2}
+- {bullet 3}
+
+### Risks considered
+- {risk 1}: {mitigation, or "accepted because ..."}
+- {risk 2}: ...
+- Out of scope on purpose: {what was deliberately NOT touched}
+
+### Testing
+- Ran: {test command(s) and pass/fail counts}
+- Added: {new tests, or "none, doc/template-only change"}
+- Skipped: {tests that don't apply}, {reason, or "n/a"}
 
 {If working as a squad member:}
 Working as {member} ({role})
@@ -219,6 +233,8 @@ Working as {member} ({role})
 {If needs human review:}
 ⚠️ This task was flagged as "needs review" — please have a squad member review before merging.
 ```
+
+**The `## Self-review` block is mandatory for every squad PR.** Agents must fill it in before calling `gh pr create`. See `.copilot/copilot-instructions.md` → "Squad Pre-PR Self-Review" for the enforcement contract.
 
 ### 5. PR Review & Updates
 
