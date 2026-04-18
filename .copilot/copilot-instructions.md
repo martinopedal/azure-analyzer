@@ -51,7 +51,7 @@ The squad coordinator (or the PR author agent, after self-review) marks the PR r
 
 ## Squad Pre-PR Self-Review (mandatory)
 
-Every squad agent MUST produce a `## Self-review` section in the PR body **before** calling `gh pr create`. This is a hard gate — PRs without it should be amended immediately. The section compresses what changed, what could break, and what was tested so the reviewer (human or Copilot) does not start from zero.
+Every squad agent MUST produce a `## Self-review` section in the PR body **before** calling `gh pr create`. This is a policy gate (CI enforcement deferred to follow-up): PRs without it should be amended immediately. Enforced manually by the Squad coordinator and PR reviewers until the CI check (#future) is built. The section compresses what changed, what could break, and what was tested so the reviewer (human or Copilot) does not start from zero.
 
 **Required template (paste into PR body, fill all fields):**
 
@@ -70,13 +70,13 @@ Every squad agent MUST produce a `## Self-review` section in the PR body **befor
 
 ### Testing
 - Ran: {test command(s) and pass/fail counts, e.g. `Invoke-Pester -Path .\tests -CI` → 542/542}
-- Added: {new tests, or "none — doc/template-only change"}
-- Skipped: {tests that don't apply} — {reason, or "n/a"}
+- Added: {new tests, or "none, doc/template-only change"}
+- Skipped: {tests that don't apply}, {reason, or "n/a"}
 ```
 
 **Rules:**
-- Diff summary is **3 bullets max** — force compression.
+- Diff summary is **3 bullets max**, to force compression.
 - Risks must include at least one "out of scope on purpose" line so reviewers know what the agent consciously left alone.
 - Testing must name the actual command run, not "tests pass".
-- Doc-only / template-only PRs still need this section — list "none — doc-only" under Added and the relevant test command (or `n/a`) under Ran.
+- Doc-only and template-only PRs still need this section. List "none, doc-only" under Added and the relevant test command (or `n/a`) under Ran.
 - This applies to every squad member without exception, including the Lead.

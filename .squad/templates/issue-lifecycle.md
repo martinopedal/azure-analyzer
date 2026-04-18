@@ -210,13 +210,10 @@ Closes #{issue-number}
 - {change 1}
 - {change 2}
 
-## Testing
-{how this was tested}
-
 ## Self-review
 
 ### Diff summary
-- {bullet 1: what changed at a high level — 3 bullets max}
+- {bullet 1: what changed at a high level, 3 bullets max}
 - {bullet 2}
 - {bullet 3}
 
@@ -227,8 +224,8 @@ Closes #{issue-number}
 
 ### Testing
 - Ran: {test command(s) and pass/fail counts}
-- Added: {new tests, or "none — doc/template-only change"}
-- Skipped: {tests that don't apply} — {reason, or "n/a"}
+- Added: {new tests, or "none, doc/template-only change"}
+- Skipped: {tests that don't apply}, {reason, or "n/a"}
 
 {If working as a squad member:}
 Working as {member} ({role})
