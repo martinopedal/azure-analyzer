@@ -618,6 +618,98 @@
         "pinType": "cli-version",
         "currentPin": "latest"
       }
+    },
+    {
+      "name": "bicep-iac",
+      "displayName": "Bicep IaC Validation",
+      "source": "bicep-iac",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-IaCBicep",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-IaCBicep.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "RepoPath",
+        "RemoteUrl"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#0d47a1",
+        "phase": 7
+      },
+      "install": {
+        "kind": "cli",
+        "command": "bicep",
+        "windows": {
+          "winget": "Microsoft.Bicep"
+        },
+        "macos": {
+          "brew": "bicep"
+        },
+        "linux": {
+          "url": "https://github.com/Azure/bicep/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "Azure/bicep",
+        "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      }
+    },
+    {
+      "name": "terraform-iac",
+      "displayName": "Terraform IaC Validation",
+      "source": "terraform-iac",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-IaCTerraform",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-IaCTerraform.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "RepoPath",
+        "RemoteUrl"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5c4ee5",
+        "phase": 7
+      },
+      "install": {
+        "kind": "cli",
+        "command": "terraform",
+        "windows": {
+          "winget": "Hashicorp.Terraform"
+        },
+        "macos": {
+          "brew": "terraform"
+        },
+        "linux": {
+          "url": "https://developer.hashicorp.com/terraform/install"
+        }
+      },
+      "upstream": {
+        "repo": "hashicorp/terraform",
+        "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      }
     }
   ]
 }

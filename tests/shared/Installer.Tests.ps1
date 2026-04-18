@@ -303,7 +303,7 @@ Describe 'Manifest wiring' {
             if (-not $t.enabled) { continue }
             $t.PSObject.Properties['report'] | Should -Not -BeNullOrEmpty
             $t.report.color | Should -Match '^#[0-9a-fA-F]{6}$'
-            $t.report.phase | Should -BeIn @(1, 2, 3, 4, 5, 6)
+            $t.report.phase | Should -BeIn @(1, 2, 3, 4, 5, 6, 7)
         }
     }
 

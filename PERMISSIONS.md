@@ -31,6 +31,15 @@ Azure, Graph, CI/CD, cost, and optional AI access. See
 | **falco** | Subscription | Reader (query mode) + optional AKS cluster-read RBAC for install mode | Reads Falco runtime alerts already present in Azure; optional install mode deploys Falco to AKS for short-lived runtime capture |
 | **kube-bench** | Subscription | Reader + AKS RBAC Admin | Discovers AKS via ARG, applies a temporary kube-bench Job in `kube-system`, then collects node-level CIS results |
 
+### Repository-scoped IaC validation (no Azure permissions)
+
+| Tool | Scope | Role | Why |
+|------|-------|------|-----|
+| **Bicep IaC Validation** | Local repository | None | Runs `bicep build` against .bicep files in a cloned repo; no Azure API calls |
+| **Terraform IaC Validation** | Local repository | None | Runs `terraform validate` and `trivy config` against .tf files; no Azure API calls |
+
+These tools operate entirely on local IaC files (cloned via `RemoteClone.ps1` or provided via `-RepoPath`). They require no Azure, Graph, or GitHub API permissions. The only prerequisites are the CLI tools themselves (bicep, terraform, trivy).
+
 **How to grant:**
 ```powershell
 # Option 1: Azure CLI
