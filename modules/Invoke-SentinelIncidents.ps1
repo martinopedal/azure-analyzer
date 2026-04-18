@@ -91,11 +91,14 @@ if ($WorkspaceResourceId -notmatch '^/subscriptions/[^/]+/resourceGroups/[^/]+/p
 $findings = [System.Collections.Generic.List[object]]::new()
 
 # --- 1. Query SecurityIncident table ---
+# SecurityIncident is append-only: every update writes a new row.
+# Dedup to the latest row per IncidentNumber, then filter to active.
 $queryUri = "https://management.azure.com${WorkspaceResourceId}/api/query?api-version=2022-10-01"
 $incidentKql = @"
 SecurityIncident
 | where TimeGenerated > ago(${LookbackDays}d)
-| where Status != 'Closed'
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| where Status in ('New', 'Active')
 | extend AlertCount = array_length(AlertIds)
 | project
     IncidentNumber,
