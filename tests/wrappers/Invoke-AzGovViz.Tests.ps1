@@ -11,12 +11,13 @@ BeforeAll {
 Describe 'Invoke-AzGovViz: error paths' {
     Context 'when AzGovVizParallel.ps1 script is not found' {
         BeforeAll {
+            $nonexistentPath = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
             # Mock environment vars and location to avoid null Join-Path
-            Mock Get-Location { 'C:\NonExistent' }
+            Mock Get-Location { $nonexistentPath }
             $oldUserProfile = $env:USERPROFILE
             $oldHome = $env:HOME
-            $env:USERPROFILE = 'C:\NonExistent'
-            $env:HOME = 'C:\NonExistent'
+            $env:USERPROFILE = $nonexistentPath
+            $env:HOME = $nonexistentPath
             
             $result = & $script:Wrapper -ManagementGroupId 'mg-test'
             
