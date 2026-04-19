@@ -39,6 +39,7 @@ Azure, Graph, CI/CD, cost, and optional AI access. See
 | **AzGovViz** | Management Group | Reader | Crawls governance hierarchy, policies, and RBAC assignments |
 | **ALZ Resource Graph queries** | Subscription or MG | Reader | Runs 132 custom ARG queries for Azure architecture assessment |
 | **WARA** | Subscription | Reader | Collects Well-Architected Framework reliability assessment data |
+| **FinOps Signals** | Subscription | Reader + Cost Management Reader | Correlates idle-resource ARG signals with Cost Management monthly spend data |
 | **kubescape** | Subscription | Reader + AKS cluster-read RBAC | Discovers AKS via ARG and runs in-cluster runtime posture scans through kubeconfig access |
 | **falco** | Subscription | Reader (query mode) + optional AKS cluster-read RBAC for install mode | Reads Falco runtime alerts already present in Azure; optional install mode deploys Falco to AKS for short-lived runtime capture |
 | **kube-bench** | Subscription | Reader + AKS RBAC Admin | Discovers AKS via ARG, applies a temporary kube-bench Job in `kube-system`, then collects node-level CIS results |
@@ -164,6 +165,41 @@ The Azure Cost wrapper queries `Microsoft.Consumption/usageDetails` for a traili
 - No forecasting or anomaly alerting (point-in-time aggregation only).
 - No cross-subscription rebilling or chargeback writes.
 - Gracefully **skips** when the subscription has no Consumption data (new sub, trial, CSP without Consumption API access), typically as an empty result set (HTTP 200 with empty `value` array); HTTP 404 is treated as an access/scope/availability edge case.
+
+---
+
+### FinOps Signals (idle and unused resource detection)
+
+The FinOps wrapper runs `queries/finops-*.json` against Azure Resource Graph and joins findings with monthly waste estimates from the Cost Management query API. This surfaces likely idle spend areas such as unattached disks, deallocated VMs, unused public IPs, idle App Service Plans, empty resource groups, and idle network controls.
+
+| Token / scope | Why |
+|---------------|-----|
+| **Reader** at subscription scope | Required for `Search-AzGraph` over `resources` and `resourcecontainers` tables |
+| **Cost Management Reader** at subscription scope | Required in restricted tenants for `Microsoft.CostManagement/query` |
+| (Alternative) **Reader** at subscription scope | Sufficient in tenants where Reader can call Cost Management query read endpoints |
+
+**API namespaces used:** `Microsoft.ResourceGraph/*` (read), `Microsoft.CostManagement/query` (read).
+
+**Parameters:**
+
+- `-SubscriptionId <guid>` (required, passed by orchestrator).
+- `-OutputPath <dir>` (optional): write wrapper JSON output for audit.
+
+**Sample command:**
+
+```powershell
+# Single subscription FinOps-only run
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub-guid>" -IncludeTools 'finops'
+
+# Across an MG (runs per discovered subscription)
+.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "<mg-id>" -IncludeTools 'finops'
+```
+
+**What it does NOT do:**
+
+- No resource mutations, deletions, stop/start actions, or tagging.
+- No budget creation or alert policy changes.
+- No rightsizing recommendations outside the curated idle-signal set.
 
 ---
 

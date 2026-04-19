@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "FinOps - Empty resource groups",
+    "description": "Detect empty resource groups that are older than 30 days when creation time is available.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "70572a71-49ff-4131-a04d-1780f50b3706",
+      "category": "Cost",
+      "subcategory": "Empty resource groups",
+      "severity": "Info",
+      "text": "Empty resource groups older than 30 days",
+      "queryable": true,
+      "graph": "let resourceCounts = resources | summarize resourceCount = count() by subscriptionId, rgName = tolower(resourceGroup); resourcecontainers | where type =~ 'microsoft.resources/subscriptions/resourcegroups' | extend rgName = tolower(name), createdTime = todatetime(properties.createdTime) | join kind=leftouter resourceCounts on subscriptionId, rgName | extend resourceCount = toint(coalesce(resourceCount, 0)) | where resourceCount == 0 and (isnull(createdTime) or createdTime < ago(30d)) | project id, name, type, resourceGroup = name, subscriptionId, location, createdTime, detectedReason = iff(isnull(createdTime), 'Resource group is empty (creation time unavailable in ARG)', 'Resource group is empty and older than 30 days'), compliant = false"
+    }
+  ]
+}
