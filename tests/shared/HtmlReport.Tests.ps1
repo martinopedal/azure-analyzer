@@ -39,4 +39,13 @@ Describe 'New-HtmlReport' {
         $html | Should -Match 'No findings in portfolio\.'
         $html | Should -Match 'platform-connectivity'
     }
+
+    It 'fallback source list includes azure-cost, bicep-iac, terraform-iac, sentinel-incidents' {
+        # Read the report script and check the fallback array directly
+        $reportScript = Get-Content (Join-Path $RootDir 'New-HtmlReport.ps1') -Raw
+        $reportScript | Should -Match 'azure-cost'
+        $reportScript | Should -Match 'bicep-iac'
+        $reportScript | Should -Match 'terraform-iac'
+        $reportScript | Should -Match 'sentinel-incidents'
+    }
 }

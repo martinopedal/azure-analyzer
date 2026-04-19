@@ -30,6 +30,10 @@ Describe 'Invoke-Azqr: error paths' {
         It 'sets Source to azqr' {
             $result.Source | Should -Be 'azqr'
         }
+
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
+            $result.SchemaVersion | Should -Be '1.0'
+        }
     }
 }
 

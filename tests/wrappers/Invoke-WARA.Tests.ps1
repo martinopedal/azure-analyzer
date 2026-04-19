@@ -30,6 +30,10 @@ Describe 'Invoke-WARA: error paths' {
         It 'sets Source to wara' {
             $result.Source | Should -Be 'wara'
         }
+
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
+            $result.SchemaVersion | Should -Be '1.0'
+        }
     }
 }
 

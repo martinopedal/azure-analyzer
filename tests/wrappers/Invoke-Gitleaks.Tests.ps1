@@ -30,6 +30,10 @@ Describe 'Invoke-Gitleaks: error paths' {
         It 'sets Source to gitleaks' {
             $result.Source | Should -Be 'gitleaks'
         }
+
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
+            $result.SchemaVersion | Should -Be '1.0'
+        }
     }
 }
 

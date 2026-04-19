@@ -30,6 +30,10 @@ Describe 'Invoke-Zizmor: error paths' {
         It 'sets Source to zizmor' {
             $result.Source | Should -Be 'zizmor'
         }
+
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
+            $result.SchemaVersion | Should -Be '1.0'
+        }
     }
 }
 
