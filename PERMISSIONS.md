@@ -74,7 +74,7 @@ When you provide `-ManagementGroupId`, azure-analyzer automatically discovers al
 | **Workspace-scoped** (Sentinel Incidents) | Runs when `-SentinelWorkspaceId` is provided |
 | **Repo-scoped** (Scorecard) | Independent of Azure hierarchy; runs for specified repo only |
 | **CLI-scoped** (zizmor, gitleaks, Trivy) | Local filesystem tools; run automatically, no cloud scope needed |
-| **ADO-scoped** (ADO Connections, ADO Pipeline Security) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
+| **ADO-scoped** (ADO Connections, ADO Pipeline Security, ADO Repo Secrets, ADO Pipeline Correlator) | Independent of Azure hierarchy; runs when `-AdoOrg` is provided |
 
 **Required permissions for recursion:**
 - `Reader` on the management group (auto-inherited to all child subscriptions)
@@ -503,6 +503,32 @@ $env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
 
 ---
 
+### Azure DevOps (ADO Repo Secrets + Pipeline Correlator)
+
+The ADO repo-secret scanner (`ado-repos-secrets`) and run correlator (`ado-pipeline-correlator`) are read-only and require only the minimum PAT scopes needed to enumerate repositories, inspect build runs, and correlate commit SHAs.
+
+| Token scope | Why |
+|-------------|-----|
+| **Code (Read)** | Enumerate repositories and clone source for secret scanning |
+| **Build (Read)** | Query build runs and run-log references (`builds` + `builds/{id}/logs`) |
+| **Project and Team (Read)** | Enumerate projects when `-AdoProject` is omitted |
+
+**Usage:**
+
+```powershell
+$env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
+
+# Repo secret scanning only
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-repos-secrets'
+
+# Correlation only (expects ado-repos-secrets output in the same run output folder)
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-repos-secrets','ado-pipeline-correlator'
+```
+
+Both tools use HTTPS-only remote cloning via `modules/shared/RemoteClone.ps1`, enforce host allow-list checks, and never require write permissions.
+
+---
+
 ### Optional: GitHub Copilot SDK (AI triage)
 
 When running with `-EnableAiTriage`, non-compliant findings are sent to GitHub Copilot for AI analysis and remediation suggestions. **This is completely optional.**
@@ -554,6 +580,8 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **Scorecard** | -- | -- | ⚡ Recommended | -- | -- | -- |
 | **ADO Connections** | -- | -- | -- | ✅ Required | -- | -- |
 | **ADO Pipeline Security** | -- | -- | -- | ✅ Required | -- | -- |
+| **ADO Repo Secrets** | -- | -- | -- | ✅ Required (Code:Read, Project:Read) | -- | -- |
+| **ADO Pipeline Correlator** | -- | -- | -- | ✅ Required (Build:Read, Project:Read) | -- | -- |
 | **zizmor** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
 | **gitleaks** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
 | **Trivy** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |

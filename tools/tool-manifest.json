@@ -482,6 +482,72 @@
       }
     },
     {
+      "name": "ado-repos-secrets",
+      "displayName": "ADO Repos Secret Scanning",
+      "source": "ado-repos-secrets",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADORepoSecrets",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADORepoSecrets.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ad1457",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      }
+    },
+    {
+      "name": "ado-pipeline-correlator",
+      "displayName": "ADO Pipeline Run Correlator",
+      "source": "ado-pipeline-correlator",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOPipelineCorrelator",
+      "invokeMethod": "script",
+      "type": "correlator",
+      "script": "modules/Invoke-ADOPipelineCorrelator.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat",
+        "SecretsFindingsPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#00838f",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      }
+    },
+    {
       "name": "identity-correlator",
       "displayName": "Identity Correlator",
       "source": "identity-correlator",
