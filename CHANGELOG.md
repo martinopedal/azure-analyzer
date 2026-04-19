@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- **Copilot review contract formalized for every PR**: `.copilot/copilot-instructions.md` now requires a Copilot code review on every PR (squad, human, bot, contributor, doc-only) before merge, with a 5-minute `gh pr edit --add-reviewer copilot-pull-request-reviewer` re-request fallback when the auto-request workflow misses. Adds an explicit "Comment Triage Loop": gather all Copilot findings, draft a triage plan in `plan.md` + SQL `todos`, rubber-duck the dispositions through the 3-model gate (Opus 4.6 + Goldeneye + GPT-5.3-codex, no Haiku) until 2-of-3 consensus per finding, implement only after consensus, re-gate the diff, and reply on every Copilot thread with either the addressing commit SHA or a multi-model rejection justification. PRs cannot be marked ready while any Copilot thread is unresolved.
+
 ### Fixed
 - **CI failure watchdog 50/50 zero-job failures (root cause)**: The `workflow_run` trigger in `ci-failure-watchdog.yml` was missing the **required** `workflows:` key. Without it, GitHub never fully parses the workflow YAML — it creates a phantom run with 0 jobs on every push, reports `conclusion: failure`, and uses the raw file path as the run name instead of the declared `name:` field. Added `workflows: ["CI", "CodeQL", "Docs Check"]` to the trigger. Prior fix attempts (PR #130 job-level `if:`, PR #153 step-level gate) addressed a secondary concern but could never take effect because the workflow was never parsed.
 
