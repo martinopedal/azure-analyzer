@@ -31,9 +31,17 @@
 .PARAMETER IncludeGraphLookup
     When set and Microsoft.Graph is connected, performs live Graph queries.
 .OUTPUTS
-    PSCustomObject @{ Findings = [...]; Edges = [...] }. Findings already passed
-    through New-FindingRow. Edges already passed through New-Edge AND added to
-    the supplied EntityStore.
+    PSCustomObject @{ Status; RunId; Findings = [...]; Edges = [...] }.
+    Findings already passed through New-FindingRow. Edges already passed
+    through New-Edge AND added to the supplied EntityStore (so the orchestrator
+    must NOT re-add them).
+
+    This is the "envelope" correlator contract (issue #187). The orchestrator
+    (Invoke-AzureAnalyzer.ps1) detects the envelope shape via:
+        $corrRaw -is [pscustomobject] AND has .Findings AND has (.Status OR .Edges)
+    Any future correlator returning flat finding rows MUST NOT include both a
+    `Findings` property AND a `Status`/`Edges` property — that combination is
+    reserved for this envelope contract.
 #>
 [CmdletBinding()]
 param ()

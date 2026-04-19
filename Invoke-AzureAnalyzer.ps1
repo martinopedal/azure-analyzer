@@ -1016,7 +1016,26 @@ foreach ($corrDef in $correlators) {
             foreach ($k in $corrParams.Keys) {
                 if ($accepted -contains $k) { $callParams[$k] = $corrParams[$k] }
             }
-            $corrFindings = @(& $entryCmd @callParams)
+            # Wrapper-envelope contract (issue #187): correlators MAY return either
+            #   (a) a flat array of FindingRow objects (legacy, e.g. Invoke-IdentityCorrelation), or
+            #   (b) a PSCustomObject envelope @{ Status; RunId?; Findings; Edges? } where
+            #       the wrapper has already self-added Edges to the EntityStore.
+            # Sniff requires Findings AND a second envelope marker (Status or Edges) to
+            # avoid misclassifying a future correlator that returns a single PSCustomObject
+            # finding row that happens to expose a `.Findings` property.
+            $corrRaw = & $entryCmd @callParams
+            $isEnvelope = (
+                $corrRaw -is [pscustomobject] -and
+                $corrRaw.PSObject.Properties['Findings'] -and (
+                    $corrRaw.PSObject.Properties['Status'] -or
+                    $corrRaw.PSObject.Properties['Edges']
+                )
+            )
+            if ($isEnvelope) {
+                $corrFindings = @($corrRaw.Findings)
+            } else {
+                $corrFindings = @($corrRaw)
+            }
             $corrToolResult = [PSCustomObject]@{
                 Source   = $corrName
                 Status   = 'Success'
