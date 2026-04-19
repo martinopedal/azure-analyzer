@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "FinOps - Deallocated virtual machines",
+    "description": "Detect VMs that are deallocated and older than 30 days.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "3de6ac2a-2b7d-4adb-aeb2-47c2ec7edf53",
+      "category": "Cost",
+      "subcategory": "Stopped virtual machines",
+      "severity": "Info",
+      "text": "Virtual machines in deallocated state older than 30 days",
+      "queryable": true,
+      "graph": "resources | where type =~ 'microsoft.compute/virtualmachines' | extend powerState = tostring(properties.extended.instanceView.powerState.code), createdTime = todatetime(properties.timeCreated) | where powerState =~ 'PowerState/deallocated' and createdTime < ago(30d) | project id, name, type, resourceGroup, subscriptionId, location, detectedReason = 'VM is deallocated and older than 30 days', compliant = false"
+    }
+  ]
+}

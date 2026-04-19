@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "FinOps - Idle premium network controls",
+    "description": "Detect NSGs without custom rules and Standard load balancers without backend pools.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "bc757cfe-08bc-4ec6-9e9d-d042deaf359c",
+      "category": "Cost",
+      "subcategory": "Idle premium NSGs and load balancers",
+      "severity": "Info",
+      "text": "Premium SKU NSGs or load balancers with no rules or backend pools",
+      "queryable": true,
+      "graph": "let nsgSignals = resources | where type =~ 'microsoft.network/networksecuritygroups' | extend customRuleCount = array_length(properties.securityRules) | where toint(coalesce(customRuleCount, 0)) == 0 | project id, name, type, resourceGroup, subscriptionId, location, detectedReason = 'Network security group has no custom security rules', compliant = false; let lbSignals = resources | where type =~ 'microsoft.network/loadbalancers' | extend skuName = tostring(sku.name), backendPoolCount = array_length(properties.backendAddressPools) | where skuName has 'Standard' and toint(coalesce(backendPoolCount, 0)) == 0 | project id, name, type, resourceGroup, subscriptionId, location, detectedReason = 'Standard load balancer has no backend pools configured', compliant = false; union nsgSignals, lbSignals"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "FinOps - Unused public IPs",
+    "description": "Detect public IP addresses not associated to any resource.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "65c71462-eb55-43f6-845d-c393f765f95d",
+      "category": "Cost",
+      "subcategory": "Unused public IP addresses",
+      "severity": "Info",
+      "text": "Public IP addresses that are not associated",
+      "queryable": true,
+      "graph": "resources | where type =~ 'microsoft.network/publicipaddresses' | extend ipConfigId = tostring(properties.ipConfiguration.id), natGatewayId = tostring(properties.natGateway.id) | where isempty(ipConfigId) and isempty(natGatewayId) | project id, name, type, resourceGroup, subscriptionId, location, detectedReason = 'Public IP is not associated with a network interface, load balancer, or NAT gateway', compliant = false"
+    }
+  ]
+}

@@ -189,8 +189,8 @@ if (Test-Path $manifestPath) {
     }
 }
 if ($allSources.Count -eq 0) {
-    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','defender-for-cloud','kubescape','kube-bench','falco','maester','scorecard','ado-connections','ado-pipelines','identity-correlator','zizmor','gitleaks','trivy','azure-cost','bicep-iac','terraform-iac','sentinel-incidents','sentinel-coverage')
-    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy'; 'azure-cost'='Azure Cost'; 'bicep-iac'='Bicep IaC Validation'; 'terraform-iac'='Terraform IaC Validation'; 'sentinel-incidents'='Microsoft Sentinel'; 'sentinel-coverage'='Sentinel Coverage' }
+    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','defender-for-cloud','kubescape','kube-bench','falco','maester','scorecard','ado-connections','ado-pipelines','identity-correlator','zizmor','gitleaks','trivy','azure-cost','finops','bicep-iac','terraform-iac','sentinel-incidents','sentinel-coverage')
+    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy'; 'azure-cost'='Azure Cost'; 'finops'='FinOps Signals'; 'bicep-iac'='Bicep IaC Validation'; 'terraform-iac'='Terraform IaC Validation'; 'sentinel-incidents'='Microsoft Sentinel'; 'sentinel-coverage'='Sentinel Coverage' }
 }
 $toolStatusMap = @{}
 $toolRunModeMap = @{}
