@@ -770,6 +770,27 @@
         "kind": "psmodule",
         "modules": ["Az.Accounts"]
       }
+    },
+    {
+      "name": "copilot-triage",
+      "displayName": "Copilot AI Triage",
+      "source": "copilot-triage",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": null,
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-CopilotTriage.ps1",
+      "requiredParams": [],
+      "optionalParams": ["InputPath", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": false,
+      "report": { "color": "#6a1b9a", "phase": 8 },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch."
     }
   ]
 }
