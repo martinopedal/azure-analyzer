@@ -11,7 +11,7 @@ All code changes follow this pipeline:
 3. **Fix** - address all findings from reviewers
 4. **Re-gate** - re-run review with the models that rejected, verify fixes
 5. **Final Review Gate** - if re-gate passes, proceed. If not, loop back to Fix
-6. **CI** - all GitHub Actions must pass (CodeQL, docs-check)
+6. **CI** - all GitHub Actions must pass (`Analyze (actions)`)
 7. **Merge** - squash merge to main, delete feature branch
 
 ## Automated Review Ingestion
@@ -22,27 +22,94 @@ When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are ad
 
 When a revision agent pushes a fix commit, the `pr-auto-resolve-threads.yml` workflow runs (on `pull_request_target` synchronize / `pull_request_review` events, with a fork-skip guard) and calls `modules/shared/Resolve-PRReviewThreads.ps1`. For every unresolved review thread on the PR, it checks whether commits added AFTER the thread was created modified the same file at an overlapping line range. If yes, the thread is resolved via the `resolveReviewThread` GraphQL mutation and a short reply is posted on the thread linking the addressing commit SHA. Threads the new commits did NOT touch stay open, and the reviewer decides. Disable repo-wide via the `SQUAD_AUTO_RESOLVE_THREADS=0` repo variable.
 
-## Frontier Model Roster (strict allow-list)
+## Frontier Model Roster (strict, no exceptions)
 
-Any sub-agent spawn, rubber-duck call, or model-roster reference in this repo MUST use a model from this allow-list. The list is intentionally short and frontier-only so the rubber-duck gate cannot be silently weakened by swapping in a cheaper tier.
+The 3-model gate, all squad sub-agent spawns, and every rubber-duck call MUST use frontier models only. Non-frontier models silently degrade review quality and are forbidden for any non-mechanical task in this repo.
 
-**Allowed:**
-- `claude-opus-4.7` (default premium)
-- `claude-opus-4.6-1m` (large-context variant for whole-repo reasoning)
-- `gpt-5.3-codex` (code-tuned diversity)
-- `gpt-5.4` (general-purpose diversity)
-- `goldeneye` (architectural diversity)
+| Role | Model | When to use |
+|------|-------|-------------|
+| Default coding / strategy | `claude-opus-4.7` | First choice for any squad agent, plan author, or code generation task. |
+| Large-context | `claude-opus-4.6-1m` | Only when the task genuinely needs >200k tokens of context (entire codebase audits, multi-file refactors). Do not use for general coding. |
+| Latest codex (coding) | `gpt-5.3-codex` | Code-heavy reviews, code generation when diversity vs Claude is needed. |
+| Latest GPT (general) | `gpt-5.4` | Non-coding analysis, plan critique, general reasoning when diversity is needed. |
+| Code review (architectural diversity) | `goldeneye` | Required third voice in the 3-model gate. |
 
-**Forbidden everywhere (gate, sub-agents, skills):**
-- `claude-opus-4.6` base, `claude-opus-4.5`, anything older
+**Forbidden for any non-mechanical task:**
+- `claude-opus-4.6` base, `claude-opus-4.5`
 - `claude-sonnet-*` (any version)
 - `claude-haiku-*` (any version)
-- `gpt-*-mini` (any flavour)
-- `gpt-4.1`
+- `gpt-5-mini`, `gpt-5.4-mini`, `gpt-4.1` (cheap tier, never frontier)
+- Any `*-codex` other than the latest (currently `gpt-5.3-codex`)
 
-The 3-model rubber-duck gate roster is fixed at `claude-opus-4.7`, `gpt-5.3-codex`, `goldeneye` and is enforced by `Get-FrontierModelRoster` in `modules/shared/Invoke-PRAdvisoryGate.ps1` plus `Get-TriageModels` in `modules/shared/Invoke-PRReviewGate.ps1`. Tests in `tests/workflows/PRAdvisoryGate.Tests.ps1` and `tests/shared/Invoke-PRReviewGate.Tests.ps1` assert the roster contents and explicitly reject the forbidden names. Any change to the roster MUST update both modules + both test files in the same PR.
+**Standard 3-model gate trio** (used by `Invoke-PRAdvisoryGate.ps1` and `Invoke-PRReviewGate.ps1`): `claude-opus-4.7` + `gpt-5.3-codex` + `goldeneye`. If any one is unavailable, the gate falls back to `claude-opus-4.6-1m` for that slot only, never to a sonnet or haiku.
 
-When invoking the `task` tool to spawn a sub-agent, ALWAYS pass `model:` explicitly using a name from the allow-list above. Never rely on the default — defaults can drift, the allow-list cannot.
+When spawning sub-agents via the `task` tool, always pass the `model` parameter explicitly. Default omission has historically dropped agents onto sonnet, which violates this contract. When the selected model is unavailable, follow the Frontier Fallback Chain below. NEVER drop tier to sonnet/haiku/mini.
+
+## Rate-Limit Retry + Frontier Fallback Chain
+
+Every model-calling code path — both in-session agent spawns AND production model invocations (PR rubber-duck gate, copilot triage, etc.) — MUST implement explicit retry + model-swap fallback. Frontier-only, no exceptions.
+
+### Fallback chain (in strict order)
+1. `claude-opus-4.7`
+2. `claude-opus-4.6-1m`
+3. `gpt-5.4`
+4. `gpt-5.3-codex`
+5. `goldeneye`
+
+If a chain entry is the same model that just failed, skip to the next. NEVER fall back to `claude-sonnet-*`, `claude-haiku-*`, `claude-opus-4.6` (base), `claude-opus-4.5`, `gpt-5-mini`, `gpt-5.4-mini`, `gpt-4.1`, or any non-latest codex.
+
+### Per-model retry policy
+- Max 3 retries before swapping models.
+- Exponential backoff: `1s → 4s → 16s`, with 25% jitter on each delay.
+- Retry-triggering signals (case-insensitive substring match on response body OR HTTP status):
+  - HTTP 429, 503, 504
+  - `rate_limit`, `quota_exceeded`, `overloaded`, `throttle`, `service_unavailable`, `temporarily_unavailable`
+  - Network errors: socket timeout, connection reset, DNS failure
+- Special case — `context_length_exceeded`: skip remaining retries on current model and IMMEDIATELY swap (more wait won't help).
+
+### Per-call (overall) policy
+- Max 5 model swaps before surfacing failure to the caller.
+- Every swap MUST be logged to `.squad/decisions/inbox/{component}-fallback-{context}-{from}-to-{to}-{reason}.md` for durable audit.
+- On chain exhaustion: fail closed. The gate posts a sticky PR comment `⚠️ Gate could not reach any frontier model (5 swaps × 3 retries exhausted). Manual review required.` and exits non-zero. Sub-agent spawns surface the error to the coordinator.
+- Once a model returns a successful verdict in a given call, do NOT re-invoke it during subsequent retries for the same call/SHA.
+
+### Three-model gate trio resolution
+The standard rubber-duck trio is `claude-opus-4.7` + `gpt-5.3-codex` + `goldeneye`. If any trio member is rate-limited at gate start, substitute with the FIRST eligible chain entry NOT already in the trio (so a failed `gpt-5.3-codex` is replaced with `claude-opus-4.6-1m` first, then `gpt-5.4`). Maintain the "3 distinct frontier verdicts per SHA" invariant.
+
+### Reuse `Invoke-WithRetry` for in-model retries
+The per-model retry layer (3 attempts × exponential backoff) MUST use `modules/shared/Retry.ps1::Invoke-WithRetry` so the transient-pattern list and jitter implementation stay consistent across the codebase. The model-swap layer is a thin loop ON TOP of `Invoke-WithRetry`. Do not re-implement backoff.
+
+## Copilot Review is Mandatory on Every PR
+
+Every PR opened in this repo, by any author (squad agent, human, Dependabot, or external contributor), must receive a Copilot code review before merge. No exceptions, including doc-only and one-line PRs. The review is requested automatically by `copilot-agent-pr-review.yml` on PR open / reopen / ready-for-review, but the PR author is responsible for verifying the review actually arrived.
+
+If the Copilot review has not posted within 5 minutes of the PR being marked ready, the author re-requests it manually:
+
+```bash
+gh pr edit <pr> --add-reviewer copilot-pull-request-reviewer
+```
+
+A PR with no Copilot review on the most recent commit cannot merge. The squad coordinator enforces this as a hard gate, even when the 3-model gate has approved.
+
+## Comment Triage Loop (every Copilot finding)
+
+Copilot review comments and inline suggestions are not advice, they are work items. The author treats every Copilot finding as input to a structured triage loop:
+
+1. **Gather** - collect all Copilot review comments on the PR plus all comments on the linked issue (use `gh pr view <pr> --comments` and `gh api repos/{owner}/{repo}/pulls/{pr}/comments`). Do not cherry-pick, gather everything.
+
+2. **Plan** - write a triage plan (in `plan.md` for the session, and reflected into the SQL `todos` table) listing each Copilot finding with one of: `accept`, `reject`, `defer`. Every `reject` must name the reason; every `defer` must link a follow-up issue.
+
+3. **Rubber-duck until consensus** - run the plan through the 3-model gate (Opus 4.7 + Goldeneye + GPT-5.3-codex per the Frontier Model Roster, no sonnet/haiku). 2-of-3 consensus on each finding's disposition is required. If the models disagree, iterate the plan until 2-of-3 align. Record the consensus disposition next to each finding in the plan.
+
+4. **Implement** - write code only after the plan reaches consensus. Each implementation commit references the Copilot finding it addresses (e.g. `Addresses Copilot finding: <quote first line>`).
+
+5. **Re-gate on the diff** - re-run the 3-model gate against the new commit. Same pass criteria as the standard review gate (no `[blocker]` or `[correctness]` from any reviewer; 2-of-3 APPROVE).
+
+6. **Reply on every Copilot thread** - either with the addressing commit SHA, or with the multi-model rejection justification. No Copilot thread may be left without an explicit reply. The `pr-auto-resolve-threads.yml` workflow resolves threads where the new commit touched the same lines, but the author is still responsible for the textual reply on rejections.
+
+The Cloud Agent PR Review contract in `.squad/ceremonies.md` is the authoritative version of this loop for cloud-agent-authored PRs. The same loop applies to all PRs in this repo, regardless of author.
+
+A PR cannot be marked ready for merge while any Copilot thread is unresolved or unanswered.
 
 ## Review Severity Taxonomy (#108)
 

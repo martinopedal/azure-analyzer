@@ -63,7 +63,7 @@ When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `sq
    - Updated plan is itself rubber-ducked before any code change.
    - Code is implemented, then the 3-model gate re-runs on the diff (Build → Review → Fix → Re-gate → CI → Merge).
    - Every Copilot thread gets a reply: either the addressing commit SHA, or the multi-model rejection justification.
-4. Maintainers **MUST NOT** squash-merge an agent PR until **all Copilot review threads are Resolved**, the 3-model gate is green, the squad reviewer has approved, and required checks (`Analyze (actions)`, `Docs Check`) are green.
+4. Maintainers **MUST NOT** squash-merge an agent PR until **all Copilot review threads are Resolved**, the 3-model gate is green, the squad reviewer has approved, and the required `Analyze (actions)` check is green.
 5. If the agent is unresponsive for >24h, reassign the issue to a squad member or take it over locally.
 6. Stale agent draft PRs that are superseded by a direct merge MUST be closed with a `--delete-branch` to keep the branch list clean.
 
@@ -71,7 +71,7 @@ When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `sq
 
 Before adding retry/clone/sanitize/install logic, check these modules first:
 
-- **`tools/tool-manifest.json`** — single source of truth for tool registration. `name`, `displayName`, `scope` (subscription/tenant/repository/ado/cluster), `provider` (azure/entra/github/ado/cli), `enabled`, plus `install` and `report` blocks. New tools **MUST** register here. Installer + both reports read from it.
+- **`tools/tool-manifest.json`** — single source of truth for tool registration. `name`, `displayName`, `scope` (`subscription` / `managementGroup` / `tenant` / `repository` / `ado` / `workspace`), `provider` (`azure` / `microsoft365` / `graph` / `github` / `ado` / `cli`), `enabled`, plus `install` and `report` blocks. New tools **MUST** register here. Installer + both reports read from it.
 - **`modules/shared/Installer.ps1`** — manifest-driven prerequisite installer. `Install-PrerequisitesFromManifest` handles `psmodule` / `cli` / `gitclone` / `none`. Uses `Invoke-WithInstallRetry` + `Invoke-WithTimeout` (300s). Rich errors via `New-InstallerError` / `Write-InstallerError`. Entry point: `-InstallMissingModules` orchestrator flag.
 - **`modules/shared/RemoteClone.ps1`** — cloud-first HTTPS clone helper. `Invoke-RemoteRepoClone` returns `{ Path, Url, Cleanup }`. All new repo-scoped scanners MUST use this instead of rolling their own `git clone`.
 - **`modules/shared/Retry.ps1`** — `Invoke-WithRetry` with jittered backoff. Retries on `$TransientMessagePatterns` (429/503/504/throttle/timeout). Wrap any REST/ARG/external call with it.
@@ -95,7 +95,7 @@ Non-negotiable rules that apply to every new wrapper/module:
 
 ## Testing gate
 
-- `Invoke-Pester -Path .\tests -CI` — baseline is **309/309 green**. Any PR that lands must preserve or extend this.
+- `Invoke-Pester -Path .\tests -CI` — baseline is **842/842 green**. Any PR that lands must preserve or extend this.
 - Normalizer tests live under `tests/normalizers/`; wrapper tests under `tests/wrappers/`; shared-module tests under `tests/shared/`.
 - Every new tool MUST ship with a normalizer test using a realistic fixture in `tests/fixtures/`.
 - Every new shared module MUST ship with its own `tests/shared/<Module>.Tests.ps1`.
