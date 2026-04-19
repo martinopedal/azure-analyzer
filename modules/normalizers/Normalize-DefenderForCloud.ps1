@@ -50,7 +50,7 @@ function Normalize-DefenderForCloud {
             $canonicalId = $subId
         } else {
             $entityType = 'AzureResource'
-            try   { $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId }
+            try   { $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId }
             catch { $canonicalId = $rawId.ToLowerInvariant() }
         }
 

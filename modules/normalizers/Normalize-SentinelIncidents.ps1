@@ -42,7 +42,7 @@ function Normalize-SentinelIncidents {
 
         # Sentinel incidents are workspace-scoped; entity is the workspace ARM resource
         $entityType = 'AzureResource'
-        try   { $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId }
+        try   { $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId }
         catch { $canonicalId = $rawId.ToLowerInvariant() }
 
         # Map Sentinel severity to schema casing (Critical/High/Medium/Low/Info)

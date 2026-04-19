@@ -39,7 +39,7 @@ function Normalize-Falco {
         if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
         if ($rawId -match '/resourceGroups/([^/]+)') { $rg    = $Matches[1] }
 
-        try   { $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId }
+        try   { $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId }
         catch { $canonicalId = $rawId.ToLowerInvariant() }
 
         $priority = if ($f.PSObject.Properties['Priority'] -and $f.Priority) { [string]$f.Priority } else { '' }

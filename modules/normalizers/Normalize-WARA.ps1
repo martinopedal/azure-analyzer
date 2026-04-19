@@ -39,7 +39,7 @@ function Normalize-WARA {
 
         if ($rawId -and $rawId -match '^/subscriptions/') {
             try {
-                $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId
+                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId
             } catch {
                 $canonicalId = $rawId.ToLowerInvariant()
             }
