@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **24 tools**: **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **FinOps Signals (idle resource detection)**, **Defender for Cloud**, **Sentinel (Active Incidents)**, **Sentinel Coverage (analytic rules / watchlists / connectors / hunting)**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **ADO Pipeline Security**, **Identity Correlator**, **Identity Graph Expansion (cross-tenant B2B + SPN-to-resource edges)**, **zizmor**, **gitleaks**, **Trivy**, **Bicep IaC Validation**, and **Terraform IaC Validation** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, Defender Secure Score, active Sentinel incidents, **Sentinel detection posture (analytic rules / watchlists / data connectors / hunting queries)**, AKS runtime posture, AKS runtime anomaly detection, AKS node hardening, identity security, cross-dimensional identity correlation, **cross-tenant identity graph (B2B home tenant + SPN-to-resource edges)**, supply chain security, CI/CD workflow security, secrets detection, IaC validation, and Azure DevOps build/release, variable-group, and environment security dimensions.
+Automated Azure assessment that bundles **26 tools**: **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **FinOps Signals (idle resource detection)**, **Defender for Cloud**, **Sentinel (Active Incidents)**, **Sentinel Coverage (analytic rules / watchlists / connectors / hunting)**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **ADO Pipeline Security**, **ADO Repo Secrets**, **ADO Pipeline Correlator**, **Identity Correlator**, **Identity Graph Expansion (cross-tenant B2B + SPN-to-resource edges)**, **zizmor**, **gitleaks**, **Trivy**, **Bicep IaC Validation**, and **Terraform IaC Validation** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, FinOps waste signals, Defender Secure Score, active Sentinel incidents, Sentinel detection posture (analytic rules / watchlists / data connectors / hunting queries), AKS runtime posture, AKS runtime anomaly detection, AKS node hardening, identity security, cross-dimensional identity correlation, cross-tenant identity graph (B2B home tenant + SPN-to-resource edges), supply chain security, CI/CD workflow security, secrets detection, IaC validation, and Azure DevOps build/release, variable-group, environment, repository-secret, and run-correlation security dimensions.
 
 Findings are normalized to a single v2 schema with 5 severity levels (**Critical**, **High**, **Medium**, **Low**, **Info**) and 14 entity types (AzureResource, Subscription, ManagementGroup, ServicePrincipal, ManagedIdentity, Application, User, Tenant, Repository, Workflow, Pipeline, ServiceConnection, VariableGroup, Environment) across 4 platforms (Azure, Entra, GitHub, ADO).
 
@@ -45,7 +45,7 @@ $env:GITHUB_AUTH_TOKEN = "<enterprise-pat>"
 ```powershell
 $env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
-# Both ADO collectors run automatically when -AdoOrg is present.
+# ADO collectors and correlators run automatically when -AdoOrg is present.
 # Or scan a specific project:
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
 # Or target only the pipeline-security surface:
@@ -292,7 +292,7 @@ Screenshot placeholder: the HTML report now opens with the portfolio heatmap sec
 | gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
 | trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
 
-- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 23 tools**: PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts, Az.CostManagement for cost and FinOps signals, and Sentinel dependencies), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy, bicep, terraform), REST-backed ADO collectors, and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands; nothing is mutated.
+- **Auto-install**: With -InstallMissingModules the manifest-driven installer covers **all 25 tools**: PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts, Az.CostManagement for cost and FinOps signals, and Sentinel dependencies), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy, bicep, terraform), REST-backed ADO collectors/correlators, and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands; nothing is mutated.
 
 **AzGovViz** is a standalone script, not a module. With `-InstallMissingModules` it is auto-cloned into `tools/AzGovViz/` on first run. To clone manually:
 ```
@@ -438,7 +438,7 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **CI/CD security (local fallback)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 | **Supply chain scan (local path)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
 
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `falco`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, `terraform-iac`
+**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `finops`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `falco`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `identity-graph-expansion`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, `terraform-iac`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
@@ -484,14 +484,17 @@ For unattended scheduled runs, copy [`templates/azure-analyzer-scheduled.yml`](t
 | 13 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) | Apache-2.0 |
 | 14 | **ADO Service Connections** *(first-party)* | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | Native REST API collector (`modules/Invoke-ADOServiceConnections.ps1`) queries ADO org/projects and catalogs all service endpoints with auth details | MIT (this project — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md#ado-service-connections-scanner-first-party)) |
 | 15 | **ADO Pipeline Security** *(first-party)* | Azure DevOps build/release definitions, variable groups, and environments -- missing approvals, plaintext secret-like variables, broad trigger patterns, and service-connection reuse | Native REST API collector (`modules/Invoke-ADOPipelineSecurity.ps1`) inspects ADO pipeline metadata without reading or emitting secret values | MIT (this project) |
-| 16 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity | Apache-2.0 |
-| 17 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
-| 18 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
-| 19 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
-| 20 | **Bicep IaC Validation** *(first-party)* | Bicep syntax and reference validation. Runs `bicep build` against all `.bicep` files to detect compilation errors, unresolved references, and type mismatches | CLI wrapper (`modules/Invoke-IaCBicep.ps1`) dispatches via `IaCAdapters.ps1`; each file is compiled with a 300s timeout; generated ARM JSON artefacts are cleaned up | MIT (this project) |
-| 21 | **Terraform IaC Validation** *(first-party)* | Terraform syntax and HCL security scanning. Runs `terraform validate` for syntax checks and `trivy config` (tfsec engine) for misconfigurations (open security groups, public storage, missing encryption) | CLI wrapper (`modules/Invoke-IaCTerraform.ps1`) dispatches via `IaCAdapters.ps1`; uses trivy's built-in tfsec rules instead of standalone tfsec | MIT (this project) |
-| 22 | **Sentinel (Active Incidents)** | Active Sentinel incidents from a Log Analytics workspace -- severity, status, classification, alert count, owner, provider | Read-only KQL query against `SecurityIncident` table via the workspace query API; graceful skip when the table does not exist (Sentinel not enabled) | Azure REST API (MS Service Terms) |
-| 23 | **Sentinel Coverage (Posture)** *(first-party)* | Detection-posture findings on top of the same workspace -- analytic rules (none configured / disabled >7 days), data connectors (<3 connected), watchlists (empty / TTL <30 days), hunting queries (none configured) | Read-only `Microsoft.SecurityInsights` REST (`alertRules`, `watchlists`, `dataConnectors`) + Log Analytics `savedSearches` filtered to category `Hunting Queries`; graceful skip when Sentinel is not onboarded (HTTP 404/409); all calls wrapped in `Invoke-WithRetry` | MIT (this project) |
+| 16 | **ADO Repo Secrets** *(first-party)* | Azure DevOps repository secret findings from gitleaks with commit SHA, file path, and rule metadata | Native REST collector (`modules/Invoke-ADORepoSecrets.ps1`) enumerates projects/repos, clones via `RemoteClone.ps1`, and runs gitleaks with `--redact` | MIT (this project) |
+| 17 | **ADO Pipeline Correlator** *(first-party)* | Correlates leaked commits with pipeline runs and run-log availability to show execution blast radius | Post-collection correlator (`modules/Invoke-ADOPipelineCorrelator.ps1`) matches secret `CommitSha` against build `sourceVersion` and enriches with run metadata | MIT (this project) |
+| 18 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
+| 19 | **Identity Graph Expansion** *(first-party)* | Cross-tenant B2B + SPN-to-resource graph expansion on top of the identity correlator | Correlator (`Invoke-IdentityGraphExpansion`) emits typed graph edges and risk findings from Entra + ARM relationship data | MIT (this project) |
+| 20 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity | Apache-2.0 |
+| 21 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
+| 22 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
+| 23 | **Bicep IaC Validation** *(first-party)* | Bicep syntax and reference validation. Runs `bicep build` against all `.bicep` files to detect compilation errors, unresolved references, and type mismatches | CLI wrapper (`modules/Invoke-IaCBicep.ps1`) dispatches via `IaCAdapters.ps1`; each file is compiled with a 300s timeout; generated ARM JSON artefacts are cleaned up | MIT (this project) |
+| 24 | **Terraform IaC Validation** *(first-party)* | Terraform syntax and HCL security scanning. Runs `terraform validate` for syntax checks and `trivy config` (tfsec engine) for misconfigurations (open security groups, public storage, missing encryption) | CLI wrapper (`modules/Invoke-IaCTerraform.ps1`) dispatches via `IaCAdapters.ps1`; uses trivy's built-in tfsec rules instead of standalone tfsec | MIT (this project) |
+| 25 | **Sentinel (Active Incidents)** | Active Sentinel incidents from a Log Analytics workspace -- severity, status, classification, alert count, owner, provider | Read-only KQL query against `SecurityIncident` table via the workspace query API; graceful skip when the table does not exist (Sentinel not enabled) | Azure REST API (MS Service Terms) |
+| 26 | **Sentinel Coverage (Posture)** *(first-party)* | Detection-posture findings on top of the same workspace -- analytic rules (none configured / disabled >7 days), data connectors (<3 connected), watchlists (empty / TTL <30 days), hunting queries (none configured) | Read-only `Microsoft.SecurityInsights` REST (`alertRules`, `watchlists`, `dataConnectors`) + Log Analytics `savedSearches` filtered to category `Hunting Queries`; graceful skip when Sentinel is not onboarded (HTTP 404/409); all calls wrapped in `Invoke-WithRetry` | MIT (this project) |
 
 Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
@@ -511,7 +514,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `finops`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `kube-bench`, `falco`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `finops`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `kube-bench`, `falco`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `identity-graph-expansion`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -569,7 +572,7 @@ All tools operate read-only. No write permissions required anywhere.
 | **Cost Management Reader** (recommended) | FinOps Signals, Azure Cost |
 | **Microsoft Graph** (read) | Maester -- Entra ID security |
 | **GitHub token** (optional) | Scorecard -- repo security (recommended for rate limits) |
-| **Azure DevOps PAT** (optional) | ADO Service Connections and ADO Pipeline Security |
+| **Azure DevOps PAT** (optional) | ADO Service Connections, ADO Pipeline Security, ADO Repo Secrets, and ADO Pipeline Correlator |
 | **Local CLI only** (no cloud permissions) | zizmor, gitleaks, Trivy -- scan local filesystem |
 | **Copilot license** (optional) | AI triage -- fully optional; only used with `-EnableAiTriage` flag |
 
@@ -585,7 +588,7 @@ The PR advisory gate now ingests Copilot review threads into a structured triage
 
 ## Roadmap
 
-- **Azure DevOps posture expansion** -- service connection inventory and pipeline posture are now both live. Future follow-up will focus on optional run-log correlation and deeper identity blast-radius analysis.
+- **Azure DevOps posture expansion** -- service connection inventory, pipeline posture, repository secret scanning, and pipeline run-log correlation are live.
 
 ## Contributing
 
@@ -605,3 +608,11 @@ First-party components (MIT, this project): ADO Service Connections scanner, Ide
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+
+
+
+
+
+
+

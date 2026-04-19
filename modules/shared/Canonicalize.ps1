@@ -53,6 +53,25 @@ function ConvertTo-CanonicalRepoId {
     )
 
     $normalized = $RepoId.Trim()
+
+    if ($normalized -match '^(?i)ado://') {
+        return ConvertTo-CanonicalAdoId -AdoId $normalized
+    }
+
+    if ($normalized -match '^https?://dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/?#]+)') {
+        $org = $matches[1].ToLowerInvariant()
+        $project = $matches[2].ToLowerInvariant()
+        $repo = $matches[3].ToLowerInvariant()
+        return "ado://$org/$project/repository/$repo"
+    }
+
+    if ($normalized -match '^https?://([^/]+)\.visualstudio\.com/([^/]+)/_git/([^/?#]+)') {
+        $org = $matches[1].ToLowerInvariant()
+        $project = $matches[2].ToLowerInvariant()
+        $repo = $matches[3].ToLowerInvariant()
+        return "ado://$org/$project/repository/$repo"
+    }
+
     $normalized = $normalized -replace '^https?://', ''
     $normalized = $normalized -replace '^ssh://', ''
     $normalized = $normalized -replace '^git@', ''
@@ -266,7 +285,9 @@ function ConvertTo-CanonicalEntityId {
         'Application' { 'Entra' }
         'User' { 'Entra' }
         'Tenant' { 'Entra' }
-        'Repository' { 'GitHub' }
+        'Repository' {
+            if ($canonicalId -match '^ado://') { 'ADO' } else { 'GitHub' }
+        }
         'Pipeline' { 'ADO' }
         'VariableGroup' { 'ADO' }
         'Environment' { 'ADO' }

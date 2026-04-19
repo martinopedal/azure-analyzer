@@ -1,0 +1,33 @@
+{
+  "Source": "ado-pipeline-correlator",
+  "Status": "Success",
+  "Message": "Correlated 2 pipeline run finding(s) from 1 secret finding(s).",
+  "Findings": [
+    {
+      "Id": "corr-1",
+      "Category": "Pipeline Run Correlation",
+      "Title": "Secret-bearing commit aaaaaaaa executed in pipeline 'payments-ci'",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Detail": "Secret type 'github-pat' in file 'src/appsettings.json' was detected in commit 'aaaaaaaa11111111'. BuildId=1001; Logs=4.",
+      "Remediation": "Review the pipeline run and rotate impacted credentials.",
+      "ResourceId": "ado://contoso/payments/pipeline/55",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runs",
+      "SchemaVersion": "1.0",
+      "PipelineResourceId": "ado://contoso/payments/pipeline/55"
+    },
+    {
+      "Id": "corr-2",
+      "Category": "Pipeline Run Correlation",
+      "Title": "Secret-bearing commit aaaaaaaa executed in pipeline 'payments-release'",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Secret type 'azure-client-secret' in file 'charts/api/values.yaml' was detected in commit 'aaaaaaaa11111111'. BuildId=1002; Logs=2.",
+      "Remediation": "Review the pipeline run and rotate impacted credentials.",
+      "ResourceId": "ado://contoso/payments/pipeline/66",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runs",
+      "SchemaVersion": "1.0",
+      "PipelineResourceId": "ado://contoso/payments/pipeline/66"
+    }
+  ]
+}

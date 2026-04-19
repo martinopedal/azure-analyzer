@@ -40,6 +40,10 @@ Describe 'ConvertTo-CanonicalRepoId' {
     It 'handles git@ SSH syntax for enterprise hosts' {
         ConvertTo-CanonicalRepoId -RepoId 'git@github.contoso.com:Org/Repo.git' | Should -Be 'github.contoso.com/org/repo'
     }
+
+    It 'canonicalizes ADO repo URLs to ado:// format' {
+        ConvertTo-CanonicalRepoId -RepoId 'https://dev.azure.com/Contoso/Payments/_git/Payments-API' | Should -Be 'ado://contoso/payments/repository/payments-api'
+    }
 }
 
 Describe 'ConvertTo-CanonicalAdoId' {
@@ -76,6 +80,15 @@ Describe 'ConvertTo-CanonicalEntityId' {
 
         $result.Platform | Should -Be 'GitHub'
         $result.CanonicalId | Should -Be 'github.com/org/repo'
+    }
+
+    It 'derives ADO platform metadata for ado:// repositories' {
+        $result = ConvertTo-CanonicalEntityId `
+            -RawId 'ado://contoso/payments/repository/api' `
+            -EntityType 'Repository'
+
+        $result.Platform | Should -Be 'ADO'
+        $result.CanonicalId | Should -Be 'ado://contoso/payments/repository/api'
     }
 
     It 'throws on empty input' {

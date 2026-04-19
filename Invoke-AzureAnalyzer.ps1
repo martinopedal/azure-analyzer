@@ -30,7 +30,8 @@
     Local repository path for CI/CD security scanning tools (zizmor, gitleaks).
     Defaults to the current directory. Tools scan workflow files and git history at this path.
 .PARAMETER AdoOrg
-    Azure DevOps organization name. Required for ADO-scoped tools (e.g. ado-connections, ado-pipelines).
+    Azure DevOps organization name. Required for ADO-scoped tools
+    (e.g. ado-connections, ado-pipelines, ado-repos-secrets, ado-pipeline-correlator).
     When provided, ADO tools are included in the run.
 .PARAMETER AdoProject
     Azure DevOps project name. When omitted, ADO tools scan all projects in the organization.
@@ -726,6 +727,9 @@ foreach ($toolDef in $manifest.tools) {
             $params = @{ AdoOrg = $AdoOrg }
             if ($AdoProject) { $params['AdoProject'] = $AdoProject }
             if ($AdoPat) { $params['AdoPat'] = $AdoPat }
+            if ($toolDef.name -eq 'ado-repos-secrets') {
+                $params['OutputPath'] = Join-Path $OutputPath 'ado-repos-secrets-findings.json'
+            }
             $specName = "$($toolDef.name)|ado"
             $toolSpecs.Add([PSCustomObject]@{
                 Name        = $specName
@@ -958,45 +962,76 @@ foreach ($corrDef in $correlators) {
             $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = "Script not found: $corrScript"; Findings = 0 })
             continue
         }
-        . $corrScript
-
-        $corrParams = @{ EntityStore = $store; TenantId = ($TenantId ?? 'unknown') }
-        if ($corrDef.optionalParams -contains 'IncludeGraphLookup') {
-            $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
-            if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
-        }
-        if ($ManagementGroupId -and $subscriptionsToScan.Count -gt 1) {
-            $corrParams['PortfolioMode'] = $true
-        }
-
-        # Dispatch by entryFunction (manifest), falling back to Invoke-IdentityCorrelation
-        # so older manifests keep working.
-        $entryFn = if ($corrDef.PSObject.Properties['entryFunction'] -and $corrDef.entryFunction) {
-            [string]$corrDef.entryFunction
+        $corrToolResult = $null
+        if ($corrName -eq 'ado-pipeline-correlator') {
+            . $corrScript
+            if (-not $AdoOrg) {
+                $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Skipped'; Message = 'No -AdoOrg provided'; Findings = 0 })
+                continue
+            }
+            $corrParams = @{
+                AdoOrg              = $AdoOrg
+                SecretsFindingsPath = (Join-Path $OutputPath 'ado-repos-secrets-findings.json')
+            }
+            if ($AdoProject) { $corrParams['AdoProject'] = $AdoProject }
+            if ($AdoPat) { $corrParams['AdoPat'] = $AdoPat }
+            $corrToolResult = & $corrScript @corrParams
+            if (-not $corrToolResult) {
+                $corrToolResult = [PSCustomObject]@{
+                    Source   = 'ado-pipeline-correlator'
+                    Status   = 'Failed'
+                    Message  = 'Correlator returned no result.'
+                    Findings = @()
+                }
+            }
         } else {
-            'Invoke-IdentityCorrelation'
+            . $corrScript
+            $corrParams = @{ EntityStore = $store; TenantId = ($TenantId ?? 'unknown') }
+            if ($corrDef.optionalParams -contains 'IncludeGraphLookup') {
+                $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
+                if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
+            }
+            if ($ManagementGroupId -and $subscriptionsToScan.Count -gt 1) {
+                $corrParams['PortfolioMode'] = $true
+            }
+
+            # Dispatch by entryFunction (manifest), falling back to Invoke-IdentityCorrelation
+            # so older manifests keep working.
+            $entryFn = if ($corrDef.PSObject.Properties['entryFunction'] -and $corrDef.entryFunction) {
+                [string]$corrDef.entryFunction
+            } else {
+                'Invoke-IdentityCorrelation'
+            }
+            $entryCmd = Get-Command -Name $entryFn -ErrorAction SilentlyContinue
+            if (-not $entryCmd) {
+                Write-Warning "Correlator ${corrName}: entry function '$entryFn' not found after dot-sourcing $($corrDef.script)"
+                $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = "Entry function '$entryFn' missing"; Findings = 0 })
+                continue
+            }
+
+            # Strip params that the entry function does not accept (defensive against
+            # heterogeneous correlator signatures).
+            $accepted = @($entryCmd.Parameters.Keys)
+            $callParams = @{}
+            foreach ($k in $corrParams.Keys) {
+                if ($accepted -contains $k) { $callParams[$k] = $corrParams[$k] }
+            }
+            $corrFindings = @(& $entryCmd @callParams)
+            $corrToolResult = [PSCustomObject]@{
+                Source   = $corrName
+                Status   = 'Success'
+                Message  = ''
+                Findings = $corrFindings
+            }
         }
-        $entryCmd = Get-Command -Name $entryFn -ErrorAction SilentlyContinue
-        if (-not $entryCmd) {
-            Write-Warning "Correlator ${corrName}: entry function '$entryFn' not found after dot-sourcing $($corrDef.script)"
-            $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = "Entry function '$entryFn' missing"; Findings = 0 })
-            continue
-        }
-        # Strip params that the entry function does not accept (defensive against
-        # heterogeneous correlator signatures).
-        $accepted = @($entryCmd.Parameters.Keys)
-        $callParams = @{}
-        foreach ($k in $corrParams.Keys) {
-            if ($accepted -contains $k) { $callParams[$k] = $corrParams[$k] }
-        }
-        $corrFindings = @(& $entryCmd @callParams)
 
         # Feed correlation findings into EntityStore and flat results
         $corrNormFunc = $corrDef.normalizer
-        $corrV3 = $corrFindings
+        $corrV3 = @()
         if ($corrNormFunc -and (Get-Command $corrNormFunc -ErrorAction SilentlyContinue)) {
-            $corrToolResult = [PSCustomObject]@{ Status = 'Success'; Findings = $corrFindings }
             $corrV3 = @(& $corrNormFunc -ToolResult $corrToolResult)
+        } elseif ($corrToolResult -and $corrToolResult.PSObject.Properties['Findings']) {
+            $corrV3 = @($corrToolResult.Findings)
         }
 
         foreach ($finding in $corrV3) {
@@ -1036,7 +1071,9 @@ foreach ($corrDef in $correlators) {
         }
 
         Write-Host "  $corrName`: $($corrV3.Count) correlation finding(s)" -ForegroundColor Gray
-        $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Success'; Message = "Emitted $($corrV3.Count) correlation finding(s)"; Findings = $corrV3.Count })
+        $corrStatus = if ($corrToolResult.PSObject.Properties['Status'] -and $corrToolResult.Status) { [string]$corrToolResult.Status } else { 'Success' }
+        $corrMessage = if ($corrToolResult.PSObject.Properties['Message'] -and $corrToolResult.Message) { Remove-Credentials ([string]$corrToolResult.Message) } else { "Emitted $($corrV3.Count) correlation finding(s)" }
+        $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = $corrStatus; Message = $corrMessage; Findings = $corrV3.Count })
     } catch {
         $errMsg = Remove-Credentials "$_"
         Write-Warning "Correlator $corrName failed: $errMsg"

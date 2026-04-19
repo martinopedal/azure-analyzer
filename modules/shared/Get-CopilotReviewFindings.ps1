@@ -53,6 +53,18 @@ function Get-CopilotReviewFindings {
         [int] $PullNumber
     )
 
+    $ownerName = [string]$Owner
+    $repoName = [string]$Repo
+    if ($repoName.Contains('/')) {
+        $repoParts = $repoName.Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
+        if ($repoParts.Count -ge 2) {
+            if ([string]::IsNullOrWhiteSpace($ownerName)) {
+                $ownerName = [string]$repoParts[0]
+            }
+            $repoName = [string]$repoParts[$repoParts.Count - 1]
+        }
+    }
+
     $query = @'
 query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $name) {
@@ -89,8 +101,8 @@ query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
 
     while ($hasNext -and $page -lt $maxPages) {
         $fields = @{
-            owner  = $Owner
-            name   = $Repo
+            owner  = $ownerName
+            name   = $repoName
             number = $PullNumber
         }
         if ($null -ne $cursor) {
