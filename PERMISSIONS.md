@@ -2,9 +2,21 @@
 
 ## Core Principle
 
-All tools operate **read-only** with no write permissions anywhere. Azure-analyzer uses only the minimum permissions required to assess your infrastructure.
+Azure-analyzer remains read-first for assessment collection, and now has one optional write path: Log Analytics sink ingestion. Azure-analyzer uses only the minimum permissions required for each enabled capability.
 
 Phase 0 v3 core modules (Schema, Canonicalize, EntityStore, tool manifest) introduce no new permissions or scopes.
+
+---
+
+## New permission requirement (optional sink)
+
+When `-SinkLogAnalytics` is enabled, the identity used by `Get-AzAccessToken` must have write permission on the target DCR:
+
+| Capability | Scope | Role | Why |
+|------|-------|------|-----|
+| **Log Analytics sink (Logs Ingestion API)** | Data Collection Rule (DCR) | **Monitoring Metrics Publisher** | Required to POST findings/entities to DCR streams via `https://monitor.azure.com` token audience |
+
+This is the first optional write permission in the project. Reader baseline requirements remain unchanged for all read collectors.
 
 ---
 

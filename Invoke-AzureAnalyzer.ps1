@@ -46,6 +46,12 @@
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
+.PARAMETER SinkLogAnalytics
+    When set, sends findings and entities to Azure Monitor Logs Ingestion API using
+    stream mapping from -LogAnalyticsConfig.
+.PARAMETER LogAnalyticsConfig
+    Path to a JSON file with DCR ingestion settings:
+    { DceEndpoint, DcrImmutableId, FindingsStream, EntitiesStream, DryRun }.
 .PARAMETER BaselineMode
     Controls auto-baseline discovery for the delta banner. Values:
       auto  — (default) pick the most recent snapshot from $OutputPath\snapshots\ automatically.
@@ -110,6 +116,8 @@ param (
     [ValidateRange(1, 365)]
     [int] $SentinelLookbackDays = 30,
     [switch] $EnableAiTriage,
+    [switch] $SinkLogAnalytics,
+    [string] $LogAnalyticsConfig,
     [ValidateRange(1, 365)]
     [int] $HistoryRetention = 30
 )
@@ -131,6 +139,9 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
 }
+
+$sinkModulePath = Join-Path $PSScriptRoot 'modules' 'sinks' 'Send-FindingsToLogAnalytics.ps1'
+if (Test-Path $sinkModulePath) { . $sinkModulePath }
 
 # ---------------------------------------------------------------------------
 # Read tool manifest
@@ -207,6 +218,12 @@ $workspaceScopedTools = @($manifest.tools | Where-Object { $_.scope -eq 'workspa
 $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' -and $_ -notin $workspaceScopedTools }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
     throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
+}
+if ($SinkLogAnalytics -and [string]::IsNullOrWhiteSpace($LogAnalyticsConfig)) {
+    throw "-LogAnalyticsConfig is required when -SinkLogAnalytics is enabled."
+}
+if ($SinkLogAnalytics -and -not (Test-Path $LogAnalyticsConfig)) {
+    throw "Log Analytics config file not found: $LogAnalyticsConfig"
 }
 
 # ---------------------------------------------------------------------------
@@ -1066,6 +1083,53 @@ try {
         } else {
             Write-Host "  [Drift] Previous entities snapshot not found, skipping: $previousEntitiesPath" -ForegroundColor DarkGray
         }
+    }
+
+    if ($SinkLogAnalytics) {
+        $sinkStatus = 'Success'
+        $sinkMessage = 'Findings and entities sent to Azure Monitor Logs Ingestion API.'
+        try {
+            $sinkConfigRaw = Get-Content -Path $LogAnalyticsConfig -Raw -ErrorAction Stop
+            $sinkConfig = $sinkConfigRaw | ConvertFrom-Json -ErrorAction Stop
+
+            foreach ($requiredField in @('DceEndpoint', 'DcrImmutableId', 'FindingsStream', 'EntitiesStream')) {
+                if (-not $sinkConfig.PSObject.Properties[$requiredField] -or [string]::IsNullOrWhiteSpace([string]$sinkConfig.$requiredField)) {
+                    throw "Missing required Log Analytics config field '$requiredField'."
+                }
+            }
+
+            $sinkDryRun = $false
+            if ($sinkConfig.PSObject.Properties['DryRun']) {
+                $sinkDryRun = [bool]$sinkConfig.DryRun
+            }
+
+            $findingsSinkResult = Send-FindingsToLogAnalytics `
+                -EntitiesJson $entitiesFile `
+                -DceEndpoint ([string]$sinkConfig.DceEndpoint) `
+                -DcrImmutableId ([string]$sinkConfig.DcrImmutableId) `
+                -StreamName ([string]$sinkConfig.FindingsStream) `
+                -DryRun:$sinkDryRun
+
+            $entitiesSinkResult = Send-EntitiesToLogAnalytics `
+                -EntitiesJson $entitiesFile `
+                -DceEndpoint ([string]$sinkConfig.DceEndpoint) `
+                -DcrImmutableId ([string]$sinkConfig.DcrImmutableId) `
+                -StreamName ([string]$sinkConfig.EntitiesStream) `
+                -DryRun:$sinkDryRun
+
+            $sinkMessage = "Findings records: $($findingsSinkResult.RecordsProcessed) in $($findingsSinkResult.BatchesProcessed) batch(es); entities records: $($entitiesSinkResult.RecordsProcessed) in $($entitiesSinkResult.BatchesProcessed) batch(es)." + $(if ($sinkDryRun) { ' DryRun enabled.' } else { '' })
+            Write-Host "[sink] $sinkMessage" -ForegroundColor DarkCyan
+        } catch {
+            $sinkStatus = 'PartialSuccess'
+            $sinkMessage = Remove-Credentials "$_"
+            Write-Warning "[sink] Log Analytics sink failed: $sinkMessage"
+        }
+        $toolStatus.Add([PSCustomObject]@{
+                Tool     = 'log-analytics-sink'
+                Status   = $sinkStatus
+                Message  = $sinkMessage
+                Findings = @($allResults).Count
+            })
     }
 
     # Tool status
