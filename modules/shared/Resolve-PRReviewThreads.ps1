@@ -36,6 +36,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'Sanitize.ps1')
+. (Join-Path $PSScriptRoot 'Retry.ps1')
 
 $script:AutoResolveMarker = '<!-- squad-auto-resolve-thread -->'
 
@@ -67,14 +68,16 @@ function Invoke-GhGraphQl {
         }
     }
 
-    $stdout = & gh @ghArgs 2>&1
-    $exitCode = 0
-    $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
-    if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
-
-    $text = ($stdout | Out-String)
-    if ($exitCode -ne 0) {
-        throw "gh api graphql failed: $(Remove-Credentials $text)"
+    $text = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+        $stdout = & gh @ghArgs 2>&1
+        $exitCode = 0
+        $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
+        if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
+        $innerText = ($stdout | Out-String)
+        if ($exitCode -ne 0) {
+            throw "gh api graphql failed: $(Remove-Credentials $innerText)"
+        }
+        $innerText
     }
 
     if ([string]::IsNullOrWhiteSpace($text)) { return $null }
@@ -204,15 +207,17 @@ function Get-PRCommitsAfter {
 
     $r = Resolve-RepoOwnerName -Repo $Repo
     $endpoint = "repos/$($r.Owner)/$($r.Name)/pulls/$PRNumber/commits"
-    $stdout = & gh api $endpoint --paginate --slurp 2>&1
-    $exitCode = 0
-    $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
-    if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
-    if ($exitCode -ne 0) {
-        throw "gh api $endpoint failed: $(Remove-Credentials ($stdout | Out-String))"
+    $text = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+        $stdout = & gh api $endpoint --paginate --slurp 2>&1
+        $exitCode = 0
+        $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
+        if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
+        $innerText = ($stdout | Out-String)
+        if ($exitCode -ne 0) {
+            throw "gh api $endpoint failed: $(Remove-Credentials $innerText)"
+        }
+        $innerText
     }
-
-    $text = ($stdout | Out-String)
     if ([string]::IsNullOrWhiteSpace($text)) { return @() }
 
     $pages = @($text | ConvertFrom-Json -ErrorAction Stop)
@@ -253,15 +258,19 @@ function Get-CommitChangedRanges {
 
     $r = Resolve-RepoOwnerName -Repo $Repo
     $endpoint = "repos/$($r.Owner)/$($r.Name)/commits/$Sha"
-    $stdout = & gh api $endpoint 2>&1
-    $exitCode = 0
-    $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
-    if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
-    if ($exitCode -ne 0) {
-        throw "gh api $endpoint failed: $(Remove-Credentials ($stdout | Out-String))"
+    $text = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+        $stdout = & gh api $endpoint 2>&1
+        $exitCode = 0
+        $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
+        if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
+        $innerText = ($stdout | Out-String)
+        if ($exitCode -ne 0) {
+            throw "gh api $endpoint failed: $(Remove-Credentials $innerText)"
+        }
+        $innerText
     }
 
-    $payload = ($stdout | Out-String) | ConvertFrom-Json -ErrorAction Stop
+    $payload = $text | ConvertFrom-Json -ErrorAction Stop
     $map = @{}
     if (-not $payload.PSObject.Properties['files']) { return $map }
     foreach ($f in @($payload.files)) {
@@ -390,12 +399,19 @@ function Add-ResolutionReply {
 
     $r = Resolve-RepoOwnerName -Repo $Repo
     $endpoint = "repos/$($r.Owner)/$($r.Name)/pulls/$PRNumber/comments/$InReplyToCommentDatabaseId/replies"
-    $stdout = & gh api --method POST $endpoint -f "body=$body" 2>&1
-    $exitCode = 0
-    $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
-    if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
-    if ($exitCode -ne 0) {
-        Write-Warning "Failed to post resolution reply: $(Remove-Credentials ($stdout | Out-String))"
+    try {
+        Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+            $stdout = & gh api --method POST $endpoint -f "body=$body" 2>&1
+            $exitCode = 0
+            $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
+            if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
+            if ($exitCode -ne 0) {
+                throw "Failed to post resolution reply: $(Remove-Credentials ($stdout | Out-String))"
+            }
+            $true
+        } | Out-Null
+    } catch {
+        Write-Warning (Remove-Credentials $_.Exception.Message)
         return $false
     }
     $true

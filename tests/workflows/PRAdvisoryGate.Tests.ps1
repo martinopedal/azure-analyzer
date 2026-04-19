@@ -432,6 +432,26 @@ Describe 'Resolve-RubberDuckVerdict (Gate-pass criteria #108)' {
         $r.Verdict | Should -Be 'blockers'
         $r.Findings[0] | Should -Match '^\[correctness\]'
     }
+
+    It 'fails when consensus passes but Copilot threads are not addressed' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @('[style] optional rename') }
+            [pscustomobject]@{ Verdict = 'REQUEST_CHANGES'; Findings = @('[nit] wording') }
+        ) -AllCopilotThreadsAddressed:$false
+        $r.Passed | Should -BeFalse
+        $r.AllCopilotThreadsAddressed | Should -BeFalse
+    }
+
+    It 'passes when consensus passes and Copilot threads are addressed' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'REQUEST_CHANGES'; Findings = @('[style] x') }
+        ) -AllCopilotThreadsAddressed:$true
+        $r.Passed | Should -BeTrue
+        $r.AllCopilotThreadsAddressed | Should -BeTrue
+    }
 }
 
 Describe 'Invoke-RubberDuckModel (per-SHA prompt persistence)' {
@@ -445,7 +465,7 @@ Describe 'Invoke-RubberDuckModel (per-SHA prompt persistence)' {
             -OutputPath $outDir
         $resp.Verdict | Should -Be 'APPROVE'
         $resp.Stub | Should -BeTrue
-        Get-ChildItem -Path $outDir -Filter '42-abc123def456-claude-opus-4.7.md' |
+        Get-ChildItem -Path $outDir -Filter '42-abc123def456-nocopilotfinding-claude-opus-4.7.md' |
             Should -Not -BeNullOrEmpty
     }
 
@@ -453,7 +473,7 @@ Describe 'Invoke-RubberDuckModel (per-SHA prompt persistence)' {
         $outDir = Join-Path $TestDrive 'inbox-iter'
         Invoke-RubberDuckModel -ModelName 'gpt-5.3-codex' -Prompt 'p1' -PRNumber 7 -HeadSha 'sha1aaaaaaaa' -OutputPath $outDir | Out-Null
         Invoke-RubberDuckModel -ModelName 'gpt-5.3-codex' -Prompt 'p2' -PRNumber 7 -HeadSha 'sha2bbbbbbbb' -OutputPath $outDir | Out-Null
-        (Get-ChildItem -Path $outDir).Count | Should -Be 2
+        (Get-ChildItem -Path $outDir).Count | Should -Be 4
     }
 
     It 'DryRun skips disk writes' {

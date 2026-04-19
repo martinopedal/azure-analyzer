@@ -50,6 +50,8 @@ param(
 
     [string] $HeadSha = $env:PR_HEAD_SHA,
 
+    [string] $CopilotTriagePlanPath = '',
+
     [bool] $Enabled = $true,
 
     [switch] $DryRun
@@ -63,6 +65,109 @@ $ErrorActionPreference = 'Stop'
 
 # Marker used to find and update the single advisory comment in place.
 $script:AdvisoryMarker = '<!-- squad-advisory -->'
+
+function Import-CopilotTriagePlan {
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [string] $PlanPath = ''
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PlanPath)) {
+        return [pscustomobject]@{
+            PlanHash = 'no-copilot-findings'
+            Items    = @()
+            Summary  = [pscustomobject]@{
+                TotalFindings              = 0
+                CategoryCounts             = [pscustomobject]@{ blocker = 0; correctness = 0; security = 0; style = 0; nit = 0 }
+                CopilotThreadStates        = @()
+                UnaddressedCopilotThreads  = @()
+                AllCopilotThreadsAddressed = $true
+            }
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $PlanPath)) {
+        throw "Copilot triage plan file not found: $PlanPath"
+    }
+
+    $raw = Get-Content -LiteralPath $PlanPath -Raw -Encoding utf8
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        throw "Copilot triage plan file is empty: $PlanPath"
+    }
+
+    $plan = $raw | ConvertFrom-Json -Depth 30
+    if (-not $plan.PSObject.Properties['PlanHash'] -or [string]::IsNullOrWhiteSpace([string]$plan.PlanHash)) {
+        $plan | Add-Member -NotePropertyName PlanHash -NotePropertyValue 'no-copilot-findings' -Force
+    }
+    if (-not $plan.PSObject.Properties['Items']) {
+        $plan | Add-Member -NotePropertyName Items -NotePropertyValue @() -Force
+    }
+    if (-not $plan.PSObject.Properties['Summary']) {
+        $plan | Add-Member -NotePropertyName Summary -NotePropertyValue ([pscustomobject]@{}) -Force
+    }
+    if (-not $plan.Summary.PSObject.Properties['AllCopilotThreadsAddressed']) {
+        $plan.Summary | Add-Member -NotePropertyName AllCopilotThreadsAddressed -NotePropertyValue $true -Force
+    }
+    if (-not $plan.Summary.PSObject.Properties['UnaddressedCopilotThreads']) {
+        $plan.Summary | Add-Member -NotePropertyName UnaddressedCopilotThreads -NotePropertyValue @() -Force
+    }
+    $plan
+}
+
+function Format-CopilotFindingsSection {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [AllowNull()]
+        [object] $CopilotTriagePlan = $null
+    )
+
+    if ($null -eq $CopilotTriagePlan -or -not $CopilotTriagePlan.PSObject.Properties['Items']) {
+        return @"
+## Copilot review findings
+- none
+"@
+    }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    [void]$lines.Add('## Copilot review findings')
+    [void]$lines.Add("Plan hash: $([string]$CopilotTriagePlan.PlanHash)")
+
+    $items = @($CopilotTriagePlan.Items)
+    if ($items.Count -eq 0) {
+        [void]$lines.Add('- none')
+    } else {
+        foreach ($group in $items) {
+            $category = [string]$group.Category
+            [void]$lines.Add("- [$category] count=$([int]$group.Count)")
+            foreach ($f in @($group.Findings)) {
+                $path = [string]$f.Path
+                $line = if ($null -eq $f.Line) { '?' } else { [string]$f.Line }
+                $body = [string]$f.Body
+                if ($body.Length -gt 260) { $body = $body.Substring(0, 260) + '...' }
+                $body = $body -replace '\r?\n', ' '
+                [void]$lines.Add("  - ${path}:$line :: $body")
+            }
+        }
+    }
+
+    if ($CopilotTriagePlan.PSObject.Properties['Summary'] -and $CopilotTriagePlan.Summary) {
+        $summary = $CopilotTriagePlan.Summary
+        $allAddressed = [bool]$summary.AllCopilotThreadsAddressed
+        [void]$lines.Add('')
+        [void]$lines.Add("AllCopilotThreadsAddressed: $allAddressed")
+        $unaddressed = @($summary.UnaddressedCopilotThreads)
+        if ($unaddressed.Count -gt 0) {
+            [void]$lines.Add('Unaddressed threads:')
+            foreach ($t in $unaddressed) {
+                [void]$lines.Add("- $([string]$t.ThreadId) (category=$([string]$t.Category))")
+            }
+        }
+    }
+
+    $lines -join "`n"
+}
 
 <#
 Squad-author heuristic
@@ -423,24 +528,49 @@ function Invoke-RubberDuckModel {
         [Parameter(Mandatory)]
         [string] $OutputPath,
 
+        [string] $PlanHash = 'no-copilot-findings',
+
         [switch] $DryRun
     )
 
+    $safeModel = $ModelName -replace '[^A-Za-z0-9._-]', '-'
+    $safeSha = if ([string]::IsNullOrWhiteSpace($HeadSha)) { 'no-sha' } else { ($HeadSha -replace '[^A-Za-z0-9]', '').Substring(0, [math]::Min(12, $HeadSha.Length)) }
+    $safePlan = if ([string]::IsNullOrWhiteSpace($PlanHash)) { 'no-plan' } else { ($PlanHash -replace '[^A-Za-z0-9]', '').Substring(0, [math]::Min(16, $PlanHash.Length)) }
+    $promptFile = Join-Path $OutputPath "$PRNumber-$safeSha-$safePlan-$safeModel.md"
+    $responseFile = Join-Path $OutputPath "$PRNumber-$safeSha-$safePlan-$safeModel.response.json"
+
+    if (-not $DryRun -and (Test-Path -LiteralPath $responseFile)) {
+        $cachedRaw = Get-Content -LiteralPath $responseFile -Raw -Encoding utf8
+        if (-not [string]::IsNullOrWhiteSpace($cachedRaw)) {
+            $cached = $cachedRaw | ConvertFrom-Json -Depth 20
+            return [pscustomobject]@{
+                Model    = [string]$cached.Model
+                Verdict  = [string]$cached.Verdict
+                Findings = @($cached.Findings)
+                Stub     = [bool]$cached.Stub
+                Cached   = $true
+            }
+        }
+    }
+
     if (-not $DryRun) {
         New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
-        $safeModel = $ModelName -replace '[^A-Za-z0-9._-]', '-'
-        $safeSha = if ([string]::IsNullOrWhiteSpace($HeadSha)) { 'no-sha' } else { ($HeadSha -replace '[^A-Za-z0-9]', '').Substring(0, [math]::Min(12, $HeadSha.Length)) }
-        $promptFile = Join-Path $OutputPath "$PRNumber-$safeSha-$safeModel.md"
         $safePrompt = Remove-Credentials $Prompt
         Set-Content -Path $promptFile -Value $safePrompt -Encoding utf8
     }
 
-    return [pscustomobject]@{
+    $response = [pscustomobject]@{
         Model    = $ModelName
         Verdict  = 'APPROVE'
         Findings = @()
         Stub     = $true
+        Cached   = $false
     }
+    if (-not $DryRun) {
+        $safeResponse = Remove-Credentials ($response | ConvertTo-Json -Depth 10)
+        Set-Content -Path $responseFile -Value $safeResponse -Encoding utf8
+    }
+    return $response
 }
 
 <#
@@ -471,6 +601,9 @@ function Invoke-AdvisoryRubberDuck {
 
         [Parameter(Mandatory)]
         [string] $OutputPath,
+
+        [AllowNull()]
+        [object] $CopilotTriagePlan = $null,
 
         [scriptblock] $CallInvoker,
 
@@ -504,6 +637,8 @@ function Invoke-AdvisoryRubberDuck {
         HeadSha    = $HeadSha
         OutputPath = $OutputPath
         DryRun     = [bool]$DryRun
+        PlanHash   = if ($CopilotTriagePlan) { [string]$CopilotTriagePlan.PlanHash } else { 'no-copilot-findings' }
+        CopilotSection = (Format-CopilotFindingsSection -CopilotTriagePlan $CopilotTriagePlan)
     }
 
     if ($null -eq $CallInvoker) {
@@ -523,6 +658,8 @@ Return strict JSON:
 
 DIFF:
 $($ctx.Diff)
+
+$($ctx.CopilotSection)
 "@
             return Invoke-RubberDuckModel `
                 -ModelName $model `
@@ -530,6 +667,7 @@ $($ctx.Diff)
                 -PRNumber $ctx.PRNumber `
                 -HeadSha $ctx.HeadSha `
                 -OutputPath $ctx.OutputPath `
+                -PlanHash $ctx.PlanHash `
                 -DryRun:$ctx.DryRun
         }
     }
@@ -571,7 +709,8 @@ function Resolve-RubberDuckVerdict {
     [CmdletBinding()]
     [OutputType([pscustomobject])]
     param(
-        [object[]] $Responses = @()
+        [object[]] $Responses = @(),
+        [bool] $AllCopilotThreadsAddressed = $true
     )
 
     $arr = @($Responses | Where-Object { $_ })
@@ -595,14 +734,15 @@ function Resolve-RubberDuckVerdict {
         $verdict = 'concerns'
     }
 
-    $passed = ($approves -ge 2) -and (-not $hasVeto)
+    $passed = ($approves -ge 2) -and (-not $hasVeto) -and $AllCopilotThreadsAddressed
 
     [pscustomobject]@{
-        Passed      = $passed
-        Approves    = $approves
-        TotalModels = $totalModels
-        Findings    = @($tagged)
-        Verdict     = $verdict
+        Passed                      = $passed
+        Approves                    = $approves
+        TotalModels                 = $totalModels
+        Findings                    = @($tagged)
+        Verdict                     = $verdict
+        AllCopilotThreadsAddressed  = $AllCopilotThreadsAddressed
     }
 }
 
@@ -645,11 +785,14 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
         }
     }
 
+    $copilotTriagePlan = Import-CopilotTriagePlan -PlanPath $CopilotTriagePlanPath
+
     $advisory = Invoke-AdvisoryRubberDuck `
         -PRNumber $PRNumber `
         -Repo $Repo `
         -HeadSha $HeadSha `
         -OutputPath $OutputPath `
+        -CopilotTriagePlan $copilotTriagePlan `
         -DryRun:$DryRun
 
     if ($advisory.Outcome -in 'ChainExhausted', 'SwapLimitExceeded') {
@@ -667,11 +810,21 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
         exit 1
     }
 
-    $resolution = Resolve-RubberDuckVerdict -Responses $advisory.Responses
+    $resolution = Resolve-RubberDuckVerdict `
+        -Responses $advisory.Responses `
+        -AllCopilotThreadsAddressed ([bool]$copilotTriagePlan.Summary.AllCopilotThreadsAddressed)
+
+    $copilotGateNotes = [System.Collections.Generic.List[string]]::new()
+    foreach ($thread in @($copilotTriagePlan.Summary.UnaddressedCopilotThreads)) {
+        $threadId = [string]$thread.ThreadId
+        $category = [string]$thread.Category
+        [void]$copilotGateNotes.Add("[correctness] Copilot thread unaddressed: $threadId (category=$category)")
+    }
+    $combinedFindings = @($resolution.Findings + $copilotGateNotes)
 
     $body = Format-AdvisoryComment `
         -PRNumber $PRNumber `
-        -Findings $resolution.Findings `
+        -Findings $combinedFindings `
         -Verdict $resolution.Verdict `
         -HeadSha $HeadSha `
         -Approves $resolution.Approves `
@@ -685,6 +838,11 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
     if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
         Add-Content -Path $env:GITHUB_OUTPUT -Value "gate-state=$gateState"
         Add-Content -Path $env:GITHUB_OUTPUT -Value "head-sha=$HeadSha"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "plan-hash=$([string]$copilotTriagePlan.PlanHash)"
+        $allAddressedText = ([string]$resolution.AllCopilotThreadsAddressed).ToLowerInvariant()
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "all-copilot-threads-addressed=$allAddressedText"
+        $unaddressedJson = Remove-Credentials ((@($copilotTriagePlan.Summary.UnaddressedCopilotThreads) | ConvertTo-Json -Depth 10 -Compress))
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "unaddressed-copilot-threads=$unaddressedJson"
     }
 
     Write-Host "Advisory comment published / updated on PR #$PRNumber."
