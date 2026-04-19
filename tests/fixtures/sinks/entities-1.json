@@ -1,0 +1,58 @@
+{
+  "EntityId": "entity:1",
+  "EntityType": "AzureResource",
+  "Platform": "Azure",
+  "DisplayName": "Entity 1",
+  "SubscriptionId": "00000000-0000-0000-0000-000000000000",
+  "SubscriptionName": "sub",
+  "ResourceGroup": "rg",
+  "Observations": [
+    {
+      "Id": "finding-1",
+      "Source": "azqr",
+      "Category": "Security",
+      "Title": "Finding 1",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Example finding",
+      "Remediation": "Fix it",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm1",
+      "LearnMoreUrl": "https://learn.microsoft.com/",
+      "EntityId": "entity:1",
+      "EntityType": "AzureResource",
+      "Platform": "Azure",
+      "Provenance": {
+        "RunId": "run-fixture",
+        "Source": "azqr",
+        "RawRecordRef": "row-1",
+        "Timestamp": "2026-01-01T00:00:00Z"
+      },
+      "SubscriptionId": "00000000-0000-0000-0000-000000000000",
+      "SubscriptionName": "sub",
+      "ResourceGroup": "rg",
+      "ManagementGroupPath": [
+        "tenant",
+        "mg1"
+      ],
+      "Frameworks": [
+        {
+          "Name": "CIS",
+          "ControlId": "1.1"
+        }
+      ],
+      "Controls": [
+        "CIS-1.1"
+      ],
+      "Confidence": "Confirmed",
+      "EvidenceCount": 1,
+      "MissingDimensions": [],
+      "SchemaVersion": "2.0"
+    }
+  ],
+  "WorstSeverity": "High",
+  "CompliantCount": 0,
+  "NonCompliantCount": 1,
+  "Sources": [
+    "azqr"
+  ]
+}

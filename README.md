@@ -110,6 +110,31 @@ Sensitive tokens are scrubbed from console output, errors.json, and report files
 
 **Data quality**: Normalizer output is validated at the boundary via `New-FindingRow` schema enforcement — invalid findings are dropped with a tracked warning, not silently passed through (#99). External API calls use `Invoke-WithRetry` with HTTP 429/503 detection, `Retry-After` header support, and jittered exponential backoff (#101).
 
+## Output sinks
+
+Azure Analyzer can optionally ship `results` and `entities` to Log Analytics / Sentinel custom tables using the **Logs Ingestion API** (DCR-based path):
+
+```powershell
+.\Invoke-AzureAnalyzer.ps1 `
+  -SubscriptionId "<sub-guid>" `
+  -SinkLogAnalytics `
+  -LogAnalyticsConfig ".\config\log-analytics-sink.json"
+```
+
+Example config file:
+
+```json
+{
+  "DceEndpoint": "https://my-dce.eastus-1.ingest.monitor.azure.com",
+  "DcrImmutableId": "dcr-000a00a000a00000a000000aa000a0aa",
+  "FindingsStream": "Custom-AzureAnalyzerFindings",
+  "EntitiesStream": "Custom-AzureAnalyzerEntities",
+  "DryRun": false
+}
+```
+
+See [docs/sinks/log-analytics.md](docs/sinks/log-analytics.md) for DCR/table setup and KQL examples.
+
 ## What you get
 
 After a run, `output/` contains:
