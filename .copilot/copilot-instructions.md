@@ -11,7 +11,7 @@ All code changes follow this pipeline:
 3. **Fix** - address all findings from reviewers
 4. **Re-gate** - re-run review with the models that rejected, verify fixes
 5. **Final Review Gate** - if re-gate passes, proceed. If not, loop back to Fix
-6. **CI** - all GitHub Actions must pass (CodeQL, docs-check)
+6. **CI** - all GitHub Actions must pass (`Analyze (actions)`)
 7. **Merge** - squash merge to main, delete feature branch
 
 ## Automated Review Ingestion

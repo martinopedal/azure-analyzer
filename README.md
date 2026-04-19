@@ -465,7 +465,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `kube-bench`, `falco`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
