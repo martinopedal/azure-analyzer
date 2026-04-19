@@ -1,14 +1,16 @@
 name: Copilot Agent PR Review
 
-# When copilot-swe-agent[bot] opens a PR, automatically request Copilot code review
-# so that review feedback is generated and the agent can iterate on it before merge.
+# Automatically request Copilot code review on EVERY PR (squad agent, human, bot,
+# external contributor) so the Comment Triage Loop in .copilot/copilot-instructions.md
+# always has Copilot findings to triage.
 #
-# Maintainer policy (see .github/copilot-instructions.md): PRs authored by the cloud
-# coding agent MUST have all Copilot review comments resolved before squash-merge.
+# Maintainer policy (see .copilot/copilot-instructions.md "Copilot Review is Mandatory
+# on Every PR"): no PR may merge until the most recent commit has a Copilot review
+# and every Copilot thread is resolved or answered.
 
 on:
-  pull_request:
-    types: [opened, ready_for_review, reopened]
+  pull_request_target:
+    types: [opened, ready_for_review, reopened, synchronize]
 
 permissions:
   pull-requests: write
@@ -16,7 +18,9 @@ permissions:
 
 jobs:
   request-copilot-review:
-    if: github.event.pull_request.user.login == 'copilot-swe-agent[bot]' || github.event.pull_request.user.login == 'Copilot'
+    # Skip drafts (Copilot review is requested when PR is marked ready) and fork PRs
+    # (no write token under pull_request_target, cannot request reviewers anyway).
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Request Copilot code review
@@ -24,6 +28,9 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const isCloudAgent = author === 'copilot-swe-agent[bot]' || author === 'Copilot';
+
             try {
               await github.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers', {
                 owner: context.repo.owner,
@@ -32,27 +39,35 @@ jobs:
                 reviewers: ['copilot-pull-request-reviewer'],
                 headers: { 'X-GitHub-Api-Version': '2022-11-28' }
               });
-              core.info(`Requested Copilot code review on PR #${pr.number}`);
+              core.info(`Requested Copilot code review on PR #${pr.number} (author: ${author})`);
             } catch (err) {
               core.warning(`Could not request Copilot review (repo-level auto-review may need to be enabled in Settings → Copilot → Code review): ${err.message}`);
             }
 
-            // Also comment-ping the issue's squad reviewer so the reviewer-protocol
-            // ceremony from .squad/ceremonies.md is triggered for the authoring agent.
+            // Only post the policy reminder once per PR (on opened/ready/reopened),
+            // not on every synchronize push.
+            const isFirstRun = ['opened', 'ready_for_review', 'reopened'].includes(context.payload.action);
+            if (!isFirstRun) {
+              core.info('Skipping policy reminder comment on synchronize event.');
+              return;
+            }
 
-            // Post a policy reminder comment so the agent and maintainers see the review contract
+            const cloudAgentLine = isCloudAgent
+              ? '2. @copilot (the authoring agent) MUST address every Copilot review comment with either a code change or an explicit reply explaining why it does not apply.'
+              : '2. The PR author MUST address every Copilot review comment via the Comment Triage Loop (gather → plan → 3-model consensus → implement → reply).';
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.number,
               body: [
-                '### 🔁 Cloud agent PR review contract',
+                '### 🔁 Copilot review contract',
                 '',
                 '1. Copilot code review has been requested on this PR.',
-                '2. @copilot (the authoring agent) MUST address every Copilot review comment with either a code change or an explicit reply explaining why it does not apply.',
-                '3. Maintainers MUST NOT squash-merge this PR until all Copilot review threads are **Resolved**.',
-                '4. CI (`Analyze (actions)`, `Docs Check`) must be green.',
+                cloudAgentLine,
+                '3. Maintainers MUST NOT squash-merge this PR until all Copilot review threads are **Resolved or answered**.',
+                '4. Required CI checks must be green.',
                 '',
-                'If the agent is unresponsive for >24h, the issue can be reassigned to a squad member.'
+                'See `.copilot/copilot-instructions.md` → "Copilot Review is Mandatory on Every PR" and "Comment Triage Loop" for the full contract.'
               ].join('\n')
             });

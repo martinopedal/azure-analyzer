@@ -22,6 +22,29 @@ When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are ad
 
 When a revision agent pushes a fix commit, the `pr-auto-resolve-threads.yml` workflow runs (on `pull_request_target` synchronize / `pull_request_review` events, with a fork-skip guard) and calls `modules/shared/Resolve-PRReviewThreads.ps1`. For every unresolved review thread on the PR, it checks whether commits added AFTER the thread was created modified the same file at an overlapping line range. If yes, the thread is resolved via the `resolveReviewThread` GraphQL mutation and a short reply is posted on the thread linking the addressing commit SHA. Threads the new commits did NOT touch stay open, and the reviewer decides. Disable repo-wide via the `SQUAD_AUTO_RESOLVE_THREADS=0` repo variable.
 
+## Frontier Model Roster (strict, no exceptions)
+
+The 3-model gate, all squad sub-agent spawns, and every rubber-duck call MUST use frontier models only. Non-frontier models silently degrade review quality and are forbidden for any non-mechanical task in this repo.
+
+| Role | Model | When to use |
+|------|-------|-------------|
+| Default coding / strategy | `claude-opus-4.7` | First choice for any squad agent, plan author, or code generation task. |
+| Large-context | `claude-opus-4.6-1m` | Only when the task genuinely needs >200k tokens of context (entire codebase audits, multi-file refactors). Do not use for general coding. |
+| Latest codex (coding) | `gpt-5.3-codex` | Code-heavy reviews, code generation when diversity vs Claude is needed. |
+| Latest GPT (general) | `gpt-5.4` | Non-coding analysis, plan critique, general reasoning when diversity is needed. |
+| Code review (architectural diversity) | `goldeneye` | Required third voice in the 3-model gate. |
+
+**Forbidden for any non-mechanical task:**
+- `claude-opus-4.6` base, `claude-opus-4.5`
+- `claude-sonnet-*` (any version)
+- `claude-haiku-*` (any version)
+- `gpt-5-mini`, `gpt-5.4-mini`, `gpt-4.1` (cheap tier, never frontier)
+- Any `*-codex` other than the latest (currently `gpt-5.3-codex`)
+
+**Standard 3-model gate trio** (used by `Invoke-PRAdvisoryGate.ps1` and `Invoke-PRReviewGate.ps1`): `claude-opus-4.7` + `gpt-5.3-codex` + `goldeneye`. If any one is unavailable, the gate falls back to `claude-opus-4.6-1m` for that slot only, never to a sonnet or haiku.
+
+When spawning sub-agents via the `task` tool, always pass the `model` parameter explicitly. Default omission has historically dropped agents onto sonnet, which violates this contract.
+
 ## Copilot Review is Mandatory on Every PR
 
 Every PR opened in this repo, by any author (squad agent, human, Dependabot, or external contributor), must receive a Copilot code review before merge. No exceptions, including doc-only and one-line PRs. The review is requested automatically by `copilot-agent-pr-review.yml` on PR open / reopen / ready-for-review, but the PR author is responsible for verifying the review actually arrived.
