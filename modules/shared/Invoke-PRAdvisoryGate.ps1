@@ -59,6 +59,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'Sanitize.ps1')
+. (Join-Path $PSScriptRoot 'RubberDuckChain.ps1')
 
 # Marker used to find and update the single advisory comment in place.
 $script:AdvisoryMarker = '<!-- squad-advisory -->'
@@ -443,13 +444,21 @@ function Invoke-RubberDuckModel {
 }
 
 <#
-Build the diff bundle, fan out across the frontier roster, return raw
-per-model responses. Each run is keyed to the head SHA so re-runs on
-synchronize start from scratch.
+Build the diff bundle, fan out across the frontier roster via the
+retry+swap chain, return raw per-model responses plus chain outcome
+metadata. Each run is keyed to the head SHA so re-runs on synchronize
+start from scratch.
+
+Returned object shape:
+    @{
+        Outcome   = 'Success' | 'ChainExhausted' | 'SwapLimitExceeded'
+        Responses = pscustomobject[]   # per-model { Verdict, Findings }
+        Swaps     = int
+    }
 #>
 function Invoke-AdvisoryRubberDuck {
     [CmdletBinding()]
-    [OutputType([pscustomobject[]])]
+    [OutputType([pscustomobject])]
     param(
         [Parameter(Mandatory)]
         [int] $PRNumber,
@@ -462,6 +471,10 @@ function Invoke-AdvisoryRubberDuck {
 
         [Parameter(Mandatory)]
         [string] $OutputPath,
+
+        [scriptblock] $CallInvoker,
+
+        [scriptblock] $Sleep = { param($s) Start-Sleep -Seconds $s },
 
         [switch] $DryRun
     )
@@ -485,11 +498,19 @@ function Invoke-AdvisoryRubberDuck {
         $diff = $diff.Substring(0, 60000) + "`n... (truncated)"
     }
 
-    $models = Get-FrontierModelRoster
-    $responses = [System.Collections.Generic.List[pscustomobject]]::new()
-    foreach ($m in $models) {
-        $prompt = @"
-You are model '$m' in the rubber-duck PR review gate for PR #$PRNumber @ $HeadSha.
+    $context = @{
+        Diff       = $diff
+        PRNumber   = $PRNumber
+        HeadSha    = $HeadSha
+        OutputPath = $OutputPath
+        DryRun     = [bool]$DryRun
+    }
+
+    if ($null -eq $CallInvoker) {
+        $CallInvoker = {
+            param($model, $ctx)
+            $prompt = @"
+You are model '$model' in the rubber-duck PR review gate for PR #$($ctx.PRNumber) @ $($ctx.HeadSha).
 
 Tag every finding with one of: [blocker] [correctness] [security] [style] [nit].
 Untagged findings are auto-tagged [correctness] (fail-safe).
@@ -501,19 +522,38 @@ Return strict JSON:
 }
 
 DIFF:
-$diff
+$($ctx.Diff)
 "@
-        $resp = Invoke-RubberDuckModel `
-            -ModelName $m `
-            -Prompt $prompt `
-            -PRNumber $PRNumber `
-            -HeadSha $HeadSha `
-            -OutputPath $OutputPath `
-            -DryRun:$DryRun
-        [void]$responses.Add($resp)
+            return Invoke-RubberDuckModel `
+                -ModelName $model `
+                -Prompt $prompt `
+                -PRNumber $ctx.PRNumber `
+                -HeadSha $ctx.HeadSha `
+                -OutputPath $ctx.OutputPath `
+                -DryRun:$ctx.DryRun
+        }
     }
 
-    , @($responses)
+    $chainResult = Invoke-RubberDuckTrio `
+        -PRNumber $PRNumber `
+        -HeadSha $HeadSha `
+        -CallContext $context `
+        -CallInvoker $CallInvoker `
+        -OutputPath $OutputPath `
+        -Sleep $Sleep `
+        -DryRun:$DryRun
+
+    $responses = @()
+    foreach ($v in @($chainResult.Verdicts)) {
+        if ($null -eq $v -or $null -eq $v.Response) { continue }
+        $responses += $v.Response
+    }
+
+    [pscustomobject]@{
+        Outcome   = $chainResult.Outcome
+        Responses = @($responses)
+        Swaps     = $chainResult.Swaps
+    }
 }
 
 <#
@@ -605,14 +645,29 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
         }
     }
 
-    $responses = Invoke-AdvisoryRubberDuck `
+    $advisory = Invoke-AdvisoryRubberDuck `
         -PRNumber $PRNumber `
         -Repo $Repo `
         -HeadSha $HeadSha `
         -OutputPath $OutputPath `
         -DryRun:$DryRun
 
-    $resolution = Resolve-RubberDuckVerdict -Responses $responses
+    if ($advisory.Outcome -in 'ChainExhausted', 'SwapLimitExceeded') {
+        $stickyBody = Format-ChainExhaustedComment `
+            -PRNumber $PRNumber `
+            -HeadSha $HeadSha `
+            -Swaps $advisory.Swaps
+        Publish-AdvisoryComment -PRNumber $PRNumber -Repo $Repo -Body $stickyBody -DryRun:$DryRun | Out-Null
+        Write-Host "rubberduck-gate state: failure (chain $($advisory.Outcome) after $($advisory.Swaps) swap(s))"
+        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'gate-state=failure'
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "head-sha=$HeadSha"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "chain-outcome=$($advisory.Outcome)"
+        }
+        exit 1
+    }
+
+    $resolution = Resolve-RubberDuckVerdict -Responses $advisory.Responses
 
     $body = Format-AdvisoryComment `
         -PRNumber $PRNumber `

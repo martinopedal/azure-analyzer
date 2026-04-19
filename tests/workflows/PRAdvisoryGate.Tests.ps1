@@ -482,3 +482,240 @@ Describe 'Format-AdvisoryComment (head SHA stamping for idempotent updates)' {
         $body | Should -Not -Match 'Models APPROVE'
     }
 }
+
+Describe 'Frontier fallback chain (retry + swap, #157 follow-up)' {
+
+    Context 'Get-FrontierFallbackChain (frontier-only allow-list)' {
+        It 'lists exactly the 5 frontier models in fallback order' {
+            $chain = Get-FrontierFallbackChain
+            $chain | Should -BeExactly @(
+                'claude-opus-4.7',
+                'claude-opus-4.6-1m',
+                'gpt-5.4',
+                'gpt-5.3-codex',
+                'goldeneye'
+            )
+        }
+
+        It 'rejects forbidden families (sonnet / haiku / mini / gpt-4.1 / opus-4.6 base / opus-4.5)' {
+            $chain = Get-FrontierFallbackChain
+            $forbidden = @('sonnet', 'haiku', 'mini', 'gpt-4.1', 'opus-4.5')
+            foreach ($needle in $forbidden) {
+                ($chain -join ' ') | Should -Not -Match $needle
+            }
+            # opus-4.6 base (no `-1m`) is forbidden, but opus-4.6-1m is allowed.
+            ($chain | Where-Object { $_ -eq 'claude-opus-4.6' }) | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'Test-RetryableModelError classification' {
+        It 'flags HTTP 429 / 503 / 504 as retryable' {
+            (Test-RetryableModelError -StatusCode 429) | Should -BeTrue
+            (Test-RetryableModelError -StatusCode 503) | Should -BeTrue
+            (Test-RetryableModelError -StatusCode 504) | Should -BeTrue
+        }
+
+        It 'flags rate_limit / quota_exceeded / overloaded / throttle / socket timeout' {
+            (Test-RetryableModelError -Message 'error: rate_limit hit on tenant') | Should -BeTrue
+            (Test-RetryableModelError -Message 'quota_exceeded for tier') | Should -BeTrue
+            (Test-RetryableModelError -Message 'model overloaded, retry later') | Should -BeTrue
+            (Test-RetryableModelError -Message 'request throttled by gateway') | Should -BeTrue
+            (Test-RetryableModelError -Message 'socket timeout after 30s') | Should -BeTrue
+        }
+
+        It 'does NOT flag non-transient errors (4xx other than 429, generic exceptions)' {
+            (Test-RetryableModelError -StatusCode 400) | Should -BeFalse
+            (Test-RetryableModelError -StatusCode 401) | Should -BeFalse
+            (Test-RetryableModelError -Message 'invalid_request: bad prompt') | Should -BeFalse
+            (Test-RetryableModelError -Message '') | Should -BeFalse
+        }
+
+        It 'detects context_length_exceeded (immediate-swap signal)' {
+            (Test-ContextOverflowError -Message 'context_length_exceeded for model x') | Should -BeTrue
+            (Test-ContextOverflowError -Message 'maximum context tokens reached') | Should -BeTrue
+            (Test-ContextOverflowError -Message 'rate_limit') | Should -BeFalse
+        }
+    }
+
+    Context 'Get-RetryBackoffSeconds (1s / 4s / 16s with +/-25% jitter)' {
+        It 'produces increasing base delays for attempts 0/1/2 (no-jitter check on a deterministic Random)' {
+            # Use a seeded Random so jitter is deterministic.
+            $rng = [System.Random]::new(42)
+            $d0 = Get-RetryBackoffSeconds -Attempt 0 -Random $rng
+            $rng = [System.Random]::new(42)
+            $d1 = Get-RetryBackoffSeconds -Attempt 1 -Random $rng
+            $rng = [System.Random]::new(42)
+            $d2 = Get-RetryBackoffSeconds -Attempt 2 -Random $rng
+            # With identical seed the jitter factor is identical, so the
+            # ratio between attempts is exactly 4x.
+            ($d1 / $d0) | Should -BeGreaterThan 3.9
+            ($d2 / $d1) | Should -BeGreaterThan 3.9
+        }
+
+        It 'keeps the jittered delay within +/-25% of the base for many seeds' {
+            for ($seed = 1; $seed -le 50; $seed++) {
+                $rng = [System.Random]::new($seed)
+                $d = Get-RetryBackoffSeconds -Attempt 0 -Random $rng -BaseSeconds 1
+                $d | Should -BeGreaterOrEqual 0.74
+                $d | Should -BeLessOrEqual 1.26
+            }
+        }
+    }
+
+    Context 'Invoke-ModelWithRetry (per-model 3-attempt loop)' {
+        It 'TEST 1 - 429 on first call, succeeds on retry 2 (no further attempts)' {
+            $script:invokeCount = 0
+            $sleepCalls = [System.Collections.Generic.List[double]]::new()
+            $invoker = {
+                param($model, $ctx)
+                $script:invokeCount++
+                if ($script:invokeCount -lt 2) {
+                    throw 'HTTP 429: rate_limit on tenant'
+                }
+                return [pscustomobject]@{ Model = $model; Verdict = 'APPROVE'; Findings = @() }
+            }
+            $sleep = { param($s) $sleepCalls.Add([double]$s) }
+            $result = Invoke-ModelWithRetry -ModelName 'claude-opus-4.7' -CallContext @{} -CallInvoker $invoker -Sleep $sleep
+            $result.Outcome | Should -Be 'Success'
+            $result.Attempts | Should -Be 2
+            $result.Response.Verdict | Should -Be 'APPROVE'
+            $sleepCalls.Count | Should -Be 1   # exactly one backoff sleep between attempt 1 and 2
+            $sleepCalls[0] | Should -BeGreaterThan 0
+        }
+
+        It 'TEST 3 - context_length_exceeded short-circuits retries (no backoff exhaustion)' {
+            $script:invokeCount = 0
+            $sleepCalls = [System.Collections.Generic.List[double]]::new()
+            $invoker = {
+                param($m, $c)
+                $script:invokeCount++
+                throw 'context_length_exceeded: prompt is too large'
+            }
+            $sleep = { param($s) $sleepCalls.Add([double]$s) }
+            $result = Invoke-ModelWithRetry -ModelName 'claude-opus-4.7' -CallContext @{} -CallInvoker $invoker -Sleep $sleep
+            $result.Outcome | Should -Be 'ContextOverflow'
+            $result.Attempts | Should -Be 1
+            $sleepCalls.Count | Should -Be 0   # no backoff: it's a swap signal
+        }
+
+        It 'returns Exhausted after MaxRetries on persistent transient errors' {
+            $script:invokeCount = 0
+            $invoker = {
+                param($m, $c); $script:invokeCount++; throw 'HTTP 503 service_unavailable'
+            }
+            $sleep = { param($s) }   # no-op
+            $result = Invoke-ModelWithRetry -ModelName 'gpt-5.4' -CallContext @{} -CallInvoker $invoker -Sleep $sleep -MaxRetries 3
+            $result.Outcome | Should -Be 'Exhausted'
+            $result.Attempts | Should -Be 3
+            $script:invokeCount | Should -Be 3
+        }
+
+        It 'returns Fatal immediately on a non-retryable 400-class error' {
+            $script:invokeCount = 0
+            $invoker = {
+                param($m, $c); $script:invokeCount++; throw 'invalid_request_error: bad payload'
+            }
+            $sleep = { param($s) }
+            $result = Invoke-ModelWithRetry -ModelName 'goldeneye' -CallContext @{} -CallInvoker $invoker -Sleep $sleep
+            $result.Outcome | Should -Be 'Fatal'
+            $script:invokeCount | Should -Be 1
+        }
+    }
+
+    Context 'Invoke-RubberDuckTrio (per-call swap orchestrator)' {
+
+        BeforeAll {
+            $script:auditDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gate-fallback-tests-" + [guid]::NewGuid().Guid)
+            New-Item -Path $script:auditDir -ItemType Directory -Force | Out-Null
+        }
+
+        AfterAll {
+            if (Test-Path $script:auditDir) { Remove-Item $script:auditDir -Recurse -Force }
+        }
+
+        It 'TEST 2 - persistent 429 on opus-4.7, swaps to opus-4.6-1m, succeeds' {
+            $script:perModelCalls = @{}
+            $invoker = {
+                param($m, $c)
+                if (-not $script:perModelCalls.ContainsKey($m)) { $script:perModelCalls[$m] = 0 }
+                $script:perModelCalls[$m]++
+                if ($m -eq 'claude-opus-4.7') {
+                    throw 'HTTP 429 rate_limit'
+                }
+                return [pscustomobject]@{ Model = $m; Verdict = 'APPROVE'; Findings = @() }
+            }
+            $sleep = { param($s) }
+
+            $result = Invoke-RubberDuckTrio `
+                -PRNumber 42 -HeadSha 'cafebabecafe' `
+                -CallContext @{} -CallInvoker $invoker `
+                -OutputPath $script:auditDir -Sleep $sleep
+            $result.Outcome | Should -Be 'Success'
+            $result.Verdicts.Count | Should -Be 3
+            # opus-4.7 is the first slot AND first chain entry: it should
+            # have been retried 3 times then swapped out exactly once.
+            $script:perModelCalls['claude-opus-4.7'] | Should -Be 3
+            # The swap target must be the next chain entry (opus-4.6-1m).
+            $modelsHit = @($result.Verdicts | ForEach-Object Model)
+            $modelsHit | Should -Contain 'claude-opus-4.6-1m'
+            $modelsHit | Should -Contain 'gpt-5.3-codex'
+            $modelsHit | Should -Contain 'goldeneye'
+            $modelsHit | Should -Not -Contain 'claude-opus-4.7'
+            $result.Swaps | Should -Be 1
+
+            # Audit row exists for the swap.
+            $auditFiles = @(Get-ChildItem $script:auditDir -Filter 'gate-fallback-42-*')
+            $auditFiles.Count | Should -BeGreaterOrEqual 1
+            ($auditFiles.Name -join ' ') | Should -Match 'claude-opus-4\.7-to-claude-opus-4\.6-1m'
+        }
+
+        It 'TEST 4 - all 5 chain entries fail, returns ChainExhausted (gate fails closed)' {
+            $invoker = {
+                param($m, $c); throw 'HTTP 503 service_unavailable'
+            }
+            $sleep = { param($s) }
+            $result = Invoke-RubberDuckTrio `
+                -PRNumber 99 -HeadSha 'deadbeef0000' `
+                -CallContext @{} -CallInvoker $invoker `
+                -OutputPath $script:auditDir -Sleep $sleep
+            $result.Outcome | Should -BeIn 'ChainExhausted', 'SwapLimitExceeded'
+            $result.Verdicts.Count | Should -Be 0
+
+            # Sticky-comment formatter produces the expected user-facing text.
+            $sticky = Format-ChainExhaustedComment -PRNumber 99 -HeadSha 'deadbeef0000' -Swaps $result.Swaps
+            $sticky | Should -Match 'Gate could not reach any frontier model'
+            $sticky | Should -Match 'Manual review required'
+            $sticky | Should -Match 'fail-closed'
+            $sticky | Should -Match '<!-- squad-advisory -->'
+        }
+
+        It 'TEST 5 - a model that already returned a verdict is NEVER re-invoked' {
+            # Force opus-4.7 to succeed, gpt-5.3-codex to always fail (forces
+            # swap into the chain), goldeneye to succeed. The swap candidate
+            # MUST skip opus-4.7 (already used) and pick opus-4.6-1m next.
+            $script:calls = [System.Collections.Generic.List[string]]::new()
+            $invoker = {
+                param($m, $c)
+                $script:calls.Add($m)
+                if ($m -eq 'gpt-5.3-codex') { throw 'HTTP 429 rate_limit' }
+                return [pscustomobject]@{ Model = $m; Verdict = 'APPROVE'; Findings = @() }
+            }
+            $sleep = { param($s) }
+            $result = Invoke-RubberDuckTrio `
+                -PRNumber 7 -HeadSha 'aaaabbbbcccc' `
+                -CallContext @{} -CallInvoker $invoker `
+                -OutputPath $script:auditDir -Sleep $sleep
+            $result.Outcome | Should -Be 'Success'
+            $modelsHit = @($result.Verdicts | ForEach-Object Model)
+            $modelsHit | Should -Contain 'claude-opus-4.7'
+            $modelsHit | Should -Contain 'goldeneye'
+            $modelsHit | Should -Contain 'claude-opus-4.6-1m'   # the substitute
+            $modelsHit | Should -Not -Contain 'gpt-5.3-codex'
+
+            # opus-4.7 was called exactly once (the successful initial call).
+            ($script:calls | Where-Object { $_ -eq 'claude-opus-4.7' } | Measure-Object).Count | Should -Be 1
+            # gpt-5.3-codex was retried up to MaxRetries before swap.
+            ($script:calls | Where-Object { $_ -eq 'gpt-5.3-codex' } | Measure-Object).Count | Should -Be 3
+        }
+    }
+}
