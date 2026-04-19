@@ -1,0 +1,108 @@
+name: CI Health Digest
+
+# Daily safety net (07:00 UTC) for any CI failure the workflow_run watchdog
+# missed — covers workflows newly added but not yet in the watchlist, runs
+# that crashed before triage, or any race where the watchdog's issue create
+# silently failed. Cross-references every failed run from the last 24h
+# against open `ci-failure` issues and posts a single sticky issue listing
+# only the untriaged ones. Closes the sticky if the backlog is empty.
+#
+# Permissions: minimal — issues:write to manage the sticky, actions:read
+# to enumerate runs, contents:read for checkout.
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  actions: read
+  contents: read
+
+concurrency:
+  group: ci-health-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Build untriaged-failures digest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+
+          $sanitizer = Join-Path $PWD 'scripts' 'Sanitize-CiOutput.ps1'
+          if (-not (Test-Path $sanitizer)) { throw "Sanitizer missing: $sanitizer" }
+
+          $repo = $env:REPO
+          $since = (Get-Date).ToUniversalTime().AddHours(-24).ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $stickyTitle = 'chore(ci): untriaged CI failures in last 24h'
+
+          # 1. Pull every failed run in the last 24h across ALL workflows.
+          $runsJson = gh api "repos/$repo/actions/runs?status=failure&created=>$since&per_page=100" 2>$null
+          if (-not $runsJson) { $runsJson = '{"workflow_runs":[]}' }
+          $runs = ($runsJson | ConvertFrom-Json).workflow_runs
+
+          # 2. Pull all open ci-failure issues and harvest their RUN URLs.
+          $openIssuesJson = gh issue list --repo $repo --label ci-failure --state open --limit 200 --json number,title,body 2>$null
+          if (-not $openIssuesJson) { $openIssuesJson = '[]' }
+          $openIssues = $openIssuesJson | ConvertFrom-Json
+          $triagedRunUrls = @{}
+          foreach ($i in $openIssues) {
+              if ($i.body) {
+                  foreach ($m in [regex]::Matches($i.body, 'https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+')) {
+                      $triagedRunUrls[$m.Value] = $i.number
+                  }
+              }
+          }
+
+          # 3. Filter: skip the watchdog itself and skip any run already covered.
+          $untriaged = @()
+          foreach ($r in $runs) {
+              if ($r.name -eq 'CI failure watchdog' -or $r.name -eq 'CI Health Digest') { continue }
+              if ($triagedRunUrls.ContainsKey($r.html_url)) { continue }
+              $untriaged += $r
+          }
+
+          $existingSticky = gh issue list --repo $repo --label type:ci-health --state open --search "untriaged CI failures in:title" --json number --jq '.[0].number // empty' 2>$null
+
+          # Ensure label exists (idempotent; suppress non-zero on already-exists).
+          gh label create 'type:ci-health' --repo $repo --color 1D76DB --description 'CI health / digest reports' --force *> $null
+
+          if ($untriaged.Count -eq 0) {
+              if ($existingSticky) {
+                  gh issue close $existingSticky --repo $repo --comment "All CI failures in the last 24h are triaged — closing digest." | Out-Null
+              }
+              Write-Host "No untriaged failures. Backlog clean."
+              return
+          }
+
+          $bodyLines = @()
+          $bodyLines += "## Untriaged CI failures in last 24h"
+          $bodyLines += ""
+          $bodyLines += "Window: since ``$since`` (UTC). Total untriaged: **$($untriaged.Count)**."
+          $bodyLines += ""
+          foreach ($r in ($untriaged | Sort-Object created_at -Descending)) {
+              $title = if ($r.display_title) { $r.display_title } else { '(no title)' }
+              $line = "- **$($r.name)** on ``$($r.head_branch)`` — [$title]($($r.html_url)) ($($r.event), $($r.created_at))"
+              $bodyLines += $line
+          }
+          $rawBody = $bodyLines -join "`n"
+          $sanitizedBody = $rawBody | & $sanitizer
+
+          if ($existingSticky) {
+              $sanitizedBody | gh issue edit $existingSticky --repo $repo --body-file - | Out-Null
+              Write-Host "Updated sticky issue #$existingSticky with $($untriaged.Count) untriaged failures."
+          } else {
+              $sanitizedBody | gh issue create --repo $repo --title $stickyTitle --body-file - `
+                --label squad --label type:bug --label type:ci-health | Out-Null
+              Write-Host "Created sticky issue with $($untriaged.Count) untriaged failures."
+          }

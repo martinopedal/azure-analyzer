@@ -3,8 +3,31 @@ name: CI failure watchdog
 on:
   workflow_run:
     # The workflows: key is REQUIRED — without it GitHub never parses the
-    # trigger and creates 0-job failure runs on every push (see PR #111 bug).
-    workflows: ["CI", "CodeQL", "Docs Check"]
+    # trigger and creates 0-job failure runs on every push (see PR #111 + #154
+    # root-cause). Each entry below MUST match the `name:` field of the watched
+    # workflow exactly. The `tests/workflows/WatchdogWatchlist.Tests.ps1`
+    # Pester test enforces this — keep it green.
+    #
+    # Inclusion criteria: every workflow whose failure on `main` or on a PR
+    # would silently degrade the squad pipeline. CI / CodeQL / Docs Check
+    # cover correctness + supply chain. The PR-gate trio (#108/#109/#157)
+    # protects merge quality. Squad workflows keep Ralph + triage alive.
+    # Sync / auto-label / tool-update keep repo housekeeping honest.
+    workflows:
+      - "CI"                            # tests, install manifest, SBOM
+      - "CodeQL"                        # required status check on main
+      - "Docs Check"                    # docs-vs-code drift gate
+      - "PR Review Gate"                # blocking rubber-duck gate (#108)
+      - "PR Advisory Gate"              # advisory rubber-duck gate (#109)
+      - "PR Auto-Resolve Review Threads" # comment-triage automation
+      - "Copilot Agent PR Review"       # auto-requests Copilot review (#156)
+      - "Squad Heartbeat (Ralph)"       # squad dispatch loop
+      - "Squad Triage"                  # issue triage automation
+      - "Squad Issue Assign"            # squad agent assignment
+      - "Sync Squad Labels"             # label hygiene
+      - "Auto-label issues for squad"   # squad-label invariant on new issues
+      - "Tool auto-update"              # weekly tool-manifest refresh
+      - "Release"                       # tag/release automation
     types: [completed]
 
 permissions:
@@ -122,5 +145,50 @@ jobs:
               gh issue comment "$duplicate_issue" --repo "$REPO" --body "Closing duplicate ci-failure issue in favor of #${canonical_issue} for hash [${error_hash}]." || true
               gh issue close "$duplicate_issue" --repo "$REPO" --comment "Duplicate of #${canonical_issue}" || true
             done
+          fi
+
+  # Self-health: detect the 0-job phantom-failure pattern (root cause of #111
+  # / #154) recurring on the watchdog itself. Independent job so it runs even
+  # if triage-failure is skipped. Posts a sticky issue if any past-7-day
+  # watchdog run had jobs_count == 0 and conclusion == failure.
+  self-health-check:
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      issues: write
+      actions: read
+      contents: read
+    steps:
+      - name: Detect 0-job watchdog runs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          since="$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          # Pull the last 50 watchdog runs and find any that completed with
+          # failure but recorded zero jobs (the GitHub phantom-run signature
+          # — name falls back to file path, no job ever spun up).
+          phantom_count="$(gh api \
+            "repos/${REPO}/actions/workflows/ci-failure-watchdog.yml/runs?per_page=50&created=>${since}" \
+            --jq '[.workflow_runs[] | select(.conclusion == "failure" and (.name | startswith(".github/workflows/")))] | length' \
+            2>/dev/null || echo 0)"
+          phantom_count="${phantom_count:-0}"
+          echo "phantom_count=${phantom_count}"
+          sticky_title="chore(ci): watchdog self-health — 0-job phantom failures detected"
+          existing="$(gh issue list --repo "$REPO" --label ci-failure --state open \
+            --search "watchdog self-health in:title" --json number --jq '.[0].number // empty' 2>/dev/null || true)"
+          if [ "${phantom_count}" -gt 0 ]; then
+            body="Watchdog detected ${phantom_count} phantom (0-job) failure run(s) in the last 7 days. This signals the bug from #111 / #154 may have regressed — verify the workflows: trigger key parses cleanly and every entry matches an actual workflow name. Run search: https://github.com/${REPO}/actions/workflows/ci-failure-watchdog.yml?query=is%3Afailure"
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --repo "$REPO" --body "Still detecting phantom runs (count=${phantom_count})." || true
+            else
+              gh issue create --repo "$REPO" --title "$sticky_title" --body "$body" \
+                --label squad --label type:bug --label priority:p1 --label ci-failure || true
+            fi
+          else
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --repo "$REPO" --comment "No phantom runs in last 7 days — closing." || true
+            fi
           fi
 
