@@ -45,6 +45,63 @@
 - **Implementation:** Updated fixtures/tests for azure-cost, defender-for-cloud, gitleaks, scorecard, trivy, plus subscription-ID handling in Azure Cost/Defender normalizers.
 - **Status:** Active
 
+### CI Failure Watchdog Automation (2026-04-17)
+- **Decision:** Implement CI failure triage as a dedicated `workflow_run` watchdog plus an opt-in local PowerShell watcher that share the same dedup contract using hash: first 12 chars of `sha256("{workflow}|{first-error-line}")`.
+- **Rationale:** Converts failed runs into actionable backlog items. Prevents issue spam by grouping repeats by deterministic workflow+error signature. Keeps behavior consistent between GitHub-hosted and local polling loops.
+- **Security:** Self-trigger loops blocked with workflow-name exclusion. Error lines sanitized before issue generation. Workflow payload values passed through environment variables.
+- **Implementation:** `.github/workflows/ci-failure-watchdog.yml`, `tools/Watch-GithubActions.ps1`, tests, docs updated.
+- **Status:** Active
+
+### Issue #127 Fix: CI Failure Watchdog Event Registration (2026-04-17)
+- **Decision:** Fixed `.github/workflows/ci-failure-watchdog.yml` by adding missing `workflows:` key to `workflow_run` trigger.
+- **Root Cause:** `workflow_run` event payload does not include `head_branch`; referencing it in job condition caused parse-time workflow failure preventing job initialization.
+- **Chosen Fix:** Minimal and safe — applied job condition `if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.name != 'CI failure watchdog'` with proper trigger registration.
+- **Validation:** 2 post-merge live runs returned `conclusion=success` with `event=workflow_run`.
+- **PR:** #154 (SHA 0f287ad)
+- **Status:** Active
+
+### SBOM + Pinned Versions Implementation (#102) (2025-01-01)
+- **Decision:** Created separate `install-manifest.json` for supply-chain security (versions, checksums) distinct from `tool-manifest.json` (orchestration). Added CycloneDX 1.5 SBOM generation, SHA-256 verification functions, and CI/release workflow gates.
+- **Rationale:** Clean separation of concerns. Package managers (winget/brew) verify checksums; we document delegation via `pinningNote`. Direct downloads use SHA-256 verification. Industry-standard CycloneDX format with GitHub/Docker/CI integration.
+- **Key Choices:** Per-platform entries (Windows/macOS use package managers; Linux uses direct downloads). Separate manifest prevents mixing orchestration and supply-chain concerns.
+- **Consequences:** Positive: supply-chain transparency on every release, reproducible installs (where possible), CI gate on hash verification. Negative: maintenance burden when tool versions bump (must update SHA-256).
+- **Status:** Active
+
+### Error Sanitization Boundary (2026-04-18)
+- **Decision:** Sanitize at error-capture time (in `catch` blocks), not write-time. Every exception message assigned to a `Message` property must wrap with `Remove-Credentials`.
+- **Rationale:** Single boundary enforcement prevents bypasses. If we sanitized only at write-time, future developers might write new output paths and forget. Keeps error messages in result objects always safe.
+- **Pattern:** `$result.Message = "Context: $(Remove-Credentials $_.Exception.Message)"`
+- **Enforcement:** Grep audit for `Exception.Message|Error.Message|.Message`, Pester tests (6 scenarios: SAS URI, bearer token, connection string, GitHub PAT, null, multi-secret), CI gate (398/398 tests).
+- **Status:** Active
+
+### PR #116 Re-Gate Extension (2026-04-18)
+- **Decision:** Apply Falco-established dot-source pattern to all missing runspace boundaries. Dot-source `shared/Sanitize.ps1` in parallel-runspace callsites. Add dot-source + fallback stub inside `Invoke-AzureAnalyzer.ps1` before invoking wrappers.
+- **Rationale:** PowerShell 7 `ForEach-Object -Parallel` creates isolated runspaces where parent-scope functions are not inherited. Guarantees `Remove-Credentials` exists at runtime in each worker runspace.
+- **Validation:** `Invoke-Pester -Path .\tests -CI` → 398 passed, 0 failed.
+- **Status:** Active
+
+### PR #120 Revision for Issue #126 Gate (2026-04-17)
+- **Decision:** Applied five corrections to wrapper error paths: (1) parser safety via `"${testNumber}: $testDesc"` string formatting; (2) test hard-fail with `$ErrorActionPreference = 'Stop'`; (3) retry API alignment with `-MaxAttempts` canonical (backward-compat `-MaxRetries` mapped); (4) sanitization invariant on all 17 wrappers; (5) `PartialSuccess` semantics for multi-target scans with mixed success/failure.
+- **Rationale:** Prevents parse regressions, improves test signal, reduces secret leakage, preserves findings during partial outages.
+- **Status:** Active
+
+### SHA-Pinning + Triage Keyword Routing + Consistency Fixes (2025-01-26)
+- **Decision:** (1) SHA-pinned 4 squad workflows (10 action instances); (2) replaced generic triage keywords in workflows and ralph-triage.js with azure-analyzer specialist keywords; (3) removed contradiction in copilot-instructions.md line 49; (4) made `go:needs-research` conditional (only applied to issues routed to Lead or with no domain match).
+- **Keywords:** Atlas (`arg`, `kql`, `query`), Iris (`entra`, `identity`, `graph`, `pim`), Forge (`pipeline`, `workflow`, `ci`, `devops`), Sentinel (`security`, `compliance`, `azqr`, `score`), Sage (`research`, `spike`, `investigation`).
+- **Impact:** ✅ Security (all workflows SHA-pinned), ✅ Triage accuracy (route to specialists), ✅ Label hygiene (`go:needs-research` only when needed).
+- **Status:** Active
+
+### PR Review Gate Model Selection (2026-04-17)
+- **Decision:** For PR review-gate triage, use three diverse models: `claude-opus-4.6`, `gpt-5.3-codex`, `goldeneye`. All 3 must approve before merge.
+- **Rationale:** Single-model review under-captures edge cases. Trio gives overlap on core correctness while preserving disagreement signal. Avoids homogeneous failure modes.
+- **Operating Rule:** Ingest PR reviews, generate model-specific prompt bundle, merge three responses into deterministic consensus. Read + comment + plan-write only (no auto-approve/dismiss).
+- **Status:** Active
+
+### Issue-First Workflow Directive (2026-04-18)
+- **Decision:** Do not ship ad-hoc PRs; always work on issues first. When an issue is fully planned (acceptance criteria, design, scope confirmed), then create code and implement the issue plan. PRs reference and implement issue plans, never the other way around.
+- **Rationale:** Consistency across the squad. The issue is the contract; the PR is the implementation. Forces planning before code.
+- **Status:** Active
+
 ## Governance
 
 - All meaningful changes require team consensus
