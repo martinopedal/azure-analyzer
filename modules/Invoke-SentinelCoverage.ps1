@@ -40,9 +40,12 @@
     Full ARM resource ID of the Log Analytics workspace linked to Sentinel.
 
 .PARAMETER LookbackDays
-    Currently used only as the "stale" threshold for disabled analytic rules
-    when its value is supplied at <= 7. Otherwise the threshold defaults to
-    7 days. Accepted for orchestrator-shape parity with Invoke-SentinelIncidents.
+    Days threshold for "disabled analytic rule is stale" (detection #2).
+    Default 30 (matches the orchestrator-supplied default for workspace-scope
+    tools and the watchlist-TTL minimum). A rule whose lastModifiedUtc is
+    older than this threshold AND is currently disabled emits a Medium
+    finding. Also accepted for orchestrator-shape parity with
+    Invoke-SentinelIncidents.
 
 .PARAMETER OutputPath
     Optional directory for raw API JSON (sanitized).
@@ -77,7 +80,7 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 # https://learn.microsoft.com/rest/api/loganalytics/saved-searches/list-by-workspace
 $script:SentinelApiVersion = '2024-09-01'
 $script:LogAnalyticsApiVersion = '2020-08-01'
-$script:DisabledRuleStaleDays = 7
+$script:DisabledRuleStaleDays = 7  # legacy default, overridden by -LookbackDays at runtime
 $script:WatchlistTtlMinDays   = 30
 $script:MinEnabledConnectors  = 3
 
@@ -124,6 +127,47 @@ function Invoke-SentinelGet {
         Invoke-AzRestMethod -Method GET -Uri $Uri -ErrorAction Stop
     }
     return $resp
+}
+
+function Invoke-SentinelGetPaged {
+    <#
+    Iterates ARM list responses by following payload.nextLink until exhausted
+    or MaxPages hit. Returns an aggregate object:
+      { StatusCode = <last>; Items = @(...); TerminalResponse = <last raw> }
+    Non-200 on the first page short-circuits with the raw response (no Items).
+    Non-200 on a subsequent page is treated as best-effort: a warning is
+    emitted, pagination stops, and items collected so far are returned.
+    #>
+    param (
+        [Parameter(Mandatory)] [string] $Uri,
+        [int] $MaxPages = 20
+    )
+    $items = [System.Collections.Generic.List[object]]::new()
+    $next = $Uri
+    $pages = 0
+    $last = $null
+    while ($next -and $pages -lt $MaxPages) {
+        $resp = Invoke-SentinelGet -Uri $next
+        $last = $resp
+        $pages++
+        if (-not $resp -or $resp.StatusCode -ne 200) {
+            if ($pages -eq 1) {
+                return [pscustomobject]@{ StatusCode = (if ($resp) { $resp.StatusCode } else { 0 }); Items = @(); TerminalResponse = $resp }
+            }
+            $code = if ($resp) { $resp.StatusCode } else { 'null' }
+            Write-Warning ("Pagination stopped at page {0} (HTTP {1}); returning {2} item(s)." -f $pages, $code, $items.Count)
+            break
+        }
+        $payload = $resp.Content | ConvertFrom-Json -Depth 20
+        if ($payload.PSObject.Properties['value'] -and $payload.value) {
+            foreach ($v in @($payload.value)) { $items.Add($v) | Out-Null }
+        }
+        $next = $null
+        if ($payload.PSObject.Properties['nextLink'] -and $payload.nextLink) {
+            $next = [string]$payload.nextLink
+        }
+    }
+    return [pscustomobject]@{ StatusCode = 200; Items = @($items); TerminalResponse = $last }
 }
 
 function ConvertFrom-Iso8601Duration {
@@ -180,23 +224,50 @@ $base       = "https://management.azure.com${WorkspaceResourceId}"
 $sentinelOK = $true
 $summary    = [ordered]@{ AlertRules = 0; Watchlists = 0; Connectors = 0; HuntingQueries = 0 }
 
+# --- 0. Onboarding probe ---------------------------------------------------
+# Microsoft.SecurityInsights/onboardingStates/default returns 200 when the
+# workspace is onboarded to Sentinel, 404 when it is not. The alertRules
+# endpoint returns 200 + empty array on a non-onboarded workspace, so we
+# cannot rely on it for the skip path. See:
+# https://learn.microsoft.com/rest/api/securityinsights/sentinel-onboarding-states/get
+try {
+    $probeUri = "${base}/providers/Microsoft.SecurityInsights/onboardingStates/default?api-version=$($script:SentinelApiVersion)"
+    $probeResp = Invoke-SentinelGet -Uri $probeUri
+    if ($probeResp -and $probeResp.StatusCode -eq 404) {
+        $result.Status  = 'Skipped'
+        $result.Message = 'Sentinel is not onboarded on this workspace (onboardingStates/default returned 404).'
+        return [pscustomobject]$result
+    } elseif (-not $probeResp -or $probeResp.StatusCode -ge 400) {
+        # 401/403 = not authorized; treat as Skipped rather than Failed since
+        # the user may have Reader on the workspace but not Sentinel Reader.
+        $code = if ($probeResp) { $probeResp.StatusCode } else { 'null' }
+        if ($probeResp -and ($probeResp.StatusCode -eq 401 -or $probeResp.StatusCode -eq 403)) {
+            $result.Status  = 'Skipped'
+            $result.Message = "Sentinel onboarding probe denied (HTTP $code). Microsoft Sentinel Reader role required."
+            return [pscustomobject]$result
+        }
+        # Other non-200 (5xx, 409 etc): try alertRules anyway as a best-effort fallback.
+        Write-Warning ("Sentinel onboarding probe returned HTTP {0}; continuing with best-effort detection." -f $code)
+    }
+} catch {
+    Write-Warning ("Sentinel onboarding probe failed: {0}; continuing with best-effort detection." -f (Remove-Credentials -Text ([string]$_.Exception.Message)))
+}
+
 # --- 1. Analytic rules ------------------------------------------------------
 $rules = @()
 try {
     $uri  = "${base}/providers/Microsoft.SecurityInsights/alertRules?api-version=$($script:SentinelApiVersion)"
-    $resp = Invoke-SentinelGet -Uri $uri
-    if ($resp -and $resp.StatusCode -eq 200) {
-        $payload = $resp.Content | ConvertFrom-Json -Depth 20
-        if ($payload.PSObject.Properties['value'] -and $payload.value) {
-            $rules = @($payload.value)
-        }
-    } elseif ($resp -and ($resp.StatusCode -eq 404 -or $resp.StatusCode -eq 409)) {
-        # 404/409: provider not registered or Sentinel not enabled on workspace.
+    $paged = Invoke-SentinelGetPaged -Uri $uri
+    if ($paged.StatusCode -eq 200) {
+        $rules = @($paged.Items)
+    } elseif ($paged.StatusCode -eq 404 -or $paged.StatusCode -eq 409) {
+        # Defensive fallback: probe missed it but alertRules is definitive.
         $sentinelOK = $false
         $result.Status  = 'Skipped'
-        $result.Message = "Microsoft.SecurityInsights not available on workspace (HTTP $($resp.StatusCode)). Sentinel may not be onboarded."
+        $result.Message = "Microsoft.SecurityInsights/alertRules returned HTTP $($paged.StatusCode). Sentinel may not be onboarded."
         return [pscustomobject]$result
     } else {
+        $resp = $paged.TerminalResponse
         $statusCode = if ($resp) { $resp.StatusCode } else { 'null' }
         $content    = if ($resp) { $resp.Content }    else { 'No response' }
         throw "alertRules list returned HTTP ${statusCode}: $(Remove-Credentials -Text ([string]$content))"
@@ -222,27 +293,36 @@ if ($rules.Count -eq 0) {
         -Extras @{ AnalyticRuleCount = 0 }
 }
 
-# Detection #2: disabled analytic rules whose last edit is >7 days old (Medium).
-$staleThreshold = [TimeSpan]::FromDays($script:DisabledRuleStaleDays)
+# Detection #2: disabled analytic rules whose last edit is >LookbackDays old (Medium).
+$staleThreshold = [TimeSpan]::FromDays($LookbackDays)
 $now = (Get-Date).ToUniversalTime()
 foreach ($r in $disabledRules) {
     $name = [string]$r.name
     $lastModRaw = $null
-    if ($r.properties.PSObject.Properties['lastModifiedUtc']) { $lastModRaw = [string]$r.properties.lastModifiedUtc }
-    $age = $null
-    if ($lastModRaw) {
-        try { $age = $now - ([datetime]::Parse($lastModRaw)).ToUniversalTime() } catch { $age = $null }
+    $lastModUtc = $null
+    if ($r.properties.PSObject.Properties['lastModifiedUtc']) {
+        $rawValue = $r.properties.lastModifiedUtc
+        if ($rawValue -is [datetime]) {
+            # ConvertFrom-Json auto-parses ISO-8601 strings to DateTime; preserve the canonical 'o' format for output.
+            $lastModUtc = $rawValue.ToUniversalTime()
+            $lastModRaw = $lastModUtc.ToString('o')
+        } else {
+            $lastModRaw = [string]$rawValue
+            try { $lastModUtc = ([datetime]::Parse($lastModRaw, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)).ToUniversalTime() } catch { $lastModUtc = $null }
+        }
     }
+    $age = $null
+    if ($lastModUtc) { $age = $now - $lastModUtc }
     if ($null -eq $age -or $age -ge $staleThreshold) {
         $ageDays = if ($age) { [math]::Round($age.TotalDays, 1) } else { 'unknown' }
         $title   = if ($r.properties.PSObject.Properties['displayName']) { [string]$r.properties.displayName } else { $name }
         Add-Finding -Id "sentinel/coverage/disabled-rule/$name" `
             -Category 'ThreatDetection' -Severity 'Medium' `
-            -Title "Analytic rule disabled >$($script:DisabledRuleStaleDays) days: $title" `
+            -Title "Analytic rule disabled >$LookbackDays days: $title" `
             -Detail "Rule '$title' (id $name) has been disabled for $ageDays day(s). Disabled rules generate no incidents." `
             -Remediation 'Re-enable the rule, archive it via configuration-as-code, or document the exception.' `
             -LearnMoreUrl 'https://learn.microsoft.com/azure/sentinel/detect-threats-custom' `
-            -Extras @{ RuleId = $name; RuleDisplayName = $title; LastModifiedUtc = $lastModRaw; AgeDays = $ageDays }
+            -Extras @{ RuleId = $name; RuleDisplayName = $title; LastModifiedUtc = $lastModRaw; AgeDays = $ageDays; StaleThresholdDays = $LookbackDays }
     }
 }
 
@@ -250,43 +330,61 @@ foreach ($r in $disabledRules) {
 $connectors = @()
 try {
     $uri  = "${base}/providers/Microsoft.SecurityInsights/dataConnectors?api-version=$($script:SentinelApiVersion)"
-    $resp = Invoke-SentinelGet -Uri $uri
-    if ($resp -and $resp.StatusCode -eq 200) {
-        $payload = $resp.Content | ConvertFrom-Json -Depth 20
-        if ($payload.PSObject.Properties['value'] -and $payload.value) {
-            $connectors = @($payload.value)
-        }
-    } elseif ($resp -and $resp.StatusCode -ge 400) {
-        Write-Warning ("Sentinel dataConnectors query returned HTTP {0}; skipping connector checks." -f $resp.StatusCode)
+    $paged = Invoke-SentinelGetPaged -Uri $uri
+    if ($paged.StatusCode -eq 200) {
+        $connectors = @($paged.Items)
+    } elseif ($paged.StatusCode -ge 400) {
+        Write-Warning ("Sentinel dataConnectors query returned HTTP {0}; skipping connector checks." -f $paged.StatusCode)
     }
 } catch {
     Write-Warning ("Sentinel dataConnectors query failed: {0}" -f (Remove-Credentials -Text ([string]$_.Exception.Message)))
 }
 $summary.Connectors = $connectors.Count
 
-# Detection #3: workspace has <3 enabled connectors (Medium -- under-monitored).
-if ($connectors.Count -lt $script:MinEnabledConnectors) {
+# Filter to connectors that have at least one dataType in an "Enabled" state.
+# Connectors registered but with all dataTypes Disabled do not produce telemetry.
+function Test-ConnectorEnabled {
+    param ($Connector)
+    if (-not $Connector -or -not $Connector.PSObject.Properties['properties']) { return $false }
+    $props = $Connector.properties
+    if (-not $props.PSObject.Properties['dataTypes'] -or -not $props.dataTypes) { return $false }
+    $dataTypes = $props.dataTypes
+    # dataTypes can be either an object whose properties are dataType buckets,
+    # or an array. Normalize to a list of bucket objects.
+    $buckets = @()
+    if ($dataTypes -is [System.Collections.IEnumerable] -and $dataTypes -isnot [string]) {
+        $buckets = @($dataTypes)
+    } else {
+        foreach ($p in $dataTypes.PSObject.Properties) { $buckets += $p.Value }
+    }
+    foreach ($b in $buckets) {
+        if ($b -and $b.PSObject.Properties['state'] -and ([string]$b.state) -ieq 'Enabled') { return $true }
+    }
+    return $false
+}
+$enabledConnectors = @($connectors | Where-Object { Test-ConnectorEnabled -Connector $_ })
+$summary['EnabledConnectors'] = $enabledConnectors.Count
+
+# Detection #3: workspace has <3 ENABLED connectors (Medium -- under-monitored).
+if ($enabledConnectors.Count -lt $script:MinEnabledConnectors) {
     Add-Finding -Id "sentinel/coverage/few-connectors" `
         -Category 'ThreatDetection' -Severity 'Medium' `
-        -Title "Sentinel workspace has only $($connectors.Count) data connector(s) (<$($script:MinEnabledConnectors))" `
-        -Detail "Workspace has $($connectors.Count) data connector(s) registered. A healthy Sentinel deployment typically connects at least $($script:MinEnabledConnectors) data sources (e.g., Azure Activity, Entra ID sign-ins, Defender XDR)." `
+        -Title "Sentinel workspace has only $($enabledConnectors.Count) enabled data connector(s) (<$($script:MinEnabledConnectors))" `
+        -Detail "Workspace has $($connectors.Count) data connector(s) registered, of which $($enabledConnectors.Count) have at least one dataType in 'Enabled' state. A healthy Sentinel deployment typically has at least $($script:MinEnabledConnectors) enabled data sources (e.g., Azure Activity, Entra ID sign-ins, Defender XDR). Note: the dataConnectors REST surface does not enumerate every modern connector type (CCP / Defender XDR may be under-reported)." `
         -Remediation 'Connect additional data sources (Azure Activity, Microsoft Entra ID, Microsoft 365 Defender, Threat Intelligence) via the Sentinel Data connectors blade.' `
         -LearnMoreUrl 'https://learn.microsoft.com/azure/sentinel/connect-data-sources' `
-        -Extras @{ ConnectorCount = $connectors.Count; MinExpected = $script:MinEnabledConnectors }
+        -Extras @{ ConnectorCount = $connectors.Count; EnabledConnectorCount = $enabledConnectors.Count; MinExpected = $script:MinEnabledConnectors }
 }
 
 # --- 3. Watchlists ---------------------------------------------------------
 $watchlists = @()
 try {
     $uri  = "${base}/providers/Microsoft.SecurityInsights/watchlists?api-version=$($script:SentinelApiVersion)"
-    $resp = Invoke-SentinelGet -Uri $uri
-    if ($resp -and $resp.StatusCode -eq 200) {
-        $payload = $resp.Content | ConvertFrom-Json -Depth 20
-        if ($payload.PSObject.Properties['value'] -and $payload.value) {
-            $watchlists = @($payload.value)
-        }
-    } elseif ($resp -and $resp.StatusCode -ge 400) {
-        Write-Warning ("Sentinel watchlists query returned HTTP {0}; skipping watchlist checks." -f $resp.StatusCode)
+    $paged = Invoke-SentinelGetPaged -Uri $uri
+    if ($paged.StatusCode -eq 200) {
+        $watchlists = @($paged.Items)
+    } elseif ($paged.StatusCode -ge 400) {
+        Write-Warning ("Sentinel watchlists query returned HTTP {0}; skipping watchlist checks." -f $paged.StatusCode)
     }
 } catch {
     Write-Warning ("Sentinel watchlists query failed: {0}" -f (Remove-Credentials -Text ([string]$_.Exception.Message)))
@@ -314,11 +412,11 @@ foreach ($w in $watchlists) {
     # Detection #5: empty watchlist (Low).
     $itemCount = $null
     try {
-        $itemUri  = "${base}/providers/Microsoft.SecurityInsights/watchlists/$alias/watchlistItems?api-version=$($script:SentinelApiVersion)"
-        $itemResp = Invoke-SentinelGet -Uri $itemUri
-        if ($itemResp -and $itemResp.StatusCode -eq 200) {
-            $itemPayload = $itemResp.Content | ConvertFrom-Json -Depth 20
-            $itemCount = if ($itemPayload.PSObject.Properties['value'] -and $itemPayload.value) { @($itemPayload.value).Count } else { 0 }
+        $aliasEnc = [uri]::EscapeDataString($alias)
+        $itemUri  = "${base}/providers/Microsoft.SecurityInsights/watchlists/$aliasEnc/watchlistItems?api-version=$($script:SentinelApiVersion)"
+        $itemPaged = Invoke-SentinelGetPaged -Uri $itemUri
+        if ($itemPaged.StatusCode -eq 200) {
+            $itemCount = @($itemPaged.Items).Count
         }
     } catch {
         Write-Warning ("watchlistItems query failed for {0}: {1}" -f $alias, (Remove-Credentials -Text ([string]$_.Exception.Message)))
@@ -338,17 +436,14 @@ foreach ($w in $watchlists) {
 $hunting = @()
 try {
     $uri  = "${base}/savedSearches?api-version=$($script:LogAnalyticsApiVersion)"
-    $resp = Invoke-SentinelGet -Uri $uri
-    if ($resp -and $resp.StatusCode -eq 200) {
-        $payload = $resp.Content | ConvertFrom-Json -Depth 20
-        if ($payload.PSObject.Properties['value'] -and $payload.value) {
-            $hunting = @($payload.value | Where-Object {
-                $_.properties.PSObject.Properties['category'] -and
-                ([string]$_.properties.category) -match '(?i)hunting'
-            })
-        }
-    } elseif ($resp -and $resp.StatusCode -ge 400) {
-        Write-Warning ("savedSearches query returned HTTP {0}; skipping hunting-query checks." -f $resp.StatusCode)
+    $paged = Invoke-SentinelGetPaged -Uri $uri
+    if ($paged.StatusCode -eq 200) {
+        $hunting = @($paged.Items | Where-Object {
+            $_.properties.PSObject.Properties['category'] -and
+            ([string]$_.properties.category) -match '(?i)hunting'
+        })
+    } elseif ($paged.StatusCode -ge 400) {
+        Write-Warning ("savedSearches query returned HTTP {0}; skipping hunting-query checks." -f $paged.StatusCode)
     }
 } catch {
     Write-Warning ("savedSearches query failed: {0}" -f (Remove-Credentials -Text ([string]$_.Exception.Message)))
@@ -367,7 +462,9 @@ if ($hunting.Count -eq 0) {
 }
 
 $result.Findings = @($findings)
-$result.Message  = "Sentinel coverage scan: $($findings.Count) finding(s). Inventory -- analyticRules: $($summary.AlertRules) (enabled: $($enabledRules.Count), disabled: $($disabledRules.Count)); watchlists: $($summary.Watchlists); connectors: $($summary.Connectors); huntingQueries: $($summary.HuntingQueries)."
+$enabledCount = $summary['EnabledConnectors']
+if ($null -eq $enabledCount) { $enabledCount = 0 }
+$result.Message  = "Sentinel coverage scan: $($findings.Count) finding(s). Inventory -- analyticRules: $($summary.AlertRules) (enabled: $($enabledRules.Count), disabled: $($disabledRules.Count)); watchlists: $($summary.Watchlists); connectors: $($summary.Connectors) (enabled: $enabledCount); huntingQueries: $($summary.HuntingQueries)."
 
 if ($OutputPath) {
     try {
