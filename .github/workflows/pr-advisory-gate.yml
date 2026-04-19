@@ -59,12 +59,14 @@ jobs:
           fi
 
       - name: Run advisory gate
+        id: gate
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           SQUAD_ADVISORY_GATE: ${{ vars.SQUAD_ADVISORY_GATE || '1' }}
           SQUAD_AGENT_LOGINS: ${{ vars.SQUAD_AGENT_LOGINS || '' }}
         shell: pwsh
@@ -76,8 +78,33 @@ jobs:
               -Repo $env:REPO_NAME `
               -PRAuthor $env:PR_AUTHOR `
               -OutputPath '.squad/decisions/inbox/' `
+              -HeadSha $env:PR_HEAD_SHA `
               -Enabled:$enabled
           } catch {
             Write-Warning "PR advisory gate degraded to advisory no-op: $($_.Exception.Message)"
+            "gate-state=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             exit 0
           }
+
+      - name: Post rubberduck-gate commit status
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO_NAME: ${{ github.repository }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GATE_STATE: ${{ steps.gate.outputs.gate-state }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: pwsh
+        run: |
+          $state = if ($env:GATE_STATE -eq 'success' -or $env:GATE_STATE -eq 'failure') { $env:GATE_STATE } else { 'failure' }
+          $description = if ($state -eq 'success') {
+            '2-of-3 frontier consensus, no [blocker]/[correctness]'
+          } else {
+            'Gate failed: missing consensus or veto-class finding'
+          }
+          & gh api -X POST "repos/$env:REPO_NAME/statuses/$env:PR_HEAD_SHA" `
+            -f context='rubberduck-gate' `
+            -f state=$state `
+            -f "description=$description" `
+            -f "target_url=$env:RUN_URL"

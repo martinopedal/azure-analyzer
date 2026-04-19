@@ -48,6 +48,8 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $OutputPath = '.squad/decisions/inbox/',
 
+    [string] $HeadSha = $env:PR_HEAD_SHA,
+
     [bool] $Enabled = $true,
 
     [switch] $DryRun
@@ -216,7 +218,13 @@ function Format-AdvisoryComment {
         [string[]] $Findings = @(),
 
         [ValidateSet('clean', 'concerns', 'blockers')]
-        [string] $Verdict = 'clean'
+        [string] $Verdict = 'clean',
+
+        [string] $HeadSha = '',
+
+        [int] $Approves = 0,
+
+        [int] $TotalModels = 0
     )
 
     $tagged = @()
@@ -239,9 +247,19 @@ function Format-AdvisoryComment {
 
     $lines = [System.Collections.Generic.List[string]]::new()
     [void]$lines.Add($script:AdvisoryMarker)
+    if (-not [string]::IsNullOrWhiteSpace($HeadSha)) {
+        [void]$lines.Add("<!-- head-sha: $HeadSha -->")
+    }
     [void]$lines.Add('## Advisory review (3-model consensus)')
     [void]$lines.Add('')
     [void]$lines.Add("**Verdict:** $emoji $Verdict")
+    if ($TotalModels -gt 0) {
+        [void]$lines.Add("**Models APPROVE:** $Approves / $TotalModels")
+    }
+    if (-not [string]::IsNullOrWhiteSpace($HeadSha)) {
+        $shortSha = if ($HeadSha.Length -ge 7) { $HeadSha.Substring(0, 7) } else { $HeadSha }
+        [void]$lines.Add("**Head SHA:** ``$shortSha``")
+    }
     [void]$lines.Add('')
     [void]$lines.Add('### Findings')
     if ($tagged.Count -eq 0) {
@@ -359,6 +377,195 @@ function Publish-AdvisoryComment {
     return $safeBody
 }
 
+# --- Frontier rubber-duck roster + per-model invocation -------------------
+# Strict allow-list. See `.copilot/copilot-instructions.md` -> "Frontier
+# Model Roster". DO NOT add opus-4.6, opus-4.5, sonnet-anything,
+# haiku-anything, mini-anything, or gpt-4.1 here.
+function Get-FrontierModelRoster {
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param()
+    @(
+        'claude-opus-4.7',
+        'gpt-5.3-codex',
+        'goldeneye'
+    )
+}
+
+<#
+Per-model rubber-duck invocation.
+
+TODO(#157 follow-up): swap the deterministic stub for a real provider
+call (GitHub Models REST or `gh copilot suggest`). Today we ship the
+gate scaffolding -- prompt persistence, roster, verdict aggregation,
+commit-status posting -- and stub the model verdict to APPROVE / no
+findings so the workflow is exercised end-to-end on every push. The
+prompt bundle written to `.squad/decisions/inbox/` is real, so the
+follow-up only needs to flip the inner call.
+#>
+function Invoke-RubberDuckModel {
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)]
+        [string] $ModelName,
+
+        [Parameter(Mandatory)]
+        [string] $Prompt,
+
+        [Parameter(Mandatory)]
+        [int] $PRNumber,
+
+        [Parameter(Mandatory)]
+        [string] $HeadSha,
+
+        [Parameter(Mandatory)]
+        [string] $OutputPath,
+
+        [switch] $DryRun
+    )
+
+    if (-not $DryRun) {
+        New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+        $safeModel = $ModelName -replace '[^A-Za-z0-9._-]', '-'
+        $safeSha = if ([string]::IsNullOrWhiteSpace($HeadSha)) { 'no-sha' } else { ($HeadSha -replace '[^A-Za-z0-9]', '').Substring(0, [math]::Min(12, $HeadSha.Length)) }
+        $promptFile = Join-Path $OutputPath "$PRNumber-$safeSha-$safeModel.md"
+        $safePrompt = Remove-Credentials $Prompt
+        Set-Content -Path $promptFile -Value $safePrompt -Encoding utf8
+    }
+
+    return [pscustomobject]@{
+        Model    = $ModelName
+        Verdict  = 'APPROVE'
+        Findings = @()
+        Stub     = $true
+    }
+}
+
+<#
+Build the diff bundle, fan out across the frontier roster, return raw
+per-model responses. Each run is keyed to the head SHA so re-runs on
+synchronize start from scratch.
+#>
+function Invoke-AdvisoryRubberDuck {
+    [CmdletBinding()]
+    [OutputType([pscustomobject[]])]
+    param(
+        [Parameter(Mandatory)]
+        [int] $PRNumber,
+
+        [Parameter(Mandatory)]
+        [string] $Repo,
+
+        [Parameter(Mandatory)]
+        [string] $HeadSha,
+
+        [Parameter(Mandatory)]
+        [string] $OutputPath,
+
+        [switch] $DryRun
+    )
+
+    $diff = ''
+    if (-not $DryRun) {
+        try {
+            $rawDiff = & gh pr diff $PRNumber --repo $Repo 2>$null
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$rawDiff)) {
+                $diff = [string]$rawDiff
+            }
+        } catch {
+            $diff = ''
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($diff)) {
+        $diff = '(diff unavailable)'
+    }
+    $diff = Remove-Credentials $diff
+    if ($diff.Length -gt 60000) {
+        $diff = $diff.Substring(0, 60000) + "`n... (truncated)"
+    }
+
+    $models = Get-FrontierModelRoster
+    $responses = [System.Collections.Generic.List[pscustomobject]]::new()
+    foreach ($m in $models) {
+        $prompt = @"
+You are model '$m' in the rubber-duck PR review gate for PR #$PRNumber @ $HeadSha.
+
+Tag every finding with one of: [blocker] [correctness] [security] [style] [nit].
+Untagged findings are auto-tagged [correctness] (fail-safe).
+
+Return strict JSON:
+{
+  "verdict": "APPROVE" | "REQUEST_CHANGES",
+  "findings": ["[tag] short message", ...]
+}
+
+DIFF:
+$diff
+"@
+        $resp = Invoke-RubberDuckModel `
+            -ModelName $m `
+            -Prompt $prompt `
+            -PRNumber $PRNumber `
+            -HeadSha $HeadSha `
+            -OutputPath $OutputPath `
+            -DryRun:$DryRun
+        [void]$responses.Add($resp)
+    }
+
+    , @($responses)
+}
+
+<#
+Apply the Gate-pass criteria from `.copilot/copilot-instructions.md` ->
+"Review Severity Taxonomy" -> "Gate-pass criteria":
+
+  Pass when ALL hold:
+    1. Zero [blocker] / [correctness] findings across all responses.
+    2. At least 2 of N models returned APPROVE.
+
+The aggregate verdict is `blockers` when any veto-class finding lands,
+`concerns` when only [style] / [nit] findings exist, otherwise `clean`.
+#>
+function Resolve-RubberDuckVerdict {
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [object[]] $Responses = @()
+    )
+
+    $arr = @($Responses | Where-Object { $_ })
+    $approves = @($arr | Where-Object { [string]$_.Verdict -eq 'APPROVE' }).Count
+    $totalModels = $arr.Count
+
+    $tagged = [System.Collections.Generic.List[string]]::new()
+    foreach ($r in $arr) {
+        foreach ($f in @($r.Findings)) {
+            $line = Add-SeverityTag -Finding ([string]$f)
+            [void]$tagged.Add($line)
+        }
+    }
+
+    $hasVeto = @($tagged | Where-Object { $_ -match '^\[(blocker|correctness|security)\]' }).Count -gt 0
+
+    $verdict = 'clean'
+    if ($hasVeto) {
+        $verdict = 'blockers'
+    } elseif ($tagged.Count -gt 0) {
+        $verdict = 'concerns'
+    }
+
+    $passed = ($approves -ge 2) -and (-not $hasVeto)
+
+    [pscustomobject]@{
+        Passed      = $passed
+        Approves    = $approves
+        TotalModels = $totalModels
+        Findings    = @($tagged)
+        Verdict     = $verdict
+    }
+}
+
 # --- Main entrypoint guard ---
 # Tests dot-source this file to exercise the pure functions. Skip the main
 # block in that case by checking whether we were invoked as a script.
@@ -387,13 +594,43 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
         New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
     }
 
-    # MVP scope: at PR open/sync we have no model responses yet, the bundle
-    # is queued for the existing pr-review-gate.yml ingestion path. The
-    # advisory comment carries an empty findings list with the marker so it
-    # can be updated in place once consensus lands. This avoids burning
-    # premium tokens inside CI on every push (#109 cost goal).
-    $body = Format-AdvisoryComment -PRNumber $PRNumber -Findings @() -Verdict 'clean'
+    if ([string]::IsNullOrWhiteSpace($HeadSha)) {
+        try {
+            $resolved = & gh pr view $PRNumber --repo $Repo --json headRefOid -q '.headRefOid' 2>$null
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$resolved)) {
+                $HeadSha = ([string]$resolved).Trim()
+            }
+        } catch {
+            $HeadSha = ''
+        }
+    }
+
+    $responses = Invoke-AdvisoryRubberDuck `
+        -PRNumber $PRNumber `
+        -Repo $Repo `
+        -HeadSha $HeadSha `
+        -OutputPath $OutputPath `
+        -DryRun:$DryRun
+
+    $resolution = Resolve-RubberDuckVerdict -Responses $responses
+
+    $body = Format-AdvisoryComment `
+        -PRNumber $PRNumber `
+        -Findings $resolution.Findings `
+        -Verdict $resolution.Verdict `
+        -HeadSha $HeadSha `
+        -Approves $resolution.Approves `
+        -TotalModels $resolution.TotalModels
     Publish-AdvisoryComment -PRNumber $PRNumber -Repo $Repo -Body $body -DryRun:$DryRun | Out-Null
+
+    # Surface gate result to the workflow so it can post the
+    # `rubberduck-gate` commit status against the head SHA.
+    $gateState = if ($resolution.Passed) { 'success' } else { 'failure' }
+    Write-Host "rubberduck-gate state: $gateState (approves=$($resolution.Approves)/$($resolution.TotalModels), verdict=$($resolution.Verdict))"
+    if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "gate-state=$gateState"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "head-sha=$HeadSha"
+    }
 
     Write-Host "Advisory comment published / updated on PR #$PRNumber."
 }

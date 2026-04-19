@@ -5,7 +5,7 @@
 All code changes follow this pipeline:
 
 1. **Build** - implement on a feature branch, run tests locally
-2. **Review Gate** - 3-model code review (Opus 4.6 + Goldeneye + GPT-5.3-codex)
+2. **Review Gate** - 3-model code review (Opus 4.7 + Goldeneye + GPT-5.3-codex)
    - Gate-pass rules are defined in "Review Severity Taxonomy" below (this supersedes the older "all 3 must APPROVE" rule)
    - Parse-check all .ps1 files, verify no ?. syntax, check error handling
 3. **Fix** - address all findings from reviewers
@@ -21,6 +21,28 @@ When ANY squad / bot PR is opened, marked ready_for_review, or synchronized, the
 When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are added, the `pr-review-gate.yml` workflow triggers automatically. It ingests PR reviews/comments, builds a 3-model triage bundle (Claude premium + GPT codex + Goldeneye), writes the consensus plan to `.squad/decisions/inbox/`, and posts a PR summary comment with ownership and next actions. Reviewer Rejection Lockout is automatic, the rejected PR author agent is mechanically locked out from doing the revision in that gate cycle, and the consensus must name a different revision owner.
 
 When a revision agent pushes a fix commit, the `pr-auto-resolve-threads.yml` workflow runs (on `pull_request_target` synchronize / `pull_request_review` events, with a fork-skip guard) and calls `modules/shared/Resolve-PRReviewThreads.ps1`. For every unresolved review thread on the PR, it checks whether commits added AFTER the thread was created modified the same file at an overlapping line range. If yes, the thread is resolved via the `resolveReviewThread` GraphQL mutation and a short reply is posted on the thread linking the addressing commit SHA. Threads the new commits did NOT touch stay open, and the reviewer decides. Disable repo-wide via the `SQUAD_AUTO_RESOLVE_THREADS=0` repo variable.
+
+## Frontier Model Roster (strict allow-list)
+
+Any sub-agent spawn, rubber-duck call, or model-roster reference in this repo MUST use a model from this allow-list. The list is intentionally short and frontier-only so the rubber-duck gate cannot be silently weakened by swapping in a cheaper tier.
+
+**Allowed:**
+- `claude-opus-4.7` (default premium)
+- `claude-opus-4.6-1m` (large-context variant for whole-repo reasoning)
+- `gpt-5.3-codex` (code-tuned diversity)
+- `gpt-5.4` (general-purpose diversity)
+- `goldeneye` (architectural diversity)
+
+**Forbidden everywhere (gate, sub-agents, skills):**
+- `claude-opus-4.6` base, `claude-opus-4.5`, anything older
+- `claude-sonnet-*` (any version)
+- `claude-haiku-*` (any version)
+- `gpt-*-mini` (any flavour)
+- `gpt-4.1`
+
+The 3-model rubber-duck gate roster is fixed at `claude-opus-4.7`, `gpt-5.3-codex`, `goldeneye` and is enforced by `Get-FrontierModelRoster` in `modules/shared/Invoke-PRAdvisoryGate.ps1` plus `Get-TriageModels` in `modules/shared/Invoke-PRReviewGate.ps1`. Tests in `tests/workflows/PRAdvisoryGate.Tests.ps1` and `tests/shared/Invoke-PRReviewGate.Tests.ps1` assert the roster contents and explicitly reject the forbidden names. Any change to the roster MUST update both modules + both test files in the same PR.
+
+When invoking the `task` tool to spawn a sub-agent, ALWAYS pass `model:` explicitly using a name from the allow-list above. Never rely on the default — defaults can drift, the allow-list cannot.
 
 ## Review Severity Taxonomy (#108)
 
@@ -39,11 +61,11 @@ PR review feedback (Copilot, the 3-model gate, or humans) currently mixes blocke
 
 This section supersedes the older "all 3 must APPROVE" rule referenced in the Development Process above.
 
-A PR passes the review gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto):
+A PR passes the review gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto). Each evaluation is keyed to the current PR head SHA — synchronize pushes restart the gate from scratch on the new SHA:
 
 1. **No `[blocker]` or `[correctness]` finding from any reviewer.** Even one such finding fails the gate and activates Reviewer Rejection Lockout, regardless of how many reviewers approved overall.
 2. **Either** of the following:
-   - **2-of-3 APPROVE** from the 3-model gate (Opus + Goldeneye + GPT codex), OR
+   - **2-of-3 APPROVE** from the 3-model gate (Opus 4.7 + Goldeneye + GPT codex) on the CURRENT head SHA, OR
    - **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only.**
 
 Untagged findings are treated as `[correctness]` (fail-safe toward the gate) until a reviewer or follow-up classifier (#109) labels them.

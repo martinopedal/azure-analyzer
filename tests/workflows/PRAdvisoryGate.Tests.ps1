@@ -346,3 +346,139 @@ Describe 'Publish-AdvisoryComment idempotent update target' {
         $script:PostedEndpoint | Should -BeNullOrEmpty
     }
 }
+
+
+
+Describe 'Get-FrontierModelRoster (frontier-only allow-list)' {
+    It 'returns exactly the three frontier models in order' {
+        $roster = @(Get-FrontierModelRoster)
+        $roster.Count | Should -Be 3
+        $roster[0] | Should -Be 'claude-opus-4.7'
+        $roster[1] | Should -Be 'gpt-5.3-codex'
+        $roster[2] | Should -Be 'goldeneye'
+    }
+
+    It 'contains no forbidden non-frontier models' {
+        $roster = @(Get-FrontierModelRoster)
+        $forbidden = @(
+            'claude-opus-4.6', 'claude-opus-4.5',
+            'claude-sonnet-4.5', 'claude-sonnet-4.6',
+            'claude-haiku-4.5', 'gpt-5-mini', 'gpt-5.4-mini', 'gpt-4.1'
+        )
+        foreach ($bad in $forbidden) {
+            $roster | Should -Not -Contain $bad
+        }
+    }
+}
+
+Describe 'Resolve-RubberDuckVerdict (Gate-pass criteria #108)' {
+    It 'passes when 3-of-3 APPROVE with zero findings' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+        )
+        $r.Passed | Should -BeTrue
+        $r.Approves | Should -Be 3
+        $r.Verdict | Should -Be 'clean'
+    }
+
+    It 'passes when 2-of-3 APPROVE with only [style]/[nit] findings' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @('[style] use single quotes') }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'REQUEST_CHANGES'; Findings = @('[nit] typo') }
+        )
+        $r.Passed | Should -BeTrue
+        $r.Verdict | Should -Be 'concerns'
+    }
+
+    It 'fails when any [blocker] finding exists, even with 3-of-3 APPROVE (rule 1 veto)' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @('[blocker] secrets leak') }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+        )
+        $r.Passed | Should -BeFalse
+        $r.Verdict | Should -Be 'blockers'
+    }
+
+    It 'fails when any [correctness] finding exists' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @('[correctness] off by one') }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+        )
+        $r.Passed | Should -BeFalse
+        $r.Verdict | Should -Be 'blockers'
+    }
+
+    It 'fails when fewer than 2 APPROVE even with no veto findings' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'REQUEST_CHANGES'; Findings = @('[style] x') }
+            [pscustomobject]@{ Verdict = 'REQUEST_CHANGES'; Findings = @('[nit] y') }
+        )
+        $r.Passed | Should -BeFalse
+    }
+
+    It 'auto-tags untagged findings as [correctness] (fail-safe)' {
+        $r = Resolve-RubberDuckVerdict -Responses @(
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @('something untagged') }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+            [pscustomobject]@{ Verdict = 'APPROVE'; Findings = @() }
+        )
+        $r.Passed | Should -BeFalse
+        $r.Verdict | Should -Be 'blockers'
+        $r.Findings[0] | Should -Match '^\[correctness\]'
+    }
+}
+
+Describe 'Invoke-RubberDuckModel (per-SHA prompt persistence)' {
+    It 'writes a prompt file keyed to PR + head SHA + model name' {
+        $outDir = Join-Path $TestDrive 'inbox'
+        $resp = Invoke-RubberDuckModel `
+            -ModelName 'claude-opus-4.7' `
+            -Prompt 'hello world prompt' `
+            -PRNumber 42 `
+            -HeadSha 'abc123def456' `
+            -OutputPath $outDir
+        $resp.Verdict | Should -Be 'APPROVE'
+        $resp.Stub | Should -BeTrue
+        Get-ChildItem -Path $outDir -Filter '42-abc123def456-claude-opus-4.7.md' |
+            Should -Not -BeNullOrEmpty
+    }
+
+    It 'persists a fresh prompt file per head SHA (idempotent per commit)' {
+        $outDir = Join-Path $TestDrive 'inbox-iter'
+        Invoke-RubberDuckModel -ModelName 'gpt-5.3-codex' -Prompt 'p1' -PRNumber 7 -HeadSha 'sha1aaaaaaaa' -OutputPath $outDir | Out-Null
+        Invoke-RubberDuckModel -ModelName 'gpt-5.3-codex' -Prompt 'p2' -PRNumber 7 -HeadSha 'sha2bbbbbbbb' -OutputPath $outDir | Out-Null
+        (Get-ChildItem -Path $outDir).Count | Should -Be 2
+    }
+
+    It 'DryRun skips disk writes' {
+        $outDir = Join-Path $TestDrive 'inbox-dry'
+        $resp = Invoke-RubberDuckModel -ModelName 'goldeneye' -Prompt 'p' -PRNumber 1 -HeadSha 'abc' -OutputPath $outDir -DryRun
+        $resp.Verdict | Should -Be 'APPROVE'
+        Test-Path $outDir | Should -BeFalse
+    }
+}
+
+Describe 'Format-AdvisoryComment (head SHA stamping for idempotent updates)' {
+    It 'embeds the head SHA marker comment when provided' {
+        $body = Format-AdvisoryComment -PRNumber 42 -Findings @() -Verdict 'clean' -HeadSha 'deadbeefcafe'
+        $body | Should -Match '<!-- head-sha: deadbeefcafe -->'
+        $body | Should -Match '\*\*Head SHA:\*\*\s+`deadbee`'
+    }
+
+    It 'embeds the model APPROVE counter when TotalModels is provided' {
+        $body = Format-AdvisoryComment -PRNumber 42 -Findings @() -Verdict 'clean' -Approves 2 -TotalModels 3
+        $body | Should -Match '\*\*Models APPROVE:\*\*\s+2 / 3'
+    }
+
+    It 'omits SHA / model lines when not provided (back-compat)' {
+        $body = Format-AdvisoryComment -PRNumber 42 -Findings @() -Verdict 'clean'
+        $body | Should -Not -Match 'Head SHA'
+        $body | Should -Not -Match 'Models APPROVE'
+    }
+}

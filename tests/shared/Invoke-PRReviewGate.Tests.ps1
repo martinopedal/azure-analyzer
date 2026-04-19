@@ -62,6 +62,18 @@ Describe 'Invoke-PRReviewGate shared helper' {
         Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
     }
 
+    It 'Get-TriageModels returns exactly the three frontier models' {
+        $models = @(Get-TriageModels)
+        $models.Count | Should -Be 3
+        $names = @($models | ForEach-Object { $_.Name })
+        $names | Should -Contain 'claude-opus-4.7'
+        $names | Should -Contain 'gpt-5.3-codex'
+        $names | Should -Contain 'goldeneye'
+        $names | Should -Not -Contain 'claude-opus-4.6'
+        $names | Should -Not -Contain 'claude-opus-4.5'
+        $names | Should -Not -Contain 'claude-sonnet-4.5'
+    }
+
     It 'Get-PRReviewFeedback parses paginated gh review and line comment payloads' {
         $feedback = Get-PRReviewFeedback -PRNumber 105 -Repo 'martinopedal/azure-analyzer'
 
