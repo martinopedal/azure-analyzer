@@ -68,7 +68,8 @@ Describe 'Invoke-AzureAnalyzer management-group path backfill' {
             $results[0].SubscriptionId | Should -Be $subId
             @($results[0].ManagementGroupPath) | Should -Be @('Tenant Root', 'Platform', 'Platform', 'Connectivity')
 
-            $entities = @(Get-Content (Join-Path $outputPath 'entities.json') -Raw | ConvertFrom-Json -ErrorAction Stop)
+            $entitiesFile = Get-Content (Join-Path $outputPath 'entities.json') -Raw | ConvertFrom-Json -ErrorAction Stop
+            $entities = if ($entitiesFile.PSObject.Properties['Entities']) { @($entitiesFile.Entities) } else { @($entitiesFile) }
             @($entities[0].ManagementGroupPath) | Should -Be @('Tenant Root', 'Platform', 'Platform', 'Connectivity')
         } finally {
             if (Test-Path $outputPath) {

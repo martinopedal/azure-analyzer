@@ -963,25 +963,8 @@ foreach ($corrDef in $correlators) {
             continue
         }
         $corrToolResult = $null
-        if ($corrName -eq 'identity-correlator') {
+        if ($corrName -eq 'ado-pipeline-correlator') {
             . $corrScript
-            $corrParams = @{ EntityStore = $store; TenantId = ($TenantId ?? 'unknown') }
-            if ($corrDef.optionalParams -contains 'IncludeGraphLookup') {
-                $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
-                if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
-            }
-            if ($ManagementGroupId -and $subscriptionsToScan.Count -gt 1) {
-                $corrParams['PortfolioMode'] = $true
-            }
-
-            $corrFindings = @(Invoke-IdentityCorrelation @corrParams)
-            $corrToolResult = [PSCustomObject]@{
-                Source   = 'identity-correlator'
-                Status   = 'Success'
-                Message  = ''
-                Findings = $corrFindings
-            }
-        } elseif ($corrName -eq 'ado-pipeline-correlator') {
             if (-not $AdoOrg) {
                 $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Skipped'; Message = 'No -AdoOrg provided'; Findings = 0 })
                 continue
@@ -1002,8 +985,44 @@ foreach ($corrDef in $correlators) {
                 }
             }
         } else {
-            $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Skipped'; Message = "Unknown correlator '$corrName'"; Findings = 0 })
-            continue
+            . $corrScript
+            $corrParams = @{ EntityStore = $store; TenantId = ($TenantId ?? 'unknown') }
+            if ($corrDef.optionalParams -contains 'IncludeGraphLookup') {
+                $mgCmd = Get-Command -Name 'Get-MgApplication' -ErrorAction SilentlyContinue
+                if ($mgCmd) { $corrParams['IncludeGraphLookup'] = $true }
+            }
+            if ($ManagementGroupId -and $subscriptionsToScan.Count -gt 1) {
+                $corrParams['PortfolioMode'] = $true
+            }
+
+            # Dispatch by entryFunction (manifest), falling back to Invoke-IdentityCorrelation
+            # so older manifests keep working.
+            $entryFn = if ($corrDef.PSObject.Properties['entryFunction'] -and $corrDef.entryFunction) {
+                [string]$corrDef.entryFunction
+            } else {
+                'Invoke-IdentityCorrelation'
+            }
+            $entryCmd = Get-Command -Name $entryFn -ErrorAction SilentlyContinue
+            if (-not $entryCmd) {
+                Write-Warning "Correlator ${corrName}: entry function '$entryFn' not found after dot-sourcing $($corrDef.script)"
+                $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Failed'; Message = "Entry function '$entryFn' missing"; Findings = 0 })
+                continue
+            }
+
+            # Strip params that the entry function does not accept (defensive against
+            # heterogeneous correlator signatures).
+            $accepted = @($entryCmd.Parameters.Keys)
+            $callParams = @{}
+            foreach ($k in $corrParams.Keys) {
+                if ($accepted -contains $k) { $callParams[$k] = $corrParams[$k] }
+            }
+            $corrFindings = @(& $entryCmd @callParams)
+            $corrToolResult = [PSCustomObject]@{
+                Source   = $corrName
+                Status   = 'Success'
+                Message  = ''
+                Findings = $corrFindings
+            }
         }
 
         # Feed correlation findings into EntityStore and flat results
@@ -1077,11 +1096,20 @@ try {
     $resultsJson = if ($allResults.Count -eq 0) { '[]' } else { $allResults | ConvertTo-Json -Depth 5 }
     Set-Content -Path $outputFile -Value (Remove-Credentials $resultsJson) -Encoding UTF8
 
-    # v3 entity-centric output
+    # v3 entity-centric output (v3.1 shape: { SchemaVersion, Entities, Edges })
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
     if ($null -eq $entities) { $entities = @() }
-    $entitiesJson = if (@($entities).Count -eq 0) { '[]' } else { $entities | ConvertTo-Json -Depth 30 }
+    $edges = @()
+    if (Get-Command Export-Edges -ErrorAction SilentlyContinue) {
+        $edges = @(Export-Edges -Store $store)
+    }
+    $entitiesPayload = [PSCustomObject]@{
+        SchemaVersion = '3.1'
+        Entities      = @($entities)
+        Edges         = $edges
+    }
+    $entitiesJson = $entitiesPayload | ConvertTo-Json -Depth 30
     Set-Content -Path $entitiesFile -Value (Remove-Credentials $entitiesJson) -Encoding UTF8
 
     $portfolio = Get-PortfolioRollup -Store $store -Entities $entities -ManagementGroupId $ManagementGroupId

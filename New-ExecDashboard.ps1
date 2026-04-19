@@ -82,7 +82,16 @@ if (Get-Command Get-RunHistory -ErrorAction SilentlyContinue) {
 
 $entities = @()
 if (Test-Path $EntitiesPath) {
-    try { $entities = @(Get-Content $EntitiesPath -Raw | ConvertFrom-Json -ErrorAction Stop) }
+    try {
+        $raw = Get-Content $EntitiesPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        # v3.1 entities.json wraps entities in { SchemaVersion, Entities, Edges }.
+        # v3.0 was a bare array. Accept both.
+        if ($raw -is [PSCustomObject] -and $raw.PSObject.Properties['Entities']) {
+            $entities = @($raw.Entities)
+        } else {
+            $entities = @($raw)
+        }
+    }
     catch { Write-Warning "Could not parse entities.json: $_" }
 }
 

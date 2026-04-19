@@ -604,6 +604,43 @@
       }
     },
     {
+      "name": "identity-graph-expansion",
+      "displayName": "Identity Graph Expansion",
+      "source": "identity-graph-expansion",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-IdentityGraphExpansion",
+      "entryFunction": "Invoke-IdentityGraphExpansion",
+      "invokeMethod": "function",
+      "type": "correlator",
+      "script": "modules/Invoke-IdentityGraphExpansion.ps1",
+      "requiredParams": [
+        "TenantId"
+      ],
+      "optionalParams": [
+        "IncludeGraphLookup"
+      ],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#283593",
+        "phase": 2
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Microsoft.Graph.Authentication",
+          "Microsoft.Graph.Users",
+          "Microsoft.Graph.Identity.SignIns"
+        ]
+      }
+    },
+    {
       "name": "zizmor",
       "displayName": "zizmor (Actions YAML Scanner)",
       "source": "zizmor",

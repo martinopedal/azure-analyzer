@@ -1,0 +1,74 @@
+{
+  "Guests": [
+    {
+      "Id": "11111111-aaaa-bbbb-cccc-111111111111",
+      "UserPrincipalName": "alice_contoso.com#EXT#@fabrikam.onmicrosoft.com",
+      "Mail": "alice@contoso.com",
+      "ExternalUserState": "Accepted",
+      "Identities": [
+        { "Issuer": "contoso.onmicrosoft.com" }
+      ]
+    },
+    {
+      "Id": "22222222-aaaa-bbbb-cccc-222222222222",
+      "UserPrincipalName": "bob_external.example#EXT#@fabrikam.onmicrosoft.com",
+      "Mail": "bob@external.example",
+      "ExternalUserState": "PendingAcceptance",
+      "Identities": []
+    },
+    {
+      "Id": "33333333-aaaa-bbbb-cccc-333333333333",
+      "UserPrincipalName": "carol#EXT#@fabrikam.onmicrosoft.com",
+      "Mail": "",
+      "ExternalUserState": "Accepted",
+      "Identities": [
+        { "Issuer": "44444444-1111-2222-3333-555555555555" }
+      ],
+      "HomeTenantId": "44444444-1111-2222-3333-555555555555"
+    }
+  ],
+  "GroupMemberships": [
+    {
+      "PrincipalId": "11111111-aaaa-bbbb-cccc-111111111111",
+      "PrincipalType": "User",
+      "GroupId": "99999999-aaaa-bbbb-cccc-999999999999",
+      "GroupName": "Admins"
+    }
+  ],
+  "RbacAssignments": [
+    {
+      "PrincipalId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "PrincipalType": "ServicePrincipal",
+      "Scope": "/subscriptions/12345678-1234-1234-1234-123456789012",
+      "RoleDefinitionName": "Owner"
+    },
+    {
+      "PrincipalId": "ffffffff-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "PrincipalType": "ServicePrincipal",
+      "Scope": "/subscriptions/12345678-1234-1234-1234-123456789012/resourceGroups/rg-app",
+      "RoleDefinitionName": "Reader"
+    }
+  ],
+  "AppOwnerships": [
+    {
+      "OwnerId": "11111111-aaaa-bbbb-cccc-111111111111",
+      "OwnerType": "User",
+      "AppId": "deadbeef-1111-2222-3333-444444444444",
+      "AppDisplayName": "deploy-bot"
+    }
+  ],
+  "ConsentGrants": [
+    {
+      "ClientId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "ResourceId": "00000003-0000-0000-c000-000000000000",
+      "ConsentType": "AllPrincipals",
+      "Scope": "Directory.ReadWrite.All Mail.Read"
+    },
+    {
+      "ClientId": "ffffffff-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "ResourceId": "00000003-0000-0000-c000-000000000000",
+      "ConsentType": "Principal",
+      "Scope": "User.Read"
+    }
+  ]
+}
