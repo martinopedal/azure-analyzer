@@ -14,6 +14,12 @@ BeforeAll {
     $script:Orchestrator = Join-Path $script:RepoRoot 'Invoke-AzureAnalyzer.ps1'
     . (Join-Path $script:RepoRoot 'modules' 'shared' 'Schema.ps1')
     . (Join-Path $script:RepoRoot 'modules' 'shared' 'EntityStore.ps1')
+    . (Join-Path $script:RepoRoot 'modules' 'shared' 'WorkerPool.ps1')
+    . (Join-Path $script:RepoRoot 'modules' 'Invoke-IdentityGraphExpansion.ps1')
+    # Stub Search-AzGraph so Mock can hook it (Az.ResourceGraph not loaded in tests).
+    if (-not (Get-Command -Name Search-AzGraph -ErrorAction SilentlyContinue)) {
+        function Search-AzGraph { param($Query, $Subscription, $ManagementGroup, $First, $Skip) @() }
+    }
 
     # We don't run the full orchestrator (it touches Az contexts, prereqs, etc).
     # Instead we extract the dispatch logic into a dedicated harness function by
@@ -131,15 +137,116 @@ Describe 'Orchestrator correlator dispatch — envelope contract (#187 B1)' {
     }
 }
 
-Describe 'Orchestrator correlator dispatch — entry-function source-of-truth check (#187 F5)' {
-    # Sentinel test: if the production dispatch sniff in Invoke-AzureAnalyzer.ps1
-    # diverges from the harness above, this fails — the harness is meant to be
-    # an exact mirror of production logic.
-    It 'production source contains the same envelope sniff as the harness' {
-        $src = Get-Content -Path $script:Orchestrator -Raw
-        $src | Should -Match '\$isEnvelope\s*=\s*\('
-        $src | Should -Match "PSObject\.Properties\['Findings'\]"
-        $src | Should -Match "PSObject\.Properties\['Status'\]"
-        $src | Should -Match "PSObject\.Properties\['Edges'\]"
+Describe 'Orchestrator correlator dispatch — real end-to-end (#187 F5 plan rev2)' {
+    # Per re-gate consensus (codex + goldeneye REQUEST-CHANGES on the harness-only
+    # approach), this test invokes the real `Invoke-AzureAnalyzer.ps1` script with
+    # the real `identity-graph-expansion` correlator entry from `tool-manifest.json`,
+    # and asserts that the wrapper's envelope.Findings reach `results.json` and
+    # envelope-side edges reach `entities.json`. Mocks survive the orchestrator's
+    # dot-source the same way `Invoke-AzureAnalyzer.MgPath.Tests.ps1` patterns
+    # mock `Normalize-Azqr` and `Invoke-ParallelTools`.
+
+    BeforeAll {
+        $script:ScriptPath = Join-Path $script:RepoRoot 'Invoke-AzureAnalyzer.ps1'
+        $script:OutputPath = Join-Path $script:RepoRoot 'output-test\identity-graph-dispatch'
+        if (Test-Path $script:OutputPath) { Remove-Item -Path $script:OutputPath -Recurse -Force }
+
+        $script:SubId = '11111111-1111-1111-1111-111111111111'
+    }
+
+    AfterAll {
+        if (Test-Path $script:OutputPath) { Remove-Item -Path $script:OutputPath -Recurse -Force }
+    }
+
+    It 'persists envelope.Findings to results.json (3 findings, not 1 garbage row)' {
+        Mock Search-AzGraph {
+            @([pscustomobject]@{
+                subscriptionId   = $script:SubId
+                subscriptionName = 'sub-one'
+                mgChain          = @([pscustomobject]@{ displayName = 'Tenant Root' })
+            })
+        }
+
+        # Empty collector stage so we can isolate correlator dispatch.
+        Mock Invoke-ParallelTools { @() }
+
+        # Override the correlator entry function to return the envelope shape
+        # that triggered B1. Pester Mock survives the orchestrator dot-source
+        # (same mechanism the MgPath test relies on for Normalize-Azqr).
+        Mock Invoke-IdentityGraphExpansion {
+            param($EntityStore, $TenantId, [switch] $IncludeGraphLookup)
+
+            # Self-add edges to mirror real wrapper behavior (the orchestrator
+            # MUST NOT re-add — verifies no double-add as a side effect).
+            $edge = New-Edge `
+                -Source 'objectId:11111111-1111-1111-1111-111111111111' `
+                -Target ('tenant:{0}' -f [guid]::NewGuid()) `
+                -Relation 'GuestOf' `
+                -Confidence 'Confirmed' `
+                -DiscoveredBy 'identity-graph-expansion' `
+                -Platform 'Entra'
+            if ($EntityStore -and $EntityStore.PSObject.Methods['AddEdge']) {
+                $EntityStore.AddEdge($edge)
+            }
+
+            $mkRow = {
+                param($id, $title)
+                New-FindingRow `
+                    -Id $id -Source 'identity-graph-expansion' `
+                    -EntityId ('objectId:{0}' -f $id) -EntityType 'User' `
+                    -Title $title -Compliant $false `
+                    -ProvenanceRunId ([guid]::NewGuid().ToString()) `
+                    -Severity 'High' -Category 'B2B Guest Hygiene' `
+                    -Platform 'Entra'
+            }
+
+            return [PSCustomObject]@{
+                Status   = 'Success'
+                RunId    = [guid]::NewGuid().ToString()
+                Findings = @(
+                    (& $mkRow '11111111-1111-1111-1111-111111111111' 'Dormant guest')
+                    (& $mkRow '22222222-2222-2222-2222-222222222222' 'Over-priv role')
+                    (& $mkRow '33333333-3333-3333-3333-333333333333' 'Risky consent')
+                )
+                Edges    = @($edge)
+            }
+        }
+
+        try {
+            & $script:ScriptPath `
+                -SubscriptionId $script:SubId `
+                -IncludeTools 'identity-graph-expansion' `
+                -TenantId 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' `
+                -OutputPath $script:OutputPath `
+                -SkipPrereqCheck | Out-Null
+
+            $results = @(Get-Content (Join-Path $script:OutputPath 'results.json') -Raw | ConvertFrom-Json -ErrorAction Stop)
+            # B1 regression assertion: pre-fix this would be 1 (envelope-as-finding).
+            $results.Count | Should -Be 3
+            $results[0].Source | Should -Be 'identity-graph-expansion'
+            ($results | ForEach-Object { $_.EntityId }) | Should -Contain 'objectId:11111111-1111-1111-1111-111111111111'
+            ($results | ForEach-Object { $_.Title }) | Should -Contain 'Dormant guest'
+            # Every row must have a real EntityId (pre-fix the garbage row had none).
+            @($results | Where-Object { -not $_.EntityId }).Count | Should -Be 0
+        } finally {
+            # leave $script:OutputPath for the next It in this Describe to inspect
+        }
+    }
+
+    It 'persists wrapper-self-added edges to entities.json (no double-add)' {
+        # Reuses the output of the previous It (uses $script:OutputPath from BeforeAll).
+        $entitiesFile = Join-Path $script:OutputPath 'entities.json'
+        Test-Path $entitiesFile | Should -BeTrue
+
+        $parsed = Get-Content $entitiesFile -Raw | ConvertFrom-Json -ErrorAction Stop
+        # v3.1 envelope is in effect.
+        $parsed.PSObject.Properties.Name | Should -Contain 'Edges'
+
+        $edges = @($parsed.Edges)
+        # Exactly one edge — wrapper added it; orchestrator must NOT have re-added.
+        $edges.Count | Should -Be 1
+        $edges[0].Relation | Should -Be 'GuestOf'
+        $edges[0].DiscoveredBy | Should -Be 'identity-graph-expansion'
     }
 }
+
