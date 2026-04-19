@@ -557,6 +557,8 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **zizmor** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
 | **gitleaks** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
 | **Trivy** | -- | -- | ⚡ Remote | -- | ⚡ Local fallback | -- |
+| **bicep-iac** | -- | -- | ⚡ Remote (clone) | -- | ⚡ Local fallback (`bicep`) | -- |
+| **terraform-iac** | -- | -- | ⚡ Remote (clone) | -- | ⚡ Local fallback (`terraform`/`trivy`) | -- |
 | **Identity Correlator** | ✅ Inherited | ⚡ Optional (Graph lookup) | -- | -- | -- | -- |
 | **AI Triage** | -- | -- | ⚡ Recommended | -- | -- | ⚠️ Optional |
 
