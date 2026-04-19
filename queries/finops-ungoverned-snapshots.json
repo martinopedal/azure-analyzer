@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "name": "FinOps - Ungoverned managed disk snapshots",
+    "description": "Detect Azure managed-disk snapshots older than the configured threshold (default 90 days) that are not retained by an exemption tag and are not managed by Azure Backup or a Recovery Services Vault.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "f9b14e6c-1c4d-4f0a-9d2c-7b6a1f3e0a18",
+      "ruleId": "finops-ungoverned-snapshot",
+      "category": "Cost",
+      "subcategory": "Ungoverned snapshots",
+      "severity": "Medium",
+      "text": "Managed disk snapshots older than {{SnapshotAgeThresholdDays}} days with no retention tag or backup-vault attribution",
+      "queryable": true,
+      "graph": "resources | where type =~ 'microsoft.compute/snapshots' | extend createdTime = todatetime(properties.timeCreated), managedByRef = tostring(managedBy), tagKeys = bag_keys(tags), tagsLower = tolower(tostring(tags)) | extend hasExemptionTag = tagsLower contains 'keep' or tagsLower contains 'retention' or tagsLower contains 'keep-until' or tagsLower contains 'do-not-delete', hasVaultAttribution = (tagsLower contains 'rsvaultbackup') or (tagsLower contains 'backupvaultname') or isnotempty(managedByRef) | where createdTime < ago({{SnapshotAgeThresholdDays}}d) and hasExemptionTag == false and hasVaultAttribution == false | extend ageDays = toint(datetime_diff('day', now(), createdTime)) | project id, name, type, resourceGroup, subscriptionId, location, detectedReason = strcat('Managed disk snapshot is ', ageDays, ' days old with no retention tag (keep/retention/keep-until/do-not-delete) and no backup-vault attribution. No restore activity could be inferred from ARG metadata.'), compliant = false"
+    }
+  ]
+}

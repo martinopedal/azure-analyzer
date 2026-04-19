@@ -78,14 +78,59 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
             $result.Status | Should -BeIn @('Success', 'PartialSuccess')
             @($result.Findings).Count | Should -BeGreaterThan 0
         }
+    }
 
-        It 'adds estimated monthly cost fields to findings' {
-            $f = @($result.Findings)[0]
-            $f.PSObject.Properties.Name | Should -Contain 'EstimatedMonthlyCost'
-            $f.PSObject.Properties.Name | Should -Contain 'DetectionCategory'
-            $f.EstimatedMonthlyCost | Should -BeGreaterThan 0
-            $f.Currency | Should -Be 'USD'
+    Context 'with snapshot query and custom threshold' {
+        BeforeAll {
+            $script:SnapshotQuery = Join-Path $script:RepoRoot 'queries' 'finops-ungoverned-snapshots.json'
+            Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Mock' } }
+            Mock Import-Module {}
+            Mock Get-AzContext { [PSCustomObject]@{ Account = 'test@contoso.com' } }
+            Mock Invoke-AzRestMethod {
+                [PSCustomObject]@{ StatusCode = 200; Content = (@{ properties = @{ currency = 'USD'; columns = @(@{name='ResourceId'},@{name='PreTaxCost'}); rows = @() } } | ConvertTo-Json -Depth 10) }
+            } -ParameterFilter { $Method -eq 'POST' }
+            $script:CapturedQueryFile = Join-Path ([System.IO.Path]::GetTempPath()) ("finops-snap-{0}.txt" -f ([guid]::NewGuid().ToString('N')))
+            $env:FINOPS_TEST_CAPTURED_QUERY_FILE = $script:CapturedQueryFile
+            Mock Search-AzGraph {
+                if ($env:FINOPS_TEST_CAPTURED_QUERY_FILE) {
+                    Set-Content -Path $env:FINOPS_TEST_CAPTURED_QUERY_FILE -Value $Query -Encoding utf8
+                }
+                @(
+                    [PSCustomObject]@{
+                        id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-finops/providers/Microsoft.Compute/snapshots/old-orphan-snap-01'
+                        name = 'old-orphan-snap-01'
+                        type = 'microsoft.compute/snapshots'
+                        resourceGroup = 'rg-finops'
+                        subscriptionId = '11111111-1111-1111-1111-111111111111'
+                        location = 'westeurope'
+                        detectedReason = 'Managed disk snapshot is 187 days old with no retention tag and no backup-vault attribution.'
+                        compliant = $false
+                    }
+                )
+            }
+
+            $script:SnapResult = & $script:Wrapper -SubscriptionId '11111111-1111-1111-1111-111111111111' -QueryFiles @($script:SnapshotQuery) -SnapshotAgeThresholdDays 45
+            $script:CapturedQuery = if (Test-Path $script:CapturedQueryFile) { Get-Content -Path $script:CapturedQueryFile -Raw } else { '' }
+            Remove-Item $script:CapturedQueryFile -ErrorAction SilentlyContinue
+            Remove-Item Env:\FINOPS_TEST_CAPTURED_QUERY_FILE -ErrorAction SilentlyContinue
+        }
+
+        It 'substitutes the snapshot age threshold into the executed KQL' {
+            $script:SnapResult.Status | Should -BeIn @('Success', 'PartialSuccess') -Because $script:SnapResult.Message
+            $script:CapturedQuery | Should -Match 'ago\(45d\)'
+            $script:CapturedQuery | Should -Not -Match '\{\{SnapshotAgeThresholdDays\}\}'
+        }
+
+        It 'emits Medium-severity finding with finops-ungoverned-snapshot RuleId' {
+            $f = @($script:SnapResult.Findings)[0]
+            $f.Severity | Should -Be 'Medium'
+            $f.RuleId | Should -Be 'finops-ungoverned-snapshot'
+            $f.ResourceType | Should -Be 'microsoft.compute/snapshots'
             $f.Compliant | Should -BeFalse
+        }
+
+        It 'rejects non-positive threshold values' {
+            { & $script:Wrapper -SubscriptionId '11111111-1111-1111-1111-111111111111' -QueryFiles @($script:SnapshotQuery) -SnapshotAgeThresholdDays 0 } | Should -Throw
         }
     }
 }

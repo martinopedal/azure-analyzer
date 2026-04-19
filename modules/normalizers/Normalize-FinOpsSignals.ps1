@@ -93,6 +93,9 @@ function Normalize-FinOpsSignals {
 
         $row | Add-Member -NotePropertyName MonthlyCost -NotePropertyValue $monthlyCost -Force
         $row | Add-Member -NotePropertyName Currency -NotePropertyValue $currency -Force
+        if ($f.PSObject.Properties['RuleId'] -and $f.RuleId) {
+            $row | Add-Member -NotePropertyName RuleId -NotePropertyValue ([string]$f.RuleId) -Force
+        }
         if ($f.PSObject.Properties['DetectionCategory']) {
             $row | Add-Member -NotePropertyName DetectionCategory -NotePropertyValue ([string]$f.DetectionCategory) -Force
         }
