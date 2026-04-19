@@ -11,15 +11,26 @@ permissions:
 
 jobs:
   triage-failure:
-    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.name != 'CI failure watchdog'
     runs-on: ubuntu-latest
     concurrency:
       group: ci-failure-watchdog
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Skip non-failure or self-triggered runs
+        id: gate
+        run: |
+          if [ "${{ github.event.workflow_run.conclusion }}" != "failure" ] || [ "${{ github.event.workflow_run.name }}" = "CI failure watchdog" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Watched run is not a triageable failure (conclusion=${{ github.event.workflow_run.conclusion }}, name=${{ github.event.workflow_run.name }}). Exiting cleanly."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.gate.outputs.skip == 'false'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Triage failed workflow run
+        if: steps.gate.outputs.skip == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
