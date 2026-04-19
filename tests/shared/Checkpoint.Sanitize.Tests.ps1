@@ -2,27 +2,23 @@
 Set-StrictMode -Version Latest
 
 BeforeAll {
-    . "$PSScriptRoot\..\..\modules\shared\Sanitize.ps1"
     . "$PSScriptRoot\..\..\modules\shared\Checkpoint.ps1"
 }
 
-Describe 'Save-Checkpoint sanitizes JSON before writing' {
-    It 'strips credentials from checkpoint data before Set-Content' {
+Describe 'Save-Checkpoint disk-write sanitization' {
+    It 'removes Bearer tokens from checkpoint JSON written to disk' {
+        $token = 'Bearer eyJhbGciOiJIUzI1NiJ9.fake_payload.fake_sig'
         $testDir = Join-Path $TestDrive 'checkpoint-sanitize'
 
         $result = [PSCustomObject]@{
             Status = 'Complete'
-            Detail = 'Bearer eyJfake.token.value'
+            Detail = "Synthetic token $token"
         }
 
-        $path = Save-Checkpoint -CheckpointDir $testDir -Tool 'test-tool' `
-            -ScopeType Subscription -SubscriptionId 'sub-sanitize' -Result $result
+        $path = Save-Checkpoint -CheckpointDir $testDir -Tool 'test-tool' -ScopeType Subscription -SubscriptionId 'sub-sanitize' -Result $result
+        $content = Get-Content -Path $path -Raw
 
-        $path | Should -Not -BeNullOrEmpty
-        Test-Path $path | Should -BeTrue
-
-        $content = Get-Content $path -Raw
-        $content | Should -Not -Match 'eyJfake\.token\.value'
-        $content | Should -Match '\[REDACTED\]'
+        $content | Should -Not -Match [regex]::Escape($token)
+        $content | Should -Match 'Bearer \[REDACTED\]'
     }
 }

@@ -89,7 +89,7 @@ try {
     while ($nextLink -and $pageCount -lt $maxPages) {
         $pageCount++
         $resp = Invoke-WithRetry -MaxAttempts 3 -ScriptBlock {
-            Invoke-AzRestMethod -Method GET -Uri $using:nextLink -ErrorAction Stop
+            Invoke-AzRestMethod -Method GET -Uri $nextLink -ErrorAction Stop
         }
         if (-not $resp -or $resp.StatusCode -ge 400) {
             # 404/204 typically means "no consumption data available" — skip gracefully.
@@ -193,7 +193,7 @@ if ($OutputPath) {
     try {
         if (-not (Test-Path $OutputPath)) { New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null }
         $raw = Join-Path $OutputPath "cost-$SubscriptionId-$(Get-Date -Format yyyyMMddHHmmss).json"
-        (Remove-Credentials ($result | ConvertTo-Json -Depth 20)) | Set-Content -Path $raw -Encoding utf8
+        Set-Content -Path $raw -Value (Remove-Credentials ($result | ConvertTo-Json -Depth 20)) -Encoding utf8
     } catch {
         Write-Warning "Failed to write raw cost JSON: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     }

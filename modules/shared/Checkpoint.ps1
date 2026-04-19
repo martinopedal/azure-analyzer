@@ -11,6 +11,12 @@ param ()
 
 Set-StrictMode -Version Latest
 
+$sanitizePath = Join-Path $PSScriptRoot 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string] $Text) return $Text }
+}
+
 function ConvertTo-SafeCheckpointComponent {
     param (
         [AllowNull()]
@@ -179,7 +185,7 @@ function Save-Checkpoint {
         $json = Remove-Credentials $json
     }
     $tempPath = "$path.tmp-$([Guid]::NewGuid().ToString('N'))"
-    Set-Content -Path $tempPath -Value $json -Encoding utf8
+    Set-Content -Path $tempPath -Value (Remove-Credentials $json) -Encoding utf8
     Move-Item -Path $tempPath -Destination $path -Force
     return $path
 }

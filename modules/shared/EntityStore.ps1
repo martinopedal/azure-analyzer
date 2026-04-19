@@ -12,6 +12,12 @@ param ()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$sanitizePath = Join-Path $PSScriptRoot 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string] $Text) return $Text }
+}
+
 $script:SeverityRank = @{
     Critical = 5
     High     = 4
@@ -409,6 +415,8 @@ class EntityStore {
 
         $entitiesJson = $this.Entities.Values | ConvertTo-Json -Depth 30
         $findingsJson = $this.Findings | ConvertTo-Json -Depth 30
+        $entitiesJson = Remove-Credentials $entitiesJson
+        $findingsJson = Remove-Credentials $findingsJson
 
         if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
             $entitiesJson = Remove-Credentials $entitiesJson
