@@ -223,7 +223,7 @@ if ($OutputPath) {
     try {
         if (-not (Test-Path $OutputPath)) { New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null }
         $raw = Join-Path $OutputPath "sentinel-incidents-$(Get-Date -Format yyyyMMddHHmmss).json"
-        (Remove-Credentials ($result | ConvertTo-Json -Depth 20)) | Set-Content -Path $raw -Encoding utf8
+        Set-Content -Path $raw -Value (Remove-Credentials ($result | ConvertTo-Json -Depth 20)) -Encoding utf8
     } catch {
         Write-Warning "Failed to write raw Sentinel JSON: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     }
