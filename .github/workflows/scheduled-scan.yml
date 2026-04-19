@@ -1,0 +1,179 @@
+name: Scheduled scan
+
+on:
+  schedule:
+    # 06:00 UTC daily. Override via workflow_dispatch when iterating.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      include_tools:
+        description: 'CSV of tool names to run (overrides default profile).'
+        required: false
+        type: string
+        default: 'azqr,psrule'
+      subscription_id:
+        description: 'Override AZURE_SUBSCRIPTION_ID for this run.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# One scheduled scan at a time -- prevents parallel-rerun races on the
+# dedup-issue logic in the report job.
+concurrency:
+  group: scheduled-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Run azure-analyzer
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      id-token: write   # OIDC federated token to Azure
+      contents: read    # read repo at $GITHUB_SHA
+    env:
+      INCLUDE_TOOLS: ${{ inputs.include_tools || 'azqr,psrule' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Validate scope variables
+        shell: pwsh
+        run: |
+          $sub = '${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}'
+          $tenant = '${{ vars.AZURE_TENANT_ID }}'
+          $client = '${{ vars.AZURE_CLIENT_ID }}'
+          foreach ($pair in @(@('AZURE_SUBSCRIPTION_ID', $sub), @('AZURE_TENANT_ID', $tenant), @('AZURE_CLIENT_ID', $client))) {
+            if ([string]::IsNullOrWhiteSpace($pair[1])) {
+              throw "Repository variable $($pair[0]) is not set; configure OIDC federation before scheduling."
+            }
+            if ($pair[1] -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+              throw "Repository variable $($pair[0]) is not a valid GUID."
+            }
+          }
+
+      - name: Azure login (OIDC, no PATs)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install required PowerShell modules
+        shell: pwsh
+        run: |
+          Install-Module Az.Accounts -RequiredVersion 3.0.5 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+          Install-Module Az.ResourceGraph -RequiredVersion 1.1.0 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+
+      - name: Run azure-analyzer
+        shell: pwsh
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        run: |
+          $tools = $env:INCLUDE_TOOLS -split '[,;\s]+' | Where-Object { $_ }
+          $args = @{
+            SubscriptionId = $env:AZURE_SUBSCRIPTION_ID
+            TenantId       = $env:AZURE_TENANT_ID
+            OutputPath     = (Join-Path $env:GITHUB_WORKSPACE 'output')
+            SkipPrereqCheck = $true
+          }
+          if ($tools.Count -gt 0) { $args['IncludeTools'] = $tools }
+          ./Invoke-AzureAnalyzer.ps1 @args
+
+      - name: Upload scan artifacts
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: scheduled-scan-${{ github.run_id }}
+          path: |
+            output/results.json
+            output/entities.json
+            output/*.html
+            output/*.md
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Compute critical-finding count
+        id: critical
+        if: always()
+        shell: pwsh
+        run: |
+          $entitiesPath = Join-Path $env:GITHUB_WORKSPACE 'output' 'entities.json'
+          $count = 0
+          if (Test-Path $entitiesPath) {
+            try {
+              $payload = Get-Content -Raw -Path $entitiesPath | ConvertFrom-Json -ErrorAction Stop
+              $entities = if ($payload.PSObject.Properties.Name -contains 'Entities') { $payload.Entities } else { $payload }
+              foreach ($entity in @($entities)) {
+                foreach ($obs in @($entity.Observations)) {
+                  if ($obs -and $obs.Severity -and ([string]$obs.Severity).ToLowerInvariant() -eq 'critical') { $count++ }
+                }
+              }
+            } catch {
+              Write-Warning "Failed to parse entities.json: $($_.Exception.Message -replace '[\r\n]+', ' ')"
+            }
+          }
+          "count=$count" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Critical findings: $count"
+    outputs:
+      critical_count: ${{ steps.critical.outputs.count }}
+
+  report:
+    name: Report critical findings
+    needs: scan
+    if: always() && needs.scan.outputs.critical_count != '' && needs.scan.outputs.critical_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      # Deliberately no id-token: this job does NOT touch Azure.
+    steps:
+      - name: Open or update scheduled-scan issue (deduped)
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const count = parseInt('${{ needs.scan.outputs.critical_count }}', 10) || 0;
+            const date = new Date().toISOString().slice(0, 10);
+            const titlePrefix = `fix: scheduled scan detected critical finding(s) on ${date}`;
+            const labels = ['auto:scheduled-scan', 'squad', 'severity:critical'];
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const safeBody = [
+              `Scheduled scan run: ${runUrl}`,
+              '',
+              `Critical findings: **${count}**`,
+              '',
+              'Artifacts (results.json, entities.json, HTML report) are attached to the workflow run.',
+              '',
+              '_This issue is auto-managed by .github/workflows/scheduled-scan.yml._',
+            ].join('\n').replace(/[\u0000-\u0008\u000b-\u001f]/g, '');
+
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'auto:scheduled-scan',
+              per_page: 100,
+            });
+            const match = existing.find(i => i.title.startsWith(titlePrefix));
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: match.number,
+                body: safeBody,
+              });
+              core.info(`Commented on existing issue #${match.number}.`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `${titlePrefix} (${count})`,
+                body: safeBody,
+                labels,
+              });
+              core.info(`Opened new issue #${created.data.number}.`);
+            }
