@@ -38,7 +38,7 @@ function Normalize-Kubescape {
         if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
         if ($rawId -match '/resourceGroups/([^/]+)') { $rg    = $Matches[1] }
 
-        try   { $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId }
+        try   { $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId }
         catch { $canonicalId = $rawId.ToLowerInvariant() }
 
         $sevRaw = if ($f.PSObject.Properties['Severity'] -and $f.Severity) { [string]$f.Severity } else { 'Medium' }
@@ -47,6 +47,7 @@ function Normalize-Kubescape {
             '^(?i)high$'     { 'High' }
             '^(?i)medium$'   { 'Medium' }
             '^(?i)low$'      { 'Low' }
+            '^(?i)info'      { 'Info' }
             default          { 'Medium' }
         }
 

@@ -30,6 +30,10 @@ Describe 'Invoke-IaCBicep: error paths' {
         It 'sets Source to bicep-iac' {
             $result.Source | Should -Be 'bicep-iac'
         }
+
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
+            $result.SchemaVersion | Should -Be '1.0'
+        }
     }
 
     Context 'when repository path does not exist' {

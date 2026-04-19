@@ -30,6 +30,10 @@ Describe 'Invoke-Trivy: error paths' {
         It 'sets Source to trivy' {
             $result.Source | Should -Be 'trivy'
         }
+
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
+            $result.SchemaVersion | Should -Be '1.0'
+        }
     }
 }
 

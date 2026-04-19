@@ -62,6 +62,7 @@ if (-not (Test-ZizmorInstalled)) {
     Write-Warning "zizmor is not installed. Skipping zizmor scan. Install from https://github.com/woodruffw/zizmor/releases or: pip install zizmor"
     return [PSCustomObject]@{
         Source   = 'zizmor'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'zizmor CLI not installed. Install from https://github.com/woodruffw/zizmor/releases or: pip install zizmor'
         Findings = @()
@@ -78,7 +79,8 @@ try {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
             return [PSCustomObject]@{
-                Source = 'zizmor'; Status = 'Failed'
+                Source = 'zizmor'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
                 RunMode = $effectiveRunMode
             }
@@ -86,7 +88,8 @@ try {
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
             return [PSCustomObject]@{
-                Source = 'zizmor'; Status = 'Failed'
+                Source = 'zizmor'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
                 RunMode = $effectiveRunMode
@@ -98,7 +101,8 @@ try {
 
     if (-not $Repository) {
         return [PSCustomObject]@{
-            Source = 'zizmor'; Status = 'Skipped'
+            Source = 'zizmor'
+            SchemaVersion = '1.0'; Status = 'Skipped'
             Message = 'No -RemoteUrl or -Repository provided'; Findings = @()
             RunMode = $effectiveRunMode
         }
@@ -108,6 +112,7 @@ try {
         Write-Warning "Workflow path not found: $scanPath"
         return [PSCustomObject]@{
             Source   = 'zizmor'
+            SchemaVersion = '1.0'
             Status   = 'Skipped'
             Message  = "Workflow path not found: $scanPath"
             Findings = @()
@@ -145,6 +150,7 @@ try {
             Write-Warning (Remove-Credentials "zizmor exited with code $exitCode and produced no report")
             return [PSCustomObject]@{
                 Source   = 'zizmor'
+                SchemaVersion = '1.0'
                 Status   = 'Failed'
                 Message  = Remove-Credentials "zizmor exited with code $exitCode and produced no report"
                 Findings = @()
@@ -162,6 +168,7 @@ try {
                     Write-Warning (Remove-Credentials "zizmor report JSON parse failed: $_")
                     return [PSCustomObject]@{
                         Source   = 'zizmor'
+                        SchemaVersion = '1.0'
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
@@ -275,6 +282,7 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'zizmor'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings
@@ -285,6 +293,7 @@ try {
     Write-Warning (Remove-Credentials "zizmor scan failed: $_")
     return [PSCustomObject]@{
         Source   = 'zizmor'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()

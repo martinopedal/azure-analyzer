@@ -70,7 +70,14 @@ function Normalize-ADOPipelineSecurity {
         }
 
         $severity = if ($finding.PSObject.Properties['Severity'] -and $finding.Severity) {
-            [string]$finding.Severity
+            switch -Regex ([string]$finding.Severity) {
+                '^(?i)critical$' { 'Critical' }
+                '^(?i)high$'     { 'High' }
+                '^(?i)medium$'   { 'Medium' }
+                '^(?i)low$'      { 'Low' }
+                '^(?i)info'      { 'Info' }
+                default          { 'Info' }
+            }
         } else {
             'Info'
         }

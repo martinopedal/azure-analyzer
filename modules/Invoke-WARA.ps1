@@ -35,13 +35,13 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 # Check WARA module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name WARA)) {
     Write-Warning "WARA module not found. Install with: Install-Module WARA -Scope CurrentUser"
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @() }
 }
 
 Import-Module WARA -ErrorAction SilentlyContinue
 if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
     Write-Warning "WARA module loaded but Start-WARACollector not found. Returning empty result."
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
 }
 
 # Resolve tenant
@@ -50,7 +50,7 @@ if (-not $TenantId) {
     $TenantId = if ($null -ne $ctx -and $null -ne $ctx.Tenant) { $ctx.Tenant.Id } else { $null }
     if (-not $TenantId) {
         Write-Warning "No TenantId provided and no Az context found. Returning empty result."
-        return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = 'No TenantId and no Az context'; Findings = @() }
+        return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No TenantId and no Az context'; Findings = @() }
     }
 }
 
@@ -68,7 +68,7 @@ try {
 } catch {
     Pop-Location
     Write-Warning "WARA collector failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
 }
 
 # Find the newest JSON output file
@@ -78,7 +78,7 @@ $jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA_File_*.json" |
 
 if (-not $jsonFile) {
     Write-Warning "WARA collector ran but no output JSON found in $OutputPath."
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @() }
 }
 
 # Parse findings
@@ -86,7 +86,7 @@ try {
     $raw = Get-Content $jsonFile.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
 } catch {
     Write-Warning "Could not parse WARA JSON: $(Remove-Credentials -Text ([string]$_))"
-    return [PSCustomObject]@{ Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @() }
 }
 
 # Map to flat finding objects — WARA JSON has a 'ImpactedResources' or 'Recommendations' array
@@ -114,4 +114,4 @@ foreach ($rec in $recommendations) {
     })
 }
 
-return [PSCustomObject]@{ Source = 'wara'; Status = 'Success'; Message = ''; Findings = $findings }
+return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Success'; Message = ''; Findings = $findings }

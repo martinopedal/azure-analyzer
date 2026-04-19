@@ -42,5 +42,11 @@ Describe 'scorecard wrapper: GH_HOST handling' {
         $global:seenGhHost | Should -Be 'company.ghe.com'
         Test-Path Env:\GH_HOST | Should -BeFalse
     }
+
+    It 'includes SchemaVersion 1.0 in the v1 envelope' {
+        Remove-Item Env:\GH_HOST -ErrorAction SilentlyContinue
+        $result = & $script:wrapper -Repository 'github.com/org/repo'
+        $result.SchemaVersion | Should -Be '1.0'
+    }
 }
 

@@ -39,4 +39,33 @@ Describe 'Normalize-Kubescape' {
         $ids | Should -Contain 'C-0017'
         $ids | Should -Contain 'C-0038'
     }
+
+    It 'maps Info severity explicitly instead of falling to default' {
+        $infoInput = [PSCustomObject]@{
+            Status   = 'Success'
+            Findings = @(
+                [PSCustomObject]@{
+                    Id         = [guid]::NewGuid().ToString()
+                    ResourceId = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/aks-cluster'
+                    Title      = 'Info-level control'
+                    Severity   = 'info'
+                    Detail     = ''
+                    Compliant  = $false
+                    LearnMoreUrl = ''
+                    SchemaVersion = '1.0'
+                }
+            )
+        }
+        $rows = @(Normalize-Kubescape -ToolResult $infoInput)
+        $rows.Count | Should -Be 1
+        $rows[0].Severity | Should -Be 'Info'
+    }
+
+    It 'produces canonical ARM IDs via ConvertTo-CanonicalEntityId' {
+        $rows = @(Normalize-Kubescape -ToolResult $script:Fixture)
+        foreach ($r in $rows) {
+            $r.EntityId | Should -Match '^/subscriptions/[0-9a-f]'
+            $r.EntityId | Should -Be $r.EntityId.ToLowerInvariant()
+        }
+    }
 }

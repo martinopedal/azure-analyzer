@@ -53,6 +53,7 @@ if (-not (Test-GitleaksInstalled)) {
     Write-Warning "gitleaks is not installed. Skipping gitleaks scan. Install from https://github.com/gitleaks/gitleaks/releases"
     return [PSCustomObject]@{
         Source   = 'gitleaks'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
@@ -66,14 +67,16 @@ try {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
             return [PSCustomObject]@{
-                Source = 'gitleaks'; Status = 'Failed'
+                Source = 'gitleaks'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
             return [PSCustomObject]@{
-                Source = 'gitleaks'; Status = 'Failed'
+                Source = 'gitleaks'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
             }
@@ -117,6 +120,7 @@ try {
             Write-Warning (Remove-Credentials "gitleaks exited with code $exitCode and produced no report")
             return [PSCustomObject]@{
                 Source   = 'gitleaks'
+                SchemaVersion = '1.0'
                 Status   = 'Failed'
                 Message  = Remove-Credentials "gitleaks exited with code $exitCode and produced no report"
                 Findings = @()
@@ -133,6 +137,7 @@ try {
                     Write-Warning (Remove-Credentials "gitleaks report JSON parse failed: $_")
                     return [PSCustomObject]@{
                         Source   = 'gitleaks'
+                        SchemaVersion = '1.0'
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
@@ -232,6 +237,7 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'gitleaks'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings
@@ -240,6 +246,7 @@ try {
     Write-Warning (Remove-Credentials "gitleaks scan failed: $_")
     return [PSCustomObject]@{
         Source   = 'gitleaks'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()

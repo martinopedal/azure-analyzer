@@ -45,6 +45,7 @@ if (-not (Get-Module -Name Az.ResourceGraph -ListAvailable -ErrorAction Silently
     Write-Warning "Az.ResourceGraph module not installed. Skipping ALZ queries. Run: Install-Module Az.ResourceGraph"
     return [PSCustomObject]@{
         Source   = 'alz-queries'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'Az.ResourceGraph not installed'
         Findings = @()
@@ -58,6 +59,7 @@ if (-not (Test-Path $QueriesFile)) {
     Write-Warning "Clone https://github.com/martinopedal/alz-graph-queries and run with -QueriesFile path."
     return [PSCustomObject]@{
         Source   = 'alz-queries'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'Query file not found'
         Findings = @()
@@ -71,6 +73,7 @@ if ($queryable.Count -eq 0) {
     Write-Warning "No queryable items found in $QueriesFile"
     return [PSCustomObject]@{
         Source   = 'alz-queries'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'No queryable items found'
         Findings = @()
@@ -141,6 +144,7 @@ foreach ($item in $queryable) {
 
 return [PSCustomObject]@{
     Source   = 'alz-queries'
+    SchemaVersion = '1.0'
     Status   = 'Success'
     Message  = ''
     Findings = $findings.ToArray()

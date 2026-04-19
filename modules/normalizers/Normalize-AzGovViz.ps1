@@ -47,12 +47,14 @@ function Normalize-AzGovViz {
 
         if ($category -eq 'Identity' -and $principalId) {
             $principalTypeValue = $principalType.ToLowerInvariant()
+            # AzGovViz PrincipalId is always an objectId; prefix it for the canonicalizer
+            $prefixedId = if ($principalId -match '^(objectId|appId):') { $principalId } else { "objectId:$principalId" }
             if ($principalTypeValue -match 'user') {
                 $entityType = 'User'
-                $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
+                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $prefixedId -EntityType 'User').CanonicalId
             } else {
                 $entityType = 'ServicePrincipal'
-                $canonicalId = "objectId:$($principalId.ToLowerInvariant())"
+                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $prefixedId -EntityType 'ServicePrincipal').CanonicalId
             }
             # AzGovViz Identity findings represent Azure RBAC assignments.
             $platformOverride = 'Azure'
@@ -70,7 +72,7 @@ function Normalize-AzGovViz {
                 $entityType = 'AzureResource'
                 # For AzureResource, use full ARM path
                 try {
-                    $canonicalId = ConvertTo-CanonicalArmId -ArmId $rawId
+                    $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId
                 } catch {
                     $canonicalId = $rawId.ToLowerInvariant()
                 }

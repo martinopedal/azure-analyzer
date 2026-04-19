@@ -76,6 +76,7 @@ function Invoke-IaCAdapter {
                 Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
                 return [PSCustomObject]@{
                     Source = "iac-$Flavour"; Status = 'Failed'
+                    SchemaVersion = '1.0'
                     Message = 'RemoteClone helper unavailable'; Findings = @()
                 }
             }
@@ -83,6 +84,7 @@ function Invoke-IaCAdapter {
             if (-not $cloneInfo) {
                 return [PSCustomObject]@{
                     Source = "iac-$Flavour"; Status = 'Failed'
+                    SchemaVersion = '1.0'
                     Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                     Findings = @()
                 }
@@ -94,6 +96,7 @@ function Invoke-IaCAdapter {
         if (-not $RepoPath) {
             return [PSCustomObject]@{
                 Source = "iac-$Flavour"; Status = 'Skipped'
+                SchemaVersion = '1.0'
                 Message = 'No -RepoPath or -RemoteUrl provided'; Findings = @()
             }
         }
@@ -104,6 +107,7 @@ function Invoke-IaCAdapter {
             default {
                 return [PSCustomObject]@{
                     Source = "iac-$Flavour"; Status = 'Skipped'
+                    SchemaVersion = '1.0'
                     Message = "Unsupported IaC flavour: $Flavour"; Findings = @()
                 }
             }
@@ -112,6 +116,7 @@ function Invoke-IaCAdapter {
         Write-Warning (Remove-Credentials "IaC adapter ($Flavour) failed: $_")
         return [PSCustomObject]@{
             Source = "iac-$Flavour"; Status = 'Failed'
+            SchemaVersion = '1.0'
             Message = Remove-Credentials "$_"; Findings = @()
         }
     } finally {
@@ -143,7 +148,8 @@ function Invoke-BicepValidation {
 
     if ($bicepFiles.Count -eq 0) {
         return [PSCustomObject]@{
-            Source = 'bicep-iac'; Status = 'Success'
+            Source = 'bicep-iac'
+            SchemaVersion = '1.0'; Status = 'Success'
             Message = 'No .bicep files found'; Findings = @()
         }
     }
@@ -225,6 +231,7 @@ function Invoke-BicepValidation {
 
     return [PSCustomObject]@{
         Source   = 'bicep-iac'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings
@@ -255,7 +262,8 @@ function Invoke-TerraformValidation {
 
     if ($tfFiles.Count -eq 0) {
         return [PSCustomObject]@{
-            Source = 'terraform-iac'; Status = 'Success'
+            Source = 'terraform-iac'
+            SchemaVersion = '1.0'; Status = 'Success'
             Message = 'No .tf files found'; Findings = @()
         }
     }
@@ -276,6 +284,7 @@ function Invoke-TerraformValidation {
 
     return [PSCustomObject]@{
         Source   = 'terraform-iac'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings

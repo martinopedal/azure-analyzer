@@ -26,20 +26,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 # Check Maester module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name Maester)) {
     Write-Warning "Maester module not found. Install with: Install-Module Maester -Scope CurrentUser"
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Maester module not installed. Run: Install-Module Maester -Scope CurrentUser'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Maester module not installed. Run: Install-Module Maester -Scope CurrentUser'; Findings = @() }
 }
 
 Import-Module Maester -ErrorAction SilentlyContinue
 if (-not (Get-Command Invoke-Maester -ErrorAction SilentlyContinue)) {
     Write-Warning "Maester module loaded but Invoke-Maester not found. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'Invoke-Maester command not available'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Invoke-Maester command not available'; Findings = @() }
 }
 
 # Verify Microsoft Graph connection
 $mgContext = Get-MgContext -ErrorAction SilentlyContinue
 if (-not $mgContext) {
     Write-Warning "No Microsoft Graph connection found. Run 'Connect-MgGraph -Scopes (Get-MtGraphScope)' before using Maester. Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection. Run: Connect-MgGraph -Scopes (Get-MtGraphScope)'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection. Run: Connect-MgGraph -Scopes (Get-MtGraphScope)'; Findings = @() }
 }
 
 # Run Maester assessment — returns a Pester TestResultContainer
@@ -47,12 +47,12 @@ try {
     $container = Invoke-Maester -PassThru -Quiet -ErrorAction Stop
 } catch {
     Write-Warning "Maester assessment failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
 }
 
 if (-not $container -or -not $container.Result) {
     Write-Warning "Maester returned no test results."
-    return [PSCustomObject]@{ Source = 'maester'; Status = 'Failed'; Message = 'No test results returned'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Failed'; Message = 'No test results returned'; Findings = @() }
 }
 
 # Map Pester TestResult objects to flat findings
@@ -98,4 +98,4 @@ foreach ($test in $container.Result) {
     })
 }
 
-return [PSCustomObject]@{ Source = 'maester'; Status = 'Success'; Message = ''; Findings = $findings }
+return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Success'; Message = ''; Findings = $findings }

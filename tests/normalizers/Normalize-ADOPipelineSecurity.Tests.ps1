@@ -79,4 +79,36 @@ Describe 'Normalize-ADOPipelineSecurity' {
             @($results).Count | Should -Be 0
         }
     }
+
+    Context 'severity normalization (all 5 levels)' {
+        It 'normalizes raw severity strings case-insensitively' {
+            $sevInput = [PSCustomObject]@{
+                Status = 'Success'
+                Findings = @(
+                    @('CRITICAL','High','medium','LOW','info') | ForEach-Object {
+                        [PSCustomObject]@{
+                            Id = [guid]::NewGuid().ToString()
+                            Title = "Sev-$_ test"
+                            Category = 'Test'
+                            Severity = $_
+                            Compliant = $false
+                            Detail = ''
+                            Remediation = ''
+                            LearnMoreUrl = ''
+                            AssetType = 'pipeline'
+                            AdoOrg = 'org'; AdoProject = 'proj'; AssetName = "pipe-$_"
+                            SchemaVersion = '1.0'
+                        }
+                    }
+                )
+            }
+            $rows = @(Normalize-ADOPipelineSecurity -ToolResult $sevInput)
+            $rows.Count | Should -Be 5
+            ($rows | Where-Object { $_.Severity -eq 'Critical' }).Count | Should -Be 1
+            ($rows | Where-Object { $_.Severity -eq 'High' }).Count | Should -Be 1
+            ($rows | Where-Object { $_.Severity -eq 'Medium' }).Count | Should -Be 1
+            ($rows | Where-Object { $_.Severity -eq 'Low' }).Count | Should -Be 1
+            ($rows | Where-Object { $_.Severity -eq 'Info' }).Count | Should -Be 1
+        }
+    }
 }
