@@ -67,6 +67,25 @@ When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `sq
 5. If the agent is unresponsive for >24h, reassign the issue to a squad member or take it over locally.
 6. Stale agent draft PRs that are superseded by a direct merge MUST be closed with a `--delete-branch` to keep the branch list clean.
 
+## Iterate Until Green — Resilience Contract
+
+Failure is the default state of a multi-system pipeline. A PR is "done" only when it is **green AND merged**. See `.copilot/copilot-instructions.md` → "Iterate Until Green — Resilience Contract" for the full policy. Summary:
+
+- **Triggers (any of):** CI red, Pester red, Copilot rejection, 3-model gate fail, merge conflict, rate-limit / model unavailable, flaky test, branch corrupted.
+- **Required loop:** read failing logs (`gh run view <id> --log-failed`) → diagnose root cause → fix at root (not symptom) → push → `gh pr checks <pr> --watch` → repeat until green.
+- **Per-failure playbook:**
+  - CI red → fetch failed-job logs, fix root cause, push, re-check.
+  - Pester red → fix code or test, re-run full suite locally, never push red.
+  - Copilot rejection → Comment Triage Loop until all threads resolved or answered with multi-model rejection justification.
+  - Rate-limit → walk the Frontier Fallback Chain (`claude-opus-4.7` → `claude-opus-4.6-1m` → `gpt-5.4` → `gpt-5.3-codex` → `goldeneye`); never sonnet / haiku / mini / `gpt-4.1`.
+  - Merge conflict → `git rebase origin/main`, `git push --force-with-lease` (never plain `--force`).
+  - Branch corrupted → fresh worktree from `origin/main`, cherry-pick clean commits, replacement PR.
+  - Flaky test → run 3x; if intermittent, fix the flake (`-Skip` / `-Pending` to ship green is forbidden).
+- **Escalation:** only after 3 *distinct* strategies have failed, with a written analysis posted as a PR sticky comment + mirror `squad` issue. Closing the PR or silently abandoning the branch is a contract violation.
+- **Hard rule:** "blocked, needs maintainer" replies without the 3-strategy analysis are forbidden — resume the loop.
+
+Cross-refs: rubber-duck retry / fallback chain in `.copilot/copilot-instructions.md`, Comment Triage Loop above (cloud-agent PR review contract), Squad Pre-PR Self-Review.
+
 ## Shared infrastructure — REUSE, don't reinvent
 
 Before adding retry/clone/sanitize/install logic, check these modules first:

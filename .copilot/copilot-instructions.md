@@ -111,6 +111,52 @@ The Cloud Agent PR Review contract in `.squad/ceremonies.md` is the authoritativ
 
 A PR cannot be marked ready for merge while any Copilot thread is unresolved or unanswered.
 
+## Iterate Until Green — Resilience Contract
+
+This directive applies to every squad agent, every cloud-agent (`copilot-swe-agent[bot]`) PR, every spawned helper via the `task` tool, and to the agent reading this file right now. Failure is the default state of a multi-system pipeline. The contract is not "succeed on the first try", it is **iterate until the PR is green AND merged**. Stopping at "blocked, needs maintainer" without exhausting the playbook below is itself a contract violation.
+
+### Trigger
+Any of the following are loop-entry events. None of them are terminal on their own:
+- CI red (any required check failing — `Analyze (actions)`, `rubberduck-gate`, Docs Check, etc.)
+- Pester red (local or in CI)
+- Copilot review posted `CHANGES_REQUESTED` or any `[blocker]` / `[correctness]` finding
+- 3-model gate rejection (any reviewer flagged `[blocker]` / `[correctness]`, or fewer than 2-of-3 APPROVE)
+- Merge conflict against `origin/main`
+- Rate-limit / model-unavailable error from any frontier model
+- Flaky test (intermittent fail across runs of the same SHA)
+- Branch state corrupted (lost commits, detached HEAD on a worktree, dirty index that cannot be reasoned about)
+
+### Required loop (every failure)
+1. **Read the failing logs.** For CI: `gh run view <run-id> --log-failed` (NOT `--log` — strip to the failed jobs). For Pester: re-run with `Invoke-Pester -Path <failing-test> -Output Detailed`. For Copilot: `gh pr view <pr> --comments` plus `gh api repos/{owner}/{repo}/pulls/{pr}/comments`. Do not guess at the failure mode from the workflow name alone.
+2. **Diagnose the root cause.** Name it in plain prose in `plan.md` (one paragraph max) before touching code. "CI red" is not a root cause; "the new normalizer emits a null `EntityId` for findings whose raw payload omits `resourceId`" is.
+3. **Fix at the root cause.** Patching the symptom (e.g. silencing a test, lowering a threshold, retry-loop around a real bug) is forbidden unless the symptom IS the contract (e.g. a true flake — see playbook).
+4. **Push.** `git push` the fix to the same PR branch. Do not open a parallel PR.
+5. **Wait + re-verify.** `gh pr checks <pr> --watch` for CI; re-read Copilot comments for review; re-run Pester locally for test changes. Do not assume the fix worked.
+6. **Repeat** from step 1 against the next failure surface. Loop terminates only when the PR is green AND squash-merged.
+
+### Per-failure-type playbook
+- **CI red** → `gh run view <run-id> --log-failed`, identify the failing step, fix root cause in code (NOT in the workflow unless the workflow itself is broken), push, `gh pr checks <pr> --watch`.
+- **Pester red** → run the failing file in isolation with `-Output Detailed`, fix the code or the test (whichever is wrong — both are valid outcomes), re-run the full suite locally before pushing, never push a red Pester suite.
+- **Copilot rejection** → enter the Comment Triage Loop (see section above) for every finding, rubber-duck through the 3-model gate, implement consensus dispositions, reply on every thread with addressing SHA or multi-model rejection justification, do not mark ready until all threads are resolved or answered.
+- **Rate-limit / model unavailable** → walk the Frontier Fallback Chain (see "Rate-Limit Retry + Frontier Fallback Chain" above): `claude-opus-4.7` → `claude-opus-4.6-1m` → `gpt-5.4` → `gpt-5.3-codex` → `goldeneye`. NEVER fall back to sonnet, haiku, mini, `gpt-4.1`, or any non-latest codex. Log every swap to `.squad/decisions/inbox/`.
+- **Merge conflict** → `git fetch origin main && git rebase origin/main`, resolve conflicts in the worktree, re-run Pester to confirm semantic merge, `git push --force-with-lease` (NEVER plain `--force`).
+- **Branch corrupted** → create a fresh worktree from `origin/main` (`git worktree add C:\git\worktrees\<name>-recover origin/main`), cherry-pick the clean commits across, push to a new branch, open a replacement PR that closes the corrupted one. Do NOT `git reset --hard` or `git clean -fd` on the original worktree.
+- **Flaky test** → re-run the suite 3x. If it passes 3-for-3, the original was a transient. If it fails 1+ times out of 3, the test IS flaky and the flake itself is the bug — fix the race / ordering / fixture-pollution / time-dependency. Marking a test `-Skip` or `-Pending` to ship green is forbidden.
+
+### Escalation rule
+Escalation to a human maintainer is permitted **only after at least 3 distinct strategies have been tried and documented**. "Distinct" means addressing different hypothesized root causes, not 3 retries of the same fix. Before escalating:
+1. Write a short analysis in the PR (sticky comment, ideally also mirrored to a `squad` issue) listing each strategy attempted, the observed result, and why the next obvious strategy is also expected to fail.
+2. Tag the maintainer in that comment with the analysis inline. Do NOT escalate by closing the PR or by silently abandoning the branch.
+3. The 3-strategy threshold applies per failure mode, not per PR. A new failure that emerges after a fix landed counts as a fresh loop.
+
+### Hard rule
+**A PR is "done" only when it is green AND merged.** "Tests are green locally", "Copilot has no further comments", "I think CI will pass" are not done. Replies of the form "blocked, needs maintainer to look" without the 3-strategy analysis above are a contract violation and the agent must resume the loop.
+
+### Cross-references
+- "Rate-Limit Retry + Frontier Fallback Chain" (above) — the model-side resilience policy this section composes with.
+- "Comment Triage Loop (every Copilot finding)" (above) — the structured loop for the Copilot-rejection failure mode.
+- "Squad Pre-PR Self-Review (mandatory)" (below) — the Self-review block the loop produces before flipping draft → ready.
+
 ## Review Severity Taxonomy (#108)
 
 PR review feedback (Copilot, the 3-model gate, or humans) currently mixes blockers, correctness defects, style preferences, and trivial nits, and the gate treats them all the same. To stop burning premium tokens on low-value feedback and to keep the Reviewer Rejection Lockout signal sharp, every reviewer finding **must** be tagged with one of four severity labels.
