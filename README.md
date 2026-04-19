@@ -123,6 +123,8 @@ After a run, `output/` contains:
 | `errors.json` | Tool failures and error details (only written when errors occur) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
+| `drift-report.json` | *(optional)* Entity drift delta (Added, Removed, Modified, Unchanged) between previous and current `entities.json` snapshots |
+| `drift-report.md` | *(optional)* Human-readable drift report grouped by change kind and entity type |
 | `dashboard.html` | Single-page **executive dashboard** (#97) -- compliance score, severity-mix sparklines, top-10 risky resources, subscription R/A/G heat map, WAF 5-pillar tiles, MTTR by severity, framework gap analysis. Self-contained, no CDN |
 | `history/{yyyy-MM-dd-HHmmss}/` | Per-run snapshot directory (`results.json` + `run-meta.json`) used by the dashboard for trend lines and MTTR. Default retention: 30 runs (`-HistoryRetention <n>`) |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
@@ -143,6 +145,7 @@ After a run, `output/` contains:
 - **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
 - **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
 - **Delta banner** -- when a prior run is available (auto-discovered or via `-PreviousRun`), shows New / Resolved / Unchanged chips and net non-compliant delta
+- **Entity drift reporting** -- optional post-processing via `-CompareTo <previous-run-dir>` or `-CompareToPrevious` emits `drift-report.json` + `drift-report.md` from `entities.json` deltas
 - **Trend sparkline** -- when two or more prior runs exist, an inline SVG polyline (`class="trend-sparkline"`) shows NonCompliant count over the last 10 runs; no external assets
 
 📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub -- tables, categories, action plan)
@@ -210,6 +213,22 @@ The report groups findings by category, then prioritizes action:
 - **Plan** -- Medium severity
 - **Track** -- Low + Info severity
 - Per-category breakdown with finding counts
+- **Drift (optional)** -- Added / Removed / Modified / Unchanged entities when `-CompareTo` or `-CompareToPrevious` is used
+
+### Drift detection between runs
+
+Use one of the drift flags to compare the current run's `entities.json` with a prior run directory:
+
+```powershell
+# Explicit baseline run directory
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub>" -OutputPath ".\output\runs\2026-04-19" `
+  -CompareTo ".\output\runs\2026-04-18"
+
+# Auto-pick the latest prior sibling run directory under the same output root
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub>" -OutputPath ".\output\runs\2026-04-19" -CompareToPrevious
+```
+
+`tools/tool-manifest.json` currently models executable collectors/correlators and does not yet include a post-processor kind, so drift reporting is orchestrator-driven.
 
 ### Portfolio mode
 

@@ -51,6 +51,13 @@
       auto  — (default) pick the most recent snapshot from $OutputPath\snapshots\ automatically.
       none  — suppress baseline comparison entirely.
     The explicit -PreviousRun parameter always wins over -BaselineMode when both are supplied.
+.PARAMETER CompareTo
+    Path to a previous run output directory containing entities.json.
+    When provided, the orchestrator writes drift-report.json and drift-report.md
+    by comparing that snapshot to the current run entities.json.
+.PARAMETER CompareToPrevious
+    Auto-discovers the latest prior sibling run directory under the current output root
+    and uses it as the drift baseline for entities.json comparison.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -89,6 +96,8 @@ param (
     [ValidateSet('CIS','NIST','PCI')]
     [string] $Framework,
     [string] $PreviousRun,
+    [string] $CompareTo,
+    [switch] $CompareToPrevious,
     [switch] $Incremental,
     [Nullable[datetime]] $Since,
     [ValidateSet('auto','none')]
@@ -112,7 +121,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'ScanState')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -1020,6 +1029,44 @@ try {
     $portfolio = Get-PortfolioRollup -Store $store -Entities $entities -ManagementGroupId $ManagementGroupId
     $portfolioJson = if ($null -eq $portfolio) { '{}' } else { $portfolio | ConvertTo-Json -Depth 30 }
     Set-Content -Path $portfolioFile -Value (Remove-Credentials $portfolioJson) -Encoding UTF8
+
+    # Optional entity snapshot drift report (issue #160)
+    $compareBaseDir = $null
+    if ($CompareTo) {
+        if (Test-Path $CompareTo -PathType Container) {
+            $compareBaseDir = (Resolve-Path $CompareTo).Path
+        } else {
+            Write-Host "  [Drift] Compare path not found, skipping: $CompareTo" -ForegroundColor DarkGray
+        }
+    } elseif ($CompareToPrevious -and (Get-Command Get-LatestPreviousRun -ErrorAction SilentlyContinue)) {
+        $outputRoot = Split-Path -Parent $OutputPath
+        $autoPrevious = Get-LatestPreviousRun -OutputRoot $outputRoot -CurrentRunDir $OutputPath
+        if ($autoPrevious) {
+            $compareBaseDir = $autoPrevious
+            Write-Host "  [Drift] Auto-selected previous run: $compareBaseDir" -ForegroundColor DarkGray
+        } else {
+            Write-Host "  [Drift] No previous run found under output root, skipping." -ForegroundColor DarkGray
+        }
+    }
+
+    if ($compareBaseDir) {
+        $previousEntitiesPath = Join-Path $compareBaseDir 'entities.json'
+        if (Test-Path $previousEntitiesPath) {
+            try {
+                $drift = Compare-EntitySnapshots -Previous $previousEntitiesPath -Current $entitiesFile
+                $driftReportScript = Join-Path $PSScriptRoot 'modules' 'reports' 'New-DriftReport.ps1'
+                if (Test-Path $driftReportScript) {
+                    & $driftReportScript -Comparison $drift -PreviousSnapshot $previousEntitiesPath -CurrentSnapshot $entitiesFile -OutputPath $OutputPath
+                } else {
+                    Write-Warning "Drift report script not found at '$driftReportScript'."
+                }
+            } catch {
+                Write-Warning (Remove-Credentials "Drift comparison failed: $_")
+            }
+        } else {
+            Write-Host "  [Drift] Previous entities snapshot not found, skipping: $previousEntitiesPath" -ForegroundColor DarkGray
+        }
+    }
 
     # Tool status
     $statusFile = Join-Path $OutputPath 'tool-status.json'
