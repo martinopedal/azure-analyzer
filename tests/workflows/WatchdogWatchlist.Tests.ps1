@@ -8,6 +8,9 @@ workflow.
 #>
 
 BeforeAll {
+    if (-not (Get-Module -ListAvailable powershell-yaml)) {
+        Install-Module powershell-yaml -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop | Out-Null
+    }
     Import-Module powershell-yaml -ErrorAction Stop
     $script:RepoRoot = Join-Path $PSScriptRoot '..' '..'
     $script:WorkflowsDir = Join-Path $script:RepoRoot '.github' 'workflows'
