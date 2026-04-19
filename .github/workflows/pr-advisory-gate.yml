@@ -74,17 +74,81 @@ jobs:
         run: |
           try {
             $enabled = $env:SQUAD_ADVISORY_GATE -ne '0'
+            $owner, $repo = $env:REPO_NAME.Split('/', 2)
+
+            . ./modules/shared/Sanitize.ps1
+            . ./modules/shared/Get-CopilotReviewFindings.ps1
+            . ./modules/shared/Build-CopilotTriagePlan.ps1
+
+            $copilotFindings = Get-CopilotReviewFindings `
+              -Owner $owner `
+              -Repo $repo `
+              -PullNumber ([int]$env:PR_NUMBER)
+
+            $diffContext = ''
+            try {
+              $rawDiff = & gh pr diff ([int]$env:PR_NUMBER) --repo $env:REPO_NAME 2>$null
+              if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$rawDiff)) {
+                $diffContext = Remove-Credentials ([string]$rawDiff)
+              }
+            } catch {
+              $diffContext = ''
+            }
+
+            $triagePlan = Build-CopilotTriagePlan -Findings $copilotFindings -DiffContext $diffContext
+            New-Item -Path '.squad/decisions/inbox/' -ItemType Directory -Force | Out-Null
+            $shortSha = if ($env:PR_HEAD_SHA.Length -ge 12) { $env:PR_HEAD_SHA.Substring(0, 12) } else { $env:PR_HEAD_SHA }
+            $planPath = ".squad/decisions/inbox/copilot-triage-plan-$($env:PR_NUMBER)-$shortSha.json"
+            $planJson = Remove-Credentials ($triagePlan | ConvertTo-Json -Depth 20)
+            Set-Content -Path $planPath -Value $planJson -Encoding utf8
+            "copilot-plan-path=$planPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "copilot-finding-count=$(@($copilotFindings).Count)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
             ./modules/shared/Invoke-PRAdvisoryGate.ps1 `
               -PRNumber ([int]$env:PR_NUMBER) `
               -Repo $env:REPO_NAME `
               -PRAuthor $env:PR_AUTHOR `
               -OutputPath '.squad/decisions/inbox/' `
               -HeadSha $env:PR_HEAD_SHA `
+              -CopilotTriagePlanPath $planPath `
               -Enabled:$enabled
           } catch {
             Write-Warning "PR advisory gate degraded to advisory no-op: $($_.Exception.Message)"
             "gate-state=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             exit 0
+          }
+
+      - name: Post rejection justification replies
+        if: always() && steps.gate.outputs.unaddressed-copilot-threads != '' && steps.gate.outputs.gate-state == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO_NAME: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          UNADDRESSED_COPILOT_THREADS: ${{ steps.gate.outputs.unaddressed-copilot-threads }}
+        shell: pwsh
+        run: |
+          . ./modules/shared/Resolve-PRReviewThreads.ps1
+
+          $threads = @()
+          try {
+            $threads = @($env:UNADDRESSED_COPILOT_THREADS | ConvertFrom-Json -Depth 10)
+          } catch {
+            Write-Warning "Could not parse unresolved Copilot thread payload: $($_.Exception.Message)"
+            $threads = @()
+          }
+
+          foreach ($thread in $threads) {
+            if (-not $thread.PSObject.Properties['CommentDatabaseId']) { continue }
+            if ([string]::IsNullOrWhiteSpace([string]$thread.CommentDatabaseId)) { continue }
+            $cat = [string]$thread.Category
+            $rationale = "multi-model rejection: 2-of-3 frontier consensus did not validate this Copilot finding for category '$cat' on head SHA $($env:PR_HEAD_SHA)."
+            Add-ResolutionReply `
+              -PRNumber ([int]$env:PR_NUMBER) `
+              -Repo $env:REPO_NAME `
+              -InReplyToCommentDatabaseId ([string]$thread.CommentDatabaseId) `
+              -Sha $env:PR_HEAD_SHA `
+              -Rationale $rationale | Out-Null
           }
 
       - name: Post rubberduck-gate commit status

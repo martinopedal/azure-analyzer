@@ -1,0 +1,104 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "reviewThreads": {
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": null
+          },
+          "nodes": [
+            {
+              "id": "THREAD_blocker",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "modules/shared/Invoke-PRAdvisoryGate.ps1",
+              "line": 601,
+              "originalLine": 601,
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "COMMENT_blocker",
+                    "databaseId": 8101,
+                    "body": "[blocker] This path can throw when plan hash is empty.",
+                    "author": {
+                      "login": "copilot-pull-request-reviewer[bot]"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "THREAD_correctness",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "modules/shared/Build-CopilotTriagePlan.ps1",
+              "line": 78,
+              "originalLine": 78,
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "COMMENT_correctness",
+                    "databaseId": 8102,
+                    "body": "Missing default category fallback if tag is absent.",
+                    "author": {
+                      "login": "copilot-pull-request-reviewer[bot]"
+                    }
+                  },
+                  {
+                    "id": "COMMENT_correctness_reply",
+                    "databaseId": 9102,
+                    "body": "multi-model rejection: this does not apply after dedupe normalization.",
+                    "author": {
+                      "login": "github-actions[bot]"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "THREAD_nit",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "README.md",
+              "line": 544,
+              "originalLine": 544,
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "COMMENT_nit",
+                    "databaseId": 8103,
+                    "body": "[nit] Reword this sentence for clarity.",
+                    "author": {
+                      "login": "copilot-pull-request-reviewer[bot]"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "THREAD_resolved",
+              "isResolved": true,
+              "isOutdated": false,
+              "path": "modules/shared/Resolve-PRReviewThreads.ps1",
+              "line": 392,
+              "originalLine": 392,
+              "comments": {
+                "nodes": [
+                  {
+                    "id": "COMMENT_resolved",
+                    "databaseId": 8104,
+                    "body": "[style] Prefer single quotes here.",
+                    "author": {
+                      "login": "copilot-pull-request-reviewer[bot]"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

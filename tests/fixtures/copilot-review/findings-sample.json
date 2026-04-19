@@ -1,0 +1,67 @@
+[
+  {
+    "Id": "THREAD_blocker:COMMENT_blocker",
+    "Path": "modules/shared/Invoke-PRAdvisoryGate.ps1",
+    "Line": 601,
+    "Body": "[blocker] This path can throw when plan hash is empty.",
+    "Category": "blocker",
+    "Severity": "High",
+    "ThreadId": "THREAD_blocker",
+    "IsResolved": false,
+    "IsOutdated": false,
+    "CommentDatabaseId": "8101",
+    "HasRejectionReply": false
+  },
+  {
+    "Id": "THREAD_correctness:COMMENT_correctness",
+    "Path": "modules/shared/Build-CopilotTriagePlan.ps1",
+    "Line": 78,
+    "Body": "Missing default category fallback if tag is absent.",
+    "Category": "",
+    "Severity": "Medium",
+    "ThreadId": "THREAD_correctness",
+    "IsResolved": false,
+    "IsOutdated": false,
+    "CommentDatabaseId": "8102",
+    "HasRejectionReply": true
+  },
+  {
+    "Id": "THREAD_correctness:COMMENT_correctness",
+    "Path": "modules/shared/Build-CopilotTriagePlan.ps1",
+    "Line": 78,
+    "Body": "Missing default category fallback if tag is absent.",
+    "Category": "",
+    "Severity": "Medium",
+    "ThreadId": "THREAD_correctness",
+    "IsResolved": false,
+    "IsOutdated": false,
+    "CommentDatabaseId": "8102",
+    "HasRejectionReply": true
+  },
+  {
+    "Id": "THREAD_nit:COMMENT_nit",
+    "Path": "README.md",
+    "Line": 544,
+    "Body": "[nit] Reword this sentence for clarity.",
+    "Category": "nit",
+    "Severity": "Info",
+    "ThreadId": "THREAD_nit",
+    "IsResolved": false,
+    "IsOutdated": false,
+    "CommentDatabaseId": "8103",
+    "HasRejectionReply": false
+  },
+  {
+    "Id": "THREAD_resolved:COMMENT_resolved",
+    "Path": "modules/shared/Resolve-PRReviewThreads.ps1",
+    "Line": 392,
+    "Body": "[style] Prefer single quotes here.",
+    "Category": "style",
+    "Severity": "Low",
+    "ThreadId": "THREAD_resolved",
+    "IsResolved": true,
+    "IsOutdated": false,
+    "CommentDatabaseId": "8104",
+    "HasRejectionReply": false
+  }
+]
