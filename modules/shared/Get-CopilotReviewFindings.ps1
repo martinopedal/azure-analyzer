@@ -53,15 +53,22 @@ function Get-CopilotReviewFindings {
         [int] $PullNumber
     )
 
-    $ownerName = [string]$Owner
-    $repoName = [string]$Repo
-    if ($repoName.Contains('/')) {
-        $repoParts = $repoName.Split('/', [System.StringSplitOptions]::RemoveEmptyEntries)
-        if ($repoParts.Count -ge 2) {
-            if ([string]::IsNullOrWhiteSpace($ownerName)) {
-                $ownerName = [string]$repoParts[0]
-            }
-            $repoName = [string]$repoParts[$repoParts.Count - 1]
+    $resolvedOwner = $Owner.Trim()
+    $resolvedRepo = $Repo.Trim()
+    if ($resolvedOwner.Contains('/')) {
+        $ownerParts = Resolve-RepoOwnerName -Repo $resolvedOwner
+        $resolvedOwner = [string]$ownerParts.Owner
+        if ([string]::IsNullOrWhiteSpace($resolvedRepo)) {
+            $resolvedRepo = [string]$ownerParts.Name
+        }
+    }
+    if ($resolvedRepo.Contains('/')) {
+        $repoParts = Resolve-RepoOwnerName -Repo $resolvedRepo
+        if ([string]::IsNullOrWhiteSpace($resolvedOwner) -or $resolvedOwner -eq [string]$repoParts.Owner) {
+            $resolvedOwner = [string]$repoParts.Owner
+            $resolvedRepo = [string]$repoParts.Name
+        } else {
+            $resolvedRepo = [string]$repoParts.Name
         }
     }
 
@@ -101,8 +108,8 @@ query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
 
     while ($hasNext -and $page -lt $maxPages) {
         $fields = @{
-            owner  = $ownerName
-            name   = $repoName
+            owner  = $resolvedOwner
+            name   = $resolvedRepo
             number = $PullNumber
         }
         if ($null -ne $cursor) {

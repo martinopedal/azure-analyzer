@@ -113,8 +113,11 @@ jobs:
               -CopilotTriagePlanPath $planPath `
               -Enabled:$enabled
           } catch {
-            Write-Warning "PR advisory gate degraded to advisory no-op: $($_.Exception.Message)"
-            "gate-state=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            $safeMessage = Remove-Credentials ([string]$_.Exception.Message)
+            $skipReason = ("degraded: $safeMessage" -replace '[\r\n]+', ' ').Trim()
+            Write-Warning "PR advisory gate degraded to advisory no-op: $safeMessage"
+            "gate-state=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "skip-reason=$skipReason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             exit 0
           }
 

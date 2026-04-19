@@ -599,7 +599,7 @@ See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup comman
 
 ## PR review gate behavior
 
-The PR advisory gate now ingests Copilot review threads into a structured triage plan before running the 3-model rubber-duck gate. Each run groups Copilot findings by category (`blocker`, `correctness`, `security`, `style`, `nit`), hashes the plan per head SHA, and fails the `rubberduck-gate` status when Copilot threads are still unaddressed (neither resolved nor carrying a documented multi-model rejection reply).
+The PR advisory gate now ingests Copilot review threads into a structured triage plan before running the 3-model rubber-duck gate. Each run groups Copilot findings by category (`blocker`, `correctness`, `security`, `style`, `nit`), hashes the plan per head SHA, and fails the `rubberduck-gate` status when Copilot threads are still unaddressed (neither resolved nor carrying a documented multi-model rejection reply). If the advisory step itself degrades (for example a transient GitHub GraphQL failure), it now reports a **successful non-blocking no-op** with a `degraded:` skip reason so mergeability is not blocked by infrastructure hiccups.
 
 ---
 

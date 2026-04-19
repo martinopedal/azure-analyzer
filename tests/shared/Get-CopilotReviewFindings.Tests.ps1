@@ -69,5 +69,14 @@ Describe 'Get-CopilotReviewFindings' {
         Get-CopilotReviewFindings -Owner 'martinopedal' -Repo 'azure-analyzer' -PullNumber 172 | Out-Null
         @($script:GhCalls | Where-Object { $_ -match '^api graphql' }).Count | Should -Be 1
     }
+
+    It 'normalizes owner and repo so graphql name never contains owner/name' {
+        Get-CopilotReviewFindings -Owner 'martinopedal' -Repo 'martinopedal/azure-analyzer' -PullNumber 172 | Out-Null
+
+        $graphqlCall = @($script:GhCalls | Where-Object { $_ -match '^api graphql' } | Select-Object -Last 1)[0]
+        $graphqlCall | Should -Match 'owner=martinopedal'
+        $graphqlCall | Should -Match 'name=azure-analyzer'
+        $graphqlCall | Should -Not -Match 'name=martinopedal/azure-analyzer'
+    }
 }
 
