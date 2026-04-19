@@ -750,8 +750,23 @@ function Resolve-RubberDuckVerdict {
 # Tests dot-source this file to exercise the pure functions. Skip the main
 # block in that case by checking whether we were invoked as a script.
 if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $PSCommandPath) {
+    # Emit a default gate-state on every early-return path so the workflow's
+    # `Post rubberduck-gate commit status` step always has a verdict to post
+    # against the PR head SHA. Branch protection requires the status context
+    # to exist on every PR (#173). Skipped runs are non-failures -> success.
+    function script:Write-SkipGateOutput {
+        param([string] $Reason)
+        Write-Host "rubberduck-gate state: success (skipped: $Reason)"
+        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'gate-state=success'
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "head-sha=$HeadSha"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "skip-reason=$Reason"
+        }
+    }
+
     if (-not $Enabled) {
         Write-Host 'Advisory gate disabled (SQUAD_ADVISORY_GATE=0). Skipping.'
+        Write-SkipGateOutput -Reason 'disabled'
         return
     }
 
@@ -761,10 +776,12 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
 
     if (-not (Test-SquadAuthor -Login $PRAuthor)) {
         Write-Host "PR author '$PRAuthor' is not a squad agent / bot. Skipping advisory gate."
+        Write-SkipGateOutput -Reason 'non-squad-author'
         return
     }
 
     if (Test-SkipAdvisoryLabel -PRNumber $PRNumber -Repo $Repo) {
+        Write-SkipGateOutput -Reason 'skip-advisory-label'
         return
     }
 

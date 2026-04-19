@@ -1,6 +1,6 @@
 # azure-analyzer
 
-Automated Azure assessment that bundles **23 tools**: **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **Defender for Cloud**, **Sentinel (Active Incidents)**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **ADO Pipeline Security**, **ADO Repo Secrets**, **ADO Pipeline Correlator**, **Identity Correlator**, **zizmor**, **gitleaks**, **Trivy**, **Bicep IaC Validation**, and **Terraform IaC Validation** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, Defender Secure Score, active Sentinel incidents, AKS runtime posture, AKS runtime anomaly detection, AKS node hardening, identity security, cross-dimensional identity correlation, supply chain security, CI/CD workflow security, secrets detection, IaC validation, and Azure DevOps build/release, variable-group, environment, repository-secret, and run-correlation security dimensions.
+Automated Azure assessment that bundles **24 tools**: **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **Defender for Cloud**, **Sentinel (Active Incidents)**, **Sentinel Coverage (analytic rules / watchlists / connectors / hunting)**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **ADO Pipeline Security**, **ADO Repo Secrets**, **ADO Pipeline Correlator**, **Identity Correlator**, **zizmor**, **gitleaks**, **Trivy**, **Bicep IaC Validation**, and **Terraform IaC Validation** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, Defender Secure Score, active Sentinel incidents, **Sentinel detection posture (analytic rules / watchlists / data connectors / hunting queries)**, AKS runtime posture, AKS runtime anomaly detection, AKS node hardening, identity security, cross-dimensional identity correlation, supply chain security, CI/CD workflow security, secrets detection, IaC validation, and Azure DevOps build/release, variable-group, environment, repository-secret, and run-correlation security dimensions.
 
 Findings are normalized to a single v2 schema with 5 severity levels (**Critical**, **High**, **Medium**, **Low**, **Info**) and 14 entity types (AzureResource, Subscription, ManagementGroup, ServicePrincipal, ManagedIdentity, Application, User, Tenant, Repository, Workflow, Pipeline, ServiceConnection, VariableGroup, Environment) across 4 platforms (Azure, Entra, GitHub, ADO).
 
@@ -110,6 +110,31 @@ Sensitive tokens are scrubbed from console output, errors.json, and report files
 
 **Data quality**: Normalizer output is validated at the boundary via `New-FindingRow` schema enforcement — invalid findings are dropped with a tracked warning, not silently passed through (#99). External API calls use `Invoke-WithRetry` with HTTP 429/503 detection, `Retry-After` header support, and jittered exponential backoff (#101).
 
+## Output sinks
+
+Azure Analyzer can optionally ship `results` and `entities` to Log Analytics / Sentinel custom tables using the **Logs Ingestion API** (DCR-based path):
+
+```powershell
+.\Invoke-AzureAnalyzer.ps1 `
+  -SubscriptionId "<sub-guid>" `
+  -SinkLogAnalytics `
+  -LogAnalyticsConfig ".\config\log-analytics-sink.json"
+```
+
+Example config file:
+
+```json
+{
+  "DceEndpoint": "https://my-dce.eastus-1.ingest.monitor.azure.com",
+  "DcrImmutableId": "dcr-000a00a000a00000a000000aa000a0aa",
+  "FindingsStream": "Custom-AzureAnalyzerFindings",
+  "EntitiesStream": "Custom-AzureAnalyzerEntities",
+  "DryRun": false
+}
+```
+
+See [docs/sinks/log-analytics.md](docs/sinks/log-analytics.md) for DCR/table setup and KQL examples.
+
 ## What you get
 
 After a run, `output/` contains:
@@ -123,6 +148,8 @@ After a run, `output/` contains:
 | `errors.json` | Tool failures and error details (only written when errors occur) |
 | `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
+| `drift-report.json` | *(optional)* Entity drift delta (Added, Removed, Modified, Unchanged) between previous and current `entities.json` snapshots |
+| `drift-report.md` | *(optional)* Human-readable drift report grouped by change kind and entity type |
 | `dashboard.html` | Single-page **executive dashboard** (#97) -- compliance score, severity-mix sparklines, top-10 risky resources, subscription R/A/G heat map, WAF 5-pillar tiles, MTTR by severity, framework gap analysis. Self-contained, no CDN |
 | `history/{yyyy-MM-dd-HHmmss}/` | Per-run snapshot directory (`results.json` + `run-meta.json`) used by the dashboard for trend lines and MTTR. Default retention: 30 runs (`-HistoryRetention <n>`) |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
@@ -143,6 +170,7 @@ After a run, `output/` contains:
 - **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
 - **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
 - **Delta banner** -- when a prior run is available (auto-discovered or via `-PreviousRun`), shows New / Resolved / Unchanged chips and net non-compliant delta
+- **Entity drift reporting** -- optional post-processing via `-CompareTo <previous-run-dir>` or `-CompareToPrevious` emits `drift-report.json` + `drift-report.md` from `entities.json` deltas
 - **Trend sparkline** -- when two or more prior runs exist, an inline SVG polyline (`class="trend-sparkline"`) shows NonCompliant count over the last 10 runs; no external assets
 
 📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub -- tables, categories, action plan)
@@ -210,6 +238,22 @@ The report groups findings by category, then prioritizes action:
 - **Plan** -- Medium severity
 - **Track** -- Low + Info severity
 - Per-category breakdown with finding counts
+- **Drift (optional)** -- Added / Removed / Modified / Unchanged entities when `-CompareTo` or `-CompareToPrevious` is used
+
+### Drift detection between runs
+
+Use one of the drift flags to compare the current run's `entities.json` with a prior run directory:
+
+```powershell
+# Explicit baseline run directory
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub>" -OutputPath ".\output\runs\2026-04-19" `
+  -CompareTo ".\output\runs\2026-04-18"
+
+# Auto-pick the latest prior sibling run directory under the same output root
+.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub>" -OutputPath ".\output\runs\2026-04-19" -CompareToPrevious
+```
+
+`tools/tool-manifest.json` currently models executable collectors/correlators and does not yet include a post-processor kind, so drift reporting is orchestrator-driven.
 
 ### Portfolio mode
 
@@ -248,7 +292,7 @@ Screenshot placeholder: the HTML report now opens with the portfolio heatmap sec
 | gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
 | trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
 
-- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 23 tools**: PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts for azure-cost and Sentinel), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy, bicep, terraform), REST-backed ADO collectors/correlators, and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands; nothing is mutated.
+- **Auto-install**: With `-InstallMissingModules` the manifest-driven installer covers **all 24 tools**: PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts for azure-cost, Sentinel incidents, and Sentinel coverage), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy, bicep, terraform), REST-backed ADO collectors/correlators, and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands; nothing is mutated.
 
 **AzGovViz** is a standalone script, not a module. With `-InstallMissingModules` it is auto-cloned into `tools/AzGovViz/` on first run. To clone manually:
 ```
@@ -394,7 +438,7 @@ Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (a
 | **CI/CD security (local fallback)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
 | **Supply chain scan (local path)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
 
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `falco`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, `terraform-iac`
+**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `falco`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, `terraform-iac`
 
 Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
 
@@ -441,14 +485,14 @@ For unattended scheduled runs, copy [`templates/azure-analyzer-scheduled.yml`](t
 | 14 | **ADO Pipeline Security** *(first-party)* | Azure DevOps build/release definitions, variable groups, and environments -- missing approvals, plaintext secret-like variables, broad trigger patterns, and service-connection reuse | Native REST API collector (`modules/Invoke-ADOPipelineSecurity.ps1`) inspects ADO pipeline metadata without reading or emitting secret values | MIT (this project) |
 | 15 | **ADO Repo Secrets** *(first-party)* | Azure DevOps repository secret findings from gitleaks with commit SHA, file path, and rule metadata | Native REST collector (`modules/Invoke-ADORepoSecrets.ps1`) enumerates projects/repos, clones via `RemoteClone.ps1`, and runs gitleaks with `--redact` | MIT (this project) |
 | 16 | **ADO Pipeline Correlator** *(first-party)* | Correlates leaked commits with pipeline runs and run-log availability to show execution blast radius | Post-collection correlator (`modules/Invoke-ADOPipelineCorrelator.ps1`) matches secret `CommitSha` against build `sourceVersion` and enriches with run metadata | MIT (this project) |
-| 17 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity | Apache-2.0 |
-| 18 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
-| 19 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
-| 20 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
+| 17 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
+| 18 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity | Apache-2.0 |
+| 19 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
+| 20 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
 | 21 | **Bicep IaC Validation** *(first-party)* | Bicep syntax and reference validation. Runs `bicep build` against all `.bicep` files to detect compilation errors, unresolved references, and type mismatches | CLI wrapper (`modules/Invoke-IaCBicep.ps1`) dispatches via `IaCAdapters.ps1`; each file is compiled with a 300s timeout; generated ARM JSON artefacts are cleaned up | MIT (this project) |
 | 22 | **Terraform IaC Validation** *(first-party)* | Terraform syntax and HCL security scanning. Runs `terraform validate` for syntax checks and `trivy config` (tfsec engine) for misconfigurations (open security groups, public storage, missing encryption) | CLI wrapper (`modules/Invoke-IaCTerraform.ps1`) dispatches via `IaCAdapters.ps1`; uses trivy's built-in tfsec rules instead of standalone tfsec | MIT (this project) |
 | 23 | **Sentinel (Active Incidents)** | Active Sentinel incidents from a Log Analytics workspace -- severity, status, classification, alert count, owner, provider | Read-only KQL query against `SecurityIncident` table via the workspace query API; graceful skip when the table does not exist (Sentinel not enabled) | Azure REST API (MS Service Terms) |
-
+| 24 | **Sentinel Coverage (Posture)** *(first-party)* | Detection-posture findings on top of the same workspace -- analytic rules (none configured / disabled >7 days), data connectors (<3 connected), watchlists (empty / TTL <30 days), hunting queries (none configured) | Read-only `Microsoft.SecurityInsights` REST (`alertRules`, `watchlists`, `dataConnectors`) + Log Analytics `savedSearches` filtered to category `Hunting Queries`; graceful skip when Sentinel is not onboarded (HTTP 404/409); all calls wrapped in `Invoke-WithRetry` | MIT (this project) |
 Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
@@ -467,7 +511,7 @@ Azure Analyzer writes two JSON output files with different schemas:
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `kubescape`, `kube-bench`, `falco`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
+| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `kube-bench`, `falco`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
 | `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
 | `Title` | string | yes | Short finding title |
 | `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
@@ -560,3 +604,5 @@ First-party components (MIT, this project): ADO Service Connections scanner, Ide
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+

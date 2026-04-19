@@ -838,6 +838,28 @@
       }
     },
     {
+      "name": "sentinel-coverage",
+      "displayName": "Microsoft Sentinel (Coverage / Posture)",
+      "source": "sentinel-coverage",
+      "provider": "azure",
+      "scope": "workspace",
+      "normalizer": "Normalize-SentinelCoverage",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-SentinelCoverage.ps1",
+      "requiredParams": ["WorkspaceResourceId"],
+      "optionalParams": ["LookbackDays", "OutputPath"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "color": "#3949ab", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts"]
+      },
+      "comment": "Surfaces Sentinel detection posture (analytic rules, watchlists, connectors, hunting queries) via Microsoft.SecurityInsights REST. Read-only; pairs with sentinel-incidents."
+    },
+    {
       "name": "copilot-triage",
       "displayName": "Copilot AI Triage",
       "source": "copilot-triage",
