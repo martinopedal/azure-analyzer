@@ -255,6 +255,102 @@ Describe 'Workflow YAML safety (#109)' {
         $content = Get-Content -Path $script:WorkflowPath -Raw
         $content | Should -Match "vars\.SQUAD_ADVISORY_GATE \|\| '1'"
     }
+
+    It 'grants statuses: write so the rubberduck-gate commit status can be posted (#173)' {
+        $lines = Get-Content -Path $script:WorkflowPath
+        # Locate the top-level `permissions:` block and assert one of the
+        # following indented lines declares `statuses: write`. Avoids any
+        # multiline regex that could backtrack.
+        $startIdx = ($lines | Select-String -Pattern '^permissions:\s*$' | Select-Object -First 1).LineNumber
+        $startIdx | Should -Not -BeNullOrEmpty
+        $block = $lines[$startIdx..([Math]::Min($startIdx + 9, $lines.Length - 1))]
+        ($block -match '^\s+statuses:\s*write\s*$') | Should -Not -BeNullOrEmpty
+    }
+
+    It 'post-status step uses if: always() so it fires even when the gate body fails (#173)' {
+        $lines = Get-Content -Path $script:WorkflowPath
+        $stepIdx = ($lines | Select-String -Pattern 'Post rubberduck-gate commit status' | Select-Object -First 1).LineNumber
+        $stepIdx | Should -Not -BeNullOrEmpty
+        # Look for `if: always()` within the next 8 lines after the step name.
+        $window = $lines[$stepIdx..([Math]::Min($stepIdx + 8, $lines.Length - 1))]
+        ($window -match 'if:\s*always\(\)') | Should -Not -BeNullOrEmpty
+    }
+
+    It 'post-status step does NOT gate on a non-empty gate-state output (#173)' {
+        # Branch protection requires the rubberduck-gate context on every PR
+        # head SHA. Skipped runs must still post a (success) status, so the
+        # `if:` condition must not short-circuit on an empty gate-state.
+        $content = Get-Content -Path $script:WorkflowPath -Raw
+        $content | Should -Not -Match "gate-state\s*!=\s*''"
+    }
+
+    It 'post-status step env wires PR_HEAD_SHA and GATE_STATE through to pwsh (#173)' {
+        $lines = Get-Content -Path $script:WorkflowPath
+        $stepIdx = ($lines | Select-String -Pattern 'Post rubberduck-gate commit status' | Select-Object -First 1).LineNumber
+        $stepIdx | Should -Not -BeNullOrEmpty
+        $window = $lines[$stepIdx..([Math]::Min($stepIdx + 25, $lines.Length - 1))]
+        ($window -match 'PR_HEAD_SHA:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\}\}') | Should -Not -BeNullOrEmpty
+        ($window -match 'GATE_STATE:\s*\$\{\{\s*steps\.gate\.outputs\.gate-state\s*\}\}') | Should -Not -BeNullOrEmpty
+    }
+
+    It 'post-status step posts the rubberduck-gate context against the head SHA' {
+        $content = Get-Content -Path $script:WorkflowPath -Raw
+        $content | Should -Match "context='rubberduck-gate'"
+        $content | Should -Match 'repos/\$env:REPO_NAME/statuses/\$env:PR_HEAD_SHA'
+    }
+}
+
+Describe 'Skip-path gate-state emission (#173)' {
+    BeforeAll {
+        # Each It block writes a unique fake GITHUB_OUTPUT so we can assert
+        # the script always emits a default gate-state on early-return paths.
+        function script:New-GhOutputFile {
+            $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("gh-out-" + [guid]::NewGuid().ToString('N') + '.txt')
+            New-Item -Path $tmp -ItemType File -Force | Out-Null
+            return $tmp
+        }
+    }
+
+    It 'emits gate-state=success with skip-reason=disabled when -Enabled:$false' {
+        $out = New-GhOutputFile
+        $env:GITHUB_OUTPUT = $out
+        try {
+            & $script:GatePath `
+                -PRNumber 99 `
+                -Repo 'martinopedal/azure-analyzer' `
+                -PRAuthor 'copilot[bot]' `
+                -HeadSha 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef' `
+                -Enabled:$false
+            $written = Get-Content -Path $out -Raw
+            $written | Should -Match 'gate-state=success'
+            $written | Should -Match 'skip-reason=disabled'
+            $written | Should -Match 'head-sha=deadbeef'
+        } finally {
+            Remove-Item Env:GITHUB_OUTPUT -ErrorAction SilentlyContinue
+            Remove-Item $out -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'emits gate-state=success with skip-reason=non-squad-author for human PR authors' {
+        $out = New-GhOutputFile
+        $env:GITHUB_OUTPUT = $out
+        try {
+            & $script:GatePath `
+                -PRNumber 99 `
+                -Repo 'martinopedal/azure-analyzer' `
+                -PRAuthor 'martinopedal' `
+                -HeadSha 'cafef00dcafef00dcafef00dcafef00dcafef00d' `
+                -Enabled:$true `
+                -DryRun
+            $written = Get-Content -Path $out -Raw
+            $written | Should -Match 'gate-state=success'
+            $written | Should -Match 'skip-reason=non-squad-author'
+            $written | Should -Match 'head-sha=cafef00d'
+        } finally {
+            Remove-Item Env:GITHUB_OUTPUT -ErrorAction SilentlyContinue
+            Remove-Item $out -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 Describe 'Get-AdvisoryCommentId pagination and marker selection' {

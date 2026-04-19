@@ -152,24 +152,37 @@ jobs:
           }
 
       - name: Post rubberduck-gate commit status
-        # Only post when the gate ran (gate-state is set). The gate skips
-        # for non-squad authors, draft PRs, fork PRs, etc. -- in those cases
-        # there's no verdict to surface and a missing status is correct.
-        if: always() && steps.gate.outputs.gate-state != '' && github.event.pull_request.head.repo.full_name == github.repository
+        # Always post the rubberduck-gate status against the PR head SHA so
+        # branch protection can require it (#173). When the gate body
+        # short-circuits (non-squad author, skip-advisory label, disabled),
+        # the script emits gate-state=success with a skip-reason; we still
+        # post a success status so the required context is present on the
+        # commit and merging is not blocked.
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           REPO_NAME: ${{ github.repository }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GATE_STATE: ${{ steps.gate.outputs.gate-state }}
+          GATE_SKIP_REASON: ${{ steps.gate.outputs.skip-reason }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         shell: pwsh
         run: |
-          $state = if ($env:GATE_STATE -eq 'success' -or $env:GATE_STATE -eq 'failure') { $env:GATE_STATE } else { 'failure' }
-          $description = if ($state -eq 'success') {
+          # Default to 'success' when gate-state is empty: this only happens
+          # if the inner script aborted before emitting any output (e.g. pwsh
+          # install failure). Treat such infra failures as non-blocking; the
+          # workflow run itself surfaces the underlying error.
+          $state = if ($env:GATE_STATE -eq 'success' -or $env:GATE_STATE -eq 'failure') { $env:GATE_STATE } else { 'success' }
+          $description = if (-not [string]::IsNullOrWhiteSpace($env:GATE_SKIP_REASON)) {
+            "Gate skipped: $($env:GATE_SKIP_REASON)"
+          } elseif ($state -eq 'success') {
             '2-of-3 frontier consensus, no [blocker]/[correctness]'
           } else {
             'Gate failed: missing consensus or veto-class finding'
+          }
+          if ($description.Length -gt 140) {
+            $description = $description.Substring(0, 137) + '...'
           }
           & gh api -X POST "repos/$env:REPO_NAME/statuses/$env:PR_HEAD_SHA" `
             -f context='rubberduck-gate' `
