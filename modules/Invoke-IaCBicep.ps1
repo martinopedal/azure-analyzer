@@ -50,6 +50,7 @@ if (-not (Get-Command bicep -ErrorAction SilentlyContinue)) {
     Write-Warning "bicep CLI is not installed. Skipping Bicep IaC validation. Install from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install"
     return [PSCustomObject]@{
         Source   = 'bicep-iac'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'bicep CLI not installed. Install from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install'
         Findings = @()
@@ -63,14 +64,16 @@ try {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
             return [PSCustomObject]@{
-                Source = 'bicep-iac'; Status = 'Failed'
+                Source = 'bicep-iac'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
             return [PSCustomObject]@{
-                Source = 'bicep-iac'; Status = 'Failed'
+                Source = 'bicep-iac'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
             }
@@ -81,7 +84,8 @@ try {
 
     if (-not (Test-Path $RepoPath)) {
         return [PSCustomObject]@{
-            Source = 'bicep-iac'; Status = 'Failed'
+            Source = 'bicep-iac'
+            SchemaVersion = '1.0'; Status = 'Failed'
             Message = "Repository path not found: $RepoPath"; Findings = @()
         }
     }
@@ -91,7 +95,8 @@ try {
     if (-not (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue)) {
         Write-Warning "IaCAdapters module not loaded. Bicep IaC validation cannot proceed."
         return [PSCustomObject]@{
-            Source = 'bicep-iac'; Status = 'Failed'
+            Source = 'bicep-iac'
+            SchemaVersion = '1.0'; Status = 'Failed'
             Message = 'IaCAdapters module not loaded. Ensure modules/iac/IaCAdapters.ps1 is present.'
             Findings = @()
         }
@@ -102,6 +107,7 @@ try {
     Write-Warning "Bicep IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'bicep-iac'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()

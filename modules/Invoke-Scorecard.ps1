@@ -45,6 +45,7 @@ if (-not (Test-ScorecardInstalled)) {
     Write-Warning "scorecard is not installed. Skipping Scorecard scan. Install from https://github.com/ossf/scorecard/releases"
     return [PSCustomObject]@{
         Source   = 'scorecard'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'scorecard CLI not installed. Download from https://github.com/ossf/scorecard/releases'
         Findings = @()
@@ -148,6 +149,7 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'scorecard'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings
@@ -156,6 +158,7 @@ try {
     Write-Warning "Scorecard scan failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'scorecard'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()

@@ -73,6 +73,7 @@ if (-not (Test-TrivyInstalled)) {
     Write-Warning "trivy is not installed. Skipping Trivy scan. Install from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy"
     return [PSCustomObject]@{
         Source   = 'trivy'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'trivy CLI not installed. Download from https://github.com/aquasecurity/trivy/releases'
         Findings = @()
@@ -95,14 +96,16 @@ try {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
             return [PSCustomObject]@{
-                Source = 'trivy'; Status = 'Failed'
+                Source = 'trivy'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
             return [PSCustomObject]@{
-                Source = 'trivy'; Status = 'Failed'
+                Source = 'trivy'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
             }
@@ -131,6 +134,7 @@ try {
             Write-Warning (Remove-Credentials "trivy exited with code $exitCode and produced no report")
             return [PSCustomObject]@{
                 Source   = 'trivy'
+                SchemaVersion = '1.0'
                 Status   = 'Failed'
                 Message  = (Remove-Credentials "trivy exited with code $exitCode and produced no report")
                 Findings = @()
@@ -147,6 +151,7 @@ try {
                     Write-Warning "trivy report JSON parse failed: $(Remove-Credentials -Text ([string]$_))"
                     return [PSCustomObject]@{
                         Source   = 'trivy'
+                        SchemaVersion = '1.0'
                         Status   = 'Failed'
                         Message  = Remove-Credentials -Text "Report JSON parse failed: $([string]$_)"
                         Findings = @()
@@ -268,6 +273,7 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'trivy'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings
@@ -276,6 +282,7 @@ try {
     Write-Warning "Trivy scan failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'trivy'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()

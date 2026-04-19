@@ -58,6 +58,7 @@ if (-not $hasTerraform -and -not $hasTrivy) {
     Write-Warning "Neither terraform nor trivy CLI is installed. Skipping Terraform IaC validation."
     return [PSCustomObject]@{
         Source   = 'terraform-iac'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'Neither terraform nor trivy CLI installed. Install terraform from https://developer.hashicorp.com/terraform/install or trivy from https://github.com/aquasecurity/trivy/releases'
         Findings = @()
@@ -71,14 +72,16 @@ try {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
             return [PSCustomObject]@{
-                Source = 'terraform-iac'; Status = 'Failed'
+                Source = 'terraform-iac'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
             return [PSCustomObject]@{
-                Source = 'terraform-iac'; Status = 'Failed'
+                Source = 'terraform-iac'
+                SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
             }
@@ -89,7 +92,8 @@ try {
 
     if (-not (Test-Path $RepoPath)) {
         return [PSCustomObject]@{
-            Source = 'terraform-iac'; Status = 'Failed'
+            Source = 'terraform-iac'
+            SchemaVersion = '1.0'; Status = 'Failed'
             Message = "Repository path not found: $RepoPath"; Findings = @()
         }
     }
@@ -99,7 +103,8 @@ try {
     if (-not (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue)) {
         Write-Warning "IaCAdapters module not loaded. Terraform IaC validation cannot proceed."
         return [PSCustomObject]@{
-            Source = 'terraform-iac'; Status = 'Failed'
+            Source = 'terraform-iac'
+            SchemaVersion = '1.0'; Status = 'Failed'
             Message = 'IaCAdapters module not loaded. Ensure modules/iac/IaCAdapters.ps1 is present.'
             Findings = @()
         }
@@ -110,6 +115,7 @@ try {
     Write-Warning "Terraform IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'terraform-iac'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()

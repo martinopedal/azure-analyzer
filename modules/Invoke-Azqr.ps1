@@ -37,6 +37,7 @@ if (-not (Test-AzqrInstalled)) {
     Write-Warning "azqr is not installed. Skipping Azqr scan. Install from https://azure.github.io/azqr"
     return [PSCustomObject]@{
         Source   = 'azqr'
+        SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'azqr not installed'
         Findings = @()
@@ -69,6 +70,7 @@ try {
 
     return [PSCustomObject]@{
         Source   = 'azqr'
+        SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
         Findings = $findings
@@ -77,6 +79,7 @@ try {
     Write-Warning "azqr scan failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
         Source   = 'azqr'
+        SchemaVersion = '1.0'
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
