@@ -206,8 +206,10 @@ function Get-TriageModels {
     [CmdletBinding()]
     param()
 
+    # Frontier-only roster. Strict allow-list, see
+    # `.copilot/copilot-instructions.md` -> "Frontier Model Roster".
     @(
-        [PSCustomObject]@{ Name = 'claude-opus-4.6'; Role = 'claude-premium' }
+        [PSCustomObject]@{ Name = 'claude-opus-4.7'; Role = 'claude-premium' }
         [PSCustomObject]@{ Name = 'gpt-5.3-codex'; Role = 'openai-codex' }
         [PSCustomObject]@{ Name = 'goldeneye'; Role = 'architectural-diversity' }
     )

@@ -5,7 +5,7 @@
 All code changes follow this pipeline:
 
 1. **Build** - implement on a feature branch, run tests locally
-2. **Review Gate** - 3-model code review (Opus 4.6 + Goldeneye + GPT-5.3-codex)
+2. **Review Gate** - 3-model code review (Opus 4.7 + Goldeneye + GPT-5.3-codex)
    - Gate-pass rules are defined in "Review Severity Taxonomy" below (this supersedes the older "all 3 must APPROVE" rule)
    - Parse-check all .ps1 files, verify no ?. syntax, check error handling
 3. **Fix** - address all findings from reviewers
@@ -99,7 +99,7 @@ Copilot review comments and inline suggestions are not advice, they are work ite
 
 2. **Plan** - write a triage plan (in `plan.md` for the session, and reflected into the SQL `todos` table) listing each Copilot finding with one of: `accept`, `reject`, `defer`. Every `reject` must name the reason; every `defer` must link a follow-up issue.
 
-3. **Rubber-duck until consensus** - run the plan through the 3-model gate (Opus 4.6 + Goldeneye + GPT-5.3-codex per the model roster, no Haiku). 2-of-3 consensus on each finding's disposition is required. If the models disagree, iterate the plan until 2-of-3 align. Record the consensus disposition next to each finding in the plan.
+3. **Rubber-duck until consensus** - run the plan through the 3-model gate (Opus 4.7 + Goldeneye + GPT-5.3-codex per the Frontier Model Roster, no sonnet/haiku). 2-of-3 consensus on each finding's disposition is required. If the models disagree, iterate the plan until 2-of-3 align. Record the consensus disposition next to each finding in the plan.
 
 4. **Implement** - write code only after the plan reaches consensus. Each implementation commit references the Copilot finding it addresses (e.g. `Addresses Copilot finding: <quote first line>`).
 
@@ -128,11 +128,11 @@ PR review feedback (Copilot, the 3-model gate, or humans) currently mixes blocke
 
 This section supersedes the older "all 3 must APPROVE" rule referenced in the Development Process above.
 
-A PR passes the review gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto):
+A PR passes the review gate when **all** of the following hold (rules are ordered; rule 1 is an absolute veto). Each evaluation is keyed to the current PR head SHA — synchronize pushes restart the gate from scratch on the new SHA:
 
 1. **No `[blocker]` or `[correctness]` finding from any reviewer.** Even one such finding fails the gate and activates Reviewer Rejection Lockout, regardless of how many reviewers approved overall.
 2. **Either** of the following:
-   - **2-of-3 APPROVE** from the 3-model gate (Opus + Goldeneye + GPT codex), OR
+   - **2-of-3 APPROVE** from the 3-model gate (Opus 4.7 + Goldeneye + GPT codex) on the CURRENT head SHA, OR
    - **All `REQUEST_CHANGES` findings are `[style]` / `[nit]` only.**
 
 Untagged findings are treated as `[correctness]` (fail-safe toward the gate) until a reviewer or follow-up classifier (#109) labels them.
