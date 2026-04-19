@@ -47,6 +47,7 @@ function Normalize-Kubescape {
             '^(?i)high$'     { 'High' }
             '^(?i)medium$'   { 'Medium' }
             '^(?i)low$'      { 'Low' }
+            '^(?i)info'      { 'Info' }
             default          { 'Medium' }
         }
 
