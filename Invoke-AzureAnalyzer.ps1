@@ -601,6 +601,9 @@ foreach ($toolDef in $manifest.tools) {
                 if ($toolDef.name -eq 'azqr') {
                     $params['OutputPath'] = Join-Path $OutputPath "azqr-$subId"
                 }
+                if ($toolDef.name -eq 'finops') {
+                    $params['OutputPath'] = Join-Path $OutputPath "finops-$subId"
+                }
                 if ($toolDef.name -eq 'falco') {
                     if ($InstallFalco)  { $params['InstallFalco'] = $true }
                     if ($UninstallFalco) { $params['UninstallFalco'] = $true }

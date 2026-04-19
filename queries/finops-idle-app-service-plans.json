@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "FinOps - Idle App Service Plans",
+    "description": "Detect App Service Plans with no apps deployed. CPU-based <1%/30d detection is deferred to a future Monitor metrics correlator.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "7649fc28-89f4-4f38-98ca-a10e5f3f6e95",
+      "category": "Cost",
+      "subcategory": "Idle App Service Plans",
+      "severity": "Info",
+      "text": "App Service Plans with no apps deployed",
+      "queryable": true,
+      "graph": "let plans = resources | where type =~ 'microsoft.web/serverfarms' | project planKey = tolower(id), id, name, type, resourceGroup, subscriptionId, location; let sites = resources | where type =~ 'microsoft.web/sites' | extend planKey = tolower(tostring(properties.serverFarmId)) | summarize appCount = count() by planKey; plans | join kind=leftouter sites on planKey | extend appCount = toint(coalesce(appCount, 0)) | where appCount == 0 | project id, name, type, resourceGroup, subscriptionId, location, appCount, detectedReason = 'App Service Plan has no hosted apps (idle by definition)', compliant = false"
+    }
+  ]
+}

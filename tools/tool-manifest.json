@@ -170,6 +170,27 @@
       }
     },
     {
+      "name": "finops",
+      "displayName": "FinOps Signals (Idle Resource Detection)",
+      "source": "finops",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-FinOpsSignals",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-FinOpsSignals.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": ["OutputPath", "QueryFiles"],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "label": "FinOps Signals", "color": "#00897b", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.CostManagement", "Az.ResourceGraph"]
+      }
+    },
+    {
       "name": "psrule",
       "displayName": "PSRule for Azure",
       "source": "psrule",

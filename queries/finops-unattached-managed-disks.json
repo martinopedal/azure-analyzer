@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "FinOps - Unattached managed disks",
+    "description": "Detect managed disks that are unattached and older than 30 days.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "d18b3c23-ec78-4a2f-b6eb-7e39fb8d5fd7",
+      "category": "Cost",
+      "subcategory": "Unattached managed disks",
+      "severity": "Info",
+      "text": "Managed disks that are unattached for more than 30 days",
+      "queryable": true,
+      "graph": "resources | where type =~ 'microsoft.compute/disks' | extend diskState = tostring(properties.diskState), createdTime = todatetime(properties.timeCreated), managedByRef = tostring(managedBy) | where isempty(managedByRef) and diskState =~ 'Unattached' and createdTime < ago(30d) | project id, name, type, resourceGroup, subscriptionId, location, detectedReason = 'Managed disk is unattached and older than 30 days', compliant = false"
+    }
+  ]
+}
