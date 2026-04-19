@@ -27,6 +27,7 @@ on:
 permissions:
   pull-requests: write
   contents: read
+  statuses: write
 
 concurrency:
   group: pr-advisory-gate-${{ github.event.pull_request.number }}
@@ -87,7 +88,10 @@ jobs:
           }
 
       - name: Post rubberduck-gate commit status
-        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        # Only post when the gate ran (gate-state is set). The gate skips
+        # for non-squad authors, draft PRs, fork PRs, etc. -- in those cases
+        # there's no verdict to surface and a missing status is correct.
+        if: always() && steps.gate.outputs.gate-state != '' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           REPO_NAME: ${{ github.repository }}
