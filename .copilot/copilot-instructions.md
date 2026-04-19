@@ -43,7 +43,41 @@ The 3-model gate, all squad sub-agent spawns, and every rubber-duck call MUST us
 
 **Standard 3-model gate trio** (used by `Invoke-PRAdvisoryGate.ps1` and `Invoke-PRReviewGate.ps1`): `claude-opus-4.7` + `gpt-5.3-codex` + `goldeneye`. If any one is unavailable, the gate falls back to `claude-opus-4.6-1m` for that slot only, never to a sonnet or haiku.
 
-When spawning sub-agents via the `task` tool, always pass the `model` parameter explicitly. Default omission has historically dropped agents onto sonnet, which violates this contract.
+When spawning sub-agents via the `task` tool, always pass the `model` parameter explicitly. Default omission has historically dropped agents onto sonnet, which violates this contract. When the selected model is unavailable, follow the Frontier Fallback Chain below. NEVER drop tier to sonnet/haiku/mini.
+
+## Rate-Limit Retry + Frontier Fallback Chain
+
+Every model-calling code path — both in-session agent spawns AND production model invocations (PR rubber-duck gate, copilot triage, etc.) — MUST implement explicit retry + model-swap fallback. Frontier-only, no exceptions.
+
+### Fallback chain (in strict order)
+1. `claude-opus-4.7`
+2. `claude-opus-4.6-1m`
+3. `gpt-5.4`
+4. `gpt-5.3-codex`
+5. `goldeneye`
+
+If a chain entry is the same model that just failed, skip to the next. NEVER fall back to `claude-sonnet-*`, `claude-haiku-*`, `claude-opus-4.6` (base), `claude-opus-4.5`, `gpt-5-mini`, `gpt-5.4-mini`, `gpt-4.1`, or any non-latest codex.
+
+### Per-model retry policy
+- Max 3 retries before swapping models.
+- Exponential backoff: `1s → 4s → 16s`, with 25% jitter on each delay.
+- Retry-triggering signals (case-insensitive substring match on response body OR HTTP status):
+  - HTTP 429, 503, 504
+  - `rate_limit`, `quota_exceeded`, `overloaded`, `throttle`, `service_unavailable`, `temporarily_unavailable`
+  - Network errors: socket timeout, connection reset, DNS failure
+- Special case — `context_length_exceeded`: skip remaining retries on current model and IMMEDIATELY swap (more wait won't help).
+
+### Per-call (overall) policy
+- Max 5 model swaps before surfacing failure to the caller.
+- Every swap MUST be logged to `.squad/decisions/inbox/{component}-fallback-{context}-{from}-to-{to}-{reason}.md` for durable audit.
+- On chain exhaustion: fail closed. The gate posts a sticky PR comment `⚠️ Gate could not reach any frontier model (5 swaps × 3 retries exhausted). Manual review required.` and exits non-zero. Sub-agent spawns surface the error to the coordinator.
+- Once a model returns a successful verdict in a given call, do NOT re-invoke it during subsequent retries for the same call/SHA.
+
+### Three-model gate trio resolution
+The standard rubber-duck trio is `claude-opus-4.7` + `gpt-5.3-codex` + `goldeneye`. If any trio member is rate-limited at gate start, substitute with the FIRST eligible chain entry NOT already in the trio (so a failed `gpt-5.3-codex` is replaced with `claude-opus-4.6-1m` first, then `gpt-5.4`). Maintain the "3 distinct frontier verdicts per SHA" invariant.
+
+### Reuse `Invoke-WithRetry` for in-model retries
+The per-model retry layer (3 attempts × exponential backoff) MUST use `modules/shared/Retry.ps1::Invoke-WithRetry` so the transient-pattern list and jitter implementation stay consistent across the codebase. The model-swap layer is a thin loop ON TOP of `Invoke-WithRetry`. Do not re-implement backoff.
 
 ## Copilot Review is Mandatory on Every PR
 
