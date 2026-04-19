@@ -298,6 +298,20 @@ Describe 'Workflow YAML safety (#109)' {
         $content | Should -Match "context='rubberduck-gate'"
         $content | Should -Match 'repos/\$env:REPO_NAME/statuses/\$env:PR_HEAD_SHA'
     }
+
+    It 'degraded advisory catch block emits success and a degraded skip-reason' {
+        $content = Get-Content -Path $script:WorkflowPath -Raw
+        $content | Should -Match 'PR advisory gate degraded to advisory no-op'
+        $content | Should -Match '"gate-state=success"'
+        $content | Should -Match '"skip-reason=\$skipReason"'
+        $content | Should -Match '\$skipReason = \("degraded: \$safeMessage"'
+    }
+
+    It 'calls Get-CopilotReviewFindings with separate owner and repo-name args' {
+        $content = Get-Content -Path $script:WorkflowPath -Raw
+        $content | Should -Match '\$owner,\s*\$repo\s*=\s*\$env:REPO_NAME\.Split\(''/'''
+        $content | Should -Match 'Get-CopilotReviewFindings\s+`[\s\r\n]+-Owner \$owner\s+`[\s\r\n]+-Repo \$repo'
+    }
 }
 
 Describe 'Skip-path gate-state emission (#173)' {
