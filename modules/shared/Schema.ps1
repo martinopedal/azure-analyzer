@@ -13,7 +13,19 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $script:SchemaVersion = '2.0'
+# Schema bump: entities.json moves from a bare array (v3.0) to an object
+# { SchemaVersion: '3.1', Entities: [...], Edges: [...] } when edges are present.
+# Readers must support both shapes (back-compat).
+$script:EntitiesFileSchemaVersion = '3.1'
 $script:SeverityLevels = @('Critical', 'High', 'Medium', 'Low', 'Info')
+# Edge.Relation enum. Add new values as discovery surfaces grow.
+$script:EdgeRelations = @(
+    'GuestOf',            # User -> Tenant (B2B home tenant)
+    'MemberOf',           # User|ServicePrincipal -> Group/role
+    'HasRoleOn',          # ServicePrincipal|User -> AzureResource (RBAC)
+    'OwnsAppRegistration',# User|ServicePrincipal -> Application
+    'ConsentedTo'         # User|ServicePrincipal -> Application (delegated/admin consent)
+)
 $script:EntityTypes = @(
     'AzureResource',
     'ServicePrincipal',
@@ -509,6 +521,164 @@ function Test-FindingRow {
     }
 
     return $isValid
+}
+
+function Get-EdgeRelations {
+    <#
+    .SYNOPSIS
+        Returns the allowed Edge.Relation values.
+    #>
+    [CmdletBinding()]
+    param ()
+    return ,$script:EdgeRelations
+}
+
+function New-Edge {
+    <#
+    .SYNOPSIS
+        Construct a v3.1 Edge object representing a relationship between two entities.
+    .DESCRIPTION
+        Edges are first-class records persisted alongside entities. The EdgeId is
+        deterministic ("edge:{source}:{relation}:{target}" lower-cased) so that
+        repeated discovery rounds dedup naturally. Returns $null with a warning
+        when validation fails (mirrors New-FindingRow contract).
+    .PARAMETER Source
+        Canonical entity id of the source vertex.
+    .PARAMETER Target
+        Canonical entity id of the target vertex.
+    .PARAMETER Relation
+        One of the Edge.Relation enum values (see Get-EdgeRelations).
+    .PARAMETER Properties
+        Hashtable / PSCustomObject of relation-specific metadata (e.g. role name,
+        scope, consent type). Optional.
+    .PARAMETER Confidence
+        Confirmed | Likely | Unconfirmed | Unknown.
+    .PARAMETER Platform
+        Platform that owns this edge fact (Azure | Entra | GitHub | ADO).
+    .PARAMETER DiscoveredBy
+        Wrapper / tool that produced the edge.
+    .PARAMETER DiscoveredAt
+        ISO-8601 timestamp; defaults to UtcNow.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Source,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Target,
+
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Relation,
+
+        [object] $Properties,
+
+        [string] $Confidence = 'Unknown',
+
+        [string] $Platform,
+
+        [string] $DiscoveredBy,
+
+        [datetime] $DiscoveredAt
+    )
+
+    $errors = [System.Collections.Generic.List[string]]::new()
+    if ([string]::IsNullOrWhiteSpace($Source)) { $errors.Add("Required parameter 'Source' is missing or empty.") }
+    if ([string]::IsNullOrWhiteSpace($Target)) { $errors.Add("Required parameter 'Target' is missing or empty.") }
+    if ([string]::IsNullOrWhiteSpace($Relation)) {
+        $errors.Add("Required parameter 'Relation' is missing or empty.")
+    } elseif ($Relation -notin $script:EdgeRelations) {
+        $errors.Add("Relation '$Relation' is not valid. Valid relations: $($script:EdgeRelations -join ', ').")
+    }
+    if ($Confidence -and $Confidence -notin $script:ConfidenceLevels) {
+        $errors.Add("Confidence '$Confidence' is not valid. Valid confidence levels: $($script:ConfidenceLevels -join ', ').")
+    }
+    if ($Platform -and $Platform -notin $script:Platforms) {
+        $errors.Add("Platform '$Platform' is not valid. Valid platforms: $($script:Platforms -join ', ').")
+    }
+
+    if ($errors.Count -gt 0) {
+        $sourceForLog = if ([string]::IsNullOrWhiteSpace($DiscoveredBy)) { 'unknown' } else { $DiscoveredBy }
+        $sanitizedError = if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            Remove-Credentials ($errors -join '; ')
+        } else {
+            $errors -join '; '
+        }
+        $script:ValidationFailures.Add([PSCustomObject]@{
+                Source    = $sourceForLog
+                Error     = "Edge validation failed: $sanitizedError"
+                Timestamp = Get-Date
+            })
+        Write-Warning "Edge validation failed [$sourceForLog]: $sanitizedError"
+        return $null
+    }
+
+    $srcLower = $Source.Trim().ToLowerInvariant()
+    $tgtLower = $Target.Trim().ToLowerInvariant()
+    $edgeId = "edge:$srcLower|$Relation|$tgtLower"
+
+    $propBag = if ($null -eq $Properties) {
+        [PSCustomObject]@{}
+    } elseif ($Properties -is [System.Collections.IDictionary]) {
+        [PSCustomObject]$Properties
+    } else {
+        $Properties
+    }
+
+    $stamp = if ($PSBoundParameters.ContainsKey('DiscoveredAt') -and $DiscoveredAt) {
+        $DiscoveredAt.ToUniversalTime().ToString('o')
+    } else {
+        (Get-Date).ToUniversalTime().ToString('o')
+    }
+
+    [PSCustomObject]@{
+        EdgeId        = $edgeId
+        Source        = $srcLower
+        Target        = $tgtLower
+        Relation      = $Relation
+        Properties    = $propBag
+        Confidence    = $Confidence
+        Platform      = $Platform
+        DiscoveredBy  = $DiscoveredBy
+        DiscoveredAt  = $stamp
+        SchemaVersion = $script:EntitiesFileSchemaVersion
+    }
+}
+
+function Test-Edge {
+    <#
+    .SYNOPSIS
+        Validate an edge object against the v3.1 contract.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [pscustomobject] $Edge,
+
+        [ref] $ErrorDetails
+    )
+
+    $errors = [System.Collections.Generic.List[string]]::new()
+    foreach ($required in @('EdgeId', 'Source', 'Target', 'Relation')) {
+        if (-not $Edge.PSObject.Properties[$required] -or [string]::IsNullOrWhiteSpace([string]$Edge.$required)) {
+            $errors.Add("Required field '$required' is missing or empty.")
+        }
+    }
+    if ($Edge.PSObject.Properties['Relation'] -and $Edge.Relation -and $Edge.Relation -notin $script:EdgeRelations) {
+        $errors.Add("Relation '$($Edge.Relation)' is not in allowed set: $($script:EdgeRelations -join ', ').")
+    }
+    if ($Edge.PSObject.Properties['Confidence'] -and $Edge.Confidence -and $Edge.Confidence -notin $script:ConfidenceLevels) {
+        $errors.Add("Confidence '$($Edge.Confidence)' is not in allowed set: $($script:ConfidenceLevels -join ', ').")
+    }
+    if ($Edge.PSObject.Properties['Platform'] -and $Edge.Platform -and $Edge.Platform -notin $script:Platforms) {
+        $errors.Add("Platform '$($Edge.Platform)' is not in allowed set: $($script:Platforms -join ', ').")
+    }
+    if ($ErrorDetails) { $ErrorDetails.Value = $errors.ToArray() }
+    return $errors.Count -eq 0
 }
 
 function Test-EntityRecord {

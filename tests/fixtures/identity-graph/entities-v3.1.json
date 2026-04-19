@@ -1,0 +1,26 @@
+{
+  "SchemaVersion": "3.1",
+  "Entities": [
+    {
+      "EntityId": "appid:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "EntityType": "ServicePrincipal",
+      "Platform": "Entra",
+      "DisplayName": "legacy-spn",
+      "Observations": [],
+      "Sources": []
+    }
+  ],
+  "Edges": [
+    {
+      "EdgeId": "edge:appid:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee|HasRoleOn|12345678-1234-1234-1234-123456789012",
+      "Source": "appid:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "Target": "12345678-1234-1234-1234-123456789012",
+      "Relation": "HasRoleOn",
+      "Confidence": "Confirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "identity-graph-expansion",
+      "DiscoveredAt": "2026-01-01T00:00:00Z",
+      "Properties": { "RoleName": "Owner", "Scope": "/subscriptions/12345678-1234-1234-1234-123456789012" }
+    }
+  ]
+}
