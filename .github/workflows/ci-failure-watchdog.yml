@@ -2,6 +2,9 @@ name: CI failure watchdog
 
 on:
   workflow_run:
+    # The workflows: key is REQUIRED — without it GitHub never parses the
+    # trigger and creates 0-job failure runs on every push (see PR #111 bug).
+    workflows: ["CI", "CodeQL", "Docs Check"]
     types: [completed]
 
 permissions:
