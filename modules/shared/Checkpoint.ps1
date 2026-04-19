@@ -175,6 +175,9 @@ function Save-Checkpoint {
 
     $path = Get-CheckpointPath -CheckpointDir $CheckpointDir -Tool $Tool -ScopeKey $scopeKey
     $json = $Result | ConvertTo-Json -Depth 50
+    if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+        $json = Remove-Credentials $json
+    }
     $tempPath = "$path.tmp-$([Guid]::NewGuid().ToString('N'))"
     Set-Content -Path $tempPath -Value $json -Encoding utf8
     Move-Item -Path $tempPath -Destination $path -Force

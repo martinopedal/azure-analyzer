@@ -653,5 +653,6 @@ $html = @"
 </html>
 "@
 
+$html = Remove-Credentials $html
 Set-Content -Path $OutputPath -Value $html -Encoding UTF8
 Write-Host "Wrote dashboard: $OutputPath" -ForegroundColor Green

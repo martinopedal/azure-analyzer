@@ -180,7 +180,7 @@ if ($OutputPath) {
     try {
         if (-not (Test-Path $OutputPath)) { New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null }
         $raw = Join-Path $OutputPath "defender-$SubscriptionId-$(Get-Date -Format yyyyMMddHHmmss).json"
-        ($result | ConvertTo-Json -Depth 20) | Set-Content -Path $raw -Encoding utf8
+        (Remove-Credentials ($result | ConvertTo-Json -Depth 20)) | Set-Content -Path $raw -Encoding utf8
     } catch {
         Write-Warning "Failed to write raw Defender JSON: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     }
