@@ -410,6 +410,11 @@ class EntityStore {
         $entitiesJson = $this.Entities.Values | ConvertTo-Json -Depth 30
         $findingsJson = $this.Findings | ConvertTo-Json -Depth 30
 
+        if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+            $entitiesJson = Remove-Credentials $entitiesJson
+            $findingsJson = Remove-Credentials $findingsJson
+        }
+
         Set-Content -Path $entitiesPath -Value $entitiesJson -Encoding UTF8
         Set-Content -Path $findingsPath -Value $findingsJson -Encoding UTF8
 

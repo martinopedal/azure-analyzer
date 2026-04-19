@@ -560,6 +560,8 @@ $env:COPILOT_GITHUB_TOKEN = "ghp_..."
 | **bicep-iac** | -- | -- | ⚡ Remote (clone) | -- | ⚡ Local fallback (`bicep`) | -- |
 | **terraform-iac** | -- | -- | ⚡ Remote (clone) | -- | ⚡ Local fallback (`terraform`/`trivy`) | -- |
 | **Identity Correlator** | ✅ Inherited | ⚡ Optional (Graph lookup) | -- | -- | -- | -- |
+| **Bicep IaC** | -- | -- | -- | -- | ⚡ `bicep` CLI | -- |
+| **Terraform IaC** | -- | -- | -- | -- | ⚡ `terraform`, `trivy` CLIs | -- |
 | **AI Triage** | -- | -- | ⚡ Recommended | -- | -- | ⚠️ Optional |
 
 - ✅ = Required for tool to function
