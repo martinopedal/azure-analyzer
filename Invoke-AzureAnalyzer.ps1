@@ -120,7 +120,9 @@ param (
     [switch] $SinkLogAnalytics,
     [string] $LogAnalyticsConfig,
     [ValidateRange(1, 365)]
-    [int] $HistoryRetention = 30
+    [int] $HistoryRetention = 30,
+    [string] $TenantConfig,
+    [string[]] $Tenants
 )
 
 Set-StrictMode -Version Latest
@@ -130,7 +132,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -139,6 +141,41 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 }
 if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
+}
+
+# ---------------------------------------------------------------------------
+# Multi-tenant fan-out (#163): when -TenantConfig or -Tenants is supplied,
+# delegate to Invoke-MultiTenantScan and exit. This branch must run BEFORE
+# any single-tenant validation that would reject the absence of
+# -SubscriptionId / -ManagementGroupId / -TenantId, because those are
+# supplied per-tenant by the fan-out layer.
+# ---------------------------------------------------------------------------
+if ($TenantConfig -or ($Tenants -and $Tenants.Count -gt 0)) {
+    if ($TenantConfig -and $Tenants -and $Tenants.Count -gt 0) {
+        throw "-TenantConfig and -Tenants are mutually exclusive."
+    }
+    foreach ($conflict in 'TenantId','SubscriptionId','ManagementGroupId') {
+        if ($PSBoundParameters.ContainsKey($conflict)) {
+            throw "-$conflict cannot be combined with -TenantConfig/-Tenants in v1 (per-tenant scope is supplied by the fan-out config)."
+        }
+    }
+    if (-not (Get-Command Invoke-MultiTenantScan -ErrorAction SilentlyContinue)) {
+        throw "MultiTenantOrchestrator module failed to load; cannot fan out."
+    }
+    $tenantList = if ($TenantConfig) {
+        ConvertFrom-TenantConfig -Path $TenantConfig
+    } else {
+        ConvertFrom-TenantConfig -TenantList $Tenants
+    }
+    $summary = Invoke-MultiTenantScan -Tenants $tenantList -OutputPath $OutputPath `
+        -ScriptPath $PSCommandPath -ForwardParams $PSBoundParameters
+    $failed = @($summary.Tenants | Where-Object { $_.Status -ne 'success' }).Count
+    if ($failed -gt 0) {
+        Write-Warning "Multi-tenant scan completed with $failed failed tenant(s) of $($summary.Tenants.Count). See $OutputPath\multi-tenant-summary.json"
+        exit 1
+    }
+    Write-Host "Multi-tenant scan complete: $($summary.Tenants.Count) tenant(s). Summary: $OutputPath\multi-tenant-summary.json" -ForegroundColor Green
+    exit 0
 }
 
 $sinkModulePath = Join-Path $PSScriptRoot 'modules' 'sinks' 'Send-FindingsToLogAnalytics.ps1'

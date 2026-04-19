@@ -47,8 +47,7 @@ $env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
 # ADO collectors and correlators run automatically when -AdoOrg is present.
 # Or scan a specific project:
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
-# Or target only the pipeline-security surface:
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"# Or target only the pipeline-security surface:
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-pipelines'
 # Aliases are also supported:
 .\Invoke-AzureAnalyzer.ps1 -AdoOrganization "contoso" -AdoPatToken "<ado-pat>"
@@ -70,6 +69,19 @@ Connect-AzAccount -TenantId "<your-tenant-id>"
 .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" `
   -SentinelWorkspaceId "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws>"
 ```
+
+**Scenario 8: Multi-tenant fan-out (MSP / large enterprise)**
+
+```powershell
+# Option A — JSON config with explicit per-tenant subscription lists + labels:
+#   tenants.json: [{"tenantId":"<guid>","subscriptionIds":["<guid>",...],"label":"prod"}, ...]
+.\Invoke-AzureAnalyzer.ps1 -TenantConfig .\tenants.json -OutputPath .\out
+
+# Option B — bare GUID array (uses default subs in each tenant context):
+.\Invoke-AzureAnalyzer.ps1 -Tenants @('<tenant-1-guid>','<tenant-2-guid>')
+```
+
+Per-tenant outputs land under `<OutputPath>/<tenantId>/[<subscriptionId>/]`. Aggregate roll-up is written to `<OutputPath>/multi-tenant-summary.json` (SchemaVersion 1.0) and `multi-tenant-summary.html`. The fan-out is sequential (clean Az / Microsoft.Graph context per tenant via child `pwsh` processes); per-tenant failures are recorded with sanitized stderr and the scan continues. Overall exit code is non-zero when any tenant fails. Requires the calling user to already have cross-tenant access (B2B / multi-tenant credentials) — service-principal impersonation across tenants is deferred to a follow-up issue. `-TenantConfig` and `-Tenants` are mutually exclusive with each other and with single-tenant `-TenantId` / `-SubscriptionId` / `-ManagementGroupId`.
 
 Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
 
