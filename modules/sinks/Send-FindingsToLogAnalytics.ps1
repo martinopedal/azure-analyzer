@@ -62,11 +62,19 @@ function Read-EntitiesFromJson {
     }
 
     try {
-        return @(Get-Content -Path $EntitiesJson -Raw | ConvertFrom-Json -ErrorAction Stop)
+        $parsed = Get-Content -Path $EntitiesJson -Raw | ConvertFrom-Json -ErrorAction Stop
     } catch {
         $msg = Remove-Credentials "$_"
         throw "Failed to parse entities JSON: $msg"
     }
+
+    # Issue #187 / B3: entities.json envelope went from bare array (v3.0) to
+    # { SchemaVersion, Entities, Edges } (v3.1). Sniff the shape here so the LA
+    # sink continues to ingest entities (not the envelope) for both versions.
+    if ($parsed -is [pscustomobject] -and $parsed.PSObject.Properties['Entities']) {
+        return @($parsed.Entities)
+    }
+    return @($parsed)
 }
 
 function Get-LogAnalyticsAccessToken {

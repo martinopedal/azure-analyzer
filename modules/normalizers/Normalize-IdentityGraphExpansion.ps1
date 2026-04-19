@@ -43,13 +43,20 @@ function Normalize-IdentityGraphExpansion {
         if ($f.PSObject.Properties['EntityId']) { $f.EntityId = $canonical }
         # Severity must be one of the five enum values; coerce anything unknown to Info.
         if ($f.PSObject.Properties['Severity']) {
-            switch (([string]$f.Severity).ToLowerInvariant()) {
+            $rawSeverity = [string]$f.Severity
+            switch ($rawSeverity.ToLowerInvariant()) {
                 'critical' { $f.Severity = 'Critical' }
                 'high'     { $f.Severity = 'High' }
                 'medium'   { $f.Severity = 'Medium' }
                 'low'      { $f.Severity = 'Low' }
                 'info'     { $f.Severity = 'Info' }
-                default    { $f.Severity = 'Info' }
+                default    {
+                    # Issue #187 / F4: log so wrapper regressions are visible
+                    # instead of silently downgraded.
+                    $fid = if ($f.PSObject.Properties['Id']) { [string]$f.Id } else { '<no-id>' }
+                    Write-Warning "identity-graph-expansion normalizer: unknown severity '$rawSeverity' coerced to 'Info' for finding $fid"
+                    $f.Severity = 'Info'
+                }
             }
         }
         $normalized.Add($f)
