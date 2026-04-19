@@ -1,0 +1,20 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "powershell",
+    "FUNCTIONS_WORKER_RUNTIME_VERSION": "7.4",
+    "FUNCTIONS_EXTENSION_VERSION": "~4",
+
+    "AZURE_ANALYZER_SUBSCRIPTION_ID": "<subscription-guid>",
+    "AZURE_ANALYZER_TENANT_ID": "<tenant-guid>",
+    "AZURE_ANALYZER_INCLUDE_TOOLS": "azqr,psrule",
+
+    "// Optional Log Analytics sink (#162). Leave unset to skip the sink call.": "",
+    "DCE_ENDPOINT": "",
+    "DCR_IMMUTABLE_ID": "",
+    "FINDINGS_STREAM": "Custom-AzureAnalyzerFindings",
+    "ENTITIES_STREAM": "Custom-AzureAnalyzerEntities",
+    "SINK_DRY_RUN": "false"
+  }
+}

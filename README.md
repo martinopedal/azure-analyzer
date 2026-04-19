@@ -135,6 +135,23 @@ Example config file:
 
 See [docs/sinks/log-analytics.md](docs/sinks/log-analytics.md) for DCR/table setup and KQL examples.
 
+## Continuous Control mode (#165)
+
+Two unattended entrypoints wrap `Invoke-AzureAnalyzer.ps1` so the scanner runs as a *control* on a schedule, not just an ad-hoc tool:
+
+- **Scheduled GitHub Actions workflow** — `.github/workflows/scheduled-scan.yml` runs daily at `0 6 * * *` UTC (plus `workflow_dispatch`). It authenticates to Azure via **OIDC federation** (no PATs), uploads `results.json` + `entities.json` + HTML/MD reports as workflow artifacts, and a separate non-Azure `report` job (with `issues: write` only) opens or comments on a single deduped `auto:scheduled-scan` issue when any Critical-severity finding is present.
+- **Azure Function (PowerShell)** — `azure-function/` ships `TimerScan/` (NCRONTAB `0 0 6 * * *`) and `HttpScan/` (`authLevel: function`, break-glass on-demand). Both run via the Function App's managed identity. The shared entrypoint reuses the existing Log Analytics sink (`modules/sinks/Send-FindingsToLogAnalytics.ps1`); sink invocation is opt-in via `DCE_ENDPOINT` + `DCR_IMMUTABLE_ID` app settings.
+
+**Required repo variables for the workflow** (configure once via `gh variable set`):
+
+| Variable | Description |
+|---|---|
+| `AZURE_CLIENT_ID` | App registration / user-assigned MI client id with the federated credential |
+| `AZURE_TENANT_ID` | Entra tenant id |
+| `AZURE_SUBSCRIPTION_ID` | Default subscription scope |
+
+**Consumption-plan timeout caveat**: Azure Functions on the Consumption plan have a hard 10-minute per-invocation cap. The default Timer trigger therefore restricts itself to a small toolset (`azqr,psrule`). For a full daily sweep, deploy on the **Premium** plan or **Container Apps**. See [`azure-function/README.md`](azure-function/README.md). Bicep/Terraform deployment templates are tracked as a follow-up.
+
 ## What you get
 
 After a run, `output/` contains:

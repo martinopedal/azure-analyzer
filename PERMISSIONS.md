@@ -20,6 +20,40 @@ This is the first optional write permission in the project. Reader baseline requ
 
 ---
 
+## Continuous Control Function App (#165)
+
+When the scheduled GitHub Actions workflow (`.github/workflows/scheduled-scan.yml`) and/or the `azure-function/` PowerShell Function App is deployed, the following identities and roles are required.
+
+### GitHub Actions OIDC federation
+
+The workflow signs in via OpenID Connect (no PATs, no client secrets). One-time setup:
+
+1. Create (or reuse) an app registration / user-assigned managed identity in Entra ID.
+2. Add a **federated credential** with subject claim:
+   - `repo:<owner>/<repo>:ref:refs/heads/main` (for scheduled runs on main)
+   - `repo:<owner>/<repo>:environment:production` (optional, if you gate via an environment)
+3. Assign the identity **Reader** at the target subscription or management-group scope.
+4. Set the repo variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
+
+| Capability | Scope | Role | Why |
+|---|---|---|---|
+| Workflow OIDC sign-in | Subscription / MG | **Reader** | Drives the orchestrator's read-only collectors |
+| (Optional) Log Analytics sink call | DCR | **Monitoring Metrics Publisher** | Same DCR write contract as the standalone sink (see above) |
+
+### Azure Function App managed identity
+
+The Function App runs `Invoke-AzureAnalyzer.ps1` under its own managed identity (system- or user-assigned). Roles:
+
+| Capability | Scope | Role | Why |
+|---|---|---|---|
+| Function MI | Subscription / MG | **Reader** | Required for every Azure-scope collector |
+| (Optional) Log Analytics sink | DCR | **Monitoring Metrics Publisher** | Only when `DCE_ENDPOINT` + `DCR_IMMUTABLE_ID` app settings are configured |
+| (Optional) Future blob persistence | Storage account / container | **Storage Blob Data Contributor** | Reserved for the deferred Bicep deployment follow-up that wires durable artifact storage |
+
+The HTTP trigger uses `authLevel: function` (per-function key). Treat it as a **break-glass** on-demand path; the timer trigger is the primary contract.
+
+---
+
 ## Permission tiers (v3)
 
 Azure Analyzer v3 groups capabilities into permission tiers (Tier 0–6) covering
