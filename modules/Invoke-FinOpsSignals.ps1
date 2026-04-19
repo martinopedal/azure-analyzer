@@ -12,7 +12,9 @@
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $QueryFiles,
-    [string] $OutputPath
+    [string] $OutputPath,
+    [ValidateRange(1, 3650)]
+    [int] $SnapshotAgeThresholdDays = 90
 )
 
 Set-StrictMode -Version Latest
@@ -236,7 +238,10 @@ foreach ($queryFile in $QueryFiles) {
         $queries = @($queryDoc.queries | Where-Object { $_.queryable -eq $true -and $_.graph })
         foreach ($queryItem in $queries) {
             $executedQueryCount++
-            $rows = Invoke-SearchAzGraphAllResults -Query ([string]$queryItem.graph) -SubscriptionId $SubscriptionId
+            $rawGraph = [string]$queryItem.graph
+            # Validated integer substitution (ValidateRange on parameter prevents KQL injection).
+            $effectiveGraph = $rawGraph.Replace('{{SnapshotAgeThresholdDays}}', [string]$SnapshotAgeThresholdDays)
+            $rows = Invoke-SearchAzGraphAllResults -Query $effectiveGraph -SubscriptionId $SubscriptionId
             foreach ($row in $rows) {
                 $compliant = $true
                 if ($row.PSObject.Properties['compliant']) {
@@ -251,11 +256,15 @@ foreach ($queryFile in $QueryFiles) {
                 $resourceType = if ($row.PSObject.Properties['type']) { [string]$row.type } else { '' }
                 $resourceGroup = if ($row.PSObject.Properties['resourceGroup']) { [string]$row.resourceGroup } else { '' }
                 $location = if ($row.PSObject.Properties['location']) { [string]$row.location } else { '' }
+                $titleText = [string]$queryItem.text
+                $titleText = $titleText.Replace('{{SnapshotAgeThresholdDays}}', [string]$SnapshotAgeThresholdDays)
                 $detailReason = if ($row.PSObject.Properties['detectedReason'] -and $row.detectedReason) {
                     [string]$row.detectedReason
                 } else {
-                    [string]$queryItem.text
+                    $titleText
                 }
+                $rawSeverity = if ($queryItem.PSObject.Properties['severity'] -and $queryItem.severity) { [string]$queryItem.severity } else { 'Info' }
+                $ruleId = if ($queryItem.PSObject.Properties['ruleId'] -and $queryItem.ruleId) { [string]$queryItem.ruleId } else { '' }
 
                 $estimatedMonthlyCost = 0.0
                 if (-not [string]::IsNullOrWhiteSpace($resourceId)) {
@@ -276,9 +285,10 @@ foreach ($queryFile in $QueryFiles) {
                     Id                   = $findingId
                     Source               = 'finops'
                     Category             = 'Cost'
-                    Severity             = 'Info'
+                    Severity             = $rawSeverity
+                    RuleId               = $ruleId
                     Compliant            = $false
-                    Title                = [string]$queryItem.text
+                    Title                = $titleText
                     Detail               = "$detailReason$costDetail"
                     ResourceId           = $resourceId
                     ResourceType         = $resourceType

@@ -12,6 +12,7 @@ BeforeAll {
     $script:FixtureVm = Get-Content (Join-Path $PSScriptRoot '..\fixtures\finops\finops-output-stopped-vm.json') -Raw | ConvertFrom-Json
     $script:FixturePip = Get-Content (Join-Path $PSScriptRoot '..\fixtures\finops\finops-output-unused-pip.json') -Raw | ConvertFrom-Json
     $script:FixtureMixed = Get-Content (Join-Path $PSScriptRoot '..\fixtures\finops\finops-output-mixed.json') -Raw | ConvertFrom-Json
+    $script:FixtureSnapshot = Get-Content (Join-Path $PSScriptRoot '..\fixtures\finops\finops-output-ungoverned-snapshot.json') -Raw | ConvertFrom-Json
 }
 
 Describe 'Normalize-FinOpsSignals' {
@@ -72,5 +73,20 @@ Describe 'Normalize-FinOpsSignals' {
         ($rows | Where-Object { $_.Severity -eq 'Medium' }).Count | Should -Be 1
         ($rows | Where-Object { $_.Severity -eq 'Low' }).Count | Should -Be 1
         ($rows | Where-Object { $_.Severity -eq 'Info' }).Count | Should -Be 1
+    }
+
+    It 'normalizes ungoverned-snapshot fixture: Medium severity, RuleId stamped, grouped by subscription' {
+        $rows = @(Normalize-FinOpsSignals -ToolResult $script:FixtureSnapshot)
+        $rows.Count | Should -Be 2
+        @($rows | Where-Object { $_.Severity -ne 'Medium' }).Count | Should -Be 0
+        @($rows | Where-Object { $_.RuleId -ne 'finops-ungoverned-snapshot' }).Count | Should -Be 0
+        $rows[0].EntityType | Should -Be 'AzureResource'
+        $rows[0].Platform | Should -Be 'Azure'
+        $rows[0].Compliant | Should -BeFalse
+        $rows[0].EntityId | Should -Match '/providers/microsoft\.compute/snapshots/'
+        $bySub = @($rows | Group-Object SubscriptionId)
+        $bySub.Count | Should -Be 2
+        @($bySub | Where-Object { $_.Name -eq '11111111-1111-1111-1111-111111111111' }).Count | Should -Be 1
+        @($bySub | Where-Object { $_.Name -eq '22222222-2222-2222-2222-222222222222' }).Count | Should -Be 1
     }
 }
