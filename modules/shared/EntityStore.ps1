@@ -202,6 +202,7 @@ class EntityStore {
     [hashtable] $Entities
     [System.Collections.Generic.List[pscustomobject]] $Findings
     [hashtable] $FindingIndex
+    [hashtable] $Edges
     [int] $MaxEntitiesInMemory = 50000
     [int] $SpillFileCount = 0
     [string] $OutputPath
@@ -210,6 +211,7 @@ class EntityStore {
         $this.Entities = @{}
         $this.Findings = [System.Collections.Generic.List[pscustomobject]]::new()
         $this.FindingIndex = @{}
+        $this.Edges = @{}
 
         if ($env:AZURE_ANALYZER_MAX_ENTITIES) {
             $parsed = 0
@@ -507,6 +509,25 @@ class EntityStore {
         Get-ChildItem -Path $this.OutputPath -Filter 'findings-partial-*.json' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
         $this.SpillFileCount = 0
     }
+
+    [void] AddEdge([pscustomobject] $Edge) {
+        <#
+            Add an edge to the store. Dedup is keyed on the deterministic EdgeId
+            from New-Edge. Repeated discovery rounds collapse cleanly. The most
+            recent discovery wins for Properties / DiscoveredAt so re-runs refresh
+            metadata without duplicating relationships.
+        #>
+        if (-not $Edge) { throw "Edge cannot be null." }
+        if (-not $Edge.PSObject.Properties['EdgeId'] -or [string]::IsNullOrWhiteSpace([string]$Edge.EdgeId)) {
+            throw "Edge must have a non-empty EdgeId."
+        }
+        $key = [string]$Edge.EdgeId
+        $this.Edges[$key] = $Edge
+    }
+
+    [pscustomobject[]] GetEdges() {
+        return @($this.Edges.Values)
+    }
 }
 
 function Export-Entities {
@@ -535,6 +556,81 @@ function Export-Findings {
     )
 
     return $Store.GetFindings()
+}
+
+function Export-Edges {
+    <#
+    .SYNOPSIS
+        Export merged edges from an EntityStore.
+    .DESCRIPTION
+        Returns the v3.1 edge array. Always returns an array (possibly empty)
+        so callers can JSON-encode without null checks. Uses the unary comma
+        operator so PowerShell does not unwrap an empty enumerable to $null.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [EntityStore] $Store
+    )
+
+    $edges = $Store.GetEdges()
+    if ($null -eq $edges) { return ,@() }
+    return ,@($edges)
+}
+
+function Import-EntitiesFile {
+    <#
+    .SYNOPSIS
+        Read entities.json with back-compat for the legacy bare-array shape.
+    .DESCRIPTION
+        v3.0 entities.json was a bare JSON array of entity objects.
+        v3.1 wraps it in an object: { SchemaVersion, Entities, Edges }.
+        This helper accepts either shape and always returns a PSCustomObject
+        with .SchemaVersion, .Entities (array), .Edges (array).
+    .PARAMETER Path
+        Path to the entities.json file.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Path
+    )
+
+    if (-not (Test-Path $Path)) {
+        throw "Entities file not found: $Path"
+    }
+
+    $raw = Get-Content -Raw -Path $Path | ConvertFrom-Json -ErrorAction Stop
+
+    if ($null -eq $raw) {
+        return [PSCustomObject]@{
+            SchemaVersion = '3.0'
+            Entities      = @()
+            Edges         = @()
+        }
+    }
+
+    # v3.1+ shape: object with Entities/Edges properties
+    if ($raw -is [PSCustomObject] -and $raw.PSObject.Properties['Entities']) {
+        $schema = if ($raw.PSObject.Properties['SchemaVersion'] -and $raw.SchemaVersion) {
+            [string]$raw.SchemaVersion
+        } else { '3.1' }
+        $entities = @($raw.Entities)
+        $edges = if ($raw.PSObject.Properties['Edges'] -and $raw.Edges) { @($raw.Edges) } else { @() }
+        return [PSCustomObject]@{
+            SchemaVersion = $schema
+            Entities      = $entities
+            Edges         = $edges
+        }
+    }
+
+    # Legacy v3.0 shape: bare array
+    return [PSCustomObject]@{
+        SchemaVersion = '3.0'
+        Entities      = @($raw)
+        Edges         = @()
+    }
 }
 
 function Export-Results {

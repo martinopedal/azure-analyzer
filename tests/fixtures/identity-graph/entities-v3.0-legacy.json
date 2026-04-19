@@ -1,0 +1,13 @@
+[
+  {
+    "EntityId": "appid:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "EntityType": "ServicePrincipal",
+    "Platform": "Entra",
+    "DisplayName": "legacy-spn",
+    "Observations": [],
+    "WorstSeverity": null,
+    "CompliantCount": 0,
+    "NonCompliantCount": 0,
+    "Sources": []
+  }
+]
