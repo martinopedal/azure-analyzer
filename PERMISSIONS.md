@@ -565,7 +565,7 @@ The Identity Graph Expansion correlator builds a typed identity graph (entities 
 
 | Optional path | Requirement | Why |
 |---|---|---|
-| `-IncludeGraphLookup` (live mode) | Microsoft Graph `User.Read.All`, `Application.Read.All`, `Directory.Read.All` | Enumerate B2B guests, group memberships, SPN ownership, and admin consents (read-only) |
+| `-IncludeGraphLookup` (live mode) | Microsoft Graph `User.Read.All`, `Application.Read.All`, `Directory.Read.All`, `Group.Read.All`, `DelegatedPermissionGrant.Read.All` | Enumerate B2B guests, group memberships, SPN ownership, and admin consents (read-only) |
 | Pre-fetched mode (`-PreFetchedData`) | None | Tests / replay scenarios consume a JSON fixture directly |
 | ARM RBAC enrichment | `Microsoft.Authorization/roleAssignments/read` at the target scope (Reader inherits this) | Build `HasRoleOn` edges + over-privileged findings |
 
