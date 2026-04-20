@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- `Invoke-AzureAnalyzer.ps1`: Resolve leftover merge conflict markers in the param block and DOC block left over from the PR #204/#206 squash-merge cascade. Both `-GitleaksConfigPath` (#198) and `-AdoOrganizationUrl`/`-AdoServerUrl` (#197) coexist as intended; the orchestrator now parses again and the IdentityGraphExpansion integration suite goes from 5/7 to 7/7.
+
 ### Changed
 - `report-template.html`, `New-HtmlReport.ps1`: Fix Critical/High severity conflation — `SeverityClass()` was mapping `Critical → sev-high`, making Critical and High findings look identical. Critical now renders as a distinct dark-red badge and row border (`#7f1d1d`) separate from High (`#dc2626`).
 - `report-template.html`, `New-HtmlReport.ps1`: Add global interactive filter bar — sticky bar with severity chips (multi-select), platform (Azure/Entra/GitHub/ADO), tool, compliance status, and free-text search filter all finding rows simultaneously across every table with no page reload.
