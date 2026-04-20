@@ -11,6 +11,7 @@ BeforeAll {
 Describe 'Normalize-ADORepoSecrets' {
     BeforeAll {
         $fixture = Get-Content (Join-Path $PSScriptRoot '..\fixtures\ado-secrets\ado-repos-secrets-output.json') -Raw | ConvertFrom-Json
+        $onPremFixture = Get-Content (Join-Path $PSScriptRoot '..\fixtures\ado-onprem-repos.json') -Raw | ConvertFrom-Json
         $failedFixture = Get-Content (Join-Path $PSScriptRoot '..\fixtures\failed-output.json') -Raw | ConvertFrom-Json
     }
 
@@ -38,5 +39,12 @@ Describe 'Normalize-ADORepoSecrets' {
 
     It 'returns empty for failed wrapper results' {
         @(Normalize-ADORepoSecrets -ToolResult $failedFixture).Count | Should -Be 0
+    }
+
+    It 'normalizes on-prem allow-list skip findings as Info severity' {
+        $rows = @(Normalize-ADORepoSecrets -ToolResult $onPremFixture)
+        $rows.Count | Should -Be 1
+        $rows[0].Severity | Should -Be 'Info'
+        $rows[0].EntityId | Should -Be 'ado://contoso/payments/repository/payments-api'
     }
 }

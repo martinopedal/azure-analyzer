@@ -1,4 +1,4 @@
-#Requires -Version 7.4
+﻿#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure Analyzer — unified Azure assessment orchestrator (v3 manifest-driven).
@@ -38,9 +38,17 @@
 .PARAMETER AdoPat
     Azure DevOps PAT passed to ADO-scoped wrappers. Optional; wrappers also read
     ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, and AZ_DEVOPS_PAT.
+<<<<<<< HEAD
 .PARAMETER GitleaksConfigPath
     Optional local path to a gitleaks TOML config file. Forwarded to gitleaks and
     ado-repos-secrets wrappers for org-level or repo-level pattern tuning.
+=======
+.PARAMETER AdoOrganizationUrl
+    Optional Azure DevOps organization URL for ADO repo secret scanning.
+    Supports cloud URLs (dev.azure.com / *.visualstudio.com) and on-prem collection URLs.
+.PARAMETER AdoServerUrl
+    Optional Azure DevOps Server collection URL (on-prem) for ADO repo secret scanning.
+>>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
 .PARAMETER SentinelWorkspaceId
     Full ARM resource ID of the Log Analytics workspace linked to Microsoft Sentinel.
     When provided, the sentinel-incidents tool queries active incidents via KQL.
@@ -97,7 +105,12 @@ param (
     [string] $AdoProject,
     [Alias('AdoPatToken')]
     [string] $AdoPat,
+<<<<<<< HEAD
     [string] $GitleaksConfigPath,
+=======
+    [string] $AdoOrganizationUrl,
+    [string] $AdoServerUrl,
+>>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
     [string] $AdoRepoUrl,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
@@ -769,6 +782,8 @@ foreach ($toolDef in $manifest.tools) {
             $params = @{ AdoOrg = $AdoOrg }
             if ($AdoProject) { $params['AdoProject'] = $AdoProject }
             if ($AdoPat) { $params['AdoPat'] = $AdoPat }
+            if ($AdoOrganizationUrl -and $toolDef.optionalParams -contains 'AdoOrganizationUrl') { $params['AdoOrganizationUrl'] = $AdoOrganizationUrl }
+            if ($AdoServerUrl -and $toolDef.optionalParams -contains 'AdoServerUrl') { $params['AdoServerUrl'] = $AdoServerUrl }
             if ($toolDef.name -eq 'ado-repos-secrets') {
                 $params['OutputPath'] = Join-Path $OutputPath 'ado-repos-secrets-findings.json'
                 if ($GitleaksConfigPath) { $params['GitleaksConfigPath'] = $GitleaksConfigPath }
