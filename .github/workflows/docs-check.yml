@@ -47,7 +47,12 @@ jobs:
             ];
 
             const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
-            const isDoc = (f) => ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AI_GOVERNANCE.md'].includes(f);
+            const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md'];
+            const docPathPatterns = [
+              /^docs\/consumer\//,
+              /^docs\/contributor\//,
+            ];
+            const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
 
             // Code file extensions that require docs
             const codeExtensions = ['.ps1', '.psm1', '.psd1', '.json'];
@@ -68,7 +73,7 @@ jobs:
             if (docFiles.length === 0) {
               core.setFailed(
                 'This PR changes code files but no documentation was updated.\n' +
-                'Please update README.md and/or CHANGELOG.md.\n' +
+                'Please update README.md, CHANGELOG.md, or a page under docs/consumer/ or docs/contributor/.\n' +
                 'See CONTRIBUTING.md for documentation requirements.'
               );
             }
