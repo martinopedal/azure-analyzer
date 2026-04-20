@@ -34,7 +34,7 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, FinOps Signals, Application Insights, Azure Load Testing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`.
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`.
 
 ### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
 
@@ -82,6 +82,7 @@ The three quickstart scenarios above are the common path. The consumer index in 
 - Sentinel coverage and active incidents
 - Application Insights performance signals (slow requests, dependency failures, exception clusters)
 - Azure Load Testing failed and regressed runs
+- AKS rightsizing via Container Insights utilization signals
 - AKS runtime posture (kubescape, falco, kube-bench)
 - Multi-tenant fan-out for MSPs and large enterprises
 - Continuous control on a schedule (GitHub Actions or Azure Function App, with OIDC)

@@ -1,0 +1,11 @@
+{
+  "Results": [
+    {
+      "Namespace": "prod",
+      "WorkloadName": "api",
+      "ContainerName": "api",
+      "observedPct": 12.0,
+      "recommendedMillicores": 120.0
+    }
+  ]
+}

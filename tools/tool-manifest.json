@@ -245,6 +245,33 @@
       }
     },
     {
+      "name": "aks-rightsizing",
+      "displayName": "AKS Rightsizing (Container Insights utilization)",
+      "source": "aks-rightsizing",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AksRightsizing",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AksRightsizing.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": [
+        "ResourceGroup",
+        "ClusterName",
+        "LogAnalyticsWorkspaceId",
+        "LookbackDays",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "label": "AKS Rightsizing", "color": "#2e7d32", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts", "Az.ResourceGraph", "Az.OperationalInsights"]
+      }
+    },
+    {
       "name": "psrule",
       "displayName": "PSRule for Azure",
       "source": "psrule",

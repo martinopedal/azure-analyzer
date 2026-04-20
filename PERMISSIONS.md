@@ -25,6 +25,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 | Tool | Scope | Detail |
 |---|---|---|
+| **AKS Rightsizing (Container Insights utilization)** | Subscription | [`aks-rightsizing.md`](docs/consumer/permissions/aks-rightsizing.md) |
 | **ALZ Resource Graph Queries** | Management Group | [`alz-queries.md`](docs/consumer/permissions/alz-queries.md) |
 | **Application Insights Performance Signals** | Subscription | [`appinsights.md`](docs/consumer/permissions/appinsights.md) |
 | **AzGovViz** | Management Group | [`azgovviz.md`](docs/consumer/permissions/azgovviz.md) |

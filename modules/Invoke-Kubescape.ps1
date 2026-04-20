@@ -1,7 +1,7 @@
 #requires -Version 7.0
 <#
 .SYNOPSIS
-    Wrapper for kubescape — Kubernetes posture scanning against CIS K8s Benchmark + NSA/CISA hardening.
+    Wrapper for kubescape - Kubernetes posture scanning against CIS K8s Benchmark + NSA/CISA hardening.
 
 .DESCRIPTION
     Discovers AKS managed clusters in scope via Azure Resource Graph, fetches kubeconfig
@@ -112,6 +112,8 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 
 $kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
 if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
+$aksDiscoveryPath = Join-Path $PSScriptRoot 'shared' 'AksDiscovery.ps1'
+if (Test-Path $aksDiscoveryPath) { . $aksDiscoveryPath }
 
 $result = [ordered]@{
     SchemaVersion = '1.0'
@@ -192,24 +194,16 @@ if ($kubeconfigModeRequested) {
         kubeconfigOwned = $false   # do NOT delete user-supplied kubeconfig
     }
 } elseif ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
-    foreach ($id in $ClusterArmIds) {
-        $rg    = if ($id -match '/resourceGroups/([^/]+)') { $Matches[1] } else { '' }
-        $name  = Split-Path $id -Leaf
-        $clusters += [pscustomobject]@{ id = $id; resourceGroup = $rg; name = $name }
-    }
-} else {
-    if (-not (Get-Module -ListAvailable -Name Az.ResourceGraph)) {
-        $result.Status  = 'Skipped'
-        $result.Message = 'Az.ResourceGraph module not installed; cannot discover AKS clusters.'
+    try {
+        $clusters = @(Get-AksClustersInScope -SubscriptionId $SubscriptionId -ClusterArmIds $ClusterArmIds)
+    } catch {
+        $result.Status  = 'Failed'
+        $result.Message = "ARG discovery failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
         return [pscustomobject]$result
     }
-    Import-Module Az.ResourceGraph -ErrorAction SilentlyContinue
+} else {
     try {
-        $query = "Resources | where type =~ 'Microsoft.ContainerService/managedClusters' | where subscriptionId == '$SubscriptionId' | project id, name, resourceGroup"
-        $argResp = Invoke-WithRetry -MaxAttempts 3 -ScriptBlock {
-            Search-AzGraph -Query $using:query -First 200 -ErrorAction Stop
-        }
-        $clusters = @($argResp)
+        $clusters = @(Get-AksClustersInScope -SubscriptionId $SubscriptionId)
     } catch {
         $result.Status  = 'Failed'
         $result.Message = "ARG discovery failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
@@ -248,7 +242,7 @@ foreach ($cluster in $clusters) {
     $authPrep = $null
     try {
         if (-not $isKubeconfigMode) {
-            # Isolated kubeconfig context per cluster — avoid cross-cluster pollution.
+            # Isolated kubeconfig context per cluster - avoid cross-cluster pollution.
             $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
             $azArgs = @('aks', 'get-credentials',
                         '--subscription', $SubscriptionId,
