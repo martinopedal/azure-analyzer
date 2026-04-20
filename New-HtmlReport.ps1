@@ -133,6 +133,42 @@ function SeverityClass([string]$s) {
     }
 }
 
+function Get-CanonicalFrameworkName([string]$Name) {
+    if ([string]::IsNullOrWhiteSpace($Name)) { return '' }
+    $trimmed = $Name.Trim()
+    switch -Regex ($trimmed) {
+        '^(?i)cis(\s+azure.*)?$' { return 'CIS Azure' }
+        '^(?i)nist(\s*800[-\s]?53.*)?$' { return 'NIST 800-53' }
+        '^(?i)(azure\s+)?waf(\s+.*)?$' { return 'Azure WAF' }
+        '^(?i)(azure\s+)?caf(\s+.*)?$' { return 'Azure CAF' }
+        '^(?i)soc[\s-]*2.*$' { return 'SOC2' }
+        '^(?i)pci(\s*[-\s]?dss.*)?$' { return 'PCI-DSS' }
+        default { return $trimmed }
+    }
+}
+
+function Get-FindingFrameworkNames($Finding) {
+    $frameworks = New-Object System.Collections.Generic.List[string]
+
+    if ($Finding.PSObject.Properties.Match('Frameworks').Count -gt 0 -and $Finding.Frameworks) {
+        foreach ($fw in @($Finding.Frameworks)) {
+            $raw = if ($fw -is [string]) { $fw } elseif ($fw.PSObject.Properties.Match('Name').Count -gt 0) { [string]$fw.Name } elseif ($fw.PSObject.Properties.Match('framework').Count -gt 0) { [string]$fw.framework } else { [string]$fw }
+            $normalized = Get-CanonicalFrameworkName $raw
+            if (-not [string]::IsNullOrWhiteSpace($normalized)) { $frameworks.Add($normalized) }
+        }
+    }
+    if ($Finding.PSObject.Properties.Match('Controls').Count -gt 0 -and $Finding.Controls) {
+        foreach ($ctrl in @($Finding.Controls)) {
+            $normalized = Get-CanonicalFrameworkName ([string]$ctrl)
+            if ($normalized -in @('CIS Azure', 'NIST 800-53', 'Azure WAF', 'Azure CAF', 'SOC2', 'PCI-DSS')) {
+                $frameworks.Add($normalized)
+            }
+        }
+    }
+
+    return @($frameworks | Select-Object -Unique)
+}
+
 function Get-AnchorId([string]$text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return 'portfolio-sub-unknown' }
     return ('portfolio-sub-' + (($text.ToLowerInvariant() -replace '[^a-z0-9]+', '-') -replace '(^-|-$)', ''))
@@ -180,10 +216,17 @@ $manifestPath = Join-Path $PSScriptRoot 'tools' 'tool-manifest.json'
 $allSources   = @()
 $sourceLabels = @{}
 $sourceColors = @{}
+$frameworkPriority = @('CIS Azure', 'NIST 800-53', 'Azure WAF', 'Azure CAF', 'SOC2', 'PCI-DSS')
+$sourceFrameworks = @{}
 if (Test-Path $manifestPath) {
     try {
         $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
         foreach ($t in $manifest.tools) {
+            $mappedFrameworks = @()
+            if ($t.PSObject.Properties['frameworks'] -and $t.frameworks) {
+                $mappedFrameworks = @($t.frameworks | ForEach-Object { Get-CanonicalFrameworkName ([string]$_) } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+            }
+            $sourceFrameworks[$t.name] = $mappedFrameworks
             if (-not $t.enabled) { continue }
             $allSources += $t.name
             $sourceLabels[$t.name] = $t.displayName
@@ -203,6 +246,7 @@ if ($allSources.Count -eq 0) {
     $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','defender-for-cloud','kubescape','kube-bench','falco','maester','scorecard','ado-connections','ado-pipelines','identity-correlator','zizmor','gitleaks','trivy','azure-cost','finops','bicep-iac','terraform-iac','sentinel-incidents','sentinel-coverage')
     $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy'; 'azure-cost'='Azure Cost'; 'finops'='FinOps Signals'; 'bicep-iac'='Bicep IaC Validation'; 'terraform-iac'='Terraform IaC Validation'; 'sentinel-incidents'='Microsoft Sentinel'; 'sentinel-coverage'='Sentinel Coverage' }
     $sourceColors = @{ 'azqr'='#1565c0'; 'psrule'='#6a1b9a'; 'azgovviz'='#00838f'; 'alz-queries'='#e65100'; 'wara'='#2e7d32'; 'defender-for-cloud'='#0078d4'; 'kubescape'='#7b1fa2'; 'kube-bench'='#5e35b1'; 'falco'='#ef6c00'; 'maester'='#7b1fa2'; 'scorecard'='#ff6f00'; 'ado-connections'='#0277bd'; 'ado-pipelines'='#006064'; 'identity-correlator'='#ad1457'; 'zizmor'='#4527a0'; 'gitleaks'='#c62828'; 'trivy'='#00695c'; 'azure-cost'='#388e3c'; 'finops'='#00897b'; 'bicep-iac'='#0d47a1'; 'terraform-iac'='#5c4ee5'; 'sentinel-incidents'='#0078d4'; 'sentinel-coverage'='#3949ab' }
+    foreach ($src in $allSources) { $sourceFrameworks[$src] = @() }
 }
 $sourceGroups = @($findings | Group-Object -Property Source)
 $sourceCountMap = @{}
@@ -375,6 +419,8 @@ $findingsTreeHtml = foreach ($tool in $toolGroups) {
                 $sevClass = SeverityClass $f.Severity
                 $compliantBool = if ($f.Compliant) { 'true' } else { 'false' }
                 $resourceGroup = HE (Get-FindingResourceGroup $f)
+                $frameworkList = @((Get-FindingFrameworkNames $f) | ForEach-Object { [string]$_ })
+                $frameworkAttr = HE (($frameworkList -join '|').ToLowerInvariant())
                 $resourceId = HE ([string]$f.ResourceId)
                 $detail = HE ([string]$f.Detail)
                 $remediationHtml = Linkify ([string]$f.Remediation)
@@ -392,7 +438,7 @@ $findingsTreeHtml = foreach ($tool in $toolGroups) {
                     }
                 }
                 @"
-<article class="tree-finding" data-tree-finding="true" data-tree-path="$(HE "$rulePath|finding::$([string]$f.Id)")" data-severity="$(HE ([string]$f.Severity))" data-compliant="$compliantBool" data-source="$(HE ([string]$f.Source))" data-platform="$(HE ([string]$f.Platform))" data-status="$(HE $rowStatus)" data-resourcegroup="$resourceGroup">
+<article class="tree-finding" data-tree-finding="true" data-tree-path="$(HE "$rulePath|finding::$([string]$f.Id)")" data-severity="$(HE ([string]$f.Severity))" data-compliant="$compliantBool" data-source="$(HE ([string]$f.Source))" data-platform="$(HE ([string]$f.Platform))" data-status="$(HE $rowStatus)" data-resourcegroup="$resourceGroup" data-frameworks="$frameworkAttr">
   <header class="tree-finding-header">
     <span class="badge $sevClass">$(HE ([string]$f.Severity))</span>
     <strong class="tree-finding-title">$(HE ([string]$f.Title))</strong>$statusBadge$controlBadgesHtml
@@ -760,6 +806,139 @@ if ($rgSeverityMap.Count -gt 0) {
 "@
 }
 
+# --- Framework coverage matrix (Framework x Tool) ---
+$frameworkCoverageMatrixHtml = ''
+$frameworkCatalog = [System.Collections.Generic.List[string]]::new()
+foreach ($fw in $frameworkPriority) {
+    if ($frameworkCatalog -notcontains $fw) { $frameworkCatalog.Add($fw) }
+}
+foreach ($src in $allSources) {
+    $mapped = if ($sourceFrameworks.ContainsKey($src)) { @($sourceFrameworks[$src]) } else { @() }
+    foreach ($fw in $mapped) {
+        if ($frameworkCatalog -notcontains $fw) { $frameworkCatalog.Add($fw) }
+    }
+}
+
+$frameworkCellMap = @{}
+$frameworkTotals = @{}
+$toolTotalsByFramework = @{}
+$severityWeight = @{ Critical = 5; High = 4; Medium = 3; Low = 2; Info = 1 }
+
+foreach ($fw in $frameworkCatalog) {
+    $frameworkTotals[$fw] = 0
+}
+foreach ($src in $allSources) {
+    $toolTotalsByFramework[$src] = 0
+}
+
+foreach ($f in $findings) {
+    $src = [string]$f.Source
+    if ($allSources -notcontains $src) { continue }
+    $fws = @(Get-FindingFrameworkNames $f)
+    if ($fws.Count -eq 0) { continue }
+    foreach ($fw in $fws) {
+        if ($frameworkCatalog -notcontains $fw) { continue }
+        $key = "$src||$fw"
+        if (-not $frameworkCellMap.ContainsKey($key)) {
+            $frameworkCellMap[$key] = @{
+                Count = 0
+                Weighted = 0
+                Severity = (New-SeverityCountMap)
+            }
+        }
+        $frameworkCellMap[$key].Count++
+        Add-SeverityToCountMap -Map $frameworkCellMap[$key].Severity -Severity ([string]$f.Severity)
+        $normalizedSeverity = [string]$f.Severity
+        $weight = if ($severityWeight.ContainsKey($normalizedSeverity)) { [int]$severityWeight[$normalizedSeverity] } else { 1 }
+        $frameworkCellMap[$key].Weighted += $weight
+        $frameworkTotals[$fw]++
+        $toolTotalsByFramework[$src]++
+    }
+}
+
+$matrixMaxWeighted = 0
+foreach ($k in $frameworkCellMap.Keys) {
+    if ([int]$frameworkCellMap[$k].Weighted -gt $matrixMaxWeighted) {
+        $matrixMaxWeighted = [int]$frameworkCellMap[$k].Weighted
+    }
+}
+if ($matrixMaxWeighted -lt 1) { $matrixMaxWeighted = 1 }
+
+if ($frameworkCatalog.Count -gt 0 -and $allSources.Count -gt 0) {
+    $headerCells = @("<th class='fxm-stub'>Framework</th>")
+    foreach ($src in $allSources) {
+        $headerCells += "<th title='$(HE $sourceLabels[$src])'>$(HE $sourceLabels[$src])</th>"
+    }
+    $headerCells += "<th class='fxm-summary-head'>Total</th>"
+
+    $bodyRows = foreach ($fw in $frameworkCatalog) {
+        $cells = @("<th class='fxm-framework' scope='row'>$(HE $fw)</th>")
+        foreach ($src in $allSources) {
+            $mapped = $sourceFrameworks.ContainsKey($src) -and (@($sourceFrameworks[$src]) -contains $fw)
+            $key = "$src||$fw"
+            $cell = if ($frameworkCellMap.ContainsKey($key)) { $frameworkCellMap[$key] } else { $null }
+            $count = if ($cell) { [int]$cell.Count } else { 0 }
+            $sevCounts = if ($cell) { $cell.Severity } else { New-SeverityCountMap }
+            $weighted = if ($cell) { [int]$cell.Weighted } else { 0 }
+            $intensity = if ($weighted -le 0) { 0 } else { [math]::Round([double]$weighted / [double]$matrixMaxWeighted, 3) }
+            $alpha = if ($intensity -le 0) { 0 } else { [math]::Round(0.22 + (0.68 * $intensity), 3) }
+            $bg = if ($weighted -le 0) { '#ffffff' } else { "rgba(21, 101, 192, $alpha)" }
+            $txtColor = if ($intensity -gt 0.55) { '#ffffff' } else { '#1f2937' }
+            $srcAttr = HE $src
+            $fwAttr = HE $fw
+            $countLabel = if ($count -eq 1) { '1 finding' } else { "$count findings" }
+            if (-not $mapped) {
+                $cells += "<td class='fxm-cell fxm-unmapped' title='Unmapped for $(HE $sourceLabels[$src])'>-</td>"
+            } else {
+                $sevHint = "Critical $([int]$sevCounts['Critical']) | High $([int]$sevCounts['High']) | Medium $([int]$sevCounts['Medium']) | Low $([int]$sevCounts['Low']) | Info $([int]$sevCounts['Info'])"
+                if ($count -eq 0) {
+                    $cells += "<td class='fxm-cell fxm-mapped-zero'><button type='button' class='fxm-button fxm-button-zero' data-source='$srcAttr' data-framework='$fwAttr' title='Mapped with no findings. Click to filter.' onclick=`"filterByFrameworkMatrix('$srcAttr','$fwAttr')`">&#x2713;<span class='fxm-cell-count'>0</span></button></td>"
+                } else {
+                    $cells += @"
+<td class='fxm-cell fxm-mapped-hit'>
+  <button type='button' class='fxm-button fxm-button-hit' data-source='$srcAttr' data-framework='$fwAttr' style='background:$bg;color:$txtColor' title='$(HE $countLabel). $sevHint. Click to filter.' onclick="filterByFrameworkMatrix('$srcAttr','$fwAttr')">
+    <span class='fxm-cell-count'>$count</span>
+    <span class='fxm-sev-mini'>
+      <span class='fxm-sev-dot fxm-sev-critical' title='Critical $([int]$sevCounts['Critical'])'>$([int]$sevCounts['Critical'])</span>
+      <span class='fxm-sev-dot fxm-sev-high' title='High $([int]$sevCounts['High'])'>$([int]$sevCounts['High'])</span>
+      <span class='fxm-sev-dot fxm-sev-medium' title='Medium $([int]$sevCounts['Medium'])'>$([int]$sevCounts['Medium'])</span>
+      <span class='fxm-sev-dot fxm-sev-low' title='Low $([int]$sevCounts['Low'])'>$([int]$sevCounts['Low'])</span>
+      <span class='fxm-sev-dot fxm-sev-info' title='Info $([int]$sevCounts['Info'])'>$([int]$sevCounts['Info'])</span>
+    </span>
+  </button>
+</td>
+"@
+                }
+            }
+        }
+        $cells += "<td class='fxm-summary-cell'>$([int]$frameworkTotals[$fw])</td>"
+        "<tr data-framework='$(HE $fw)'>$($cells -join '')</tr>"
+    }
+
+    $summaryCells = @("<th class='fxm-summary-head' scope='row'>Total</th>")
+    foreach ($src in $allSources) {
+        $summaryCells += "<td class='fxm-summary-cell'>$([int]$toolTotalsByFramework[$src])</td>"
+    }
+    $overallTotal = [int](@($frameworkTotals.Values | Measure-Object -Sum).Sum)
+    $summaryCells += "<td class='fxm-summary-cell fxm-summary-total'>$overallTotal</td>"
+
+    $frameworkCoverageMatrixHtml = @"
+<section class="framework-matrix-section" aria-labelledby="framework-matrix-title">
+  <h2 id="framework-matrix-title">Framework Coverage</h2>
+  <p class="hm-hint">Click a mapped cell to filter findings by tool and framework intersection.</p>
+  <div class="framework-matrix-wrap">
+    <table id="framework-coverage-matrix" class="framework-matrix-table">
+      <thead><tr>$($headerCells -join '')</tr></thead>
+      <tbody>
+        $($bodyRows -join "`n")
+      </tbody>
+      <tfoot><tr>$($summaryCells -join '')</tr></tfoot>
+    </table>
+  </div>
+</section>
+"@
+}
+
 # --- Priority stack: top Critical/High non-compliant findings ---
 $priorityFindings = @($findings | Where-Object { -not $_.Compliant -and ($_.Severity -eq 'Critical' -or $_.Severity -eq 'High') } |
     Sort-Object @{Expression = { if ($_.Severity -eq 'Critical') { 0 } else { 1 } }}, Title)
@@ -789,6 +968,9 @@ $moreText
 $gfSourceOptions = ($sourcesWithResults | Sort-Object | ForEach-Object {
     $lbl = if ($sourceLabels.ContainsKey($_)) { $sourceLabels[$_] } else { $_ }
     "<option value=`"$(HE $_)`">$(HE $lbl)</option>"
+}) -join "`n"
+$gfFrameworkOptions = ($frameworkCatalog | Sort-Object | ForEach-Object {
+    "<option value=`"$(HE $_)`">$(HE $_)</option>"
 }) -join "`n"
 
 # --- Summary tab (issue #210): embed exec dashboard content as the first tab ---
@@ -1192,6 +1374,29 @@ $html = @"
     .hm-data { cursor: default; }
     .hm-data:hover { transform: none; box-shadow: none; }
   }
+  .framework-matrix-section { background: #fff; border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .framework-matrix-wrap { overflow-x: auto; }
+  .framework-matrix-table { width: 100%; border-collapse: separate; border-spacing: 4px; min-width: 980px; }
+  .framework-matrix-table th, .framework-matrix-table td { padding: 6px; text-align: center; font-size: 12px; }
+  .framework-matrix-table thead th { background: #f8fafc; color: #334155; font-weight: 700; position: sticky; top: 0; z-index: 2; }
+  .framework-matrix-table .fxm-stub { text-align: left; min-width: 160px; }
+  .framework-matrix-table .fxm-framework { text-align: left; background: #f8fafc; color: #0f172a; font-weight: 600; position: sticky; left: 0; z-index: 1; }
+  .framework-matrix-table .fxm-cell { border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
+  .framework-matrix-table .fxm-unmapped { color: #94a3b8; background: #f8fafc; }
+  .framework-matrix-table .fxm-mapped-zero { background: #ecfdf5; color: #166534; border-color: #a7f3d0; }
+  .framework-matrix-table .fxm-summary-cell, .framework-matrix-table .fxm-summary-head { background: #f8fafc; font-weight: 700; color: #1e293b; }
+  .framework-matrix-table .fxm-summary-total { background: #e2e8f0; }
+  .fxm-button { width: 100%; border: 0; border-radius: 5px; cursor: pointer; font-weight: 700; padding: 4px 3px; }
+  .fxm-button:hover { transform: translateY(-1px); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .fxm-button-zero { background: transparent; color: #166534; }
+  .fxm-cell-count { display: block; font-size: 13px; line-height: 1.1; }
+  .fxm-sev-mini { margin-top: 3px; display: inline-flex; gap: 2px; }
+  .fxm-sev-dot { min-width: 16px; border-radius: 999px; font-size: 9px; line-height: 1; padding: 2px 3px; font-weight: 700; border: 1px solid transparent; }
+  .fxm-sev-critical { background: rgba(127,29,29,0.18); color: #7f1d1d; border-color: rgba(127,29,29,0.35); }
+  .fxm-sev-high { background: rgba(220,38,38,0.18); color: #991b1b; border-color: rgba(220,38,38,0.35); }
+  .fxm-sev-medium { background: rgba(245,158,11,0.22); color: #92400e; border-color: rgba(245,158,11,0.35); }
+  .fxm-sev-low { background: rgba(59,130,246,0.2); color: #1d4ed8; border-color: rgba(59,130,246,0.35); }
+  .fxm-sev-info { background: rgba(100,116,139,0.2); color: #334155; border-color: rgba(100,116,139,0.35); }
   /* Resources tab (issue #209) */
   .resources-section { margin-bottom: 1.5rem; }
   .resource-row { cursor: pointer; }
@@ -1256,6 +1461,7 @@ $sparklineHtml
 $portfolioSectionHtml
 
 $heatmapHtml
+$frameworkCoverageMatrixHtml
 
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
@@ -1287,6 +1493,10 @@ $complianceHtml
   <select id="gf-source" onchange="applyGlobalFilter()" aria-label="Filter by tool">
     <option value="">All Tools</option>
 $gfSourceOptions
+  </select>
+  <select id="gf-framework" onchange="applyGlobalFilter()" aria-label="Filter by framework">
+    <option value="">All Frameworks</option>
+$gfFrameworkOptions
   </select>
   <select id="gf-platform" onchange="applyGlobalFilter()" aria-label="Filter by platform">
     <option value="">All Platforms</option>
@@ -1332,6 +1542,7 @@ var activeSevFilter = null;
 // --- Global filter state ---
 var _gfActiveSev = new Set();
 var _gfSource = '';
+var _gfFramework = '';
 var _gfPlatform = '';
 var _gfStatus = '';
 var _gfText = '';
@@ -1372,7 +1583,7 @@ function filterBySeverityStrip(btn, severity) {
 }
 
 function treeHasActiveFilter() {
-  return _gfActiveSev.size > 0 || !!_gfSource || !!_gfPlatform || !!_gfStatus || !!_gfText || !!_gfRg;
+  return _gfActiveSev.size > 0 || !!_gfSource || !!_gfFramework || !!_gfPlatform || !!_gfStatus || !!_gfText || !!_gfRg;
 }
 
 function syncFindingsTreeVisibility() {
@@ -1391,6 +1602,7 @@ function syncFindingsTreeVisibility() {
 
 function applyGlobalFilter() {
   _gfSource   = document.getElementById('gf-source') ? document.getElementById('gf-source').value : '';
+  _gfFramework = document.getElementById('gf-framework') ? document.getElementById('gf-framework').value : '';
   _gfPlatform = document.getElementById('gf-platform') ? document.getElementById('gf-platform').value : '';
   _gfStatus   = document.getElementById('gf-status') ? document.getElementById('gf-status').value : '';
   _gfText     = (document.getElementById('gf-text') ? document.getElementById('gf-text').value : '').toLowerCase();
@@ -1402,16 +1614,18 @@ function applyGlobalFilter() {
     var platform = row.dataset.platform || '';
     var status   = row.dataset.compliant || '';
     var rg       = row.dataset.resourcegroup || '';
+    var frameworks = (row.dataset.frameworks || '').toLowerCase();
     var text     = row.textContent.toLowerCase();
 
     var sevOk  = _gfActiveSev.size === 0 || _gfActiveSev.has(sev);
     var srcOk  = !_gfSource   || source   === _gfSource;
+    var fwOk   = !_gfFramework || frameworks.split('|').includes(_gfFramework.toLowerCase());
     var platOk = !_gfPlatform || platform === _gfPlatform;
     var stOk   = !_gfStatus   || status   === _gfStatus;
     var rgOk   = !_gfRg       || rg       === _gfRg;
     var txtOk  = !_gfText     || text.includes(_gfText);
 
-    var show = sevOk && srcOk && platOk && stOk && rgOk && txtOk;
+    var show = sevOk && srcOk && fwOk && platOk && stOk && rgOk && txtOk;
     row.classList.toggle('tree-hidden', !show);
     if (show) visible++;
   });
@@ -1457,13 +1671,13 @@ function toggleSevFilter(btn, sev) {
 
 function resetGlobalFilter() {
   _gfActiveSev.clear();
-  _gfSource = _gfPlatform = _gfStatus = _gfText = _gfRg = '';
+  _gfSource = _gfFramework = _gfPlatform = _gfStatus = _gfText = _gfRg = '';
   document.querySelectorAll('.gf-chip').forEach(function(c) {
     c.dataset.active = 'false';
     if (c.dataset.sev === 'all') c.classList.add('gf-active');
     else c.classList.remove('gf-active');
   });
-  ['gf-source','gf-platform','gf-status','gf-text'].forEach(function(id) {
+  ['gf-source','gf-framework','gf-platform','gf-status','gf-text'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
   applyGlobalFilter();
@@ -1487,6 +1701,25 @@ function filterByHeatmap(rg, sev) {
   // Scroll to findings tables.
   var target = document.querySelector('details[id^="cat-"]') || document.getElementById('global-filter-bar');
   if (target && target.scrollIntoView) { target.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+}
+
+function filterByFrameworkMatrix(source, framework) {
+  if (!source || !framework) { return; }
+  var normalizedFramework = framework.toLowerCase();
+  var sameIntersection = (_gfSource === source && _gfFramework.toLowerCase() === normalizedFramework);
+  if (sameIntersection) {
+    resetGlobalFilter();
+    return;
+  }
+  _gfSource = source;
+  _gfFramework = framework;
+  var sourceEl = document.getElementById('gf-source');
+  if (sourceEl) { sourceEl.value = source; }
+  var frameworkEl = document.getElementById('gf-framework');
+  if (frameworkEl) { frameworkEl.value = framework; }
+  applyGlobalFilter();
+  var target = document.getElementById('global-filter-bar');
+  if (target && target.scrollIntoView) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 
 function treeStorageKey(path) {

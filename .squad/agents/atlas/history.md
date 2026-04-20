@@ -1,7 +1,7 @@
 # Project Context
 
 - **Owner:** martinopedal
-- **Project:** azure-analyzer — Automated Azure assessment bundling azqr, PSRule, AzGovViz, and ALZ Resource Graph queries
+- **Project:** azure-analyzer - Automated Azure assessment bundling azqr, PSRule, AzGovViz, and ALZ Resource Graph queries
 - **Stack:** Python (orchestrator), KQL/ARG queries (JSON), PowerShell, GitHub Actions
 - **Created:** 2026-04-15
 
@@ -31,7 +31,7 @@ Landed PR-1 of the 5-PR consumer-first documentation restructure: 9 doc moves un
 
 ## Learnings
 
-- **Em-dash gate** is real and zero-tolerance. `rg -- "—"` over every changed `.md` before commit. Stub template uses hyphens only.
+- **Em-dash gate** is real and zero-tolerance. `rg -- "-"` over every changed `.md` before commit. Stub template uses hyphens only.
 - **`docs-check.yml` detection model** is an inline `actions/github-script` JS snippet at `.github/workflows/docs-check.yml` lines ~38-74. Two structures matter: `ignoredPatterns` (regex array; what is NOT code) and `isDoc` predicate (originally a flat string array). Patching for the new tree means converting `isDoc` to `rootDocs.includes(f) || docPathPatterns.some(p => p.test(f))` so `docs/consumer/**` and `docs/contributor/**` count as docs. Failure message also referenced the old set; updated to mention the split tree.
 - **Link sweep gotcha**: `git mv` followed by writing a stub at the old path defeats git's automatic rename detection in `git status` (shows as "M old + A new" instead of "R old -> new"). History is still preserved because `git log --follow` runs rename detection at log time and the stub (~200 chars) is below similarity threshold vs the moved doc. Acceptable trade-off for stubs; for pure moves, commit the rename first and add stubs in a follow-up commit.
 - **Authority limits trump the "patch every hit" sweep instruction.** README/PERMISSIONS/CHANGELOG had hits to moved paths but were explicitly off-limits in this PR; stubs at old paths cover those references for now and PR-2/3 will rewrite README. Reading the authority block carefully prevents scope creep.
@@ -96,3 +96,8 @@ First merge attempt failed with "2 of 2 required status checks are expected" eve
 - The Comment Triage Loop / 3-model gate did not run because PR was non-squad-author; rubberduck-gate was skipped intentionally.
 - One `Get-Date -Format "yyyy-MM-ddTHH-mm-ssZ"` in PowerShell gives a perfect ISO-Z slug for decisions inbox files.
 - Always rebase before merge if --admin is being used; `mergeStateStatus` in PR JSON is the canonical signal.
+
+
+## 2026-04-20 - Issue #230 framework matrix
+
+Implemented framework x tool coverage matrix in New-HtmlReport with click-to-filter, manifest frameworks[] source-of-truth, regenerated tool catalogs + permissions index, and added report tests (full suite 1294 pass / 5 skipped).
