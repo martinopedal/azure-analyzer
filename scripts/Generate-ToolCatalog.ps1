@@ -98,6 +98,7 @@ $consumerBlurb = @{
     'falco'                    = 'AKS runtime anomaly detection (syscall-level threat detection).'
     'azure-cost'               = 'Per-subscription monthly Azure spend pulled from the Consumption API.'
     'finops'                   = 'FinOps signals: idle / orphaned resources that drive avoidable spend.'
+    'loadtesting'              = 'Azure Load Testing reliability signals: failed runs, cancelled runs, and metric regressions.'
     'psrule'                   = 'Microsoft PSRule for Azure: Well-Architected and best-practice rule baseline.'
     'azgovviz'                 = 'Azure Governance Visualizer: management-group / subscription / RBAC / policy posture.'
     'alz-queries'              = 'ALZ Resource Graph queries: landing-zone compliance and drift detection.'

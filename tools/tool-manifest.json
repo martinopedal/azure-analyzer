@@ -191,6 +191,34 @@
       }
     },
     {
+      "name": "loadtesting",
+      "displayName": "Azure Load Testing (Failed and Regressed Runs)",
+      "source": "loadtesting",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AzureLoadTesting",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AzureLoadTesting.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": [
+        "ResourceGroup",
+        "LoadTestResourceName",
+        "DaysBack",
+        "RegressionThresholdPercent",
+        "IncludeHealthyRuns",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "label": "Load Testing", "color": "#00695c", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts", "Az.LoadTesting"]
+      }
+    },
+    {
       "name": "psrule",
       "displayName": "PSRule for Azure",
       "source": "psrule",

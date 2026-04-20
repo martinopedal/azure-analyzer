@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 27. **Disabled / opt-in:** 1.
+**Total enabled:** 28. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -32,6 +32,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `infracost` | Infracost IaC Cost Estimation | repository | cli | Pre-deploy cost estimate for Terraform and Bicep resources. | - |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | subscription | azure | CIS Kubernetes benchmark for AKS node hardening. | - |
 | `kubescape` | Kubescape (AKS runtime posture) | subscription | azure | Runtime posture for AKS clusters: misconfigurations, RBAC, network policies, vulnerabilities. | - |
+| `loadtesting` | Azure Load Testing (Failed and Regressed Runs) | subscription | azure | Azure Load Testing reliability signals: failed runs, cancelled runs, and metric regressions. | - |
 | `maester` | Maester | tenant | microsoft365 | Microsoft Entra (Identity) security baseline: conditional access, MFA, privileged roles. | [docs](./ai-triage.md) |
 | `psrule` | PSRule for Azure | subscription | azure | Microsoft PSRule for Azure: Well-Architected and best-practice rule baseline. | - |
 | `scorecard` | OpenSSF Scorecard | repository | github | OpenSSF Scorecard for repository supply-chain hygiene. | - |
