@@ -29,6 +29,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Added
 
 - ci: add markdown link-check workflow (advisory, weekly + PR path filter) (closes #251)
+- feat(reports): per-category severity totals strip in Findings with click-to-filter and sticky visibility; includes Critical, High, Medium, Low, Info, and Total (closes #226)
 
 ### Consumer-first documentation restructure
 
