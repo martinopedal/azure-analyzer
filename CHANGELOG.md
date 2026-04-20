@@ -12,6 +12,12 @@ All notable changes to azure-analyzer will be documented here.
 - feat(reports): top recommendations by impact panel using v2.1 RuleId (closes #227)
 - feat: GitHub Actions billing wrapper (org budget, top repo consumers, run anomaly) (closes #232)
 - feat: ADO pipeline consumption wrapper (parallel-job ratio, duration regression, failed pipeline rate) (closes #232)
+- feat: AKS Karpenter cost wrapper (consolidation + node utilization, opt-in elevated RBAC for Provisioner inspection) (closes #234)
+  - Added `modules/Invoke-AksKarpenterCost.ps1` and `modules/normalizers/Normalize-AksKarpenterCost.ps1`. Reader-tier findings (`aks.node-cost-rollup`, `aks.idle-node`) work with Reader + Log Analytics Reader; opt-in elevated tier (`-EnableElevatedRbac`) adds Karpenter Provisioner findings (`karpenter.consolidation-disabled`, `karpenter.over-provisioned`, `karpenter.no-node-limit`) and requires `Azure Kubernetes Service Cluster User Role`.
+  - Added `modules/shared/RbacTier.ps1` with `Get-RbacTier` / `Set-RbacTier` / `Reset-RbacTier` / `Assert-RbacTier` / `Test-RbacTierSatisfies`. Per-wrapper scoping; default tier is `Reader`.
+  - Wired the elevated-RBAC docs scaffolding from #281 to point at the now-real per-wrapper opt-in mechanism (`PERMISSIONS.md` table updated with the `-EnableElevatedRbac` flag).
+  - Added permission documentation `docs/consumer/permissions/aks-karpenter-cost.md` (RBAC tier table, per-wrapper scoping rationale, sample commands).
+  - Added tests `tests/wrappers/Invoke-AksKarpenterCost.Tests.ps1`, `tests/normalizers/Normalize-AksKarpenterCost.Tests.ps1`, `tests/shared/RbacTier.Tests.ps1` and fixtures `tests/fixtures/aks-karpenter-cost/*`.
 
 ### Changed
 

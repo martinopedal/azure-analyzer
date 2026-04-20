@@ -12,5 +12,6 @@ All advanced consumer docs live here. The root `README.md` is your starting poin
 - [permissions/appinsights.md](permissions/appinsights.md) - Application Insights performance KQL signals (slow requests, dependency failures, exception clusters).
 - [permissions/loadtesting.md](permissions/loadtesting.md) - Azure Load Testing failed-run and regression permissions and usage.
 - [permissions/aks-rightsizing.md](permissions/aks-rightsizing.md) - AKS Container Insights rightsizing permissions and usage.
+- [permissions/aks-karpenter-cost.md](permissions/aks-karpenter-cost.md) - AKS Karpenter cost (consolidation + node utilization) permissions, opt-in elevated RBAC tier (`-EnableElevatedRbac`), and usage.
 - [sinks/log-analytics.md](sinks/log-analytics.md) - Streaming azure-analyzer findings into Azure Log Analytics.
 - Cost and performance tools include Azure Cost, FinOps Signals, GitHub Actions Billing, and ADO Pipeline Consumption. Tool coverage is listed in [tool-catalog.md](tool-catalog.md); permission details are in [permissions/](permissions/README.md).

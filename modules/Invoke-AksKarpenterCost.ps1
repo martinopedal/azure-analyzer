@@ -1,0 +1,562 @@
+#Requires -Version 7.4
+<#
+.SYNOPSIS
+    AKS Karpenter cost wrapper. Cluster-level node cost rollup + idle node
+    detection (Reader-only) plus opt-in Karpenter Provisioner inspection
+    (Azure Kubernetes Service Cluster User Role on the cluster).
+
+.DESCRIPTION
+    Two finding tiers are emitted:
+
+      * Reader-only (always enabled):
+          - aks.node-cost-rollup    Info    KubeNodeInventory node-hours x 7d
+          - aks.idle-node           Medium  avg node CPU < 10% over LookbackDays
+
+      * Elevated (Azure Kubernetes Service Cluster User Role; gated by
+        -EnableElevatedRbac, OFF by default):
+          - karpenter.consolidation-disabled  Medium  spec.consolidation.enabled=false
+          - karpenter.over-provisioned        Medium  avg node util <50% over LookbackDays
+          - karpenter.no-node-limit           High    spec.limits is missing
+
+    Karpenter findings require a kubeconfig to query the
+    `provisioners.karpenter.sh` CRD via kubectl. When -EnableElevatedRbac is
+    NOT set the wrapper SKIPS the kubectl branch entirely; no kubeconfig
+    fetch and no kubectl process is launched.
+
+    Reuses shared modules:
+      * AksDiscovery  (cluster discovery via Az.ResourceGraph)
+      * KqlQuery      (Container Insights queries)
+      * KubeAuth      (KubeAuthMode handling, identical to Invoke-Kubescape et al.)
+      * Retry, Sanitize, Installer (Invoke-WithTimeout)
+      * RbacTier      (the per-wrapper opt-in mechanism shipped in this PR)
+#>
+[CmdletBinding()]
+param (
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string] $SubscriptionId,
+
+    [string] $ResourceGroup,
+    [string] $ClusterName,
+    [string] $LogAnalyticsWorkspaceId,
+
+    [ValidateRange(1, 30)]
+    [int] $LookbackDays = 7,
+
+    [string] $KubeconfigPath,
+    [string] $KubeContext,
+    [string] $Namespace = '',
+
+    [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+    [string] $KubeAuthMode = 'Default',
+    [string] $KubeloginServerId,
+    [string] $KubeloginClientId,
+    [string] $KubeloginTenantId,
+    [string] $WorkloadIdentityClientId,
+    [string] $WorkloadIdentityTenantId,
+    [string] $WorkloadIdentityServiceAccountToken,
+
+    [switch] $EnableElevatedRbac,
+
+    [string] $OutputPath
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+# ---------------------------------------------------------------------------
+# Shared module dot-source with no-op shims for unit-test isolation. Mirrors
+# the pattern used by Invoke-AksRightsizing.
+# ---------------------------------------------------------------------------
+$retryPath = Join-Path $PSScriptRoot 'shared' 'Retry.ps1'
+if (Test-Path $retryPath) { . $retryPath }
+if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
+    function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
+}
+
+$sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+
+$installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) -and (Test-Path $installerPath)) { . $installerPath }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output.Trim() }
+    }
+}
+
+$aksDiscoveryPath = Join-Path $PSScriptRoot 'shared' 'AksDiscovery.ps1'
+if (-not (Get-Command Get-AksClustersInScope -ErrorAction SilentlyContinue) -and (Test-Path $aksDiscoveryPath)) { . $aksDiscoveryPath }
+
+$kqlPath = Join-Path $PSScriptRoot 'shared' 'KqlQuery.ps1'
+if (-not (Get-Command Invoke-LogAnalyticsQuery -ErrorAction SilentlyContinue) -and (Test-Path $kqlPath)) { . $kqlPath }
+
+$kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
+if (-not (Get-Command Initialize-KubeAuth -ErrorAction SilentlyContinue) -and (Test-Path $kubeAuthPath)) { . $kubeAuthPath }
+
+$rbacTierPath = Join-Path $PSScriptRoot 'shared' 'RbacTier.ps1'
+if (-not (Get-Command Get-RbacTier -ErrorAction SilentlyContinue) -and (Test-Path $rbacTierPath)) { . $rbacTierPath }
+
+# ---------------------------------------------------------------------------
+# Result envelope (v1)
+# ---------------------------------------------------------------------------
+$result = [ordered]@{
+    SchemaVersion = '1.0'
+    Source        = 'aks-karpenter-cost'
+    Status        = 'Success'
+    Message       = ''
+    Findings      = @()
+    Subscription  = $SubscriptionId
+    Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
+    RbacTier      = 'Reader'
+}
+
+# ---------------------------------------------------------------------------
+# Opt-in elevated RBAC tier
+# ---------------------------------------------------------------------------
+if ($EnableElevatedRbac.IsPresent) {
+    if (Get-Command Set-RbacTier -ErrorAction SilentlyContinue) {
+        Set-RbacTier -Tier 'ClusterUser'
+    }
+    $result.RbacTier = 'ClusterUser'
+}
+
+# ---------------------------------------------------------------------------
+# Module preflight
+# ---------------------------------------------------------------------------
+if (-not (Get-Module -ListAvailable -Name Az.Accounts)) {
+    if (Get-Command Reset-RbacTier -ErrorAction SilentlyContinue) { Reset-RbacTier }
+    $result.Status  = 'Skipped'
+    $result.Message = 'Az.Accounts module not installed. Run: Install-Module Az.Accounts -Scope CurrentUser'
+    return [PSCustomObject]$result
+}
+
+if (-not (Get-Module -ListAvailable -Name Az.OperationalInsights)) {
+    if (Get-Command Reset-RbacTier -ErrorAction SilentlyContinue) { Reset-RbacTier }
+    $result.Status  = 'Skipped'
+    $result.Message = 'Az.OperationalInsights module not installed. Run: Install-Module Az.OperationalInsights -Scope CurrentUser'
+    return [PSCustomObject]$result
+}
+
+try {
+    Import-Module Az.Accounts -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    $null = Get-AzContext -ErrorAction Stop
+} catch {
+    Write-Verbose 'Az context probe failed; downstream calls will surface concrete auth errors.'
+}
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+function Resolve-WorkspaceIdFromCluster {
+    [CmdletBinding()]
+    param ([Parameter(Mandatory)][pscustomobject] $Cluster)
+
+    if ($Cluster.PSObject.Properties['workspaceResourceId'] -and $Cluster.workspaceResourceId) {
+        return [string]$Cluster.workspaceResourceId
+    }
+    $clusterId = [string]$Cluster.id
+    if ([string]::IsNullOrWhiteSpace($clusterId)) { return '' }
+
+    $diagUri = "https://management.azure.com$clusterId/providers/Microsoft.Insights/diagnosticSettings?api-version=2021-05-01-preview"
+    try {
+        $resp = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 20 -ScriptBlock {
+            Invoke-AzRestMethod -Method GET -Uri $diagUri -ErrorAction Stop
+        }
+        if (-not $resp -or $resp.StatusCode -ge 400 -or -not $resp.Content) { return '' }
+        $payload = $resp.Content | ConvertFrom-Json -Depth 20
+        $entries = if ($payload.PSObject.Properties['value']) { @($payload.value) } else { @() }
+        foreach ($entry in $entries) {
+            if ($entry.PSObject.Properties['properties'] -and $entry.properties.workspaceId) {
+                return [string]$entry.properties.workspaceId
+            }
+        }
+    } catch {
+        Write-Verbose ("Diagnostic settings lookup failed for {0}: {1}" -f $Cluster.name, (Remove-Credentials -Text ([string]$_.Exception.Message)))
+    }
+    return ''
+}
+
+function Get-ClusterInsightsUrl {
+    param([string]$ClusterId)
+    if (-not $ClusterId) { return '' }
+    return "https://portal.azure.com/#@/resource$ClusterId/insights"
+}
+
+function Get-KarpenterDocsUrl {
+    param([string]$RuleId)
+    switch ($RuleId) {
+        'karpenter.consolidation-disabled' { 'https://karpenter.sh/docs/concepts/disruption/#consolidation' }
+        'karpenter.over-provisioned'        { 'https://karpenter.sh/docs/concepts/nodepools/' }
+        'karpenter.no-node-limit'           { 'https://karpenter.sh/docs/concepts/nodepools/#speclimits' }
+        default                             { 'https://karpenter.sh/docs/' }
+    }
+}
+
+function New-ProvisionerEntityId {
+    param (
+        [Parameter(Mandatory)][string] $ClusterId,
+        [Parameter(Mandatory)][string] $ProvisionerName
+    )
+    $base = $ClusterId.Trim().TrimEnd('/')
+    $safeName = ($ProvisionerName.Trim() -replace '[^A-Za-z0-9._-]', '-').ToLowerInvariant()
+    return "$base/karpenter/provisioners/$safeName"
+}
+
+function Add-Finding {
+    param (
+        [Parameter(Mandatory)][pscustomobject] $Cluster,
+        [Parameter(Mandatory)][string] $RuleId,
+        [Parameter(Mandatory)][string] $Severity,
+        [Parameter(Mandatory)][string] $Title,
+        [Parameter(Mandatory)][string] $Detail,
+        [Parameter(Mandatory)][string] $Remediation,
+        [Parameter(Mandatory)][bool]   $Compliant,
+        [Parameter(Mandatory)][ValidateSet('AzureResource', 'KarpenterProvisioner')]
+        [string] $EntityType,
+        [string] $ProvisionerName = '',
+        [string] $LearnMoreUrl    = '',
+        [hashtable] $Extra        = @{}
+    )
+
+    $clusterId = [string]$Cluster.id
+    $entityRawId = if ($EntityType -eq 'KarpenterProvisioner' -and $ProvisionerName) {
+        New-ProvisionerEntityId -ClusterId $clusterId -ProvisionerName $ProvisionerName
+    } else {
+        $clusterId
+    }
+
+    if (-not $LearnMoreUrl) {
+        $LearnMoreUrl = if ($EntityType -eq 'KarpenterProvisioner') {
+            Get-KarpenterDocsUrl -RuleId $RuleId
+        } else {
+            Get-ClusterInsightsUrl -ClusterId $clusterId
+        }
+    }
+
+    $findingId = "aks-karpenter-cost/$RuleId/$($Cluster.name)/$([guid]::NewGuid().ToString('N'))"
+    $row = [ordered]@{
+        Id                   = $findingId
+        Source               = 'aks-karpenter-cost'
+        RuleId               = $RuleId
+        Category             = 'Cost'
+        Severity             = $Severity
+        Compliant            = $Compliant
+        Title                = $Title
+        Detail               = $Detail
+        Remediation          = $Remediation
+        ResourceId           = $clusterId
+        EntityRawId          = $entityRawId
+        EntityType           = $EntityType
+        LearnMoreUrl         = $LearnMoreUrl
+        ClusterName          = [string]$Cluster.name
+        ClusterResourceGroup = [string]$Cluster.resourceGroup
+        ProvisionerName      = $ProvisionerName
+        RbacTier             = $result.RbacTier
+    }
+    foreach ($k in $Extra.Keys) {
+        $row[$k] = $Extra[$k]
+    }
+    $script:findings.Add([PSCustomObject]$row) | Out-Null
+}
+
+function Invoke-KarpenterKubectl {
+    <#
+    .SYNOPSIS
+        Run `kubectl get provisioners.karpenter.sh -A -o json` against the
+        supplied kubeconfig and return parsed items. Returns @() on any
+        non-zero exit (the caller logs the workspace error).
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)][string] $KubeconfigPath,
+        [string] $KubeContext,
+        [string] $Namespace = ''
+    )
+
+    $kArgs = @('--kubeconfig', $KubeconfigPath, 'get', 'provisioners.karpenter.sh', '-o', 'json')
+    if ($KubeContext)       { $kArgs += @('--context', $KubeContext) }
+    if ($Namespace)         { $kArgs += @('-n', $Namespace) }
+    else                    { $kArgs += @('-A') }
+
+    $proc = Invoke-WithTimeout -Command 'kubectl' -Arguments $kArgs -TimeoutSec 300
+    if ($proc.ExitCode -ne 0) {
+        throw "kubectl get provisioners.karpenter.sh failed (exit=$($proc.ExitCode)): $(Remove-Credentials -Text ([string]$proc.Output))"
+    }
+    if ([string]::IsNullOrWhiteSpace($proc.Output)) { return @() }
+
+    try {
+        $parsed = $proc.Output | ConvertFrom-Json -Depth 20
+    } catch {
+        throw "kubectl returned non-JSON output: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
+    }
+
+    if ($parsed -and $parsed.PSObject.Properties['items']) { return @($parsed.items) }
+    return @()
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+$findings = [System.Collections.Generic.List[object]]::new()
+$workspaceErrors = [System.Collections.Generic.List[string]]::new()
+
+try {
+    try {
+        $clusters = @(Get-AksClustersInScope -SubscriptionId $SubscriptionId -ResourceGroup $ResourceGroup -ClusterName $ClusterName)
+    } catch {
+        $result.Status  = 'Failed'
+        $result.Message = "AKS discovery failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
+        return [PSCustomObject]$result
+    }
+
+    if (-not $clusters -or $clusters.Count -eq 0) {
+        $result.Status  = 'Skipped'
+        $result.Message = 'No AKS managed clusters in scope.'
+        return [PSCustomObject]$result
+    }
+
+    foreach ($cluster in $clusters) {
+        # ----- Reader-tier KQL findings -----
+        $workspaceId = if ($LogAnalyticsWorkspaceId) { $LogAnalyticsWorkspaceId } else { Resolve-WorkspaceIdFromCluster -Cluster $cluster }
+        if ([string]::IsNullOrWhiteSpace($workspaceId)) {
+            $workspaceErrors.Add("Cluster $($cluster.name): Container Insights workspace not found.") | Out-Null
+        } else {
+            $timeFilter = "ago(${LookbackDays}d)"
+
+            $nodeCostQuery = @"
+let lookback = $timeFilter;
+KubeNodeInventory
+| where TimeGenerated >= lookback
+| where ClusterName =~ '$($cluster.name)'
+| summarize firstSeen = min(TimeGenerated), lastSeen = max(TimeGenerated) by Computer
+| extend nodeHours = round(datetime_diff('hour', lastSeen, firstSeen), 2)
+| summarize nodes = dcount(Computer), totalNodeHours = sum(nodeHours)
+"@
+
+            $idleNodeQuery = @"
+let lookback = $timeFilter;
+Perf
+| where TimeGenerated >= lookback
+| where ObjectName == 'K8SNode'
+| where CounterName == 'cpuUsageNanoCores'
+| summarize avg_cpu = avg(CounterValue), capacityNano = max(CounterValue) by Computer
+| extend pct = iff(capacityNano > 0, (avg_cpu / capacityNano) * 100.0, 0.0)
+| where pct < 10.0
+| project Computer, observedPct = round(pct, 2), avg_cpu
+"@
+
+            try {
+                $costRows = @()
+                $resp = Invoke-WithRetry -MaxAttempts 4 -InitialDelaySeconds 2 -MaxDelaySeconds 20 -ScriptBlock {
+                    Invoke-LogAnalyticsQuery -WorkspaceId $workspaceId -Query $nodeCostQuery -TimeoutSeconds 300
+                }
+                if ($resp -and $resp.PSObject.Properties['Results']) { $costRows = @($resp.Results) }
+                foreach ($row in $costRows) {
+                    $nodes = [int]($row.nodes ?? 0)
+                    $hours = [double]($row.totalNodeHours ?? 0)
+                    if ($nodes -le 0) { continue }
+                    Add-Finding -Cluster $cluster -RuleId 'aks.node-cost-rollup' -Severity 'Info' -Compliant $true `
+                        -EntityType 'AzureResource' `
+                        -Title "AKS node cost rollup for $($cluster.name): $nodes node(s), $([math]::Round($hours,1)) node-hours over ${LookbackDays}d" `
+                        -Detail  "Container Insights observed $nodes distinct node(s) totalling $([math]::Round($hours,1)) node-hour(s) in cluster '$($cluster.name)' over the last ${LookbackDays} day(s). Multiply by your VM SKU rate to obtain a cost estimate." `
+                        -Remediation 'Review node hours in Cost Management; consider Karpenter consolidation or smaller VM SKUs if utilization is low.' `
+                        -Extra @{ NodeCount = $nodes; NodeHours = [math]::Round($hours, 2) }
+                }
+            } catch {
+                $workspaceErrors.Add("Cluster $($cluster.name) node-cost-rollup query failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))") | Out-Null
+            }
+
+            try {
+                $idleRows = @()
+                $resp = Invoke-WithRetry -MaxAttempts 4 -InitialDelaySeconds 2 -MaxDelaySeconds 20 -ScriptBlock {
+                    Invoke-LogAnalyticsQuery -WorkspaceId $workspaceId -Query $idleNodeQuery -TimeoutSeconds 300
+                }
+                if ($resp -and $resp.PSObject.Properties['Results']) { $idleRows = @($resp.Results) }
+                foreach ($row in $idleRows) {
+                    $pct = [double]($row.observedPct ?? 0)
+                    Add-Finding -Cluster $cluster -RuleId 'aks.idle-node' -Severity 'Medium' -Compliant $false `
+                        -EntityType 'AzureResource' `
+                        -Title "Idle node $($row.Computer) in $($cluster.name): avg CPU $([math]::Round($pct,1))% over ${LookbackDays}d" `
+                        -Detail  "Node '$($row.Computer)' averaged $([math]::Round($pct,2))% CPU utilization over the last ${LookbackDays} day(s)." `
+                        -Remediation 'Cordon and drain the node, or enable Karpenter consolidation / cluster autoscaler scale-down to remove idle capacity.' `
+                        -Extra @{ NodeName = [string]$row.Computer; ObservedPercent = [math]::Round($pct, 2) }
+                }
+            } catch {
+                $workspaceErrors.Add("Cluster $($cluster.name) idle-node query failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))") | Out-Null
+            }
+        }
+
+        # ----- Elevated-tier Karpenter findings (gated) -----
+        if (-not $EnableElevatedRbac.IsPresent) { continue }
+
+        if (Get-Command Assert-RbacTier -ErrorAction SilentlyContinue) {
+            try { Assert-RbacTier -Required 'ClusterUser' -Capability 'Karpenter Provisioner inspection' -OptInFlag '-EnableElevatedRbac' }
+            catch {
+                $workspaceErrors.Add("Cluster $($cluster.name) karpenter inspection skipped: $(Remove-Credentials -Text ([string]$_.Exception.Message))") | Out-Null
+                continue
+            }
+        }
+
+        if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+            $workspaceErrors.Add("Cluster $($cluster.name): kubectl not on PATH; install via 'az aks install-cli'.") | Out-Null
+            continue
+        }
+
+        if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
+            $workspaceErrors.Add("Cluster $($cluster.name): -KubeconfigPath required when -EnableElevatedRbac is set.") | Out-Null
+            continue
+        }
+
+        $kubeAuth = $null
+        try {
+            $kubeAuth = Initialize-KubeAuth `
+                -Mode $KubeAuthMode `
+                -KubeconfigPath $KubeconfigPath `
+                -KubeContext $KubeContext `
+                -KubeloginServerId $KubeloginServerId `
+                -KubeloginClientId $KubeloginClientId `
+                -KubeloginTenantId $KubeloginTenantId `
+                -WorkloadIdentityClientId $WorkloadIdentityClientId `
+                -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+                -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+        } catch {
+            $workspaceErrors.Add("Cluster $($cluster.name) kube-auth init failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))") | Out-Null
+            continue
+        }
+
+        try {
+            $items = @()
+            try {
+                $items = @(
+                    Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 20 -ScriptBlock {
+                        Invoke-KarpenterKubectl -KubeconfigPath $kubeAuth.KubeconfigPath -KubeContext $KubeContext -Namespace $Namespace
+                    }
+                )
+            } catch {
+                $workspaceErrors.Add("Cluster $($cluster.name) karpenter list failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))") | Out-Null
+                continue
+            }
+
+            foreach ($prov in $items) {
+                if (-not $prov) { continue }
+                $name = if ($prov.PSObject.Properties['metadata'] -and $prov.metadata.name) { [string]$prov.metadata.name } else { 'unknown' }
+                $spec = if ($prov.PSObject.Properties['spec'])     { $prov.spec }     else { $null }
+
+                # consolidation-disabled
+                $consolidationEnabled = $false
+                if ($spec -and $spec.PSObject.Properties['consolidation'] -and $spec.consolidation.PSObject.Properties['enabled']) {
+                    $consolidationEnabled = [bool]$spec.consolidation.enabled
+                } elseif ($spec -and $spec.PSObject.Properties['disruption'] -and $spec.disruption.PSObject.Properties['consolidationPolicy']) {
+                    $consolidationEnabled = ([string]$spec.disruption.consolidationPolicy -ne 'WhenEmpty')
+                }
+                if (-not $consolidationEnabled) {
+                    Add-Finding -Cluster $cluster -RuleId 'karpenter.consolidation-disabled' -Severity 'Medium' -Compliant $false `
+                        -EntityType 'KarpenterProvisioner' -ProvisionerName $name `
+                        -Title "Karpenter Provisioner '$name' has consolidation disabled" `
+                        -Detail  "Provisioner '$name' in cluster '$($cluster.name)' is not configured for consolidation. Karpenter will not bin-pack workloads onto fewer nodes." `
+                        -Remediation 'Set spec.consolidation.enabled=true (or spec.disruption.consolidationPolicy=WhenUnderutilized) on the Provisioner / NodePool.'
+                }
+
+                # no-node-limit
+                $hasLimits = $false
+                if ($spec -and $spec.PSObject.Properties['limits']) {
+                    $hasLimits = ($null -ne $spec.limits)
+                }
+                if (-not $hasLimits) {
+                    Add-Finding -Cluster $cluster -RuleId 'karpenter.no-node-limit' -Severity 'High' -Compliant $false `
+                        -EntityType 'KarpenterProvisioner' -ProvisionerName $name `
+                        -Title "Karpenter Provisioner '$name' has no spec.limits set" `
+                        -Detail  "Provisioner '$name' in cluster '$($cluster.name)' has no resource limits configured. A pod scheduling burst can scale node count without bound, creating runaway cost risk." `
+                        -Remediation 'Add spec.limits.resources (e.g. cpu, memory) to cap how much capacity Karpenter may provision for this NodePool.'
+                }
+
+                # over-provisioned (Container Insights)
+                if (-not [string]::IsNullOrWhiteSpace($workspaceId)) {
+                    $overQuery = @"
+let lookback = ago(${LookbackDays}d);
+let provLabel = '$name';
+KubeNodeInventory
+| where TimeGenerated >= lookback
+| where ClusterName =~ '$($cluster.name)'
+| where Labels has provLabel or Labels has 'karpenter.sh/provisioner-name'
+| summarize nodes = dcount(Computer) by Computer
+| join kind=inner (
+    Perf
+    | where TimeGenerated >= lookback
+    | where ObjectName == 'K8SNode'
+    | where CounterName == 'cpuUsageNanoCores'
+    | summarize avg_cpu = avg(CounterValue), capacityNano = max(CounterValue) by Computer
+) on Computer
+| extend pct = iff(capacityNano > 0, (avg_cpu / capacityNano) * 100.0, 0.0)
+| summarize avgPct = avg(pct), nodeCount = count()
+| where avgPct < 50.0
+"@
+                    try {
+                        $overRows = @()
+                        $resp = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 20 -ScriptBlock {
+                            Invoke-LogAnalyticsQuery -WorkspaceId $workspaceId -Query $overQuery -TimeoutSeconds 300
+                        }
+                        if ($resp -and $resp.PSObject.Properties['Results']) { $overRows = @($resp.Results) }
+                        foreach ($row in $overRows) {
+                            $pct = [double]($row.avgPct ?? 0)
+                            $nc  = [int]($row.nodeCount ?? 0)
+                            Add-Finding -Cluster $cluster -RuleId 'karpenter.over-provisioned' -Severity 'Medium' -Compliant $false `
+                                -EntityType 'KarpenterProvisioner' -ProvisionerName $name `
+                                -Title "Karpenter Provisioner '$name' over-provisioned: avg $([math]::Round($pct,1))% CPU across $nc node(s)" `
+                                -Detail  "Average node CPU utilization for nodes managed by Provisioner '$name' was $([math]::Round($pct,2))% over ${LookbackDays}d (threshold 50%)." `
+                                -Remediation 'Lower spec.limits, enable consolidation, or pick a smaller default instance type.' `
+                                -Extra @{ ObservedPercent = [math]::Round($pct, 2); NodeCount = $nc }
+                        }
+                    } catch {
+                        $workspaceErrors.Add("Cluster $($cluster.name) over-provisioned query for '$name' failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))") | Out-Null
+                    }
+                }
+            }
+        } finally {
+            if ($kubeAuth -and $kubeAuth.PSObject.Properties['Cleanup']) {
+                try { & $kubeAuth.Cleanup } catch { Write-Verbose ("KubeAuth cleanup failed: {0}" -f (Remove-Credentials -Text ([string]$_.Exception.Message))) }
+            }
+        }
+    }
+
+    if ($OutputPath) {
+        try {
+            if (-not (Test-Path $OutputPath)) { New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null }
+            $rawOut = Join-Path $OutputPath "aks-karpenter-cost-$SubscriptionId.json"
+            Set-Content -Path $rawOut -Value (Remove-Credentials (($findings | ConvertTo-Json -Depth 20))) -Encoding UTF8
+        } catch {
+            Write-Verbose "Failed writing karpenter cost raw output: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
+        }
+    }
+}
+finally {
+    if ($EnableElevatedRbac.IsPresent -and (Get-Command Reset-RbacTier -ErrorAction SilentlyContinue)) {
+        Reset-RbacTier
+    }
+}
+
+$result.Findings = @($findings)
+if ($workspaceErrors.Count -gt 0 -and $findings.Count -gt 0) {
+    $result.Status = 'PartialSuccess'
+} elseif ($workspaceErrors.Count -gt 0 -and $findings.Count -eq 0) {
+    $result.Status = 'Failed'
+}
+
+$baseMessage = "Scanned $($clusters.Count) AKS cluster(s) over ${LookbackDays} day(s); emitted $($findings.Count) cost finding(s); RBAC tier '$($result.RbacTier)'."
+if ($workspaceErrors.Count -gt 0) {
+    $result.Message = "$baseMessage Errors: $($workspaceErrors -join ' | ')"
+} else {
+    $result.Message = $baseMessage
+}
+
+return [PSCustomObject]$result

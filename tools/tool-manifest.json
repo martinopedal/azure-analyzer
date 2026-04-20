@@ -453,6 +453,62 @@
       ]
     },
     {
+      "name": "aks-karpenter-cost",
+      "displayName": "AKS Karpenter Cost (consolidation + node utilization)",
+      "source": "aks-karpenter-cost",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AksKarpenterCost",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AksKarpenterCost.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ResourceGroup",
+        "ClusterName",
+        "LogAnalyticsWorkspaceId",
+        "LookbackDays",
+        "KubeconfigPath",
+        "KubeContext",
+        "Namespace",
+        "KubeAuthMode",
+        "KubeloginServerId",
+        "KubeloginClientId",
+        "KubeloginTenantId",
+        "WorkloadIdentityClientId",
+        "WorkloadIdentityTenantId",
+        "WorkloadIdentityServiceAccountToken",
+        "EnableElevatedRbac",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "label": "AKS Karpenter Cost",
+        "color": "#00695c",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts",
+          "Az.ResourceGraph",
+          "Az.OperationalInsights"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
       "name": "psrule",
       "displayName": "PSRule for Azure",
       "source": "psrule",

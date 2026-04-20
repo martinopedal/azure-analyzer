@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 32. **Disabled / opt-in:** 1.
+**Total enabled:** 33. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -19,6 +19,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `ado-pipeline-correlator` | ADO Pipeline Run Correlator | ado | ado | NIST 800-53, SOC2 | Correlates ADO pipeline runs with downstream Azure resource changes. | - |
 | `ado-pipelines` | ADO Pipeline Security | ado | ado | NIST 800-53, SOC2, PCI-DSS | Azure DevOps pipeline-security posture (variable groups, environments, approvals). | - |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | ado | ado | NIST 800-53, SOC2, PCI-DSS | Secret scanning across Azure DevOps repositories via gitleaks. | [docs](./gitleaks-pattern-tuning.md) |
+| `aks-karpenter-cost` | AKS Karpenter Cost (consolidation + node utilization) | subscription | azure | Azure WAF, Azure CAF | AKS Karpenter Cost (consolidation + node utilization) | - |
 | `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | subscription | azure | Azure WAF, Azure CAF | AKS Rightsizing (Container Insights utilization) | - |
 | `alz-queries` | ALZ Resource Graph Queries | managementGroup | azure | CIS Azure, NIST 800-53, Azure WAF, Azure CAF | ALZ Resource Graph queries: landing-zone compliance and drift detection. | - |
 | `appinsights` | Application Insights Performance Signals | subscription | azure | Azure WAF | Application Insights telemetry signals: slow requests, dependency failures, and exception clusters via KQL. | - |
