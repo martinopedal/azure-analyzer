@@ -289,11 +289,33 @@ $rowsJson = ($findings | ForEach-Object {
 
 $byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
 $tableIndex = 0
+$severityOrder = @('Critical', 'High', 'Medium', 'Low', 'Info')
 
 $categoryHtml = foreach ($cat in $byCategory) {
     $catId = ($cat.Name -replace '[^a-zA-Z0-9]', '-').ToLower()
     $tblId = "tbl-$catId-$tableIndex"
     $tableIndex++
+    $catSeverityCounts = [ordered]@{
+        Critical = 0
+        High     = 0
+        Medium   = 0
+        Low      = 0
+        Info     = 0
+    }
+    foreach ($f in $cat.Group) {
+        switch -Regex ([string]$f.Severity) {
+            '^(?i)critical$' { $catSeverityCounts['Critical']++; break }
+            '^(?i)high$'     { $catSeverityCounts['High']++; break }
+            '^(?i)medium$'   { $catSeverityCounts['Medium']++; break }
+            '^(?i)low$'      { $catSeverityCounts['Low']++; break }
+            '^(?i)info$'     { $catSeverityCounts['Info']++; break }
+        }
+    }
+    $severityStripBadges = foreach ($sev in $severityOrder) {
+        $count = [int]$catSeverityCounts[$sev]
+        $sevClass = "severity-pill-$($sev.ToLowerInvariant())"
+        "<button type='button' class='severity-pill $sevClass' data-severity='$(HE $sev)' aria-pressed='false' onclick=`"filterBySeverityStrip(this,'$(HE $sev)')`">$(HE $sev): $count</button>"
+    }
     $catRows = foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
         $sevClass = SeverityClass $f.Severity
         $sevBorder = "sev-border-$($f.Severity.ToLower())"
@@ -320,6 +342,12 @@ $categoryHtml = foreach ($cat in $byCategory) {
     @"
 <details id="cat-$catId">
   <summary><strong>$(HE $cat.Name)</strong> <span class="cat-count">($($cat.Count))</span></summary>
+  <div class="severity-strip no-print" role="group" aria-label="Severity totals for $(HE $cat.Name)">
+    <div class="severity-strip-badges">
+      $($severityStripBadges -join "`n      ")
+    </div>
+    <button type="button" class="severity-pill severity-pill-total is-active" data-severity="all" aria-pressed="true" onclick="filterBySeverityStrip(this,'all')">Total: $($cat.Count)</button>
+  </div>
   <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'$tblId')" class="filter-input"></div>
   <table id="$tblId" class="findings-table sortable">
     <thead>
@@ -960,6 +988,25 @@ $html = @"
   .filter-banner.active { display: flex; }
   .filter-banner button { background: #1565c0; color: #fff; border: none; border-radius: 3px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
   .filter-banner button:hover { background: #0d47a1; }
+  .severity-strip {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    position: sticky; top: 56px; z-index: 95;
+    background: #ffffff; border-top: 1px solid #edf2f7; border-bottom: 1px solid #edf2f7;
+    padding: 0.55rem 1rem;
+  }
+  .severity-strip-badges { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .severity-pill {
+    border: 1px solid transparent; border-radius: 999px; padding: 0.2rem 0.6rem;
+    font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: box-shadow 0.12s, transform 0.12s;
+  }
+  .severity-pill:hover { transform: translateY(-1px); }
+  .severity-pill[aria-pressed="true"], .severity-pill.is-active { box-shadow: 0 0 0 2px rgba(11, 18, 32, 0.18); }
+  .severity-pill-critical { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .severity-pill-high { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
+  .severity-pill-medium { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .severity-pill-low { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+  .severity-pill-info { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+  .severity-pill-total { background: #f8fafc; color: #1f2937; border-color: #cbd5e1; white-space: nowrap; }
 
   /* Print-friendly styles */
   @media print {
@@ -991,6 +1038,7 @@ $html = @"
   .gf-chip[data-active="true"][data-color="high"]     { background: #dc2626; color: #fff; border-color: #dc2626; }
   .gf-chip[data-active="true"][data-color="medium"]   { background: #f59e0b; color: #1f2937; border-color: #f59e0b; }
   .gf-chip[data-active="true"][data-color="low"]      { background: #facc15; color: #1f2937; border-color: #facc15; }
+  .gf-chip[data-active="true"][data-color="info"]     { background: #6b7280; color: #fff; border-color: #6b7280; }
   .gf-count  { font-size: 0.75rem; color: #6b7280; white-space: nowrap; }
   .gf-rg-banner { font-size: 0.75rem; color: #1f2937; background: #eef2ff; border: 1px solid #c7d2fe; padding: 0.15rem 0.45rem; border-radius: 6px; white-space: nowrap; }
   .gf-rg-banner strong { color: #1e3a8a; margin: 0 0.15rem; }
@@ -1145,6 +1193,7 @@ $complianceHtml
     <button class="gf-chip" data-sev="High"     data-color="high"     onclick="toggleSevFilter(this,'High')">High</button>
     <button class="gf-chip" data-sev="Medium"   data-color="medium"   onclick="toggleSevFilter(this,'Medium')">Medium</button>
     <button class="gf-chip" data-sev="Low"      data-color="low"      onclick="toggleSevFilter(this,'Low')">Low</button>
+    <button class="gf-chip" data-sev="Info"     data-color="info"     onclick="toggleSevFilter(this,'Info')">Info</button>
   </div>
   <select id="gf-source" onchange="applyGlobalFilter()" aria-label="Filter by tool">
     <option value="">All Tools</option>
@@ -1185,6 +1234,40 @@ var _gfPlatform = '';
 var _gfStatus = '';
 var _gfText = '';
 var _gfRg = '';
+
+function syncSeverityStripState() {
+  var active = 'all';
+  if (_gfActiveSev.size === 1) {
+    active = Array.from(_gfActiveSev)[0];
+  } else if (_gfActiveSev.size > 1) {
+    active = '__multi__';
+  }
+  document.querySelectorAll('.severity-strip .severity-pill').forEach(function(pill) {
+    var sev = pill.dataset.severity || '';
+    var isActive = (active === 'all' && sev === 'all') || (active !== 'all' && active !== '__multi__' && sev === active);
+    pill.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    pill.classList.toggle('is-active', isActive);
+  });
+}
+
+function setSingleSeverityFilter(severity) {
+  _gfActiveSev.clear();
+  _gfRg = '';
+  if (severity && severity !== 'all') {
+    _gfActiveSev.add(severity);
+  }
+  document.querySelectorAll('.gf-chip').forEach(function(chip) {
+    var chipSev = chip.dataset.sev || '';
+    var on = (severity === 'all' && chipSev === 'all') || (severity !== 'all' && chipSev === severity);
+    chip.dataset.active = on ? 'true' : 'false';
+    chip.classList.toggle('gf-active', on);
+  });
+  applyGlobalFilter();
+}
+
+function filterBySeverityStrip(btn, severity) {
+  setSingleSeverityFilter(severity || 'all');
+}
 
 function applyGlobalFilter() {
   _gfSource   = document.getElementById('gf-source') ? document.getElementById('gf-source').value : '';
@@ -1228,6 +1311,7 @@ function applyGlobalFilter() {
       rgBanner.style.display = 'none';
     }
   }
+  syncSeverityStripState();
 }
 
 function toggleSevFilter(btn, sev) {
