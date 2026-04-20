@@ -4,6 +4,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- docs: update README tool count to 27 to match current manifest (closes #235)
+
 ### Permissions documentation split (closes #252)
 
 - **docs: split PERMISSIONS.md per-tool detail to `docs/consumer/permissions/<tool>.md`**. The root `PERMISSIONS.md` is now a 116-line summary plus a manifest-driven per-tool index (down from 867 lines); detailed permission tables, sample commands, and "what it does / does not do" prose for each tool live in dedicated pages under `docs/consumer/permissions/`. Cross-cutting topics (Continuous Control OIDC + MI, multi-tenant fan-out, MG recursion, auth troubleshooting, the cross-tool matrix) were extracted to `_*.md` companion pages in the same folder. Squad automation that hardcodes the `PERMISSIONS.md` path keeps working unchanged.

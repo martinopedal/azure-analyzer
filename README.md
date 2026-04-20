@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**One PowerShell command, 26 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
+**One PowerShell command, 27 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
 ## Install
 
@@ -63,7 +63,7 @@ The HTML report includes an executive Summary tab, a severity-by-resource-group 
 
 ## What you get
 
-- **26 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
+- **27 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
 - **Unified v2 schema** with 5 severity levels (Critical, High, Medium, Low, Info) and 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, heatmap, filtering, control-framework chips, and CSV export.
