@@ -242,6 +242,112 @@ The `includeTools` field is validated against a hard-coded allow-list (`azqr`, `
 
 ---
 
+## Alternative: GitHub Actions with OIDC (no Function App required)
+
+### Why this option
+
+- No Azure compute cost, no Function App to run.
+- Uses the GitHub Actions runner, free for public repositories and included minutes for private repositories.
+- Good fit for teams already running security and compliance scans in GitHub Actions.
+- Trade-off: this path is schedule-based, not event-driven or always-on.
+
+### Prerequisites
+
+- A GitHub repository (fork or copy of azure-analyzer, or a repository that calls the workflow).
+- An Azure subscription where you have enough access to configure Reader role assignments.
+- Azure CLI (`az`) or Azure Portal access to create an App Registration.
+
+### Step 1: Create App Registration and Service Principal
+
+```bash
+# Create App Registration
+az ad app create --display-name "azure-analyzer-github-actions" --query appId -o tsv
+
+# Create Service Principal (use the appId from above)
+az ad sp create --id <appId>
+```
+
+### Step 2: Add federated credential for GitHub Actions
+
+The federated credential links the GitHub Actions OIDC token to the App Registration. For scheduled scans running on the default branch:
+
+```bash
+az ad app federated-credential create \
+  --id <appId> \
+  --parameters '{
+    "name": "azure-analyzer-main-branch",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject": "repo:<owner>/<repo>:ref:refs/heads/main",
+    "description": "azure-analyzer scheduled scan from main branch",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+```
+
+Replace `<owner>/<repo>` with your GitHub repository (for example, `myorg/azure-analyzer`).
+
+If you also want to allow manual `workflow_dispatch` runs from any branch, add a second credential with subject pattern `repo:<owner>/<repo>:*` or use environment-based subjects.
+
+### Step 3: Assign Reader role
+
+```bash
+az role assignment create \
+  --assignee <appId> \
+  --role "Reader" \
+  --scope "/subscriptions/<subscriptionId>"
+```
+
+Reader is sufficient. azure-analyzer does not write to Azure resources.
+
+### Step 4: Set repository variables
+
+In GitHub, open **Settings > Secrets and variables > Actions > Variables** (not **Secrets**, these are non-sensitive GUID values).
+
+| Variable | Value | Where to find |
+|---|---|---|
+| `AZURE_CLIENT_ID` | App Registration Application (client) ID | Azure Portal > App Registrations > your app > Overview |
+| `AZURE_TENANT_ID` | Your Azure AD tenant ID | Azure Portal > Microsoft Entra ID > Overview |
+| `AZURE_SUBSCRIPTION_ID` | The subscription to scan | Azure Portal > Subscriptions |
+
+```bash
+# Or via GitHub CLI:
+gh variable set AZURE_CLIENT_ID --body "<appId>" --repo <owner>/<repo>
+gh variable set AZURE_TENANT_ID --body "<tenantId>" --repo <owner>/<repo>
+gh variable set AZURE_SUBSCRIPTION_ID --body "<subscriptionId>" --repo <owner>/<repo>
+```
+
+These values map directly to `.github/workflows/scheduled-scan.yml`, which expects `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` as repository variables.
+
+### Step 5: Run the scheduled scan
+
+The `scheduled-scan.yml` workflow runs automatically at 06:00 UTC daily once the variables are set. To trigger manually:
+
+```bash
+gh workflow run scheduled-scan.yml --repo <owner>/<repo>
+```
+
+Or use the GitHub Actions UI: **Actions > Scheduled scan > Run workflow**.
+
+### What happens next
+
+- Scan runs on the GitHub Actions runner (Ubuntu, free tier).
+- Results are uploaded as workflow artifacts (`results.json`, `entities.json`, HTML report).
+- If Critical findings are detected, the workflow automatically opens a GitHub issue with a run link.
+- Compare to previous runs using the diff-mode feature (requires downloading previous artifacts).
+
+### Choosing between Function App and GitHub Actions
+
+| Factor | Function App (Bicep) | GitHub Actions (OIDC) |
+|---|---|---|
+| Azure compute cost | ~$5-20/month (Consumption plan) | Free (uses Actions minutes) |
+| Setup time | ~10 minutes (az deployment) | ~5 minutes (az CLI + gh CLI) |
+| Always-on | Yes (event-driven + schedule) | Schedule only |
+| Findings pushed to Log Analytics | Yes (via DCR) | No (artifacts only) |
+| Custom scan frequency | Yes (timer trigger) | Yes (cron schedule) |
+| Managed Identity | Yes (no credentials) | OIDC (no stored secrets) |
+| Best for | Production environments, custom reporting | Dev/staging, orgs already using GitHub Actions |
+
+---
+
 ## 3. DCR / Sink Wiring (Optional)
 
 When `DCE_ENDPOINT` and `DCR_IMMUTABLE_ID` are configured, both the scheduled workflow and the Function App forward `entities.json` to a Log Analytics custom table via the Logs Ingestion API. This is the same sink used by the standalone `Send-FindingsToLogAnalytics.ps1` module.
@@ -680,3 +786,4 @@ After completing the above steps, confirm:
 
 See [`infra/continuous-control.bicep`](../infra/continuous-control.bicep) for
 all parameters, resources, and outputs.
+
