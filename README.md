@@ -59,14 +59,14 @@ New-MdReport   -InputPath .\output\results.json -OutputPath .\output\report.md
 
 `New-HtmlReport.ps1` renders the HTML report directly. There is no separate checked-in HTML template to maintain or customize.
 
-The HTML report includes an executive Summary tab, a severity-by-resource-group heatmap, a Framework Coverage matrix (framework x tool with click-to-filter), a sticky severity strip (Critical, High, Medium, Low, Info, Total), a collapsible Tool -> Category -> Rule -> Finding tree with persisted expand state, a global filter bar (severity, framework, platform, tool, free text), and a CSV export of the currently filtered view.
+The HTML report includes an executive Summary tab, a Top recommendations by impact panel (RuleId-first grouping with fallback), a severity-by-resource-group heatmap, a Framework Coverage matrix (framework x tool with click-to-filter), a sticky severity strip (Critical, High, Medium, Low, Info, Total), a collapsible Tool -> Category -> Rule -> Finding tree with persisted expand state, a global filter bar (severity, framework, platform, tool, free text), and a CSV export of the currently filtered view.
 
 ## What you get
 
 - **29 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
 - **Unified v2 schema** with 5 severity levels (Critical, High, Medium, Low, Info) and 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
-- **HTML + Markdown reports** with executive summary, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
+- **HTML + Markdown reports** with executive summary, top impact recommendations, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 

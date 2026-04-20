@@ -21,7 +21,8 @@ param (
     [string] $TriagePath = '',
     [string] $PreviousRun = '',
     [object] $Portfolio,
-    [object[]] $Trend = @()
+    [object[]] $Trend = @(),
+    [int] $TopRecommendationsCount = 10
 )
 
 Set-StrictMode -Version Latest
@@ -390,6 +391,149 @@ function Get-FindingRuleKey {
     return "finding:$([string]$Finding.Id)"
 }
 
+function Get-SeverityRank {
+    param ([Parameter(Mandatory)][string]$Severity)
+    switch -Regex ($Severity) {
+        '^(?i)critical$' { return 5 }
+        '^(?i)high$'     { return 4 }
+        '^(?i)medium$'   { return 3 }
+        '^(?i)low$'      { return 2 }
+        default          { return 1 }
+    }
+}
+
+function Get-ImpactSeverityWeight {
+    param ([Parameter(Mandatory)][string]$Severity)
+    switch -Regex ($Severity) {
+        '^(?i)critical$' { return 10.0 }
+        '^(?i)high$'     { return 5.0 }
+        '^(?i)medium$'   { return 2.0 }
+        '^(?i)low$'      { return 1.0 }
+        default          { return 0.1 }
+    }
+}
+
+function Get-FindingEntityKey {
+    param ([Parameter(Mandatory)]$Finding)
+    foreach ($candidate in @('EntityId', 'ResourceId', 'Detail')) {
+        if ($Finding.PSObject.Properties.Match($candidate).Count -gt 0) {
+            $raw = [string]$Finding.$candidate
+            if (-not [string]::IsNullOrWhiteSpace($raw)) { return $raw.Trim() }
+        }
+    }
+    return "finding:$([string]$Finding.Id)"
+}
+
+function Get-FindingEntityDisplay {
+    param ([Parameter(Mandatory)]$Finding)
+    foreach ($candidate in @('EntityId', 'ResourceId', 'Detail', 'Title')) {
+        if ($Finding.PSObject.Properties.Match($candidate).Count -gt 0) {
+            $raw = [string]$Finding.$candidate
+            if (-not [string]::IsNullOrWhiteSpace($raw)) { return $raw.Trim() }
+        }
+    }
+    return "finding:$([string]$Finding.Id)"
+}
+
+$topRecommendationLimit = if ($TopRecommendationsCount -gt 0) { $TopRecommendationsCount } else { 10 }
+$nonCompliantFindings = @($findings | Where-Object { -not $_.Compliant })
+$topRecommendations = @()
+if ($nonCompliantFindings.Count -gt 0) {
+    $topRecommendations = @(
+        $nonCompliantFindings |
+            Group-Object -Property { Get-FindingRuleKey $_ } |
+            ForEach-Object {
+                $groupFindings = @($_.Group)
+                if ($groupFindings.Count -eq 0) { return }
+
+                $highestSeverity = 'Info'
+                $highestRank = 0
+                foreach ($finding in $groupFindings) {
+                    $rank = Get-SeverityRank ([string]$finding.Severity)
+                    if ($rank -gt $highestRank) {
+                        $highestRank = $rank
+                        $highestSeverity = [string]$finding.Severity
+                    }
+                }
+
+                $resourceKeys = @($groupFindings | ForEach-Object { Get-FindingEntityKey $_ } | Select-Object -Unique)
+                $resourceDisplays = @($groupFindings | ForEach-Object { Get-FindingEntityDisplay $_ } | Sort-Object -Unique)
+                $occurrenceCount = $groupFindings.Count
+                $resourceBreadth = [Math]::Max(1, $resourceKeys.Count)
+                $severityWeight = Get-ImpactSeverityWeight $highestSeverity
+                $impactScore = [Math]::Round(($severityWeight * $occurrenceCount * $resourceBreadth), 2)
+
+                $representative = $groupFindings |
+                    Sort-Object `
+                        @{ Expression = { -(Get-SeverityRank ([string]$_.Severity)) } }, `
+                        @{ Expression = { if ([string]::IsNullOrWhiteSpace([string]$_.LearnMoreUrl)) { 1 } else { 0 } } }, `
+                        @{ Expression = { [string]$_.Title } } |
+                    Select-Object -First 1
+
+                [PSCustomObject]@{
+                    RuleKey         = [string]$_.Name
+                    RuleName        = if ([string]::IsNullOrWhiteSpace([string]$representative.Title)) { [string]$_.Name } else { [string]$representative.Title }
+                    Severity        = $highestSeverity
+                    ImpactScore     = $impactScore
+                    OccurrenceCount = $occurrenceCount
+                    ResourceCount   = $resourceBreadth
+                    LearnMoreUrl    = [string]$representative.LearnMoreUrl
+                    ResourceItems   = $resourceDisplays
+                }
+            } |
+            Sort-Object `
+                @{ Expression = { [double]$_.ImpactScore }; Descending = $true }, `
+                @{ Expression = { [int]$_.OccurrenceCount }; Descending = $true }, `
+                @{ Expression = { [int]$_.ResourceCount }; Descending = $true }, `
+                @{ Expression = { [string]$_.RuleKey } } |
+            Select-Object -First $topRecommendationLimit
+    )
+}
+
+$topRecommendationsHtml = ''
+if ($topRecommendations.Count -gt 0) {
+    $recommendationCards = foreach ($rec in $topRecommendations) {
+        $resourceItems = foreach ($item in @($rec.ResourceItems)) {
+            "<li>$(HE ([string]$item))</li>"
+        }
+        $fixAction = if ([string]::IsNullOrWhiteSpace([string]$rec.LearnMoreUrl)) {
+            '<span class="top-rec-fix disabled">Fix it</span>'
+        } else {
+            "<a class=""top-rec-fix"" href=""$(HE ([string]$rec.LearnMoreUrl))"" target=""_blank"" rel=""noopener noreferrer"">Fix it</a>"
+        }
+        @"
+<article class='top-rec-card' data-rule-key='$(HE ([string]$rec.RuleKey))'>
+  <div class='top-rec-header'>
+    <span class='badge $(SeverityClass ([string]$rec.Severity))'>$(HE ([string]$rec.Severity))</span>
+    <strong class='top-rec-title'>$(HE ([string]$rec.RuleName))</strong>
+  </div>
+  <div class='top-rec-meta'>Impact score: <strong>$([string]$rec.ImpactScore)</strong></div>
+  <div class='top-rec-meta'>Resources: $([int]$rec.ResourceCount) | Occurrences: $([int]$rec.OccurrenceCount)</div>
+  <div class='top-rec-meta top-rec-rule'>Rule key: <code>$(HE ([string]$rec.RuleKey))</code></div>
+  <div class='top-rec-actions'>
+    $fixAction
+    <button type='button' class='top-rec-filter' onclick="focusRecommendationRule('$(HE ([string]$rec.RuleKey))')">Show in findings</button>
+  </div>
+  <details class='top-rec-resources'>
+    <summary>Affected resources ($([int]$rec.ResourceCount))</summary>
+    <ul>
+      $($resourceItems -join "`n      ")
+    </ul>
+  </details>
+</article>
+"@
+    }
+    $topRecommendationsHtml = @"
+<section class="top-recommendations-section" aria-labelledby="top-recommendations-title">
+  <h2 id="top-recommendations-title">Top recommendations by impact</h2>
+  <p class="hm-hint">Impact score = severity weight x occurrence count x resource breadth. Showing top $topRecommendationLimit recommendations.</p>
+  <div id="top-recommendations-panel" class="top-recommendations-grid">
+$($recommendationCards -join "`n")
+  </div>
+</section>
+"@
+}
+
 $treeSeverityCounts = New-SeverityCountMap
 foreach ($f in $findings) { Add-SeverityToCountMap -Map $treeSeverityCounts -Severity ([string]$f.Severity) }
 $severityStripBadges = foreach ($sev in $severityOrder) {
@@ -418,6 +562,7 @@ $findingsTreeHtml = foreach ($tool in $toolGroups) {
             $findingItemsHtml = foreach ($f in ($rule.Group | Sort-Object Severity, Title)) {
                 $sevClass = SeverityClass $f.Severity
                 $compliantBool = if ($f.Compliant) { 'true' } else { 'false' }
+                $ruleKey = Get-FindingRuleKey $f
                 $resourceGroup = HE (Get-FindingResourceGroup $f)
                 $frameworkList = @((Get-FindingFrameworkNames $f) | ForEach-Object { [string]$_ })
                 $frameworkAttr = HE (($frameworkList -join '|').ToLowerInvariant())
@@ -438,7 +583,7 @@ $findingsTreeHtml = foreach ($tool in $toolGroups) {
                     }
                 }
                 @"
-<article class="tree-finding" data-tree-finding="true" data-tree-path="$(HE "$rulePath|finding::$([string]$f.Id)")" data-severity="$(HE ([string]$f.Severity))" data-compliant="$compliantBool" data-source="$(HE ([string]$f.Source))" data-platform="$(HE ([string]$f.Platform))" data-status="$(HE $rowStatus)" data-resourcegroup="$resourceGroup" data-frameworks="$frameworkAttr">
+<article class="tree-finding" data-tree-finding="true" data-tree-path="$(HE "$rulePath|finding::$([string]$f.Id)")" data-rule-key="$(HE $ruleKey)" data-severity="$(HE ([string]$f.Severity))" data-compliant="$compliantBool" data-source="$(HE ([string]$f.Source))" data-platform="$(HE ([string]$f.Platform))" data-status="$(HE $rowStatus)" data-resourcegroup="$resourceGroup" data-frameworks="$frameworkAttr">
   <header class="tree-finding-header">
     <span class="badge $sevClass">$(HE ([string]$f.Severity))</span>
     <strong class="tree-finding-title">$(HE ([string]$f.Title))</strong>$statusBadge$controlBadgesHtml
@@ -1397,6 +1542,24 @@ $html = @"
   .fxm-sev-medium { background: rgba(245,158,11,0.22); color: #92400e; border-color: rgba(245,158,11,0.35); }
   .fxm-sev-low { background: rgba(59,130,246,0.2); color: #1d4ed8; border-color: rgba(59,130,246,0.35); }
   .fxm-sev-info { background: rgba(100,116,139,0.2); color: #334155; border-color: rgba(100,116,139,0.35); }
+  .top-recommendations-section { background: #fff; border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .top-recommendations-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .top-rec-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc; }
+  .top-rec-card.is-active { border-color: #1565c0; box-shadow: 0 0 0 2px rgba(21,101,192,0.15); background: #eff6ff; }
+  .top-rec-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .top-rec-title { font-size: 13px; line-height: 1.4; }
+  .top-rec-meta { font-size: 12px; color: #334155; margin-bottom: 4px; }
+  .top-rec-rule code { font-size: 11px; color: #1e3a8a; }
+  .top-rec-actions { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+  .top-rec-fix, .top-rec-filter {
+    font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid #cbd5e1;
+    background: #ffffff; color: #0f172a; text-decoration: none; cursor: pointer;
+  }
+  .top-rec-fix:hover, .top-rec-filter:hover { background: #f1f5f9; }
+  .top-rec-fix.disabled { color: #94a3b8; cursor: default; border-style: dashed; pointer-events: none; }
+  .top-rec-resources summary { font-size: 12px; font-weight: 600; }
+  .top-rec-resources ul { margin: 8px 0 0 16px; padding: 0; }
+  .top-rec-resources li { font-size: 11px; color: #475569; margin-bottom: 3px; word-break: break-word; }
   /* Resources tab (issue #209) */
   .resources-section { margin-bottom: 1.5rem; }
   .resource-row { cursor: pointer; }
@@ -1430,6 +1593,8 @@ $(if ($summaryTabAvailable) { $summaryTabBodyHtml } else { '<p class="empty">Sum
 </section>
 
 <section id="rt-tab-findings" class="rt-tab-panel" role="tabpanel" aria-labelledby="rt-tab-findings-button">
+$topRecommendationsHtml
+
 <!-- Executive Summary with Donut Chart -->
 <div class="exec-summary">
   <div class="donut" style="background:conic-gradient(#2e7d32 0% $compliantPct%, #d32f2f $compliantPct% 100%);">
@@ -1547,6 +1712,7 @@ var _gfPlatform = '';
 var _gfStatus = '';
 var _gfText = '';
 var _gfRg = '';
+var _gfRuleKey = '';
 
 function syncSeverityStripState() {
   var active = 'all';
@@ -1566,6 +1732,7 @@ function syncSeverityStripState() {
 function setSingleSeverityFilter(severity) {
   _gfActiveSev.clear();
   _gfRg = '';
+  _gfRuleKey = '';
   if (severity && severity !== 'all') {
     _gfActiveSev.add(severity);
   }
@@ -1583,7 +1750,7 @@ function filterBySeverityStrip(btn, severity) {
 }
 
 function treeHasActiveFilter() {
-  return _gfActiveSev.size > 0 || !!_gfSource || !!_gfFramework || !!_gfPlatform || !!_gfStatus || !!_gfText || !!_gfRg;
+  return _gfActiveSev.size > 0 || !!_gfSource || !!_gfFramework || !!_gfPlatform || !!_gfStatus || !!_gfText || !!_gfRg || !!_gfRuleKey;
 }
 
 function syncFindingsTreeVisibility() {
@@ -1614,6 +1781,7 @@ function applyGlobalFilter() {
     var platform = row.dataset.platform || '';
     var status   = row.dataset.compliant || '';
     var rg       = row.dataset.resourcegroup || '';
+    var ruleKey  = row.dataset.ruleKey || '';
     var frameworks = (row.dataset.frameworks || '').toLowerCase();
     var text     = row.textContent.toLowerCase();
 
@@ -1623,9 +1791,10 @@ function applyGlobalFilter() {
     var platOk = !_gfPlatform || platform === _gfPlatform;
     var stOk   = !_gfStatus   || status   === _gfStatus;
     var rgOk   = !_gfRg       || rg       === _gfRg;
+    var ruleOk = !_gfRuleKey  || ruleKey  === _gfRuleKey;
     var txtOk  = !_gfText     || text.includes(_gfText);
 
-    var show = sevOk && srcOk && fwOk && platOk && stOk && rgOk && txtOk;
+    var show = sevOk && srcOk && fwOk && platOk && stOk && rgOk && ruleOk && txtOk;
     row.classList.toggle('tree-hidden', !show);
     if (show) visible++;
   });
@@ -1647,6 +1816,10 @@ function applyGlobalFilter() {
   }
   syncFindingsTreeVisibility();
   syncSeverityStripState();
+  document.querySelectorAll('.top-rec-card').forEach(function(card) {
+    var cardRule = card.dataset.ruleKey || '';
+    card.classList.toggle('is-active', !!_gfRuleKey && cardRule === _gfRuleKey);
+  });
 }
 
 function toggleSevFilter(btn, sev) {
@@ -1671,7 +1844,7 @@ function toggleSevFilter(btn, sev) {
 
 function resetGlobalFilter() {
   _gfActiveSev.clear();
-  _gfSource = _gfFramework = _gfPlatform = _gfStatus = _gfText = _gfRg = '';
+  _gfSource = _gfFramework = _gfPlatform = _gfStatus = _gfText = _gfRg = _gfRuleKey = '';
   document.querySelectorAll('.gf-chip').forEach(function(c) {
     c.dataset.active = 'false';
     if (c.dataset.sev === 'all') c.classList.add('gf-active');
@@ -1690,6 +1863,7 @@ function filterByHeatmap(rg, sev) {
     return;
   }
   _gfRg = rg;
+  _gfRuleKey = '';
   _gfActiveSev.clear();
   _gfActiveSev.add(sev);
   document.querySelectorAll('.gf-chip').forEach(function(c) {
@@ -1713,6 +1887,7 @@ function filterByFrameworkMatrix(source, framework) {
   }
   _gfSource = source;
   _gfFramework = framework;
+  _gfRuleKey = '';
   var sourceEl = document.getElementById('gf-source');
   if (sourceEl) { sourceEl.value = source; }
   var frameworkEl = document.getElementById('gf-framework');
@@ -1720,6 +1895,24 @@ function filterByFrameworkMatrix(source, framework) {
   applyGlobalFilter();
   var target = document.getElementById('global-filter-bar');
   if (target && target.scrollIntoView) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+
+function focusRecommendationRule(ruleKey) {
+  if (!ruleKey) { return; }
+  var sameRule = (_gfRuleKey === ruleKey);
+  if (sameRule) {
+    _gfRuleKey = '';
+  } else {
+    _gfRuleKey = ruleKey;
+    _gfStatus = 'false';
+    var statusEl = document.getElementById('gf-status');
+    if (statusEl) { statusEl.value = 'false'; }
+  }
+  applyGlobalFilter();
+  var target = document.getElementById('findings-tree');
+  if (target && target.scrollIntoView) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function treeStorageKey(path) {
