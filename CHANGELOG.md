@@ -4,6 +4,14 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- `report-template.html`, `New-HtmlReport.ps1`: Fix Critical/High severity conflation — `SeverityClass()` was mapping `Critical → sev-high`, making Critical and High findings look identical. Critical now renders as a distinct dark-red badge and row border (`#7f1d1d`) separate from High (`#dc2626`).
+- `report-template.html`, `New-HtmlReport.ps1`: Add global interactive filter bar — sticky bar with severity chips (multi-select), platform (Azure/Entra/GitHub/ADO), tool, compliance status, and free-text search filter all finding rows simultaneously across every table with no page reload.
+- `report-template.html`, `New-HtmlReport.ps1`: Add `data-platform` attribute to all finding `<tr>` elements for platform-based filtering.
+- `report-template.html`, `New-HtmlReport.ps1`: Add client-side CSV export button — exports currently visible (filtered) findings as a CSV download from embedded data; no re-run needed to get findings into a spreadsheet.
+- `report-template.html`, `New-HtmlReport.ps1`: Add Remediation Priority Stack — Critical and High non-compliant findings surfaced at the top of each section before category accordions so the most urgent items are visible immediately.
+- `New-HtmlReport.ps1`: Add distinct Critical severity stat card (dark-red) separate from the High card; update executive summary text to report Critical and High counts separately.
+
 ### Added
 - `docs/continuous-control.md`: Add GitHub Actions + OIDC alternative setup path for consumers who prefer GitHub Actions over a Function App deployment
 - **Continuous control 10-minute deployment walkthrough (#196)**: New `docs/continuous-control.md` covers the full end-to-end setup: OIDC federated-credential creation (app registration, federated credential with `ref:refs/heads/main` and `environment:production` subject claims, Reader role assignment, `gh variable set` for `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` / `AZURE_SUBSCRIPTION_ID`); Function App provisioning on Consumption and Premium plans; required and optional app settings (`AZURE_ANALYZER_SUBSCRIPTION_ID`, `DCE_ENDPOINT`, `DCR_IMMUTABLE_ID`, etc.); Data Collection Endpoint + DCR creation with stream declarations for `Custom-AzureAnalyzerFindings` and `Custom-AzureAnalyzerEntities`; Monitoring Metrics Publisher role assignment to both the Function App MI and the workflow service principal; failure-mode guidance for the 10-minute Consumption-plan timeout with migration instructions to Premium (EP1) and Container Apps; scheduling reference for both the GHA cron (`0 6 * * *`, five-field POSIX) and the Function timer NCRONTAB (`0 0 6 * * *`, six-field); and a post-setup verification checklist. README Continuous Control section updated to link to the new walkthrough.
