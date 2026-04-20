@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+- docs: extract advanced operator/contributor content + manifest-driven tool catalog (PR-3 of 5).
+
 ### Changed
 - docs: rewrite README to consumer-first quickstart layout (PR-2 of 5)
 - `New-HtmlReport.ps1`, `New-ExecDashboard.ps1`, `report-template.html`, `modules/shared/ExecDashboardRender.ps1` (new):Merge the executive dashboard into `report.html` as a "Summary" tab that becomes the default landing view (#210). Existing report content (executive cards, tool coverage, portfolio rollup, priority stack, and category accordions) moves to a "Findings" tab. The shared `ExecDashboardRender.ps1` module is now the single source of truth for dashboard composition, exporting `Get-ExecDashboardModel`, `Get-ExecDashboardBody`, `Get-ExecDashboardCss` (with optional CSS scoping), and `Get-ExecDashboardHtml`. `New-ExecDashboard.ps1` becomes a thin wrapper that still emits the standalone `dashboard.html` for back-compat (`Invoke-AzureAnalyzer.ps1` continues to call it unchanged). Embedded summary CSS is selector-scoped under `.exec-dash` so it never collides with `report.html`'s own `.card` / `.muted` / `.empty` rules. Print mode flattens both tabs so PDF exports still show the full report. Added 2 Pester cases asserting Summary is the first/active tab, contains the canonical `Compliance score` / `Top-10 risky resources` / `WAF 5-pillar coverage` blocks, wraps in `class="exec-dash"`, and degrades gracefully when summary data is unavailable. Pester baseline: **1178/1178 green**.
