@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 27.
+**Total tools registered:** 28.
 
 ## Registration matrix
 
@@ -30,6 +30,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `gitleaks` | gitleaks (Secrets Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux |
 | `identity-correlator` | Identity Correlator | correlator | graph | tenant | Enabled | 3 | windows, macos, linux |
 | `identity-graph-expansion` | Identity Graph Expansion | correlator | graph | tenant | Enabled | 3 | windows, macos, linux |
+| `infracost` | Infracost IaC Cost Estimation | collector | cli | repository | Enabled | 0 | windows, macos, linux |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `kubescape` | Kubescape (AKS runtime posture) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `maester` | Maester | collector | microsoft365 | tenant | Enabled | 0 | windows, macos, linux |
@@ -62,6 +63,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `gitleaks` | `Normalize-Gitleaks` | script | `modules/Invoke-Gitleaks.ps1` | - |
 | `identity-correlator` | `Normalize-IdentityCorrelation` | function | `modules/shared/IdentityCorrelator.ps1` | TenantId |
 | `identity-graph-expansion` | `Normalize-IdentityGraphExpansion` | function | `modules/Invoke-IdentityGraphExpansion.ps1` | TenantId |
+| `infracost` | `Normalize-Infracost` | script | `modules/Invoke-Infracost.ps1` | - |
 | `kube-bench` | `Normalize-KubeBench` | script | `modules/Invoke-KubeBench.ps1` | SubscriptionId |
 | `kubescape` | `Normalize-Kubescape` | script | `modules/Invoke-Kubescape.ps1` | SubscriptionId |
 | `maester` | `Normalize-Maester` | script | `modules/Invoke-Maester.ps1` | - |
@@ -94,6 +96,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `gitleaks` | cli ("gitleaks") | gitleaks/gitleaks @ latest | `#c62828` | 3 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |
+| `infracost` | cli ("infracost") | infracost/infracost @ latest | `#2e7d32` | 7 |
 | `kube-bench` | none | n/a | `#5e35b1` | 6 |
 | `kubescape` | cli ("kubescape") | kubescape/kubescape @ v3 | `#7b1fa2` | 6 |
 | `maester` | psmodule | maester365/maester @ latest | `#7b1fa2` | 1 |

@@ -1,0 +1,32 @@
+{
+  "version": "0.10",
+  "currency": "USD",
+  "projects": [
+    {
+      "name": "terraform-main",
+      "path": "infra/terraform",
+      "breakdown": {
+        "resources": [
+          {
+            "name": "azurerm_kubernetes_cluster.aks",
+            "resourceType": "azurerm_kubernetes_cluster",
+            "monthlyCost": "1260.75",
+            "currency": "USD"
+          },
+          {
+            "name": "azurerm_storage_account.logs",
+            "resourceType": "azurerm_storage_account",
+            "monthlyCost": "180.20",
+            "currency": "USD"
+          },
+          {
+            "name": "azurerm_resource_group.rg",
+            "resourceType": "azurerm_resource_group",
+            "monthlyCost": "12.30",
+            "currency": "USD"
+          }
+        ]
+      }
+    }
+  ]
+}

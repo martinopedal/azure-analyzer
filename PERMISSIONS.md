@@ -73,6 +73,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 |---|---|---|
 | **Bicep IaC Validation** | Repository | [`bicep-iac.md`](docs/consumer/permissions/bicep-iac.md) |
 | **gitleaks (Secrets Scanner)** | Repository | [`gitleaks.md`](docs/consumer/permissions/gitleaks.md) |
+| **Infracost IaC Cost Estimation** | Repository | [`infracost.md`](docs/consumer/permissions/infracost.md) |
 | **Terraform IaC Validation** | Repository | [`terraform-iac.md`](docs/consumer/permissions/terraform-iac.md) |
 | **Trivy Vulnerability Scanner** | Repository | [`trivy.md`](docs/consumer/permissions/trivy.md) |
 | **zizmor (Actions YAML Scanner)** | Repository | [`zizmor.md`](docs/consumer/permissions/zizmor.md) |

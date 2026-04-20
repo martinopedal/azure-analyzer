@@ -115,6 +115,7 @@ $consumerBlurb = @{
     'trivy'                    = 'Vulnerability and IaC misconfiguration scanner for repos and container images.'
     'bicep-iac'                = 'Bicep IaC validation: lint, build, and best-practice checks.'
     'terraform-iac'            = 'Terraform IaC validation: tflint / tfsec / checkov-style checks.'
+    'infracost'                = 'Pre-deploy cost estimate for Terraform and Bicep resources.'
     'sentinel-incidents'       = 'Pulls active Microsoft Sentinel incidents from a Log Analytics workspace.'
     'sentinel-coverage'        = 'Sentinel detection posture: analytic rules, watchlists, data connectors, hunting queries.'
     'copilot-triage'           = 'Optional Copilot-powered AI triage for finding prioritization (disabled by default).'

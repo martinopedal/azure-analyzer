@@ -834,6 +834,55 @@
       }
     },
     {
+      "name": "infracost",
+      "displayName": "Infracost IaC Cost Estimation",
+      "source": "infracost",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Infracost",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Infracost.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "Path",
+        "Repository",
+        "RemoteUrl",
+        "RepoPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#2e7d32",
+        "phase": 7
+      },
+      "install": {
+        "kind": "cli",
+        "command": "infracost",
+        "preferredManagers": ["winget", "brew"],
+        "windows": {
+          "winget": "Infracost.Infracost"
+        },
+        "macos": {
+          "brew": "infracost"
+        },
+        "linux": {
+          "url": "https://www.infracost.io/docs/"
+        }
+      },
+      "upstream": {
+        "repo": "infracost/infracost",
+        "releaseApi": "https://api.github.com/repos/infracost/infracost/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      }
+    },
+    {
       "name": "terraform-iac",
       "displayName": "Terraform IaC Validation",
       "source": "terraform-iac",
