@@ -1,16 +1,16 @@
 # Project Context
 
 - **Owner:** martinopedal
-- **Project:** ALZ Additional Graph Queries — DevOps/Platform API checks for ALZ platform items
+- **Project:** ALZ Additional Graph Queries - DevOps/Platform API checks for ALZ platform items
 - **Stack:** PowerShell, Azure DevOps REST API, GitHub REST API / gh CLI, JSON
 - **Created:** 2026-04-14
 
 ## Work Completed
 
 - **2024-12-19:** SHA-pinned 10 GitHub Actions across 4 workflows (analyze, squad-triage, release, codeql)
-- **2024-12-19:** Fixed copilot-instructions.md line 49 — clarified "Signed commits NOT required"
+- **2024-12-19:** Fixed copilot-instructions.md line 49 - clarified "Signed commits NOT required"
 - **2024-12-19:** Refined squad-triage.yml keyword matching (robustness improvements)
-- **2024-12-19:** Updated ralph-triage.js `findRoleKeywordMatch()` — improved generic keyword handling
+- **2024-12-19:** Updated ralph-triage.js `findRoleKeywordMatch()` - improved generic keyword handling
 - **2024-12-19:** Made `go:needs-research` conditional (not unconditional application)
 - **2024-12-19:** Commits c588589 (SHA-pinning), 506ae8c (triage + docs + code)
 - **2026-04-18:** Fixed PR #120 canonical-ID regressions after origin/main merge by updating wrapper fixtures/tests to canonical repository/subscription IDs and aligning Azure Cost + Defender subscription normalizers with strict `New-FindingRow` canonicalization. Final local Pester: 490/490 passing.
@@ -49,7 +49,7 @@ Stored these in `tools/install-manifest.json` with `pinningNote` field per platf
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 - CI failure dedup key uses hash format `sha256("{workflow}|{first-error-line}")` truncated to 12 chars for stable issue-title matching.
 - Self-skip pattern for `workflow_run` watchers should include workflow-name exclusion to avoid recursive self-processing.
-- Repeated CI failures should comment `still failing — {run_url}` on the open hash-matched issue instead of creating duplicates.
+- Repeated CI failures should comment `still failing - {run_url}` on the open hash-matched issue instead of creating duplicates.
 - Treat `workflow_run` payload fields as untrusted input: pass through `env` and reference shell variables in `run:` blocks to reduce expression-injection risk.
 - workflow_run payload does not expose 'head_branch'; branch checks in watchdog logic must use API lookup or avoid branch gating in job-level expressions.
 
@@ -64,10 +64,10 @@ Stored these in `tools/install-manifest.json` with `pinningNote` field per platf
 **Challenge**: Pester tests for wrapper error paths needed to validate Status/Message/Findings shape without running actual CLIs or making API calls. Mock-based testing of external CLI tools (azqr, gitleaks, trivy, zizmor, kubescape, etc.) is inherently unreliable in PowerShell/Pester.
 
 **Approach taken**:
-- Focus on "missing dependency" path — the most testable and most common production failure
+- Focus on "missing dependency" path - the most testable and most common production failure
 - Mock Get-Command (for CLI tools) or Get-Module (for PS modules) to return null
 - Verify wrapper returns proper v1 contract: Source='toolname', Status='Skipped', Message='not installed', Findings=@()
-- **Avoided** complex mocking of CLI execution or JSON parsing failures — those paths are implicitly tested by 413 existing normalizer tests
+- **Avoided** complex mocking of CLI execution or JSON parsing failures - those paths are implicitly tested by 413 existing normalizer tests
 
 **Technical patterns discovered**:
 1. **Parameter sets matter**: Invoke-AlzQueries requires *either* -SubscriptionId OR -ManagementGroupId, not both
@@ -80,4 +80,10 @@ Stored these in `tools/install-manifest.json` with `pinningNote` field per platf
 **Future**: Integration tests with actual failing CLIs would complement these unit tests.
 
 ---
+
+### 2026-04-20: PR #244 module import integrity + manifest hygiene
+
+- Root modules should set `$ModuleRoot = $PSScriptRoot`; using `Split-Path -Parent $PSScriptRoot` points one directory too high and breaks relative module-path assumptions.
+- Importing a `.psd1` should not dot-source script entry points that execute immediately. For `AzureAnalyzer.psm1`, export wrapper functions that invoke root scripts on demand, and limit import-time dot-sourcing to pure helper modules.
+- PSGallery readiness is manifest-driven: replace placeholder GUIDs before publication and populate `PrivateData.PSData` with `Tags`, `ProjectUri`, `LicenseUri`, and `ReleaseNotes` so the package page is navigable and discoverable.
 
