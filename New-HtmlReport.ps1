@@ -63,7 +63,7 @@ if (-not $Portfolio) {
     }
 }
 
-# --- Entities (issue #209) — graceful degrade if entities.json missing ---
+# --- Entities (issue #209) -- graceful degrade if entities.json missing ---
 $entities = @()
 $entitiesPath = Join-Path (Split-Path $InputPath -Parent) 'entities.json'
 $entityStorePath = Join-Path $PSScriptRoot 'modules' 'shared' 'EntityStore.ps1'
@@ -79,7 +79,7 @@ if ((Test-Path $entitiesPath) -and (Test-Path $entityStorePath)) {
     }
 }
 
-# --- Run-mode metadata (incremental / scheduled — issue #94) ---
+# --- Run-mode metadata (incremental / scheduled -- issue #94) ---
 $runMetadata = $null
 $runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
 if (Test-Path $runMetadataPath) {
@@ -288,84 +288,145 @@ $rowsJson = ($findings | ForEach-Object {
 }) -join ','
 
 $byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
-$tableIndex = 0
 $severityOrder = @('Critical', 'High', 'Medium', 'Low', 'Info')
 
-$categoryHtml = foreach ($cat in $byCategory) {
-    $catId = ($cat.Name -replace '[^a-zA-Z0-9]', '-').ToLower()
-    $tblId = "tbl-$catId-$tableIndex"
-    $tableIndex++
-    $catSeverityCounts = [ordered]@{
+function New-SeverityCountMap {
+    [ordered]@{
         Critical = 0
         High     = 0
         Medium   = 0
         Low      = 0
         Info     = 0
     }
-    foreach ($f in $cat.Group) {
-        switch -Regex ([string]$f.Severity) {
-            '^(?i)critical$' { $catSeverityCounts['Critical']++; break }
-            '^(?i)high$'     { $catSeverityCounts['High']++; break }
-            '^(?i)medium$'   { $catSeverityCounts['Medium']++; break }
-            '^(?i)low$'      { $catSeverityCounts['Low']++; break }
-            '^(?i)info$'     { $catSeverityCounts['Info']++; break }
-        }
+}
+
+function Add-SeverityToCountMap {
+    param (
+        [Parameter(Mandatory)][System.Collections.IDictionary] $Map,
+        [Parameter(Mandatory)][string] $Severity
+    )
+    switch -Regex ($Severity) {
+        '^(?i)critical$' { $Map['Critical']++; break }
+        '^(?i)high$'     { $Map['High']++; break }
+        '^(?i)medium$'   { $Map['Medium']++; break }
+        '^(?i)low$'      { $Map['Low']++; break }
+        default          { $Map['Info']++; break }
     }
-    $severityStripBadges = foreach ($sev in $severityOrder) {
-        $count = [int]$catSeverityCounts[$sev]
-        $sevClass = "severity-pill-$($sev.ToLowerInvariant())"
-        "<button type='button' class='severity-pill $sevClass' data-severity='$(HE $sev)' aria-pressed='false' onclick=`"filterBySeverityStrip(this,'$(HE $sev)')`">$(HE $sev): $count</button>"
+}
+
+function Get-SeverityDotsHtml {
+    param ([Parameter(Mandatory)][System.Collections.IDictionary] $Counts)
+    $dots = foreach ($sev in $severityOrder) {
+        $val = [int]$Counts[$sev]
+        $cls = "tree-dot-$($sev.ToLowerInvariant())"
+        "<span class='tree-dot $cls' title='$(HE $sev): $val' aria-label='$(HE $sev): $val'>$val</span>"
     }
-    $catRows = foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
-        $sevClass = SeverityClass $f.Severity
-        $sevBorder = "sev-border-$($f.Severity.ToLower())"
-        $compliantBool = if ($f.Compliant) { 'true' } else { 'false' }
-        $compliantStr = if ($f.Compliant) { '<span class="badge badge-ok">Yes</span>' } else { '<span class="badge badge-fail">No</span>' }
-        $remediationHtml = Linkify $f.Remediation
-        $resourceIdHtml = HE $f.ResourceId
-        $learnMoreHtml = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE $f.LearnMoreUrl)`" target=`"_blank`" rel=`"noopener noreferrer`">Learn more</a>" }
-        $rowStatus = ''
-        $statusBadge = ''
-        if ($deltaSummary) {
-            $k = Get-ReportDeltaKey -Row $f
-            if ($deltaStatus.ContainsKey($k)) { $rowStatus = $deltaStatus[$k] }
-            switch ($rowStatus) {
-                'New'       { $statusBadge = ' <span class="badge badge-new">New</span>' }
-                'Resolved'  { $statusBadge = ' <span class="badge badge-resolved">Resolved</span>' }
-                'Unchanged' { $statusBadge = ' <span class="badge badge-unchanged">Unchanged</span>' }
+    "<span class='tree-dots'>$($dots -join '')</span>"
+}
+
+function Get-FindingRuleKey {
+    param ([Parameter(Mandatory)]$Finding)
+
+    $ruleId = ''
+    foreach ($candidate in @('RuleId', 'Rule', 'ControlId')) {
+        if ($Finding.PSObject.Properties.Match($candidate).Count -gt 0) {
+            $raw = [string]$Finding.$candidate
+            if (-not [string]::IsNullOrWhiteSpace($raw)) {
+                $ruleId = $raw.Trim()
+                break
             }
         }
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)' data-resourcegroup='$(HE (Get-FindingResourceGroup $f))'><td>$(HE $f.Title)$statusBadge</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
-        $controlBadgesHtml = Get-ControlBadgesHtml $f
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge$controlBadgesHtml</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ruleId)) { return $ruleId }
+
+    $title = ([string]$Finding.Title).Trim()
+    if ($title -match '^([A-Za-z][A-Za-z0-9._-]{2,})\s*[:\-]\s+') { return $Matches[1] }
+    if ($title -match '^([A-Za-z]{2,}[._-][A-Za-z0-9._-]+)\b') { return $Matches[1] }
+    if (-not [string]::IsNullOrWhiteSpace($title)) { return "title:$title" }
+    return "finding:$([string]$Finding.Id)"
+}
+
+$treeSeverityCounts = New-SeverityCountMap
+foreach ($f in $findings) { Add-SeverityToCountMap -Map $treeSeverityCounts -Severity ([string]$f.Severity) }
+$severityStripBadges = foreach ($sev in $severityOrder) {
+    $count = [int]$treeSeverityCounts[$sev]
+    $sevClass = "severity-pill-$($sev.ToLowerInvariant())"
+    "<button type='button' class='severity-pill $sevClass' data-severity='$(HE $sev)' aria-pressed='false' onclick=`"filterBySeverityStrip(this,'$(HE $sev)')`">$(HE $sev): $count</button>"
+}
+
+$toolGroups = @($findings | Group-Object -Property Source | Sort-Object Name)
+$findingsTreeHtml = foreach ($tool in $toolGroups) {
+    $toolCounts = New-SeverityCountMap
+    foreach ($f in $tool.Group) { Add-SeverityToCountMap -Map $toolCounts -Severity ([string]$f.Severity) }
+    $toolPath = "tool::$($tool.Name)"
+    $categoryGroups = @($tool.Group | Group-Object -Property Category | Sort-Object Name)
+    $toolChildrenHtml = foreach ($category in $categoryGroups) {
+        $categoryCounts = New-SeverityCountMap
+        foreach ($f in $category.Group) { Add-SeverityToCountMap -Map $categoryCounts -Severity ([string]$f.Severity) }
+        $categoryName = if ([string]::IsNullOrWhiteSpace([string]$category.Name)) { 'Uncategorized' } else { [string]$category.Name }
+        $categoryPath = "$toolPath|category::$categoryName"
+        $ruleGroups = @($category.Group | Group-Object -Property { Get-FindingRuleKey $_ } | Sort-Object Name)
+        $categoryChildrenHtml = foreach ($rule in $ruleGroups) {
+            $ruleCounts = New-SeverityCountMap
+            foreach ($f in $rule.Group) { Add-SeverityToCountMap -Map $ruleCounts -Severity ([string]$f.Severity) }
+            $ruleName = if ([string]::IsNullOrWhiteSpace([string]$rule.Name)) { 'Unspecified rule' } else { [string]$rule.Name }
+            $rulePath = "$categoryPath|rule::$ruleName"
+            $findingItemsHtml = foreach ($f in ($rule.Group | Sort-Object Severity, Title)) {
+                $sevClass = SeverityClass $f.Severity
+                $compliantBool = if ($f.Compliant) { 'true' } else { 'false' }
+                $resourceGroup = HE (Get-FindingResourceGroup $f)
+                $resourceId = HE ([string]$f.ResourceId)
+                $detail = HE ([string]$f.Detail)
+                $remediationHtml = Linkify ([string]$f.Remediation)
+                $controlBadgesHtml = Get-ControlBadgesHtml $f
+                $learnMoreHtml = if ([string]::IsNullOrWhiteSpace([string]$f.LearnMoreUrl)) { '' } else { "<a href=`"$(HE ([string]$f.LearnMoreUrl))`" target=`"_blank`" rel=`"noopener noreferrer`">Fix it</a>" }
+                $rowStatus = ''
+                $statusBadge = ''
+                if ($deltaSummary) {
+                    $k = Get-ReportDeltaKey -Row $f
+                    if ($deltaStatus.ContainsKey($k)) { $rowStatus = $deltaStatus[$k] }
+                    switch ($rowStatus) {
+                        'New'       { $statusBadge = ' <span class="badge badge-new">New</span>' }
+                        'Resolved'  { $statusBadge = ' <span class="badge badge-resolved">Resolved</span>' }
+                        'Unchanged' { $statusBadge = ' <span class="badge badge-unchanged">Unchanged</span>' }
+                    }
+                }
+                @"
+<article class="tree-finding" data-tree-finding="true" data-tree-path="$(HE "$rulePath|finding::$([string]$f.Id)")" data-severity="$(HE ([string]$f.Severity))" data-compliant="$compliantBool" data-source="$(HE ([string]$f.Source))" data-platform="$(HE ([string]$f.Platform))" data-status="$(HE $rowStatus)" data-resourcegroup="$resourceGroup">
+  <header class="tree-finding-header">
+    <span class="badge $sevClass">$(HE ([string]$f.Severity))</span>
+    <strong class="tree-finding-title">$(HE ([string]$f.Title))</strong>$statusBadge$controlBadgesHtml
+  </header>
+  <div class="tree-finding-meta"><span class="tree-label">Resource:</span> <span class="resource-id">$resourceId</span></div>
+  <div class="tree-finding-meta"><span class="tree-label">Description:</span> $detail</div>
+  <div class="tree-finding-meta"><span class="tree-label">Fix:</span> $remediationHtml $(if ($learnMoreHtml) { "&middot; $learnMoreHtml" } else { '' })</div>
+</article>
+"@
+            }
+            @"
+<details class="tree-node tree-node-rule" data-tree-level="rule" data-tree-path="$(HE $rulePath)">
+  <summary><span class="tree-name">$(HE $ruleName)</span> <span class="tree-count">($($rule.Group.Count) findings)</span> $(Get-SeverityDotsHtml -Counts $ruleCounts)</summary>
+  <div class="tree-children">
+$($findingItemsHtml -join "`n")
+  </div>
+</details>
+"@
+        }
+        @"
+<details class="tree-node tree-node-category" data-tree-level="category" data-tree-path="$(HE $categoryPath)">
+  <summary><span class="tree-name">$(HE $categoryName)</span> <span class="tree-count">($($ruleGroups.Count) rules)</span> $(Get-SeverityDotsHtml -Counts $categoryCounts)</summary>
+  <div class="tree-children">
+$($categoryChildrenHtml -join "`n")
+  </div>
+</details>
+"@
     }
     @"
-<details id="cat-$catId">
-  <summary><strong>$(HE $cat.Name)</strong> <span class="cat-count">($($cat.Count))</span></summary>
-  <div class="severity-strip no-print" role="group" aria-label="Severity totals for $(HE $cat.Name)">
-    <div class="severity-strip-badges">
-      $($severityStripBadges -join "`n      ")
-    </div>
-    <button type="button" class="severity-pill severity-pill-total is-active" data-severity="all" aria-pressed="true" onclick="filterBySeverityStrip(this,'all')">Total: $($cat.Count)</button>
+<details class="tree-node tree-node-tool" data-tree-level="tool" data-tree-path="$(HE $toolPath)" open>
+  <summary><span class="tree-name">$(HE ([string]$tool.Name))</span> <span class="tree-count">($($categoryGroups.Count) categories)</span> $(Get-SeverityDotsHtml -Counts $toolCounts)</summary>
+  <div class="tree-children">
+$($toolChildrenHtml -join "`n")
   </div>
-  <div class="filter-box no-print"><input type="text" placeholder="Filter rows..." onkeyup="filterTable(this,'$tblId')" class="filter-input"></div>
-  <table id="$tblId" class="findings-table sortable">
-    <thead>
-      <tr>
-        <th onclick="sortTable(this)">Title</th>
-        <th onclick="sortTable(this)">Severity</th>
-        <th onclick="sortTable(this)">Source</th>
-        <th onclick="sortTable(this)">Compliant</th>
-        <th>Detail</th>
-        <th>Remediation</th>
-        <th onclick="sortTable(this)">Resource ID</th>
-        <th>Learn More</th>
-      </tr>
-    </thead>
-    <tbody>
-      $($catRows -join "`n      ")
-    </tbody>
-  </table>
 </details>
 "@
 }
@@ -712,7 +773,7 @@ if ($priorityFindings.Count -gt 0) {
         $titleText = if ($_.Title) { $_.Title } elseif ($_.Description) { $_.Description } else { '(no title)' }
         "<li><span class='badge $sevCls'>$(HE $_.Severity)</span> <strong>$(HE $titleText)</strong> <span class='priority-source'>[$(HE $_.Source)]</span>$rem</li>"
     }) -join "`n"
-    $moreText = if ($priorityFindings.Count -gt 8) { "<li class='priority-more'>+ $($priorityFindings.Count - 8) more — use severity filter above</li>" } else { '' }
+    $moreText = if ($priorityFindings.Count -gt 8) { "<li class='priority-more'>+ $($priorityFindings.Count - 8) more - use severity filter above</li>" } else { '' }
     $priorityStackHtml = @"
 <div class="priority-stack">
   <div class="priority-header">$critBadge $highBadge <span class="priority-label">Requires immediate attention</span></div>
@@ -747,7 +808,7 @@ if (Get-Command Get-ExecDashboardModel -ErrorAction SilentlyContinue) {
     }
 }
 
-# --- Resources tab (issue #209) — entity-centric Resource Health view ---
+# --- Resources tab (issue #209) -- entity-centric Resource Health view ---
 $resourcesSectionHtml = ''
 $resourcesModelJson = '{"entities":[]}'
 if ($entities.Count -gt 0) {
@@ -909,14 +970,42 @@ $html = @"
   .portfolio-detail p { margin: 8px 0; }
   .source-chip { display: inline-block; margin: 2px 6px 2px 0; padding: 4px 8px; border-radius: 999px; background: #edf2f7; color: #334155; font-size: 12px; }
 
-  /* Findings tables */
+  /* Findings tree */
   details { background: #fff; border-radius: 6px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   summary { padding: 12px 16px; cursor: pointer; user-select: none; font-size: 14px; }
   summary:hover { background: #f9f9f9; }
-  .cat-count { font-size: 12px; color: #888; font-weight: 400; }
-  .filter-box { padding: 8px 16px 4px; }
-  .filter-input { width: 100%; max-width: 360px; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-  .filter-input:focus { outline: none; border-color: #90caf9; box-shadow: 0 0 0 2px rgba(33,150,243,0.15); }
+  .findings-tree { margin-bottom: 16px; }
+  .tree-node { margin-bottom: 8px; }
+  .tree-node .tree-children { padding: 0 12px 10px 16px; }
+  .tree-node-category { margin-left: 10px; }
+  .tree-node-rule { margin-left: 20px; }
+  .tree-name { font-weight: 600; }
+  .tree-count { font-size: 12px; color: #64748b; font-weight: 500; margin-left: 6px; }
+  .tree-dots { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: middle; }
+  .tree-dot {
+    min-width: 22px; display: inline-flex; justify-content: center; align-items: center;
+    border-radius: 999px; font-size: 11px; padding: 1px 6px; font-weight: 700;
+    border: 1px solid transparent;
+  }
+  .tree-dot-critical { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .tree-dot-high { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
+  .tree-dot-medium { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .tree-dot-low { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+  .tree-dot-info { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+  .tree-finding {
+    border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin: 8px 0 0 0; background: #ffffff;
+  }
+  .tree-finding-header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+  .tree-finding-title { font-size: 13px; }
+  .tree-finding-meta { font-size: 12px; color: #334155; margin-top: 4px; }
+  .tree-label { font-weight: 600; color: #0f172a; }
+  .tree-hidden { display: none !important; }
+  .tree-toolbar-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tree-action {
+    border: 1px solid #cbd5e1; border-radius: 999px; background: #fff; color: #1f2937;
+    font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; cursor: pointer;
+  }
+  .tree-action:hover { background: #f1f5f9; }
   .findings-table { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 13px; }
   .findings-table th { background: #f0f0f0; padding: 8px 10px; text-align: left; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .findings-table th:hover { background: #e0e0e0; }
@@ -1219,7 +1308,20 @@ $gfSourceOptions
 
 $priorityStackHtml
 
-$($categoryHtml -join "`n")
+<div class="severity-strip no-print" role="group" aria-label="Severity totals for findings tree">
+  <div class="severity-strip-badges">
+    $($severityStripBadges -join "`n    ")
+  </div>
+  <div class="tree-toolbar-actions">
+    <button type="button" class="severity-pill severity-pill-total is-active" data-severity="all" aria-pressed="true" onclick="filterBySeverityStrip(this,'all')">Total: $total</button>
+    <button type="button" class="tree-action" onclick="setTreeExpansion(true)">Expand all</button>
+    <button type="button" class="tree-action" onclick="setTreeExpansion(false)">Collapse all</button>
+  </div>
+</div>
+
+<section id="findings-tree" class="findings-tree" aria-label="Collapsible findings tree">
+$($findingsTreeHtml -join "`n")
+</section>
 
 $resourcesSectionHtml
 
@@ -1269,6 +1371,24 @@ function filterBySeverityStrip(btn, severity) {
   setSingleSeverityFilter(severity || 'all');
 }
 
+function treeHasActiveFilter() {
+  return _gfActiveSev.size > 0 || !!_gfSource || !!_gfPlatform || !!_gfStatus || !!_gfText || !!_gfRg;
+}
+
+function syncFindingsTreeVisibility() {
+  var activeFilter = treeHasActiveFilter();
+  var nodes = Array.from(document.querySelectorAll('#findings-tree details.tree-node'));
+  ['rule','category','tool'].forEach(function(level) {
+    nodes.filter(function(node) { return node.dataset.treeLevel === level; }).forEach(function(node) {
+      var visibleChildren = node.querySelectorAll('[data-tree-finding="true"]:not(.tree-hidden)').length;
+      node.classList.toggle('tree-hidden', visibleChildren === 0);
+      if (activeFilter && visibleChildren > 0) {
+        node.open = true;
+      }
+    });
+  });
+}
+
 function applyGlobalFilter() {
   _gfSource   = document.getElementById('gf-source') ? document.getElementById('gf-source').value : '';
   _gfPlatform = document.getElementById('gf-platform') ? document.getElementById('gf-platform').value : '';
@@ -1276,7 +1396,7 @@ function applyGlobalFilter() {
   _gfText     = (document.getElementById('gf-text') ? document.getElementById('gf-text').value : '').toLowerCase();
 
   var visible = 0;
-  document.querySelectorAll('tr[data-severity]').forEach(function(row) {
+  document.querySelectorAll('[data-tree-finding="true"]').forEach(function(row) {
     var sev      = row.dataset.severity || '';
     var source   = row.dataset.source || '';
     var platform = row.dataset.platform || '';
@@ -1292,7 +1412,7 @@ function applyGlobalFilter() {
     var txtOk  = !_gfText     || text.includes(_gfText);
 
     var show = sevOk && srcOk && platOk && stOk && rgOk && txtOk;
-    row.style.display = show ? '' : 'none';
+    row.classList.toggle('tree-hidden', !show);
     if (show) visible++;
   });
 
@@ -1311,6 +1431,7 @@ function applyGlobalFilter() {
       rgBanner.style.display = 'none';
     }
   }
+  syncFindingsTreeVisibility();
   syncSeverityStripState();
 }
 
@@ -1368,22 +1489,60 @@ function filterByHeatmap(rg, sev) {
   if (target && target.scrollIntoView) { target.scrollIntoView({behavior: 'smooth', block: 'start'}); }
 }
 
+function treeStorageKey(path) {
+  return 'azure-analyzer:findings-tree:' + path;
+}
+
+function persistTreeNodeState(node) {
+  if (!node || !node.dataset || !node.dataset.treePath) return;
+  try { localStorage.setItem(treeStorageKey(node.dataset.treePath), node.open ? '1' : '0'); } catch (_) {}
+}
+
+function restoreTreeNodeState(node) {
+  if (!node || !node.dataset || !node.dataset.treePath) return;
+  if ((node.dataset.treeLevel || '') === 'tool') { return; }
+  try {
+    var value = localStorage.getItem(treeStorageKey(node.dataset.treePath));
+    if (value === '1') { node.open = true; }
+    if (value === '0') { node.open = false; }
+  } catch (_) {}
+}
+
+function setTreeExpansion(open) {
+  document.querySelectorAll('#findings-tree details.tree-node').forEach(function(node) {
+    if ((node.dataset.treeLevel || '') === 'tool') { return; }
+    node.open = !!open;
+    persistTreeNodeState(node);
+  });
+}
+
+function initFindingsTree() {
+  document.querySelectorAll('#findings-tree details.tree-node').forEach(function(node) {
+    restoreTreeNodeState(node);
+    node.addEventListener('toggle', function() { persistTreeNodeState(node); });
+  });
+}
+
 function exportFilteredCSV() {
-  var rows = Array.from(document.querySelectorAll('tr[data-severity]'))
-    .filter(function(r) { return r.style.display !== 'none'; });
+  var rows = Array.from(document.querySelectorAll('[data-tree-finding="true"]'))
+    .filter(function(r) { return !r.classList.contains('tree-hidden'); });
   var headers = ['Title','Severity','Source','Platform','Compliant','Detail','Remediation','ResourceId'];
   var csvRows = [headers.join(',')];
   rows.forEach(function(r) {
-    var cells = r.querySelectorAll('td');
+    var titleEl = r.querySelector('.tree-finding-title');
+    var detailRows = r.querySelectorAll('.tree-finding-meta');
+    var detailText = detailRows[1] ? detailRows[1].textContent.replace(/^Description:\s*/,'') : '';
+    var remediationText = detailRows[2] ? detailRows[2].textContent.replace(/^Fix:\s*/,'') : '';
+    var resourceText = detailRows[0] ? detailRows[0].textContent.replace(/^Resource:\s*/,'') : '';
     var vals = [
-      '"' + (cells[0] ? cells[0].textContent : '').replace(/"/g, '""') + '"',
+      '"' + (titleEl ? titleEl.textContent : '').replace(/"/g, '""') + '"',
       '"' + (r.dataset.severity || '') + '"',
       '"' + (r.dataset.source || '') + '"',
       '"' + (r.dataset.platform || '') + '"',
       '"' + (r.dataset.compliant || '') + '"',
-      '"' + (cells[4] ? cells[4].textContent : '').replace(/"/g, '""') + '"',
-      '"' + (cells[5] ? cells[5].textContent : '').replace(/"/g, '""') + '"',
-      '"' + (cells[6] ? cells[6].textContent : '').replace(/"/g, '""') + '"'
+      '"' + detailText.replace(/"/g, '""') + '"',
+      '"' + remediationText.replace(/"/g, '""') + '"',
+      '"' + resourceText.replace(/"/g, '""') + '"'
     ];
     csvRows.push(vals.join(','));
   });
@@ -1395,29 +1554,39 @@ function exportFilteredCSV() {
 }
 
 // Initial count on load
-document.addEventListener('DOMContentLoaded', function() { applyGlobalFilter(); });
+document.addEventListener('DOMContentLoaded', function() {
+  initFindingsTree();
+  applyGlobalFilter();
+});
 
 function filterBySeverity(btn, severity) {
   var cards = document.querySelectorAll('.card');
-  var rows = document.querySelectorAll('.findings-table tbody tr');
   var banner = document.getElementById('filterBanner');
   var bannerText = document.getElementById('filterBannerText');
   if (activeSevFilter === severity) { clearSeverityFilter(); return; }
   activeSevFilter = severity;
   cards.forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
   btn.setAttribute('aria-pressed', 'true');
-  rows.forEach(function(r) {
-    if (severity === 'all') { r.style.display = ''; }
-    else if (severity === 'compliant') { r.style.display = r.dataset.compliant === 'true' ? '' : 'none'; }
-    else { r.style.display = (r.dataset.severity === severity && r.dataset.compliant === 'false') ? '' : 'none'; }
-  });
+  document.getElementById('gf-status').value = '';
+  if (severity === 'all') {
+    setSingleSeverityFilter('all');
+  } else if (severity === 'compliant') {
+    setSingleSeverityFilter('all');
+    document.getElementById('gf-status').value = 'true';
+    applyGlobalFilter();
+  } else {
+    setSingleSeverityFilter(severity);
+    document.getElementById('gf-status').value = 'false';
+    applyGlobalFilter();
+  }
   bannerText.textContent = severity === 'all' ? 'Showing all findings' : severity === 'compliant' ? 'Showing compliant findings only' : 'Showing ' + severity + ' severity findings only';
   banner.classList.add('active');
 }
 function clearSeverityFilter() {
   activeSevFilter = null;
   document.querySelectorAll('.card').forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
-  document.querySelectorAll('.findings-table tbody tr').forEach(function(r) { r.style.display = ''; });
+  document.getElementById('gf-status').value = '';
+  setSingleSeverityFilter('all');
   document.getElementById('filterBanner').classList.remove('active');
 }
 function sortTable(th) {

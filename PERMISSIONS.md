@@ -2,7 +2,7 @@
 
 ## Core principle
 
-Azure-analyzer is **read-first**. Every collector targets the minimum scope it needs and never writes to the cloud surface it scans. The single optional **write** path is the Log Analytics sink (`-SinkLogAnalytics`), which requires `Monitoring Metrics Publisher` on the target Data Collection Rule. Phase 0 v3 core modules (Schema, Canonicalize, EntityStore, tool manifest) introduce no new permissions or scopes.
+Azure-analyzer is **read-first**. Every collector targets the minimum scope it needs and never writes to the cloud surface it scans. The single optional **write** path is the Log Analytics sink (`-SinkLogAnalytics`), which requires `Monitoring Metrics Publisher` on the target Data Collection Rule. Phase 0 v3 core modules (Schema, Canonicalize, EntityStore, tool manifest) introduce no new permissions or scopes. Report UX improvements such as the collapsible findings tree also add no new scopes.
 
 ## Permission domains at a glance
 

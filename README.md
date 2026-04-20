@@ -59,7 +59,7 @@ New-MdReport   -InputPath .\output\results.json -OutputPath .\output\report.md
 
 `New-HtmlReport.ps1` renders the HTML report directly. There is no separate checked-in HTML template to maintain or customize.
 
-The HTML report includes an executive Summary tab, a severity-by-resource-group heatmap, sticky per-category severity totals strips (Critical, High, Medium, Low, Info, Total), a global filter bar (severity, platform, tool, free text), and a CSV export of the currently filtered view.
+The HTML report includes an executive Summary tab, a severity-by-resource-group heatmap, a sticky severity strip (Critical, High, Medium, Low, Info, Total), a collapsible Tool -> Category -> Rule -> Finding tree with persisted expand state, a global filter bar (severity, platform, tool, free text), and a CSV export of the currently filtered view.
 
 ## What you get
 
