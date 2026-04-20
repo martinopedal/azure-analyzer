@@ -367,6 +367,7 @@
         <button class="tab-button" id="tab-cicd-button" role="tab" aria-selected="false" aria-controls="tab-cicd" data-tab="cicd">CI/CD</button>
         <button class="tab-button" id="tab-compliance-button" role="tab" aria-selected="false" aria-controls="tab-compliance" data-tab="compliance">Compliance</button>
         <button class="tab-button" id="tab-cost-button" role="tab" aria-selected="false" aria-controls="tab-cost" data-tab="cost">Cost</button>
+        <button class="tab-button" id="tab-resources-button" role="tab" aria-selected="false" aria-controls="tab-resources" data-tab="resources">Resources</button>
     </nav>
 
     <main>
@@ -414,6 +415,12 @@
             <h2 class="section-title">Cost Findings</h2>
             <div id="cost-priority"></div>
             <div id="cost-table"></div>
+        </section>
+
+        <section class="tab-panel" id="tab-resources" role="tabpanel" aria-labelledby="tab-resources-button">
+            <h2 class="section-title">Resources</h2>
+            <p class="muted">Entity-centric Resource Health view. One row per resource. Click a row to expand observations.</p>
+            <div id="resources-table"></div>
         </section>
     </main>
 
@@ -639,6 +646,7 @@
         renderPriorityStack(getTabFindings('compliance'), 'compliance');
         renderFindingsTable('cost-table', getTabFindings('cost'));
         renderPriorityStack(getTabFindings('cost'), 'cost');
+        renderResourceTable('resources-table', getArray(model.entities));
 
         document.querySelectorAll('.tab-button').forEach((button) => {
             button.addEventListener('click', () => {
@@ -653,6 +661,66 @@
                 });
             });
         });
+
+        // --- Resources tab (issue #209) ---
+        function sevClass(sev) {
+            switch (sev) {
+                case 'Critical': return 'sev-critical';
+                case 'High': return 'sev-high';
+                case 'Medium': return 'sev-medium';
+                case 'Low': return 'sev-low';
+                default: return 'sev-info';
+            }
+        }
+        function renderResourceTable(containerId, entities) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            if (!entities || entities.length === 0) {
+                container.innerHTML = '<p class="muted">No entities to display. entities.json was missing or empty.</p>';
+                return;
+            }
+            var rows = entities.map(function(e, i) {
+                var name = e.EntityName || e.EntityId || '';
+                var type = e.EntityType || '';
+                var platform = e.Platform || '';
+                var rg = e.ResourceGroup || '';
+                var worst = e.WorstSeverity || 'Info';
+                var nc = (e.NonCompliantCount != null) ? e.NonCompliantCount : 0;
+                var cc = (e.CompliantCount != null) ? e.CompliantCount : 0;
+                var sources = (e.Sources && e.Sources.length) ? e.Sources.join(', ') : '';
+                var cost = (e.MonthlyCost != null && e.MonthlyCost > 0) ? Number(e.MonthlyCost).toFixed(2) : '';
+                var obs = (e.Observations || []).map(function(o) {
+                    var oSev = o.Severity || 'Info';
+                    var oDetail = o.Detail || o.Title || '';
+                    var oRem = o.Remediation || '';
+                    var oDocs = o.DocsUrl || o.HelpUrl || o.DocsLink || '';
+                    var docsCell = oDocs ? '<a href="' + oDocs + '" target="_blank" rel="noopener noreferrer">docs</a>' : '';
+                    return '<tr><td><span class="badge ' + sevClass(oSev) + '">' + oSev + '</span></td><td>' + oDetail + '</td><td>' + oRem + '</td><td>' + docsCell + '</td></tr>';
+                }).join('') || '<tr><td colspan="4"><em>No observations recorded for this entity.</em></td></tr>';
+                return '<tr class="resource-row" data-platform="' + platform + '" data-severity="' + worst + '" data-entity-idx="' + i + '" onclick="toggleEntityDetail(' + i + ')" tabindex="0">' +
+                    '<td>' + name + '</td>' +
+                    '<td>' + type + '</td>' +
+                    '<td>' + platform + '</td>' +
+                    '<td>' + rg + '</td>' +
+                    '<td><span class="badge ' + sevClass(worst) + '">' + worst + '</span></td>' +
+                    '<td>' + nc + '</td>' +
+                    '<td>' + cc + '</td>' +
+                    '<td>' + sources + '</td>' +
+                    '<td>' + cost + '</td>' +
+                    '</tr>' +
+                    '<tr class="resource-detail" id="resource-detail-' + i + '" style="display:none">' +
+                    '<td colspan="9"><table class="findings-table observations-table"><thead><tr><th>Severity</th><th>Detail</th><th>Remediation</th><th>Docs</th></tr></thead><tbody>' + obs + '</tbody></table></td>' +
+                    '</tr>';
+            }).join('');
+            container.innerHTML = '<table class="findings-table" id="resources-table-inner"><thead><tr>' +
+                '<th>Resource</th><th>Type</th><th>Platform</th><th>Resource Group</th><th>Worst Severity</th><th>Non-Compliant</th><th>Compliant</th><th>Sources</th><th>Monthly Cost</th>' +
+                '</tr></thead><tbody>' + rows + '</tbody></table>';
+        }
+        function toggleEntityDetail(idx) {
+            var d = document.getElementById('resource-detail-' + idx);
+            if (!d) return;
+            d.style.display = (d.style.display === 'none' || d.style.display === '') ? 'table-row' : 'none';
+        }
 
         // --- Remediation Priority Stack ---
         function renderPriorityStack(allRows, containerId) {

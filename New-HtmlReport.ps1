@@ -59,6 +59,22 @@ if (-not $Portfolio) {
     }
 }
 
+# --- Entities (issue #209) — graceful degrade if entities.json missing ---
+$entities = @()
+$entitiesPath = Join-Path (Split-Path $InputPath -Parent) 'entities.json'
+$entityStorePath = Join-Path $PSScriptRoot 'modules' 'shared' 'EntityStore.ps1'
+if ((Test-Path $entitiesPath) -and (Test-Path $entityStorePath)) {
+    try {
+        if (-not (Get-Command Import-EntitiesFile -ErrorAction SilentlyContinue)) {
+            . $entityStorePath
+        }
+        $entityFile = Import-EntitiesFile -Path $entitiesPath
+        $entities = @($entityFile.Entities)
+    } catch {
+        Write-Warning (Remove-Credentials "Could not load entities from ${entitiesPath}: $_")
+    }
+}
+
 # --- Run-mode metadata (incremental / scheduled — issue #94) ---
 $runMetadata = $null
 $runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
@@ -563,6 +579,100 @@ $gfSourceOptions = ($sourcesWithResults | Sort-Object | ForEach-Object {
     "<option value=`"$(HE $_)`">$(HE $lbl)</option>"
 }) -join "`n"
 
+# --- Resources tab (issue #209) — entity-centric Resource Health view ---
+$resourcesSectionHtml = ''
+$resourcesModelJson = '{"entities":[]}'
+if ($entities.Count -gt 0) {
+    $rowsHtml = New-Object System.Collections.Generic.List[string]
+    $idx = 0
+    foreach ($e in $entities) {
+        $idx++
+        $name = if ($e.PSObject.Properties['EntityName'] -and $e.EntityName) { [string]$e.EntityName } else { [string]$e.EntityId }
+        $type = if ($e.PSObject.Properties['EntityType']) { [string]$e.EntityType } else { '' }
+        $platform = if ($e.PSObject.Properties['Platform']) { [string]$e.Platform } else { '' }
+        $rg = if ($e.PSObject.Properties['ResourceGroup'] -and $e.ResourceGroup) { [string]$e.ResourceGroup } else { '' }
+        $worst = if ($e.PSObject.Properties['WorstSeverity'] -and $e.WorstSeverity) { [string]$e.WorstSeverity } else { 'Info' }
+        $nc = if ($e.PSObject.Properties['NonCompliantCount'] -and $null -ne $e.NonCompliantCount) { [int]$e.NonCompliantCount } else { 0 }
+        $cc = if ($e.PSObject.Properties['CompliantCount'] -and $null -ne $e.CompliantCount) { [int]$e.CompliantCount } else { 0 }
+        $sourcesText = if ($e.PSObject.Properties['Sources'] -and $e.Sources) { (@($e.Sources) -join ', ') } else { '' }
+        $cost = if ($e.PSObject.Properties['MonthlyCost'] -and $null -ne $e.MonthlyCost -and [double]$e.MonthlyCost -gt 0) { '{0:N2}' -f [double]$e.MonthlyCost } else { '' }
+        $sevClass = SeverityClass $worst
+
+        $obsHtml = ''
+        if ($e.PSObject.Properties['Observations'] -and $e.Observations) {
+            $obsList = New-Object System.Collections.Generic.List[string]
+            foreach ($o in @($e.Observations)) {
+                $oSev = if ($o.PSObject.Properties['Severity'] -and $o.Severity) { [string]$o.Severity } else { 'Info' }
+                $oDetail = if ($o.PSObject.Properties['Detail'] -and $o.Detail) { [string]$o.Detail } elseif ($o.PSObject.Properties['Title'] -and $o.Title) { [string]$o.Title } else { '' }
+                $oRem = if ($o.PSObject.Properties['Remediation'] -and $o.Remediation) { [string]$o.Remediation } else { '' }
+                $oDocs = if ($o.PSObject.Properties['DocsUrl'] -and $o.DocsUrl) { [string]$o.DocsUrl }
+                         elseif ($o.PSObject.Properties['HelpUrl'] -and $o.HelpUrl) { [string]$o.HelpUrl }
+                         elseif ($o.PSObject.Properties['DocsLink'] -and $o.DocsLink) { [string]$o.DocsLink }
+                         else { '' }
+                $docsCell = if ($oDocs) { "<a href=`"$(HE $oDocs)`" target=`"_blank`" rel=`"noopener noreferrer`">docs</a>" } else { '' }
+                $obsList.Add("<tr><td><span class='badge $(SeverityClass $oSev)'>$(HE $oSev)</span></td><td>$(HE $oDetail)</td><td>$(HE $oRem)</td><td>$docsCell</td></tr>")
+            }
+            $obsHtml = $obsList -join "`n"
+        }
+        if (-not $obsHtml) {
+            $obsHtml = "<tr><td colspan='4'><em>No observations recorded for this entity.</em></td></tr>"
+        }
+
+        $rowsHtml.Add(@"
+<tr class="resource-row" data-platform="$(HE $platform)" data-severity="$(HE $worst)" data-entity-idx="$idx" onclick="toggleEntityDetail($idx)" tabindex="0">
+  <td>$(HE $name)</td>
+  <td>$(HE $type)</td>
+  <td>$(HE $platform)</td>
+  <td>$(HE $rg)</td>
+  <td><span class="badge $sevClass">$(HE $worst)</span></td>
+  <td>$nc</td>
+  <td>$cc</td>
+  <td>$(HE $sourcesText)</td>
+  <td>$cost</td>
+</tr>
+<tr class="resource-detail" id="resource-detail-$idx" style="display:none">
+  <td colspan="9">
+    <table class="findings-table observations-table">
+      <thead><tr><th>Severity</th><th>Detail</th><th>Remediation</th><th>Docs</th></tr></thead>
+      <tbody>
+$obsHtml
+      </tbody>
+    </table>
+  </td>
+</tr>
+"@)
+    }
+
+    $resourcesSectionHtml = @"
+<h2 id="resources">Resources</h2>
+<div class="resources-section" data-tab="resources">
+  <div class="filter-box no-print"><input type="text" placeholder="Filter resources..." onkeyup="filterTable(this,'resources-table')" class="filter-input"></div>
+  <table class="findings-table" id="resources-table">
+    <thead>
+      <tr>
+        <th onclick="sortTable(this)">Resource</th>
+        <th onclick="sortTable(this)">Type</th>
+        <th onclick="sortTable(this)">Platform</th>
+        <th onclick="sortTable(this)">Resource Group</th>
+        <th onclick="sortTable(this)">Worst Severity</th>
+        <th onclick="sortTable(this)">Non-Compliant</th>
+        <th onclick="sortTable(this)">Compliant</th>
+        <th onclick="sortTable(this)">Sources</th>
+        <th onclick="sortTable(this)">Monthly Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+$($rowsHtml -join "`n")
+    </tbody>
+  </table>
+</div>
+"@
+
+    # Embedded JSON model for client-side use; escape </ -> <\/ for safety
+    $modelObj = [PSCustomObject]@{ entities = $entities }
+    $resourcesModelJson = ($modelObj | ConvertTo-Json -Depth 12 -Compress) -replace '</', '<\/'
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -744,6 +854,14 @@ $html = @"
   .priority-source { color: #6b7280; font-size: 0.78rem; }
   .priority-more { color: #6b7280; font-size: 0.78rem; font-style: italic; padding-top: 0.25rem; }
   .card-critical .card-value { color: #7f1d1d; }
+
+  /* Resources tab (issue #209) */
+  .resources-section { margin-bottom: 1.5rem; }
+  .resource-row { cursor: pointer; }
+  .resource-row:hover { background: #f0f7ff; }
+  .resource-row:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+  .observations-table { margin: 0.25rem 0; background: #fafafa; }
+  .observations-table th { background: #eef2f7; }
 </style>
 </head>
 <body>
@@ -831,6 +949,9 @@ $priorityStackHtml
 
 $($categoryHtml -join "`n")
 
+$resourcesSectionHtml
+
+<script type="application/json" id="report-model">$resourcesModelJson</script>
 <script>
 var activeSevFilter = null;
 
@@ -975,6 +1096,11 @@ function filterTable(input, tableId) {
   for (var i = 1; i < rows.length; i++) {
     rows[i].style.display = rows[i].textContent.toLowerCase().includes(filter) ? '' : 'none';
   }
+}
+function toggleEntityDetail(idx) {
+  var d = document.getElementById('resource-detail-' + idx);
+  if (!d) return;
+  d.style.display = (d.style.display === 'none' || d.style.display === '') ? 'table-row' : 'none';
 }
 </script>
 </body>
