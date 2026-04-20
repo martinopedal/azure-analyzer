@@ -71,7 +71,7 @@ $manifestJson = Get-Content $ManifestPath -Raw
 $manifest = $manifestJson | ConvertFrom-Json -AsHashtable
 
 foreach ($tool in $manifest.tools) {
-    if (-not $tool.upstream) { continue }
+    if (-not ($tool.ContainsKey('upstream')) -or -not $tool.upstream) { continue }
     $name = $tool.name
     Write-Host "==> Checking $name"
 
