@@ -12,7 +12,7 @@ Preview what Copilot triage-enriched findings look like before full triage loop 
 1. Per-finding **Copilot Triage** expandable section with AI summary, suggested remediation, confidence, and related findings
 2. Top-of-report **Triage Summary** card showing triaged/auto-remediable/manual review counts
 3. Schema extension for `CopilotTriage` field
-4. HTML mockup fitting existing report-template.html style
+4. HTML mockup fitting the existing generated report style
 5. Implementation phases for Sentinel/Forge
 
 **Constraint:** Mock content only - no real LLM calls during sample generation. When #105 lands, same renderer works opt-in.
@@ -652,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 - [ ] Create `samples/sample-results-with-triage.json` with 10 mock findings
 - [ ] Extend `New-HtmlReport.ps1` to detect `CopilotTriage` field and render panels
-- [ ] Add triage CSS to `report-template.html`
+- [ ] Add triage CSS to `New-HtmlReport.ps1`
 - [ ] Add triage JS functions (toggle, copy, scroll)
 - [ ] Generate `samples/sample-report-with-copilot-triage.html`
 - [ ] Update README with side-by-side screenshot comparison
@@ -784,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 This proposal defines a **production-ready mockup** of the Copilot Triage Panel that:
 
-1. ✅ Fits existing report-template.html design language
+1. ✅ Fits the existing generated report design language
 2. ✅ Supports opt-in activation (graceful degradation when triage absent)
 3. ✅ Provides actionable, copy-ready remediation commands
 4. ✅ Surfaces related findings and AI confidence

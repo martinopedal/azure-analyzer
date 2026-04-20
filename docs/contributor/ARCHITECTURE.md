@@ -72,7 +72,7 @@ hierarchy, and metadata for correlation.
 
 ---
 
-## Permission tiers (Tier 0–6)
+## Permission tiers (Tier 0-6)
 
 | Tier | Scope | Enables |
 |---|---|---|
@@ -91,7 +91,6 @@ hierarchy, and metadata for correlation.
 ```text
 azure-analyzer/
 ├── Invoke-AzureAnalyzer.ps1
-├── report-template.html
 ├── modules/
 │   ├── Invoke-*.ps1
 │   ├── normalizers/
@@ -127,7 +126,7 @@ azure-analyzer/
 
 ---
 
-## Normalizers (Phase 1–3)
+## Normalizers (Phase 1-3)
 
 Each of the 12 tools has a dedicated normalizer function that converts raw tool output into the unified schema v2 FindingRow format.
 
@@ -252,7 +251,7 @@ Platform mapping is deterministic: given an EntityType, `Get-PlatformForEntityTy
 - **Registration** - `name`, `displayName`, `source`, `provider`, `scope`, `enabled`, `platforms`
 - **Collection** - `script` (collector path), `invokeMethod`, `requiredParams`, `optionalParams`
 - **Normalization** - `normalizer` (function name under `modules/normalizers/`)
-- **Permissions** - `requiredPermissionTier` (0–6, see tiers below)
+- **Permissions** - `requiredPermissionTier` (0-6, see tiers below)
 - **`install` block** - how `-InstallMissingModules` provisions this tool (see Installer below)
 - **`report` block** - `color` (hex, for per-source bars) and `phase` (grouping hint for HTML + MD reports)
 
@@ -335,7 +334,7 @@ The EntityStore pipeline then canonicalizes IDs, deduplicates on composite key (
 - **Worker pool isolation:** one tool failure does not stop others.
 - **Tool status tracking:** orchestrator writes `tool-status.json` with per-tool Status, Message, and finding count. Reports use this to distinguish success-with-zero-findings from skipped/failed.
 - **Errors are captured:** orchestrator records failures in `errors.json`.
-- **Exit codes:** CI/CD uses 0–3 exit codes (success, policy violation, partial failure, total failure).
+- **Exit codes:** CI/CD uses 0-3 exit codes (success, policy violation, partial failure, total failure).
 - **Checkpoint/resume:** tool results are serialized per scope for long-running scans.
 
 ---

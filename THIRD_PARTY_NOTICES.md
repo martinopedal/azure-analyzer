@@ -116,8 +116,8 @@ equivalent, discoverable notice.
 - **Source:** `modules/Invoke-ADOServiceConnections.ps1` + `modules/normalizers/Normalize-ADOConnections.ps1`
 - **Copyright:** Copyright (c) 2026 martinopedal
 - **License:** MIT License (see [LICENSE](LICENSE))
-- **Upstream APIs consumed:** Azure DevOps REST API (`dev.azure.com/{org}/_apis/serviceendpoint/endpoints`) — used under the [Microsoft Services Agreement](https://azure.microsoft.com/support/legal/) / Azure DevOps Terms of Use. No Azure DevOps source code is redistributed.
-- **Dependencies:** None beyond PowerShell 7.4+ and an ADO PAT (or env var). Native REST collector — no external CLI or module required.
+- **Upstream APIs consumed:** Azure DevOps REST API (`dev.azure.com/{org}/_apis/serviceendpoint/endpoints`) - used under the [Microsoft Services Agreement](https://azure.microsoft.com/support/legal/) / Azure DevOps Terms of Use. No Azure DevOps source code is redistributed.
+- **Dependencies:** None beyond PowerShell 7.4+ and an ADO PAT (or env var). Native REST collector - no external CLI or module required.
 - **Usage:** Invoked automatically when `-AdoOrg` is supplied. Inventories service connections, federation status, authorization schemes, and sharing. Normalized into v3 `FindingRow` + `ServiceConnection` entity.
 
 ## Identity Correlator (first-party)
@@ -132,7 +132,7 @@ equivalent, discoverable notice.
 - **License:** MIT License (see [LICENSE](LICENSE))
 
 ## Unified HTML / Markdown Reports (first-party)
-- **Source:** `New-HtmlReport.ps1`, `New-MdReport.ps1`, `report-template.html`
+- **Source:** `New-HtmlReport.ps1`, `New-MdReport.ps1`
 - **Copyright:** Copyright (c) 2026 martinopedal
 - **License:** MIT License (see [LICENSE](LICENSE))
 
