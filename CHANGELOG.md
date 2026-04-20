@@ -7,6 +7,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 
 - docs: update README tool count to 27 to match current manifest (closes #235)
+- ci: improved CI failure watchdog error extraction to prioritize GitHub Actions annotations (`##[error]`, `::error::`) and fall back to broader exception/exit-code patterns so ci-failure issues include actionable first error lines.
 
 ### Permissions documentation split (closes #252)
 

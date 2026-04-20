@@ -87,3 +87,9 @@ Stored these in `tools/install-manifest.json` with `pinningNote` field per platf
 - Importing a `.psd1` should not dot-source script entry points that execute immediately. For `AzureAnalyzer.psm1`, export wrapper functions that invoke root scripts on demand, and limit import-time dot-sourcing to pure helper modules.
 - PSGallery readiness is manifest-driven: replace placeholder GUIDs before publication and populate `PrivateData.PSData` with `Tags`, `ProjectUri`, `LicenseUri`, and `ReleaseNotes` so the package page is navigable and discoverable.
 
+### 2026-04-20T15:18:09Z: CI-failure batch #260/#261/#262/#264
+
+- Triage complete: all four issues were categorized stale or transient and closed with rationale comments.
+- Root failure pattern observed: watchdog did not capture GitHub annotation lines (`##[error]`) from failed logs.
+- Hardening applied in `.github/workflows/ci-failure-watchdog.yml` to extract actionable first error lines using annotation-first matching and broader fallback patterns.
+- Validation: `Invoke-Pester -Path .\tests -CI` passed (1213 passed, 0 failed, 5 skipped).
