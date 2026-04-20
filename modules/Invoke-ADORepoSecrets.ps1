@@ -14,6 +14,9 @@
     Optional PAT. Falls back to ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, AZ_DEVOPS_PAT.
 .PARAMETER OutputPath
     Optional path to persist raw findings for downstream correlators.
+.PARAMETER GitleaksConfigPath
+    Optional local path to a gitleaks TOML config file for allowlist and rule overrides.
+    Use this for repo-level or org-level pattern tuning after review.
 #>
 [CmdletBinding()]
 param (
@@ -27,7 +30,9 @@ param (
     [Alias('AdoPatToken')]
     [string] $AdoPat,
 
-    [string] $OutputPath
+    [string] $OutputPath,
+
+    [string] $GitleaksConfigPath
 )
 
 Set-StrictMode -Version Latest
@@ -165,6 +170,56 @@ function Resolve-SecretSeverity {
     return 'High'
 }
 
+function Test-GitleaksConfigDisablesDefaults {
+    param (
+        [Parameter(Mandatory)]
+        [string] $ConfigPath
+    )
+
+    $content = Get-Content -Path $ConfigPath -Raw -ErrorAction Stop
+    $extendMatch = [regex]::Match($content, '(?ms)^\s*\[extend\]\s*(?<body>.*?)(?=^\s*\[[^\[]|\z)')
+    if (-not $extendMatch.Success) {
+        return $false
+    }
+
+    $extendBody = [string]$extendMatch.Groups['body'].Value
+    $usesNoDefaults = $extendBody -match '(?im)^\s*useDefault\s*=\s*false\s*$'
+    if (-not $usesNoDefaults) {
+        return $false
+    }
+
+    $hasCustomRules = $content -match '(?m)^\s*\[\[rules\]\]\s*$'
+    return (-not $hasCustomRules)
+}
+
+function Resolve-GitleaksConfig {
+    param (
+        [string] $ConfigPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+        return $null
+    }
+
+    if ($ConfigPath -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
+        throw "Gitleaks config path must be a local file path. URLs are not allowed: '$ConfigPath'"
+    }
+
+    if ([System.IO.Path]::GetExtension($ConfigPath).ToLowerInvariant() -ne '.toml') {
+        throw "Gitleaks config path must point to a .toml file: '$ConfigPath'"
+    }
+
+    if (-not (Test-Path -Path $ConfigPath -PathType Leaf)) {
+        throw "Gitleaks config file not found: '$ConfigPath'"
+    }
+
+    $resolvedConfigPath = Resolve-Path -Path $ConfigPath -ErrorAction Stop | Select-Object -ExpandProperty Path
+    return [PSCustomObject]@{
+        Path                               = $resolvedConfigPath
+        DisablesDefaultsWithoutCustomRules = (Test-GitleaksConfigDisablesDefaults -ConfigPath $resolvedConfigPath)
+    }
+}
+
 function Invoke-GitleaksForRepo {
     param (
         [Parameter(Mandatory)][string]$RepoPath,
@@ -172,7 +227,8 @@ function Invoke-GitleaksForRepo {
         [Parameter(Mandatory)][string]$AdoOrg,
         [Parameter(Mandatory)][string]$AdoProject,
         [Parameter(Mandatory)][string]$RepoName,
-        [Parameter(Mandatory)][string]$RepoId
+        [Parameter(Mandatory)][string]$RepoId,
+        [PSCustomObject] $GitleaksConfig
     )
 
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "ado-gitleaks-$([guid]::NewGuid().ToString('N')).json"
@@ -180,6 +236,9 @@ function Invoke-GitleaksForRepo {
 
     try {
         $args = @('detect', '--source', $RepoPath, '--report-format', 'json', '--report-path', $reportFile, '--no-banner', '--redact', '--exit-code', '0')
+        if ($GitleaksConfig) {
+            $args += @('--config', $GitleaksConfig.Path)
+        }
 
         $exitCode = 0
         if (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) {
@@ -257,6 +316,8 @@ if (-not $pat) {
     }
 }
 
+$resolvedGitleaksConfig = Resolve-GitleaksConfig -ConfigPath $GitleaksConfigPath
+
 if (-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
     return [PSCustomObject]@{
         Source = 'ado-repos-secrets'
@@ -276,6 +337,58 @@ $failedRepos = [System.Collections.Generic.List[string]]::new()
 $failedProjects = [System.Collections.Generic.List[string]]::new()
 
 try {
+    if ($resolvedGitleaksConfig) {
+        $sanitizedConfigPath = Remove-Credentials ([string]$resolvedGitleaksConfig.Path)
+
+        if ($resolvedGitleaksConfig.DisablesDefaultsWithoutCustomRules) {
+            $findings.Add([PSCustomObject]@{
+                    Id                    = [guid]::NewGuid().ToString()
+                    Source                = 'ado-repos-secrets'
+                    Category              = 'Configuration'
+                    Title                 = 'Gitleaks pattern override disables all built-in rules'
+                    Severity              = 'High'
+                    Compliant             = $false
+                    Detail                = (Remove-Credentials "Custom gitleaks config '$sanitizedConfigPath' sets [extend] useDefault = false without custom [[rules]]. This creates a high risk of missed secrets.")
+                    Remediation           = 'Set useDefault = true or add at least one vetted custom [[rules]] entry before ADO scanning.'
+                    ResourceId            = $sanitizedConfigPath
+                    LearnMoreUrl          = 'https://github.com/gitleaks/gitleaks'
+                    SchemaVersion         = '1.0'
+                    AdoOrg                = $AdoOrg
+                    AdoProject            = if ($AdoProject) { $AdoProject } else { '' }
+                    RepositoryName        = ''
+                    RepositoryId          = ''
+                    RepositoryCanonicalId = ''
+                    CommitSha             = ''
+                    FilePath              = ''
+                    SecretType            = 'config-risk'
+                    Confidence            = 'Confirmed'
+                })
+        }
+
+        $findings.Add([PSCustomObject]@{
+                Id                    = [guid]::NewGuid().ToString()
+                Source                = 'ado-repos-secrets'
+                Category              = 'Configuration'
+                Title                 = 'Custom gitleaks config applied'
+                Severity              = 'Info'
+                Compliant             = $true
+                Detail                = (Remove-Credentials "Applied custom gitleaks config for ADO scanning: '$sanitizedConfigPath'.")
+                Remediation           = 'Review allowlist and custom rules regularly to keep secret detection coverage strong.'
+                ResourceId            = $sanitizedConfigPath
+                LearnMoreUrl          = 'https://github.com/gitleaks/gitleaks'
+                SchemaVersion         = '1.0'
+                AdoOrg                = $AdoOrg
+                AdoProject            = if ($AdoProject) { $AdoProject } else { '' }
+                RepositoryName        = ''
+                RepositoryId          = ''
+                RepositoryCanonicalId = ''
+                CommitSha             = ''
+                FilePath              = ''
+                SecretType            = 'config-applied'
+                Confidence            = 'Confirmed'
+            })
+    }
+
     $projects = @()
     if ($AdoProject) {
         $projects = @([PSCustomObject]@{ name = $AdoProject; id = $AdoProject })
@@ -303,7 +416,7 @@ try {
                         continue
                     }
 
-                    $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $AdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId
+                    $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $AdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId -GitleaksConfig $resolvedGitleaksConfig
                     foreach ($finding in $repoFindings) {
                         $finding | Add-Member -NotePropertyName ProjectCanonicalId -NotePropertyValue "ado://$($AdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/project/$($projectId.ToLowerInvariant())" -Force
                         $finding | Add-Member -NotePropertyName RepositoryObjectCanonicalId -NotePropertyValue "ado://$($AdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoId.ToLowerInvariant())" -Force

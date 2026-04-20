@@ -70,6 +70,67 @@ Describe 'Invoke-ADORepoSecrets' {
         }
     }
 
+    Context 'when custom gitleaks config is provided' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            $script:ConfigRoot = Join-Path ([System.IO.Path]::GetTempPath()) "ado-gitleaks-config-$([guid]::NewGuid().ToString('N'))"
+            $null = New-Item -ItemType Directory -Path $script:ConfigRoot -Force
+            $script:ConfigPath = Join-Path $script:ConfigRoot 'ado-allowlist.toml'
+            Set-Content -Path $script:ConfigPath -Value @'
+[extend]
+useDefault = true
+'@ -Encoding UTF8
+
+            Mock Get-Command {
+                if ($Name -eq 'gitleaks') { return [PSCustomObject]@{ Name = 'gitleaks' } }
+                if ($Name -eq 'Invoke-WithTimeout') { return $null }
+                return $null
+            }
+            Mock Invoke-RemoteRepoClone { [PSCustomObject]@{ Path = 'C:\repos\fake'; Cleanup = ({}) } }
+            $global:CapturedGitleaksArgs = @()
+            function global:gitleaks {
+                param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
+                $global:CapturedGitleaksArgs = @($Args)
+                $idx = [Array]::IndexOf($Args, '--report-path')
+                if ($idx -ge 0) {
+                    Set-Content -Path $Args[$idx + 1] -Value '[]' -Encoding UTF8
+                }
+                $global:LASTEXITCODE = 0
+            }
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+                $body = switch -Regex ($Uri) {
+                    '_apis/projects' { '{"value":[{"name":"payments","id":"proj-1"}]}' }
+                    '_apis/git/repositories' { '{"value":[{"name":"payments-api","id":"repo-1"}]}' }
+                    default { throw \"Unexpected URI: $Uri\" }
+                }
+                [PSCustomObject]@{ Content = $body; Headers = @{} }
+            }
+            $result = & $script:Wrapper -AdoOrg 'contoso' -GitleaksConfigPath $script:ConfigPath
+        }
+
+        AfterAll {
+            Remove-Item Function:\gitleaks -ErrorAction SilentlyContinue
+            Remove-Variable -Name CapturedGitleaksArgs -Scope Global -ErrorAction SilentlyContinue
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+            if ($script:ConfigRoot -and (Test-Path $script:ConfigRoot)) {
+                Remove-Item -Path $script:ConfigRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'forwards --config to gitleaks invocation' {
+            $configIndex = [Array]::IndexOf($global:CapturedGitleaksArgs, '--config')
+            $configIndex | Should -BeGreaterThan -1
+            $global:CapturedGitleaksArgs[$configIndex + 1] | Should -Be ((Resolve-Path $script:ConfigPath).Path)
+        }
+
+        It 'emits info finding for the applied config' {
+            $infoFinding = @($result.Findings | Where-Object { $_.Title -eq 'Custom gitleaks config applied' } | Select-Object -First 1)
+            @($infoFinding).Count | Should -Be 1
+            $infoFinding[0].Severity | Should -Be 'Info'
+        }
+    }
+
     Context 'when gitleaks finds multiple secrets' {
         BeforeAll {
             $env:ADO_PAT_TOKEN = 'fake-token'

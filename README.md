@@ -411,6 +411,7 @@ The hook is **opt-in** — developers must run the installer manually. It won't 
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-AdoPat` (`-AdoPatToken`) | string | -- | Optional ADO PAT for ADO-scoped wrappers (otherwise resolved from `ADO_PAT_TOKEN` / `AZURE_DEVOPS_EXT_PAT` / `AZ_DEVOPS_PAT`) |
+| `-GitleaksConfigPath` | string | -- | Optional local `.toml` file with custom gitleaks allowlist/rules. Forwarded to `gitleaks` and `ado-repos-secrets` scanners |
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
@@ -531,6 +532,8 @@ Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](
 > **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
 
 > **Note:** zizmor, gitleaks, Trivy, Bicep IaC Validation, and Terraform IaC Validation are cloud-first. When `-Repository` / `-AdoOrg` is provided they scan the **remote** repo via a vetted HTTPS clone (`modules/shared/RemoteClone.ps1`: allow-listed hosts github.com, dev.azure.com, `*.visualstudio.com`, `*.ghe.com`; auth tokens scrubbed from `.git/config` after clone). When neither is provided they fall back to scanning `-RepoPath` / `-ScanPath` on the local filesystem. gitleaks is invoked with `--redact` so report files never contain plaintext secrets.
+
+> **ADO gitleaks tuning:** `ado-repos-secrets` supports `-GitleaksConfigPath` for org-level and repo-level allowlist/rule overrides. Use a local `.toml` file only, keep `[extend] useDefault = true` unless you provide vetted custom rules, and review [docs/gitleaks-pattern-tuning.md](docs/gitleaks-pattern-tuning.md) for examples.
 
 ## Schema reference
 

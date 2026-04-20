@@ -16,6 +16,9 @@
     Path to the repository to scan. Defaults to the current directory.
 .PARAMETER NoGit
     Switch for scanning non-git directories (uses --no-git flag).
+.PARAMETER GitleaksConfigPath
+    Optional local path to a gitleaks TOML config file.
+    When provided, the wrapper passes --config <path> to gitleaks.
 #>
 [CmdletBinding()]
 param (
@@ -23,7 +26,9 @@ param (
 
     [switch] $NoGit,
 
-    [string] $RemoteUrl
+    [string] $RemoteUrl,
+
+    [string] $GitleaksConfigPath
 )
 
 Set-StrictMode -Version Latest
@@ -49,6 +54,57 @@ function Test-GitleaksInstalled {
     $null -ne (Get-Command gitleaks -ErrorAction SilentlyContinue)
 }
 
+function Test-GitleaksConfigDisablesDefaults {
+    param (
+        [Parameter(Mandatory)]
+        [string] $ConfigPath
+    )
+
+    $content = Get-Content -Path $ConfigPath -Raw -ErrorAction Stop
+    $extendMatch = [regex]::Match($content, '(?ms)^\s*\[extend\]\s*(?<body>.*?)(?=^\s*\[[^\[]|\z)')
+    if (-not $extendMatch.Success) {
+        return $false
+    }
+
+    $extendBody = [string]$extendMatch.Groups['body'].Value
+    $usesNoDefaults = $extendBody -match '(?im)^\s*useDefault\s*=\s*false\s*$'
+    if (-not $usesNoDefaults) {
+        return $false
+    }
+
+    $hasCustomRules = $content -match '(?m)^\s*\[\[rules\]\]\s*$'
+    return (-not $hasCustomRules)
+}
+
+function Resolve-GitleaksConfig {
+    param (
+        [Parameter(Mandatory)]
+        [string] $ConfigPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+        return $null
+    }
+
+    if ($ConfigPath -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
+        throw "Gitleaks config path must be a local file path. URLs are not allowed: '$ConfigPath'"
+    }
+
+    if ([System.IO.Path]::GetExtension($ConfigPath).ToLowerInvariant() -ne '.toml') {
+        throw "Gitleaks config path must point to a .toml file: '$ConfigPath'"
+    }
+
+    if (-not (Test-Path -Path $ConfigPath -PathType Leaf)) {
+        throw "Gitleaks config file not found: '$ConfigPath'"
+    }
+
+    $resolvedConfigPath = Resolve-Path -Path $ConfigPath -ErrorAction Stop | Select-Object -ExpandProperty Path
+    [PSCustomObject]@{
+        Path                                  = $resolvedConfigPath
+        DisablesDefaultsWithoutCustomRules    = (Test-GitleaksConfigDisablesDefaults -ConfigPath $resolvedConfigPath)
+    }
+}
+
 if (-not (Test-GitleaksInstalled)) {
     Write-Warning "gitleaks is not installed. Skipping gitleaks scan. Install from https://github.com/gitleaks/gitleaks/releases"
     return [PSCustomObject]@{
@@ -58,6 +114,11 @@ if (-not (Test-GitleaksInstalled)) {
         Message  = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
     }
+}
+
+$resolvedConfig = $null
+if (-not [string]::IsNullOrWhiteSpace($GitleaksConfigPath)) {
+    $resolvedConfig = Resolve-GitleaksConfig -ConfigPath $GitleaksConfigPath
 }
 
 $cloneInfo = $null
@@ -96,6 +157,9 @@ try {
         $gitleaksArgs = @('detect', '--source', $resolvedPath, '--report-format', 'json', '--report-path', $reportFile, '--no-banner', '--redact', '--exit-code', '0')
         if ($NoGit) {
             $gitleaksArgs += '--no-git'
+        }
+        if ($resolvedConfig) {
+            $gitleaksArgs += @('--config', $resolvedConfig.Path)
         }
 
         $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
@@ -153,6 +217,35 @@ try {
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
+    if ($resolvedConfig) {
+        $sanitizedConfigPath = Remove-Credentials ([string]$resolvedConfig.Path)
+
+        if ($resolvedConfig.DisablesDefaultsWithoutCustomRules) {
+            $findings.Add([PSCustomObject]@{
+                Id           = [guid]::NewGuid().ToString()
+                Category     = 'Configuration'
+                Title        = 'Gitleaks pattern override disables all built-in rules'
+                Severity     = 'High'
+                Compliant    = $false
+                Detail       = Remove-Credentials "Custom gitleaks config '$sanitizedConfigPath' sets [extend] useDefault = false without custom [[rules]]. This creates a high risk of missed secrets."
+                Remediation  = 'Set useDefault = true or add at least one vetted custom [[rules]] entry before scanning.'
+                ResourceId   = $sanitizedConfigPath
+                LearnMoreUrl = 'https://github.com/gitleaks/gitleaks'
+            })
+        }
+
+        $findings.Add([PSCustomObject]@{
+            Id           = [guid]::NewGuid().ToString()
+            Category     = 'Configuration'
+            Title        = 'Custom gitleaks config applied'
+            Severity     = 'Info'
+            Compliant    = $true
+            Detail       = Remove-Credentials "Applied custom gitleaks config: '$sanitizedConfigPath'."
+            Remediation  = 'Review custom allowlist and rule overrides regularly to keep secret detection coverage strong.'
+            ResourceId   = $sanitizedConfigPath
+            LearnMoreUrl = 'https://github.com/gitleaks/gitleaks'
+        })
+    }
 
     $items = if ($json -is [System.Collections.IEnumerable] -and $json -isnot [string]) {
         @($json)
