@@ -1,7 +1,7 @@
 {
   "metadata": {
     "name": "FinOps - Idle App Service Plans",
-    "description": "Detect App Service Plans with no apps deployed. CPU-based <1%/30d detection is deferred to a future Monitor metrics correlator.",
+    "description": "Detect App Service Plans with no apps deployed. The wrapper also evaluates a CPU-based idle signal (<5% average over 30 days) via Azure Monitor metrics.",
     "version": "1.0.0"
   },
   "queries": [

@@ -170,6 +170,18 @@ function Get-CostMap {
     }
 }
 
+function Get-EstimatedMonthlyCost {
+    param (
+        [string] $ResourceId,
+        [hashtable] $CostMap
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ResourceId)) { return 0.0 }
+    $costKey = $ResourceId.ToLowerInvariant()
+    if (-not $CostMap.ContainsKey($costKey)) { return 0.0 }
+    return [math]::Round([double]$CostMap[$costKey], 2)
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'finops'
@@ -266,13 +278,7 @@ foreach ($queryFile in $QueryFiles) {
                 $rawSeverity = if ($queryItem.PSObject.Properties['severity'] -and $queryItem.severity) { [string]$queryItem.severity } else { 'Info' }
                 $ruleId = if ($queryItem.PSObject.Properties['ruleId'] -and $queryItem.ruleId) { [string]$queryItem.ruleId } else { '' }
 
-                $estimatedMonthlyCost = 0.0
-                if (-not [string]::IsNullOrWhiteSpace($resourceId)) {
-                    $costKey = $resourceId.ToLowerInvariant()
-                    if ($costMap.ContainsKey($costKey)) {
-                        $estimatedMonthlyCost = [math]::Round([double]$costMap[$costKey], 2)
-                    }
-                }
+                $estimatedMonthlyCost = Get-EstimatedMonthlyCost -ResourceId $resourceId -CostMap $costMap
                 $costDetail = if ($estimatedMonthlyCost -gt 0) {
                     " Estimated waste: $estimatedMonthlyCost $currency/mo."
                 } else {
@@ -307,6 +313,124 @@ foreach ($queryFile in $QueryFiles) {
     } catch {
         $queryErrors.Add((Remove-Credentials -Text "Query file $queryFile failed: $([string]$_.Exception.Message)")) | Out-Null
     }
+}
+
+try {
+    $metricWindowEnd = (Get-Date).ToUniversalTime()
+    $metricWindowStart = $metricWindowEnd.AddDays(-30)
+    $serverFarmQuery = "resources | where type =~ 'microsoft.web/serverfarms' | project id, name, type, resourceGroup, subscriptionId, location"
+    $appServicePlans = @(Invoke-SearchAzGraphAllResults -Query $serverFarmQuery -SubscriptionId $SubscriptionId)
+    $cpuMetricName = 'CpuPercentage'
+    $metricTimeGrain = [timespan]::FromDays(1)
+    $canCollectMetrics = $null -ne (Get-Command Get-AzMetric -ErrorAction SilentlyContinue)
+
+    foreach ($plan in $appServicePlans) {
+        if (-not $plan) { continue }
+        $resourceId = if ($plan.PSObject.Properties['id']) { [string]$plan.id } else { '' }
+        if ([string]::IsNullOrWhiteSpace($resourceId)) { continue }
+
+        $resourceName = if ($plan.PSObject.Properties['name']) { [string]$plan.name } else { '' }
+        $resourceType = if ($plan.PSObject.Properties['type']) { [string]$plan.type } else { 'microsoft.web/serverfarms' }
+        $resourceGroup = if ($plan.PSObject.Properties['resourceGroup']) { [string]$plan.resourceGroup } else { '' }
+        $location = if ($plan.PSObject.Properties['location']) { [string]$plan.location } else { '' }
+        $estimatedMonthlyCost = Get-EstimatedMonthlyCost -ResourceId $resourceId -CostMap $costMap
+        $costDetail = if ($estimatedMonthlyCost -gt 0) {
+            " Estimated waste: $estimatedMonthlyCost $currency/mo."
+        } else {
+            ' Estimated waste unavailable from Cost Management data.'
+        }
+
+        if (-not $canCollectMetrics) {
+            $findings.Add([PSCustomObject]@{
+                    Id                   = "finops/AppServicePlanIdleCpuMetricsDegraded/$($resourceId.ToLowerInvariant())"
+                    Source               = 'finops'
+                    Category             = 'Cost'
+                    Severity             = 'Info'
+                    RuleId               = 'finops-appserviceplan-idle-cpu'
+                    Compliant            = $false
+                    Title                = 'App Service Plan CPU signal collection degraded'
+                    Detail               = "Could not collect Azure Monitor CPU metrics for this App Service Plan because Get-AzMetric is unavailable. Install Az.Monitor or use az monitor metrics list for CpuPercentage.$costDetail"
+                    ResourceId           = $resourceId
+                    ResourceType         = $resourceType
+                    ResourceName         = $resourceName
+                    ResourceGroup        = $resourceGroup
+                    SubscriptionId       = $SubscriptionId
+                    Location             = $location
+                    DetectionCategory    = 'AppServicePlanIdleCpuMetricsDegraded'
+                    EstimatedMonthlyCost = $estimatedMonthlyCost
+                    Currency             = $currency
+                    LearnMoreUrl         = 'https://learn.microsoft.com/azure/azure-monitor/essentials/metrics-supported#microsoftwebserverfarms'
+                    QueryId              = 'AppServicePlanIdleCpu'
+                }) | Out-Null
+            continue
+        }
+
+        try {
+            $metricResult = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 30 -ScriptBlock {
+                Get-AzMetric -ResourceId $resourceId -MetricName $cpuMetricName -TimeGrain $metricTimeGrain -StartTime $metricWindowStart -EndTime $metricWindowEnd -AggregationType Average -ErrorAction Stop
+            }
+            $samples = [System.Collections.Generic.List[double]]::new()
+            $metricData = @()
+            if ($metricResult -and $metricResult.PSObject.Properties['Data']) {
+                $metricData = @($metricResult.Data)
+            }
+            foreach ($sample in $metricData) {
+                if (-not $sample -or $null -eq $sample.Average) { continue }
+                try { $samples.Add([double]$sample.Average) | Out-Null } catch { }
+            }
+            if ($samples.Count -eq 0) { continue }
+
+            $cpuAverage = [math]::Round((($samples | Measure-Object -Average).Average), 2)
+            if ($cpuAverage -ge 5.0) { continue }
+
+            $findings.Add([PSCustomObject]@{
+                    Id                   = "finops/AppServicePlanIdleCpu/$($resourceId.ToLowerInvariant())"
+                    Source               = 'finops'
+                    Category             = 'Cost'
+                    Severity             = 'Low'
+                    RuleId               = 'finops-appserviceplan-idle-cpu'
+                    Compliant            = $false
+                    Title                = 'App Service Plan CPU average below 5% over 30 days'
+                    Detail               = "App Service Plan CPU average is $cpuAverage% over the last 30 days (threshold <5%). The plan may be oversized or idle.$costDetail"
+                    ResourceId           = $resourceId
+                    ResourceType         = $resourceType
+                    ResourceName         = $resourceName
+                    ResourceGroup        = $resourceGroup
+                    SubscriptionId       = $SubscriptionId
+                    Location             = $location
+                    DetectionCategory    = 'AppServicePlanIdleCpu'
+                    EstimatedMonthlyCost = $estimatedMonthlyCost
+                    Currency             = $currency
+                    LearnMoreUrl         = 'https://learn.microsoft.com/azure/app-service/overview-manage-costs'
+                    QueryId              = 'AppServicePlanIdleCpu'
+                }) | Out-Null
+        } catch {
+            $metricError = Remove-Credentials -Text ([string]$_.Exception.Message)
+            $findings.Add([PSCustomObject]@{
+                    Id                   = "finops/AppServicePlanIdleCpuMetricsDegraded/$($resourceId.ToLowerInvariant())"
+                    Source               = 'finops'
+                    Category             = 'Cost'
+                    Severity             = 'Info'
+                    RuleId               = 'finops-appserviceplan-idle-cpu'
+                    Compliant            = $false
+                    Title                = 'App Service Plan CPU signal collection degraded'
+                    Detail               = "Could not collect Azure Monitor CpuPercentage metrics for the last 30 days. Continuing without this signal. Details: $metricError$costDetail"
+                    ResourceId           = $resourceId
+                    ResourceType         = $resourceType
+                    ResourceName         = $resourceName
+                    ResourceGroup        = $resourceGroup
+                    SubscriptionId       = $SubscriptionId
+                    Location             = $location
+                    DetectionCategory    = 'AppServicePlanIdleCpuMetricsDegraded'
+                    EstimatedMonthlyCost = $estimatedMonthlyCost
+                    Currency             = $currency
+                    LearnMoreUrl         = 'https://learn.microsoft.com/azure/azure-monitor/metrics/metrics-troubleshoot'
+                    QueryId              = 'AppServicePlanIdleCpu'
+                }) | Out-Null
+        }
+    }
+} catch {
+    $queryErrors.Add((Remove-Credentials -Text "App Service Plan CPU signal discovery failed: $([string]$_.Exception.Message)")) | Out-Null
 }
 
 $result.Findings = @($findings)
