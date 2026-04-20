@@ -103,6 +103,10 @@ jobs:
         run: |
           pwsh -File scripts/Generate-ToolCatalog.ps1 -CheckOnly
           if ($LASTEXITCODE -ne 0) {
+            Write-Host "::group::Tool catalog manifest projection diff"
+            pwsh -File scripts/Generate-ToolCatalog.ps1
+            git --no-pager diff -- docs/consumer/tool-catalog.md docs/contributor/tool-catalog.md
+            Write-Host "::endgroup::"
             Write-Host "::error::docs/consumer/tool-catalog.md or docs/contributor/tool-catalog.md is stale."
             Write-Host "::error::Run 'pwsh -File scripts/Generate-ToolCatalog.ps1' and commit the result."
             exit 1

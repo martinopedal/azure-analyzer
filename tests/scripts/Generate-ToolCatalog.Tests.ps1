@@ -109,6 +109,28 @@ Describe 'Generate-ToolCatalog' {
             $exitCode | Should -Be 0
         }
 
+        It 'committed catalogs match the current manifest projection exactly' {
+            $tempConsumer = Join-Path ([System.IO.Path]::GetTempPath()) ("verify-consumer-{0}.md" -f ([Guid]::NewGuid()))
+            $tempContrib  = Join-Path ([System.IO.Path]::GetTempPath()) ("verify-contrib-{0}.md" -f ([Guid]::NewGuid()))
+            try {
+                & $script:ScriptPath `
+                    -ManifestPath $script:ManifestPath `
+                    -ConsumerOutPath $tempConsumer `
+                    -ContributorOutPath $tempContrib | Out-Null
+
+                $committedConsumer = (Get-Content -LiteralPath $script:ConsumerPath -Raw) -replace "`r`n", "`n"
+                $generatedConsumer = (Get-Content -LiteralPath $tempConsumer -Raw) -replace "`r`n", "`n"
+                $committedContrib  = (Get-Content -LiteralPath $script:ContribPath -Raw) -replace "`r`n", "`n"
+                $generatedContrib  = (Get-Content -LiteralPath $tempContrib -Raw) -replace "`r`n", "`n"
+
+                $committedConsumer | Should -Be $generatedConsumer
+                $committedContrib  | Should -Be $generatedContrib
+            } finally {
+                Remove-Item -LiteralPath $tempConsumer -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath $tempContrib -Force -ErrorAction SilentlyContinue
+            }
+        }
+
         It 'CheckOnly fails when the committed file is stale' {
             $tempStale = Join-Path ([System.IO.Path]::GetTempPath()) ("stale-{0}.md" -f ([Guid]::NewGuid()))
             $tempContrib = Join-Path ([System.IO.Path]::GetTempPath()) ("stale-contrib-{0}.md" -f ([Guid]::NewGuid()))
