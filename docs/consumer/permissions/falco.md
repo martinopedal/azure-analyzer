@@ -14,7 +14,11 @@
 ## Local CLI requirements
 
 - Query mode: none beyond `az` for subscription auth.
-- Install mode: `helm`, `kubectl`, `az`.
+- Install mode: `helm`, `kubectl`. `az` is required only when `-KubeconfigPath` is **not** supplied (otherwise AKS discovery and `az aks get-credentials` are skipped).
+
+## Auth context
+
+`-KubeconfigPath` (orchestrator or wrapper) controls which cluster Falco install mode targets. Query mode is unaffected by `-KubeconfigPath` because it reads Azure-side alerts, not cluster state. The Helm release namespace and `kubectl logs` namespace come from `-Namespace` (default `falco`). See [`docs/consumer/k8s-auth.md`](../k8s-auth.md).
 
 ## What it does with these permissions
 

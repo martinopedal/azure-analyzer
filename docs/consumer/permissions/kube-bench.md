@@ -13,7 +13,11 @@
 
 ## Local CLI requirements
 
-`kubectl` and `az` must be on PATH.
+`kubectl` must be on PATH. `az` is required only when `-KubeconfigPath` is **not** supplied (otherwise AKS discovery and `az aks get-credentials` are skipped).
+
+## Auth context
+
+`-KubeconfigPath` controls which cluster the temporary kube-bench Job lands in. `-Namespace` selects the Job namespace (default `kube-system`). See [`docs/consumer/k8s-auth.md`](../k8s-auth.md).
 
 ## What it does with these permissions
 

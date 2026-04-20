@@ -10,6 +10,19 @@
     checks to v1 findings that fold onto the AKS cluster ARM resource ID.
 
     Job resources and temporary kubeconfig/manifest files are always cleaned up.
+
+.PARAMETER KubeconfigPath
+    Optional path to an existing kubeconfig file. When provided, skips
+    Azure Resource Graph discovery and `az aks get-credentials`, and
+    runs a single kube-bench Job against the cluster reachable via this
+    kubeconfig. The file MUST exist when set explicitly; URLs are rejected.
+
+.PARAMETER KubeContext
+    Optional kubeconfig context name passed to `kubectl --context`.
+
+.PARAMETER Namespace
+    Namespace where the temporary kube-bench Job is created and logs
+    are collected from. Default 'kube-system'.
 #>
 [CmdletBinding()]
 param (
@@ -18,7 +31,10 @@ param (
     [string] $OutputPath,
     [ValidateRange(60, 3600)]
     [int] $JobTimeoutSeconds = 600,
-    [string] $KubeBenchImage = 'aquasec/kube-bench:v0.7.2'
+    [string] $KubeBenchImage = 'aquasec/kube-bench:v0.7.2',
+    [string] $KubeconfigPath,
+    [string] $KubeContext,
+    [string] $Namespace = 'kube-system'
 )
 
 Set-StrictMode -Version Latest
@@ -114,19 +130,51 @@ $result = [ordered]@{
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
 
+$kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
+                           $PSBoundParameters.ContainsKey('KubeContext')
+$resolvedKubeconfig = $null
+if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
+    if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
+        throw "Invalid -KubeconfigPath: value is empty."
+    }
+    if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
+        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path."
+    }
+    if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
+        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist."
+    }
+    $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
+} elseif ($kubeconfigModeRequested) {
+    $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        throw "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG."
+    }
+    $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
+}
+
 if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
     $result.Status  = 'Skipped'
     $result.Message = 'kubectl not installed. kube-bench runtime job requires kubectl to access AKS.'
     return [pscustomobject]$result
 }
-if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+
+if (-not $kubeconfigModeRequested -and -not (Get-Command az -ErrorAction SilentlyContinue)) {
     $result.Status  = 'Skipped'
-    $result.Message = 'az CLI not installed. Required to populate AKS kubeconfig context.'
+    $result.Message = 'az CLI not installed. Required to populate AKS kubeconfig context (skip by passing -KubeconfigPath).'
     return [pscustomobject]$result
 }
 
 $clusters = @()
-if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
+if ($kubeconfigModeRequested) {
+    $synthName = if ($KubeContext) { $KubeContext } else { 'kubeconfig-default' }
+    $clusters += [pscustomobject]@{
+        id              = "kubeconfig:$synthName"
+        resourceGroup   = ''
+        name            = $synthName
+        kubeconfigPath  = $resolvedKubeconfig
+        kubeContext     = $KubeContext
+    }
+} elseif ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
     foreach ($id in $ClusterArmIds) {
         $rg    = if ($id -match '/resourceGroups/([^/]+)') { $Matches[1] } else { '' }
         $name  = Split-Path $id -Leaf
@@ -167,45 +215,59 @@ $scanned  = 0
 $failed   = 0
 
 foreach ($cluster in $clusters) {
-    # Defense-in-depth: reject resources whose names contain shell metacharacters.
-    # Azure RG names allow [A-Za-z0-9._()-]; AKS cluster names allow [A-Za-z0-9-].
-    if ($cluster.resourceGroup -notmatch '^[A-Za-z0-9._()-]{1,90}$' -or
-        $cluster.name          -notmatch '^[A-Za-z0-9-]{1,63}$') {
-        Write-Warning "Skipping cluster with unsafe name/resourceGroup: $($cluster.name) in $($cluster.resourceGroup)"
-        $failed++
-        continue
+    $isKubeconfigMode = $false
+    if ($cluster.PSObject.Properties['kubeconfigPath'] -and $cluster.kubeconfigPath) {
+        $isKubeconfigMode = $true
     }
 
-    $context = "kb-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
-    $tmpKubeconfig = $null
+    if (-not $isKubeconfigMode) {
+        # Defense-in-depth: reject resources whose names contain shell metacharacters.
+        # Azure RG names allow [A-Za-z0-9._()-]; AKS cluster names allow [A-Za-z0-9-].
+        if ($cluster.resourceGroup -notmatch '^[A-Za-z0-9._()-]{1,90}$' -or
+            $cluster.name          -notmatch '^[A-Za-z0-9-]{1,63}$') {
+            Write-Warning "Skipping cluster with unsafe name/resourceGroup: $($cluster.name) in $($cluster.resourceGroup)"
+            $failed++
+            continue
+        }
+    }
+
+    if ($isKubeconfigMode) {
+        $context       = $cluster.kubeContext
+        $tmpKubeconfig = $cluster.kubeconfigPath
+    } else {
+        $context = "kb-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+        $tmpKubeconfig = $null
+    }
     $jobManifest = $null
     $jobName = "aa-kube-bench-$([guid]::NewGuid().ToString('N').Substring(0,8))"
     $jobApplied = $false
     $rawLogsPath = $null
 
     try {
-        $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
-        $azArgs = @('aks', 'get-credentials',
-            '--subscription', $SubscriptionId,
-            '--resource-group', $cluster.resourceGroup,
-            '--name', $cluster.name,
-            '--file', $tmpKubeconfig,
-            '--context', $context,
-            '--overwrite-existing',
-            '--only-show-errors')
-        & az @azArgs 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            $failed++
-            continue
+        if (-not $isKubeconfigMode) {
+            $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
+            $azArgs = @('aks', 'get-credentials',
+                '--subscription', $SubscriptionId,
+                '--resource-group', $cluster.resourceGroup,
+                '--name', $cluster.name,
+                '--file', $tmpKubeconfig,
+                '--context', $context,
+                '--overwrite-existing',
+                '--only-show-errors')
+            & az @azArgs 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                $failed++
+                continue
+            }
         }
 
-        $jobManifest = Join-Path ([System.IO.Path]::GetTempPath()) "kube-bench-$context-job.yaml"
+        $jobManifest = Join-Path ([System.IO.Path]::GetTempPath()) "kube-bench-$jobName-job.yaml"
         @"
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: $jobName
-  namespace: kube-system
+  namespace: $Namespace
 spec:
   backoffLimit: 0
   template:
@@ -230,15 +292,18 @@ spec:
 
         $env:KUBECONFIG = $tmpKubeconfig
 
-        & kubectl --context $context apply -f $jobManifest 2>&1 | Out-Null
+        $kctxArgs = @()
+        if ($context) { $kctxArgs += @('--context', $context) }
+
+        & kubectl @kctxArgs apply -f $jobManifest 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
             $failed++
             continue
         }
         $jobApplied = $true
 
-        & kubectl --context $context -n kube-system wait --for=condition=complete "job/$jobName" --timeout="$($JobTimeoutSeconds)s" 2>&1 | Out-Null
-        & kubectl --context $context -n kube-system logs "job/$jobName" 2>&1 | Set-Variable -Name kubeBenchLogs
+        & kubectl @kctxArgs -n $Namespace wait --for=condition=complete "job/$jobName" --timeout="$($JobTimeoutSeconds)s" 2>&1 | Out-Null
+        & kubectl @kctxArgs -n $Namespace logs "job/$jobName" 2>&1 | Set-Variable -Name kubeBenchLogs
         if ([string]::IsNullOrWhiteSpace($kubeBenchLogs)) {
             $failed++
             continue
@@ -282,12 +347,14 @@ spec:
         Write-Warning "kube-bench scan failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     } finally {
         if ($jobApplied) {
-            & kubectl --context $context -n kube-system delete "job/$jobName" --ignore-not-found=true 2>&1 | Out-Null
+            $delArgs = @()
+            if ($context) { $delArgs += @('--context', $context) }
+            & kubectl @delArgs -n $Namespace delete "job/$jobName" --ignore-not-found=true 2>&1 | Out-Null
         }
         if ($jobManifest -and (Test-Path $jobManifest)) {
             try { Remove-Item $jobManifest -Force -ErrorAction SilentlyContinue } catch {}
         }
-        if ($tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
+        if (-not $isKubeconfigMode -and $tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
             try { Remove-Item $tmpKubeconfig -Force -ErrorAction SilentlyContinue } catch {}
         }
         if ($env:KUBECONFIG) { Remove-Item Env:\KUBECONFIG -ErrorAction SilentlyContinue }

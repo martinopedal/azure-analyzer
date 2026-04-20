@@ -7,4 +7,5 @@ All advanced consumer docs live here. The root `README.md` is your starting poin
 - [continuous-control.md](continuous-control.md) - Continuous control monitoring patterns and integration guidance.
 - [ai-triage.md](ai-triage.md) - AI-assisted finding triage workflow and prompt design.
 - [gitleaks-pattern-tuning.md](gitleaks-pattern-tuning.md) - Tuning gitleaks rule patterns to cut false positives.
+- [k8s-auth.md](k8s-auth.md) - Targeting Kubernetes wrappers (kubescape, falco, kube-bench) with explicit `-KubeconfigPath` / `-KubeContext` / per-tool namespace params.
 - [sinks/log-analytics.md](sinks/log-analytics.md) - Streaming azure-analyzer findings into Azure Log Analytics.

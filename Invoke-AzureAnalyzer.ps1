@@ -124,6 +124,11 @@ param (
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
     [int] $FalcoCaptureMinutes = 5,
+    [string] $KubeconfigPath,
+    [string] $KubeContext,
+    [string] $KubescapeNamespace = '',
+    [string] $FalcoNamespace = 'falco',
+    [string] $KubeBenchNamespace = 'kube-system',
     [string] $SentinelWorkspaceId,
     [ValidateRange(1, 365)]
     [int] $SentinelLookbackDays = 30,
@@ -656,6 +661,19 @@ foreach ($toolDef in $manifest.tools) {
                     if ($InstallFalco)  { $params['InstallFalco'] = $true }
                     if ($UninstallFalco) { $params['UninstallFalco'] = $true }
                     $params['CaptureMinutes'] = $FalcoCaptureMinutes
+                    if ($PSBoundParameters.ContainsKey('KubeconfigPath')) { $params['KubeconfigPath'] = $KubeconfigPath }
+                    if ($PSBoundParameters.ContainsKey('KubeContext'))    { $params['KubeContext']    = $KubeContext }
+                    if ($PSBoundParameters.ContainsKey('FalcoNamespace')) { $params['Namespace']      = $FalcoNamespace }
+                }
+                if ($toolDef.name -eq 'kubescape') {
+                    if ($PSBoundParameters.ContainsKey('KubeconfigPath'))      { $params['KubeconfigPath'] = $KubeconfigPath }
+                    if ($PSBoundParameters.ContainsKey('KubeContext'))         { $params['KubeContext']    = $KubeContext }
+                    if ($PSBoundParameters.ContainsKey('KubescapeNamespace'))  { $params['Namespace']      = $KubescapeNamespace }
+                }
+                if ($toolDef.name -eq 'kube-bench') {
+                    if ($PSBoundParameters.ContainsKey('KubeconfigPath'))     { $params['KubeconfigPath'] = $KubeconfigPath }
+                    if ($PSBoundParameters.ContainsKey('KubeContext'))        { $params['KubeContext']    = $KubeContext }
+                    if ($PSBoundParameters.ContainsKey('KubeBenchNamespace')) { $params['Namespace']      = $KubeBenchNamespace }
                 }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{

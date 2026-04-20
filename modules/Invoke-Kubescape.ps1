@@ -26,12 +26,32 @@
 
 .PARAMETER OutputPath
     Optional directory for per-cluster raw kubescape JSON (for audit).
+
+.PARAMETER KubeconfigPath
+    Optional path to an existing kubeconfig file. When provided, the wrapper
+    skips Azure Resource Graph discovery and `az aks get-credentials`, and
+    runs a single kubescape scan against the cluster reachable via this
+    kubeconfig (kubeconfig mode). Defaults: $env:KUBECONFIG, then
+    $HOME/.kube/config when -KubeContext is supplied without a path.
+    The file MUST exist when set explicitly; URLs are rejected.
+
+.PARAMETER KubeContext
+    Optional kubeconfig context name. In kubeconfig mode passed to
+    kubescape via `--kube-context`. In AKS-discovery mode ignored
+    (per-cluster contexts are generated automatically).
+
+.PARAMETER Namespace
+    Optional namespace filter forwarded to kubescape via
+    `--include-namespaces`. Default empty (scan all namespaces).
 #>
 [CmdletBinding()]
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
-    [string] $OutputPath
+    [string] $OutputPath,
+    [string] $KubeconfigPath,
+    [string] $KubeContext,
+    [string] $Namespace = ''
 )
 
 Set-StrictMode -Version Latest
@@ -59,6 +79,32 @@ $result = [ordered]@{
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
 
+# Determine auth mode early. Explicit -KubeconfigPath (or just -KubeContext)
+# enables "kubeconfig mode" (BYO cluster, no AKS discovery / get-credentials).
+$kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
+                           $PSBoundParameters.ContainsKey('KubeContext')
+
+$resolvedKubeconfig = $null
+if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
+    if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
+        throw "Invalid -KubeconfigPath: value is empty."
+    }
+    if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
+        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path."
+    }
+    if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
+        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist."
+    }
+    $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
+} elseif ($kubeconfigModeRequested) {
+    # -KubeContext supplied but no -KubeconfigPath: fall back to env / default.
+    $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        throw "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG."
+    }
+    $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
+}
+
 # --- Tool prereqs ---
 if (-not (Get-Command kubescape -ErrorAction SilentlyContinue)) {
     $result.Status  = 'Skipped'
@@ -70,15 +116,27 @@ if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
     $result.Message = 'kubectl not installed. kubescape requires kubectl to reach cluster API.'
     return [pscustomobject]$result
 }
-if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+if (-not $kubeconfigModeRequested -and -not (Get-Command az -ErrorAction SilentlyContinue)) {
     $result.Status  = 'Skipped'
-    $result.Message = 'az CLI not installed. Required to populate AKS kubeconfig context.'
+    $result.Message = 'az CLI not installed. Required to populate AKS kubeconfig context (skip by passing -KubeconfigPath).'
     return [pscustomobject]$result
 }
 
-# --- Discover AKS clusters via ARG (unless explicit list provided) ---
+# --- Discover AKS clusters via ARG (unless explicit list provided, or kubeconfig mode) ---
 $clusters = @()
-if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
+if ($kubeconfigModeRequested) {
+    # Synthetic single "cluster" backed by the user-supplied kubeconfig.
+    $synthName = if ($KubeContext) { $KubeContext } else { 'kubeconfig-default' }
+    $synthId   = "kubeconfig:$synthName"
+    $clusters += [pscustomobject]@{
+        id              = $synthId
+        resourceGroup   = ''
+        name            = $synthName
+        kubeconfigPath  = $resolvedKubeconfig
+        kubeContext     = $KubeContext
+        kubeconfigOwned = $false   # do NOT delete user-supplied kubeconfig
+    }
+} elseif ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
     foreach ($id in $ClusterArmIds) {
         $rg    = if ($id -match '/resourceGroups/([^/]+)') { $Matches[1] } else { '' }
         $name  = Split-Path $id -Leaf
@@ -119,32 +177,49 @@ if ($OutputPath -and -not (Test-Path $OutputPath)) {
 }
 
 foreach ($cluster in $clusters) {
-    $context = "ks-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+    $isKubeconfigMode = $false
+    if ($cluster.PSObject.Properties['kubeconfigPath'] -and $cluster.kubeconfigPath) {
+        $isKubeconfigMode = $true
+    }
+    $contextForScan = $null
+    $tmpKubeconfig  = $null
+    if ($isKubeconfigMode) {
+        $tmpKubeconfig  = $cluster.kubeconfigPath
+        $contextForScan = $cluster.kubeContext
+    } else {
+        $context = "ks-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+        $contextForScan = $context
+    }
     try {
-        # Isolated kubeconfig context per cluster — avoid cross-cluster pollution.
-        $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
-        $azArgs = @('aks', 'get-credentials',
-                    '--subscription', $SubscriptionId,
-                    '--resource-group', $cluster.resourceGroup,
-                    '--name', $cluster.name,
-                    '--file', $tmpKubeconfig,
-                    '--context', $context,
-                    '--overwrite-existing',
-                    '--only-show-errors')
-        & az @azArgs 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            $failed++
-            continue
+        if (-not $isKubeconfigMode) {
+            # Isolated kubeconfig context per cluster — avoid cross-cluster pollution.
+            $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
+            $azArgs = @('aks', 'get-credentials',
+                        '--subscription', $SubscriptionId,
+                        '--resource-group', $cluster.resourceGroup,
+                        '--name', $cluster.name,
+                        '--file', $tmpKubeconfig,
+                        '--context', $context,
+                        '--overwrite-existing',
+                        '--only-show-errors')
+            & az @azArgs 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                $failed++
+                continue
+            }
         }
 
         $rawFile = if ($OutputPath) {
             Join-Path $OutputPath "kubescape-$($cluster.name)-$(Get-Date -Format yyyyMMddHHmmss).json"
         } else {
-            Join-Path ([System.IO.Path]::GetTempPath()) "kubescape-$context.json"
+            Join-Path ([System.IO.Path]::GetTempPath()) "kubescape-$([guid]::NewGuid().ToString('N').Substring(0,8)).json"
         }
 
         $env:KUBECONFIG = $tmpKubeconfig
-        & kubescape scan --kube-context $context --format json --output $rawFile --format-version v2 2>&1 | Out-Null
+        $ksArgs = @('scan', '--format', 'json', '--output', $rawFile, '--format-version', 'v2')
+        if ($contextForScan) { $ksArgs += @('--kube-context', $contextForScan) }
+        if ($Namespace)      { $ksArgs += @('--include-namespaces', $Namespace) }
+        & kubescape @ksArgs 2>&1 | Out-Null
         $scanExit = $LASTEXITCODE
 
         if ((Test-Path $rawFile) -and ((Get-Item $rawFile).Length -gt 0)) {
@@ -190,7 +265,8 @@ foreach ($cluster in $clusters) {
         Write-Warning "kubescape scan failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     } finally {
         # Remove the isolated kubeconfig to avoid leaking cluster auth.
-        if ($tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
+        # In kubeconfig mode the path was supplied by the caller; do not delete it.
+        if (-not $isKubeconfigMode -and $tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
             try { Remove-Item $tmpKubeconfig -Force -ErrorAction SilentlyContinue } catch {}
         }
         if ($env:KUBECONFIG) { Remove-Item Env:\KUBECONFIG -ErrorAction SilentlyContinue }

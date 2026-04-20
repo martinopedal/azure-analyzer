@@ -21,6 +21,21 @@
 
 .PARAMETER UninstallFalco
     In install mode, uninstall the Falco Helm release after collection.
+
+.PARAMETER KubeconfigPath
+    Optional path to an existing kubeconfig file. In install mode this
+    skips Azure Resource Graph discovery and `az aks get-credentials`,
+    and targets the cluster reachable via this kubeconfig. Ignored in
+    query mode (query mode reads Azure-side alerts, not cluster state).
+    The file MUST exist when set explicitly; URLs are rejected.
+
+.PARAMETER KubeContext
+    Optional kubeconfig context name passed to `helm` and `kubectl`
+    via `--kube-context` / `--context` in install mode.
+
+.PARAMETER Namespace
+    Namespace used in install mode for the Falco Helm release and the
+    `kubectl logs daemonset/falco` collection. Default 'falco'.
 #>
 [CmdletBinding()]
 param (
@@ -28,7 +43,10 @@ param (
     [string[]] $ClusterArmIds,
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
-    [ValidateRange(1, 60)] [int] $CaptureMinutes = 5
+    [ValidateRange(1, 60)] [int] $CaptureMinutes = 5,
+    [string] $KubeconfigPath,
+    [string] $KubeContext,
+    [string] $Namespace = 'falco'
 )
 
 Set-StrictMode -Version Latest
@@ -56,23 +74,61 @@ $result = [ordered]@{
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
 
-if (-not (Get-Module -ListAvailable -Name Az.ResourceGraph)) {
-    $result.Status  = 'Skipped'
-    $result.Message = 'Az.ResourceGraph module not installed; cannot discover AKS clusters or query alerts.'
-    return [pscustomobject]$result
+# Validate -KubeconfigPath up front (applies to install mode; in query mode the
+# file is not used but we still reject obviously broken values to keep the
+# param contract consistent across wrappers).
+$kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
+                           $PSBoundParameters.ContainsKey('KubeContext')
+$resolvedKubeconfig = $null
+if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
+    if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
+        throw "Invalid -KubeconfigPath: value is empty."
+    }
+    if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
+        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path."
+    }
+    if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
+        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist."
+    }
+    $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
+} elseif ($kubeconfigModeRequested) {
+    $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+        throw "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG."
+    }
+    $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
 }
-Import-Module Az.ResourceGraph -ErrorAction SilentlyContinue
 
-try {
-    $null = Get-AzContext -ErrorAction Stop
-} catch {
-    $result.Status  = 'Skipped'
-    $result.Message = 'Not signed in. Run Connect-AzAccount first.'
-    return [pscustomobject]$result
+$installKubeconfigMode = $InstallFalco -and $kubeconfigModeRequested
+
+if (-not $installKubeconfigMode) {
+    if (-not (Get-Module -ListAvailable -Name Az.ResourceGraph)) {
+        $result.Status  = 'Skipped'
+        $result.Message = 'Az.ResourceGraph module not installed; cannot discover AKS clusters or query alerts.'
+        return [pscustomobject]$result
+    }
+    Import-Module Az.ResourceGraph -ErrorAction SilentlyContinue
+
+    try {
+        $null = Get-AzContext -ErrorAction Stop
+    } catch {
+        $result.Status  = 'Skipped'
+        $result.Message = 'Not signed in. Run Connect-AzAccount first.'
+        return [pscustomobject]$result
+    }
 }
 
 $clusters = @()
-if ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
+if ($installKubeconfigMode) {
+    $synthName = if ($KubeContext) { $KubeContext } else { 'kubeconfig-default' }
+    $clusters += [pscustomobject]@{
+        id              = "kubeconfig:$synthName"
+        resourceGroup   = ''
+        name            = $synthName
+        kubeconfigPath  = $resolvedKubeconfig
+        kubeContext     = $KubeContext
+    }
+} elseif ($ClusterArmIds -and $ClusterArmIds.Count -gt 0) {
     foreach ($id in $ClusterArmIds) {
         $rg   = if ($id -match '/resourceGroups/([^/]+)') { $Matches[1] } else { '' }
         $name = Split-Path $id -Leaf
@@ -214,9 +270,9 @@ if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
     $result.Message = 'Install mode requested but kubectl is not installed.'
     return [pscustomobject]$result
 }
-if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+if (-not $installKubeconfigMode -and -not (Get-Command az -ErrorAction SilentlyContinue)) {
     $result.Status = 'Skipped'
-    $result.Message = 'Install mode requested but az CLI is not installed.'
+    $result.Message = 'Install mode requested but az CLI is not installed (skip by passing -KubeconfigPath).'
     return [pscustomobject]$result
 }
 
@@ -224,27 +280,49 @@ $captureMinutes = $CaptureMinutes
 $scanned = 0
 $failed = 0
 foreach ($cluster in $clusters) {
-    # Defense-in-depth: reject resources whose names contain shell metacharacters.
-    if ($cluster.resourceGroup -notmatch '^[A-Za-z0-9._()-]{1,90}$' -or
-        $cluster.name          -notmatch '^[A-Za-z0-9-]{1,63}$') {
-        Write-Warning "Skipping cluster with unsafe name/resourceGroup: $($cluster.name) in $($cluster.resourceGroup)"
-        $failed++
-        continue
+    $isKubeconfigMode = $false
+    if ($cluster.PSObject.Properties['kubeconfigPath'] -and $cluster.kubeconfigPath) {
+        $isKubeconfigMode = $true
     }
-    $ctx = "falco-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
-    $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$ctx.yaml"
+
+    if (-not $isKubeconfigMode) {
+        # Defense-in-depth: reject resources whose names contain shell metacharacters.
+        if ($cluster.resourceGroup -notmatch '^[A-Za-z0-9._()-]{1,90}$' -or
+            $cluster.name          -notmatch '^[A-Za-z0-9-]{1,63}$') {
+            Write-Warning "Skipping cluster with unsafe name/resourceGroup: $($cluster.name) in $($cluster.resourceGroup)"
+            $failed++
+            continue
+        }
+    }
+
+    if ($isKubeconfigMode) {
+        $tmpKubeconfig = $cluster.kubeconfigPath
+        $ctx           = $cluster.kubeContext
+    } else {
+        $ctx = "falco-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+        $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$ctx.yaml"
+    }
     try {
-        & az aks get-credentials --subscription $SubscriptionId --resource-group $cluster.resourceGroup --name $cluster.name --file $tmpKubeconfig --context $ctx --overwrite-existing --only-show-errors 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { $failed++; continue }
+        if (-not $isKubeconfigMode) {
+            & az aks get-credentials --subscription $SubscriptionId --resource-group $cluster.resourceGroup --name $cluster.name --file $tmpKubeconfig --context $ctx --overwrite-existing --only-show-errors 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { $failed++; continue }
+        }
 
         $env:KUBECONFIG = $tmpKubeconfig
         & helm repo add falcosecurity https://falcosecurity.github.io/charts 2>&1 | Out-Null
         & helm repo update 2>&1 | Out-Null
-        & helm upgrade --install falco falcosecurity/falco --namespace falco --create-namespace --wait --timeout 5m 2>&1 | Out-Null
+        $helmArgs = @('upgrade', '--install', 'falco', 'falcosecurity/falco',
+                      '--namespace', $Namespace, '--create-namespace',
+                      '--wait', '--timeout', '5m')
+        if ($ctx) { $helmArgs += @('--kube-context', $ctx) }
+        & helm @helmArgs 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) { $failed++; continue }
 
         Start-Sleep -Seconds ($captureMinutes * 60)
-        $rawLogs = @(& kubectl --context $ctx -n falco logs daemonset/falco --since "$($captureMinutes)m" --tail 5000 2>&1)
+        $logArgs = @()
+        if ($ctx) { $logArgs += @('--context', $ctx) }
+        $logArgs += @('-n', $Namespace, 'logs', 'daemonset/falco', '--since', "$($captureMinutes)m", '--tail', '5000')
+        $rawLogs = @(& kubectl @logArgs 2>&1)
         if ($LASTEXITCODE -ne 0) {
             $failed++
             Write-Warning "Falco log collection failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]($rawLogs -join ' ')))"
@@ -278,7 +356,9 @@ foreach ($cluster in $clusters) {
         }
 
         if ($UninstallFalco) {
-            & helm uninstall falco -n falco 2>&1 | Out-Null
+            $uninstallArgs = @('uninstall', 'falco', '-n', $Namespace)
+            if ($ctx) { $uninstallArgs += @('--kube-context', $ctx) }
+            & helm @uninstallArgs 2>&1 | Out-Null
         }
         $scanned++
     } catch {
@@ -286,7 +366,7 @@ foreach ($cluster in $clusters) {
         Write-Warning "Falco install mode failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     } finally {
         if ($env:KUBECONFIG) { Remove-Item Env:\KUBECONFIG -ErrorAction SilentlyContinue }
-        if (Test-Path $tmpKubeconfig) {
+        if (-not $isKubeconfigMode -and $tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
             try { Remove-Item $tmpKubeconfig -Force -ErrorAction SilentlyContinue } catch {}
         }
     }

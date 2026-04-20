@@ -4,6 +4,11 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **K8s wrappers + orchestrator: explicit `-KubeconfigPath`, `-KubeContext`, and per-tool namespace params (closes #240).**
+  Adds `-KubeconfigPath`, `-KubeContext`, `-KubescapeNamespace`, `-FalcoNamespace`, `-KubeBenchNamespace` to `Invoke-AzureAnalyzer.ps1` (top-level) and `-KubeconfigPath`, `-KubeContext`, `-Namespace` to `Invoke-Kubescape.ps1`, `Invoke-Falco.ps1`, and `Invoke-KubeBench.ps1`. When a kubeconfig path is provided the wrappers skip Azure Resource Graph discovery and `az aks get-credentials`, scanning a single cluster reachable via the supplied kubeconfig (kubeconfig mode). Default behavior is unchanged: with no new params supplied, every wrapper continues to discover AKS managed clusters via ARG and fetch per-cluster credentials. Validation rejects URL-style values and missing files at the wrapper boundary with sanitized errors. Per-wrapper namespace defaults: kubescape `''` (all namespaces), falco `'falco'`, kube-bench `'kube-system'`. Tests: `tests/wrappers/Invoke-Kubescape.Tests.ps1`, `tests/wrappers/Invoke-Falco.Tests.ps1`, `tests/wrappers/Invoke-KubeBench.Tests.ps1`, `tests/orchestrator/AzureAnalyzer-K8sParams.Tests.ps1`, fixture `tests/fixtures/kubeconfig-mock.yaml`. Phase 1 of parent issue #236; clears the way for #241/#242 (additional K8s auth modes).
+
 ### Fixed
 
 - docs: update README tool count to 27 to match current manifest (closes #235)
