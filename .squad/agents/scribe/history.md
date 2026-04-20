@@ -34,3 +34,14 @@ Owned the closeout PR for the 5-PR consumer-first documentation restructure.
 **PR:** see closing report from this session.
 
 **Lesson:** When archiving a stream, `git mv` only applies to already-tracked records; untracked completion records get archived via `Move-Item` then `git add`. Both are valid; the audit trail is preserved either way because the new path lives under one dated archive folder.
+
+
+## 2026-04-20T22:00Z - backlog clearance + vNEXT 1.2.0 closeout
+
+- Archived 19 inbox decision records to `.squad/decisions/archive/2026-04-20-backlog-clearance-and-vnext-1.2.0/` (includes the Brady vNEXT decision doc).
+- Wrote `_ORCHESTRATION.md` covering 5 rounds, ~25 PRs merged, 22 issues closed, Pester 1213 -> 1327.
+- Reset `.squad/identity/now.md` to Idle. Active queue empty.
+- Tech debt logged for future cleanup: 5 stale session worktrees on disk.
+- Em-dash sweep clean. `.squad/decisions/inbox/` retained via `.gitkeep`.
+
+**Lesson:** `git mv` does not expand globs on Windows PowerShell; iterate per-file with `Get-ChildItem | ForEach-Object` to avoid `fatal: bad source`.
