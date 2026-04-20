@@ -27,7 +27,7 @@ jobs:
               return;
             }
             const prTitle = context.payload.pull_request.title || '';
-            const stackedPrMatch = prTitle.match(/\(PR-(\d+)\s+of\s+(\d+)\)/i);
+            const stackedPrMatch = prTitle.match(/\(pr\s*[-:]?\s*(\d+)\s+of\s+(\d+)\)/i);
             if (stackedPrMatch) {
               const currentPart = Number.parseInt(stackedPrMatch[1], 10);
               const totalParts = Number.parseInt(stackedPrMatch[2], 10);
