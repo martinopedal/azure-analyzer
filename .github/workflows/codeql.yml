@@ -29,4 +29,4 @@ jobs:
       - uses: github/codeql-action/analyze@0e9f55954318745b37b7933c693bc093f7336125 # v4.35.1
         with:
           category: "/language:${{matrix.language}}"
-# trigger: hotfix-216 20260420-125025
+# trigger: heatmap-211 20260420-131500
