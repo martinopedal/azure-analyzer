@@ -181,11 +181,11 @@ After a run, `output/` contains:
 | `portfolio.json` | Management-group / multi-subscription rollup with heatmap data, source counts, top entities, and cross-sub identity correlations |
 | `tool-status.json` | Per-tool execution status (Success, Skipped, Failed) with message and finding count |
 | `errors.json` | Tool failures and error details (only written when errors occur) |
-| `report.html` | Offline HTML dashboard -- donut chart, stat cards, per-source bars, filterable tables, print-friendly |
+| `report.html` | Offline HTML report with two tabs (#210): **Summary** (executive dashboard, default view) + **Findings** (donut chart, stat cards, per-source bars, filterable tables, print-friendly) |
 | `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
 | `drift-report.json` | *(optional)* Entity drift delta (Added, Removed, Modified, Unchanged) between previous and current `entities.json` snapshots |
 | `drift-report.md` | *(optional)* Human-readable drift report grouped by change kind and entity type |
-| `dashboard.html` | Single-page **executive dashboard** (#97) -- compliance score, severity-mix sparklines, top-10 risky resources, subscription R/A/G heat map, WAF 5-pillar tiles, MTTR by severity, framework gap analysis. Self-contained, no CDN |
+| `dashboard.html` | Standalone single-page **executive dashboard** (#97) -- same content as the report.html Summary tab, kept as a separate file for back-compat and direct linking. Self-contained, no CDN |
 | `history/{yyyy-MM-dd-HHmmss}/` | Per-run snapshot directory (`results.json` + `run-meta.json`) used by the dashboard for trend lines and MTTR. Default retention: 30 runs (`-HistoryRetention <n>`) |
 | `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
 

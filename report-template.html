@@ -361,7 +361,8 @@
     </div>
 
     <nav class="tabs" role="tablist" aria-label="Report sections">
-        <button class="tab-button is-active" id="tab-dashboard-button" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-tab="dashboard">Dashboard</button>
+        <button class="tab-button is-active" id="tab-summary-button" role="tab" aria-selected="true" aria-controls="tab-summary" data-tab="summary">Summary</button>
+        <button class="tab-button" id="tab-dashboard-button" role="tab" aria-selected="false" aria-controls="tab-dashboard" data-tab="dashboard">Dashboard</button>
         <button class="tab-button" id="tab-azure-button" role="tab" aria-selected="false" aria-controls="tab-azure" data-tab="azure">Azure</button>
         <button class="tab-button" id="tab-identity-button" role="tab" aria-selected="false" aria-controls="tab-identity" data-tab="identity">Identity</button>
         <button class="tab-button" id="tab-cicd-button" role="tab" aria-selected="false" aria-controls="tab-cicd" data-tab="cicd">CI/CD</button>
@@ -370,7 +371,16 @@
     </nav>
 
     <main>
-        <section class="tab-panel is-active" id="tab-dashboard" role="tabpanel" aria-labelledby="tab-dashboard-button">
+        <!-- Issue #210: Summary tab embeds the executive dashboard view as the
+             default landing surface. Generator must inject the rendered
+             exec-dashboard <main> body into #exec-dashboard-mount. -->
+        <section class="tab-panel is-active" id="tab-summary" role="tabpanel" aria-labelledby="tab-summary-button">
+            <div class="exec-dash" id="exec-dashboard-mount">
+                <p class="empty">Summary content rendered server-side.</p>
+            </div>
+        </section>
+
+        <section class="tab-panel" id="tab-dashboard" role="tabpanel" aria-labelledby="tab-dashboard-button">
             <div class="dashboard-layout">
                 <div class="card">
                     <h3>Compliance</h3>

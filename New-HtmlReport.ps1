@@ -39,6 +39,10 @@ $reportDeltaPath = Join-Path $PSScriptRoot 'modules' 'shared' 'ReportDelta.ps1'
 if (Test-Path $reportDeltaPath) {
     . $reportDeltaPath
 }
+$execDashRenderPath = Join-Path $PSScriptRoot 'modules' 'shared' 'ExecDashboardRender.ps1'
+if (Test-Path $execDashRenderPath) {
+    . $execDashRenderPath
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -563,6 +567,23 @@ $gfSourceOptions = ($sourcesWithResults | Sort-Object | ForEach-Object {
     "<option value=`"$(HE $_)`">$(HE $lbl)</option>"
 }) -join "`n"
 
+# --- Summary tab (issue #210): embed exec dashboard content as the first tab ---
+$summaryTabBodyHtml = ''
+$summaryTabCss = ''
+$summaryTabAvailable = $false
+if (Get-Command Get-ExecDashboardModel -ErrorAction SilentlyContinue) {
+    try {
+        $summaryModel = Get-ExecDashboardModel -InputPath $InputPath
+        $summaryTabBodyHtml = Get-ExecDashboardBody -Model $summaryModel -Embedded
+        # Scope all exec-dashboard CSS under .exec-dash so it cannot collide with
+        # report.html's own .card / .muted / .empty / .score / .delta-* rules.
+        $summaryTabCss = Get-ExecDashboardCss -Scope '.exec-dash'
+        $summaryTabAvailable = $true
+    } catch {
+        Write-Warning (Remove-Credentials "Summary tab render failed; falling back to Findings-only view: $_")
+    }
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -744,12 +765,51 @@ $html = @"
   .priority-source { color: #6b7280; font-size: 0.78rem; }
   .priority-more { color: #6b7280; font-size: 0.78rem; font-style: italic; padding-top: 0.25rem; }
   .card-critical .card-value { color: #7f1d1d; }
+
+  /* Issue #210: report-level tab navigation (Summary + Findings).
+     Tab styles use rt- prefix to avoid collision with the embedded exec dashboard. */
+  .rt-tabs { display: flex; gap: 4px; border-bottom: 2px solid #e2e8f0; margin: 0 0 16px; padding: 0; flex-wrap: wrap; }
+  .rt-tab-button {
+    background: transparent; border: none; border-bottom: 3px solid transparent;
+    padding: 10px 18px; font-size: 14px; font-weight: 600; color: #57606a; cursor: pointer;
+    margin-bottom: -2px; transition: color 0.15s, border-color 0.15s;
+  }
+  .rt-tab-button:hover { color: #1565c0; }
+  .rt-tab-button:focus-visible { outline: 2px solid #1565c0; outline-offset: -2px; }
+  .rt-tab-button.is-active { color: #0b1220; border-bottom-color: #1565c0; }
+  .rt-tab-panel { display: none; }
+  .rt-tab-panel.is-active { display: block; }
+  @media print {
+    .rt-tabs { display: none !important; }
+    .rt-tab-panel { display: block !important; page-break-before: always; }
+    .rt-tab-panel:first-of-type { page-break-before: auto; }
+  }
+
+$summaryTabCss
 </style>
 </head>
 <body>
 <h1>Azure Analyzer Report</h1>
 <p class="subtitle">Generated: $date</p>
 
+<!-- Issue #210: Summary tab (executive dashboard) is the default view; existing
+     report content moves to Findings tab. Both render in print mode. -->
+<nav class="rt-tabs no-print" role="tablist" aria-label="Report sections">
+  <button class="rt-tab-button is-active" type="button" role="tab" id="rt-tab-summary-button"
+          aria-selected="true" aria-controls="rt-tab-summary"
+          data-tab="summary" onclick="rtSwitchTab(this,'summary')">Summary</button>
+  <button class="rt-tab-button" type="button" role="tab" id="rt-tab-findings-button"
+          aria-selected="false" aria-controls="rt-tab-findings"
+          data-tab="findings" onclick="rtSwitchTab(this,'findings')">Findings</button>
+</nav>
+
+<section id="rt-tab-summary" class="rt-tab-panel is-active" role="tabpanel" aria-labelledby="rt-tab-summary-button">
+  <div class="exec-dash">
+$(if ($summaryTabAvailable) { $summaryTabBodyHtml } else { '<p class="empty">Summary unavailable for this run.</p>' })
+  </div>
+</section>
+
+<section id="rt-tab-findings" class="rt-tab-panel" role="tabpanel" aria-labelledby="rt-tab-findings-button">
 <!-- Executive Summary with Donut Chart -->
 <div class="exec-summary">
   <div class="donut" style="background:conic-gradient(#2e7d32 0% $compliantPct%, #d32f2f $compliantPct% 100%);">
@@ -975,6 +1035,19 @@ function filterTable(input, tableId) {
   for (var i = 1; i < rows.length; i++) {
     rows[i].style.display = rows[i].textContent.toLowerCase().includes(filter) ? '' : 'none';
   }
+}
+</script>
+</section>
+<script>
+function rtSwitchTab(btn, key) {
+  document.querySelectorAll('.rt-tab-button').forEach(function(b) {
+    var on = b.dataset.tab === key;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.rt-tab-panel').forEach(function(p) {
+    p.classList.toggle('is-active', p.id === 'rt-tab-' + key);
+  });
 }
 </script>
 </body>
