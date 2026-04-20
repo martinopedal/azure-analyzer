@@ -9,9 +9,6 @@ param principalId string
 @description('GUID for the role assignment. Use guid() to generate a stable value.')
 param roleAssignmentName string
 
-@description('Optional description for the role assignment.')
-param description string = 'azure-analyzer continuous-control: Reader for scan MI'
-
 var readerRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   'acdd72a7-3385-48ef-bd42-f606fba81ae7' // Reader
@@ -23,7 +20,6 @@ resource readerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
     roleDefinitionId: readerRoleId
     principalId: principalId
     principalType: 'ServicePrincipal'
-    description: description
   }
 }
 
