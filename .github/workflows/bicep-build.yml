@@ -4,14 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'infra/**.bicep'
-      - 'infra/**.bicepparam'
+      - 'infra/**'
       - '.github/workflows/bicep-build.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'infra/**.bicep'
-      - 'infra/**.bicepparam'
+      - 'infra/**'
       - '.github/workflows/bicep-build.yml'
   workflow_dispatch:
 
