@@ -1,4 +1,5 @@
 name: CodeQL
+# trigger: re-run for #220 (Resources tab; no workflow logic change)
 
 on:
   push:
