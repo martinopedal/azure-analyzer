@@ -133,7 +133,7 @@ New `Correlation.kind` values: `B2BHomeTenant`, `SpnHasRoleAt`. No new entity ty
 **Acceptance criteria.**
 - [ ] Scheduled workflow with OIDC federation (no PATs); workflow file SHA-pinned per repo policy.
 - [ ] Function entrypoint + Bicep template + smoke test.
-- [ ] `docs/continuous-control.md` deployment guide (10-minute walkthrough).
+- [ ] `docs/consumer/continuous-control.md` deployment guide (10-minute walkthrough).
 - [ ] Failure-mode docs: what happens if a scan exceeds the function timeout (10 min hard cap → recommend Premium plan or Container Apps).
 - [ ] `README.md` "Continuous control" section; `PERMISSIONS.md` documents the Function MI role assignments; `CHANGELOG.md` entry.
 - [ ] Smoke test in CI that validates the Bicep template (`bicep build`, no deploy).

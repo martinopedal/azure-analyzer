@@ -1,5 +1,7 @@
 # Contributing
 
+> AI governance: see [docs/contributor/ai-governance.md](docs/contributor/ai-governance.md).
+
 This is a solo-maintained repository. Contributions are welcome but the maintainer reviews and merges everything.
 
 ## Process
