@@ -12,7 +12,12 @@ param ()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$script:SchemaVersion = '2.0'
+$script:SchemaVersion = '2.1'
+# FindingRow v2.1 (additive, back-compat with v2.0):
+#   * Adds optional RuleId field (default '') for stable rule identification
+#     used by the HTML collapsible-tree level-3 grouping, framework mapping
+#     (RuleIdPrefix), and downstream rule-quality dashboards.
+#   * Adds AdoProject and KarpenterProvisioner to the EntityType enum.
 # Schema bump: entities.json moves from a bare array (v3.0) to an object
 # { SchemaVersion: '3.1', Entities: [...], Edges: [...] } when edges are present.
 # Readers must support both shapes (back-compat).
@@ -40,7 +45,9 @@ $script:EntityTypes = @(
     'Subscription',
     'ManagementGroup',
     'Workflow',
-    'Tenant'
+    'Tenant',
+    'AdoProject',
+    'KarpenterProvisioner'
 )
 $script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
@@ -86,7 +93,9 @@ function Get-PlatformForEntityType {
             'Subscription',
             'ManagementGroup',
             'Workflow',
-            'Tenant'
+            'Tenant',
+            'AdoProject',
+            'KarpenterProvisioner'
         )]
         [string] $EntityType
     )
@@ -96,6 +105,7 @@ function Get-PlatformForEntityType {
         'ManagedIdentity' { 'Azure' }
         'Subscription' { 'Azure' }
         'ManagementGroup' { 'Azure' }
+        'KarpenterProvisioner' { 'Azure' }
         'ServicePrincipal' { 'Entra' }
         'Application' { 'Entra' }
         'User' { 'Entra' }
@@ -106,6 +116,7 @@ function Get-PlatformForEntityType {
         'VariableGroup' { 'ADO' }
         'Environment' { 'ADO' }
         'ServiceConnection' { 'ADO' }
+        'AdoProject' { 'ADO' }
         default { throw "Unknown EntityType '$EntityType'." }
     }
 }
@@ -149,10 +160,21 @@ function New-FindingRow {
         Entity type enum.
     .PARAMETER Title
         Human-readable title of the finding.
+    .PARAMETER RuleId
+        Stable identifier of the rule that produced the finding (e.g.
+        'Azure.KeyVault.SoftDelete', 'finops-appserviceplan-idle-cpu',
+        'MT.1010'). Optional; defaults to ''. When supplied, the HTML report
+        collapsible tree uses it as the level-3 grouping key (#275, #229) and
+        framework mapping (RuleIdPrefix) keys off it. Added in v2.1.
     .PARAMETER Compliant
         Boolean compliance status.
     .PARAMETER ProvenanceRunId
         Run identifier for the tool execution.
+    .NOTES
+        Schema v2.1 (additive, back-compat with v2.0):
+          * RuleId field added (optional, default '').
+          * EntityType enum extended with AdoProject + KarpenterProvisioner.
+        Existing callers continue to work unchanged.
     #>
     [CmdletBinding()]
     param (
@@ -180,6 +202,8 @@ function New-FindingRow {
         [AllowNull()]
         [AllowEmptyString()]
         [string] $Title,
+
+        [string] $RuleId = '',
 
         [Parameter(Mandatory)]
         [object] $Compliant,
@@ -274,6 +298,7 @@ function New-FindingRow {
         Source           = $Source
         Category         = $Category
         Title            = $Title
+        RuleId           = $RuleId
         Severity         = $Severity
         Compliant        = [bool]$Compliant
         Detail           = $Detail
@@ -357,7 +382,9 @@ function New-EntityStub {
             'Subscription',
             'ManagementGroup',
             'Workflow',
-            'Tenant'
+            'Tenant',
+            'AdoProject',
+            'KarpenterProvisioner'
         )]
         [string] $EntityType,
 

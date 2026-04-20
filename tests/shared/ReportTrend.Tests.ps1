@@ -228,7 +228,7 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
         It 'warns and returns empty on unknown SchemaVersion' {
             $sd = Join-Path $TestDrive 'bad-schema-trend'
             $null = New-Item -ItemType Directory -Path $sd -Force
-            [pscustomobject]@{ SchemaVersion = '2.0'; Entries = @() } |
+            [pscustomobject]@{ SchemaVersion = '2.1'; Entries = @() } |
                 ConvertTo-Json | Set-Content (Join-Path $sd 'index.json')
             $warnings = @()
             @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings).Count | Should -Be 0

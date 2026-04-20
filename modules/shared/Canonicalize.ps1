@@ -225,7 +225,9 @@ function ConvertTo-CanonicalEntityId {
             'Subscription',
             'ManagementGroup',
             'Workflow',
-            'Tenant'
+            'Tenant',
+            'AdoProject',
+            'KarpenterProvisioner'
         )]
         [string] $EntityType,
 
@@ -262,6 +264,23 @@ function ConvertTo-CanonicalEntityId {
             $raw.ToLowerInvariant()
         }
         'ManagementGroup' { $RawId.Trim().ToLowerInvariant() }
+        'AdoProject' {
+            # Project-level ADO entity: canonical form ado://{org}/{project}
+            $raw = $RawId.Trim()
+            if ($raw -match '^ado://') { $raw = $raw.Substring(6) }
+            elseif ($raw -match '^https?://dev\.azure\.com/([^/]+)/([^/?#]+)') {
+                $raw = "$($matches[1])/$($matches[2])"
+            }
+            elseif ($raw -match '^https?://([^/]+)\.visualstudio\.com/([^/?#]+)') {
+                $raw = "$($matches[1])/$($matches[2])"
+            }
+            $segments = $raw.Trim('/') -split '/'
+            if ($segments.Count -lt 2 -or [string]::IsNullOrWhiteSpace($segments[0]) -or [string]::IsNullOrWhiteSpace($segments[1])) {
+                throw "AdoProject IDs must be in org/project format. Provided: '$RawId'."
+            }
+            "ado://$($segments[0].ToLowerInvariant())/$($segments[1].ToLowerInvariant())"
+        }
+        'KarpenterProvisioner' { ConvertTo-CanonicalArmId -ArmId $RawId }
         'Tenant' {
             # Accept bare GUID or tenant:{guid} form; fall back to slugified string for synthetic IDs
             $raw = $RawId.Trim()
@@ -292,6 +311,8 @@ function ConvertTo-CanonicalEntityId {
         'VariableGroup' { 'ADO' }
         'Environment' { 'ADO' }
         'ServiceConnection' { 'ADO' }
+        'AdoProject' { 'ADO' }
+        'KarpenterProvisioner' { 'Azure' }
         default { 'Unknown' }
     }
 

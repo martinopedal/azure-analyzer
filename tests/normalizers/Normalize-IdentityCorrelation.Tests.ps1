@@ -56,7 +56,7 @@ Describe 'Normalize-IdentityCorrelation' {
                 $r.PSObject.Properties['EntityType'] | Should -Not -BeNullOrEmpty
                 $r.PSObject.Properties['Title'] | Should -Not -BeNullOrEmpty
                 $r.PSObject.Properties['SchemaVersion'] | Should -Not -BeNullOrEmpty
-                $r.SchemaVersion | Should -Be '2.0'
+                $r.SchemaVersion | Should -Be '2.1'
                 $r.Source | Should -Be 'identity-correlator'
             }
         }

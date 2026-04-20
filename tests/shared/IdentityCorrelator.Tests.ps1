@@ -162,7 +162,7 @@ Describe 'Invoke-IdentityCorrelation' {
         $row.Category | Should -Be 'Identity Correlation'
         $row.Severity | Should -Be 'Info'
         $row.Compliant | Should -BeTrue
-        $row.SchemaVersion | Should -Be '2.0'
+        $row.SchemaVersion | Should -Be '2.1'
         $row.Title | Should -Match 'deploy-bot'
         $row.Title | Should -Match 'spans'
         $row.Confidence | Should -BeIn @('Confirmed', 'Likely')

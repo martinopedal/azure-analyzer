@@ -26,7 +26,7 @@ Describe 'Normalize-ADOConnections' {
 
         It 'sets SchemaVersion to 2.0' {
             foreach ($r in $results) {
-                $r.SchemaVersion | Should -Be '2.0'
+                $r.SchemaVersion | Should -Be '2.1'
             }
         }
 
