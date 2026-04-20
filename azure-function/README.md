@@ -3,9 +3,9 @@
 PowerShell Function App that wraps `Invoke-AzureAnalyzer.ps1` for unattended,
 scheduled scans. Two triggers, one orchestrator:
 
-- **`TimerScan/`** — runs daily at 06:00 UTC (NCRONTAB `0 0 6 * * *`). Scan
+- **`TimerScan/`** - runs daily at 06:00 UTC (NCRONTAB `0 0 6 * * *`). Scan
   parameters come from Function App settings.
-- **`HttpScan/`** — POST endpoint (`authLevel: function`, per-function key)
+- **`HttpScan/`** - POST endpoint (`authLevel: function`, per-function key)
   for on-demand / break-glass scans. Body fields override the env defaults.
   `includeTools` values are validated against an allow-list.
 
@@ -36,7 +36,7 @@ Both triggers share `Shared/Invoke-FunctionScan.ps1`, which:
 The Function App must run with a managed identity (system- or user-assigned)
 holding **Reader** at the target subscription / management group, plus
 **Monitoring Metrics Publisher** on the DCR if the sink is enabled. See
-[`PERMISSIONS.md`](../PERMISSIONS.md#continuous-control-function-app-165).
+[`docs/consumer/permissions/_continuous-control.md`](../docs/consumer/permissions/_continuous-control.md).
 
 ## Timeout caveat
 

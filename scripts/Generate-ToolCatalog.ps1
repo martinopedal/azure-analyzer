@@ -302,7 +302,7 @@ function New-ContributorCatalog {
     [void]$sb.AppendLine()
     [void]$sb.AppendLine('## Notes')
     [void]$sb.AppendLine()
-    [void]$sb.AppendLine('- `tier` is `requiredPermissionTier` (0..6, see [PERMISSIONS.md](../../PERMISSIONS.md) for the tier breakdown).')
+    [void]$sb.AppendLine('- `tier` is `requiredPermissionTier` (0..6, see [docs/contributor/ARCHITECTURE.md](./ARCHITECTURE.md#permission-tiers-tier-06) for the tier breakdown).')
     [void]$sb.AppendLine('- `phase` is the report grouping hint used by `New-HtmlReport.ps1` and `New-MdReport.ps1`.')
     [void]$sb.AppendLine('- `report.color` is consumed by the per-source bar chart in the HTML report.')
     [void]$sb.AppendLine('- `install.kind` is one of `psmodule`, `cli`, `gitclone`, `none` and is enforced by `modules/shared/Installer.ps1`.')

@@ -4,6 +4,13 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Permissions documentation split (closes #252)
+
+- **docs: split PERMISSIONS.md per-tool detail to `docs/consumer/permissions/<tool>.md`**. The root `PERMISSIONS.md` is now a 116-line summary plus a manifest-driven per-tool index (down from 867 lines); detailed permission tables, sample commands, and "what it does / does not do" prose for each tool live in dedicated pages under `docs/consumer/permissions/`. Cross-cutting topics (Continuous Control OIDC + MI, multi-tenant fan-out, MG recursion, auth troubleshooting, the cross-tool matrix) were extracted to `_*.md` companion pages in the same folder. Squad automation that hardcodes the `PERMISSIONS.md` path keeps working unchanged.
+- **scripts/Generate-PermissionsIndex.ps1**: new manifest-driven generator that rewrites the INDEX section of `PERMISSIONS.md` between `<!-- BEGIN INDEX -->` / `<!-- END INDEX -->` markers and verifies a `docs/consumer/permissions/<name>.md` page exists for every enabled tool.
+- **tests/scripts/Generate-PermissionsIndex.Tests.ps1**: Pester coverage for the generator (markers present, per-tool pages exist, idempotent regeneration, `-CheckOnly` is green on a clean tree).
+- **`permissions-pages-fresh` CI gate** added to `.github/workflows/docs-check.yml`, mirroring the `tool-catalog-fresh` pattern.
+
 ### Removed
 
 - Removed orphaned `report-template.html`; HTML reports are rendered directly by `New-HtmlReport.ps1`, and the unused static scaffold no longer ships in the repo (closes #249).

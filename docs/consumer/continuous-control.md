@@ -780,7 +780,7 @@ After completing the above steps, confirm:
 ## Related Documentation
 
 - [azure-function/README.md](../azure-function/README.md) -- Function App architecture overview and app settings reference
-- [PERMISSIONS.md](../PERMISSIONS.md#continuous-control-function-app-165) -- full RBAC breakdown
+- [docs/consumer/permissions/_continuous-control.md](../consumer/permissions/_continuous-control.md) -- full RBAC breakdown
 - [docs/sinks/log-analytics.md](sinks/log-analytics.md) -- DCR/table setup and KQL examples
 ## Bicep template reference
 
