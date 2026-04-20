@@ -117,6 +117,7 @@ Run azure-analyzer on a schedule and stream findings to Log Analytics or open is
 - [docs/contributor/ARCHITECTURE.md](docs/contributor/ARCHITECTURE.md): module layout, normalizer contract, EntityStore design.
 - [docs/contributor/adding-a-tool.md](docs/contributor/adding-a-tool.md): end-to-end guide for registering a new analyzer tool in `tools/tool-manifest.json`.
 - Docs Check note: stacked PR titles formatted as `(PR-x of y)` skip docs enforcement until the final part, while missing docs errors now emit explicit `error:` lines for CI triage.
+- Redirect stub deadlines are enforced by `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` (CI workflow: `stub-deadline-check.yml`).
 
 The Pester baseline must stay green: `Invoke-Pester -Path .\tests -CI`.
 
