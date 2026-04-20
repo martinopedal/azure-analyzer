@@ -26,6 +26,16 @@ jobs:
               core.info('Skipping docs check - skip-docs-check label found.');
               return;
             }
+            const prTitle = context.payload.pull_request.title || '';
+            const stackedPrMatch = prTitle.match(/\(PR-(\d+)\s+of\s+(\d+)\)/i);
+            if (stackedPrMatch) {
+              const currentPart = Number.parseInt(stackedPrMatch[1], 10);
+              const totalParts = Number.parseInt(stackedPrMatch[2], 10);
+              if (Number.isInteger(currentPart) && Number.isInteger(totalParts) && currentPart < totalParts) {
+                core.info(`Skipping docs check for stacked PR part ${currentPart} of ${totalParts}; enforce docs in the final stack PR.`);
+                return;
+              }
+            }
 
             // Get changed files in the PR
             const files = await github.paginate(
@@ -71,8 +81,12 @@ jobs:
             core.info(`Doc files changed: ${docFiles.join(', ')}`);
 
             if (docFiles.length === 0) {
+              core.error(`error: Missing documentation updates for code changes in PR #${context.issue.number}.`);
+              core.error(`error: Code files changed: ${codeFiles.join(', ')}`);
+              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/consumer/ or docs/contributor/.');
+              core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
               core.setFailed(
-                'This PR changes code files but no documentation was updated.\n' +
+                'error: This PR changes code files but no documentation was updated.\n' +
                 'Please update README.md, CHANGELOG.md, or a page under docs/consumer/ or docs/contributor/.\n' +
                 'See CONTRIBUTING.md for documentation requirements.'
               );

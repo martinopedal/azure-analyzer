@@ -41,7 +41,7 @@ These workflows support repo development and the AI squad workflow. They're not 
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `codeql.yml` | Push / PR / weekly | CodeQL static analysis (SHA-pinned) |
-| `docs-check.yml` | PR | Enforces docs updates with code changes |
+| `docs-check.yml` | PR | Enforces docs updates with code changes (non-final stacked PR parts titled `(PR-x of y)` are skipped) |
 | `pr-review-gate.yml` | `pull_request_review` + `_comment` | Ingests review feedback, writes consensus plan to `.squad/decisions/inbox/`, posts gate summary |
 | `ci-failure-watchdog.yml` | `workflow_run` on failure | Deduplicated CI failure issue (hash = workflow + first error line) |
 | `squad-heartbeat.yml` | Cron | Automated triage and CI gate via Ralph |
