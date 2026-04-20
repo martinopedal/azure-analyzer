@@ -39,6 +39,7 @@ The documentation now leads with the consumer experience, keeps advanced operato
 #### Fixed
 
 - `AzureAnalyzer.psm1` root-path resolution for `Import-Module .\AzureAnalyzer.psd1` consumption.
+- `docs-check.yml` now skips docs enforcement for non-final stacked PRs titled `(PR-x of y)` and emits explicit `error:` lines when docs are missing so CI-failure triage can extract the first error reliably.
 
 #### Stub deadline
 
