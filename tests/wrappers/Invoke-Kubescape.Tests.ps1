@@ -33,3 +33,36 @@ Describe 'Invoke-Kubescape: error paths' {
     }
 }
 
+Describe 'Invoke-Kubescape: kubeconfig param surface (#240)' {
+    BeforeAll {
+        $script:Fixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'kubeconfig-mock.yaml'
+    }
+
+    It 'declares -KubeconfigPath, -KubeContext, -Namespace parameters' {
+        $cmd = Get-Command -Name $script:Wrapper
+        $cmd.Parameters.Keys | Should -Contain 'KubeconfigPath'
+        $cmd.Parameters.Keys | Should -Contain 'KubeContext'
+        $cmd.Parameters.Keys | Should -Contain 'Namespace'
+    }
+
+    It 'rejects a non-existent kubeconfig path with a clear error' {
+        $bogus = Join-Path ([System.IO.Path]::GetTempPath()) "kubescape-doesnotexist-$([guid]::NewGuid()).yaml"
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath $bogus } |
+            Should -Throw -ExpectedMessage '*does not exist*'
+    }
+
+    It 'rejects URL-style kubeconfig values (no remote fetch)' {
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kubeconfig' } |
+            Should -Throw -ExpectedMessage '*URLs are not accepted*'
+    }
+
+    It 'accepts an existing kubeconfig file (skips on missing kubectl, no AKS discovery)' {
+        Mock Get-Command { return $null } -ParameterFilter { $Name -eq 'kubectl' }
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubescape' } } -ParameterFilter { $Name -eq 'kubescape' }
+        $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+            -KubeconfigPath $script:Fixture -KubeContext 'mock-ctx' -Namespace 'default'
+        $result.Status | Should -Be 'Skipped'
+        $result.Source | Should -Be 'kubescape'
+    }
+}
+

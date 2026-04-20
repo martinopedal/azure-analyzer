@@ -29,3 +29,35 @@ Describe 'Invoke-KubeBench: error paths' {
     }
 }
 
+Describe 'Invoke-KubeBench: kubeconfig param surface (#240)' {
+    BeforeAll {
+        $script:Fixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'kubeconfig-mock.yaml'
+    }
+
+    It 'declares -KubeconfigPath, -KubeContext, -Namespace parameters' {
+        $cmd = Get-Command -Name $script:Wrapper
+        $cmd.Parameters.Keys | Should -Contain 'KubeconfigPath'
+        $cmd.Parameters.Keys | Should -Contain 'KubeContext'
+        $cmd.Parameters.Keys | Should -Contain 'Namespace'
+    }
+
+    It 'defaults Namespace to "kube-system"' {
+        $cmd = Get-Command -Name $script:Wrapper
+        $defaultNs = $cmd.ScriptBlock.Ast.ParamBlock.Parameters |
+            Where-Object { $_.Name.VariablePath.UserPath -eq 'Namespace' } |
+            ForEach-Object { $_.DefaultValue.Extent.Text.Trim("'") }
+        $defaultNs | Should -Be 'kube-system'
+    }
+
+    It 'rejects a non-existent kubeconfig path' {
+        $bogus = Join-Path ([System.IO.Path]::GetTempPath()) "kb-doesnotexist-$([guid]::NewGuid()).yaml"
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath $bogus } |
+            Should -Throw -ExpectedMessage '*does not exist*'
+    }
+
+    It 'rejects URL-style kubeconfig values' {
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kc' } |
+            Should -Throw -ExpectedMessage '*URLs are not accepted*'
+    }
+}
+
