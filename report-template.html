@@ -307,6 +307,27 @@
         }
         @media print { .global-filter-bar { display: none !important; } }
 
+        /* Severity heatmap */
+        .severity-heatmap-section { background: var(--panel, #fff); border-radius: 8px; padding: 18px 22px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .hm-hint { font-size: 12px; color: var(--muted, #6b7280); margin-bottom: 10px; }
+        .severity-heatmap { display: grid; grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(70px, 1fr)); gap: 4px; align-items: stretch; }
+        .severity-heatmap .hm-row { display: contents; }
+        .hm-cell { padding: 8px 10px; font-size: 13px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-height: 34px; border: 0; }
+        .hm-corner { background: color-mix(in srgb, var(--border, #e5e7eb) 40%, var(--panel, #fff)); font-weight: 600; color: var(--text, #111827); justify-content: flex-start; }
+        .hm-head { background: color-mix(in srgb, var(--border, #e5e7eb) 40%, var(--panel, #fff)); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text, #111827); }
+        .hm-head-critical { color: var(--critical, #7f1d1d); }
+        .hm-head-high     { color: var(--danger, #dc2626); }
+        .hm-head-medium   { color: #b45309; }
+        .hm-head-low      { color: #a16207; }
+        .hm-rg { background: color-mix(in srgb, var(--border, #e5e7eb) 20%, var(--panel, #fff)); font-weight: 500; color: var(--text, #111827); justify-content: flex-start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hm-data { cursor: pointer; font-weight: 600; font-variant-numeric: tabular-nums; transition: transform 0.08s, box-shadow 0.12s; border: 1px solid var(--border, #e5e7eb); }
+        .hm-data:hover { transform: scale(1.04); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+        .hm-data:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+        @media print { .hm-data { cursor: default; } .hm-data:hover { transform: none; box-shadow: none; } }
+        .gf-rg-banner { font-size: 0.75rem; color: var(--text, #111827); background: color-mix(in srgb, var(--accent, #2563eb) 12%, var(--panel, #fff)); border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 30%, transparent); padding: 0.15rem 0.45rem; border-radius: 6px; white-space: nowrap; }
+        .gf-rg-banner strong { margin: 0 0.15rem; }
+        .gf-rg-clear { background: transparent; border: none; cursor: pointer; color: var(--muted, #6b7280); font-size: 0.75rem; padding: 0 0.15rem; }
+
         /* Priority stack */
         .priority-stack {
           background: color-mix(in srgb, var(--critical, #7f1d1d) 5%, var(--panel, #fff));
@@ -357,6 +378,7 @@
              oninput="applyGlobalFilter()" aria-label="Search findings" style="flex:1;min-width:150px">
       <button onclick="resetGlobalFilter()" class="gf-reset" title="Clear filters">✕ Clear</button>
       <span id="gf-count" class="gf-count" aria-live="polite"></span>
+      <span id="gf-rg-banner" class="gf-rg-banner" style="display:none" aria-live="polite">RG: <strong class="gf-rg-name"></strong> <button type="button" class="gf-rg-clear" title="Clear resource group filter" onclick="window._gfRg=''; applyGlobalFilter();">✕</button></span>
       <button onclick="exportFilteredCSV()" class="gf-export">⬇ CSV</button>
     </div>
 
@@ -384,6 +406,7 @@
                     <div class="source-bars" id="source-bars"></div>
                 </div>
             </div>
+            <div id="severity-heatmap-container"></div>
         </section>
 
         <section class="tab-panel" id="tab-azure" role="tabpanel" aria-labelledby="tab-azure-button">
@@ -433,6 +456,12 @@
 
         const safeText = (value) => value === null || value === undefined ? '' : String(value);
         const getArray = (value) => Array.isArray(value) ? value : [];
+
+        function extractResourceGroup(resourceId) {
+            if (!resourceId) return '';
+            const m = String(resourceId).match(/\/resourceGroups\/([^/]+)/i);
+            return m ? m[1] : '';
+        }
 
         const summary = model.summary || {};
         const reportSubtitle = document.getElementById('report-subtitle');
@@ -529,6 +558,119 @@
             return badge;
         }
 
+        function renderHeatmap() {
+            const container = document.getElementById('severity-heatmap-container');
+            if (!container) return;
+            container.textContent = '';
+
+            // Build the RG x Severity counts. Prefer pre-computed model.heatmap if present.
+            const severities = ['Critical', 'High', 'Medium', 'Low'];
+            let counts = {};
+            if (model.heatmap && typeof model.heatmap === 'object' && !Array.isArray(model.heatmap)) {
+                counts = model.heatmap;
+            } else {
+                const all = getArray(model.findings || model.allFindings);
+                all.forEach((f) => {
+                    const sev = safeText(f.severity || f.Severity);
+                    if (severities.indexOf(sev) === -1) return;
+                    let rg = safeText(f.resourceGroup || f.ResourceGroup);
+                    if (!rg) rg = extractResourceGroup(f.resourceId || f.ResourceId);
+                    if (!rg) return;
+                    if (!counts[rg]) counts[rg] = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+                    counts[rg][sev] = (counts[rg][sev] || 0) + 1;
+                });
+            }
+            // Drop empty RGs and sort by total desc.
+            const rgs = Object.keys(counts).filter((rg) => severities.some((s) => Number(counts[rg][s] || 0) > 0));
+            if (rgs.length === 0) return;
+            rgs.sort((a, b) => {
+                const ta = severities.reduce((acc, s) => acc + Number(counts[a][s] || 0), 0);
+                const tb = severities.reduce((acc, s) => acc + Number(counts[b][s] || 0), 0);
+                if (tb !== ta) return tb - ta;
+                return a.localeCompare(b);
+            });
+            const maxBySev = {};
+            severities.forEach((s) => {
+                maxBySev[s] = rgs.reduce((m, rg) => Math.max(m, Number(counts[rg][s] || 0)), 0);
+            });
+            const sevColor = { Critical: '127,29,29', High: '220,38,38', Medium: '245,158,11', Low: '250,204,21' };
+
+            const section = document.createElement('section');
+            section.className = 'severity-heatmap-section';
+            section.setAttribute('aria-labelledby', 'heatmap-title');
+            const h2 = document.createElement('h2');
+            h2.id = 'heatmap-title';
+            h2.className = 'section-title';
+            h2.textContent = 'Findings by Resource Group x Severity';
+            section.appendChild(h2);
+            const hint = document.createElement('p');
+            hint.className = 'hm-hint';
+            hint.textContent = 'Click a cell to filter the findings tables to that Resource Group + Severity combination.';
+            section.appendChild(hint);
+
+            const grid = document.createElement('div');
+            grid.className = 'severity-heatmap';
+            grid.setAttribute('role', 'grid');
+            grid.setAttribute('aria-label', 'Severity heatmap by resource group');
+
+            // Header row
+            const headerRow = document.createElement('div');
+            headerRow.className = 'hm-row hm-header-row';
+            headerRow.setAttribute('role', 'row');
+            const corner = document.createElement('div');
+            corner.className = 'hm-cell hm-corner';
+            corner.setAttribute('role', 'columnheader');
+            corner.textContent = 'Resource group';
+            headerRow.appendChild(corner);
+            severities.forEach((sev) => {
+                const cell = document.createElement('div');
+                cell.className = `hm-cell hm-head hm-head-${sev.toLowerCase()}`;
+                cell.setAttribute('role', 'columnheader');
+                cell.textContent = sev;
+                headerRow.appendChild(cell);
+            });
+            grid.appendChild(headerRow);
+
+            rgs.forEach((rg) => {
+                const row = document.createElement('div');
+                row.className = 'hm-row';
+                row.setAttribute('role', 'row');
+                const rgCell = document.createElement('div');
+                rgCell.className = 'hm-cell hm-rg';
+                rgCell.setAttribute('role', 'rowheader');
+                rgCell.title = rg;
+                rgCell.textContent = rg;
+                row.appendChild(rgCell);
+                severities.forEach((sev) => {
+                    const count = Number(counts[rg][sev] || 0);
+                    const maxC = Number(maxBySev[sev] || 0);
+                    const intensity = (count <= 0 || maxC <= 0) ? 0 : Math.round((0.18 + 0.82 * (count / maxC)) * 1000) / 1000;
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `hm-cell hm-data hm-data-${sev.toLowerCase()}`;
+                    btn.dataset.rg = rg;
+                    btn.dataset.sev = sev;
+                    btn.dataset.count = String(count);
+                    if (count > 0) {
+                        btn.style.background = `rgba(${sevColor[sev]}, ${intensity})`;
+                        btn.style.color = (sev === 'Medium' || sev === 'Low') ? '#1f2937' : '#fff';
+                    } else {
+                        btn.style.background = 'transparent';
+                        btn.style.color = '#9ca3af';
+                    }
+                    const noun = count === 1 ? 'finding' : 'findings';
+                    btn.setAttribute('aria-label', `${count} ${sev} ${noun} in resource group ${rg}. Click to filter.`);
+                    btn.textContent = String(count);
+                    btn.addEventListener('click', () => filterByHeatmap(rg, sev));
+                    row.appendChild(btn);
+                });
+                grid.appendChild(row);
+            });
+
+            section.appendChild(grid);
+            container.appendChild(section);
+        }
+
         function renderFindingsTable(containerId, findings) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -602,6 +744,7 @@
                 row.dataset.compliant = String(isCompliant);
                 row.dataset.source = safeText(finding.source || finding.Source);
                 row.dataset.platform = safeText(finding.platform || finding.Platform || '');
+                row.dataset.resourcegroup = safeText(finding.resourceGroup || finding.ResourceGroup || extractResourceGroup(finding.resourceId || finding.ResourceId || ''));
                 tbody.appendChild(row);
             });
 
@@ -629,6 +772,7 @@
         renderSummaryCards();
         renderDonut();
         renderSourceBars();
+        renderHeatmap();
         renderFindingsTable('azure-table', getTabFindings('azure'));
         renderPriorityStack(getTabFindings('azure'), 'azure');
         renderFindingsTable('identity-table', getTabFindings('identity'));
@@ -694,6 +838,7 @@
         var _gfPlatform = '';
         var _gfStatus = '';
         var _gfText = '';
+        window._gfRg = '';
 
         function applyGlobalFilter() {
             _gfSource   = document.getElementById('gf-source')  ? document.getElementById('gf-source').value : '';
@@ -707,26 +852,43 @@
                 var source   = row.dataset.source || '';
                 var platform = row.dataset.platform || '';
                 var status   = row.dataset.compliant || '';
+                var rg       = row.dataset.resourcegroup || '';
                 var text     = row.textContent.toLowerCase();
 
                 var sevOk  = _gfActiveSev.size === 0 || _gfActiveSev.has(sev);
                 var srcOk  = !_gfSource   || source   === _gfSource;
                 var platOk = !_gfPlatform || platform === _gfPlatform;
                 var stOk   = !_gfStatus   || status   === _gfStatus;
+                var rgOk   = !window._gfRg || rg === window._gfRg;
                 var txtOk  = !_gfText     || text.includes(_gfText);
 
-                var show = sevOk && srcOk && platOk && stOk && txtOk;
+                var show = sevOk && srcOk && platOk && stOk && rgOk && txtOk;
                 row.style.display = show ? '' : 'none';
                 if (show) visible++;
             });
 
             var countEl = document.getElementById('gf-count');
-            if (countEl) countEl.textContent = visible + ' finding' + (visible !== 1 ? 's' : '') + ' shown';
+            if (countEl) {
+                var label = visible + ' finding' + (visible !== 1 ? 's' : '') + ' shown';
+                if (window._gfRg) { label += ' (RG: ' + window._gfRg + ')'; }
+                countEl.textContent = label;
+            }
+            var rgBanner = document.getElementById('gf-rg-banner');
+            if (rgBanner) {
+                if (window._gfRg) {
+                    rgBanner.style.display = '';
+                    var nameEl = rgBanner.querySelector('.gf-rg-name');
+                    if (nameEl) nameEl.textContent = window._gfRg;
+                } else {
+                    rgBanner.style.display = 'none';
+                }
+            }
         }
 
         function toggleSevFilter(btn, sev) {
             if (sev === 'all') {
                 _gfActiveSev.clear();
+                window._gfRg = '';
                 document.querySelectorAll('.gf-chip').forEach(function(c) {
                     c.dataset.active = 'false';
                     if (c.dataset.sev === 'all') c.classList.add('gf-active');
@@ -746,6 +908,7 @@
         function resetGlobalFilter() {
             _gfActiveSev.clear();
             _gfSource = _gfPlatform = _gfStatus = _gfText = '';
+            window._gfRg = '';
             document.querySelectorAll('.gf-chip').forEach(function(c) {
                 c.dataset.active = 'false';
                 if (c.dataset.sev === 'all') c.classList.add('gf-active');
@@ -755,6 +918,24 @@
                 var el = document.getElementById(id); if (el) el.value = '';
             });
             applyGlobalFilter();
+        }
+
+        function filterByHeatmap(rg, sev) {
+            if (window._gfRg === rg && _gfActiveSev.size === 1 && _gfActiveSev.has(sev)) {
+                resetGlobalFilter();
+                return;
+            }
+            window._gfRg = rg;
+            _gfActiveSev.clear();
+            _gfActiveSev.add(sev);
+            document.querySelectorAll('.gf-chip').forEach(function(c) {
+                c.classList.remove('gf-active');
+                c.dataset.active = (c.dataset.sev === sev) ? 'true' : 'false';
+            });
+            applyGlobalFilter();
+            // Reveal the relevant tab and scroll.
+            var firstTable = document.querySelector('table');
+            if (firstTable && firstTable.scrollIntoView) firstTable.scrollIntoView({behavior: 'smooth', block: 'start'});
         }
 
         function exportFilteredCSV() {
