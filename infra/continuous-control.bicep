@@ -37,11 +37,6 @@ param readerRoleAssignmentName string = guid(subscription().subscriptionId, appN
 // Storage names: 3-24 chars, lowercase alphanumeric only
 var storageName = 'st${take(uniqueString(resourceGroup().id, appName), 22)}'
 
-// Well-known Azure built-in role definition IDs
-var readerRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  'acdd72a7-3385-48ef-bd42-f606fba81ae7' // Reader
-)
 var monitoringMetricsPublisherRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '3913510d-42f4-4e42-8a64-420c390055eb' // Monitoring Metrics Publisher
@@ -57,17 +52,15 @@ resource userMI 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = 
 }
 
 // ---------------------------------------------------------------------------
-// Reader role at subscription scope (scope-escape to subscription)
+// Reader role at subscription scope via module (required for cross-scope)
 // ---------------------------------------------------------------------------
 
-resource readerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+module readerAssignment 'modules/subscription-reader.bicep' = {
+  name: 'reader-role-assignment'
   scope: subscription()
-  name: readerRoleAssignmentName
-  properties: {
-    roleDefinitionId: readerRoleId
+  params: {
     principalId: userMI.properties.principalId
-    principalType: 'ServicePrincipal'
-    description: 'azure-analyzer continuous-control: Reader for scan MI'
+    roleAssignmentName: readerRoleAssignmentName
   }
 }
 
@@ -193,7 +186,7 @@ resource dcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' = if (deployLog
   name: '${appName}-dcr'
   location: location
   properties: {
-    dataCollectionEndpointId: deployLogAnalytics ? dce.id : null
+    dataCollectionEndpointId: deployLogAnalytics ? dce!.id : null
     streamDeclarations: {
       'Custom-AzureAnalyzerFindings': {
         columns: [
@@ -224,7 +217,7 @@ resource dcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' = if (deployLog
       logAnalytics: [
         {
           name: 'law-destination'
-          workspaceResourceId: deployLogAnalytics ? logAnalytics.id : ''
+          workspaceResourceId: deployLogAnalytics ? logAnalytics!.id : ''
         }
       ]
     }
@@ -265,9 +258,7 @@ resource metricsPublisherAssignment 'Microsoft.Authorization/roleAssignments@202
 // Function App
 // ---------------------------------------------------------------------------
 
-// Build the app settings list. Conditional sink settings are included always
-// (empty string disables the sink) so the same app settings array works for
-// both deployLogAnalytics=true and deployLogAnalytics=false.
+// Build the storage connection string once to avoid repetition.
 var baseStorageConnStr = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
 
 resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
@@ -299,9 +290,9 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         // Scan targets
         { name: 'AZURE_ANALYZER_SUBSCRIPTION_ID', value: scanSubscriptionId }
         { name: 'AZURE_ANALYZER_TENANT_ID', value: scanTenantId }
-        // Log Analytics sink (empty = sink disabled)
-        { name: 'DCE_ENDPOINT', value: deployLogAnalytics ? dce.properties.logsIngestion.endpoint : '' }
-        { name: 'DCR_IMMUTABLE_ID', value: deployLogAnalytics ? dcr.properties.immutableId : '' }
+        // Log Analytics sink (empty string = sink disabled at runtime)
+        { name: 'DCE_ENDPOINT', value: deployLogAnalytics ? dce!.properties.logsIngestion.endpoint : '' }
+        { name: 'DCR_IMMUTABLE_ID', value: deployLogAnalytics ? dcr!.properties.immutableId : '' }
         { name: 'FINDINGS_STREAM', value: 'Custom-AzureAnalyzerFindings' }
         { name: 'ENTITIES_STREAM', value: 'Custom-AzureAnalyzerEntities' }
       ]
@@ -321,6 +312,6 @@ output functionAppHostname string = functionApp.properties.defaultHostName
 output managedIdentityClientId string = userMI.properties.clientId
 output managedIdentityPrincipalId string = userMI.properties.principalId
 output storageAccountName string = storageAccount.name
-output logAnalyticsWorkspaceId string = deployLogAnalytics ? logAnalytics.id : ''
-output dceEndpoint string = deployLogAnalytics ? dce.properties.logsIngestion.endpoint : ''
-output dcrImmutableId string = deployLogAnalytics ? dcr.properties.immutableId : ''
+output logAnalyticsWorkspaceId string = deployLogAnalytics ? logAnalytics!.id : ''
+output dceEndpoint string = deployLogAnalytics ? dce!.properties.logsIngestion.endpoint : ''
+output dcrImmutableId string = deployLogAnalytics ? dcr!.properties.immutableId : ''
