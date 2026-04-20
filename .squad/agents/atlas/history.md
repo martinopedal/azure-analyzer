@@ -76,3 +76,23 @@ PERMISSIONS.md / CHANGELOG.md / CONTRIBUTING.md / SECURITY.md kept at root - squ
 
 - `.copilot/skills/architectural-proposals/SKILL.md` has 19 pre-existing em-dashes + stale `docs/proposals/` path
 - README pruning candidate now that `operations.md` / `troubleshooting.md` exist
+
+
+## 2026-04-20 - Issue #252: PERMISSIONS.md split (PR #257, merged as 7b34e71)
+
+Trimmed root PERMISSIONS.md from 867 -> 116 lines. Hybrid approach: per-tool prose (tables, sample commands, what-it-does/does-not blocks) hand-extracted to 27 dedicated pages under docs/consumer/permissions/<tool>.md (26 enabled + copilot-triage). 5 cross-cutting framework pages (_summary / _continuous-control / _multi-tenant / _management-group / _troubleshooting) + folder README. Index inside PERMISSIONS.md is manifest-driven via scripts/Generate-PermissionsIndex.ps1 between BEGIN/END markers, gated by new permissions-pages-fresh CI job (mirrors tool-catalog-fresh). 11 Pester tests, all green. Pester baseline 1208/1208/5-skipped.
+
+### War story: workflows did not trigger on first push
+
+Pushed PR #257, only 2 of the expected ~14 checks ran (PR Advisory Gate + Copilot Agent PR Review, both pull_request_target). Docs Check, CodeQL, CI - all on pull_request - did not trigger. `gh pr view` showed mergeStateStatus=DIRTY, mergeable=CONFLICTING. Root cause: my branch was based on an older main (2a9d75d) and the rebase against current main (095b7dd) had a CHANGELOG conflict because PR #249 had landed an Unreleased > Removed entry while I added an Unreleased > Permissions entry to the same section. GitHub silently suppresses pull_request workflow runs while the merge ref is in conflict; pull_request_target still fires because it runs against base. Resolved CHANGELOG manually (kept both subsections; mine first, then Removed), force-pushed, all 14 checks then ran and went green. Lesson: `gh pr view --json mergeStateStatus` is the first thing to check when "checks did not trigger" - DIRTY is the symptom of a silent conflict-suppression of pull_request events.
+
+### War story: required check is "Analyze (actions)", not "CodeQL/Analyze (actions) (pull_request)"
+
+First merge attempt failed with "2 of 2 required status checks are expected" even though the rollup showed all 14 green. Branch protection requires contexts named exactly `rubberduck-gate` and `Analyze (actions)` - GitHub native CodeQL setup posts that exact short context name in addition to the workflow-prefixed one. Both eventually arrived; second attempt after second rebase against main (PR #256 had landed in the meantime) merged cleanly with --admin --squash --delete-branch.
+
+### Lessons
+
+- For docs that mix index-style (uniform per-tool) and narrative-style (rich prose) content: hybrid wins. Use the manifest for the index, keep prose hand-curated, gate page-existence with CI. Same pattern as PR-3 tool catalog.
+- The Comment Triage Loop / 3-model gate did not run because PR was non-squad-author; rubberduck-gate was skipped intentionally.
+- One `Get-Date -Format "yyyy-MM-ddTHH-mm-ssZ"` in PowerShell gives a perfect ISO-Z slug for decisions inbox files.
+- Always rebase before merge if --admin is being used; `mergeStateStatus` in PR JSON is the canonical signal.
