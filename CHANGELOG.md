@@ -6,6 +6,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 
+- feat(reports): framework x tool coverage matrix with click-to-filter (closes #230)
 - feat: Application Insights perf wrapper (slow requests + dependency failures + exception rate via KQL) (closes #237)
 - feat(reports): collapsible Tool/Category/Rule tree with persisted expand state and severity-strip integration (closes #229)
 - **K8s wrappers + orchestrator: `-KubeAuthMode` (Default | Kubelogin | WorkloadIdentity) for kubescape, falco, kube-bench (closes #236, #241, #242).**

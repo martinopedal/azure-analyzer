@@ -31,7 +31,10 @@
       "install": {
         "kind": "cli",
         "command": "azqr",
-        "preferredManagers": ["winget", "brew"],
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
         "windows": {
           "winget": "azure-quick-review.azqr"
         },
@@ -47,7 +50,11 @@
         "releaseApi": "https://api.github.com/repos/Azure/azqr/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "kubescape",
@@ -59,26 +66,54 @@
       "invokeMethod": "script",
       "type": "scanner",
       "script": "modules/Invoke-Kubescape.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["ClusterArmIds", "OutputPath"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ClusterArmIds",
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#7b1fa2", "phase": 6 },
+      "report": {
+        "color": "#7b1fa2",
+        "phase": 6
+      },
       "install": {
         "kind": "cli",
         "command": "kubescape",
-        "preferredManagers": ["winget", "brew"],
-        "windows": { "manager": "winget", "package": "ARMO.kubescape" },
-        "macos":   { "manager": "brew",   "package": "kubescape" },
-        "linux":   { "manager": "script", "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh" }
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "manager": "winget",
+          "package": "ARMO.kubescape"
+        },
+        "macos": {
+          "manager": "brew",
+          "package": "kubescape"
+        },
+        "linux": {
+          "manager": "script",
+          "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh"
+        }
       },
       "upstream": {
         "repo": "kubescape/kubescape",
         "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
         "pinType": "version",
         "currentPin": "v3"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53"
+      ]
     },
     {
       "name": "kube-bench",
@@ -90,15 +125,32 @@
       "invokeMethod": "script",
       "type": "scanner",
       "script": "modules/Invoke-KubeBench.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["ClusterArmIds", "OutputPath", "JobTimeoutSeconds", "KubeBenchImage"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ClusterArmIds",
+        "OutputPath",
+        "JobTimeoutSeconds",
+        "KubeBenchImage"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#5e35b1", "phase": 6 },
+      "report": {
+        "color": "#5e35b1",
+        "phase": 6
+      },
       "install": {
         "kind": "none"
-      }
+      },
+      "frameworks": [
+        "CIS Azure"
+      ]
     },
     {
       "name": "defender-for-cloud",
@@ -110,16 +162,37 @@
       "invokeMethod": "script",
       "type": "enrichment",
       "script": "modules/Invoke-DefenderForCloud.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["OutputPath"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#0078d4", "phase": 4 },
+      "report": {
+        "color": "#0078d4",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts"]
-      }
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "falco",
@@ -131,22 +204,42 @@
       "invokeMethod": "script",
       "type": "scanner",
       "script": "modules/Invoke-Falco.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["ClusterArmIds", "InstallFalco", "UninstallFalco", "CaptureMinutes"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ClusterArmIds",
+        "InstallFalco",
+        "UninstallFalco",
+        "CaptureMinutes"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#ef6c00", "phase": 6 },
+      "report": {
+        "color": "#ef6c00",
+        "phase": 6
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.ResourceGraph"]
+        "modules": [
+          "Az.ResourceGraph"
+        ]
       },
       "upstream": {
         "repo": "falcosecurity/falco",
         "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
         "pinType": "cli-version",
         "currentPin": "0.42.0"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53"
+      ]
     },
     {
       "name": "azure-cost",
@@ -158,16 +251,33 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-AzureCost.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["TopN", "OutputPath"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "TopN",
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#388e3c", "phase": 4 },
+      "report": {
+        "color": "#388e3c",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts"]
-      }
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "frameworks": [
+        "Azure CAF"
+      ]
     },
     {
       "name": "finops",
@@ -179,16 +289,36 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-FinOpsSignals.ps1",
-      "requiredParams": ["SubscriptionId"],
-      "optionalParams": ["OutputPath", "QueryFiles"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "OutputPath",
+        "QueryFiles"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "label": "FinOps Signals", "color": "#00897b", "phase": 4 },
+      "report": {
+        "label": "FinOps Signals",
+        "color": "#00897b",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.CostManagement", "Az.ResourceGraph"]
-      }
+        "modules": [
+          "Az.CostManagement",
+          "Az.ResourceGraph"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "appinsights",
@@ -200,7 +330,9 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-AppInsights.ps1",
-      "requiredParams": ["SubscriptionId"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
       "optionalParams": [
         "ResourceGroup",
         "AppInsightsName",
@@ -208,13 +340,28 @@
         "OutputPath"
       ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "label": "App Insights", "color": "#00838f", "phase": 4 },
+      "report": {
+        "label": "App Insights",
+        "color": "#00838f",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts", "Az.ApplicationInsights", "Az.Monitor"]
-      }
+        "modules": [
+          "Az.Accounts",
+          "Az.ApplicationInsights",
+          "Az.Monitor"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF"
+      ]
     },
     {
       "name": "loadtesting",
@@ -226,7 +373,9 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-AzureLoadTesting.ps1",
-      "requiredParams": ["SubscriptionId"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
       "optionalParams": [
         "ResourceGroup",
         "LoadTestResourceName",
@@ -236,13 +385,27 @@
         "OutputPath"
       ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "label": "Load Testing", "color": "#00695c", "phase": 4 },
+      "report": {
+        "label": "Load Testing",
+        "color": "#00695c",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts", "Az.LoadTesting"]
-      }
+        "modules": [
+          "Az.Accounts",
+          "Az.LoadTesting"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF"
+      ]
     },
     {
       "name": "aks-rightsizing",
@@ -254,7 +417,9 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-AksRightsizing.ps1",
-      "requiredParams": ["SubscriptionId"],
+      "requiredParams": [
+        "SubscriptionId"
+      ],
       "optionalParams": [
         "ResourceGroup",
         "ClusterName",
@@ -263,13 +428,29 @@
         "OutputPath"
       ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "label": "AKS Rightsizing", "color": "#2e7d32", "phase": 4 },
+      "report": {
+        "label": "AKS Rightsizing",
+        "color": "#2e7d32",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts", "Az.ResourceGraph", "Az.OperationalInsights"]
-      }
+        "modules": [
+          "Az.Accounts",
+          "Az.ResourceGraph",
+          "Az.OperationalInsights"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "psrule",
@@ -310,7 +491,13 @@
         "releaseApi": "https://api.github.com/repos/microsoft/PSRule.Rules.Azure/releases/latest",
         "pinType": "psmodule-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "azgovviz",
@@ -351,7 +538,11 @@
         "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
         "pinType": "sha",
         "currentPin": "HEAD"
-      }
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "alz-queries",
@@ -392,7 +583,13 @@
         "releaseApi": "https://api.github.com/repos/Azure/Azure-Landing-Zones-Library/commits/main",
         "pinType": "sha",
         "currentPin": "HEAD"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "wara",
@@ -433,7 +630,11 @@
         "releaseApi": "https://api.github.com/repos/Azure/Azure-Proactive-Resiliency-Library-v2/releases/latest",
         "pinType": "psmodule-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "maester",
@@ -469,7 +670,12 @@
         "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
         "pinType": "psmodule-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "scorecard",
@@ -501,7 +707,10 @@
       "install": {
         "kind": "cli",
         "command": "scorecard",
-        "preferredManagers": ["winget", "brew"],
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
         "windows": {
           "winget": "ossf.scorecard"
         },
@@ -517,7 +726,11 @@
         "releaseApi": "https://api.github.com/repos/ossf/scorecard/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
     },
     {
       "name": "ado-connections",
@@ -549,7 +762,12 @@
       },
       "install": {
         "kind": "none"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "ado-pipelines",
@@ -581,7 +799,12 @@
       },
       "install": {
         "kind": "none"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "ado-repos-secrets",
@@ -616,7 +839,12 @@
       },
       "install": {
         "kind": "none"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "ado-pipeline-correlator",
@@ -649,7 +877,11 @@
       },
       "install": {
         "kind": "none"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
     },
     {
       "name": "identity-correlator",
@@ -684,7 +916,12 @@
           "Microsoft.Graph.Authentication",
           "Microsoft.Graph.Applications"
         ]
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "identity-graph-expansion",
@@ -724,7 +961,11 @@
           "Microsoft.Graph.Applications",
           "Az.Resources"
         ]
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
     },
     {
       "name": "zizmor",
@@ -755,7 +996,10 @@
       "install": {
         "kind": "cli",
         "command": "zizmor",
-        "preferredManagers": ["pipx", "brew"],
+        "preferredManagers": [
+          "pipx",
+          "brew"
+        ],
         "windows": {
           "pipx": "zizmor"
         },
@@ -771,7 +1015,11 @@
         "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
     },
     {
       "name": "gitleaks",
@@ -802,7 +1050,10 @@
       "install": {
         "kind": "cli",
         "command": "gitleaks",
-        "preferredManagers": ["winget", "brew"],
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
         "windows": {
           "winget": "gitleaks.gitleaks"
         },
@@ -818,7 +1069,12 @@
         "releaseApi": "https://api.github.com/repos/gitleaks/gitleaks/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "trivy",
@@ -849,7 +1105,10 @@
       "install": {
         "kind": "cli",
         "command": "trivy",
-        "preferredManagers": ["winget", "brew"],
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
         "windows": {
           "winget": "AquaSecurity.Trivy"
         },
@@ -865,7 +1124,12 @@
         "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "PCI-DSS"
+      ]
     },
     {
       "name": "bicep-iac",
@@ -912,7 +1176,13 @@
         "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "infracost",
@@ -945,7 +1215,10 @@
       "install": {
         "kind": "cli",
         "command": "infracost",
-        "preferredManagers": ["winget", "brew"],
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
         "windows": {
           "winget": "Infracost.Infracost"
         },
@@ -961,7 +1234,10 @@
         "releaseApi": "https://api.github.com/repos/infracost/infracost/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "Azure CAF"
+      ]
     },
     {
       "name": "terraform-iac",
@@ -1007,7 +1283,13 @@
         "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
-      }
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
     },
     {
       "name": "sentinel-incidents",
@@ -1019,16 +1301,34 @@
       "invokeMethod": "script",
       "type": "enrichment",
       "script": "modules/Invoke-SentinelIncidents.ps1",
-      "requiredParams": ["WorkspaceResourceId"],
-      "optionalParams": ["LookbackDays", "OutputPath"],
+      "requiredParams": [
+        "WorkspaceResourceId"
+      ],
+      "optionalParams": [
+        "LookbackDays",
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#0078d4", "phase": 4 },
+      "report": {
+        "color": "#0078d4",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts"]
-      }
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
     },
     {
       "name": "sentinel-coverage",
@@ -1040,17 +1340,37 @@
       "invokeMethod": "script",
       "type": "collector",
       "script": "modules/Invoke-SentinelCoverage.ps1",
-      "requiredParams": ["WorkspaceResourceId"],
-      "optionalParams": ["LookbackDays", "OutputPath"],
+      "requiredParams": [
+        "WorkspaceResourceId"
+      ],
+      "optionalParams": [
+        "LookbackDays",
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": true,
-      "report": { "color": "#3949ab", "phase": 4 },
+      "report": {
+        "color": "#3949ab",
+        "phase": 4
+      },
       "install": {
         "kind": "psmodule",
-        "modules": ["Az.Accounts"]
+        "modules": [
+          "Az.Accounts"
+        ]
       },
-      "comment": "Surfaces Sentinel detection posture (analytic rules, watchlists, connectors, hunting queries) via Microsoft.SecurityInsights REST. Read-only; pairs with sentinel-incidents."
+      "comment": "Surfaces Sentinel detection posture (analytic rules, watchlists, connectors, hunting queries) via Microsoft.SecurityInsights REST. Read-only; pairs with sentinel-incidents.",
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS",
+        "Azure WAF"
+      ]
     },
     {
       "name": "copilot-triage",
@@ -1063,15 +1383,26 @@
       "type": "enrichment",
       "script": "modules/Invoke-CopilotTriage.ps1",
       "requiredParams": [],
-      "optionalParams": ["InputPath", "OutputPath"],
+      "optionalParams": [
+        "InputPath",
+        "OutputPath"
+      ],
       "requiredPermissionTier": 0,
-      "platforms": ["windows", "macos", "linux"],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "enabled": false,
-      "report": { "color": "#6a1b9a", "phase": 8 },
+      "report": {
+        "color": "#6a1b9a",
+        "phase": 8
+      },
       "install": {
         "kind": "none"
       },
-      "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch."
+      "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch.",
+      "frameworks": []
     }
   ],
   "prerequisites": [
@@ -1079,11 +1410,18 @@
       "name": "kubelogin",
       "displayName": "Azure kubelogin (AAD exec plugin)",
       "purpose": "Required by Invoke-Kubescape / Invoke-Falco / Invoke-KubeBench when -KubeAuthMode is 'Kubelogin' or 'WorkloadIdentity'. Converts kubeconfig exec plugin entries to use AAD tokens (azurecli / spn / msi / workloadidentity).",
-      "consumedBy": ["kubescape", "falco", "kube-bench"],
+      "consumedBy": [
+        "kubescape",
+        "falco",
+        "kube-bench"
+      ],
       "install": {
         "kind": "cli",
         "command": "kubelogin",
-        "preferredManagers": ["winget", "brew"],
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
         "windows": {
           "manager": "winget",
           "package": "Azure.Kubelogin"

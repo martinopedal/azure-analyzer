@@ -12,39 +12,39 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 
 ## Registration matrix
 
-| Name | Display name | Type | Provider | Scope | Status | Tier | Platforms |
-|---|---|---|---|---|---|---|---|
-| `ado-connections` | ADO Service Connections | collector | ado | ado | Enabled | 0 | windows, macos, linux |
-| `ado-pipeline-correlator` | ADO Pipeline Run Correlator | correlator | ado | ado | Enabled | 0 | windows, macos, linux |
-| `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux |
-| `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux |
-| `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `alz-queries` | ALZ Resource Graph Queries | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux |
-| `appinsights` | Application Insights Performance Signals | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `azgovviz` | AzGovViz | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux |
-| `azqr` | Azure Quick Review | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `azure-cost` | Azure Cost (Consumption API) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `bicep-iac` | Bicep IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux |
-| `copilot-triage` | Copilot AI Triage | enrichment | cli | repository | Disabled | 0 | windows, macos, linux |
-| `defender-for-cloud` | Microsoft Defender for Cloud | enrichment | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `falco` | Falco (AKS runtime anomaly detection) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `finops` | FinOps Signals (Idle Resource Detection) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `gitleaks` | gitleaks (Secrets Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux |
-| `identity-correlator` | Identity Correlator | correlator | graph | tenant | Enabled | 3 | windows, macos, linux |
-| `identity-graph-expansion` | Identity Graph Expansion | correlator | graph | tenant | Enabled | 3 | windows, macos, linux |
-| `infracost` | Infracost IaC Cost Estimation | collector | cli | repository | Enabled | 0 | windows, macos, linux |
-| `kube-bench` | kube-bench (AKS node-level CIS compliance) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `kubescape` | Kubescape (AKS runtime posture) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `loadtesting` | Azure Load Testing (Failed and Regressed Runs) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `maester` | Maester | collector | microsoft365 | tenant | Enabled | 0 | windows, macos, linux |
-| `psrule` | PSRule for Azure | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `scorecard` | OpenSSF Scorecard | collector | github | repository | Enabled | 0 | windows, macos, linux |
-| `sentinel-coverage` | Microsoft Sentinel (Coverage / Posture) | collector | azure | workspace | Enabled | 0 | windows, macos, linux |
-| `sentinel-incidents` | Microsoft Sentinel (Active Incidents) | enrichment | azure | workspace | Enabled | 0 | windows, macos, linux |
-| `terraform-iac` | Terraform IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux |
-| `trivy` | Trivy Vulnerability Scanner | collector | cli | repository | Enabled | 0 | windows, macos, linux |
-| `wara` | Well-Architected Reliability Assessment | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
-| `zizmor` | zizmor (Actions YAML Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux |
+| Name | Display name | Type | Provider | Scope | Status | Tier | Platforms | Frameworks |
+|---|---|---|---|---|---|---|---|---|
+| `ado-connections` | ADO Service Connections | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `ado-pipeline-correlator` | ADO Pipeline Run Correlator | correlator | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
+| `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
+| `alz-queries` | ALZ Resource Graph Queries | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
+| `appinsights` | Application Insights Performance Signals | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF |
+| `azgovviz` | AzGovViz | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
+| `azqr` | Azure Quick Review | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
+| `azure-cost` | Azure Cost (Consumption API) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure CAF |
+| `bicep-iac` | Bicep IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
+| `copilot-triage` | Copilot AI Triage | enrichment | cli | repository | Disabled | 0 | windows, macos, linux | - |
+| `defender-for-cloud` | Microsoft Defender for Cloud | enrichment | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF, SOC2, PCI-DSS |
+| `falco` | Falco (AKS runtime anomaly detection) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53 |
+| `finops` | FinOps Signals (Idle Resource Detection) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
+| `gitleaks` | gitleaks (Secrets Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `identity-correlator` | Identity Correlator | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `identity-graph-expansion` | Identity Graph Expansion | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2 |
+| `infracost` | Infracost IaC Cost Estimation | collector | cli | repository | Enabled | 0 | windows, macos, linux | Azure CAF |
+| `kube-bench` | kube-bench (AKS node-level CIS compliance) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure |
+| `kubescape` | Kubescape (AKS runtime posture) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53 |
+| `loadtesting` | Azure Load Testing (Failed and Regressed Runs) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF |
+| `maester` | Maester | collector | microsoft365 | tenant | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `psrule` | PSRule for Azure | collector | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
+| `scorecard` | OpenSSF Scorecard | collector | github | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
+| `sentinel-coverage` | Microsoft Sentinel (Coverage / Posture) | collector | azure | workspace | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS, Azure WAF |
+| `sentinel-incidents` | Microsoft Sentinel (Active Incidents) | enrichment | azure | workspace | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
+| `terraform-iac` | Terraform IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
+| `trivy` | Trivy Vulnerability Scanner | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, PCI-DSS |
+| `wara` | Well-Architected Reliability Assessment | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
+| `zizmor` | zizmor (Actions YAML Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
 
 ## Invocation
 

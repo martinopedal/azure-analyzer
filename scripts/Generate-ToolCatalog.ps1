@@ -159,6 +159,12 @@ function Format-Platforms {
     return ($tool.platforms -join ', ')
 }
 
+function Format-Frameworks {
+    param($tool)
+    if ($tool.PSObject.Properties.Name -notcontains 'frameworks' -or -not $tool.frameworks) { return '-' }
+    return ($tool.frameworks -join ', ')
+}
+
 function Format-Color {
     param($tool)
     if ($tool.PSObject.Properties.Name -notcontains 'report' -or -not $tool.report) { return '' }
@@ -208,11 +214,11 @@ function New-ConsumerCatalog {
     [void]$sb.AppendLine()
     [void]$sb.AppendLine('## Enabled by default')
     [void]$sb.AppendLine()
-    [void]$sb.AppendLine('| Name | Display name | Scope | Provider | What it does | Docs |')
-    [void]$sb.AppendLine('|---|---|---|---|---|---|')
+    [void]$sb.AppendLine('| Name | Display name | Scope | Provider | Frameworks | What it does | Docs |')
+    [void]$sb.AppendLine('|---|---|---|---|---|---|---|')
     foreach ($t in $enabledTools) {
-        $row = '| `{0}` | {1} | {2} | {3} | {4} | {5} |' -f `
-            $t.name, $t.displayName, $t.scope, $t.provider, (Get-ConsumerBlurb $t), (Get-ConsumerDocLink $t.name)
+        $row = '| `{0}` | {1} | {2} | {3} | {4} | {5} | {6} |' -f `
+            $t.name, $t.displayName, $t.scope, $t.provider, (Format-Frameworks $t), (Get-ConsumerBlurb $t), (Get-ConsumerDocLink $t.name)
         [void]$sb.AppendLine($row)
     }
 
@@ -222,11 +228,11 @@ function New-ConsumerCatalog {
         [void]$sb.AppendLine()
         [void]$sb.AppendLine('These tools are wired but turned off in the manifest. Enable them by setting `enabled: true` in `tools/tool-manifest.json` or via `tools/install-config.json`.')
         [void]$sb.AppendLine()
-        [void]$sb.AppendLine('| Name | Display name | Scope | Provider | What it does |')
-        [void]$sb.AppendLine('|---|---|---|---|---|')
+        [void]$sb.AppendLine('| Name | Display name | Scope | Provider | Frameworks | What it does |')
+        [void]$sb.AppendLine('|---|---|---|---|---|---|')
         foreach ($t in $disabledTools) {
-            $row = '| `{0}` | {1} | {2} | {3} | {4} |' -f `
-                $t.name, $t.displayName, $t.scope, $t.provider, (Get-ConsumerBlurb $t)
+            $row = '| `{0}` | {1} | {2} | {3} | {4} | {5} |' -f `
+                $t.name, $t.displayName, $t.scope, $t.provider, (Format-Frameworks $t), (Get-ConsumerBlurb $t)
             [void]$sb.AppendLine($row)
         }
     }
@@ -267,13 +273,13 @@ function New-ContributorCatalog {
 
     [void]$sb.AppendLine('## Registration matrix')
     [void]$sb.AppendLine()
-    [void]$sb.AppendLine('| Name | Display name | Type | Provider | Scope | Status | Tier | Platforms |')
-    [void]$sb.AppendLine('|---|---|---|---|---|---|---|---|')
+    [void]$sb.AppendLine('| Name | Display name | Type | Provider | Scope | Status | Tier | Platforms | Frameworks |')
+    [void]$sb.AppendLine('|---|---|---|---|---|---|---|---|---|')
     foreach ($t in $sortedTools) {
         $type = if ($t.PSObject.Properties.Name -contains 'type') { $t.type } else { '' }
         $tier = if ($t.PSObject.Properties.Name -contains 'requiredPermissionTier') { [string]$t.requiredPermissionTier } else { '' }
-        $row = '| `{0}` | {1} | {2} | {3} | {4} | {5} | {6} | {7} |' -f `
-            $t.name, $t.displayName, $type, $t.provider, $t.scope, (Format-Status $t.enabled), $tier, (Format-Platforms $t)
+        $row = '| `{0}` | {1} | {2} | {3} | {4} | {5} | {6} | {7} | {8} |' -f `
+            $t.name, $t.displayName, $type, $t.provider, $t.scope, (Format-Status $t.enabled), $tier, (Format-Platforms $t), (Format-Frameworks $t)
         [void]$sb.AppendLine($row)
     }
 
