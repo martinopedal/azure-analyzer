@@ -125,7 +125,12 @@ function Invoke-IdentityGraphExpansion {
 
         [PSCustomObject] $PreFetchedData,
 
-        [switch] $IncludeGraphLookup
+        [switch] $IncludeGraphLookup,
+
+        # Maximum number of principals to enumerate per collector. Prevents
+        # runaway Graph/ARM calls in large tenants; principals beyond the cap
+        # are not expanded. An Info finding is emitted when the cap is hit.
+        [int] $MaxPrincipals = 1000
     )
 
     $runId = [guid]::NewGuid().ToString()
@@ -139,7 +144,48 @@ function Invoke-IdentityGraphExpansion {
     $data = if ($PreFetchedData) {
         $PreFetchedData
     } else {
-        Get-IdentityGraphExpansionData -IncludeGraphLookup:$IncludeGraphLookup -EntityStore $EntityStore
+        Get-IdentityGraphExpansionData -IncludeGraphLookup:$IncludeGraphLookup -EntityStore $EntityStore -MaxPrincipals $MaxPrincipals
+    }
+
+    # Emit Info finding when the live collector hit the principal cap.
+    if ($data -and $data.PSObject.Properties['PrincipalCapHit'] -and $data.PrincipalCapHit) {
+        $capFinding = New-FindingRow `
+            -Id ([guid]::NewGuid().ToString()) `
+            -Source 'identity-graph-expansion' `
+            -EntityId $homeTenantCanonical `
+            -EntityType 'Tenant' `
+            -Title "Identity Graph Expansion capped at $MaxPrincipals principals" `
+            -Compliant $true `
+            -ProvenanceRunId $runId `
+            -Platform 'Entra' `
+            -Category 'Expansion Cap' `
+            -Severity 'Info' `
+            -Confidence 'Confirmed' `
+            -Detail "Live collector enumeration was limited to $MaxPrincipals principals from the EntityStore. Remaining principals were not expanded. Re-run with a higher -MaxPrincipals value for full coverage." `
+            -Remediation 'Increase -MaxPrincipals or scope the EntityStore to fewer subscriptions/tenants.'
+        if ($capFinding) { $findings.Add($capFinding) }
+    }
+
+    # Emit Info finding for each collector that was short-circuited by throttling.
+    if ($data -and $data.PSObject.Properties['ThrottledCollectors']) {
+        foreach ($collectorName in @($data.ThrottledCollectors)) {
+            if (-not $collectorName) { continue }
+            $throttleFinding = New-FindingRow `
+                -Id ([guid]::NewGuid().ToString()) `
+                -Source 'identity-graph-expansion' `
+                -EntityId $homeTenantCanonical `
+                -EntityType 'Tenant' `
+                -Title "Collector '$collectorName' halted after 3 consecutive throttle (429) responses" `
+                -Compliant $true `
+                -ProvenanceRunId $runId `
+                -Platform 'Entra' `
+                -Category 'Throttle Skip' `
+                -Severity 'Info' `
+                -Confidence 'Confirmed' `
+                -Detail "The '$collectorName' collector received 3 consecutive 429 responses from Microsoft Graph and was halted to avoid prolonged blocking. Partial data is included. Retry after the throttling window expires (typically 10-60 minutes)." `
+                -Remediation 'Wait for the Graph throttling window to expire and re-run with -IncludeGraphLookup. Consider reducing -MaxPrincipals to lower request volume.'
+            if ($throttleFinding) { $findings.Add($throttleFinding) }
+        }
     }
 
     # ------------------------------------------------------------------
@@ -389,12 +435,18 @@ function Invoke-IdentityGraphExpansion {
         }
     }
 
+    $expansionSummary = [object[]] @()
+    if ($data -and $data.PSObject.Properties['ExpansionSummary'] -and $data.ExpansionSummary) {
+        $expansionSummary = @($data.ExpansionSummary)
+    }
+
     Write-Verbose "IdentityGraphExpansion: emitted $($findings.Count) finding(s) and $($edges.Count) edge(s)."
     return [PSCustomObject]@{
-        Status   = 'Success'
-        RunId    = $runId
-        Findings = @($findings)
-        Edges    = @($edges)
+        Status           = 'Success'
+        RunId            = $runId
+        Findings         = @($findings)
+        Edges            = @($edges)
+        ExpansionSummary = $expansionSummary
     }
 }
 
@@ -409,15 +461,22 @@ function Get-IdentityGraphExpansionData {
     [CmdletBinding()]
     param (
         [switch] $IncludeGraphLookup,
-        [object] $EntityStore
+        [object] $EntityStore,
+        [int]    $MaxPrincipals = 1000
     )
 
+    $expansionSummaryList = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $throttledCollectors  = [System.Collections.Generic.List[string]]::new()
+
     $result = [PSCustomObject]@{
-        Guests             = @()
-        GroupMemberships   = @()
-        RbacAssignments    = @()
-        AppOwnerships      = @()
-        ConsentGrants      = @()
+        Guests              = @()
+        GroupMemberships    = @()
+        RbacAssignments     = @()
+        AppOwnerships       = @()
+        ConsentGrants       = @()
+        ExpansionSummary    = $expansionSummaryList
+        PrincipalCapHit     = $false
+        ThrottledCollectors = $throttledCollectors
     }
 
     if (-not $IncludeGraphLookup) {
@@ -431,6 +490,7 @@ function Get-IdentityGraphExpansionData {
         return $result
     }
 
+    # ---- Guests (tenant-wide) ----
     try {
         $guests = Invoke-WithRetry -ScriptBlock {
             Get-MgUser -Filter "userType eq 'Guest'" -All `
@@ -442,8 +502,261 @@ function Get-IdentityGraphExpansionData {
         Write-Warning "IdentityGraphExpansion: Guest query failed: $(Remove-Credentials $_.Exception.Message)"
     }
 
-    # Group memberships and app ownerships are intentionally NOT bulk-enumerated;
-    # we follow the same candidate-reduction discipline as IdentityCorrelator and
-    # leave per-principal expansion to the caller if needed.
+    # ---- Candidate extraction from EntityStore (candidate-driven expansion) ----
+    # Only enumerate for principals already in the EntityStore (O(P) API calls,
+    # where P = known principals). Avoids full-tenant enumeration of group members.
+    $userOids  = [System.Collections.Generic.List[string]]::new()
+    $spnAppIds = [System.Collections.Generic.List[string]]::new()
+
+    if ($EntityStore) {
+        try {
+            $allEntities = @($EntityStore.GetEntities())
+        } catch {
+            $allEntities = @()
+            Write-Verbose "IdentityGraphExpansion: EntityStore.GetEntities() failed: $(Remove-Credentials $_.Exception.Message)"
+        }
+        foreach ($entity in $allEntities) {
+            if (-not $entity) { continue }
+            switch ($entity.EntityType) {
+                'User' {
+                    if ($entity.EntityId -match '^objectId:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$') {
+                        $userOids.Add($matches[1])
+                    }
+                }
+                'ServicePrincipal' {
+                    if ($entity.EntityId -match '^appId:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$') {
+                        $spnAppIds.Add($matches[1])
+                    }
+                }
+            }
+        }
+    }
+
+    $userOids  = @($userOids  | Select-Object -Unique)
+    $spnAppIds = @($spnAppIds | Select-Object -Unique)
+
+    # Apply principal cap (split proportionally between users and SPNs).
+    $totalPrincipals = $userOids.Count + $spnAppIds.Count
+    if ($MaxPrincipals -gt 0 -and $totalPrincipals -gt $MaxPrincipals) {
+        Write-Warning "IdentityGraphExpansion: principal count ($totalPrincipals) exceeds cap ($MaxPrincipals); truncating to avoid excessive Graph/ARM calls."
+        $result.PrincipalCapHit = $true
+        $userSlots = if ($totalPrincipals -gt 0) { [math]::Min($userOids.Count, [int][math]::Ceiling($MaxPrincipals * ($userOids.Count / $totalPrincipals))) } else { 0 }
+        $spnSlots  = $MaxPrincipals - $userSlots
+        $userOids  = @(if ($userSlots  -gt 0) { $userOids[0..($userSlots  - 1)] })
+        $spnAppIds = @(if ($spnSlots   -gt 0) { $spnAppIds[0..($spnSlots  - 1)] })
+    }
+
+    # Resolve SPN appId -> objectId (Graph and ARM APIs need the object ID).
+    $spnObjectIds = @{}
+    if ($spnAppIds.Count -gt 0 -and (Get-Command 'Get-MgServicePrincipal' -ErrorAction SilentlyContinue)) {
+        foreach ($appId in $spnAppIds) {
+            try {
+                $spnRaw = Invoke-WithRetry -ScriptBlock {
+                    Get-MgServicePrincipal -Filter "appId eq '$appId'" -Select 'id,appId' -Top 1 -ErrorAction Stop
+                }
+                if ($spnRaw -and $spnRaw.Id) { $spnObjectIds[$appId] = [string]$spnRaw.Id }
+            } catch {
+                Write-Warning "IdentityGraphExpansion: SPN objectId lookup failed for appId ${appId}: $(Remove-Credentials $_.Exception.Message)"
+            }
+        }
+    }
+    $spnOids = @($spnObjectIds.Values)
+
+    # ---- GroupMemberships collector ----
+    # Requires: Microsoft.Graph.Groups (Get-MgUserMemberOf) and/or
+    #           Microsoft.Graph.Applications (Get-MgServicePrincipalMemberOf).
+    $hasMgUserMemberOf = Get-Command 'Get-MgUserMemberOf'            -ErrorAction SilentlyContinue
+    $hasMgSpnMemberOf  = Get-Command 'Get-MgServicePrincipalMemberOf' -ErrorAction SilentlyContinue
+    if ($hasMgUserMemberOf -or $hasMgSpnMemberOf) {
+        $memberships    = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $consecutive429 = 0
+        $throttled      = $false
+        $principalQueue = @(
+            @($userOids | ForEach-Object { [PSCustomObject]@{ Oid = $_; Type = 'User' } })
+            @($spnOids  | ForEach-Object { [PSCustomObject]@{ Oid = $_; Type = 'ServicePrincipal' } })
+        ) | Where-Object { $_ }
+        foreach ($p in $principalQueue) {
+            if ($throttled) { break }
+            try {
+                $rawItems = if ($p.Type -eq 'User' -and $hasMgUserMemberOf) {
+                    Invoke-WithRetry -ScriptBlock { Get-MgUserMemberOf -UserId $p.Oid -Property 'id,displayName' -All -ErrorAction Stop }
+                } elseif ($p.Type -eq 'ServicePrincipal' -and $hasMgSpnMemberOf) {
+                    Invoke-WithRetry -ScriptBlock { Get-MgServicePrincipalMemberOf -ServicePrincipalId $p.Oid -Property 'id,displayName' -All -ErrorAction Stop }
+                } else { @() }
+                $consecutive429 = 0
+                foreach ($m in @($rawItems)) {
+                    if (-not $m -or -not $m.Id) { continue }
+                    $memberships.Add([PSCustomObject]@{
+                        PrincipalId   = $p.Oid
+                        PrincipalType = $p.Type
+                        GroupId       = [string]$m.Id
+                        GroupName     = if ($m.PSObject.Properties['DisplayName'] -and $m.DisplayName) { [string]$m.DisplayName } else { '' }
+                    })
+                }
+            } catch {
+                $errMsg = Remove-Credentials $_.Exception.Message
+                if ($errMsg -match '\b429\b|throttl|rate.?limit') {
+                    $consecutive429++
+                    Write-Warning "IdentityGraphExpansion: GroupMemberships throttled for $($p.Oid) ($consecutive429/3): $errMsg"
+                    if ($consecutive429 -ge 3) { $throttled = $true; $throttledCollectors.Add('GroupMemberships'); break }
+                } else {
+                    Write-Warning "IdentityGraphExpansion: GroupMemberships failed for $($p.Oid): $errMsg"
+                    $consecutive429 = 0
+                }
+            }
+        }
+        $result.GroupMemberships = @($memberships)
+        $expansionSummaryList.Add([PSCustomObject]@{
+            Collector      = 'GroupMemberships'
+            PrincipalCount = @($principalQueue).Count
+            EdgeCount      = $memberships.Count
+            Skipped        = $throttled
+            SkipReason     = if ($throttled) { '3 consecutive 429 responses from Microsoft Graph; retry after throttling window' } else { $null }
+        })
+    } else {
+        Write-Warning 'IdentityGraphExpansion: Get-MgUserMemberOf not available; skipping GroupMemberships collector.'
+        $expansionSummaryList.Add([PSCustomObject]@{ Collector = 'GroupMemberships'; PrincipalCount = 0; EdgeCount = 0; Skipped = $true; SkipReason = 'Microsoft.Graph.Groups module not loaded' })
+    }
+
+    # ---- RbacAssignments collector (Azure ARM RBAC via Az.Resources) ----
+    # Uses Get-AzRoleAssignment (ARM scopes) NOT Get-MgRoleManagementDirectoryRoleAssignment
+    # (which returns Entra ID directory roles at scope="/", not ARM resource scopes).
+    $hasAzRoleAssignment = Get-Command 'Get-AzRoleAssignment' -ErrorAction SilentlyContinue
+    if ($hasAzRoleAssignment) {
+        $rbacList       = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $consecutive429 = 0
+        $throttled      = $false
+        $allPrincipals  = @(
+            @($userOids | ForEach-Object { [PSCustomObject]@{ Oid = $_; Type = 'User' } })
+            @($spnOids  | ForEach-Object { [PSCustomObject]@{ Oid = $_; Type = 'ServicePrincipal' } })
+        ) | Where-Object { $_ }
+        foreach ($p in $allPrincipals) {
+            if ($throttled) { break }
+            try {
+                $assignments = Invoke-WithRetry -ScriptBlock { Get-AzRoleAssignment -ObjectId $p.Oid -ErrorAction Stop }
+                $consecutive429 = 0
+                foreach ($a in @($assignments)) {
+                    if (-not $a) { continue }
+                    $rbacList.Add([PSCustomObject]@{
+                        PrincipalId        = $p.Oid
+                        PrincipalType      = $p.Type
+                        Scope              = if ($a.PSObject.Properties['Scope'])              { [string]$a.Scope }              else { $null }
+                        RoleDefinitionName = if ($a.PSObject.Properties['RoleDefinitionName']) { [string]$a.RoleDefinitionName } else { $null }
+                    })
+                }
+            } catch {
+                $errMsg = Remove-Credentials $_.Exception.Message
+                if ($errMsg -match '\b429\b|throttl|rate.?limit') {
+                    $consecutive429++
+                    Write-Warning "IdentityGraphExpansion: RbacAssignments throttled for $($p.Oid) ($consecutive429/3): $errMsg"
+                    if ($consecutive429 -ge 3) { $throttled = $true; $throttledCollectors.Add('RbacAssignments'); break }
+                } else {
+                    Write-Warning "IdentityGraphExpansion: RbacAssignments failed for $($p.Oid): $errMsg"
+                    $consecutive429 = 0
+                }
+            }
+        }
+        $result.RbacAssignments = @($rbacList)
+        $expansionSummaryList.Add([PSCustomObject]@{
+            Collector      = 'RbacAssignments'
+            PrincipalCount = @($allPrincipals).Count
+            EdgeCount      = $rbacList.Count
+            Skipped        = $throttled
+            SkipReason     = if ($throttled) { '3 consecutive 429 responses from ARM; retry after throttling window' } else { $null }
+        })
+    } else {
+        Write-Warning 'IdentityGraphExpansion: Get-AzRoleAssignment not available (Az.Resources not loaded); skipping RbacAssignments collector.'
+        $expansionSummaryList.Add([PSCustomObject]@{ Collector = 'RbacAssignments'; PrincipalCount = 0; EdgeCount = 0; Skipped = $true; SkipReason = 'Az.Resources module not loaded' })
+    }
+
+    # ---- AppOwnerships collector ----
+    # Requires Microsoft.Graph.Applications.
+    $hasMgUserOwnedApp   = Get-Command 'Get-MgUserOwnedApplication'       -ErrorAction SilentlyContinue
+    $hasMgSpnOwnedObject = Get-Command 'Get-MgServicePrincipalOwnedObject' -ErrorAction SilentlyContinue
+    if ($hasMgUserOwnedApp -or $hasMgSpnOwnedObject) {
+        $ownershipList  = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $consecutive429 = 0
+        $throttled      = $false
+        $principalQueue = @(
+            @($userOids | ForEach-Object { [PSCustomObject]@{ Oid = $_; Type = 'User' } })
+            @($spnOids  | ForEach-Object { [PSCustomObject]@{ Oid = $_; Type = 'ServicePrincipal' } })
+        ) | Where-Object { $_ }
+        foreach ($p in $principalQueue) {
+            if ($throttled) { break }
+            try {
+                $ownedApps = if ($p.Type -eq 'User' -and $hasMgUserOwnedApp) {
+                    Invoke-WithRetry -ScriptBlock { Get-MgUserOwnedApplication -UserId $p.Oid -Property 'id,displayName' -All -ErrorAction Stop }
+                } elseif ($p.Type -eq 'ServicePrincipal' -and $hasMgSpnOwnedObject) {
+                    Invoke-WithRetry -ScriptBlock { Get-MgServicePrincipalOwnedObject -ServicePrincipalId $p.Oid -Property 'id,displayName' -All -ErrorAction Stop }
+                } else { @() }
+                $consecutive429 = 0
+                foreach ($app in @($ownedApps)) {
+                    if (-not $app -or -not $app.Id) { continue }
+                    $ownershipList.Add([PSCustomObject]@{
+                        OwnerId        = $p.Oid
+                        OwnerType      = $p.Type
+                        AppId          = [string]$app.Id
+                        AppDisplayName = if ($app.PSObject.Properties['DisplayName'] -and $app.DisplayName) { [string]$app.DisplayName } else { '' }
+                    })
+                }
+            } catch {
+                $errMsg = Remove-Credentials $_.Exception.Message
+                if ($errMsg -match '\b429\b|throttl|rate.?limit') {
+                    $consecutive429++
+                    Write-Warning "IdentityGraphExpansion: AppOwnerships throttled for $($p.Oid) ($consecutive429/3): $errMsg"
+                    if ($consecutive429 -ge 3) { $throttled = $true; $throttledCollectors.Add('AppOwnerships'); break }
+                } else {
+                    Write-Warning "IdentityGraphExpansion: AppOwnerships failed for $($p.Oid): $errMsg"
+                    $consecutive429 = 0
+                }
+            }
+        }
+        $result.AppOwnerships = @($ownershipList)
+        $expansionSummaryList.Add([PSCustomObject]@{
+            Collector      = 'AppOwnerships'
+            PrincipalCount = @($principalQueue).Count
+            EdgeCount      = $ownershipList.Count
+            Skipped        = $throttled
+            SkipReason     = if ($throttled) { '3 consecutive 429 responses from Microsoft Graph; retry after throttling window' } else { $null }
+        })
+    } else {
+        Write-Warning 'IdentityGraphExpansion: Get-MgUserOwnedApplication not available; skipping AppOwnerships collector.'
+        $expansionSummaryList.Add([PSCustomObject]@{ Collector = 'AppOwnerships'; PrincipalCount = 0; EdgeCount = 0; Skipped = $true; SkipReason = 'Microsoft.Graph.Applications module not loaded' })
+    }
+
+    # ---- ConsentGrants collector (bulk: single tenant-wide call, filter client-side) ----
+    # Unlike other collectors, this is O(1) calls regardless of principal count.
+    $hasMgOAuth2Grant = Get-Command 'Get-MgOAuth2PermissionGrant' -ErrorAction SilentlyContinue
+    if ($hasMgOAuth2Grant) {
+        try {
+            $allGrants = Invoke-WithRetry -ScriptBlock {
+                Get-MgOAuth2PermissionGrant -All -Property 'clientId,resourceId,consentType,scope' -ErrorAction Stop
+            }
+            $result.ConsentGrants = @($allGrants | ForEach-Object {
+                if (-not $_) { return }
+                [PSCustomObject]@{
+                    ClientId    = if ($_.PSObject.Properties['ClientId']    -and $_.ClientId)    { [string]$_.ClientId }    else { '' }
+                    ResourceId  = if ($_.PSObject.Properties['ResourceId']  -and $_.ResourceId)  { [string]$_.ResourceId }  else { '' }
+                    ConsentType = if ($_.PSObject.Properties['ConsentType'] -and $_.ConsentType) { [string]$_.ConsentType } else { '' }
+                    Scope       = if ($_.PSObject.Properties['Scope']       -and $_.Scope)       { [string]$_.Scope }       else { '' }
+                }
+            } | Where-Object { $_ })
+            $expansionSummaryList.Add([PSCustomObject]@{
+                Collector      = 'ConsentGrants'
+                PrincipalCount = 0
+                EdgeCount      = $result.ConsentGrants.Count
+                Skipped        = $false
+                SkipReason     = $null
+            })
+        } catch {
+            $errMsg = Remove-Credentials $_.Exception.Message
+            Write-Warning "IdentityGraphExpansion: ConsentGrants query failed: $errMsg"
+            $expansionSummaryList.Add([PSCustomObject]@{ Collector = 'ConsentGrants'; PrincipalCount = 0; EdgeCount = 0; Skipped = $true; SkipReason = "Query failed: $errMsg" })
+        }
+    } else {
+        Write-Warning 'IdentityGraphExpansion: Get-MgOAuth2PermissionGrant not available; skipping ConsentGrants collector.'
+        $expansionSummaryList.Add([PSCustomObject]@{ Collector = 'ConsentGrants'; PrincipalCount = 0; EdgeCount = 0; Skipped = $true; SkipReason = 'Microsoft.Graph.Identity.SignIns module not loaded' })
+    }
+
     return $result
 }

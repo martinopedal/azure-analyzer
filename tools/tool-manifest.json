@@ -636,7 +636,10 @@
         "modules": [
           "Microsoft.Graph.Authentication",
           "Microsoft.Graph.Users",
-          "Microsoft.Graph.Identity.SignIns"
+          "Microsoft.Graph.Identity.SignIns",
+          "Microsoft.Graph.Groups",
+          "Microsoft.Graph.Applications",
+          "Az.Resources"
         ]
       }
     },
