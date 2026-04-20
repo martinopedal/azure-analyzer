@@ -1,20 +1,20 @@
 # Contributing Tools (Collectors + Normalizers)
 
-Adding a new tool to azure-analyzer is a **five-step** process. Reports pick up new tools automatically once they are registered in the manifest — no report code changes needed.
+Adding a new tool to azure-analyzer is a **five-step** process. Reports pick up new tools automatically once they are registered in the manifest - no report code changes needed.
 
-## TL;DR — five steps
+## TL;DR - five steps
 
-1. **Manifest** — add an entry to `tools/tool-manifest.json` with `install` + `report` blocks
-2. **Wrapper** — create `modules/Invoke-<Tool>.ps1` (returns `Source`, `Status`, `Message`, `Findings`)
-3. **Normalizer** — create `modules/normalizers/Normalize-<Tool>.ps1` (v1 → v2 FindingRow)
-4. **Tests** — add fixture under `tests/fixtures/normalizers/` and Pester tests under `tests/normalizers/`
-5. **Docs** — update README (tool count, tool table, valid names) and CHANGELOG; update PERMISSIONS.md if the tool needs credentials
+1. **Manifest** - add an entry to `tools/tool-manifest.json` with `install` + `report` blocks
+2. **Wrapper** - create `modules/Invoke-<Tool>.ps1` (returns `Source`, `Status`, `Message`, `Findings`)
+3. **Normalizer** - create `modules/normalizers/Normalize-<Tool>.ps1` (v1 → v2 FindingRow)
+4. **Tests** - add fixture under `tests/fixtures/normalizers/` and Pester tests under `tests/normalizers/`
+5. **Docs** - update README (tool count, tool table, valid names) and CHANGELOG; update PERMISSIONS.md if the tool needs credentials
 
 Reports (`New-HtmlReport.ps1`, `New-MdReport.ps1`) auto-discover the new tool from the manifest.
 
 ---
 
-## Step 1 — Add to `tools/tool-manifest.json`
+## Step 1 - Add to `tools/tool-manifest.json`
 
 Every tool entry declares its identity, how to install it, and how reports should render it.
 
@@ -45,14 +45,14 @@ Every tool entry declares its identity, how to install it, and how reports shoul
 }
 ```
 
-### `install` block — one of four kinds
+### `install` block - one of four kinds
 
 | Kind | Example fields | Notes |
 |---|---|---|
 | `psmodule` | `"modules": ["PSRule", "PSRule.Rules.Azure"]` | Installed from PSGallery via `Install-Module` |
 | `cli` | `"command": "mytool"`, per-OS `winget` / `brew` / `pipx` / `pip` / `snap` | Package-name regex and manager allow-list enforced. Only these five managers are accepted. |
 | `gitclone` | `"url": "https://github.com/...", "dest": "tools/AzGovViz"` | HTTPS-only; host must be on the allow-list (currently github.com) |
-| `none` | — | No-op. Use for tools that ship with the repo. |
+| `none` | - | No-op. Use for tools that ship with the repo. |
 
 The installer runs only when `-InstallMissingModules` is set on `Invoke-AzureAnalyzer.ps1`. See [ARCHITECTURE.md](ARCHITECTURE.md#installer-modulessharedinstallerps1) for security controls (timeout, credential scrubbing, retry).
 
@@ -65,7 +65,7 @@ The installer runs only when `-InstallMissingModules` is set on `Invoke-AzureAna
 
 Reports (`New-HtmlReport.ps1`, `New-MdReport.ps1`) read this block and auto-generate Tool coverage, per-source bars, and Findings by source without any report-code changes.
 
-### `upstream` block — weekly auto-update loop (optional)
+### `upstream` block - weekly auto-update loop (optional)
 
 Every wrapped upstream tool should declare an `upstream` block so the **Tool auto-update** workflow
 (`.github/workflows/tool-auto-update.yml`) can keep the pin fresh and open a PR when a new version ships.
@@ -95,7 +95,7 @@ so the iteration loop catches flag/schema drift automatically.
 
 Findings are enriched post-normalization with CIS Azure Foundations / NIST 800-53 / PCI-DSS
 control mappings by `modules/shared/FrameworkMapper.ps1`. The mapping file is **user-extensible**
-— add entries to `tools/framework-mappings.json` without modifying code:
+- add entries to `tools/framework-mappings.json` without modifying code:
 
 ```json
 {
@@ -115,9 +115,9 @@ many findings. Scope a run to a single framework via `-Framework CIS|NIST|PCI` o
 
 ---
 
-## Step 2 — Wrapper contract
+## Step 2 - Wrapper contract
 
-`modules/Invoke-<Tool>.ps1` is a PowerShell script that runs the tool and returns a single envelope object. Wrappers **must not throw** — catch everything and set `Status` accordingly.
+`modules/Invoke-<Tool>.ps1` is a PowerShell script that runs the tool and returns a single envelope object. Wrappers **must not throw** - catch everything and set `Status` accordingly.
 
 ### Input parameters (minimum)
 
@@ -145,7 +145,7 @@ many findings. Scope a run to a single framework via `-Framework CIS|NIST|PCI` o
 
 ---
 
-## Step 3 — Normalizer contract
+## Step 3 - Normalizer contract
 
 `modules/normalizers/Normalize-<Tool>.ps1` converts the v1 wrapper envelope into an array of **v2 FindingRow** objects. The orchestrator invokes it with `-ToolResult <envelope>`.
 
@@ -209,14 +209,14 @@ function Normalize-MyTool {
 - **Required**: `Id`, `Source`, `EntityId`, `EntityType`, `Title`, `Compliant`, `ProvenanceRunId`
 - **Recommended**: `Category`, `Severity` (one of `Critical`/`High`/`Medium`/`Low`/`Info`), `Detail`, `Remediation`, `ResourceId`, `LearnMoreUrl`
 - **Optional**: `Platform` (auto-derived), `SubscriptionId`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, `MissingDimensions`
-- **Unmapped fields** — list them as `# not captured: <reason>` in code comments
+- **Unmapped fields** - list them as `# not captured: <reason>` in code comments
 
 ---
 
-## Step 4 — Tests
+## Step 4 - Tests
 
-1. **Fixture** — `tests/fixtures/normalizers/mytool-sample.json` (representative raw tool output)
-2. **Tests** — `tests/normalizers/Normalize-MyTool.Tests.ps1`
+1. **Fixture** - `tests/fixtures/normalizers/mytool-sample.json` (representative raw tool output)
+2. **Tests** - `tests/normalizers/Normalize-MyTool.Tests.ps1`
 
 ```powershell
 Describe 'Normalize-MyTool' {
@@ -240,14 +240,14 @@ Describe 'Normalize-MyTool' {
 
 ---
 
-## Step 5 — Docs
+## Step 5 - Docs
 
 Every new tool PR must update:
 
-- **README.md** — bump the tool count in the opening paragraph, add a row to the "What each tool does" table, add the name to the `Valid tool names` list, and (if needed) add a scoped-run example
-- **CHANGELOG.md** — `### Added` entry under `## [Unreleased]` mentioning the tool, its source, and any new CLI parameters
-- **PERMISSIONS.md** — add required scopes/tokens if the tool needs any credentials; add a row to the permission matrix
-- **docs/ARCHITECTURE.md** — add a row to the Normalizer locations table
+- **README.md** - bump the tool count in the opening paragraph, add a row to the "What each tool does" table, add the name to the `Valid tool names` list, and (if needed) add a scoped-run example
+- **CHANGELOG.md** - `### Added` entry under `## [Unreleased]` mentioning the tool, its source, and any new CLI parameters
+- **PERMISSIONS.md** - add required scopes/tokens if the tool needs any credentials; add a row to the permission matrix
+- **docs/ARCHITECTURE.md** - add a row to the Normalizer locations table
 
 ---
 
@@ -260,4 +260,5 @@ Because the orchestrator, installer, and both report generators all consume `too
 - The `report` block drives HTML and Markdown report rendering
 - The `normalizer` field drives v1 → v2 conversion
 
-No report code changes, no orchestrator code changes — **the manifest is the contract**.
+No report code changes, no orchestrator code changes - **the manifest is the contract**.
+

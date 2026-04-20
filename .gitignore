@@ -16,3 +16,6 @@ credentials.*
 .atlas-stash/
 testResults.xml
 pester.log
+retry.log
+output-test/
+
