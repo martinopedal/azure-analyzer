@@ -130,12 +130,6 @@ $result = [ordered]@{
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
 
-if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
-    $result.Status  = 'Skipped'
-    $result.Message = 'kubectl not installed. kube-bench runtime job requires kubectl to access AKS.'
-    return [pscustomobject]$result
-}
-
 $kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
                            $PSBoundParameters.ContainsKey('KubeContext')
 $resolvedKubeconfig = $null
@@ -156,6 +150,12 @@ if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
         throw "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG."
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
+}
+
+if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+    $result.Status  = 'Skipped'
+    $result.Message = 'kubectl not installed. kube-bench runtime job requires kubectl to access AKS.'
+    return [pscustomobject]$result
 }
 
 if (-not $kubeconfigModeRequested -and -not (Get-Command az -ErrorAction SilentlyContinue)) {
