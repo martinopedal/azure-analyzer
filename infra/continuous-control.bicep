@@ -133,16 +133,16 @@ resource findingsTable 'Microsoft.OperationalInsights/workspaces/tables@2022-10-
     schema: {
       name: 'AzureAnalyzerFindings_CL'
       columns: [
-        { name: 'TimeGenerated'; type: 'datetime' }
-        { name: 'FindingId'; type: 'string' }
-        { name: 'Severity'; type: 'string' }
-        { name: 'Title'; type: 'string' }
-        { name: 'EntityType'; type: 'string' }
-        { name: 'EntityId'; type: 'string' }
-        { name: 'ToolName'; type: 'string' }
-        { name: 'Platform'; type: 'string' }
-        { name: 'SubscriptionId'; type: 'string' }
-        { name: 'Compliant'; type: 'boolean' }
+        { name: 'TimeGenerated', type: 'datetime' }
+        { name: 'FindingId', type: 'string' }
+        { name: 'Severity', type: 'string' }
+        { name: 'Title', type: 'string' }
+        { name: 'EntityType', type: 'string' }
+        { name: 'EntityId', type: 'string' }
+        { name: 'ToolName', type: 'string' }
+        { name: 'Platform', type: 'string' }
+        { name: 'SubscriptionId', type: 'string' }
+        { name: 'Compliant', type: 'boolean' }
       ]
     }
     retentionInDays: 30
@@ -158,12 +158,12 @@ resource entitiesTable 'Microsoft.OperationalInsights/workspaces/tables@2022-10-
     schema: {
       name: 'AzureAnalyzerEntities_CL'
       columns: [
-        { name: 'TimeGenerated'; type: 'datetime' }
-        { name: 'EntityId'; type: 'string' }
-        { name: 'EntityType'; type: 'string' }
-        { name: 'Platform'; type: 'string' }
-        { name: 'DisplayName'; type: 'string' }
-        { name: 'SubscriptionId'; type: 'string' }
+        { name: 'TimeGenerated', type: 'datetime' }
+        { name: 'EntityId', type: 'string' }
+        { name: 'EntityType', type: 'string' }
+        { name: 'Platform', type: 'string' }
+        { name: 'DisplayName', type: 'string' }
+        { name: 'SubscriptionId', type: 'string' }
       ]
     }
     retentionInDays: 30
@@ -197,26 +197,26 @@ resource dcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' = if (deployLog
     streamDeclarations: {
       'Custom-AzureAnalyzerFindings': {
         columns: [
-          { name: 'TimeGenerated'; type: 'datetime' }
-          { name: 'FindingId'; type: 'string' }
-          { name: 'Severity'; type: 'string' }
-          { name: 'Title'; type: 'string' }
-          { name: 'EntityType'; type: 'string' }
-          { name: 'EntityId'; type: 'string' }
-          { name: 'ToolName'; type: 'string' }
-          { name: 'Platform'; type: 'string' }
-          { name: 'SubscriptionId'; type: 'string' }
-          { name: 'Compliant'; type: 'boolean' }
+          { name: 'TimeGenerated', type: 'datetime' }
+          { name: 'FindingId', type: 'string' }
+          { name: 'Severity', type: 'string' }
+          { name: 'Title', type: 'string' }
+          { name: 'EntityType', type: 'string' }
+          { name: 'EntityId', type: 'string' }
+          { name: 'ToolName', type: 'string' }
+          { name: 'Platform', type: 'string' }
+          { name: 'SubscriptionId', type: 'string' }
+          { name: 'Compliant', type: 'boolean' }
         ]
       }
       'Custom-AzureAnalyzerEntities': {
         columns: [
-          { name: 'TimeGenerated'; type: 'datetime' }
-          { name: 'EntityId'; type: 'string' }
-          { name: 'EntityType'; type: 'string' }
-          { name: 'Platform'; type: 'string' }
-          { name: 'DisplayName'; type: 'string' }
-          { name: 'SubscriptionId'; type: 'string' }
+          { name: 'TimeGenerated', type: 'datetime' }
+          { name: 'EntityId', type: 'string' }
+          { name: 'EntityType', type: 'string' }
+          { name: 'Platform', type: 'string' }
+          { name: 'DisplayName', type: 'string' }
+          { name: 'SubscriptionId', type: 'string' }
         ]
       }
     }
