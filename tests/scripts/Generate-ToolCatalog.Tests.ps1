@@ -120,7 +120,12 @@ Describe 'Generate-ToolCatalog' {
             } finally {
                 Remove-Item -LiteralPath $tempStale -Force -ErrorAction SilentlyContinue
                 Remove-Item -LiteralPath $tempContrib -Force -ErrorAction SilentlyContinue
+                $global:LASTEXITCODE = 0
             }
         }
+    }
+
+    AfterAll {
+        $global:LASTEXITCODE = 0
     }
 }
