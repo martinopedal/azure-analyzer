@@ -1,0 +1,8 @@
+{
+  "BatchIndex": 1,
+  "Uri": "https://example.eastus-1.ingest.monitor.azure.com/dataCollectionRules/dcr-123/streams/Custom-AzureAnalyzerFindings?api-version=2023-01-01",
+  "StreamName": "Custom-AzureAnalyzerFindings",
+  "RecordCount": 1,
+  "BodyBytes": 899,
+  "Body": "{\"TimeGenerated\":\"01/01/2026 00:00:00\",\"RunId\":\"run-fixture\",\"FindingId\":\"finding-1\",\"Source\":\"azqr\",\"Category\":\"Security\",\"Title\":\"Finding 1\",\"Severity\":\"High\",\"Compliant\":false,\"Detail\":\"Example finding\",\"Remediation\":\"Fix it\",\"ResourceId\":\"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm1\",\"LearnMoreUrl\":\"https://learn.microsoft.com/\",\"EntityId\":\"entity:1\",\"EntityType\":\"AzureResource\",\"Platform\":\"Azure\",\"SubscriptionId\":\"00000000-0000-0000-0000-000000000000\",\"SubscriptionName\":\"sub\",\"ResourceGroup\":\"rg\",\"ManagementGroupPath\":\"[\\\"tenant\\\",\\\"mg1\\\"]\",\"Frameworks\":\"{\\\"Name\\\":\\\"CIS\\\",\\\"ControlId\\\":\\\"1.1\\\"}\",\"Controls\":\"\\\"CIS-1.1\\\"\",\"Confidence\":\"Confirmed\",\"EvidenceCount\":1,\"MissingDimensions\":null,\"SchemaVersion\":\"2.0\",\"ProvenanceSource\":\"azqr\",\"ProvenanceTimestamp\":\"01/01/2026 00:00:00\",\"ProvenanceRawRecordRef\":\"row-1\"}"
+}
