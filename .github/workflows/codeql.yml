@@ -8,6 +8,7 @@ on:
     branches: [main]
   schedule:
     - cron: "30 1 * * 0"
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -30,5 +31,6 @@ jobs:
       - uses: github/codeql-action/analyze@0e9f55954318745b37b7933c693bc093f7336125 # v4.35.1
         with:
           category: "/language:${{matrix.language}}"
+# trigger: heatmap-211 20260420-131500
 # trigger: hotfix-216 20260420-125025
 # touch: trigger Analyze (actions) for #212
