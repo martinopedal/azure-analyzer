@@ -688,6 +688,8 @@ $env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
 
 The ADO repo-secret scanner (`ado-repos-secrets`) and run correlator (`ado-pipeline-correlator`) are read-only and require only the minimum PAT scopes needed to enumerate repositories, inspect build runs, and correlate commit SHAs.
 
+`ado-repos-secrets` supports both Azure DevOps Services (cloud) and Azure DevOps Server/on-prem collection URLs. PAT authentication remains Basic auth with the same read-only scopes.
+
 | Token scope | Why |
 |-------------|-----|
 | **Code (Read)** | Enumerate repositories and clone source for secret scanning |
@@ -702,11 +704,15 @@ $env:AZURE_DEVOPS_EXT_PAT = "<your-ado-pat>"
 # Repo secret scanning only
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-repos-secrets'
 
+# Azure DevOps Server / on-prem collection (repo secrets)
+.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoServerUrl "https://ado.contoso.local/tfs/DefaultCollection" -IncludeTools 'ado-repos-secrets'
+
 # Correlation only (expects ado-repos-secrets output in the same run output folder)
 .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-repos-secrets','ado-pipeline-correlator'
 ```
 
 Both tools use HTTPS-only remote cloning via `modules/shared/RemoteClone.ps1`, enforce host allow-list checks, and never require write permissions.
+For on-prem deployments on custom hostnames outside the allow-list (`github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`), repository clones are skipped and surfaced as **Info** findings so coverage gaps are explicit.
 
 ---
 

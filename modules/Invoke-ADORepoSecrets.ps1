@@ -1,4 +1,4 @@
-#Requires -Version 7.4
+﻿#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure DevOps repository secret scanner.
@@ -12,6 +12,12 @@
     Optional project filter. When omitted, all projects in the org are scanned.
 .PARAMETER AdoPat
     Optional PAT. Falls back to ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, AZ_DEVOPS_PAT.
+.PARAMETER AdoOrganizationUrl
+    Optional Azure DevOps organization URL. Supports cloud
+    (https://dev.azure.com/{org} / https://{org}.visualstudio.com) and on-prem collection URLs.
+.PARAMETER AdoServerUrl
+    Optional Azure DevOps Server collection URL (for example,
+    https://ado.contoso.local/tfs/DefaultCollection). When set, on-prem mode is forced.
 .PARAMETER OutputPath
     Optional path to persist raw findings for downstream correlators.
 .PARAMETER GitleaksConfigPath
@@ -30,9 +36,17 @@ param (
     [Alias('AdoPatToken')]
     [string] $AdoPat,
 
+<<<<<<< HEAD
     [string] $OutputPath,
 
     [string] $GitleaksConfigPath
+=======
+    [string] $AdoOrganizationUrl,
+
+    [string] $AdoServerUrl,
+
+    [string] $OutputPath
+>>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
 )
 
 Set-StrictMode -Version Latest
@@ -54,6 +68,95 @@ function Resolve-AdoPat {
     if ($env:AZURE_DEVOPS_EXT_PAT) { return $env:AZURE_DEVOPS_EXT_PAT }
     if ($env:AZ_DEVOPS_PAT) { return $env:AZ_DEVOPS_PAT }
     return $null
+}
+
+function Resolve-AdoEndpoint {
+    param (
+        [Parameter(Mandatory)][string]$Org,
+        [string]$OrganizationUrl,
+        [string]$ServerUrl
+    )
+
+    function Get-ValidatedHttpsUri {
+        param ([Parameter(Mandatory)][string]$Value, [Parameter(Mandatory)][string]$ParameterName)
+        try { $uri = [uri]$Value } catch { throw "$ParameterName is not a valid URI." }
+        if (-not $uri.IsAbsoluteUri -or $uri.Scheme -ne 'https') {
+            throw "$ParameterName must be an absolute HTTPS URL."
+        }
+        return $uri
+    }
+
+    if ($ServerUrl) {
+        $serverUri = Get-ValidatedHttpsUri -Value $ServerUrl -ParameterName 'AdoServerUrl'
+        $baseUrl = $serverUri.GetLeftPart([System.UriPartial]::Path).TrimEnd('/')
+        return [PSCustomObject]@{
+            Deployment = 'OnPrem'
+            BaseUrl = $baseUrl
+            ApiVersion = '6.0'
+            Organization = $Org
+        }
+    }
+
+    if ($OrganizationUrl) {
+        $orgUri = Get-ValidatedHttpsUri -Value $OrganizationUrl -ParameterName 'AdoOrganizationUrl'
+        $uriHost = $orgUri.Host.ToLowerInvariant()
+
+        if ($uriHost -eq 'dev.azure.com') {
+            $segments = @($orgUri.AbsolutePath.Trim('/').Split('/', [System.StringSplitOptions]::RemoveEmptyEntries))
+            $orgFromUrl = if ($segments.Count -gt 0) { $segments[0] } else { $Org }
+            if (-not $orgFromUrl) { throw 'AdoOrganizationUrl is missing organization segment.' }
+            return [PSCustomObject]@{
+                Deployment = 'Cloud'
+                BaseUrl = "https://dev.azure.com/$([uri]::EscapeDataString($orgFromUrl))"
+                ApiVersion = '7.1'
+                Organization = $orgFromUrl
+            }
+        }
+
+        if ($uriHost.EndsWith('.visualstudio.com')) {
+            $orgFromHost = $uriHost.Substring(0, $uriHost.Length - '.visualstudio.com'.Length)
+            if (-not $orgFromHost) { $orgFromHost = $Org }
+            return [PSCustomObject]@{
+                Deployment = 'Cloud'
+                BaseUrl = ("https://{0}" -f $uriHost)
+                ApiVersion = '7.1'
+                Organization = $orgFromHost
+            }
+        }
+
+        $basePath = $orgUri.GetLeftPart([System.UriPartial]::Path).TrimEnd('/')
+        if ($orgUri.AbsolutePath -eq '/' -or [string]::IsNullOrWhiteSpace($orgUri.AbsolutePath.Trim('/'))) {
+            throw 'AdoOrganizationUrl for Azure DevOps Server must include a collection path (for example /tfs/DefaultCollection).'
+        }
+        return [PSCustomObject]@{
+            Deployment = 'OnPrem'
+            BaseUrl = $basePath
+            ApiVersion = '6.0'
+            Organization = $Org
+        }
+    }
+
+    return [PSCustomObject]@{
+        Deployment = 'Cloud'
+        BaseUrl = "https://dev.azure.com/$([uri]::EscapeDataString($Org))"
+        ApiVersion = '7.1'
+        Organization = $Org
+    }
+}
+
+function Get-AdoRepoCloneUrl {
+    param (
+        [Parameter(Mandatory)][psobject]$Repo,
+        [Parameter(Mandatory)][string]$BaseUrl,
+        [Parameter(Mandatory)][string]$ProjectName,
+        [Parameter(Mandatory)][string]$RepoName
+    )
+
+    if ($Repo.PSObject.Properties['remoteUrl'] -and $Repo.remoteUrl) {
+        return [string]$Repo.remoteUrl
+    }
+
+    return "$BaseUrl/$([uri]::EscapeDataString($ProjectName))/_git/$([uri]::EscapeDataString($RepoName))"
 }
 
 function Invoke-AdoApi {
@@ -111,17 +214,24 @@ function Get-AdoPagedValues {
 }
 
 function Get-AdoProjects {
-    param ([string]$Org, [hashtable]$Headers)
-    $orgEnc = [uri]::EscapeDataString($Org)
-    $uri = "https://dev.azure.com/$orgEnc/_apis/projects?api-version=7.1&`$top=200"
+    param (
+        [Parameter(Mandatory)][string]$BaseUrl,
+        [Parameter(Mandatory)][string]$ApiVersion,
+        [Parameter(Mandatory)][hashtable]$Headers
+    )
+    $uri = "$BaseUrl/_apis/projects?api-version=$ApiVersion&`$top=200"
     return @(Get-AdoPagedValues -Uri $uri -Headers $Headers)
 }
 
 function Get-AdoRepositories {
-    param ([string]$Org, [string]$Project, [hashtable]$Headers)
-    $orgEnc = [uri]::EscapeDataString($Org)
+    param (
+        [Parameter(Mandatory)][string]$BaseUrl,
+        [Parameter(Mandatory)][string]$Project,
+        [Parameter(Mandatory)][string]$ApiVersion,
+        [Parameter(Mandatory)][hashtable]$Headers
+    )
     $projectEnc = [uri]::EscapeDataString($Project)
-    $uri = "https://dev.azure.com/$orgEnc/$projectEnc/_apis/git/repositories?api-version=7.1&`$top=200"
+    $uri = "$BaseUrl/$projectEnc/_apis/git/repositories?api-version=$ApiVersion&`$top=200"
     return @(Get-AdoPagedValues -Uri $uri -Headers $Headers)
 }
 
@@ -335,6 +445,9 @@ $headers = @{ Authorization = "Basic $base64" }
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 $failedRepos = [System.Collections.Generic.List[string]]::new()
 $failedProjects = [System.Collections.Generic.List[string]]::new()
+$skippedRepos = [System.Collections.Generic.List[string]]::new()
+$endpoint = Resolve-AdoEndpoint -Org $AdoOrg -OrganizationUrl $AdoOrganizationUrl -ServerUrl $AdoServerUrl
+$resolvedAdoOrg = [string]$endpoint.Organization
 
 try {
     if ($resolvedGitleaksConfig) {
@@ -393,7 +506,7 @@ try {
     if ($AdoProject) {
         $projects = @([PSCustomObject]@{ name = $AdoProject; id = $AdoProject })
     } else {
-        $projects = @(Get-AdoProjects -Org $AdoOrg -Headers $headers)
+        $projects = @(Get-AdoProjects -BaseUrl $endpoint.BaseUrl -ApiVersion $endpoint.ApiVersion -Headers $headers)
     }
 
     foreach ($project in $projects) {
@@ -401,12 +514,42 @@ try {
         $projectId = if ($project.PSObject.Properties['id'] -and $project.id) { [string]$project.id } else { $projectName }
 
         try {
-            $repos = @(Get-AdoRepositories -Org $AdoOrg -Project $projectName -Headers $headers)
+            $repos = @(Get-AdoRepositories -BaseUrl $endpoint.BaseUrl -Project $projectName -ApiVersion $endpoint.ApiVersion -Headers $headers)
             foreach ($repo in $repos) {
                 $repoName = if ($repo.PSObject.Properties['name'] -and $repo.name) { [string]$repo.name } else { 'unknown-repo' }
                 $repoId = if ($repo.PSObject.Properties['id'] -and $repo.id) { [string]$repo.id } else { $repoName }
-                $repoCanonicalId = "ado://$($AdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoName.ToLowerInvariant())"
-                $cloneUrl = "https://dev.azure.com/$([uri]::EscapeDataString($AdoOrg))/$([uri]::EscapeDataString($projectName))/_git/$([uri]::EscapeDataString($repoName))"
+                $repoCanonicalId = "ado://$($resolvedAdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoName.ToLowerInvariant())"
+                $cloneUrl = Get-AdoRepoCloneUrl -Repo $repo -BaseUrl $endpoint.BaseUrl -ProjectName $projectName -RepoName $repoName
+
+                if (-not (Test-RemoteRepoUrl -Url $cloneUrl)) {
+                    $repoHost = ''
+                    try { $repoHost = ([uri]$cloneUrl).Host } catch { $repoHost = 'unknown-host' }
+                    $skipDetail = "Skipped repo '$projectName/$repoName': remote host '$repoHost' is not in RemoteClone allow-list (github.com, dev.azure.com, *.visualstudio.com, *.ghe.com)."
+                    $findings.Add([PSCustomObject]@{
+                            Id                    = [guid]::NewGuid().ToString()
+                            Source                = 'ado-repos-secrets'
+                            Category              = 'Secret Detection'
+                            Title                 = (Remove-Credentials "Repository scan skipped for unsupported Azure DevOps Server host: $projectName/$repoName")
+                            Severity              = 'Info'
+                            Compliant             = $false
+                            Detail                = (Remove-Credentials $skipDetail)
+                            Remediation           = 'Use an allow-listed HTTPS host (for example dev.azure.com or *.visualstudio.com) or run the scan from an environment where the repository host is explicitly approved by policy.'
+                            ResourceId            = (Remove-Credentials $repoCanonicalId)
+                            LearnMoreUrl          = 'https://github.com/martinopedal/azure-analyzer/blob/main/PERMISSIONS.md'
+                            SchemaVersion         = '1.0'
+                            AdoOrg                = $resolvedAdoOrg
+                            AdoProject            = $projectName
+                            RepositoryName        = $repoName
+                            RepositoryId          = $repoId
+                            RepositoryCanonicalId = $repoCanonicalId
+                            CommitSha             = ''
+                            FilePath              = ''
+                            SecretType            = 'scan-skipped-host-not-allow-listed'
+                            Confidence            = 'Unknown'
+                        })
+                    $skippedRepos.Add("$projectName/$repoName")
+                    continue
+                }
 
                 $cloneInfo = $null
                 try {
@@ -416,10 +559,14 @@ try {
                         continue
                     }
 
+<<<<<<< HEAD
                     $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $AdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId -GitleaksConfig $resolvedGitleaksConfig
+=======
+                    $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $resolvedAdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId
+>>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
                     foreach ($finding in $repoFindings) {
-                        $finding | Add-Member -NotePropertyName ProjectCanonicalId -NotePropertyValue "ado://$($AdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/project/$($projectId.ToLowerInvariant())" -Force
-                        $finding | Add-Member -NotePropertyName RepositoryObjectCanonicalId -NotePropertyValue "ado://$($AdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoId.ToLowerInvariant())" -Force
+                        $finding | Add-Member -NotePropertyName ProjectCanonicalId -NotePropertyValue "ado://$($resolvedAdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/project/$($projectId.ToLowerInvariant())" -Force
+                        $finding | Add-Member -NotePropertyName RepositoryObjectCanonicalId -NotePropertyValue "ado://$($resolvedAdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoId.ToLowerInvariant())" -Force
                         $findings.Add($finding)
                     }
                 } catch {
@@ -444,7 +591,7 @@ try {
         Set-Content -Path $OutputPath -Value $payload -Encoding UTF8
     }
 
-    $status = if ($failedProjects.Count -gt 0 -or $failedRepos.Count -gt 0) {
+    $status = if ($failedProjects.Count -gt 0 -or $failedRepos.Count -gt 0 -or $skippedRepos.Count -gt 0) {
         if ($findings.Count -gt 0) { 'PartialSuccess' } else { 'Failed' }
     } else {
         'Success'
@@ -453,6 +600,7 @@ try {
     $message = "Scanned $($projects.Count) project(s); detected $($findings.Count) secret finding(s)."
     if ($failedProjects.Count -gt 0) { $message += " Failed projects: $($failedProjects -join ', ')." }
     if ($failedRepos.Count -gt 0) { $message += " Failed repos: $($failedRepos -join ', ')." }
+    if ($skippedRepos.Count -gt 0) { $message += " Skipped repos (host allow-list): $($skippedRepos -join ', ')." }
 
     return [PSCustomObject]@{
         Source = 'ado-repos-secrets'

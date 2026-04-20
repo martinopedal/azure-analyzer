@@ -518,6 +518,8 @@
       "optionalParams": [
         "AdoProject",
         "AdoPat",
+        "AdoOrganizationUrl",
+        "AdoServerUrl",
         "OutputPath"
       ],
       "requiredPermissionTier": 0,

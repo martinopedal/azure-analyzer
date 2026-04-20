@@ -1,0 +1,24 @@
+{
+  "Source": "ado-repos-secrets",
+  "Status": "PartialSuccess",
+  "Message": "Scanned 1 project(s); detected 1 secret finding(s). Skipped repos (host allow-list): payments/payments-api.",
+  "Findings": [
+    {
+      "Id": "onprem-skip-1",
+      "Category": "Secret Detection",
+      "Title": "Repository scan skipped for unsupported Azure DevOps Server host: payments/payments-api",
+      "Severity": "Info",
+      "Compliant": false,
+      "Detail": "Skipped repo 'payments/payments-api': remote host 'ado.contoso.local' is not in RemoteClone allow-list (github.com, dev.azure.com, *.visualstudio.com, *.ghe.com).",
+      "Remediation": "Use an allow-listed HTTPS host (for example dev.azure.com or *.visualstudio.com) or run the scan from an environment where the repository host is explicitly approved by policy.",
+      "ResourceId": "ado://contoso/payments/repository/payments-api",
+      "LearnMoreUrl": "https://github.com/martinopedal/azure-analyzer/blob/main/PERMISSIONS.md",
+      "SchemaVersion": "1.0",
+      "RepositoryCanonicalId": "ado://contoso/payments/repository/payments-api",
+      "FilePath": "",
+      "Confidence": "Unknown",
+      "SecretType": "scan-skipped-host-not-allow-listed",
+      "RepositoryUrl": "https://ado.contoso.local/tfs/DefaultCollection/payments/_git/payments-api"
+    }
+  ]
+}

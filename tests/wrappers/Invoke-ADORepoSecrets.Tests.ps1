@@ -189,4 +189,76 @@ useDefault = true
             $saved[0].CommitSha | Should -Not -BeNullOrEmpty
         }
     }
+
+    Context 'when AdoServerUrl targets Azure DevOps Server' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            Mock Get-Command {
+                if ($Name -eq 'gitleaks') { return [PSCustomObject]@{ Name = 'gitleaks' } }
+                if ($Name -eq 'Invoke-WithTimeout') { return $null }
+                return $null
+            }
+            function global:gitleaks { $global:LASTEXITCODE = 0 }
+            Mock Invoke-RemoteRepoClone { throw 'clone should not be called for disallowed host' }
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+                $body = switch -Regex ($Uri) {
+                    '_apis/projects' { '{"value":[{"name":"payments","id":"proj-1"}]}' }
+                    '_apis/git/repositories' { '{"value":[{"name":"payments-api","id":"repo-1","remoteUrl":"https://ado.contoso.local/tfs/DefaultCollection/payments/_git/payments-api"}]}' }
+                    default { throw "Unexpected URI: $Uri" }
+                }
+                [PSCustomObject]@{ Content = $body; Headers = @{} }
+            }
+        }
+
+        AfterAll {
+            Remove-Item Function:\gitleaks -ErrorAction SilentlyContinue
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+        }
+
+        It 'uses api-version 6.0 and returns allow-list skip finding' {
+            $result = & $script:Wrapper -AdoOrg 'contoso' -AdoServerUrl 'https://ado.contoso.local/tfs/DefaultCollection'
+            Assert-MockCalled Invoke-WebRequest -Times 1 -ParameterFilter { $Uri -match '_apis/projects\?api-version=6\.0' }
+            Assert-MockCalled Invoke-WebRequest -Times 1 -ParameterFilter { $Uri -match '_apis/git/repositories\?api-version=6\.0' }
+            $result.Status | Should -Be 'PartialSuccess'
+            @($result.Findings).Count | Should -Be 1
+            $result.Findings[0].Severity | Should -Be 'Info'
+            $result.Findings[0].SecretType | Should -Be 'scan-skipped-host-not-allow-listed'
+        }
+    }
+
+    Context 'when AdoOrganizationUrl is custom HTTPS host' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            Mock Get-Command {
+                if ($Name -eq 'gitleaks') { return [PSCustomObject]@{ Name = 'gitleaks' } }
+                if ($Name -eq 'Invoke-WithTimeout') { return $null }
+                return $null
+            }
+            function global:gitleaks { $global:LASTEXITCODE = 0 }
+            Mock Invoke-RemoteRepoClone { throw 'clone should not be called for disallowed host' }
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+                $body = switch -Regex ($Uri) {
+                    '_apis/projects' { '{"value":[{"name":"payments","id":"proj-1"}]}' }
+                    '_apis/git/repositories' { '{"value":[{"name":"payments-api","id":"repo-1"}]}' }
+                    default { throw "Unexpected URI: $Uri" }
+                }
+                [PSCustomObject]@{ Content = $body; Headers = @{} }
+            }
+        }
+
+        AfterAll {
+            Remove-Item Function:\gitleaks -ErrorAction SilentlyContinue
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+        }
+
+        It 'treats URL as on-prem and queries collection API with api-version 6.0' {
+            $result = & $script:Wrapper -AdoOrg 'contoso' -AdoOrganizationUrl 'https://ado.contoso.local/tfs/DefaultCollection'
+            Assert-MockCalled Invoke-WebRequest -Times 1 -ParameterFilter { $Uri -match '^https://ado\.contoso\.local/tfs/DefaultCollection/_apis/projects\?api-version=6\.0' }
+            Assert-MockCalled Invoke-WebRequest -Times 1 -ParameterFilter { $Uri -match '^https://ado\.contoso\.local/tfs/DefaultCollection/payments/_apis/git/repositories\?api-version=6\.0' }
+            $result.Status | Should -Be 'PartialSuccess'
+            $result.Findings[0].Severity | Should -Be 'Info'
+        }
+    }
 }
