@@ -77,6 +77,14 @@ function Normalize-FinOpsSignals {
         if ($monthlyCost -gt 0) {
             $detail = "$detail Estimated monthly waste: $monthlyCost $currency."
         }
+        $detectionCategory = if ($f.PSObject.Properties['DetectionCategory'] -and $f.DetectionCategory) { [string]$f.DetectionCategory } else { '' }
+        $ruleId = if ($f.PSObject.Properties['RuleId'] -and $f.RuleId) { [string]$f.RuleId } else { '' }
+        $remediation = 'Review whether this resource can be deleted, downscaled, or rightsized.'
+        if ($detectionCategory -eq 'AppServicePlanIdleCpu') {
+            $remediation = 'Review App Service Plan utilization and rightsize SKU/instance count or consolidate workloads when average CPU stays below 5% for 30 days.'
+        } elseif ($detectionCategory -eq 'AppServicePlanIdleCpuMetricsDegraded') {
+            $remediation = 'Grant Azure Monitor metrics read access (for example Monitoring Reader) and re-run finops so App Service Plan CPU idle signals can be evaluated.'
+        }
 
         $findingId = if ($f.PSObject.Properties['Id'] -and $f.Id) { [string]$f.Id } else { [guid]::NewGuid().ToString() }
         $title = if ($f.PSObject.Properties['Title'] -and $f.Title) { [string]$f.Title } else { 'FinOps idle resource signal' }
@@ -86,18 +94,18 @@ function Normalize-FinOpsSignals {
             -Source 'finops' -EntityId $canonicalId -EntityType 'AzureResource' `
             -Title $title -Compliant $false -ProvenanceRunId $runId `
             -Platform 'Azure' -Category $category -Severity $severity `
-            -Detail $detail -Remediation 'Review whether this resource can be deleted, downscaled, or rightsized.' `
+            -Detail $detail -Remediation $remediation `
             -LearnMoreUrl ([string]$f.LearnMoreUrl) -ResourceId $rawId `
             -SubscriptionId $subId -ResourceGroup $rg
         if ($null -eq $row) { continue }
 
         $row | Add-Member -NotePropertyName MonthlyCost -NotePropertyValue $monthlyCost -Force
         $row | Add-Member -NotePropertyName Currency -NotePropertyValue $currency -Force
-        if ($f.PSObject.Properties['RuleId'] -and $f.RuleId) {
-            $row | Add-Member -NotePropertyName RuleId -NotePropertyValue ([string]$f.RuleId) -Force
+        if (-not [string]::IsNullOrWhiteSpace($ruleId)) {
+            $row | Add-Member -NotePropertyName RuleId -NotePropertyValue $ruleId -Force
         }
-        if ($f.PSObject.Properties['DetectionCategory']) {
-            $row | Add-Member -NotePropertyName DetectionCategory -NotePropertyValue ([string]$f.DetectionCategory) -Force
+        if (-not [string]::IsNullOrWhiteSpace($detectionCategory)) {
+            $row | Add-Member -NotePropertyName DetectionCategory -NotePropertyValue $detectionCategory -Force
         }
         $normalized.Add($row)
     }

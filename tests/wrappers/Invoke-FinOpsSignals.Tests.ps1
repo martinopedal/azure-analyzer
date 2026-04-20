@@ -52,6 +52,7 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
                 }
             } -ParameterFilter { $Method -eq 'POST' }
             Mock Search-AzGraph {
+                if ($Query -match "microsoft\.web/serverfarms") { return @() }
                 @(
                     [PSCustomObject]@{
                         id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-finops/providers/Microsoft.Compute/disks/orphaned-disk-01'
@@ -93,8 +94,11 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
             $env:FINOPS_TEST_CAPTURED_QUERY_FILE = $script:CapturedQueryFile
             Mock Search-AzGraph {
                 if ($env:FINOPS_TEST_CAPTURED_QUERY_FILE) {
-                    Set-Content -Path $env:FINOPS_TEST_CAPTURED_QUERY_FILE -Value $Query -Encoding utf8
+                    if ($Query -match 'microsoft\.compute/snapshots') {
+                        Set-Content -Path $env:FINOPS_TEST_CAPTURED_QUERY_FILE -Value $Query -Encoding utf8
+                    }
                 }
+                if ($Query -match "microsoft\.web/serverfarms") { return @() }
                 @(
                     [PSCustomObject]@{
                         id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-finops/providers/Microsoft.Compute/snapshots/old-orphan-snap-01'
@@ -131,6 +135,88 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
 
         It 'rejects non-positive threshold values' {
             { & $script:Wrapper -SubscriptionId '11111111-1111-1111-1111-111111111111' -QueryFiles @($script:SnapshotQuery) -SnapshotAgeThresholdDays 0 } | Should -Throw
+        }
+    }
+
+    Context 'with App Service Plan CPU metrics below threshold' {
+        BeforeAll {
+            Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Mock' } }
+            Mock Import-Module {}
+            Mock Get-AzContext { [PSCustomObject]@{ Account = 'test@contoso.com' } }
+            Mock Invoke-AzRestMethod {
+                [PSCustomObject]@{ StatusCode = 200; Content = (@{ properties = @{ currency = 'USD'; columns = @(@{name='ResourceId'},@{name='PreTaxCost'}); rows = @(@('/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-web/providers/Microsoft.Web/serverfarms/asp-idle-01', 88.4)) } } | ConvertTo-Json -Depth 10) }
+            } -ParameterFilter { $Method -eq 'POST' }
+            Mock Search-AzGraph {
+                if ($Query -match "microsoft\.web/serverfarms") {
+                    return @(
+                        [PSCustomObject]@{
+                            id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-web/providers/Microsoft.Web/serverfarms/asp-idle-01'
+                            name = 'asp-idle-01'
+                            type = 'microsoft.web/serverfarms'
+                            resourceGroup = 'rg-web'
+                            subscriptionId = '11111111-1111-1111-1111-111111111111'
+                            location = 'westeurope'
+                        }
+                    )
+                }
+                return @()
+            }
+            Mock Get-AzMetric {
+                [PSCustomObject]@{
+                    Data = @(
+                        [PSCustomObject]@{ Average = 2.1 },
+                        [PSCustomObject]@{ Average = 4.0 },
+                        [PSCustomObject]@{ Average = 3.2 }
+                    )
+                }
+            }
+
+            $script:CpuResult = & $script:Wrapper -SubscriptionId '11111111-1111-1111-1111-111111111111' -QueryFiles @($script:QueryFile)
+        }
+
+        It 'emits AppServicePlanIdleCpu finding with Low severity' {
+            $cpuFinding = @($script:CpuResult.Findings | Where-Object { $_.DetectionCategory -eq 'AppServicePlanIdleCpu' })[0]
+            $cpuFinding | Should -Not -BeNullOrEmpty
+            $cpuFinding.Severity | Should -Be 'Low'
+            $cpuFinding.RuleId | Should -Be 'finops-appserviceplan-idle-cpu'
+            $cpuFinding.Detail | Should -Match 'threshold <5%'
+        }
+    }
+
+    Context 'when App Service Plan metrics access fails' {
+        BeforeAll {
+            Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Mock' } }
+            Mock Import-Module {}
+            Mock Get-AzContext { [PSCustomObject]@{ Account = 'test@contoso.com' } }
+            Mock Invoke-AzRestMethod {
+                [PSCustomObject]@{ StatusCode = 200; Content = (@{ properties = @{ currency = 'USD'; columns = @(@{name='ResourceId'},@{name='PreTaxCost'}); rows = @() } } | ConvertTo-Json -Depth 10) }
+            } -ParameterFilter { $Method -eq 'POST' }
+            Mock Search-AzGraph {
+                if ($Query -match "microsoft\.web/serverfarms") {
+                    return @(
+                        [PSCustomObject]@{
+                            id = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-web/providers/Microsoft.Web/serverfarms/asp-degraded-01'
+                            name = 'asp-degraded-01'
+                            type = 'microsoft.web/serverfarms'
+                            resourceGroup = 'rg-web'
+                            subscriptionId = '11111111-1111-1111-1111-111111111111'
+                            location = 'westeurope'
+                        }
+                    )
+                }
+                return @()
+            }
+            Mock Get-AzMetric { throw '403 Forbidden to read metrics' }
+
+            $script:CpuDegradedResult = & $script:Wrapper -SubscriptionId '11111111-1111-1111-1111-111111111111' -QueryFiles @($script:QueryFile)
+        }
+
+        It 'emits Info degraded finding and continues execution' {
+            $degraded = @($script:CpuDegradedResult.Findings | Where-Object { $_.DetectionCategory -eq 'AppServicePlanIdleCpuMetricsDegraded' })[0]
+            $degraded | Should -Not -BeNullOrEmpty
+            $degraded.Severity | Should -Be 'Info'
+            $degraded.Detail | Should -Match 'Continuing without this signal'
+            $script:CpuDegradedResult.Status | Should -BeIn @('Success', 'PartialSuccess')
         }
     }
 }
