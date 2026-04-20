@@ -9,3 +9,4 @@ All advanced consumer docs live here. The root `README.md` is your starting poin
 - [gitleaks-pattern-tuning.md](gitleaks-pattern-tuning.md) - Tuning gitleaks rule patterns to cut false positives.
 - [k8s-auth.md](k8s-auth.md) - Targeting Kubernetes wrappers (kubescape, falco, kube-bench) with explicit `-KubeconfigPath` / `-KubeContext` / per-tool namespace params.
 - [sinks/log-analytics.md](sinks/log-analytics.md) - Streaming azure-analyzer findings into Azure Log Analytics.
+- Cost and FinOps tools are listed in [tool-catalog.md](tool-catalog.md); permission details are in [permissions/](permissions/README.md).

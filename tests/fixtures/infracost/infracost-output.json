@@ -1,0 +1,58 @@
+{
+  "Source": "infracost",
+  "Status": "Success",
+  "Message": "Parsed 3 resource cost estimate(s).",
+  "Findings": [
+    {
+      "Id": "11111111-1111-1111-1111-111111111111",
+      "Category": "Cost",
+      "Title": "Estimated monthly cost: 1260.75 for azurerm_kubernetes_cluster",
+      "Severity": "Info",
+      "Compliant": false,
+      "Detail": "Infracost estimate for azurerm_kubernetes_cluster.aks in project terraform-main.",
+      "Remediation": "Review right-sizing, SKU choice, and environment count before deployment.",
+      "ResourceId": "infra/terraform",
+      "LearnMoreUrl": "https://www.infracost.io/docs/",
+      "ResourceType": "azurerm_kubernetes_cluster",
+      "ResourceName": "azurerm_kubernetes_cluster.aks",
+      "ProjectName": "terraform-main",
+      "ProjectPath": "infra/terraform",
+      "MonthlyCost": 1260.75,
+      "Currency": "USD"
+    },
+    {
+      "Id": "22222222-2222-2222-2222-222222222222",
+      "Category": "Cost",
+      "Title": "Estimated monthly cost: 180.20 for azurerm_storage_account",
+      "Severity": "Info",
+      "Compliant": false,
+      "Detail": "Infracost estimate for azurerm_storage_account.logs in project terraform-main.",
+      "Remediation": "Review right-sizing, SKU choice, and environment count before deployment.",
+      "ResourceId": "infra/terraform",
+      "LearnMoreUrl": "https://www.infracost.io/docs/",
+      "ResourceType": "azurerm_storage_account",
+      "ResourceName": "azurerm_storage_account.logs",
+      "ProjectName": "terraform-main",
+      "ProjectPath": "infra/terraform",
+      "MonthlyCost": 180.20,
+      "Currency": "USD"
+    },
+    {
+      "Id": "33333333-3333-3333-3333-333333333333",
+      "Category": "Cost",
+      "Title": "Estimated monthly cost: 12.30 for azurerm_resource_group",
+      "Severity": "Info",
+      "Compliant": false,
+      "Detail": "Infracost estimate for azurerm_resource_group.rg in project terraform-main.",
+      "Remediation": "Review right-sizing, SKU choice, and environment count before deployment.",
+      "ResourceId": "infra/terraform",
+      "LearnMoreUrl": "https://www.infracost.io/docs/",
+      "ResourceType": "azurerm_resource_group",
+      "ResourceName": "azurerm_resource_group.rg",
+      "ProjectName": "terraform-main",
+      "ProjectPath": "infra/terraform",
+      "MonthlyCost": 12.30,
+      "Currency": "USD"
+    }
+  ]
+}

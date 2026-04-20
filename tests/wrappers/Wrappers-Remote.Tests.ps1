@@ -52,3 +52,18 @@ Describe 'trivy wrapper: remote/local routing' {
     }
 }
 
+Describe 'infracost wrapper: remote/local routing' {
+    BeforeAll {
+        $script:wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Infracost.ps1'
+    }
+    It 'accepts -Repository parameter' {
+        $paramInfo = (Get-Command $script:wrapper).Parameters
+        $paramInfo.ContainsKey('Repository') | Should -BeTrue
+    }
+    It 'rejects non-allow-listed remote URL' {
+        $result = & $script:wrapper -Repository 'https://evil.example.org/org/repo'
+        $result.Source | Should -Be 'infracost'
+        $result.Status | Should -Match 'Skipped|Failed'
+    }
+}
+

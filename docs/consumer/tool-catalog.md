@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 26. **Disabled / opt-in:** 1.
+**Total enabled:** 27. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -29,6 +29,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `gitleaks` | gitleaks (Secrets Scanner) | repository | cli | Secret scanning across local or remote git repositories. | [docs](./gitleaks-pattern-tuning.md) |
 | `identity-correlator` | Identity Correlator | tenant | graph | Correlates Entra identities, role assignments, and resource ownership. | - |
 | `identity-graph-expansion` | Identity Graph Expansion | tenant | graph | Expands the identity graph: cross-tenant B2B + service-principal-to-resource edges. | - |
+| `infracost` | Infracost IaC Cost Estimation | repository | cli | Pre-deploy cost estimate for Terraform and Bicep resources. | - |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | subscription | azure | CIS Kubernetes benchmark for AKS node hardening. | - |
 | `kubescape` | Kubescape (AKS runtime posture) | subscription | azure | Runtime posture for AKS clusters: misconfigurations, RBAC, network policies, vulnerabilities. | - |
 | `maester` | Maester | tenant | microsoft365 | Microsoft Entra (Identity) security baseline: conditional access, MFA, privileged roles. | [docs](./ai-triage.md) |
