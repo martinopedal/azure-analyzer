@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 28. **Disabled / opt-in:** 1.
+**Total enabled:** 29. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -19,6 +19,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `ado-pipelines` | ADO Pipeline Security | ado | ado | Azure DevOps pipeline-security posture (variable groups, environments, approvals). | - |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | ado | ado | Secret scanning across Azure DevOps repositories via gitleaks. | [docs](./gitleaks-pattern-tuning.md) |
 | `alz-queries` | ALZ Resource Graph Queries | managementGroup | azure | ALZ Resource Graph queries: landing-zone compliance and drift detection. | - |
+| `appinsights` | Application Insights Performance Signals | subscription | azure | Application Insights telemetry signals: slow requests, dependency failures, and exception clusters via KQL. | - |
 | `azgovviz` | AzGovViz | managementGroup | azure | Azure Governance Visualizer: management-group / subscription / RBAC / policy posture. | - |
 | `azqr` | Azure Quick Review | subscription | azure | Azure best-practice review across reliability, security, cost, performance and operational excellence. | - |
 | `azure-cost` | Azure Cost (Consumption API) | subscription | azure | Per-subscription monthly Azure spend pulled from the Consumption API. | - |

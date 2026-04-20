@@ -191,6 +191,32 @@
       }
     },
     {
+      "name": "appinsights",
+      "displayName": "Application Insights Performance Signals",
+      "source": "appinsights",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AppInsights",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AppInsights.ps1",
+      "requiredParams": ["SubscriptionId"],
+      "optionalParams": [
+        "ResourceGroup",
+        "AppInsightsName",
+        "TimeRangeHours",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": ["windows", "macos", "linux"],
+      "enabled": true,
+      "report": { "label": "App Insights", "color": "#00838f", "phase": 4 },
+      "install": {
+        "kind": "psmodule",
+        "modules": ["Az.Accounts", "Az.ApplicationInsights", "Az.Monitor"]
+      }
+    },
+    {
       "name": "loadtesting",
       "displayName": "Azure Load Testing (Failed and Regressed Runs)",
       "source": "loadtesting",

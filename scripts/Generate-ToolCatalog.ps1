@@ -92,6 +92,7 @@ $consumerDocLinks = @{
 # absent so the catalog never ships an empty cell.
 $consumerBlurb = @{
     'azqr'                     = 'Azure best-practice review across reliability, security, cost, performance and operational excellence.'
+    'appinsights'              = 'Application Insights telemetry signals: slow requests, dependency failures, and exception clusters via KQL.'
     'kubescape'                = 'Runtime posture for AKS clusters: misconfigurations, RBAC, network policies, vulnerabilities.'
     'kube-bench'               = 'CIS Kubernetes benchmark for AKS node hardening.'
     'defender-for-cloud'       = 'Pulls Microsoft Defender for Cloud Secure Score and active recommendations per subscription.'

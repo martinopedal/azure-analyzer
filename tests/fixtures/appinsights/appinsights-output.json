@@ -1,0 +1,81 @@
+{
+  "Source": "appinsights",
+  "SchemaVersion": "1.0",
+  "Status": "Success",
+  "Message": "fixture",
+  "Findings": [
+    {
+      "Id": "appinsights/appi-prod/requests/get-orders",
+      "Source": "appinsights",
+      "Category": "Performance",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Request GET /orders was slow.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.Insights/components/appi-prod",
+      "LearnMoreUrl": "",
+      "QueryType": "requests",
+      "RequestName": "GET /orders",
+      "Count": 22,
+      "AvgDurationSeconds": 31.2,
+      "TimeRangeHours": 24
+    },
+    {
+      "Id": "appinsights/appi-prod/requests/get-catalog",
+      "Source": "appinsights",
+      "Category": "Performance",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Request GET /catalog was slow.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.Insights/components/appi-prod",
+      "LearnMoreUrl": "",
+      "QueryType": "requests",
+      "RequestName": "GET /catalog",
+      "Count": 12,
+      "AvgDurationSeconds": 29.9,
+      "TimeRangeHours": 24
+    },
+    {
+      "Id": "appinsights/appi-prod/dependencies/sql",
+      "Source": "appinsights",
+      "Category": "Performance",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "SQL dependency failed repeatedly.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.Insights/components/appi-prod",
+      "LearnMoreUrl": "",
+      "QueryType": "dependencies",
+      "DependencyName": "sql-prod",
+      "DependencyType": "SQL",
+      "Count": 7,
+      "TimeRangeHours": 24
+    },
+    {
+      "Id": "appinsights/appi-prod/exceptions/nullref",
+      "Source": "appinsights",
+      "Category": "Performance",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Null reference spikes observed.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.Insights/components/appi-prod",
+      "LearnMoreUrl": "",
+      "QueryType": "exceptions",
+      "ProblemId": "NullReferenceException",
+      "Count": 88,
+      "TimeRangeHours": 24
+    },
+    {
+      "Id": "appinsights/appi-prod/exceptions/timeout",
+      "Source": "appinsights",
+      "Category": "Performance",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Timeout spikes observed.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.Insights/components/appi-prod",
+      "LearnMoreUrl": "",
+      "QueryType": "exceptions",
+      "ProblemId": "TimeoutException",
+      "Count": 51,
+      "TimeRangeHours": 24
+    }
+  ]
+}
