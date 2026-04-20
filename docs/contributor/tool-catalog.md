@@ -33,6 +33,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `infracost` | Infracost IaC Cost Estimation | collector | cli | repository | Enabled | 0 | windows, macos, linux |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `kubescape` | Kubescape (AKS runtime posture) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux |
+| `loadtesting` | Azure Load Testing (Failed and Regressed Runs) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `maester` | Maester | collector | microsoft365 | tenant | Enabled | 0 | windows, macos, linux |
 | `psrule` | PSRule for Azure | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `scorecard` | OpenSSF Scorecard | collector | github | repository | Enabled | 0 | windows, macos, linux |
@@ -66,6 +67,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `infracost` | `Normalize-Infracost` | script | `modules/Invoke-Infracost.ps1` | - |
 | `kube-bench` | `Normalize-KubeBench` | script | `modules/Invoke-KubeBench.ps1` | SubscriptionId |
 | `kubescape` | `Normalize-Kubescape` | script | `modules/Invoke-Kubescape.ps1` | SubscriptionId |
+| `loadtesting` | `Normalize-AzureLoadTesting` | script | `modules/Invoke-AzureLoadTesting.ps1` | SubscriptionId |
 | `maester` | `Normalize-Maester` | script | `modules/Invoke-Maester.ps1` | - |
 | `psrule` | `Normalize-PSRule` | script | `modules/Invoke-PSRule.ps1` | SubscriptionId |
 | `scorecard` | `Normalize-Scorecard` | script | `modules/Invoke-Scorecard.ps1` | Repository |
@@ -99,6 +101,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `infracost` | cli ("infracost") | infracost/infracost @ latest | `#2e7d32` | 7 |
 | `kube-bench` | none | n/a | `#5e35b1` | 6 |
 | `kubescape` | cli ("kubescape") | kubescape/kubescape @ v3 | `#7b1fa2` | 6 |
+| `loadtesting` | psmodule | n/a | `#00695c` | 4 |
 | `maester` | psmodule | maester365/maester @ latest | `#7b1fa2` | 1 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ latest | `#6a1b9a` | 1 |
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |

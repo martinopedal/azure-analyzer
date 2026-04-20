@@ -34,6 +34,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | **FinOps Signals (Idle Resource Detection)** | Subscription | [`finops.md`](docs/consumer/permissions/finops.md) |
 | **kube-bench (AKS node-level CIS compliance)** | Subscription | [`kube-bench.md`](docs/consumer/permissions/kube-bench.md) |
 | **Kubescape (AKS runtime posture)** | Subscription | [`kubescape.md`](docs/consumer/permissions/kubescape.md) |
+| **Azure Load Testing (Failed and Regressed Runs)** | Subscription | [`loadtesting.md`](docs/consumer/permissions/loadtesting.md) |
 | **PSRule for Azure** | Subscription | [`psrule.md`](docs/consumer/permissions/psrule.md) |
 | **Microsoft Sentinel (Coverage / Posture)** | Workspace | [`sentinel-coverage.md`](docs/consumer/permissions/sentinel-coverage.md) |
 | **Microsoft Sentinel (Active Incidents)** | Workspace | [`sentinel-incidents.md`](docs/consumer/permissions/sentinel-incidents.md) |
