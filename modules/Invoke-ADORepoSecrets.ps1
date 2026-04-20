@@ -36,17 +36,13 @@ param (
     [Alias('AdoPatToken')]
     [string] $AdoPat,
 
-<<<<<<< HEAD
-    [string] $OutputPath,
-
-    [string] $GitleaksConfigPath
-=======
     [string] $AdoOrganizationUrl,
 
     [string] $AdoServerUrl,
 
-    [string] $OutputPath
->>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
+    [string] $OutputPath,
+
+    [string] $GitleaksConfigPath
 )
 
 Set-StrictMode -Version Latest
@@ -330,6 +326,63 @@ function Resolve-GitleaksConfig {
     }
 }
 
+function Get-HttpStatusCodeFromException {
+    param ([System.Exception]$Exception)
+
+    if (-not $Exception) { return $null }
+    if ($Exception.PSObject.Properties['Response'] -and $Exception.Response -and $Exception.Response.PSObject.Properties['StatusCode']) {
+        try { return [int]$Exception.Response.StatusCode } catch { }
+    }
+    if ($Exception.InnerException) {
+        return Get-HttpStatusCodeFromException -Exception $Exception.InnerException
+    }
+    return $null
+}
+
+function Test-IsTimeoutException {
+    param ([System.Exception]$Exception)
+
+    if (-not $Exception) { return $false }
+    if ($Exception -is [System.TimeoutException]) { return $true }
+    $message = [string]$Exception.Message
+    if ($message -match '(?i)timed out|timeout|operation canceled|operation timed out') { return $true }
+    if ($Exception.InnerException) { return (Test-IsTimeoutException -Exception $Exception.InnerException) }
+    return $false
+}
+
+function New-AdoInfoFinding {
+    param (
+        [Parameter(Mandatory)][string]$Title,
+        [Parameter(Mandatory)][string]$Detail,
+        [Parameter(Mandatory)][string]$Remediation,
+        [string]$ResourceId = '',
+        [string]$AdoProject = '',
+        [string]$RepositoryName = '',
+        [string]$RepositoryId = '',
+        [string]$RepositoryCanonicalId = ''
+    )
+
+    [PSCustomObject]@{
+        Id                    = [guid]::NewGuid().ToString()
+        Source                = 'ado-repos-secrets'
+        Category              = 'Secret Detection'
+        Title                 = (Remove-Credentials $Title)
+        Severity              = 'Info'
+        Compliant             = $true
+        Detail                = (Remove-Credentials $Detail)
+        Remediation           = $Remediation
+        ResourceId            = (Remove-Credentials $ResourceId)
+        LearnMoreUrl          = 'https://learn.microsoft.com/en-us/azure/devops/organizations/security/about-security-identity'
+        SchemaVersion         = '1.0'
+        AdoOrg                = $AdoOrg
+        AdoProject            = $AdoProject
+        RepositoryName        = $RepositoryName
+        RepositoryId          = $RepositoryId
+        RepositoryCanonicalId = $RepositoryCanonicalId
+        Confidence            = 'N/A'
+    }
+}
+
 function Invoke-GitleaksForRepo {
     param (
         [Parameter(Mandatory)][string]$RepoPath,
@@ -445,7 +498,10 @@ $headers = @{ Authorization = "Basic $base64" }
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 $failedRepos = [System.Collections.Generic.List[string]]::new()
 $failedProjects = [System.Collections.Generic.List[string]]::new()
-$skippedRepos = [System.Collections.Generic.List[string]]::new()
+$skippedRepos = [System.Collections.Generic.List[PSCustomObject]]::new()
+$skippedProjects = [System.Collections.Generic.List[string]]::new()
+$totalReposAttempted = 0
+$reposScannedSuccessfully = 0
 $endpoint = Resolve-AdoEndpoint -Org $AdoOrg -OrganizationUrl $AdoOrganizationUrl -ServerUrl $AdoServerUrl
 $resolvedAdoOrg = [string]$endpoint.Organization
 
@@ -516,6 +572,7 @@ try {
         try {
             $repos = @(Get-AdoRepositories -BaseUrl $endpoint.BaseUrl -Project $projectName -ApiVersion $endpoint.ApiVersion -Headers $headers)
             foreach ($repo in $repos) {
+                $totalReposAttempted++
                 $repoName = if ($repo.PSObject.Properties['name'] -and $repo.name) { [string]$repo.name } else { 'unknown-repo' }
                 $repoId = if ($repo.PSObject.Properties['id'] -and $repo.id) { [string]$repo.id } else { $repoName }
                 $repoCanonicalId = "ado://$($resolvedAdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoName.ToLowerInvariant())"
@@ -547,7 +604,7 @@ try {
                             SecretType            = 'scan-skipped-host-not-allow-listed'
                             Confidence            = 'Unknown'
                         })
-                    $skippedRepos.Add("$projectName/$repoName")
+                    $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = 'host-not-allowlisted' })
                     continue
                 }
 
@@ -555,23 +612,55 @@ try {
                 try {
                     $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $cloneUrl -Token $pat
                     if (-not $cloneInfo) {
-                        $failedRepos.Add("$projectName/$repoName")
+                        $skipFinding = New-AdoInfoFinding -Title 'ADO repo clone failed - skipped' `
+                            -Detail "Repo '$projectName/$repoName' returned no clone metadata and was skipped." `
+                            -Remediation 'Ensure repository visibility and PAT access, then re-run the scan.' `
+                            -ResourceId $cloneUrl -AdoProject $projectName -RepositoryName $repoName -RepositoryId $repoId -RepositoryCanonicalId $repoCanonicalId
+                        $findings.Add($skipFinding)
+                        $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = 'clone-failed' })
                         continue
                     }
 
-<<<<<<< HEAD
-                    $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $AdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId -GitleaksConfig $resolvedGitleaksConfig
-=======
-                    $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $resolvedAdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId
->>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
+                    $repoFindings = Invoke-GitleaksForRepo -RepoPath $cloneInfo.Path -RepoCanonicalId $repoCanonicalId -AdoOrg $resolvedAdoOrg -AdoProject $projectName -RepoName $repoName -RepoId $repoId -GitleaksConfig $resolvedGitleaksConfig
                     foreach ($finding in $repoFindings) {
                         $finding | Add-Member -NotePropertyName ProjectCanonicalId -NotePropertyValue "ado://$($resolvedAdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/project/$($projectId.ToLowerInvariant())" -Force
                         $finding | Add-Member -NotePropertyName RepositoryObjectCanonicalId -NotePropertyValue "ado://$($resolvedAdoOrg.ToLowerInvariant())/$($projectName.ToLowerInvariant())/repository/$($repoId.ToLowerInvariant())" -Force
                         $findings.Add($finding)
                     }
+                    $reposScannedSuccessfully++
                 } catch {
+                    $statusCode = Get-HttpStatusCodeFromException -Exception $_.Exception
+                    $errorMessage = Remove-Credentials "$($_.Exception.Message)"
+                    $skipFinding = $null
+
+                    if ($statusCode -in @(401, 403)) {
+                        $skipFinding = New-AdoInfoFinding -Title 'ADO repo inaccessible - skipped' `
+                            -Detail "Repo '$projectName/$repoName' returned HTTP $statusCode and was skipped. $errorMessage" `
+                            -Remediation 'Ensure the PAT has Code (Read) scope for all target projects' `
+                            -ResourceId $cloneUrl -AdoProject $projectName -RepositoryName $repoName -RepositoryId $repoId -RepositoryCanonicalId $repoCanonicalId
+                        $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = "http-$statusCode" })
+                    } elseif ($statusCode -eq 404) {
+                        $skipFinding = New-AdoInfoFinding -Title 'ADO repo not found - skipped' `
+                            -Detail "Repo '$projectName/$repoName' returned HTTP 404 and was skipped. $errorMessage" `
+                            -Remediation 'Verify repository name and project path, then re-run the scan.' `
+                            -ResourceId $cloneUrl -AdoProject $projectName -RepositoryName $repoName -RepositoryId $repoId -RepositoryCanonicalId $repoCanonicalId
+                        $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = 'http-404' })
+                    } elseif (Test-IsTimeoutException -Exception $_.Exception) {
+                        $skipFinding = New-AdoInfoFinding -Title 'ADO repo clone timed out - skipped' `
+                            -Detail "Repo '$projectName/$repoName' timed out and was skipped. $errorMessage" `
+                            -Remediation 'Retry the scan and verify network connectivity between scanner and dev.azure.com.' `
+                            -ResourceId $cloneUrl -AdoProject $projectName -RepositoryName $repoName -RepositoryId $repoId -RepositoryCanonicalId $repoCanonicalId
+                        $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = 'timeout' })
+                    } else {
+                        $skipFinding = New-AdoInfoFinding -Title 'ADO repo clone failed - skipped' `
+                            -Detail "Repo '$projectName/$repoName' failed clone/scan and was skipped. $errorMessage" `
+                            -Remediation 'Review scanner connectivity and repo permissions, then retry.' `
+                            -ResourceId $cloneUrl -AdoProject $projectName -RepositoryName $repoName -RepositoryId $repoId -RepositoryCanonicalId $repoCanonicalId
+                        $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = 'clone-or-scan-error' })
+                    }
+
+                    if ($null -ne $skipFinding) { $findings.Add($skipFinding) }
                     Write-Warning (Remove-Credentials "Failed scanning repo '$projectName/$repoName': $($_.Exception.Message)")
-                    $failedRepos.Add("$projectName/$repoName")
                 } finally {
                     if ($cloneInfo -and $cloneInfo.Cleanup) {
                         try { & $cloneInfo.Cleanup } catch { }
@@ -580,9 +669,25 @@ try {
             }
         } catch {
             Write-Warning (Remove-Credentials "Failed enumerating repos for project '$projectName': $($_.Exception.Message)")
-            $failedProjects.Add($projectName)
+            $skippedProjects.Add($projectName)
         }
     }
+
+    $summaryTitle = "ADO scan completed: $reposScannedSuccessfully/$totalReposAttempted repos scanned ($($skippedRepos.Count) skipped due to access restrictions)"
+    $summaryDetail = if ($skippedRepos.Count -gt 0) {
+        $reasonSummary = @($skippedRepos | Group-Object -Property Reason | ForEach-Object { "$($_.Name):$($_.Count)" }) -join ', '
+        "Per-repo skips: $reasonSummary."
+    } else {
+        'All attempted repositories were scanned successfully.'
+    }
+
+    $summaryFinding = New-AdoInfoFinding -Title $summaryTitle `
+        -Detail $summaryDetail `
+        -Remediation 'Grant read access to skipped repositories or project scopes, then re-run for full coverage.' `
+        -ResourceId "ado://$($AdoOrg.ToLowerInvariant())/summary/repository/scan-summary" `
+        -AdoProject 'summary' -RepositoryName 'scan-summary' -RepositoryId 'scan-summary' `
+        -RepositoryCanonicalId "ado://$($AdoOrg.ToLowerInvariant())/summary/repository/scan-summary"
+    $findings.Add($summaryFinding)
 
     if ($OutputPath) {
         $outDir = Split-Path -Path $OutputPath -Parent
@@ -591,16 +696,20 @@ try {
         Set-Content -Path $OutputPath -Value $payload -Encoding UTF8
     }
 
-    $status = if ($failedProjects.Count -gt 0 -or $failedRepos.Count -gt 0 -or $skippedRepos.Count -gt 0) {
+    $status = if ($failedProjects.Count -gt 0 -or $failedRepos.Count -gt 0 -or $skippedProjects.Count -gt 0 -or @($skippedRepos | Where-Object { $_.Reason -eq 'host-not-allowlisted' }).Count -gt 0) {
         if ($findings.Count -gt 0) { 'PartialSuccess' } else { 'Failed' }
     } else {
         'Success'
     }
 
-    $message = "Scanned $($projects.Count) project(s); detected $($findings.Count) secret finding(s)."
+    $message = "Scanned $($projects.Count) project(s); detected $($findings.Count) secret finding(s). $summaryTitle."
     if ($failedProjects.Count -gt 0) { $message += " Failed projects: $($failedProjects -join ', ')." }
     if ($failedRepos.Count -gt 0) { $message += " Failed repos: $($failedRepos -join ', ')." }
-    if ($skippedRepos.Count -gt 0) { $message += " Skipped repos (host allow-list): $($skippedRepos -join ', ')." }
+    if ($skippedRepos.Count -gt 0) {
+        $skippedRepoList = @($skippedRepos | ForEach-Object { $_.Repo }) -join ', '
+        $message += " Skipped repos: $skippedRepoList."
+    }
+    if ($skippedProjects.Count -gt 0) { $message += " Projects skipped during repo enumeration: $($skippedProjects -join ', ')." }
 
     return [PSCustomObject]@{
         Source = 'ado-repos-secrets'

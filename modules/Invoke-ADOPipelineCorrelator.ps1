@@ -51,6 +51,55 @@ function Invoke-AdoApi {
     }
 }
 
+function Get-HttpStatusCodeFromException {
+    param ([System.Exception]$Exception)
+
+    if (-not $Exception) { return $null }
+    if ($Exception.PSObject.Properties['Response'] -and $Exception.Response -and $Exception.Response.PSObject.Properties['StatusCode']) {
+        try { return [int]$Exception.Response.StatusCode } catch { }
+    }
+    if ($Exception.InnerException) {
+        return Get-HttpStatusCodeFromException -Exception $Exception.InnerException
+    }
+    return $null
+}
+
+function Test-IsTimeoutException {
+    param ([System.Exception]$Exception)
+
+    if (-not $Exception) { return $false }
+    if ($Exception -is [System.TimeoutException]) { return $true }
+    $message = [string]$Exception.Message
+    if ($message -match '(?i)timed out|timeout|operation canceled|operation timed out') { return $true }
+    if ($Exception.InnerException) { return (Test-IsTimeoutException -Exception $Exception.InnerException) }
+    return $false
+}
+
+function New-CorrelatorInfoFinding {
+    param (
+        [Parameter(Mandatory)][string]$Title,
+        [Parameter(Mandatory)][string]$Detail,
+        [Parameter(Mandatory)][string]$ResourceId,
+        [string]$Project = ''
+    )
+
+    [PSCustomObject]@{
+        Id           = [guid]::NewGuid().ToString()
+        Source       = 'ado-pipeline-correlator'
+        Category     = 'Pipeline Run Correlation'
+        Title        = (Remove-Credentials $Title)
+        Severity     = 'Info'
+        Compliant    = $true
+        Detail       = (Remove-Credentials $Detail)
+        Remediation  = 'Ensure the PAT has Build (Read) and Project and Team (Read) scope for all target projects.'
+        ResourceId   = (Remove-Credentials $ResourceId)
+        LearnMoreUrl = 'https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runs'
+        SchemaVersion = '1.0'
+        AdoOrg       = $AdoOrg
+        AdoProject   = $Project
+    }
+}
+
 function Get-AdoBuilds {
     param ([string]$Org, [string]$Project, [hashtable]$Headers)
     $orgEnc = [uri]::EscapeDataString($Org)
@@ -175,6 +224,10 @@ foreach ($entry in $byProject.GetEnumerator()) {
                     $logCount = $logs.Count
                 } catch {
                     $logLookupFailures.Add("$project/$buildId")
+                    $findings.Add((New-CorrelatorInfoFinding -Title 'ADO pipeline logs inaccessible - skipped' `
+                            -Detail "Build logs for '$project/$buildId' could not be read and were skipped. $($_.Exception.Message)" `
+                            -ResourceId "https://dev.azure.com/$AdoOrg/$project/_build/results?buildId=$buildId" `
+                            -Project $project))
                 }
 
                 $title = "Secret-bearing commit $($commitSha.Substring(0, [Math]::Min(8, $commitSha.Length))) executed in pipeline '$definitionName'"
@@ -205,15 +258,30 @@ foreach ($entry in $byProject.GetEnumerator()) {
         }
     } catch {
         $projectFailures.Add($project)
+        $statusCode = Get-HttpStatusCodeFromException -Exception $_.Exception
+        $projectUri = "https://dev.azure.com/$AdoOrg/$project/_apis/build/builds"
+        if ($statusCode -in @(401, 403)) {
+            $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project inaccessible for pipeline correlation - skipped' `
+                    -Detail "Project '$project' returned HTTP $statusCode and was skipped for correlation. $($_.Exception.Message)" `
+                    -ResourceId $projectUri -Project $project))
+        } elseif ($statusCode -eq 404) {
+            $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project not found for pipeline correlation - skipped' `
+                    -Detail "Project '$project' returned HTTP 404 and was skipped for correlation. $($_.Exception.Message)" `
+                    -ResourceId $projectUri -Project $project))
+        } elseif (Test-IsTimeoutException -Exception $_.Exception) {
+            $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project correlation timed out - skipped' `
+                    -Detail "Project '$project' timed out during build lookup and was skipped. $($_.Exception.Message)" `
+                    -ResourceId $projectUri -Project $project))
+        } else {
+            $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project correlation failed - skipped' `
+                    -Detail "Project '$project' failed correlation and was skipped. $($_.Exception.Message)" `
+                    -ResourceId $projectUri -Project $project))
+        }
         Write-Warning (Remove-Credentials "Failed to correlate builds for project '$project': $($_.Exception.Message)")
     }
 }
 
 $status = 'Success'
-if ($projectFailures.Count -gt 0 -or $logLookupFailures.Count -gt 0) {
-    if ($findings.Count -gt 0) { $status = 'PartialSuccess' }
-    else { $status = 'Failed' }
-}
 
 $message = "Correlated $($findings.Count) pipeline run finding(s) from $($secrets.Count) secret finding(s)."
 if ($projectFailures.Count -gt 0) { $message += " Failed projects: $($projectFailures -join ', ')." }
