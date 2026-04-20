@@ -88,4 +88,19 @@ Describe 'scheduled-scan.yml policy contract' {
     It 'guards report job with a non-zero critical_count expression' {
         $script:Workflow['jobs']['report']['if'] | Should -Match "critical_count.*!=.*'0'"
     }
+
+    It 'scan job grants actions:read to download baseline artifacts' {
+        $scan = $script:Workflow['jobs']['scan']
+        $scan['permissions']['actions'] | Should -Be 'read'
+    }
+
+    It 'scan job exports new_critical_count output for diff-mode noise suppression' {
+        $outputs = $script:Workflow['jobs']['scan']['outputs']
+        $outputs.Keys | Should -Contain 'new_critical_count'
+    }
+
+    It 'report job uses new_critical_count (not total) to suppress standing-finding noise' {
+        $reportIf = $script:Workflow['jobs']['report']['if']
+        $reportIf | Should -Match 'new_critical_count'
+    }
 }

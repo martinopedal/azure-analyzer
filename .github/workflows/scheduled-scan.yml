@@ -33,6 +33,7 @@ jobs:
     permissions:
       id-token: write   # OIDC federated token to Azure
       contents: read    # read repo at $GITHUB_SHA
+      actions: read     # download artifacts from previous scheduled-scan runs (diff baseline)
     env:
       INCLUDE_TOOLS: ${{ inputs.include_tools || 'azqr,psrule' }}
     steps:
@@ -96,6 +97,52 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Download previous entities.json (diff baseline)
+        id: baseline
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $prevPath = Join-Path $env:RUNNER_TEMP 'baseline-entities.json'
+          $found = $false
+          try {
+            $runsJson = gh api "repos/${{ github.repository }}/actions/workflows/scheduled-scan.yml/runs?status=success&per_page=10" 2>$null
+            if ($runsJson) {
+              $runs = $runsJson | ConvertFrom-Json -ErrorAction Stop
+              $prevRun = @($runs.workflow_runs | Where-Object { $_.id -ne [long]'${{ github.run_id }}' }) | Select-Object -First 1
+              if ($prevRun) {
+                $artifactsJson = gh api "repos/${{ github.repository }}/actions/runs/$($prevRun.id)/artifacts" 2>$null
+                if ($artifactsJson) {
+                  $artifacts = $artifactsJson | ConvertFrom-Json -ErrorAction Stop
+                  $artifact = @($artifacts.artifacts | Where-Object { $_.name -like 'scheduled-scan-*' -and -not $_.expired }) | Select-Object -First 1
+                  if ($artifact) {
+                    $zipPath = Join-Path $env:RUNNER_TEMP 'prev-artifact.zip'
+                    gh api "repos/${{ github.repository }}/actions/artifacts/$($artifact.id)/zip" --output $zipPath
+                    $expandDir = Join-Path $env:RUNNER_TEMP 'prev-artifact'
+                    Expand-Archive -Path $zipPath -DestinationPath $expandDir -Force
+                    $entitiesFile = Get-ChildItem -Path $expandDir -Filter 'entities.json' -Recurse | Select-Object -First 1
+                    if ($entitiesFile) {
+                      Copy-Item $entitiesFile.FullName -Destination $prevPath -Force
+                      $found = $true
+                      Write-Host "Baseline downloaded from run $($prevRun.id) (artifact: $($artifact.name))."
+                    } else {
+                      Write-Host "entities.json not found in artifact archive."
+                    }
+                  } else {
+                    Write-Host "No non-expired artifact found for previous run $($prevRun.id)."
+                  }
+                }
+              } else {
+                Write-Host "No previous successful run found -- treating all criticals as new."
+              }
+            }
+          } catch {
+            Write-Warning "Baseline download failed (non-fatal): $($_.Exception.Message -replace '[\r\n]+', ' ')"
+          }
+          "found=$($found.ToString().ToLower())" | Out-File $env:GITHUB_OUTPUT -Append
+          "path=$prevPath" | Out-File $env:GITHUB_OUTPUT -Append
+
       - name: Compute critical-finding count
         id: critical
         if: always()
@@ -118,13 +165,63 @@ jobs:
           }
           "count=$count" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Host "Critical findings: $count"
+
+      - name: Compute new vs standing critical findings (diff mode)
+        id: diff
+        if: always()
+        shell: pwsh
+        run: |
+          . (Join-Path $env:GITHUB_WORKSPACE 'modules' 'shared' 'Sanitize.ps1')
+          . (Join-Path $env:GITHUB_WORKSPACE 'modules' 'shared' 'Canonicalize.ps1')
+          . (Join-Path $env:GITHUB_WORKSPACE 'modules' 'shared' 'Compare-EntitySnapshots.ps1')
+          . (Join-Path $env:GITHUB_WORKSPACE 'modules' 'shared' 'Get-NewCriticalFindings.ps1')
+
+          $currentEntities = Join-Path $env:GITHUB_WORKSPACE 'output' 'entities.json'
+          if (-not (Test-Path $currentEntities)) {
+            Write-Host "No current entities.json -- nothing to diff."
+            "new_critical_count=0" | Out-File $env:GITHUB_OUTPUT -Append
+            "standing_critical_count=0" | Out-File $env:GITHUB_OUTPUT -Append
+            "new_critical_summary_b64=W10=" | Out-File $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+
+          $baselineFound = '${{ steps.baseline.outputs.found }}' -eq 'true'
+          $baselinePath  = '${{ steps.baseline.outputs.path }}'
+
+          if ($baselineFound -and (Test-Path $baselinePath)) {
+            Write-Host "Diffing against baseline snapshot..."
+            $drift      = Compare-EntitySnapshots -Previous $baselinePath -Current $currentEntities
+            $newFindings = Get-NewCriticalFindings -DriftResult $drift
+          } else {
+            Write-Host "No baseline -- first run, all criticals are new."
+            $drift      = New-NoBaselineDriftResult -EntitiesPath $currentEntities
+            $newFindings = Get-NewCriticalFindings -DriftResult $drift
+          }
+
+          $newCount = @($newFindings).Count
+          $totalCountStr = '${{ steps.critical.outputs.count }}'
+          $totalCriticals = if ($totalCountStr -match '^\d+$') { [int]$totalCountStr } else { 0 }
+          $standingCount = [Math]::Max(0, $totalCriticals - $newCount)
+
+          $summaryJson = if ($newCount -gt 0) {
+            $newFindings | ConvertTo-Json -Depth 5 -Compress -AsArray
+          } else { '[]' }
+          $summaryB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($summaryJson))
+
+          "new_critical_count=$newCount" | Out-File $env:GITHUB_OUTPUT -Append
+          "standing_critical_count=$standingCount" | Out-File $env:GITHUB_OUTPUT -Append
+          "new_critical_summary_b64=$summaryB64" | Out-File $env:GITHUB_OUTPUT -Append
+          Write-Host "New/escalated critical findings: $newCount  Standing: $standingCount"
     outputs:
       critical_count: ${{ steps.critical.outputs.count }}
+      new_critical_count: ${{ steps.diff.outputs.new_critical_count }}
+      standing_critical_count: ${{ steps.diff.outputs.standing_critical_count }}
+      new_critical_summary_b64: ${{ steps.diff.outputs.new_critical_summary_b64 }}
 
   report:
     name: Report critical findings
     needs: scan
-    if: always() && needs.scan.outputs.critical_count != '' && needs.scan.outputs.critical_count != '0'
+    if: always() && needs.scan.outputs.new_critical_count != '' && needs.scan.outputs.new_critical_count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -136,15 +233,46 @@ jobs:
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
-            const count = parseInt('${{ needs.scan.outputs.critical_count }}', 10) || 0;
-            const date = new Date().toISOString().slice(0, 10);
-            const titlePrefix = `fix: scheduled scan detected critical finding(s) on ${date}`;
-            const labels = ['auto:scheduled-scan', 'squad', 'severity:critical'];
+            const newCount  = parseInt('${{ needs.scan.outputs.new_critical_count }}',      10) || 0;
+            const standing  = parseInt('${{ needs.scan.outputs.standing_critical_count }}', 10) || 0;
+            const total     = newCount + standing;
+            const summaryB64 = '${{ needs.scan.outputs.new_critical_summary_b64 }}';
+            const date   = new Date().toISOString().slice(0, 10);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const labels = ['auto:scheduled-scan', 'squad', 'severity:critical'];
+
+            // Decode the base64-encoded JSON summary of new/escalated findings.
+            let newFindings = [];
+            try {
+              if (summaryB64) {
+                const decoded = Buffer.from(summaryB64, 'base64').toString('utf8');
+                newFindings = JSON.parse(decoded) || [];
+              }
+            } catch (e) {
+              core.warning(`Failed to parse finding summary: ${e.message}`);
+            }
+
+            // Build the findings list (cap at 20 entries to keep issue readable).
+            let findingsList = '';
+            for (const f of newFindings.slice(0, 20)) {
+              const titlePart = (f.Titles && f.Titles.length > 0 && f.Titles[0]) ? ` -- ${f.Titles[0]}` : '';
+              findingsList += `- \`${f.EntityId}\` (${f.EntityType || 'unknown'}) [**${f.ChangeKind}**]${titlePart}\n`;
+            }
+            if (newFindings.length > 20) {
+              findingsList += `- _...and ${newFindings.length - 20} more (see entities.json artifact)_\n`;
+            }
+            const standingNote = standing > 0
+              ? `\n_${standing} standing Critical finding(s) from the previous run are not shown above._`
+              : '';
+
+            const titlePrefix = `fix: scheduled scan detected critical finding(s) on ${date}`;
             const safeBody = [
               `Scheduled scan run: ${runUrl}`,
               '',
-              `Critical findings: **${count}**`,
+              `New or escalated Critical findings: **${newCount}** (total Critical: ${total})`,
+              '',
+              findingsList.trim() || '_No finding details available._',
+              standingNote,
               '',
               'Artifacts (results.json, entities.json, HTML report) are attached to the workflow run.',
               '',
@@ -171,7 +299,7 @@ jobs:
               const created = await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `${titlePrefix} (${count})`,
+                title: `${titlePrefix} (${newCount} new, ${total} total)`,
                 body: safeBody,
                 labels,
               });
