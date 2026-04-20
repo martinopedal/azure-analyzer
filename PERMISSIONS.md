@@ -59,6 +59,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 | Tool | Scope | Detail |
 |---|---|---|
+| **GitHub Actions Billing** | Repository | [`gh-actions-billing.md`](docs/consumer/permissions/gh-actions-billing.md) |
 | **OpenSSF Scorecard** | Repository | [`scorecard.md`](docs/consumer/permissions/scorecard.md) |
 
 ### Azure DevOps
@@ -66,6 +67,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | Tool | Scope | Detail |
 |---|---|---|
 | **ADO Service Connections** | ADO Org | [`ado-connections.md`](docs/consumer/permissions/ado-connections.md) |
+| **ADO Pipeline Consumption** | ADO Org | [`ado-consumption.md`](docs/consumer/permissions/ado-consumption.md) |
 | **ADO Pipeline Run Correlator** | ADO Org | [`ado-pipeline-correlator.md`](docs/consumer/permissions/ado-pipeline-correlator.md) |
 | **ADO Pipeline Security** | ADO Org | [`ado-pipelines.md`](docs/consumer/permissions/ado-pipelines.md) |
 | **ADO Repos Secret Scanning** | ADO Org | [`ado-repos-secrets.md`](docs/consumer/permissions/ado-repos-secrets.md) |

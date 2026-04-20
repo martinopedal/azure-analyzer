@@ -733,6 +733,57 @@
       ]
     },
     {
+      "name": "gh-actions-billing",
+      "displayName": "GitHub Actions Billing",
+      "source": "gh-actions-billing",
+      "provider": "github",
+      "scope": "repository",
+      "normalizer": "Normalize-GhActionsBilling",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-GhActionsBilling.ps1",
+      "requiredParams": [
+        "Org"
+      ],
+      "optionalParams": [
+        "Repo",
+        "DaysBack",
+        "MonthlyBudgetUsd"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#8e24aa",
+        "phase": 1
+      },
+      "install": {
+        "kind": "cli",
+        "command": "gh",
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "winget": "GitHub.cli"
+        },
+        "macos": {
+          "brew": "gh"
+        },
+        "linux": {
+          "url": "https://cli.github.com/"
+        }
+      },
+      "frameworks": [
+        "Azure CAF",
+        "SOC2"
+      ]
+    },
+    {
       "name": "ado-connections",
       "displayName": "ADO Service Connections",
       "source": "ado-connections",
@@ -804,6 +855,44 @@
         "NIST 800-53",
         "SOC2",
         "PCI-DSS"
+      ]
+    },
+    {
+      "name": "ado-consumption",
+      "displayName": "ADO Pipeline Consumption",
+      "source": "ado-consumption",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-AdoConsumption",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AdoConsumption.ps1",
+      "requiredParams": [
+        "Organization"
+      ],
+      "optionalParams": [
+        "Project",
+        "DaysBack",
+        "MonthlyBudgetUsd",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5e35b1",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "Azure CAF",
+        "SOC2"
       ]
     },
     {

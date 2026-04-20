@@ -86,6 +86,8 @@ $consumerDocLinks = @{
     'maester'         = 'ai-triage.md'
     'gitleaks'        = 'gitleaks-pattern-tuning.md'
     'ado-repos-secrets' = 'gitleaks-pattern-tuning.md'
+    'gh-actions-billing' = 'permissions/gh-actions-billing.md'
+    'ado-consumption' = 'permissions/ado-consumption.md'
 }
 
 # Short, consumer-friendly description per tool. Falls back to displayName when
@@ -106,8 +108,10 @@ $consumerBlurb = @{
     'wara'                     = 'Well-Architected Reliability Assessment workflow for production workloads.'
     'maester'                  = 'Microsoft Entra (Identity) security baseline: conditional access, MFA, privileged roles.'
     'scorecard'                = 'OpenSSF Scorecard for repository supply-chain hygiene.'
+    'gh-actions-billing'       = 'GitHub Actions billing and runner-minute telemetry for CI/CD cost optimization.'
     'ado-connections'          = 'Azure DevOps service-connection security: identity, scope, federation.'
     'ado-pipelines'            = 'Azure DevOps pipeline-security posture (variable groups, environments, approvals).'
+    'ado-consumption'          = 'Azure DevOps pipeline consumption telemetry: runner share, duration regression, and failure waste.'
     'ado-repos-secrets'        = 'Secret scanning across Azure DevOps repositories via gitleaks.'
     'ado-pipeline-correlator'  = 'Correlates ADO pipeline runs with downstream Azure resource changes.'
     'identity-correlator'      = 'Correlates Entra identities, role assignments, and resource ownership.'

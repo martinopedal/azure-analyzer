@@ -1,0 +1,43 @@
+{
+  "Source": "gh-actions-billing",
+  "Status": "Success",
+  "Message": "fixture",
+  "Findings": [
+    {
+      "Id": "11111111-1111-1111-1111-111111111111",
+      "RuleId": "gh-actions.org-over-budget",
+      "Category": "Cost",
+      "Title": "Org over budget",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Included minutes exceeded.",
+      "Remediation": "Optimize workflows.",
+      "ResourceId": "github.com/contoso/_org-billing",
+      "LearnMoreUrl": "https://github.com/organizations/contoso/settings/billing/actions"
+    },
+    {
+      "Id": "22222222-2222-2222-2222-222222222222",
+      "RuleId": "gh-actions.top-consumer",
+      "Category": "Cost",
+      "Title": "Top consumer",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Repo consumed high minutes.",
+      "Remediation": "Reduce runtime.",
+      "ResourceId": "github.com/contoso/api",
+      "LearnMoreUrl": "https://github.com/contoso/api/actions"
+    },
+    {
+      "Id": "33333333-3333-3333-3333-333333333333",
+      "RuleId": "gh-actions.run-duration-anomaly",
+      "Category": "Cost",
+      "Title": "Run anomaly",
+      "Compliant": false,
+      "Severity": "Low",
+      "Detail": "Run exceeded baseline.",
+      "Remediation": "Inspect run.",
+      "ResourceId": "github.com/contoso/api",
+      "LearnMoreUrl": "https://github.com/contoso/api/actions/runs/1"
+    }
+  ]
+}

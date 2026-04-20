@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**One PowerShell command, 29 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
+**One PowerShell command, 32 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
 ## Install
 
@@ -63,7 +63,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 
 ## What you get
 
-- **29 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
+- **32 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
 - **Unified v2 schema** with 5 severity levels (Critical, High, Medium, Low, Info) and 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, top impact recommendations, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
@@ -78,7 +78,8 @@ The three quickstart scenarios above are the common path. The consumer index in 
 
 - Azure plus Entra identity (Maester) and cross-tenant identity-graph expansion
 - GitHub Enterprise (GHEC-DR / GHES) targeting
-- Azure DevOps Services and Azure DevOps Server pipeline, service-connection, and repo-secret posture
+- Azure DevOps Services and Azure DevOps Server pipeline, service-connection, repo-secret, and pipeline-consumption posture
+- GitHub Actions billing and runner-minute cost telemetry
 - Sentinel coverage and active incidents
 - Application Insights performance signals (slow requests, dependency failures, exception clusters)
 - Azure Load Testing failed and regressed runs
@@ -97,8 +98,8 @@ All tools run **read-only**. Most common scopes:
 | Azure **Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA, Azure Cost, FinOps Signals, App Insights, Defender for Cloud |
 | **Cost Management Reader** (recommended) | FinOps Signals, Azure Cost |
 | Microsoft **Graph** (read) | Maester (Entra ID) |
-| **GitHub PAT** (optional) | Scorecard, remote repo scans |
-| **Azure DevOps PAT** (optional) | ADO Service Connections, Pipeline Security, Repo Secrets, Pipeline Correlator |
+| **GitHub PAT** (optional) | Scorecard, GitHub Actions Billing, remote repo scans |
+| **Azure DevOps PAT** (optional) | ADO Service Connections, Pipeline Security, Pipeline Consumption, Repo Secrets, Pipeline Correlator |
 | Local CLI only (no cloud) | zizmor, gitleaks, Trivy on a local path |
 
 Full breakdown, token types, and setup commands: [PERMISSIONS.md](PERMISSIONS.md).

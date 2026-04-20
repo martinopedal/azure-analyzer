@@ -8,13 +8,14 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 31.
+**Total tools registered:** 33.
 
 ## Registration matrix
 
 | Name | Display name | Type | Provider | Scope | Status | Tier | Platforms | Frameworks |
 |---|---|---|---|---|---|---|---|---|
 | `ado-connections` | ADO Service Connections | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `ado-consumption` | ADO Pipeline Consumption | collector | ado | ado | Enabled | 0 | windows, macos, linux | Azure CAF, SOC2 |
 | `ado-pipeline-correlator` | ADO Pipeline Run Correlator | correlator | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
 | `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
@@ -29,6 +30,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `defender-for-cloud` | Microsoft Defender for Cloud | enrichment | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF, SOC2, PCI-DSS |
 | `falco` | Falco (AKS runtime anomaly detection) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53 |
 | `finops` | FinOps Signals (Idle Resource Detection) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
+| `gh-actions-billing` | GitHub Actions Billing | collector | github | repository | Enabled | 0 | windows, macos, linux | Azure CAF, SOC2 |
 | `gitleaks` | gitleaks (Secrets Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `identity-correlator` | Identity Correlator | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `identity-graph-expansion` | Identity Graph Expansion | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2 |
@@ -51,6 +53,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | Name | Normalizer | Invoke | Script / module | Required params |
 |---|---|---|---|---|
 | `ado-connections` | `Normalize-ADOConnections` | script | `modules/Invoke-ADOServiceConnections.ps1` | AdoOrg |
+| `ado-consumption` | `Normalize-AdoConsumption` | script | `modules/Invoke-AdoConsumption.ps1` | Organization |
 | `ado-pipeline-correlator` | `Normalize-ADOPipelineCorrelator` | script | `modules/Invoke-ADOPipelineCorrelator.ps1` | AdoOrg |
 | `ado-pipelines` | `Normalize-ADOPipelineSecurity` | script | `modules/Invoke-ADOPipelineSecurity.ps1` | AdoOrg |
 | `ado-repos-secrets` | `Normalize-ADORepoSecrets` | script | `modules/Invoke-ADORepoSecrets.ps1` | AdoOrg |
@@ -65,6 +68,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `defender-for-cloud` | `Normalize-DefenderForCloud` | script | `modules/Invoke-DefenderForCloud.ps1` | SubscriptionId |
 | `falco` | `Normalize-Falco` | script | `modules/Invoke-Falco.ps1` | SubscriptionId |
 | `finops` | `Normalize-FinOpsSignals` | script | `modules/Invoke-FinOpsSignals.ps1` | SubscriptionId |
+| `gh-actions-billing` | `Normalize-GhActionsBilling` | script | `modules/Invoke-GhActionsBilling.ps1` | Org |
 | `gitleaks` | `Normalize-Gitleaks` | script | `modules/Invoke-Gitleaks.ps1` | - |
 | `identity-correlator` | `Normalize-IdentityCorrelation` | function | `modules/shared/IdentityCorrelator.ps1` | TenantId |
 | `identity-graph-expansion` | `Normalize-IdentityGraphExpansion` | function | `modules/Invoke-IdentityGraphExpansion.ps1` | TenantId |
@@ -87,6 +91,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | Name | Install kind | Upstream pin | Report color | Phase |
 |---|---|---|---|---|
 | `ado-connections` | none | n/a | `#0078d4` | 2 |
+| `ado-consumption` | none | n/a | `#5e35b1` | 2 |
 | `ado-pipeline-correlator` | none | n/a | `#00838f` | 2 |
 | `ado-pipelines` | none | n/a | `#006064` | 2 |
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
@@ -101,6 +106,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `defender-for-cloud` | psmodule | n/a | `#0078d4` | 4 |
 | `falco` | psmodule | falcosecurity/falco @ 0.42.0 | `#ef6c00` | 6 |
 | `finops` | psmodule | n/a | `#00897b` | 4 |
+| `gh-actions-billing` | cli ("gh") | n/a | `#8e24aa` | 1 |
 | `gitleaks` | cli ("gitleaks") | gitleaks/gitleaks @ latest | `#c62828` | 3 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |

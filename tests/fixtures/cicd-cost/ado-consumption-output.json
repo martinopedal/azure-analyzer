@@ -1,0 +1,43 @@
+{
+  "Source": "ado-consumption",
+  "Status": "Success",
+  "Message": "fixture",
+  "Findings": [
+    {
+      "Id": "44444444-4444-4444-4444-444444444444",
+      "RuleId": "ado.parallel-job-ratio",
+      "Category": "Cost",
+      "Title": "High share",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Project consumes high share.",
+      "Remediation": "Tune pools.",
+      "ResourceId": "ado://contoso/payments",
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build"
+    },
+    {
+      "Id": "55555555-5555-5555-5555-555555555555",
+      "RuleId": "ado.duration-regression",
+      "Category": "Cost",
+      "Title": "Duration regression",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Duration increased.",
+      "Remediation": "Investigate slowdown.",
+      "ResourceId": "ado://contoso/payments",
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build"
+    },
+    {
+      "Id": "66666666-6666-6666-6666-666666666666",
+      "RuleId": "ado.failed-pipeline-rate",
+      "Category": "Cost",
+      "Title": "Failure rate high",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Failure rate over threshold.",
+      "Remediation": "Fix flaky jobs.",
+      "ResourceId": "ado://contoso/payments",
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build"
+    }
+  ]
+}
