@@ -48,9 +48,20 @@ The Function App runs `Invoke-AzureAnalyzer.ps1` under its own managed identity 
 |---|---|---|---|
 | Function MI | Subscription / MG | **Reader** | Required for every Azure-scope collector |
 | (Optional) Log Analytics sink | DCR | **Monitoring Metrics Publisher** | Only when `DCE_ENDPOINT` + `DCR_IMMUTABLE_ID` app settings are configured |
-| (Optional) Future blob persistence | Storage account / container | **Storage Blob Data Contributor** | Reserved for the deferred Bicep deployment follow-up that wires durable artifact storage |
+| (Optional) Future blob persistence | Storage account / container | **Storage Blob Data Contributor** | Reserved for future durable artifact storage |
 
 The HTTP trigger uses `authLevel: function` (per-function key). Treat it as a **break-glass** on-demand path; the timer trigger is the primary contract.
+
+### Bicep deployment -- deployer permissions
+
+The Bicep template at `infra/continuous-control.bicep` creates a Reader role
+assignment at subscription scope for the user-assigned MI. The identity that
+runs `az deployment group create` must have **Owner** or **User Access
+Administrator** at the target subscription. At runtime the MI is read-only --
+no additional write permissions are granted to the Function App beyond those
+listed above. The `deployLogAnalytics = true` path also grants
+**Monitoring Metrics Publisher** on the DCR to the MI; no other write roles
+are created.
 
 ---
 

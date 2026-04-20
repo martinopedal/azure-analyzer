@@ -163,6 +163,7 @@ Two unattended entrypoints wrap `Invoke-AzureAnalyzer.ps1` so the scanner runs a
 | `AZURE_SUBSCRIPTION_ID` | Default subscription scope |
 
 **Consumption-plan timeout caveat**: Azure Functions on the Consumption plan have a hard 10-minute per-invocation cap. The default Timer trigger therefore restricts itself to a small toolset (`azqr,psrule`). For a full daily sweep, deploy on the **Premium** plan or **Container Apps**. See [`azure-function/README.md`](azure-function/README.md) for the architecture overview and [`docs/continuous-control.md`](docs/continuous-control.md) for the full 10-minute deployment walkthrough (OIDC setup, Function App provisioning, DCR sink wiring, failure modes, and scheduling). Bicep/Terraform deployment templates are tracked as a follow-up.
+**Consumption-plan timeout caveat**: Azure Functions on the Consumption plan have a hard 10-minute per-invocation cap. The default Timer trigger therefore restricts itself to a small toolset (`azqr,psrule`). For a full daily sweep, deploy on the **Premium** plan or **Container Apps**. See [`azure-function/README.md`](azure-function/README.md). Bicep deployment templates are in [`infra/continuous-control.bicep`](infra/continuous-control.bicep). See the [10-minute deployment walkthrough](docs/continuous-control.md) to get started.
 
 ## What you get
 

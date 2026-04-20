@@ -6,6 +6,11 @@ This guide wires up the two unattended entrypoints shipped in PR #193:
 - **Azure Function App** (`azure-function/`): timer + HTTP triggers under a managed identity, with an optional Log Analytics sink.
 
 Work through the sections in order. Total time: approximately 10 minutes for a minimal setup, 20 minutes if you also wire the Log Analytics sink.
+This guide walks you through deploying the azure-analyzer continuous-control
+Function App to Azure using the Bicep template at
+`infra/continuous-control.bicep`.
+
+Total time: approximately 10 minutes.
 
 ---
 
@@ -472,6 +477,183 @@ To run the timer trigger immediately without waiting:
 ```bash
 az rest --method post \
   --uri "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Web/sites/$FUNCTION_APP_NAME/functions/TimerScan/listtriggers?api-version=2022-03-01"
+- Azure CLI >= 2.50 with Bicep support (`az bicep install`)
+- An Azure subscription where you have **Owner** or **User Access Administrator**
+  at subscription scope (required to create the Reader role assignment)
+- PowerShell 7.4+ (only needed for local test; not required for deployment)
+
+---
+
+## Step 1 -- Create a resource group
+
+```bash
+az group create \
+  --name rg-azure-analyzer \
+  --location westeurope
+```
+
+---
+
+## Step 2 -- Copy and edit the parameters file
+
+```bash
+cp infra/continuous-control.bicepparam infra/my-deploy.bicepparam
+```
+
+Edit `infra/my-deploy.bicepparam` and set at minimum:
+
+```bicep
+param appName = 'azure-analyzer-cc'  // 3-20 chars, lowercase, hyphens OK
+```
+
+Optional overrides:
+
+| Parameter | Default | Notes |
+|---|---|---|
+| `planSku` | `Y1` (Consumption) | Set `EP1` for Premium Elastic (no 10-min cap) |
+| `scanSubscriptionId` | deployment subscription | Override to scan a different subscription |
+| `scanTenantId` | deployment tenant | Override for multi-tenant setups |
+| `deployLogAnalytics` | `false` | Set `true` to provision workspace + DCE + DCR |
+
+---
+
+## Step 3 -- Deploy
+
+```bash
+az deployment group create \
+  --resource-group rg-azure-analyzer \
+  --template-file infra/continuous-control.bicep \
+  --parameters @infra/my-deploy.bicepparam \
+  --name continuous-control-$(date +%Y%m%d)
+```
+
+The deployment creates:
+
+- **User-assigned Managed Identity** -- used by the Function App to authenticate
+  to Azure without secrets
+- **Reader role assignment** -- scoped to the target subscription so the MI can
+  run all read-only collectors
+- **Storage Account** -- used by the Functions runtime for state and leases
+- **App Service Plan** -- Consumption (Y1) by default
+- **Function App** -- PowerShell 7.4, user-assigned MI wired in via
+  `AZURE_CLIENT_ID` app setting
+- *(optional)* **Log Analytics workspace + Data Collection Endpoint + DCR** --
+  created when `deployLogAnalytics = true`; the MI receives
+  **Monitoring Metrics Publisher** on the DCR automatically
+
+---
+
+## Step 4 -- Capture the deployment outputs
+
+```bash
+az deployment group show \
+  --resource-group rg-azure-analyzer \
+  --name continuous-control-$(date +%Y%m%d) \
+  --query properties.outputs
+```
+
+Key outputs:
+
+| Output | Use |
+|---|---|
+| `functionAppName` | Target for `func azure functionapp publish` |
+| `managedIdentityClientId` | Set as `AZURE_CLIENT_ID` in any external orchestration |
+| `dceEndpoint` | Ingestion endpoint (empty when `deployLogAnalytics = false`) |
+| `dcrImmutableId` | DCR ID for the sink (empty when `deployLogAnalytics = false`) |
+
+---
+
+## Step 5 -- Publish the Function App code
+
+From the repo root:
+
+```bash
+cd azure-function
+func azure functionapp publish <functionAppName>
+```
+
+Replace `<functionAppName>` with the value of the `functionAppName` output from
+Step 4.
+
+---
+
+## Step 6 -- Verify
+
+1. In the Azure Portal, navigate to your Function App.
+2. Open **Functions** -- you should see `TimerScan` and `HttpScan`.
+3. Trigger a test run via the `HttpScan` HTTP trigger:
+
+   ```bash
+   FUNC_KEY=$(az functionapp function keys list \
+     --resource-group rg-azure-analyzer \
+     --name <functionAppName> \
+     --function-name HttpScan \
+     --query default -o tsv)
+
+   curl -s -X POST \
+     "https://<functionAppName>.azurewebsites.net/api/HttpScan?code=${FUNC_KEY}" \
+     -H "Content-Type: application/json" \
+     -d '{"subscriptionId":"<yourSubscriptionId>","includeTools":"azqr"}'
+   ```
+
+4. Check the Function App **Log stream** or Application Insights for output.
+
+---
+
+## Premium plan (no 10-minute cap)
+
+To use the Premium Elastic plan, set `planSku = 'EP1'` in your parameters file
+before deploying. The Premium plan supports full scans without the Consumption
+timeout. See [`azure-function/README.md`](../azure-function/README.md) for
+details on the timeout caveat.
+
+---
+
+## Enabling the Log Analytics sink
+
+Set `deployLogAnalytics = true` in your parameters file. The template
+provisions the workspace, DCE, DCR, custom tables, and the MI role assignment
+automatically. After deployment, the `DCE_ENDPOINT` and `DCR_IMMUTABLE_ID` app
+settings are populated automatically via the Bicep outputs.
+
+Stream names default to:
+
+- `Custom-AzureAnalyzerFindings` -- maps to `AzureAnalyzerFindings_CL` table
+- `Custom-AzureAnalyzerEntities` -- maps to `AzureAnalyzerEntities_CL` table
+
+To override, set `FINDINGS_STREAM` and `ENTITIES_STREAM` app settings on the
+Function App after deployment.
+
+---
+
+## Permissions summary
+
+| Role | Scope | When |
+|---|---|---|
+| Reader | Target subscription | Always (created by template) |
+| Monitoring Metrics Publisher | Data Collection Rule | Only when `deployLogAnalytics = true` |
+
+The deployer must have **Owner** or **User Access Administrator** at subscription
+scope to create the Reader role assignment. All runtime operations use
+read-only Azure APIs. See [`PERMISSIONS.md`](../PERMISSIONS.md) for the full
+permissions model.
+
+---
+
+## Cleanup
+
+```bash
+az group delete --name rg-azure-analyzer --yes --no-wait
+```
+
+Note: this removes the resource group but NOT the subscription-level Reader role
+assignment. To remove it:
+
+```bash
+az role assignment delete \
+  --assignee <managedIdentityPrincipalId> \
+  --role Reader \
+  --scope /subscriptions/<subscriptionId>
 ```
 
 ---
@@ -494,3 +676,7 @@ After completing the above steps, confirm:
 - [azure-function/README.md](../azure-function/README.md) -- Function App architecture overview and app settings reference
 - [PERMISSIONS.md](../PERMISSIONS.md#continuous-control-function-app-165) -- full RBAC breakdown
 - [docs/sinks/log-analytics.md](sinks/log-analytics.md) -- DCR/table setup and KQL examples
+## Bicep template reference
+
+See [`infra/continuous-control.bicep`](../infra/continuous-control.bicep) for
+all parameters, resources, and outputs.
