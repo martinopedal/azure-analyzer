@@ -9,3 +9,4 @@ Contributor and developer reference. Squad coordination lives in `.squad/`.
 - [troubleshooting.md](troubleshooting.md) - Diagnose tool failures, throttling, leaked credentials, Pester drops, stale catalog.
 - [ai-governance.md](ai-governance.md) - AI governance, model selection, and review-gate policy for the repo.
 - [proposals/](proposals/) - Forward-looking design proposals (IaC drift, Copilot triage panel, and more).
+- Redirect stub deadlines are tracked in `.squad/stub-deadlines.json` and enforced by `scripts/Check-StubDeadline.ps1` (CI: `.github/workflows/stub-deadline-check.yml`).

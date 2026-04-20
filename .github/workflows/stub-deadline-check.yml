@@ -1,0 +1,23 @@
+name: Stub deadline check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check-stub-deadline:
+    name: Check redirect stub deadline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Validate stub deadline registry against module version
+        shell: pwsh
+        run: |
+          pwsh -File scripts/Check-StubDeadline.ps1 -Mode Check

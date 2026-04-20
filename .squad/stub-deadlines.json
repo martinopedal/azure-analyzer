@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Temporary redirect stubs from docs restructure PR-1 (#243). Remove at next minor bump.",
+  "stubs": [
+    {
+      "path": "AI_GOVERNANCE.md",
+      "replacementPath": "docs/contributor/ai-governance.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "replacementPath": "docs/contributor/ARCHITECTURE.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/CONTRIBUTING-TOOLS.md",
+      "replacementPath": "docs/contributor/adding-a-tool.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/ai-triage.md",
+      "replacementPath": "docs/consumer/ai-triage.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/continuous-control.md",
+      "replacementPath": "docs/consumer/continuous-control.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/future-iac-drift.md",
+      "replacementPath": "docs/contributor/proposals/iac-drift.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/gitleaks-pattern-tuning.md",
+      "replacementPath": "docs/consumer/gitleaks-pattern-tuning.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/proposals/copilot-triage-panel.md",
+      "replacementPath": "docs/contributor/proposals/copilot-triage-panel.md",
+      "expiresAt": "1.1.0"
+    },
+    {
+      "path": "docs/sinks/log-analytics.md",
+      "replacementPath": "docs/consumer/sinks/log-analytics.md",
+      "expiresAt": "1.1.0"
+    }
+  ]
+}

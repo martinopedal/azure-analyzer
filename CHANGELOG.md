@@ -52,6 +52,10 @@ The documentation now leads with the consumer experience, keeps advanced operato
 
 - Redirect stubs at the old paths stay in place through the `1.0.x` line and will be removed in `v1.1.0`, the next minor version bump.
 
+#### Enforcement
+
+- chore: enforce stub-deadline removal via `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` + `.github/workflows/stub-deadline-check.yml` + `tests/scripts/Check-StubDeadline.Tests.ps1` (closes #250)
+
 ## [Unreleased - earlier entries]
 
 ### Fixed (earlier)
