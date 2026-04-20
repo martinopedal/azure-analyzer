@@ -1,0 +1,20 @@
+{
+  "organization": "contoso",
+  "projects": [
+    {
+      "name": "payments",
+      "id": "proj-1",
+      "repos": [
+        { "name": "payments-api", "id": "repo-1", "access": "allowed" },
+        { "name": "payments-admin", "id": "repo-2", "access": "forbidden" }
+      ]
+    },
+    {
+      "name": "identity",
+      "id": "proj-2",
+      "repos": [
+        { "name": "identity-api", "id": "repo-3", "access": "allowed" }
+      ]
+    }
+  ]
+}

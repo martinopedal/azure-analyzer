@@ -418,12 +418,9 @@ The hook is **opt-in** — developers must run the installer manually. It won't 
 | `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
 | `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
 | `-AdoPat` (`-AdoPatToken`) | string | -- | Optional ADO PAT for ADO-scoped wrappers (otherwise resolved from `ADO_PAT_TOKEN` / `AZURE_DEVOPS_EXT_PAT` / `AZ_DEVOPS_PAT`) |
-<<<<<<< HEAD
 | `-GitleaksConfigPath` | string | -- | Optional local `.toml` file with custom gitleaks allowlist/rules. Forwarded to `gitleaks` and `ado-repos-secrets` scanners |
-=======
 | `-AdoOrganizationUrl` | string | -- | Optional ADO org/collection URL for `ado-repos-secrets` (cloud: `https://dev.azure.com/{org}` / `https://{org}.visualstudio.com`; on-prem: `https://{server}/{collection}`) |
 | `-AdoServerUrl` | string | -- | Optional Azure DevOps Server collection URL for `ado-repos-secrets` (forces on-prem API compatibility mode) |
->>>>>>> dd07808 (feat(ado): ADO Server/on-prem support for repo secret scanning (#197))
 | `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
 | `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
 | `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
@@ -527,7 +524,7 @@ For unattended scheduled runs, copy [`templates/azure-analyzer-scheduled.yml`](t
 | 13 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) | Apache-2.0 |
 | 14 | **ADO Service Connections** *(first-party)* | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | Native REST API collector (`modules/Invoke-ADOServiceConnections.ps1`) queries ADO org/projects and catalogs all service endpoints with auth details | MIT (this project — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md#ado-service-connections-scanner-first-party)) |
 | 15 | **ADO Pipeline Security** *(first-party)* | Azure DevOps build/release definitions, variable groups, and environments -- missing approvals, plaintext secret-like variables, broad trigger patterns, and service-connection reuse | Native REST API collector (`modules/Invoke-ADOPipelineSecurity.ps1`) inspects ADO pipeline metadata without reading or emitting secret values | MIT (this project) |
-| 16 | **ADO Repo Secrets** *(first-party)* | Azure DevOps repository secret findings from gitleaks with commit SHA, file path, and rule metadata (cloud + Azure DevOps Server API shapes) | Native REST collector (`modules/Invoke-ADORepoSecrets.ps1`) enumerates projects/repos, clones via `RemoteClone.ps1`, and runs gitleaks with `--redact`; non-allow-listed on-prem hosts are emitted as Info skip findings | MIT (this project) |
+| 16 | **ADO Repo Secrets** *(first-party)* | Azure DevOps repository secret findings from gitleaks with commit SHA, file path, and rule metadata (cloud + Azure DevOps Server API shapes) | Native REST collector (`modules/Invoke-ADORepoSecrets.ps1`) enumerates projects/repos, clones via `RemoteClone.ps1`, and runs gitleaks with `--redact`; non-allow-listed on-prem hosts are emitted as Info skip findings, inaccessible repos are reported as per-repo Info findings, and the scan continues with partial access | MIT (this project) |
 | 17 | **ADO Pipeline Correlator** *(first-party)* | Correlates leaked commits with pipeline runs and run-log availability to show execution blast radius | Post-collection correlator (`modules/Invoke-ADOPipelineCorrelator.ps1`) matches secret `CommitSha` against build `sourceVersion` and enriches with run metadata | MIT (this project) |
 | 18 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
 | 19 | **Identity Graph Expansion** *(first-party)* | Cross-tenant B2B + SPN-to-resource graph expansion on top of the identity correlator | Correlator (`Invoke-IdentityGraphExpansion`) emits typed graph edges and risk findings from Entra + ARM relationship data | MIT (this project) |
@@ -633,7 +630,7 @@ The PR advisory gate now ingests Copilot review threads into a structured triage
 
 ## Roadmap
 
-- **Azure DevOps posture expansion** -- service connection inventory, pipeline posture, repository secret scanning, and pipeline run-log correlation are live.
+- **Azure DevOps posture expansion** -- service connection inventory, pipeline posture, repository secret scanning, and pipeline run-log correlation are live with graceful handling for private or inaccessible repos/projects.
 
 ## Contributing
 
