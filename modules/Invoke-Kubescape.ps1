@@ -43,6 +43,39 @@
 .PARAMETER Namespace
     Optional namespace filter forwarded to kubescape via
     `--include-namespaces`. Default empty (scan all namespaces).
+
+.PARAMETER KubeAuthMode
+    Auth mode applied to the kubeconfig before each scan. One of:
+      Default          - use whatever the kubeconfig already provides (current behavior).
+      Kubelogin        - run `kubelogin convert-kubeconfig` (azurecli flow by
+                         default, spn when -KubeloginClientId/-KubeloginTenantId
+                         are supplied) so AAD-integrated AKS clusters work.
+      WorkloadIdentity - federated identity. Sets AZURE_CLIENT_ID /
+                         AZURE_TENANT_ID / AZURE_FEDERATED_TOKEN_FILE in
+                         process scope and converts the kubeconfig to use
+                         `-l workloadidentity`. Designed for in-cluster runs;
+                         locally, supply -WorkloadIdentityServiceAccountToken
+                         as a path to a federated token file.
+
+.PARAMETER KubeloginServerId
+    AAD server (audience) ID for the AKS API. Optional; defaults inferred by kubelogin.
+
+.PARAMETER KubeloginClientId
+    AAD client ID for the kubelogin spn flow. Pass with -KubeloginTenantId.
+
+.PARAMETER KubeloginTenantId
+    AAD tenant ID for the kubelogin spn flow. Pass with -KubeloginClientId.
+
+.PARAMETER WorkloadIdentityClientId
+    AAD client ID of the federated workload identity. GUID. Required for WorkloadIdentity mode.
+
+.PARAMETER WorkloadIdentityTenantId
+    AAD tenant ID for the federated workload identity. GUID. Required for WorkloadIdentity mode.
+
+.PARAMETER WorkloadIdentityServiceAccountToken
+    Either the path to a federated token file (`/var/run/secrets/azure/tokens/azure-identity-token`
+    in pod) or the literal token value (will be written to a temp file with
+    restrictive ACLs and cleaned up).
 #>
 [CmdletBinding()]
 param (
@@ -51,7 +84,15 @@ param (
     [string] $OutputPath,
     [string] $KubeconfigPath,
     [string] $KubeContext,
-    [string] $Namespace = ''
+    [string] $Namespace = '',
+    [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+    [string] $KubeAuthMode = 'Default',
+    [string] $KubeloginServerId,
+    [string] $KubeloginClientId,
+    [string] $KubeloginTenantId,
+    [string] $WorkloadIdentityClientId,
+    [string] $WorkloadIdentityTenantId,
+    [string] $WorkloadIdentityServiceAccountToken
 )
 
 Set-StrictMode -Version Latest
@@ -69,6 +110,9 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
+if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'kubescape'
@@ -83,6 +127,17 @@ $result = [ordered]@{
 # enables "kubeconfig mode" (BYO cluster, no AKS discovery / get-credentials).
 $kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
                            $PSBoundParameters.ContainsKey('KubeContext')
+
+# Validate KubeAuthMode prerequisites up front so we fail fast before any
+# per-cluster work is attempted. Default mode is a no-op.
+Assert-KubeAuthMode `
+    -Mode $KubeAuthMode `
+    -KubeloginServerId $KubeloginServerId `
+    -KubeloginClientId $KubeloginClientId `
+    -KubeloginTenantId $KubeloginTenantId `
+    -WorkloadIdentityClientId $WorkloadIdentityClientId `
+    -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+    -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
 
 $resolvedKubeconfig = $null
 if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
@@ -190,6 +245,7 @@ foreach ($cluster in $clusters) {
         $context = "ks-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
         $contextForScan = $context
     }
+    $authPrep = $null
     try {
         if (-not $isKubeconfigMode) {
             # Isolated kubeconfig context per cluster — avoid cross-cluster pollution.
@@ -216,6 +272,28 @@ foreach ($cluster in $clusters) {
         }
 
         $env:KUBECONFIG = $tmpKubeconfig
+
+        # Apply KubeAuthMode (kubelogin convert / workload identity env vars)
+        # AFTER the kubeconfig is materialized but BEFORE we hand it to
+        # kubescape. The helper copies the kubeconfig when it is BYO so we
+        # never mutate the user's file. In wrapper-owned mode (az aks
+        # get-credentials temp), we convert in place.
+        if ($KubeAuthMode -ne 'Default') {
+            $kubeconfigOwned = -not $isKubeconfigMode
+            $authPrep = Initialize-KubeAuth `
+                -Mode $KubeAuthMode `
+                -KubeconfigPath $tmpKubeconfig `
+                -KubeconfigOwned:$kubeconfigOwned `
+                -KubeContext $contextForScan `
+                -KubeloginServerId $KubeloginServerId `
+                -KubeloginClientId $KubeloginClientId `
+                -KubeloginTenantId $KubeloginTenantId `
+                -WorkloadIdentityClientId $WorkloadIdentityClientId `
+                -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+                -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+            $env:KUBECONFIG = $authPrep.KubeconfigPath
+        }
+
         $ksArgs = @('scan', '--format', 'json', '--output', $rawFile, '--format-version', 'v2')
         if ($contextForScan) { $ksArgs += @('--kube-context', $contextForScan) }
         if ($Namespace)      { $ksArgs += @('--include-namespaces', $Namespace) }
@@ -266,6 +344,9 @@ foreach ($cluster in $clusters) {
     } finally {
         # Remove the isolated kubeconfig to avoid leaking cluster auth.
         # In kubeconfig mode the path was supplied by the caller; do not delete it.
+        if ($authPrep -and $authPrep.Cleanup) {
+            try { & $authPrep.Cleanup } catch {}
+        }
         if (-not $isKubeconfigMode -and $tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
             try { Remove-Item $tmpKubeconfig -Force -ErrorAction SilentlyContinue } catch {}
         }

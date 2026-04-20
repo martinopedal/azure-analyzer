@@ -36,6 +36,18 @@
 .PARAMETER Namespace
     Namespace used in install mode for the Falco Helm release and the
     `kubectl logs daemonset/falco` collection. Default 'falco'.
+
+.PARAMETER KubeAuthMode
+    Auth mode applied to the kubeconfig before each install-mode invocation.
+    One of Default | Kubelogin | WorkloadIdentity. See docs/consumer/k8s-auth.md.
+
+.PARAMETER KubeloginServerId / KubeloginClientId / KubeloginTenantId
+    AAD args for kubelogin convert-kubeconfig. ClientId+TenantId enables spn
+    flow; otherwise azurecli flow is used.
+
+.PARAMETER WorkloadIdentityClientId / WorkloadIdentityTenantId / WorkloadIdentityServiceAccountToken
+    Federated identity args. Path-or-value token; sets
+    AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_FEDERATED_TOKEN_FILE.
 #>
 [CmdletBinding()]
 param (
@@ -46,7 +58,15 @@ param (
     [ValidateRange(1, 60)] [int] $CaptureMinutes = 5,
     [string] $KubeconfigPath,
     [string] $KubeContext,
-    [string] $Namespace = 'falco'
+    [string] $Namespace = 'falco',
+    [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+    [string] $KubeAuthMode = 'Default',
+    [string] $KubeloginServerId,
+    [string] $KubeloginClientId,
+    [string] $KubeloginTenantId,
+    [string] $WorkloadIdentityClientId,
+    [string] $WorkloadIdentityTenantId,
+    [string] $WorkloadIdentityServiceAccountToken
 )
 
 Set-StrictMode -Version Latest
@@ -64,6 +84,9 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
+if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'falco'
@@ -79,6 +102,19 @@ $result = [ordered]@{
 # param contract consistent across wrappers).
 $kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
                            $PSBoundParameters.ContainsKey('KubeContext')
+
+# Validate KubeAuthMode prerequisites up front. Default mode is a no-op.
+# Falco install mode is the only path that touches the cluster, but we
+# validate regardless so misconfigured query-mode invocations also fail
+# fast (consistent contract across the three K8s wrappers).
+Assert-KubeAuthMode `
+    -Mode $KubeAuthMode `
+    -KubeloginServerId $KubeloginServerId `
+    -KubeloginClientId $KubeloginClientId `
+    -KubeloginTenantId $KubeloginTenantId `
+    -WorkloadIdentityClientId $WorkloadIdentityClientId `
+    -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+    -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
 $resolvedKubeconfig = $null
 if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
     if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
@@ -302,6 +338,7 @@ foreach ($cluster in $clusters) {
         $ctx = "falco-$($cluster.name)-$([guid]::NewGuid().ToString('N').Substring(0,8))"
         $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$ctx.yaml"
     }
+    $authPrep = $null
     try {
         if (-not $isKubeconfigMode) {
             & az aks get-credentials --subscription $SubscriptionId --resource-group $cluster.resourceGroup --name $cluster.name --file $tmpKubeconfig --context $ctx --overwrite-existing --only-show-errors 2>&1 | Out-Null
@@ -309,6 +346,24 @@ foreach ($cluster in $clusters) {
         }
 
         $env:KUBECONFIG = $tmpKubeconfig
+
+        $authPrep = $null
+        if ($KubeAuthMode -ne 'Default') {
+            $kubeconfigOwned = -not $isKubeconfigMode
+            $authPrep = Initialize-KubeAuth `
+                -Mode $KubeAuthMode `
+                -KubeconfigPath $tmpKubeconfig `
+                -KubeconfigOwned:$kubeconfigOwned `
+                -KubeContext $ctx `
+                -KubeloginServerId $KubeloginServerId `
+                -KubeloginClientId $KubeloginClientId `
+                -KubeloginTenantId $KubeloginTenantId `
+                -WorkloadIdentityClientId $WorkloadIdentityClientId `
+                -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+                -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+            $env:KUBECONFIG = $authPrep.KubeconfigPath
+        }
+
         & helm repo add falcosecurity https://falcosecurity.github.io/charts 2>&1 | Out-Null
         & helm repo update 2>&1 | Out-Null
         $helmArgs = @('upgrade', '--install', 'falco', 'falcosecurity/falco',
@@ -365,6 +420,9 @@ foreach ($cluster in $clusters) {
         $failed++
         Write-Warning "Falco install mode failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]$_.Exception.Message))"
     } finally {
+        if ($authPrep -and $authPrep.Cleanup) {
+            try { & $authPrep.Cleanup } catch {}
+        }
         if ($env:KUBECONFIG) { Remove-Item Env:\KUBECONFIG -ErrorAction SilentlyContinue }
         if (-not $isKubeconfigMode -and $tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
             try { Remove-Item $tmpKubeconfig -Force -ErrorAction SilentlyContinue } catch {}

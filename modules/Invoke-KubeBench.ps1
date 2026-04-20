@@ -23,6 +23,16 @@
 .PARAMETER Namespace
     Namespace where the temporary kube-bench Job is created and logs
     are collected from. Default 'kube-system'.
+
+.PARAMETER KubeAuthMode
+    Auth mode applied to the kubeconfig before kubectl apply / wait / logs.
+    One of Default | Kubelogin | WorkloadIdentity. See docs/consumer/k8s-auth.md.
+
+.PARAMETER KubeloginServerId / KubeloginClientId / KubeloginTenantId
+    AAD args for kubelogin convert-kubeconfig.
+
+.PARAMETER WorkloadIdentityClientId / WorkloadIdentityTenantId / WorkloadIdentityServiceAccountToken
+    Federated identity args.
 #>
 [CmdletBinding()]
 param (
@@ -34,7 +44,15 @@ param (
     [string] $KubeBenchImage = 'aquasec/kube-bench:v0.7.2',
     [string] $KubeconfigPath,
     [string] $KubeContext,
-    [string] $Namespace = 'kube-system'
+    [string] $Namespace = 'kube-system',
+    [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+    [string] $KubeAuthMode = 'Default',
+    [string] $KubeloginServerId,
+    [string] $KubeloginClientId,
+    [string] $KubeloginTenantId,
+    [string] $WorkloadIdentityClientId,
+    [string] $WorkloadIdentityTenantId,
+    [string] $WorkloadIdentityServiceAccountToken
 )
 
 Set-StrictMode -Version Latest
@@ -51,6 +69,20 @@ if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+
+$kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
+if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
+
+# Validate KubeAuthMode prerequisites up front so misconfigured invocations
+# fail before any cluster discovery / kubectl call. Default mode is a no-op.
+Assert-KubeAuthMode `
+    -Mode $KubeAuthMode `
+    -KubeloginServerId $KubeloginServerId `
+    -KubeloginClientId $KubeloginClientId `
+    -KubeloginTenantId $KubeloginTenantId `
+    -WorkloadIdentityClientId $WorkloadIdentityClientId `
+    -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+    -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
 
 function ConvertFrom-KubeBenchLogJson {
     param([string]$Text)
@@ -242,6 +274,7 @@ foreach ($cluster in $clusters) {
     $jobName = "aa-kube-bench-$([guid]::NewGuid().ToString('N').Substring(0,8))"
     $jobApplied = $false
     $rawLogsPath = $null
+    $authPrep = $null
 
     try {
         if (-not $isKubeconfigMode) {
@@ -291,6 +324,22 @@ spec:
 "@ | Set-Content -Path $jobManifest -Encoding utf8
 
         $env:KUBECONFIG = $tmpKubeconfig
+
+        if ($KubeAuthMode -ne 'Default') {
+            $kubeconfigOwned = -not $isKubeconfigMode
+            $authPrep = Initialize-KubeAuth `
+                -Mode $KubeAuthMode `
+                -KubeconfigPath $tmpKubeconfig `
+                -KubeconfigOwned:$kubeconfigOwned `
+                -KubeContext $context `
+                -KubeloginServerId $KubeloginServerId `
+                -KubeloginClientId $KubeloginClientId `
+                -KubeloginTenantId $KubeloginTenantId `
+                -WorkloadIdentityClientId $WorkloadIdentityClientId `
+                -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+                -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+            $env:KUBECONFIG = $authPrep.KubeconfigPath
+        }
 
         $kctxArgs = @()
         if ($context) { $kctxArgs += @('--context', $context) }
@@ -353,6 +402,9 @@ spec:
         }
         if ($jobManifest -and (Test-Path $jobManifest)) {
             try { Remove-Item $jobManifest -Force -ErrorAction SilentlyContinue } catch {}
+        }
+        if ($authPrep -and $authPrep.Cleanup) {
+            try { & $authPrep.Cleanup } catch {}
         }
         if (-not $isKubeconfigMode -and $tmpKubeconfig -and (Test-Path $tmpKubeconfig)) {
             try { Remove-Item $tmpKubeconfig -Force -ErrorAction SilentlyContinue } catch {}

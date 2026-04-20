@@ -1046,5 +1046,31 @@
       },
       "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch."
     }
+  ],
+  "prerequisites": [
+    {
+      "name": "kubelogin",
+      "displayName": "Azure kubelogin (AAD exec plugin)",
+      "purpose": "Required by Invoke-Kubescape / Invoke-Falco / Invoke-KubeBench when -KubeAuthMode is 'Kubelogin' or 'WorkloadIdentity'. Converts kubeconfig exec plugin entries to use AAD tokens (azurecli / spn / msi / workloadidentity).",
+      "consumedBy": ["kubescape", "falco", "kube-bench"],
+      "install": {
+        "kind": "cli",
+        "command": "kubelogin",
+        "preferredManagers": ["winget", "brew"],
+        "windows": {
+          "manager": "winget",
+          "package": "Azure.Kubelogin"
+        },
+        "macos": {
+          "manager": "brew",
+          "package": "Azure/kubelogin/kubelogin"
+        },
+        "linux": {
+          "manager": "script",
+          "url": "https://github.com/Azure/kubelogin/releases"
+        }
+      },
+      "fallback": "az aks install-cli  (also installs kubectl)"
+    }
   ]
 }

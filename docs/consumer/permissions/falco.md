@@ -28,3 +28,13 @@ In query mode, Falco reads existing runtime alerts emitted by an already-install
 
 - Query mode does not modify the cluster at all.
 - Install mode deploys Falco only into a dedicated namespace and removes it after the capture window.
+
+## KubeAuthMode (AAD / Workload Identity)
+
+In addition to `Default` mode (no kubelogin convert), the wrapper supports `-KubeAuthMode Kubelogin` and `-KubeAuthMode WorkloadIdentity` for AAD-integrated AKS. Both modes require the `kubelogin` binary on PATH (auto-installed when `-InstallMissingModules` is used). See [`docs/consumer/k8s-auth.md`](../k8s-auth.md) for the full mode matrix, sub-params, and examples.
+
+| Mode | Extra Azure permission | Extra cluster permission |
+|---|---|---|
+| `Default` | none beyond Reader | cluster-read RBAC |
+| `Kubelogin` | AAD user/SPN must be a member of the cluster's AAD admin/user group; `-KubeloginClientId`/`-KubeloginTenantId` for SPN flow | cluster-read RBAC granted to that AAD identity |
+| `WorkloadIdentity` | Federated credential on the AAD app pointing at the pod's service account | cluster-read RBAC granted to the federated identity |
