@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 29.
+**Total tools registered:** 30.
 
 ## Registration matrix
 
@@ -19,6 +19,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux |
 | `alz-queries` | ALZ Resource Graph Queries | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux |
+| `appinsights` | Application Insights Performance Signals | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `azgovviz` | AzGovViz | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux |
 | `azqr` | Azure Quick Review | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `azure-cost` | Azure Cost (Consumption API) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
@@ -53,6 +54,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-pipelines` | `Normalize-ADOPipelineSecurity` | script | `modules/Invoke-ADOPipelineSecurity.ps1` | AdoOrg |
 | `ado-repos-secrets` | `Normalize-ADORepoSecrets` | script | `modules/Invoke-ADORepoSecrets.ps1` | AdoOrg |
 | `alz-queries` | `Normalize-AlzQueries` | script | `modules/Invoke-AlzQueries.ps1` | SubscriptionId, ManagementGroupId |
+| `appinsights` | `Normalize-AppInsights` | script | `modules/Invoke-AppInsights.ps1` | SubscriptionId |
 | `azgovviz` | `Normalize-AzGovViz` | script | `modules/Invoke-AzGovViz.ps1` | ManagementGroupId |
 | `azqr` | `Normalize-Azqr` | script | `modules/Invoke-Azqr.ps1` | SubscriptionId |
 | `azure-cost` | `Normalize-AzureCost` | script | `modules/Invoke-AzureCost.ps1` | SubscriptionId |
@@ -87,6 +89,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-pipelines` | none | n/a | `#006064` | 2 |
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `alz-queries` | psmodule | Azure/Azure-Landing-Zones-Library @ HEAD | `#e65100` | 1 |
+| `appinsights` | psmodule | n/a | `#00838f` | 4 |
 | `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ HEAD | `#00838f` | 1 |
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |

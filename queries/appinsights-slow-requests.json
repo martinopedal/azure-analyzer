@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "App Insights - Slow requests",
+    "description": "Find request operations with sustained slow duration over the selected lookback window.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "f13e1f90-a2de-4b04-9d3b-4df39efcc4f0",
+      "category": "Performance",
+      "subcategory": "Requests",
+      "severity": "Medium",
+      "text": "Request operations averaging over 5 seconds with more than 10 calls",
+      "queryable": true,
+      "kql": "requests | where timestamp > ago(24h) | where duration > 5s | summarize count(), avg(duration) by name | where count_ > 10 | extend compliant = false"
+    }
+  ]
+}

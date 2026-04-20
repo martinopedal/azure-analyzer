@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "App Insights - Exception clusters",
+    "description": "Find exception problem IDs with high frequency over the selected lookback window.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "7e6cbfa1-8756-4548-bb8f-e9f4d40eb625",
+      "category": "Performance",
+      "subcategory": "Exceptions",
+      "severity": "High",
+      "text": "Exception clusters with more than 50 occurrences",
+      "queryable": true,
+      "kql": "exceptions | where timestamp > ago(24h) | summarize count() by problemId | where count_ > 50 | extend compliant = false"
+    }
+  ]
+}

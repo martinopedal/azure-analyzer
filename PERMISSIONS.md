@@ -26,6 +26,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | Tool | Scope | Detail |
 |---|---|---|
 | **ALZ Resource Graph Queries** | Management Group | [`alz-queries.md`](docs/consumer/permissions/alz-queries.md) |
+| **Application Insights Performance Signals** | Subscription | [`appinsights.md`](docs/consumer/permissions/appinsights.md) |
 | **AzGovViz** | Management Group | [`azgovviz.md`](docs/consumer/permissions/azgovviz.md) |
 | **Azure Quick Review** | Subscription | [`azqr.md`](docs/consumer/permissions/azqr.md) |
 | **Azure Cost (Consumption API)** | Subscription | [`azure-cost.md`](docs/consumer/permissions/azure-cost.md) |

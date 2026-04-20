@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "App Insights - Dependency failures",
+    "description": "Find dependency targets with repeated failed calls over the selected lookback window.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "466f1969-b8d1-4a9d-b36d-662ef2ef3ac6",
+      "category": "Performance",
+      "subcategory": "Dependencies",
+      "severity": "Medium",
+      "text": "Dependencies with more than 5 failed calls",
+      "queryable": true,
+      "kql": "dependencies | where timestamp > ago(24h) | where success == false | summarize count() by name, type | where count_ > 5 | extend compliant = false"
+    }
+  ]
+}
