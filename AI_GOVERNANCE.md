@@ -1,15 +1,5 @@
-# AI Governance
+# Moved
 
-This repository uses AI-assisted development tools including GitHub Copilot.
+This page has moved to [docs/contributor/ai-governance.md](docs/contributor/ai-governance.md).
 
-## Principles
-
-1. **AI can draft; CI decides.** All code must pass automated checks.
-2. **Human accountability.** The maintainer owns every merge.
-3. **Verify, don't trust.** Claims must be verified against sources.
-4. **Transparency.** PRs should disclose AI assistance.
-5. **No secrets.** AI tools must never access credentials.
-
-## Reporting concerns
-
-Open an issue or use the security reporting process in SECURITY.md.
+The old path is preserved as a stub through the next minor release and will be removed thereafter.
