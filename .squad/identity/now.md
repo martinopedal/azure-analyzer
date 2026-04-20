@@ -1,25 +1,24 @@
 ---
-updated_at: 2026-04-20T15:55:00Z
-focus_area: Post-restructure - awaiting next stream pickup
-active_issues: [249, 250, 251, 252]
+updated_at: 2026-04-20T22:00:00Z
+focus_area: Idle - awaiting next user dispatch
+active_issues: []
 ---
 
 # What We're Focused On
 
-The consumer-first documentation restructure is **complete and merged**. All 5 stream PRs landed (#243, #244, #246, #247, #253) and the master plan plus all completion records are archived under `.squad/decisions/archive/2026-04-20-consumer-first-restructure/`. See `.squad/orchestration-log.md` for the full rollup.
+Idle - awaiting next user dispatch. Last session ended 2026-04-20T22:00Z after clearing 22 issues (board empty).
+
+Session archive: `.squad/decisions/archive/2026-04-20-backlog-clearance-and-vnext-1.2.0/_ORCHESTRATION.md`.
 
 ## Active queue
 
-The doc-restructure directive is closed. No active stream is in flight.
+None. 0 open issues, 0 open PRs.
 
-## Candidate next pickups (from restructure follow-ups)
+## Next session starting state
 
-- [#249](https://github.com/martinopedal/azure-analyzer/issues/249) - restructure follow-up
-- [#250](https://github.com/martinopedal/azure-analyzer/issues/250) - restructure follow-up
-- [#251](https://github.com/martinopedal/azure-analyzer/issues/251) - restructure follow-up
-- [#252](https://github.com/martinopedal/azure-analyzer/issues/252) - restructure follow-up
-
-All four carry the `squad` label and are eligible for Ralph dispatch. Coordinator picks the next stream.
+- `ModuleVersion` still 1.0.0; v1.2.0 features all merged but NOT released.
+- Stub-deadline registry expires at 1.1.0; 9 stub redirects still active.
+- Pester baseline 1327/1327 green.
 
 ## Standing rules (still in force)
 
@@ -27,4 +26,3 @@ All four carry the `squad` label and are eligible for Ralph dispatch. Coordinato
 - Iterate-until-green: required check is `Analyze (actions)`.
 - Branch protection: signed commits NOT required, 0 reviewers, linear history, squash-merge.
 - Frontier-only model fallback chain when a charter-assigned model is unavailable.
-

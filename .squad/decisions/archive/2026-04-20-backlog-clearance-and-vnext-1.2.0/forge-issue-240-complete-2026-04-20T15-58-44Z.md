@@ -55,14 +55,14 @@ Required checks: `Analyze (actions)` + `rubberduck-gate` (skipped: non-squad-aut
 
 The kubeconfig branch was designed as an extension seam:
 
-- **`$kubeconfigModeRequested`** predicate: `$PSBoundParameters.ContainsKey('KubeconfigPath') -or $PSBoundParameters.ContainsKey('KubeContext')` — single decision point that future PRs can reuse to gate "skip Azure-specific discovery" behavior for new K8s-aware wrappers.
-- **Synthetic-cluster pattern**: when in kubeconfig mode each wrapper builds a single-element `$clusters` array with extra props `kubeconfigPath` + `kubeContext` so the existing `foreach ($cluster in $clusters)` loop body can branch via `if ($cluster.PSObject.Properties['kubeconfigPath'])` — no separate code path required.
+- **`$kubeconfigModeRequested`** predicate: `$PSBoundParameters.ContainsKey('KubeconfigPath') -or $PSBoundParameters.ContainsKey('KubeContext')`  -  single decision point that future PRs can reuse to gate "skip Azure-specific discovery" behavior for new K8s-aware wrappers.
+- **Synthetic-cluster pattern**: when in kubeconfig mode each wrapper builds a single-element `$clusters` array with extra props `kubeconfigPath` + `kubeContext` so the existing `foreach ($cluster in $clusters)` loop body can branch via `if ($cluster.PSObject.Properties['kubeconfigPath'])`  -  no separate code path required.
 - **ResourceId convention**: kubeconfig mode emits `kubeconfig:<context-name-or-default>` so report aggregation can group by source cluster without leaking Azure-specific schema.
 
 #241 (cluster identity normalization) and #242 (multi-context fan-out) can plug into both seams without re-touching the validation block or the orchestrator pass-through.
 
 ## Em-dash gate
 
-`git diff | Select-String "^\+" | Select-String "—"` returned zero. Pre-existing em-dashes in untouched files were not modified.
+`git diff | Select-String "^\+" | Select-String " - "` returned zero. Pre-existing em-dashes in untouched files were not modified.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

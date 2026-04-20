@@ -1,4 +1,4 @@
-# Issue #235 Resolution — Tool Count Update
+# Issue #235 Resolution  -  Tool Count Update
 
 **Date**: 2026-04-20T15:21:22Z  
 **Assigned to**: Sage (Research & Discovery Specialist)  
@@ -17,10 +17,10 @@ Completed documentation update to reflect current tool manifest count. Updated R
 
 ## Changes
 
-1. **README.md** — Updated lines 7 and 66 from "26 tools" to "27 tools"
-2. **CHANGELOG.md** — Added entry under [Unreleased] → Fixed section
-3. **Tool catalogs** — Regenerated (no changes to output, tool count only appears in summary driven by manifest)
-4. **PERMISSIONS.md** — Regenerated index (already in sync, no changes)
+1. **README.md**  -  Updated lines 7 and 66 from "26 tools" to "27 tools"
+2. **CHANGELOG.md**  -  Added entry under [Unreleased] → Fixed section
+3. **Tool catalogs**  -  Regenerated (no changes to output, tool count only appears in summary driven by manifest)
+4. **PERMISSIONS.md**  -  Regenerated index (already in sync, no changes)
 
 ## PR Details
 
