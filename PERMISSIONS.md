@@ -25,6 +25,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 | Tool | Scope | Detail |
 |---|---|---|
+| **AKS Karpenter Cost (consolidation + node utilization)** | Subscription | [`aks-karpenter-cost.md`](docs/consumer/permissions/aks-karpenter-cost.md) |
 | **AKS Rightsizing (Container Insights utilization)** | Subscription | [`aks-rightsizing.md`](docs/consumer/permissions/aks-rightsizing.md) |
 | **ALZ Resource Graph Queries** | Management Group | [`alz-queries.md`](docs/consumer/permissions/alz-queries.md) |
 | **Application Insights Performance Signals** | Subscription | [`appinsights.md`](docs/consumer/permissions/appinsights.md) |
@@ -106,22 +107,24 @@ Full discussion (matrix, tier model, scenarios, what we do NOT need) lives in [`
 
 ## Opt-in elevated RBAC tier
 
-> Status: **scaffolding only**. The opt-in toggle ships with #234 in the Stage 2 vNEXT sequence; this section documents the contract today so consumers can plan capacity and approvals ahead of the wrapper landing.
+> Status: **shipping in v1.2.0** (#234). The opt-in mechanism is implemented as a per-wrapper switch on every wrapper that needs cluster-data-plane reads.
 
 By default every wrapper requires **Reader-only** at the relevant Azure scope (or the per-domain read-only role listed above for Graph / GitHub / ADO). No cloud-side mutation is performed and no elevated role is requested.
 
-A small number of advanced inspections need to read pod-level state from inside an AKS data plane that the standard ARM Reader role does not expose. For these the orchestrator will publish an explicit, off-by-default opt-in:
+A small number of advanced inspections need to read pod-level state from inside an AKS data plane that the standard ARM Reader role does not expose. For these the orchestrator publishes an explicit, off-by-default opt-in:
 
-| Capability | Tool / wrapper | Default | Opt-in role required | Scope |
-|---|---|---|---|---|
-| Karpenter NodePool / NodeClaim inspection | Karpenter rightsizing (planned, #234) | **Disabled** | `Azure Kubernetes Service Cluster User Role` | Per AKS managed cluster |
+| Capability | Tool / wrapper | Default | Opt-in flag | Opt-in role required | Scope |
+|---|---|---|---|---|---|
+| Karpenter NodePool / NodeClaim inspection | `aks-karpenter-cost` (#234) | **Disabled** | `-EnableElevatedRbac` | `Azure Kubernetes Service Cluster User Role` | Per AKS managed cluster |
 
 Rules:
 
-- The opt-in is **OFF by default**. The wrapper must skip with a clear "elevated tier not enabled" warning when a consumer runs it without explicitly enabling the toggle.
-- The opt-in must be enabled per-run by the consumer (mechanism: TBD, likely an orchestrator switch or per-tool flag - finalised in #234).
+- The opt-in is **OFF by default**. With `-EnableElevatedRbac` omitted the wrapper skips the kubectl branch entirely; no kubeconfig is fetched and no kubectl process is launched.
+- The opt-in is **per-wrapper, not orchestrator-wide**. Setting it on one wrapper does NOT change the RBAC tier of any other tool that runs in the same orchestrator session. The state lives in `modules/shared/RbacTier.ps1` and is reset to `Reader` in the wrapper's `finally{}` block.
 - The role granted is the read-only `Cluster User Role` (`AKS Cluster User Role`); it does **not** grant cluster-admin nor any Azure resource write permission.
 - The opt-in changes neither the manifest's `provider` / `scope` metadata nor the report-side schema. Findings still flow through `New-FindingRow` with `EntityType=KarpenterProvisioner` (added in FindingRow v2.1) and `Platform=Azure`.
+
+Per-tool detail and the full RBAC tier table live in [`docs/consumer/permissions/aks-karpenter-cost.md`](docs/consumer/permissions/aks-karpenter-cost.md). Future tools that need the same tier should follow the same pattern (`-EnableElevatedRbac` switch + `Set-RbacTier` / `Reset-RbacTier` / `Assert-RbacTier`).
 
 Consumers who do not opt in see the same Reader-only behaviour as today.
 

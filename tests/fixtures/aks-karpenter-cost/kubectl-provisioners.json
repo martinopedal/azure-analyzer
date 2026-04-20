@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "metadata": { "name": "default" },
+      "spec": {
+        "consolidation": { "enabled": false }
+      }
+    },
+    {
+      "metadata": { "name": "spot" },
+      "spec": {
+        "consolidation": { "enabled": true },
+        "limits": { "resources": { "cpu": "100", "memory": "200Gi" } }
+      }
+    }
+  ]
+}
