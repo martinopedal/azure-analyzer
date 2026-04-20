@@ -1,23 +1,25 @@
 #Requires -Version 7.4
 <#
 .SYNOPSIS
-    Azure Analyzer PowerShell Module — Root module script.
+    Azure Analyzer PowerShell Module - Root module script.
 .DESCRIPTION
-    Loads all public functions from the modules/ directory and the root-level
+    Loads shared helper functions and root-level public entry scripts.
+    The public commands are exposed via wrapper functions that invoke the
     scripts (Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1, New-MdReport.ps1).
     
-    This is a local module for convenience—use after Import-Module ./AzureAnalyzer.psd1
+    This is a local module for convenience; use after Import-Module ./AzureAnalyzer.psd1
     in the cloned repository.
 #>
 
 Set-StrictMode -Version Latest
 
 # Get the module root path
-$ModuleRoot = Split-Path -Parent $PSScriptRoot
+$ModuleRoot = $PSScriptRoot
 
-# Dot-source all tool wrapper modules from modules/ directory
-# These are internal helpers and should not be exported directly
-Get-ChildItem -Path (Join-Path $ModuleRoot 'modules') -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+# Dot-source shared helper modules only
+# Wrapper/normalizer/report scripts are invoked by the orchestrator and not loaded at import time
+$sharedModulePath = Join-Path $ModuleRoot 'modules\shared'
+Get-ChildItem -Path $sharedModulePath -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
     . $_.FullName
 }
 
@@ -29,11 +31,51 @@ $publicFunctions = @(
     'New-MdReport'
 )
 
-foreach ($funcName in $publicFunctions) {
-    $funcPath = Join-Path $ModuleRoot "$($funcName).ps1"
-    if (Test-Path $funcPath) {
-        . $funcPath
+function Invoke-ModuleScript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $ScriptPath,
+
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    if (-not (Test-Path $ScriptPath)) {
+        throw "Required script not found: $ScriptPath"
     }
+
+    & $ScriptPath @Arguments
+}
+
+function Invoke-AzureAnalyzer {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1') @Arguments
+}
+
+function New-HtmlReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'New-HtmlReport.ps1') @Arguments
+}
+
+function New-MdReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'New-MdReport.ps1') @Arguments
 }
 
 # Warn if core required modules are missing
