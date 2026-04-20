@@ -249,12 +249,12 @@ Platform mapping is deterministic: given an EntityType, `Get-PlatformForEntityTy
 
 `tools/tool-manifest.json` is the single source of truth for tool registration. The orchestrator, installer, and reports all read from it. Every tool entry declares:
 
-- **Registration** — `name`, `displayName`, `source`, `provider`, `scope`, `enabled`, `platforms`
-- **Collection** — `script` (collector path), `invokeMethod`, `requiredParams`, `optionalParams`
-- **Normalization** — `normalizer` (function name under `modules/normalizers/`)
-- **Permissions** — `requiredPermissionTier` (0–6, see tiers below)
-- **`install` block** — how `-InstallMissingModules` provisions this tool (see Installer below)
-- **`report` block** — `color` (hex, for per-source bars) and `phase` (grouping hint for HTML + MD reports)
+- **Registration** - `name`, `displayName`, `source`, `provider`, `scope`, `enabled`, `platforms`
+- **Collection** - `script` (collector path), `invokeMethod`, `requiredParams`, `optionalParams`
+- **Normalization** - `normalizer` (function name under `modules/normalizers/`)
+- **Permissions** - `requiredPermissionTier` (0–6, see tiers below)
+- **`install` block** - how `-InstallMissingModules` provisions this tool (see Installer below)
+- **`report` block** - `color` (hex, for per-source bars) and `phase` (grouping hint for HTML + MD reports)
 
 Because both the installer and the report generators consume the manifest, adding a tool to the manifest automatically surfaces it in install flows, tool coverage, per-source bars, and findings-by-source tables.
 
@@ -272,8 +272,8 @@ Manifest-driven prerequisite installer, gated by the `-InstallMissingModules` sw
 | `none` | No-op (nothing to install) |
 
 **Security controls:**
-- Package-name regex — rejects unsafe names before spawning a package manager
-- Allow-listed package managers — unknown managers are refused
+- Package-name regex - rejects unsafe names before spawning a package manager
+- Allow-listed package managers - unknown managers are refused
 - HTTPS-only git clone with host allow-list
 - 300-second timeout on external commands
 - All stdout/stderr scrubbed via `Remove-Credentials` before emission
@@ -286,10 +286,10 @@ Manifest-driven prerequisite installer, gated by the `-InstallMissingModules` sw
 
 Used by cloud-first scanners (zizmor, gitleaks, trivy) to fetch a remote repo for scanning. Enforces:
 
-- **HTTPS only** — `git://`, `ssh://`, and `file://` are refused
-- **Host allow-list** — `github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`
-- **Token scrub** — any auth token injected into the clone URL is stripped from `.git/config` immediately after clone
-- **Temp dir cleanup** — clones are cleaned up in `finally` blocks
+- **HTTPS only** - `git://`, `ssh://`, and `file://` are refused
+- **Host allow-list** - `github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`
+- **Token scrub** - any auth token injected into the clone URL is stripped from `.git/config` immediately after clone
+- **Temp dir cleanup** - clones are cleaned up in `finally` blocks
 
 This is the migration path for the three local scanners; local-path scanning remains available as a fallback.
 
@@ -299,8 +299,8 @@ This is the migration path for the three local scanners; local-path scanning rem
 
 `Invoke-WithRetry` wraps any scriptblock with jittered exponential backoff. Retries on:
 
-- **HTTP status codes** — 408, 429, 500, 502, 503, 504
-- **Exception message patterns** — `429`, `503`, `throttle`, `throttled`, `timeout`, `timed out`, `connection reset`, `socket`, `transient`
+- **HTTP status codes** - 408, 429, 500, 502, 503, 504
+- **Exception message patterns** - `429`, `503`, `throttle`, `throttled`, `timeout`, `timed out`, `connection reset`, `socket`, `transient`
 - Custom predicate (via `-ShouldRetry`)
 
 This makes REST and `Search-AzGraph` calls resilient to throttling. `Invoke-AlzQueries.ps1` wraps `Search-AzGraph` in `Invoke-WithRetry` for 429/503 resilience across large tenants.
@@ -325,7 +325,7 @@ Each tool's normalizer is invoked by the orchestrator with `-ToolResult <envelop
 1. Validate the envelope (`Status -ne 'Success'` -> return `@()`)
 2. Parse raw findings; extract ARM context when possible via `ConvertTo-CanonicalArmId` / `ConvertTo-CanonicalRepoId`
 3. Call `New-FindingRow` for each finding, populating required fields (`Id`, `Source`, `EntityId`, `EntityType`, `Title`, `Compliant`, `ProvenanceRunId`) plus all available optional fields
-4. Return the array — **no side effects, no throws**
+4. Return the array - **no side effects, no throws**
 
 The EntityStore pipeline then canonicalizes IDs, deduplicates on composite key (`Source+ResourceId+Category+Title+Compliant`), merges findings into entities, and exports both `results.json` (v1 flat, 10-field contract) and `entities.json` (v3 entity model).
 
@@ -339,3 +339,4 @@ The EntityStore pipeline then canonicalizes IDs, deduplicates on composite key (
 - **Checkpoint/resume:** tool results are serialized per scope for long-running scans.
 
 ---
+

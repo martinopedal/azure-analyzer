@@ -1,4 +1,4 @@
-# Copilot Triage Panel — Design Proposal
+# Copilot Triage Panel - Design Proposal
 
 **Issue:** #122  
 **Author:** Sage  
@@ -15,7 +15,7 @@ Preview what Copilot triage-enriched findings look like before full triage loop 
 4. HTML mockup fitting existing report-template.html style
 5. Implementation phases for Sentinel/Forge
 
-**Constraint:** Mock content only — no real LLM calls during sample generation. When #105 lands, same renderer works opt-in.
+**Constraint:** Mock content only - no real LLM calls during sample generation. When #105 lands, same renderer works opt-in.
 
 ---
 
@@ -30,7 +30,7 @@ Preview what Copilot triage-enriched findings look like before full triage loop 
 - [ ] Per-finding expandable "Copilot Triage" panel: 2-sentence summary, suggested remediation command (az/kubectl/pwsh), related-findings links, confidence (High/Medium/Low)
 - [ ] Top-of-report "Triage Summary" card: N triaged, M auto-remediable, K needs human review
 - [ ] Side-by-side diff with base sample-report.html (linked from README)
-- [ ] samples/sample-results-with-triage.json — base dataset + CopilotTriage field
+- [ ] samples/sample-results-with-triage.json - base dataset + CopilotTriage field
 - [ ] Schema doc for CopilotTriage field
 - [ ] CHANGELOG entry
 
@@ -73,14 +73,14 @@ Preview what Copilot triage-enriched findings look like before full triage loop 
 **Field Descriptions:**
 
 - **summary** (string, required): 1-2 sentence AI-generated summary explaining the risk
-- **confidence** (enum, required): High | Medium | Low — how confident the triage is
+- **confidence** (enum, required): High | Medium | Low - how confident the triage is
 - **priority** (number, required): 0-100 composite score = `(severity_score × 0.5) + (confidence_score × 0.3) + (blast_radius × 0.2)`
 - **autoRemediable** (boolean, required): true if suggested command can run unattended
 - **suggestedCommand** (string, optional): Shell/CLI command to remediate (escaped for HTML)
 - **commandType** (enum, optional): az | kubectl | pwsh | manual
 - **relatedFindings** (array, optional): Finding IDs that share common root cause
 - **tags** (array, optional): Contextual tags like "internet-exposed", "credential-leak", "compliance-blocker"
-- **estimatedImpact** (enum, optional): None | Low | Medium | High — blast radius of remediation
+- **estimatedImpact** (enum, optional): None | Low | Medium | High - blast radius of remediation
 - **triageTimestamp** (ISO8601, optional): When triage was performed
 - **triageModel** (string, optional): LLM model used (e.g., "gpt-4o", "claude-opus")
 
@@ -248,14 +248,14 @@ Add expandable section below each finding row in tables. Insert after Detail/Rem
             <code>az network nsg rule update --resource-group rg-prod-net --nsg-name nsg-frontend --name allow-ssh --source-address-prefixes 10.0.0.0/8</code>
             <button class="btn-copy" onclick="copyTriageCommand('azqr-nsg-001')" title="Copy command">📋</button>
           </div>
-          <p class="command-note">Impact: <span class="impact-low">Low</span> — Rule update is non-breaking</p>
+          <p class="command-note">Impact: <span class="impact-low">Low</span> - Rule update is non-breaking</p>
         </div>
         
         <div class="triage-section triage-related">
           <h5>Related Findings</h5>
           <ul>
-            <li><a href="#finding-azqr-nsg-003" onclick="scrollToFinding('azqr-nsg-003')">azqr-nsg-003 — NSG allows RDP from any source</a></li>
-            <li><a href="#finding-defender-001" onclick="scrollToFinding('defender-001')">defender-001 — Internet-exposed VM detected</a></li>
+            <li><a href="#finding-azqr-nsg-003" onclick="scrollToFinding('azqr-nsg-003')">azqr-nsg-003 - NSG allows RDP from any source</a></li>
+            <li><a href="#finding-defender-001" onclick="scrollToFinding('defender-001')">defender-001 - Internet-exposed VM detected</a></li>
           </ul>
         </div>
         
@@ -574,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 ## Sample Data Generation
 
-**samples/sample-results-with-triage.json** — extends `sample-results.json` with mock triage data:
+**samples/sample-results-with-triage.json** - extends `sample-results.json` with mock triage data:
 
 ```jsonc
 [
@@ -709,10 +709,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| LLM hallucinations in `suggestedCommand` | **High** — destructive command | Medium | Add `--dry-run` flag to all auto-gen commands, require user review |
-| UI clutter with 1000+ findings | **Medium** — unusable report | High | Default to collapsed, add "Show All Triage" toggle, lazy-load panels |
-| Schema bloat (`CopilotTriage` adds 2-5KB per finding) | **Low** — file size | Medium | Gzip HTML output, use sidecar JSON in Phase 5 |
-| Triage cost ($0.01-0.10 per finding) | **Medium** — budget | Medium | Throttle to top 100 findings by severity, cache results |
+| LLM hallucinations in `suggestedCommand` | **High** - destructive command | Medium | Add `--dry-run` flag to all auto-gen commands, require user review |
+| UI clutter with 1000+ findings | **Medium** - unusable report | High | Default to collapsed, add "Show All Triage" toggle, lazy-load panels |
+| Schema bloat (`CopilotTriage` adds 2-5KB per finding) | **Low** - file size | Medium | Gzip HTML output, use sidecar JSON in Phase 5 |
+| Triage cost ($0.01-0.10 per finding) | **Medium** - budget | Medium | Throttle to top 100 findings by severity, cache results |
 
 ---
 
@@ -801,3 +801,4 @@ This proposal defines a **production-ready mockup** of the Copilot Triage Panel 
 - [ ] Forge integration feasibility
 - [ ] Lead UX/telemetry sign-off
 - [ ] 3-model rubber-duck (Opus 4.6 + Goldeneye + GPT-5.3-codex)
+
