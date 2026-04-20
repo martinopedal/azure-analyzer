@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 30.
+**Total tools registered:** 31.
 
 ## Registration matrix
 
@@ -18,6 +18,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-pipeline-correlator` | ADO Pipeline Run Correlator | correlator | ado | ado | Enabled | 0 | windows, macos, linux |
 | `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux |
+| `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `alz-queries` | ALZ Resource Graph Queries | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux |
 | `appinsights` | Application Insights Performance Signals | collector | azure | subscription | Enabled | 0 | windows, macos, linux |
 | `azgovviz` | AzGovViz | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux |
@@ -53,6 +54,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-pipeline-correlator` | `Normalize-ADOPipelineCorrelator` | script | `modules/Invoke-ADOPipelineCorrelator.ps1` | AdoOrg |
 | `ado-pipelines` | `Normalize-ADOPipelineSecurity` | script | `modules/Invoke-ADOPipelineSecurity.ps1` | AdoOrg |
 | `ado-repos-secrets` | `Normalize-ADORepoSecrets` | script | `modules/Invoke-ADORepoSecrets.ps1` | AdoOrg |
+| `aks-rightsizing` | `Normalize-AksRightsizing` | script | `modules/Invoke-AksRightsizing.ps1` | SubscriptionId |
 | `alz-queries` | `Normalize-AlzQueries` | script | `modules/Invoke-AlzQueries.ps1` | SubscriptionId, ManagementGroupId |
 | `appinsights` | `Normalize-AppInsights` | script | `modules/Invoke-AppInsights.ps1` | SubscriptionId |
 | `azgovviz` | `Normalize-AzGovViz` | script | `modules/Invoke-AzGovViz.ps1` | ManagementGroupId |
@@ -88,6 +90,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-pipeline-correlator` | none | n/a | `#00838f` | 2 |
 | `ado-pipelines` | none | n/a | `#006064` | 2 |
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
+| `aks-rightsizing` | psmodule | n/a | `#2e7d32` | 4 |
 | `alz-queries` | psmodule | Azure/Azure-Landing-Zones-Library @ HEAD | `#e65100` | 1 |
 | `appinsights` | psmodule | n/a | `#00838f` | 4 |
 | `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ HEAD | `#00838f` | 1 |

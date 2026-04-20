@@ -1,0 +1,10 @@
+{
+  "Results": [
+    {
+      "Namespace": "prod",
+      "ControllerName": "api",
+      "replicasMin": 3,
+      "replicasMax": 3
+    }
+  ]
+}

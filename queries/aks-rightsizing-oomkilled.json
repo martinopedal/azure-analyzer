@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "AKS Rightsizing - OOMKilled pods",
+    "description": "Detect OOMKilled containers from Container Insights pod inventory.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "2bb2f3cb-3f39-4f49-a095-7c91f0e4a8ad",
+      "category": "Performance",
+      "subcategory": "OomKilled",
+      "severity": "High",
+      "text": "Pods with OOMKilled status over lookback window",
+      "queryable": true,
+      "graph": "KubePodInventory | where TimeGenerated >= ago(7d) | where ContainerStatusReason =~ 'OOMKilled' or PodStatus =~ 'Failed' | project Namespace, WorkloadName = Name, ContainerName, PodStatus, ContainerStatusReason, compliant = false"
+    }
+  ]
+}

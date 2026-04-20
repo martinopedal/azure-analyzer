@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "AKS Rightsizing - Over-provisioned workloads",
+    "description": "Detect containers whose P95 usage is below 20% of configured CPU or memory limits.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "a1b6b8e2-85b0-4f83-85f0-6b6bdabf1c11",
+      "category": "Performance",
+      "subcategory": "OverProvisionedCpu",
+      "severity": "Medium",
+      "text": "P95 CPU below 20% of limit over lookback window",
+      "queryable": true,
+      "graph": "KubePodInventory | where TimeGenerated >= ago(7d) | where isnotempty(ContainerName) | summarize cpuLimitNano = max(todouble(ContainerCpuLimitNanoCores)) by Namespace, Name, ContainerName | join kind=inner (Perf | where TimeGenerated >= ago(7d) | where ObjectName == 'K8SContainer' and CounterName == 'cpuUsageNanoCores' | summarize p95_cpu = percentile(CounterValue, 95) by Namespace = InstanceName, ContainerName) on Namespace, ContainerName | where cpuLimitNano > 0 and p95_cpu < cpuLimitNano * 0.2 | project Namespace, WorkloadName = Name, ContainerName, observedPct = (p95_cpu / cpuLimitNano) * 100.0, compliant = false"
+    },
+    {
+      "guid": "bd6dbf78-a2f6-4e54-95cb-4c9b2bea734f",
+      "category": "Performance",
+      "subcategory": "OverProvisionedMemory",
+      "severity": "Medium",
+      "text": "P95 memory below 20% of limit over lookback window",
+      "queryable": true,
+      "graph": "KubePodInventory | where TimeGenerated >= ago(7d) | where isnotempty(ContainerName) | summarize memoryLimitBytes = max(todouble(ContainerMemoryLimitBytes)) by Namespace, Name, ContainerName | join kind=inner (Perf | where TimeGenerated >= ago(7d) | where ObjectName == 'K8SContainer' and CounterName == 'memoryRssBytes' | summarize p95_mem = percentile(CounterValue, 95) by Namespace = InstanceName, ContainerName) on Namespace, ContainerName | where memoryLimitBytes > 0 and p95_mem < memoryLimitBytes * 0.2 | project Namespace, WorkloadName = Name, ContainerName, observedPct = (p95_mem / memoryLimitBytes) * 100.0, compliant = false"
+    }
+  ]
+}

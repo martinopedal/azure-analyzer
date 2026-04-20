@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "name": "AKS Rightsizing - Missing HPA candidates",
+    "description": "Detect controllers with static replicas where autoscaling is a candidate.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "20f1262a-e39d-46a0-afd5-cd73068d7b69",
+      "category": "Performance",
+      "subcategory": "MissingHpa",
+      "severity": "Info",
+      "text": "Controllers with static replicas greater than one",
+      "queryable": true,
+      "graph": "KubePodInventory | where TimeGenerated >= ago(7d) | where isnotempty(ControllerName) | summarize replicasMin = min(tolong(PodRestartCount)), replicasMax = max(tolong(PodRestartCount)) by Namespace, ControllerName | where replicasMin == replicasMax and replicasMin > 1 | project Namespace, ControllerName, replicasMin, replicasMax, compliant = false"
+    }
+  ]
+}

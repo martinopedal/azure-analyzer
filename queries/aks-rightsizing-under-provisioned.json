@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "AKS Rightsizing - Under-provisioned workloads",
+    "description": "Detect containers whose P95 usage is at or above 95% of configured limits.",
+    "version": "1.0.0"
+  },
+  "queries": [
+    {
+      "guid": "7f44f8dc-0104-4558-8793-469df6c3b151",
+      "category": "Performance",
+      "subcategory": "UnderProvisionedCpu",
+      "severity": "High",
+      "text": "P95 CPU at or above 95% of limit over lookback window",
+      "queryable": true,
+      "graph": "KubePodInventory | where TimeGenerated >= ago(7d) | where isnotempty(ContainerName) | summarize cpuLimitNano = max(todouble(ContainerCpuLimitNanoCores)) by Namespace, Name, ContainerName | join kind=inner (Perf | where TimeGenerated >= ago(7d) | where ObjectName == 'K8SContainer' and CounterName == 'cpuUsageNanoCores' | summarize p95_cpu = percentile(CounterValue, 95) by Namespace = InstanceName, ContainerName) on Namespace, ContainerName | where cpuLimitNano > 0 and p95_cpu >= cpuLimitNano * 0.95 | project Namespace, WorkloadName = Name, ContainerName, observedPct = (p95_cpu / cpuLimitNano) * 100.0, compliant = false"
+    },
+    {
+      "guid": "f96f305e-351f-4ea3-91ab-30ebe757d22b",
+      "category": "Performance",
+      "subcategory": "UnderProvisionedMemory",
+      "severity": "High",
+      "text": "P95 memory at or above 95% of limit over lookback window",
+      "queryable": true,
+      "graph": "KubePodInventory | where TimeGenerated >= ago(7d) | where isnotempty(ContainerName) | summarize memoryLimitBytes = max(todouble(ContainerMemoryLimitBytes)) by Namespace, Name, ContainerName | join kind=inner (Perf | where TimeGenerated >= ago(7d) | where ObjectName == 'K8SContainer' and CounterName == 'memoryRssBytes' | summarize p95_mem = percentile(CounterValue, 95) by Namespace = InstanceName, ContainerName) on Namespace, ContainerName | where memoryLimitBytes > 0 and p95_mem >= memoryLimitBytes * 0.95 | project Namespace, WorkloadName = Name, ContainerName, observedPct = (p95_mem / memoryLimitBytes) * 100.0, compliant = false"
+    }
+  ]
+}

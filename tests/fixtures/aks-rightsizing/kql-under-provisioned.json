@@ -1,0 +1,10 @@
+{
+  "Results": [
+    {
+      "Namespace": "prod",
+      "WorkloadName": "worker",
+      "ContainerName": "worker",
+      "observedPct": 99.4
+    }
+  ]
+}
