@@ -6,6 +6,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - `Invoke-AzureAnalyzer.ps1`: Resolve leftover merge conflict markers in the param block and DOC block left over from the PR #204/#206 squash-merge cascade. Both `-GitleaksConfigPath` (#198) and `-AdoOrganizationUrl`/`-AdoServerUrl` (#197) coexist as intended; the orchestrator now parses again and the IdentityGraphExpansion integration suite goes from 5/7 to 7/7.
+- `tools/Update-ToolPins.ps1`: Fixed StrictMode crash when iterating manifest tools without an `upstream` block. Hashtable key access (`-AsHashtable` parse mode) now uses `ContainsKey` guard, so weekly auto-update no longer fails partway through. Created the missing `tool-auto-update` and `needs-copilot-iteration` labels so PR creation succeeds. Closes #215.
 
 ### Changed
 - `report-template.html`, `New-HtmlReport.ps1`: Fix Critical/High severity conflation — `SeverityClass()` was mapping `Critical → sev-high`, making Critical and High findings look identical. Critical now renders as a distinct dark-red badge and row border (`#7f1d1d`) separate from High (`#dc2626`).
