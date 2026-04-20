@@ -149,6 +149,19 @@ function Get-HeatClass([string]$Severity, [int]$Count) {
     }
 }
 
+function Get-FindingResourceGroup($Finding) {
+    # Prefer explicit ResourceGroup property; fall back to parsing the ARM ResourceId.
+    $explicit = $null
+    try { $explicit = $Finding.ResourceGroup } catch { $explicit = $null }
+    if (-not [string]::IsNullOrWhiteSpace([string]$explicit)) { return [string]$explicit }
+    $rid = $null
+    try { $rid = [string]$Finding.ResourceId } catch { $rid = $null }
+    if ([string]::IsNullOrWhiteSpace($rid)) { return '' }
+    if ($rid -match '/resourceGroups/([^/]+)') { return $Matches[1] }
+    if ($rid -match '/resourcegroups/([^/]+)') { return $Matches[1] }
+    return ''
+}
+
 # --- Load triage data if available ---
 $triageFindings = @()
 $hasTriage = $false
@@ -300,6 +313,7 @@ $categoryHtml = foreach ($cat in $byCategory) {
                 'Unchanged' { $statusBadge = ' <span class="badge badge-unchanged">Unchanged</span>' }
             }
         }
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)' data-resourcegroup='$(HE (Get-FindingResourceGroup $f))'><td>$(HE $f.Title)$statusBadge</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
         $controlBadgesHtml = Get-ControlBadgesHtml $f
         "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge$controlBadgesHtml</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
@@ -589,6 +603,73 @@ if ($trendArr.Count -ge 2) {
 "@
 }
 
+
+# --- Severity heatmap (ResourceGroup x Severity) ---
+$heatmapSeverities = @('Critical','High','Medium','Low')
+$rgSeverityMap = [ordered]@{}
+foreach ($f in $findings) {
+    $rg = Get-FindingResourceGroup $f
+    if ([string]::IsNullOrWhiteSpace($rg)) { continue }
+    $sev = [string]$f.Severity
+    if ($heatmapSeverities -notcontains $sev) { continue }
+    if (-not $rgSeverityMap.Contains($rg)) {
+        $rgSeverityMap[$rg] = [ordered]@{ Critical = 0; High = 0; Medium = 0; Low = 0; Total = 0 }
+    }
+    $rgSeverityMap[$rg][$sev]++
+    $rgSeverityMap[$rg]['Total']++
+}
+
+$heatmapHtml = ''
+if ($rgSeverityMap.Count -gt 0) {
+    # Compute per-severity max for proportional intensity (per column).
+    $maxBySev = @{ Critical = 0; High = 0; Medium = 0; Low = 0 }
+    foreach ($rg in $rgSeverityMap.Keys) {
+        foreach ($sev in $heatmapSeverities) {
+            if ($rgSeverityMap[$rg][$sev] -gt $maxBySev[$sev]) { $maxBySev[$sev] = $rgSeverityMap[$rg][$sev] }
+        }
+    }
+    $sevColor = @{
+        Critical = '127, 29, 29'    # #7f1d1d
+        High     = '220, 38, 38'    # #dc2626
+        Medium   = '245, 158, 11'   # #f59e0b
+        Low      = '250, 204, 21'   # #facc15
+    }
+    # Sort RGs by total desc, then name asc
+    $sortedRgs = @($rgSeverityMap.Keys | Sort-Object @{Expression={$rgSeverityMap[$_]['Total']};Descending=$true}, @{Expression={$_};Descending=$false})
+
+    $headerCells = @('<div class="hm-cell hm-corner" role="columnheader" aria-label="Resource group">Resource group</div>')
+    foreach ($sev in $heatmapSeverities) {
+        $headerCells += "<div class='hm-cell hm-head hm-head-$($sev.ToLower())' role='columnheader'>$(HE $sev)</div>"
+    }
+    $headerRowHtml = ($headerCells -join '')
+
+    $bodyRowsHtml = foreach ($rg in $sortedRgs) {
+        $cells = @("<div class='hm-cell hm-rg' role='rowheader' title='$(HE $rg)'>$(HE $rg)</div>")
+        foreach ($sev in $heatmapSeverities) {
+            $count = [int]$rgSeverityMap[$rg][$sev]
+            $maxC = [int]$maxBySev[$sev]
+            $intensity = if ($count -le 0 -or $maxC -le 0) { 0.0 } else { [math]::Round(0.18 + 0.82 * ($count / [double]$maxC), 3) }
+            $bg = if ($count -le 0) { 'transparent' } else { "rgba($($sevColor[$sev]), $intensity)" }
+            $textColor = if ($count -le 0) { '#9ca3af' } elseif ($sev -in @('Medium','Low')) { '#1f2937' } else { '#fff' }
+            $rgAttr = HE $rg
+            $sevAttr = HE $sev
+            $aria = "$count $sev finding$(if ($count -eq 1) { '' } else { 's' }) in resource group $rg"
+            $cells += "<button type='button' class='hm-cell hm-data hm-data-$($sev.ToLower())' style='background:$bg;color:$textColor;' data-rg='$rgAttr' data-sev='$sevAttr' data-count='$count' aria-label='$(HE $aria). Click to filter.' onclick=`"filterByHeatmap('$rgAttr','$sevAttr')`">$count</button>"
+        }
+        ($cells -join '')
+    }
+
+    $heatmapHtml = @"
+<section class="severity-heatmap-section" aria-labelledby="heatmap-title">
+  <h2 id="heatmap-title" class="section-title">Findings by Resource Group x Severity</h2>
+  <p class="hm-hint">Click a cell to filter the findings tables to that Resource Group + Severity combination.</p>
+  <div class="severity-heatmap" role="grid" aria-label="Severity heatmap by resource group">
+    <div class="hm-row hm-header-row" role="row">$headerRowHtml</div>
+    $(foreach ($r in $bodyRowsHtml) { "<div class='hm-row' role='row'>$r</div>" })
+  </div>
+</section>
+"@
+}
 
 # --- Priority stack: top Critical/High non-compliant findings ---
 $priorityFindings = @($findings | Where-Object { -not $_.Compliant -and ($_.Severity -eq 'Critical' -or $_.Severity -eq 'High') } |
@@ -911,6 +992,10 @@ $html = @"
   .gf-chip[data-active="true"][data-color="medium"]   { background: #f59e0b; color: #1f2937; border-color: #f59e0b; }
   .gf-chip[data-active="true"][data-color="low"]      { background: #facc15; color: #1f2937; border-color: #facc15; }
   .gf-count  { font-size: 0.75rem; color: #6b7280; white-space: nowrap; }
+  .gf-rg-banner { font-size: 0.75rem; color: #1f2937; background: #eef2ff; border: 1px solid #c7d2fe; padding: 0.15rem 0.45rem; border-radius: 6px; white-space: nowrap; }
+  .gf-rg-banner strong { color: #1e3a8a; margin: 0 0.15rem; }
+  .gf-rg-clear { background: transparent; border: none; cursor: pointer; color: #6b7280; font-size: 0.75rem; padding: 0 0.15rem; }
+  .gf-rg-clear:hover { color: #1f2937; }
   .gf-export, .gf-reset {
     padding: 0.25rem 0.65rem; border-radius: 6px; border: 1.5px solid #e2e8f0;
     cursor: pointer; font-size: 0.75rem; background: #fff; color: #1a1a1a; white-space: nowrap;
@@ -950,6 +1035,26 @@ $html = @"
     .rt-tab-panel:first-of-type { page-break-before: auto; }
   }
 
+  /* Severity heatmap (ResourceGroup x Severity) */
+  .severity-heatmap-section { background: #fff; border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .hm-hint { font-size: 12px; color: #6b7280; margin-bottom: 10px; }
+  .severity-heatmap { display: grid; grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(70px, 1fr)); gap: 4px; align-items: stretch; }
+  .severity-heatmap .hm-row { display: contents; }
+  .hm-cell { padding: 8px 10px; font-size: 13px; border-radius: 4px; display: flex; align-items: center; justify-content: center; min-height: 34px; }
+  .hm-corner { background: #f5f7fa; font-weight: 600; color: #374151; justify-content: flex-start; }
+  .hm-head { background: #f5f7fa; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: #374151; }
+  .hm-head-critical { color: #7f1d1d; }
+  .hm-head-high     { color: #dc2626; }
+  .hm-head-medium   { color: #b45309; }
+  .hm-head-low      { color: #a16207; }
+  .hm-rg { background: #f9fafb; font-weight: 500; color: #1f2937; justify-content: flex-start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hm-data { border: 1px solid #e5e7eb; cursor: pointer; font-weight: 600; font-variant-numeric: tabular-nums; transition: transform 0.08s, box-shadow 0.12s; }
+  .hm-data:hover { transform: scale(1.04); box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+  .hm-data:focus-visible { outline: 2px solid #1565c0; outline-offset: 2px; }
+  @media print {
+    .hm-data { cursor: default; }
+    .hm-data:hover { transform: none; box-shadow: none; }
+  }
   /* Resources tab (issue #209) */
   .resources-section { margin-bottom: 1.5rem; }
   .resource-row { cursor: pointer; }
@@ -1013,6 +1118,8 @@ $deltaBannerHtml
 $sparklineHtml
 $portfolioSectionHtml
 
+$heatmapHtml
+
 <!-- Per-Source Breakdown -->
 <h2>Findings by source</h2>
 <div class="source-section">
@@ -1057,6 +1164,7 @@ $gfSourceOptions
          oninput="applyGlobalFilter()" aria-label="Search findings" style="flex:1;min-width:150px;padding:0.2rem 0.5rem;border-radius:6px;border:1.5px solid #e2e8f0;">
   <button onclick="resetGlobalFilter()" class="gf-reset" title="Clear filters">✕ Clear</button>
   <span id="gf-count" class="gf-count" aria-live="polite"></span>
+  <span id="gf-rg-banner" class="gf-rg-banner" style="display:none" aria-live="polite">RG: <strong class="gf-rg-name"></strong> <button type="button" class="gf-rg-clear" title="Clear resource group filter" onclick="_gfRg=''; applyGlobalFilter();">✕</button></span>
   <button onclick="exportFilteredCSV()" class="gf-export">⬇ CSV</button>
 </div>
 
@@ -1076,6 +1184,7 @@ var _gfSource = '';
 var _gfPlatform = '';
 var _gfStatus = '';
 var _gfText = '';
+var _gfRg = '';
 
 function applyGlobalFilter() {
   _gfSource   = document.getElementById('gf-source') ? document.getElementById('gf-source').value : '';
@@ -1089,26 +1198,42 @@ function applyGlobalFilter() {
     var source   = row.dataset.source || '';
     var platform = row.dataset.platform || '';
     var status   = row.dataset.compliant || '';
+    var rg       = row.dataset.resourcegroup || '';
     var text     = row.textContent.toLowerCase();
 
     var sevOk  = _gfActiveSev.size === 0 || _gfActiveSev.has(sev);
     var srcOk  = !_gfSource   || source   === _gfSource;
     var platOk = !_gfPlatform || platform === _gfPlatform;
     var stOk   = !_gfStatus   || status   === _gfStatus;
+    var rgOk   = !_gfRg       || rg       === _gfRg;
     var txtOk  = !_gfText     || text.includes(_gfText);
 
-    var show = sevOk && srcOk && platOk && stOk && txtOk;
+    var show = sevOk && srcOk && platOk && stOk && rgOk && txtOk;
     row.style.display = show ? '' : 'none';
     if (show) visible++;
   });
 
   var countEl = document.getElementById('gf-count');
-  if (countEl) countEl.textContent = visible + ' finding' + (visible !== 1 ? 's' : '') + ' shown';
+  if (countEl) {
+    var label = visible + ' finding' + (visible !== 1 ? 's' : '') + ' shown';
+    if (_gfRg) { label += ' (RG: ' + _gfRg + ')'; }
+    countEl.textContent = label;
+  }
+  var rgBanner = document.getElementById('gf-rg-banner');
+  if (rgBanner) {
+    if (_gfRg) {
+      rgBanner.style.display = '';
+      rgBanner.querySelector('.gf-rg-name').textContent = _gfRg;
+    } else {
+      rgBanner.style.display = 'none';
+    }
+  }
 }
 
 function toggleSevFilter(btn, sev) {
   if (sev === 'all') {
     _gfActiveSev.clear();
+    _gfRg = '';
     document.querySelectorAll('.gf-chip').forEach(function(c) {
       c.dataset.active = 'false';
       if (c.dataset.sev === 'all') c.classList.add('gf-active');
@@ -1127,7 +1252,7 @@ function toggleSevFilter(btn, sev) {
 
 function resetGlobalFilter() {
   _gfActiveSev.clear();
-  _gfSource = _gfPlatform = _gfStatus = _gfText = '';
+  _gfSource = _gfPlatform = _gfStatus = _gfText = _gfRg = '';
   document.querySelectorAll('.gf-chip').forEach(function(c) {
     c.dataset.active = 'false';
     if (c.dataset.sev === 'all') c.classList.add('gf-active');
@@ -1137,6 +1262,26 @@ function resetGlobalFilter() {
     var el = document.getElementById(id); if (el) el.value = '';
   });
   applyGlobalFilter();
+}
+
+function filterByHeatmap(rg, sev) {
+  // Toggle off if same RG+sev already active.
+  if (_gfRg === rg && _gfActiveSev.size === 1 && _gfActiveSev.has(sev)) {
+    resetGlobalFilter();
+    return;
+  }
+  _gfRg = rg;
+  _gfActiveSev.clear();
+  _gfActiveSev.add(sev);
+  document.querySelectorAll('.gf-chip').forEach(function(c) {
+    c.classList.remove('gf-active');
+    if (c.dataset.sev === sev) { c.dataset.active = 'true'; }
+    else { c.dataset.active = 'false'; }
+  });
+  applyGlobalFilter();
+  // Scroll to findings tables.
+  var target = document.querySelector('details[id^="cat-"]') || document.getElementById('global-filter-bar');
+  if (target && target.scrollIntoView) { target.scrollIntoView({behavior: 'smooth', block: 'start'}); }
 }
 
 function exportFilteredCSV() {
