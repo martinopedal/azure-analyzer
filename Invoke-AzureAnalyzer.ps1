@@ -129,6 +129,14 @@ param (
     [string] $KubescapeNamespace = '',
     [string] $FalcoNamespace = 'falco',
     [string] $KubeBenchNamespace = 'kube-system',
+    [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+    [string] $KubeAuthMode = 'Default',
+    [string] $KubeloginServerId,
+    [string] $KubeloginClientId,
+    [string] $KubeloginTenantId,
+    [string] $WorkloadIdentityClientId,
+    [string] $WorkloadIdentityTenantId,
+    [string] $WorkloadIdentityServiceAccountToken,
     [string] $SentinelWorkspaceId,
     [ValidateRange(1, 365)]
     [int] $SentinelLookbackDays = 30,
@@ -657,6 +665,16 @@ foreach ($toolDef in $manifest.tools) {
                 if ($toolDef.name -eq 'finops') {
                     $params['OutputPath'] = Join-Path $OutputPath "finops-$subId"
                 }
+                # Inline helper: append KubeAuthMode + sub-params to a wrapper
+                # param hashtable ONLY when the user explicitly bound them.
+                # Backward compat: leaving the hashtable untouched preserves
+                # the wrapper default (KubeAuthMode='Default').
+                $kubeAuthForward = @(
+                    'KubeAuthMode',
+                    'KubeloginServerId', 'KubeloginClientId', 'KubeloginTenantId',
+                    'WorkloadIdentityClientId', 'WorkloadIdentityTenantId',
+                    'WorkloadIdentityServiceAccountToken'
+                )
                 if ($toolDef.name -eq 'falco') {
                     if ($InstallFalco)  { $params['InstallFalco'] = $true }
                     if ($UninstallFalco) { $params['UninstallFalco'] = $true }
@@ -664,16 +682,25 @@ foreach ($toolDef in $manifest.tools) {
                     if ($PSBoundParameters.ContainsKey('KubeconfigPath')) { $params['KubeconfigPath'] = $KubeconfigPath }
                     if ($PSBoundParameters.ContainsKey('KubeContext'))    { $params['KubeContext']    = $KubeContext }
                     if ($PSBoundParameters.ContainsKey('FalcoNamespace')) { $params['Namespace']      = $FalcoNamespace }
+                    foreach ($k in $kubeAuthForward) {
+                        if ($PSBoundParameters.ContainsKey($k)) { $params[$k] = (Get-Variable -Name $k -ValueOnly) }
+                    }
                 }
                 if ($toolDef.name -eq 'kubescape') {
                     if ($PSBoundParameters.ContainsKey('KubeconfigPath'))      { $params['KubeconfigPath'] = $KubeconfigPath }
                     if ($PSBoundParameters.ContainsKey('KubeContext'))         { $params['KubeContext']    = $KubeContext }
                     if ($PSBoundParameters.ContainsKey('KubescapeNamespace'))  { $params['Namespace']      = $KubescapeNamespace }
+                    foreach ($k in $kubeAuthForward) {
+                        if ($PSBoundParameters.ContainsKey($k)) { $params[$k] = (Get-Variable -Name $k -ValueOnly) }
+                    }
                 }
                 if ($toolDef.name -eq 'kube-bench') {
                     if ($PSBoundParameters.ContainsKey('KubeconfigPath'))     { $params['KubeconfigPath'] = $KubeconfigPath }
                     if ($PSBoundParameters.ContainsKey('KubeContext'))        { $params['KubeContext']    = $KubeContext }
                     if ($PSBoundParameters.ContainsKey('KubeBenchNamespace')) { $params['Namespace']      = $KubeBenchNamespace }
+                    foreach ($k in $kubeAuthForward) {
+                        if ($PSBoundParameters.ContainsKey($k)) { $params[$k] = (Get-Variable -Name $k -ValueOnly) }
+                    }
                 }
                 $specName = "$($toolDef.name)|$subId"
                 $toolSpecs.Add([PSCustomObject]@{

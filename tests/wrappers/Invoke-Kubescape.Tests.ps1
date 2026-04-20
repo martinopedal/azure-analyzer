@@ -66,3 +66,49 @@ Describe 'Invoke-Kubescape: kubeconfig param surface (#240)' {
     }
 }
 
+Describe 'Invoke-Kubescape: KubeAuthMode param surface (#241/#242)' {
+    BeforeAll {
+        $script:Fixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'kubeconfig-mock.yaml'
+    }
+
+    It 'declares the KubeAuthMode + sub-params' {
+        $cmd = Get-Command -Name $script:Wrapper
+        foreach ($p in 'KubeAuthMode','KubeloginServerId','KubeloginClientId','KubeloginTenantId','WorkloadIdentityClientId','WorkloadIdentityTenantId','WorkloadIdentityServiceAccountToken') {
+            $cmd.Parameters.Keys | Should -Contain $p
+        }
+    }
+
+    It 'KubeAuthMode default value is "Default"' {
+        $cmd = Get-Command -Name $script:Wrapper
+        $defaultMode = $cmd.ScriptBlock.Ast.ParamBlock.Parameters |
+            Where-Object { $_.Name.VariablePath.UserPath -eq 'KubeAuthMode' } |
+            ForEach-Object { $_.DefaultValue.Extent.Text.Trim("'") }
+        $defaultMode | Should -Be 'Default'
+    }
+
+    It 'rejects KubeAuthMode=Kubelogin when kubelogin binary is missing' {
+        Mock Get-Command { return $null } -ParameterFilter { $Name -eq 'kubelogin' }
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubescape' } } -ParameterFilter { $Name -eq 'kubescape' }
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+              -KubeconfigPath $script:Fixture -KubeAuthMode 'Kubelogin' } |
+            Should -Throw -ExpectedMessage '*MissingPrerequisite*kubelogin*'
+    }
+
+    It 'rejects KubeAuthMode=WorkloadIdentity when sub-params are absent' {
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubelogin' } } -ParameterFilter { $Name -eq 'kubelogin' }
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubescape' } } -ParameterFilter { $Name -eq 'kubescape' }
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+              -KubeconfigPath $script:Fixture -KubeAuthMode 'WorkloadIdentity' } |
+            Should -Throw -ExpectedMessage '*WorkloadIdentity*requires*'
+    }
+
+    It 'rejects KubeloginClientId without KubeloginTenantId' {
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubelogin' } } -ParameterFilter { $Name -eq 'kubelogin' }
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubescape' } } -ParameterFilter { $Name -eq 'kubescape' }
+        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+              -KubeconfigPath $script:Fixture -KubeAuthMode 'Kubelogin' `
+              -KubeloginClientId '11111111-1111-1111-1111-111111111111' } |
+            Should -Throw -ExpectedMessage '*together*'
+    }
+}
+

@@ -712,6 +712,56 @@ function Install-PrerequisitesFromManifest {
     if ($skipped.Count -gt 0) {
         Write-Host "[prereq] $($skipped.Count) tool(s) disabled by install config: $($skipped -join ', ')" -ForegroundColor DarkGray
     }
+
+    # Process top-level $Manifest.prerequisites (cross-tool helpers like
+    # kubelogin that are not themselves tools but are required by one or
+    # more wrappers). Honoured only when at least one consumer tool will run.
+    if ($Manifest.PSObject.Properties['prerequisites'] -and $Manifest.prerequisites) {
+        foreach ($prereq in $Manifest.prerequisites) {
+            if (-not $prereq.PSObject.Properties['install'] -or -not $prereq.install) { continue }
+            $install = $prereq.install
+            $kind = [string]$install.kind
+            if ($script:AllowedInstallKinds -notcontains $kind) {
+                Write-Warning "Refusing to honour unknown install kind '$kind' for prereq $($prereq.name)."
+                continue
+            }
+            # Only install if at least one consumer tool is going to run.
+            $consumers = @($prereq.consumedBy)
+            $anyConsumer = $false
+            foreach ($c in $consumers) {
+                if (& $ShouldRunTool $c) { $anyConsumer = $true; break }
+            }
+            if (-not $anyConsumer) { continue }
+
+            switch ($kind) {
+                'cli' {
+                    if (Test-CliAvailable -Command $install.command) { break }
+                    if ($SkipInstall) {
+                        $missing.Add("$($prereq.displayName) ($($install.command))")
+                    } else {
+                        $ok = Install-CliTool -InstallSpec $install -ToolName $prereq.displayName
+                        if (-not $ok) { $missing.Add($prereq.displayName) }
+                    }
+                }
+                'psmodule' {
+                    $names = @($install.modules)
+                    $anyMissing = $false
+                    foreach ($m in $names) { if (-not (Test-PSModuleAvailable -Name $m)) { $anyMissing = $true; break } }
+                    if (-not $anyMissing) { break }
+                    if ($SkipInstall) {
+                        $missing.Add("$($prereq.displayName) ($($names -join ', '))")
+                    } else {
+                        Install-PSModules -Names $names -ToolName $prereq.displayName
+                        foreach ($m in $names) {
+                            if (-not (Test-PSModuleAvailable -Name $m)) { $missing.Add("$($prereq.displayName) ($m)"); break }
+                        }
+                    }
+                }
+                default { }
+            }
+        }
+    }
+
     if ($missing.Count -gt 0) {
         Write-Host "`n[prereq] $($missing.Count) tool(s) still missing: $($missing -join '; ')" -ForegroundColor DarkYellow
     } else {

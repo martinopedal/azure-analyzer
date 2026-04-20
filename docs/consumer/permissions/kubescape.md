@@ -27,3 +27,13 @@ kubescape lists AKS clusters via ARG, then connects to each cluster (using `az a
 
 - No cluster mutations: no Job creation, no namespace creation, no RBAC changes.
 - No node-level access (use `kube-bench` for node-level CIS checks).
+
+## KubeAuthMode (AAD / Workload Identity)
+
+In addition to `Default` mode (no kubelogin convert), the wrapper supports `-KubeAuthMode Kubelogin` and `-KubeAuthMode WorkloadIdentity` for AAD-integrated AKS. Both modes require the `kubelogin` binary on PATH (auto-installed when `-InstallMissingModules` is used). See [`docs/consumer/k8s-auth.md`](../k8s-auth.md) for the full mode matrix, sub-params, and examples.
+
+| Mode | Extra Azure permission | Extra cluster permission |
+|---|---|---|
+| `Default` | none beyond Reader | cluster-read RBAC |
+| `Kubelogin` | AAD user/SPN must be a member of the cluster's AAD admin/user group; `-KubeloginClientId`/`-KubeloginTenantId` for SPN flow | cluster-read RBAC granted to that AAD identity |
+| `WorkloadIdentity` | Federated credential on the AAD app pointing at the pod's service account | cluster-read RBAC granted to the federated identity |
