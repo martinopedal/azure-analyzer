@@ -213,6 +213,41 @@ $sourcesWithResults = @($sourceGroups | ForEach-Object { $_.Name })
 $sourcesSkipped = @($allSources | Where-Object { $_ -notin $sourcesWithResults })
 
 # --- Linkify helper: wrap URLs in anchor tags ---
+function Get-ControlBadgeClass([string]$control) {
+    if ([string]::IsNullOrWhiteSpace($control)) { return 'cb-other' }
+    $upper = $control.ToUpperInvariant().TrimStart()
+    if ($upper.StartsWith('CIS'))  { return 'cb-cis' }
+    if ($upper.StartsWith('NIST')) { return 'cb-nist' }
+    if ($upper.StartsWith('PCI'))  { return 'cb-pci' }
+    if ($upper.StartsWith('ISO'))  { return 'cb-iso' }
+    if ($upper.StartsWith('SOC'))  { return 'cb-soc' }
+    if ($upper.StartsWith('HIPAA')){ return 'cb-hipaa' }
+    return 'cb-other'
+}
+
+function Get-ControlBadgesHtml($finding) {
+    $items = @()
+    if ($finding.PSObject.Properties.Match('Controls').Count -gt 0 -and $finding.Controls) {
+        foreach ($c in @($finding.Controls)) {
+            $s = [string]$c
+            if (-not [string]::IsNullOrWhiteSpace($s)) { $items += $s.Trim() }
+        }
+    }
+    if ($items.Count -eq 0 -and $finding.PSObject.Properties.Match('Frameworks').Count -gt 0 -and $finding.Frameworks) {
+        foreach ($fw in @($finding.Frameworks)) {
+            $s = if ($fw -is [string]) { $fw } elseif ($fw.PSObject.Properties.Match('Name').Count -gt 0) { [string]$fw.Name } else { [string]$fw }
+            if (-not [string]::IsNullOrWhiteSpace($s)) { $items += $s.Trim() }
+        }
+    }
+    if ($items.Count -eq 0) { return '' }
+    $items = $items | Select-Object -Unique
+    $chips = foreach ($it in $items) {
+        $cls = Get-ControlBadgeClass $it
+        "<span class='control-badge $cls' title='$(HE $it)'>$(HE $it)</span>"
+    }
+    " <span class='control-badges'>" + ($chips -join '') + "</span>"
+}
+
 function Linkify([string]$text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return HE $text }
     $escaped = HE $text
@@ -232,7 +267,9 @@ $rowsJson = ($findings | ForEach-Object {
   remediation: `"$(HE $_.Remediation)`",
   resourceId: `"$(HE $_.ResourceId)`",
   learnMoreUrl: `"$(HE $_.LearnMoreUrl)`",
-  platform: `"$(HE $_.Platform)`"
+  platform: `"$(HE $_.Platform)`",
+  controls: [$((@($_.Controls) | Where-Object { $_ } | ForEach-Object { "`"$(HE ([string]$_))`"" }) -join ',')],
+  frameworks: [$((@($_.Frameworks) | Where-Object { $_ } | ForEach-Object { $name = if ($_ -is [string]) { $_ } elseif ($_.PSObject.Properties.Match('Name').Count -gt 0) { [string]$_.Name } else { [string]$_ }; "`"$(HE $name)`"" }) -join ',')]
 }
 "@
 }) -join ','
@@ -263,7 +300,8 @@ $categoryHtml = foreach ($cat in $byCategory) {
                 'Unchanged' { $statusBadge = ' <span class="badge badge-unchanged">Unchanged</span>' }
             }
         }
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+        $controlBadgesHtml = Get-ControlBadgesHtml $f
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge$controlBadgesHtml</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -794,6 +832,23 @@ $html = @"
   .badge-new { background: #ffebee; color: #b71c1c; }
   .badge-resolved { background: #e8f5e9; color: #1b5e20; }
   .badge-unchanged { background: #eceff1; color: #37474f; }
+
+  /* Compliance control badges (issue #212) */
+  .control-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
+  .control-badge {
+    display: inline-block; padding: 1px 6px; border-radius: 10px;
+    font-size: 10.5px; font-weight: 600; line-height: 1.4;
+    background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;
+    white-space: nowrap; max-width: 100%;
+  }
+  .control-badge.cb-cis   { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .control-badge.cb-nist  { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+  .control-badge.cb-pci   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .control-badge.cb-iso   { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+  .control-badge.cb-soc   { background: #fce7f3; color: #9d174d; border-color: #fbcfe8; }
+  .control-badge.cb-hipaa { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
+  .control-badge.cb-other { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+  @media (max-width: 600px) { .control-badge { font-size: 10px; padding: 1px 5px; } }
 
   /* Run mode banner */
   .run-mode-banner { background: #fff; border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }

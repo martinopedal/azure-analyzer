@@ -55,9 +55,9 @@ Describe 'New-HtmlReport' {
 
         $sub = '11111111-1111-1111-1111-111111111111'
         $findings = @(
-            [pscustomobject]@{ Id='F-1'; Source='azqr';   ResourceId="/subscriptions/$sub/rg/a/storage/x";   Category='Security'; Title='T1'; Severity='Critical'; Compliant=$false; Detail=''; Remediation=''; LearnMoreUrl=''; Platform='Azure' }
-            [pscustomobject]@{ Id='F-2'; Source='azqr';   ResourceId="/subscriptions/$sub/rg/a/storage/y";   Category='Security'; Title='T2'; Severity='High';     Compliant=$false; Detail=''; Remediation=''; LearnMoreUrl=''; Platform='Azure' }
-            [pscustomobject]@{ Id='F-3'; Source='psrule'; ResourceId="/subscriptions/$sub/rg/a/keyvault/z"; Category='Security'; Title='T3'; Severity='Medium';   Compliant=$false; Detail=''; Remediation=''; LearnMoreUrl=''; Platform='Azure' }
+            [pscustomobject]@{ Id='F-1'; Source='azqr';   ResourceId="/subscriptions/$sub/rg/a/storage/x";   Category='Security'; Title='T1'; Severity='Critical'; Compliant=$false; Detail=''; Remediation=''; LearnMoreUrl=''; Platform='Azure'; Controls=@(); Frameworks=@() }
+            [pscustomobject]@{ Id='F-2'; Source='azqr';   ResourceId="/subscriptions/$sub/rg/a/storage/y";   Category='Security'; Title='T2'; Severity='High';     Compliant=$false; Detail=''; Remediation=''; LearnMoreUrl=''; Platform='Azure'; Controls=@(); Frameworks=@() }
+            [pscustomobject]@{ Id='F-3'; Source='psrule'; ResourceId="/subscriptions/$sub/rg/a/keyvault/z"; Category='Security'; Title='T3'; Severity='Medium';   Compliant=$false; Detail=''; Remediation=''; LearnMoreUrl=''; Platform='Azure'; Controls=@(); Frameworks=@() }
         )
         $resultsPath = Join-Path $tmp 'results.json'
         $findings | ConvertTo-Json -Depth 5 | Set-Content -Path $resultsPath -Encoding UTF8

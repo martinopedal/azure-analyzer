@@ -323,6 +323,23 @@
 
         /* Severity border for critical rows */
         .findings-table tr.sev-border-critical td:first-child { border-left: 3px solid var(--critical, #7f1d1d); }
+
+        /* Compliance control badges (issue #212) */
+        .control-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
+        .control-badge {
+            display: inline-block; padding: 1px 6px; border-radius: 10px;
+            font-size: 10.5px; font-weight: 600; line-height: 1.4;
+            background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;
+            white-space: nowrap; max-width: 100%;
+        }
+        .control-badge.cb-cis   { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+        .control-badge.cb-nist  { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+        .control-badge.cb-pci   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+        .control-badge.cb-iso   { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+        .control-badge.cb-soc   { background: #fce7f3; color: #9d174d; border-color: #fbcfe8; }
+        .control-badge.cb-hipaa { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
+        .control-badge.cb-other { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+        @media (max-width: 600px) { .control-badge { font-size: 10px; padding: 1px 5px; } }
     </style>
 </head>
 <body>
@@ -546,6 +563,44 @@
             return badge;
         }
 
+        function controlBadgeClass(control) {
+            if (!control) return 'cb-other';
+            const u = String(control).toUpperCase().trimStart();
+            if (u.startsWith('CIS'))   return 'cb-cis';
+            if (u.startsWith('NIST'))  return 'cb-nist';
+            if (u.startsWith('PCI'))   return 'cb-pci';
+            if (u.startsWith('ISO'))   return 'cb-iso';
+            if (u.startsWith('SOC'))   return 'cb-soc';
+            if (u.startsWith('HIPAA')) return 'cb-hipaa';
+            return 'cb-other';
+        }
+
+        function appendControlBadges(cell, finding) {
+            const raw = finding.controls || finding.Controls || [];
+            let items = Array.isArray(raw) ? raw.slice() : [];
+            if (items.length === 0) {
+                const fws = finding.frameworks || finding.Frameworks || [];
+                if (Array.isArray(fws)) {
+                    items = fws.map((f) => (typeof f === 'string' ? f : (f && (f.name || f.Name)) || '')).filter(Boolean);
+                }
+            }
+            items = items.map((s) => String(s).trim()).filter(Boolean);
+            if (items.length === 0) return;
+            const seen = new Set();
+            const unique = items.filter((s) => { if (seen.has(s)) return false; seen.add(s); return true; });
+            const wrap = document.createElement('span');
+            wrap.className = 'control-badges';
+            unique.forEach((c) => {
+                const chip = document.createElement('span');
+                chip.className = 'control-badge ' + controlBadgeClass(c);
+                chip.title = c;
+                chip.textContent = c;  // textContent escapes — XSS-safe
+                wrap.appendChild(chip);
+            });
+            cell.appendChild(document.createTextNode(' '));
+            cell.appendChild(wrap);
+        }
+
         function renderFindingsTable(containerId, findings) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -589,6 +644,7 @@
                 const row = document.createElement('tr');
                 const titleCell = document.createElement('td');
                 titleCell.textContent = safeText(finding.title || finding.Title);
+                appendControlBadges(titleCell, finding);
                 row.appendChild(titleCell);
 
                 const severityCell = document.createElement('td');
