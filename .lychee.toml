@@ -1,0 +1,23 @@
+verbose = "info"
+no_progress = true
+max_concurrency = 8
+max_retries = 2
+retry_wait_time = 2
+timeout = 20
+accept = ["200..=299", "429"]
+include_fragments = false
+exclude_loopback = true
+include_mail = false
+exclude = [
+  "^http://",
+  "^https://img\\.shields\\.io/",
+  "^https://(www\\.)?linkedin\\.com/",
+  "^https://x\\.com/",
+  "^https://twitter\\.com/",
+  "^file:///.*?/\\.copilot/skills/humanizer/url$",
+  "^file:///.*?/\\.squad/templates/skills/humanizer/url$",
+]
+exclude_path = [
+  "(^|/)\\.copilot/skills/humanizer/SKILL\\.md$",
+  "(^|/)\\.squad/templates/skills/humanizer/SKILL\\.md$",
+]

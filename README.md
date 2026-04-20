@@ -68,6 +68,7 @@ The HTML report includes an executive Summary tab, a severity-by-resource-group 
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, heatmap, filtering, control-framework chips, and CSV export.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
+- **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 
 The full tool catalog, parameter reference, schema, scoped-run patterns, incremental-scan modes, and report internals all live in [docs/consumer/](docs/consumer/README.md). That index is the entry point for every advanced consumer page.
 

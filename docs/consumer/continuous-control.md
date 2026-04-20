@@ -710,7 +710,7 @@ Step 4.
 
 To use the Premium Elastic plan, set `planSku = 'EP1'` in your parameters file
 before deploying. The Premium plan supports full scans without the Consumption
-timeout. See [`azure-function/README.md`](../azure-function/README.md) for
+timeout. See [`azure-function/README.md`](../../azure-function/README.md) for
 details on the timeout caveat.
 
 ---
@@ -741,7 +741,7 @@ Function App after deployment.
 
 The deployer must have **Owner** or **User Access Administrator** at subscription
 scope to create the Reader role assignment. All runtime operations use
-read-only Azure APIs. See [`PERMISSIONS.md`](../PERMISSIONS.md) for the full
+read-only Azure APIs. See [`PERMISSIONS.md`](../../PERMISSIONS.md) for the full
 permissions model.
 
 ---
@@ -779,11 +779,11 @@ After completing the above steps, confirm:
 
 ## Related Documentation
 
-- [azure-function/README.md](../azure-function/README.md) -- Function App architecture overview and app settings reference
-- [docs/consumer/permissions/_continuous-control.md](../consumer/permissions/_continuous-control.md) -- full RBAC breakdown
+- [azure-function/README.md](../../azure-function/README.md) -- Function App architecture overview and app settings reference
+- [docs/consumer/permissions/_continuous-control.md](permissions/_continuous-control.md) -- full RBAC breakdown
 - [docs/sinks/log-analytics.md](sinks/log-analytics.md) -- DCR/table setup and KQL examples
 ## Bicep template reference
 
-See [`infra/continuous-control.bicep`](../infra/continuous-control.bicep) for
+See [`infra/continuous-control.bicep`](../../infra/continuous-control.bicep) for
 all parameters, resources, and outputs.
 

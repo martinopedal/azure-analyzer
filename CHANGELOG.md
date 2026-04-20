@@ -15,6 +15,10 @@ All notable changes to azure-analyzer will be documented here.
 
 - Removed orphaned `report-template.html`; HTML reports are rendered directly by `New-HtmlReport.ps1`, and the unused static scaffold no longer ships in the repo (closes #249).
 
+### Added
+
+- ci: add markdown link-check workflow (advisory, weekly + PR path filter) (closes #251)
+
 ### Consumer-first documentation restructure
 
 The documentation now leads with the consumer experience, keeps advanced operator and contributor material under dedicated indexes, and leaves short redirect stubs at the old paths so existing links keep working during the transition. The same stream also made module consumption safer, generated the tool catalog from the manifest, and aligned the root README with the new consumer-first quickstart flow. This entry consolidates PRs #243, #244, #246, #247, and #253.
