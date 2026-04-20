@@ -17,7 +17,7 @@ Describe 'New-FindingRow' {
             -Compliant $false `
             -ProvenanceRunId 'azqr-run-1'
 
-        $finding.SchemaVersion | Should -Be '2.0'
+        $finding.SchemaVersion | Should -Be '2.1'
         $finding.Platform | Should -Be 'Azure'
         $finding.Provenance.RunId | Should -Be 'azqr-run-1'
     }
@@ -25,6 +25,74 @@ Describe 'New-FindingRow' {
     It 'returns null when required fields are missing' {
         $row = New-FindingRow -Id '' -Source 'azqr' -EntityId 'x' -EntityType 'AzureResource' -Title 'x' -Compliant $true -ProvenanceRunId 'run'
         $row | Should -BeNullOrEmpty
+    }
+
+    It 'defaults RuleId to empty string when not supplied (back-compat)' {
+        $finding = New-FindingRow `
+            -Id 'f-ruleid-default' `
+            -Source 'azqr' `
+            -EntityId '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.storage/storageaccounts/foo' `
+            -EntityType 'AzureResource' `
+            -Title 'No RuleId here' `
+            -Compliant $true `
+            -ProvenanceRunId 'azqr-run-default'
+
+        $finding.PSObject.Properties.Match('RuleId').Count | Should -Be 1
+        $finding.RuleId | Should -Be ''
+    }
+
+    It 'persists RuleId on the row when supplied (v2.1 additive field)' {
+        $finding = New-FindingRow `
+            -Id 'f-ruleid' `
+            -Source 'psrule' `
+            -EntityId '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.keyvault/vaults/kv1' `
+            -EntityType 'AzureResource' `
+            -Title 'Soft delete disabled' `
+            -RuleId 'Azure.KeyVault.SoftDelete' `
+            -Compliant $false `
+            -ProvenanceRunId 'psrule-run-7'
+
+        $finding.RuleId | Should -Be 'Azure.KeyVault.SoftDelete'
+        $finding.SchemaVersion | Should -Be '2.1'
+    }
+
+    It 'accepts AdoProject as a valid EntityType (v2.1)' {
+        $finding = New-FindingRow `
+            -Id 'f-ado-project' `
+            -Source 'ado-pipelines' `
+            -EntityId 'ado://contoso/platform' `
+            -EntityType 'AdoProject' `
+            -Title 'Project lacks branch policy' `
+            -Compliant $false `
+            -ProvenanceRunId 'ado-run-1'
+
+        $finding | Should -Not -BeNullOrEmpty
+        $finding.EntityType | Should -Be 'AdoProject'
+        $finding.Platform | Should -Be 'ADO'
+    }
+
+    It 'accepts KarpenterProvisioner as a valid EntityType (v2.1)' {
+        $finding = New-FindingRow `
+            -Id 'f-karpenter' `
+            -Source 'aks-rightsizing' `
+            -EntityId '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg-aks/providers/microsoft.containerservice/managedclusters/aks-prod/karpenter/np-default' `
+            -EntityType 'KarpenterProvisioner' `
+            -Title 'Karpenter NodePool over-provisioned' `
+            -Compliant $false `
+            -ProvenanceRunId 'karpenter-run-1'
+
+        $finding | Should -Not -BeNullOrEmpty
+        $finding.EntityType | Should -Be 'KarpenterProvisioner'
+        $finding.Platform | Should -Be 'Azure'
+    }
+}
+
+Describe 'Get-PlatformForEntityType (v2.1 additions)' {
+    It 'maps AdoProject to ADO' {
+        Get-PlatformForEntityType -EntityType 'AdoProject' | Should -Be 'ADO'
+    }
+    It 'maps KarpenterProvisioner to Azure' {
+        Get-PlatformForEntityType -EntityType 'KarpenterProvisioner' | Should -Be 'Azure'
     }
 }
 
@@ -58,7 +126,7 @@ Describe 'Test-FindingRow' {
 
     It 'returns false with errors for non-canonical IDs' {
         $finding = [PSCustomObject]@{
-            SchemaVersion = '2.0'
+            SchemaVersion = '2.1'
             Id            = 'f-003'
             Source        = 'azqr'
             Platform      = 'Azure'
@@ -97,7 +165,7 @@ Describe 'Test-FindingRow' {
             EntityType       = 'AzureResource'
             Title            = 'Invalid'
             Compliant        = $false
-            SchemaVersion    = '2.0'
+            SchemaVersion    = '2.1'
             Platform         = 'Azure'
             Provenance       = [PSCustomObject]@{ RunId = 'azqr-run-2'; Source = 'azqr'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
         }
@@ -115,7 +183,7 @@ Describe 'Test-FindingRow' {
             EntityType       = 'AzureResource'
             Title            = 'Invalid'
             Compliant        = $null
-            SchemaVersion    = '2.0'
+            SchemaVersion    = '2.1'
             Platform         = 'Azure'
             Provenance       = [PSCustomObject]@{ RunId = 'azqr-run-3'; Source = 'azqr'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
         }

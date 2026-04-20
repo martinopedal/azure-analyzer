@@ -47,14 +47,14 @@
 
 ### CI/CD Security
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | template-injection: Workflow uses ${{ github.event.issue.title }} in run step | Critical | zizmor | No | File .github/workflows/triage.yml injects untrusted issue title directly into a shell command. | .github/workflows/triage.yml | [https://woodruffw.github.io/zizmor/audits/#template-injection](https://woodruffw.github.io/zizmor/audits/#template-injection) |
 | unpinned-uses: action pinned by tag, not SHA | Medium | zizmor | No | File .github/workflows/release.yml references actions/upload-artifact@v4 instead of a 40-char SHA. | .github/workflows/release.yml | [https://woodruffw.github.io/zizmor/audits/#unpinned-uses](https://woodruffw.github.io/zizmor/audits/#unpinned-uses) |
 
 ### Container Security
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | CIS 4.2.1: Kubelet anonymous authentication is enabled | High | kube-bench | No | Kubelet on node 'aks-nodepool1-12345678-vmss000000' allows anonymous authentication. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/agentpools/nodepool1 | [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes) |
 | K8s pod runs with privileged escalation enabled | High | kubescape | No | Pod 'prod-api-7d8f9c4b-xkz2p' in namespace 'default' has allowPrivilegeEscalation=true. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://hub.armosec.io/docs/c-0016](https://hub.armosec.io/docs/c-0016) |
@@ -65,21 +65,21 @@
 
 ### Cost Optimization
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | Top cost contributor: AKS cluster 'aks-prod-apps' ($4,231/month) | Info | azure-cost | Yes | AKS cluster 'aks-prod-apps' consumed $4,231 in the last 30 days, representing 38% of subscription spend. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps | [https://learn.microsoft.com/azure/aks/cost-analysis](https://learn.microsoft.com/azure/aks/cost-analysis) |
 | Unattached Premium SSD disk incurring cost ($127/month) | Medium | azure-cost | No | Managed disk 'disk-orphaned-data' is unattached and has been billed $127 over the last 30 days. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.compute/disks/disk-orphaned-data | [https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
 
 ### Governance
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | Resource missing required tag 'owner' | Low | alz-queries | No | 12 resources in subscription 'prod-01' are missing the required 'owner' tag. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
 | Built-in policy 'Audit VMs without Azure Monitor agent' not assigned | Medium | azgovviz | No | Recommended built-in policy is not assigned at the management group scope. | /providers/microsoft.management/managementgroups/contoso-root | [https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) |
 
 ### Identity
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | MT.1010: Breakglass accounts without MFA | Critical | maester | No | 2 of 2 breakglass accounts have no MFA registered. | tenant:11111111-2222-3333-4444-555555555555 | [https://maester.dev/docs/tests/MT.1010](https://maester.dev/docs/tests/MT.1010) |
 | Classic (password-based) service connection in use | High | ado-connections | No | Service connection 'prod-deploy' authenticates with a client secret instead of workload identity federation. | ado://contoso/platform/serviceendpoint/prod-deploy | [https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity](https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity) |
@@ -91,14 +91,14 @@
 
 ### Networking
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | NSG allows SSH from any source | High | azqr | No | Network Security Group allows SSH (port 22) from any source address. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-net/providers/microsoft.network/networksecuritygroups/nsg-frontend | [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview) |
 | Public IP without NSG association | High | alz-queries | No | Public IP 'pip-prod-lb' is attached to a NIC that has no associated NSG. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-net/providers/microsoft.network/publicipaddresses/pip-prod-lb | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
 
 ### Reliability
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | SQL Database has no active geo-replication | High | wara | No | SQL database 'sqldb-prod-orders' has no secondary replica configured. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.sql/servers/sql-prod/databases/sqldb-prod-orders | [https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview](https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview) |
 | AKS cluster has no SLA tier enabled | Medium | wara | No | AKS cluster 'aks-prod-apps' is running on the Free tier without uptime SLA. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps | [https://learn.microsoft.com/azure/aks/uptime-sla](https://learn.microsoft.com/azure/aks/uptime-sla) |
@@ -106,13 +106,13 @@
 
 ### Secret Detection
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | AWS access key found in commit history | High | gitleaks | No | Rule 'aws-access-token' matched in file scripts/legacy-migrate.sh at line 14. Commit: 8a1f3c2. | scripts/legacy-migrate.sh | [https://github.com/gitleaks/gitleaks](https://github.com/gitleaks/gitleaks) |
 
 ### Security
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | Azure.Storage.SecureTransfer: Storage account requires HTTPS | High | psrule | No | Storage account 'stprodlogs' allows unencrypted HTTP traffic. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.storage/storageaccounts/stprodlogs | [https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/](https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/) |
 | Defender for Storage not enabled | High | defender-for-cloud | No | Subscription 'prod-01' does not have Defender for Storage enabled. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://learn.microsoft.com/azure/defender-for-cloud/defender-for-storage-introduction](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-storage-introduction) |
@@ -121,7 +121,7 @@
 
 ### Supply Chain
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|---|
 | CVE-2024-24790 (golang.org/x/net) | Critical | trivy | No | Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0. | go.mod | [https://nvd.nist.gov/vuln/detail/CVE-2024-24790](https://nvd.nist.gov/vuln/detail/CVE-2024-24790) |
 | Branch-Protection score 3/10 | High | scorecard | No | Default branch 'main' allows force-push and does not require code review. | github.com/contoso/azure-landing-zone | [https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection](https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection) |
@@ -132,7 +132,7 @@
 
 ### Fix now (Critical/High, non-compliant)
 
-| Title | Source | Detail | Remediation | Resource ID | Learn More |
+| Title | Source | Detail | Remediation | Resource ID | Fix it |
 |---|---|---|---|---|---|
 | CVE-2024-24790 (golang.org/x/net) | trivy | Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0. | Upgrade golang.org/x/net to 0.23.0 or later. | go.mod | [https://nvd.nist.gov/vuln/detail/CVE-2024-24790](https://nvd.nist.gov/vuln/detail/CVE-2024-24790) |
 | MT.1010: Breakglass accounts without MFA | maester | 2 of 2 breakglass accounts have no MFA registered. | Register MFA methods for all breakglass accounts. | tenant:11111111-2222-3333-4444-555555555555 | [https://maester.dev/docs/tests/MT.1010](https://maester.dev/docs/tests/MT.1010) |
@@ -155,7 +155,7 @@
 
 ### Plan to fix (Medium, non-compliant)
 
-| Title | Source | Detail | Resource ID | Learn More |
+| Title | Source | Detail | Resource ID | Fix it |
 |---|---|---|---|---|
 | AKS cluster has no SLA tier enabled | wara | AKS cluster 'aks-prod-apps' is running on the Free tier without uptime SLA. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps | [https://learn.microsoft.com/azure/aks/uptime-sla](https://learn.microsoft.com/azure/aks/uptime-sla) |
 | Azure.VM.AvailabilityZone: VM not deployed to availability zone | psrule | Virtual machine 'vm-prod-web-01' has no availability zone assigned. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-web/providers/microsoft.compute/virtualmachines/vm-prod-web-01 | [https://azure.github.io/PSRule.Rules.Azure/](https://azure.github.io/PSRule.Rules.Azure/) |
@@ -173,7 +173,7 @@
 
 ### Track (Low/Info, non-compliant)
 
-| Title | Severity | Source | Detail | Resource ID | Learn More |
+| Title | Severity | Source | Detail | Resource ID | Fix it |
 |---|---|---|---|---|---|
 | Resource missing required tag 'owner' | Low | alz-queries | 12 resources in subscription 'prod-01' are missing the required 'owner' tag. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
 

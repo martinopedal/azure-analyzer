@@ -102,6 +102,27 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 Full discussion (matrix, tier model, scenarios, what we do NOT need) lives in [`docs/consumer/permissions/_summary.md`](docs/consumer/permissions/_summary.md).
 
+## Opt-in elevated RBAC tier
+
+> Status: **scaffolding only**. The opt-in toggle ships with #234 in the Stage 2 vNEXT sequence; this section documents the contract today so consumers can plan capacity and approvals ahead of the wrapper landing.
+
+By default every wrapper requires **Reader-only** at the relevant Azure scope (or the per-domain read-only role listed above for Graph / GitHub / ADO). No cloud-side mutation is performed and no elevated role is requested.
+
+A small number of advanced inspections need to read pod-level state from inside an AKS data plane that the standard ARM Reader role does not expose. For these the orchestrator will publish an explicit, off-by-default opt-in:
+
+| Capability | Tool / wrapper | Default | Opt-in role required | Scope |
+|---|---|---|---|---|
+| Karpenter NodePool / NodeClaim inspection | Karpenter rightsizing (planned, #234) | **Disabled** | `Azure Kubernetes Service Cluster User Role` | Per AKS managed cluster |
+
+Rules:
+
+- The opt-in is **OFF by default**. The wrapper must skip with a clear "elevated tier not enabled" warning when a consumer runs it without explicitly enabling the toggle.
+- The opt-in must be enabled per-run by the consumer (mechanism: TBD, likely an orchestrator switch or per-tool flag - finalised in #234).
+- The role granted is the read-only `Cluster User Role` (`AKS Cluster User Role`); it does **not** grant cluster-admin nor any Azure resource write permission.
+- The opt-in changes neither the manifest's `provider` / `scope` metadata nor the report-side schema. Findings still flow through `New-FindingRow` with `EntityType=KarpenterProvisioner` (added in FindingRow v2.1) and `Platform=Azure`.
+
+Consumers who do not opt in see the same Reader-only behaviour as today.
+
 ## See also
 
 - [`docs/consumer/permissions/README.md`](docs/consumer/permissions/README.md) - per-tool detail folder.

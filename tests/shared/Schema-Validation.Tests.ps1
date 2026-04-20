@@ -49,7 +49,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = $true
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -65,7 +65,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = $true
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -82,7 +82,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = $true
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -98,7 +98,7 @@ Describe 'Test-FindingRow validation' {
                 EntityId         = 'test/entity'
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -115,7 +115,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = $true
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{}
             }
 
@@ -134,7 +134,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = 'true'  # string, not boolean
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -152,7 +152,7 @@ Describe 'Test-FindingRow validation' {
                 Title            = 'Test'
                 Severity         = 'Warning'  # Invalid
                 Compliant        = $false
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -175,7 +175,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'InvalidType'  # Invalid
                 Title            = 'Test'
                 Compliant        = $false
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -197,7 +197,7 @@ Describe 'Test-FindingRow validation' {
                 Platform         = 'AWS'  # Invalid
                 Title            = 'Test'
                 Compliant        = $false
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -221,7 +221,7 @@ Describe 'Test-FindingRow validation' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = $true
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -252,7 +252,7 @@ Describe 'Test-FindingRow validation' {
                 Title            = 'Test'
                 Severity         = 'Warning'  # Invalid
                 Compliant        = 'not-a-bool'  # Wrong type
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{}  # Missing RunId
             }
 
@@ -340,7 +340,7 @@ Describe 'New-FindingRow validation integration' {
                 Title            = 'Test'
                 Detail           = $secretDetail
                 Compliant        = 'not-a-bool'  # Force validation failure
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1' }
             }
 
@@ -365,7 +365,7 @@ Describe 'New-FindingRow validation integration' {
                 EntityType       = 'AzureResource'
                 Title            = 'Test'
                 Compliant        = $true
-                SchemaVersion    = '2.0'
+                SchemaVersion    = '2.1'
                 Platform         = 'Azure'
                 Provenance       = [PSCustomObject]@{ RunId = 'run-1'; Source = 'test-source'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
             }
@@ -410,7 +410,7 @@ Describe 'Existing Test-FindingRow compatibility' {
             EntityType       = 'AzureResource'
             Title            = 'Invalid'
             Compliant        = $false
-            SchemaVersion    = '2.0'
+            SchemaVersion    = '2.1'
             Platform         = 'Azure'
             Provenance       = [PSCustomObject]@{ RunId = 'azqr-run-2'; Source = 'azqr'; Timestamp = (Get-Date).ToUniversalTime().ToString('o') }
         }

@@ -365,7 +365,7 @@ $byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
 foreach ($cat in $byCategory) {
     $lines.Add("### $($cat.Name)")
     $lines.Add('')
-    $lines.Add('| Title | Severity | Source | Compliant | Detail | Resource ID | Learn More |')
+    $lines.Add('| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |')
     $lines.Add('|---|---|---|---|---|---|---|')
     foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
         $compliantStr = if ($f.Compliant) { 'Yes' } else { 'No' }
@@ -393,7 +393,7 @@ $lines.Add('')
 if ($fixNow.Count -eq 0) {
     $lines.Add('No critical or high-severity non-compliant findings.')
 } else {
-    $lines.Add('| Title | Source | Detail | Remediation | Resource ID | Learn More |')
+    $lines.Add('| Title | Source | Detail | Remediation | Resource ID | Fix it |')
     $lines.Add('|---|---|---|---|---|---|')
     foreach ($f in $fixNow) {
         $title = ($f.Title -replace '\|', '\\|')
@@ -411,7 +411,7 @@ $lines.Add('')
 if ($planFix.Count -eq 0) {
     $lines.Add('No medium-severity non-compliant findings.')
 } else {
-    $lines.Add('| Title | Source | Detail | Resource ID | Learn More |')
+    $lines.Add('| Title | Source | Detail | Resource ID | Fix it |')
     $lines.Add('|---|---|---|---|---|')
     foreach ($f in $planFix) {
         $title = ($f.Title -replace '\|', '\\|')
@@ -428,7 +428,7 @@ $lines.Add('')
 if ($track.Count -eq 0) {
     $lines.Add('No low/info non-compliant findings.')
 } else {
-    $lines.Add('| Title | Severity | Source | Detail | Resource ID | Learn More |')
+    $lines.Add('| Title | Severity | Source | Detail | Resource ID | Fix it |')
     $lines.Add('|---|---|---|---|---|---|')
     foreach ($f in $track) {
         $title = ($f.Title -replace '\|', '\\|')

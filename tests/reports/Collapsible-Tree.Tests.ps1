@@ -55,4 +55,28 @@ Describe 'HTML report collapsible findings tree' {
         $html | Should -Match 'syncFindingsTreeVisibility'
         $html | Should -Match 'treeHasActiveFilter'
     }
+
+    It 'uses the RuleId field as the level-3 grouping key when supplied (v2.1)' {
+        $tmp = Join-Path $TestDrive 'collapsible-tree-ruleid'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+
+        # Two findings with the same explicit RuleId but unrelated titles must
+        # still collapse into a single level-3 rule node. RuleId wins over the
+        # heuristic title prefix derivation from PR #275.
+        $findings = @(
+            [pscustomobject]@{ Id='F-RID-1'; Source='psrule'; Category='Security'; Title='Storage account allows HTTP'; RuleId='Azure.Storage.SecureTransfer'; Severity='High';   Compliant=$false; Detail='d'; Remediation='r'; ResourceId='/subscriptions/a/resourceGroups/rg-a/providers/Microsoft.Storage/storageAccounts/st1'; LearnMoreUrl=''; Platform='Azure'; Controls=@(); Frameworks=@() }
+            [pscustomobject]@{ Id='F-RID-2'; Source='psrule'; Category='Security'; Title='HTTPS not enforced on stprodlogs'; RuleId='Azure.Storage.SecureTransfer'; Severity='High';   Compliant=$false; Detail='d'; Remediation='r'; ResourceId='/subscriptions/a/resourceGroups/rg-a/providers/Microsoft.Storage/storageAccounts/st2'; LearnMoreUrl=''; Platform='Azure'; Controls=@(); Frameworks=@() }
+        )
+
+        $resultsPath = Join-Path $tmp 'results.json'
+        $findings | ConvertTo-Json -Depth 6 | Set-Content -Path $resultsPath -Encoding UTF8
+        $outputPath = Join-Path $tmp 'report.html'
+
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath $resultsPath -OutputPath $outputPath | Out-Null
+
+        $html = Get-Content $outputPath -Raw
+
+        # Both findings collapse into one level-3 rule node keyed by the supplied RuleId.
+        $html | Should -Match 'Azure\.Storage\.SecureTransfer</span> <span class="tree-count">\(2 findings\)</span>'
+    }
 }
