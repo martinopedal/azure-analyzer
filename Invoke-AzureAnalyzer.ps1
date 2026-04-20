@@ -38,6 +38,9 @@
 .PARAMETER AdoPat
     Azure DevOps PAT passed to ADO-scoped wrappers. Optional; wrappers also read
     ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, and AZ_DEVOPS_PAT.
+.PARAMETER GitleaksConfigPath
+    Optional local path to a gitleaks TOML config file. Forwarded to gitleaks and
+    ado-repos-secrets wrappers for org-level or repo-level pattern tuning.
 .PARAMETER SentinelWorkspaceId
     Full ARM resource ID of the Log Analytics workspace linked to Microsoft Sentinel.
     When provided, the sentinel-incidents tool queries active incidents via KQL.
@@ -94,6 +97,7 @@ param (
     [string] $AdoProject,
     [Alias('AdoPatToken')]
     [string] $AdoPat,
+    [string] $GitleaksConfigPath,
     [string] $AdoRepoUrl,
     [ValidateRange(0, 10)]
     [int] $ScorecardThreshold = 7,
@@ -724,6 +728,7 @@ foreach ($toolDef in $manifest.tools) {
                 }
                 if ($toolDef.name -eq 'gitleaks') {
                     if (-not $scanTargetUrl -and $RepoPath) { $params['RepoPath'] = $RepoPath }
+                    if ($GitleaksConfigPath) { $params['GitleaksConfigPath'] = $GitleaksConfigPath }
                 }
                 $specName = "$($toolDef.name)|repo"
                 $toolSpecs.Add([PSCustomObject]@{
@@ -766,6 +771,7 @@ foreach ($toolDef in $manifest.tools) {
             if ($AdoPat) { $params['AdoPat'] = $AdoPat }
             if ($toolDef.name -eq 'ado-repos-secrets') {
                 $params['OutputPath'] = Join-Path $OutputPath 'ado-repos-secrets-findings.json'
+                if ($GitleaksConfigPath) { $params['GitleaksConfigPath'] = $GitleaksConfigPath }
             }
             $specName = "$($toolDef.name)|ado"
             $toolSpecs.Add([PSCustomObject]@{
