@@ -1,660 +1,126 @@
-﻿# azure-analyzer
+# azure-analyzer
 
-Automated Azure assessment that bundles **26 tools**: **azqr**, **PSRule for Azure**, **AzGovViz**, **ALZ Resource Graph queries**, **WARA**, **Azure Cost (Consumption API)**, **FinOps Signals (idle resource detection)**, **Defender for Cloud**, **Sentinel (Active Incidents)**, **Sentinel Coverage (analytic rules / watchlists / connectors / hunting)**, **kubescape (AKS runtime posture)**, **falco (AKS runtime anomaly detection)**, **kube-bench (AKS node CIS)**, **Maester**, **OpenSSF Scorecard**, **ADO Service Connections**, **ADO Pipeline Security**, **ADO Repo Secrets**, **ADO Pipeline Correlator**, **Identity Correlator**, **Identity Graph Expansion (cross-tenant B2B + SPN-to-resource edges)**, **zizmor**, **gitleaks**, **Trivy**, **Bicep IaC Validation**, and **Terraform IaC Validation** into a single orchestrated run with unified Markdown and HTML reports. Covers resource compliance, reliability, cost, FinOps waste signals, Defender Secure Score, active Sentinel incidents, Sentinel detection posture (analytic rules / watchlists / data connectors / hunting queries), AKS runtime posture, AKS runtime anomaly detection, AKS node hardening, identity security, cross-dimensional identity correlation, cross-tenant identity graph (B2B home tenant + SPN-to-resource edges), supply chain security, CI/CD workflow security, secrets detection, IaC validation, and Azure DevOps build/release, variable-group, environment, repository-secret, and run-correlation security dimensions.
+[![CI](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Findings are normalized to a single v2 schema with 5 severity levels (**Critical**, **High**, **Medium**, **Low**, **Info**) and 14 entity types (AzureResource, Subscription, ManagementGroup, ServicePrincipal, ManagedIdentity, Application, User, Tenant, Repository, Workflow, Pipeline, ServiceConnection, VariableGroup, Environment) across 4 platforms (Azure, Entra, GitHub, ADO).
+**One PowerShell command, 26 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
-**Cloud-first by default.** Repository-scoped scanners (zizmor, gitleaks, trivy, scorecard) target **remote** GitHub/ADO repos via `-Repository` / `-AdoOrg`, cloned through `modules/shared/RemoteClone.ps1` (HTTPS-only, host allow-list, token scrub). Local filesystem scanning remains available as a fallback via `-RepoPath`/`-ScanPath`.
-
-## Quick Start
-
-**Scenario 1: Azure resources only**
+## Install
 
 ```powershell
 git clone https://github.com/martinopedal/azure-analyzer.git
 cd azure-analyzer
-Connect-AzAccount -TenantId "<your-tenant-id>"
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>"
+Import-Module .\AzureAnalyzer.psd1
 ```
 
-**Scenario 2: Azure + Identity security (Entra ID)**
+PSGallery (preferred once published):
 
 ```powershell
-Connect-AzAccount -TenantId "<your-tenant-id>"
-Connect-MgGraph -Scopes (Get-MtGraphScope)
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>"
+Install-Module AzureAnalyzer   # coming in vNEXT once published to PSGallery
+Import-Module AzureAnalyzer
 ```
 
-**Scenario 3: Full assessment (Azure + Identity + Repository)**
+> The `Install-Module` path is the planned canonical install once we publish to the PowerShell Gallery (PR-4 of the docs/restructure stream made the manifest publish-ready). Until then, use the `git clone + Import-Module .\AzureAnalyzer.psd1` form above.
+
+## Quickstart
+
+Three scenarios that cover the majority of consumer use:
+
+### 1. Run a full Azure assessment for a subscription
 
 ```powershell
-Connect-AzAccount -TenantId "<your-tenant-id>"
-Connect-MgGraph -Scopes (Get-MtGraphScope)
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" -Repository "github.com/org/repo"
+Connect-AzAccount -TenantId "<tenant-id>"
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-**Scenario 4: GitHub Enterprise (GHEC-DR or GHES) repository**
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, FinOps Signals, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`.
+
+### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
+
+Cloud-first: pass an HTTPS URL, no manual clone needed.
 
 ```powershell
-$env:GITHUB_AUTH_TOKEN = "<enterprise-pat>"
-.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
+$env:GITHUB_AUTH_TOKEN = "<pat>"
+Invoke-AzureAnalyzer -Repository "github.com/<org>/<repo>" -IncludeTools 'zizmor','gitleaks','scorecard','trivy'
 ```
 
-**Scenario 5: Azure DevOps pipeline and service-connection posture**
+The remote repo is fetched through `modules/shared/RemoteClone.ps1` (HTTPS-only, host allow-list, automatic token scrub) into a scratch path that is cleaned up at the end of the run. A local `-RepoPath "C:\repos\my-app"` fallback is available when working offline.
+
+### 3. Generate an HTML report from an existing run
+
+`Invoke-AzureAnalyzer` produces `report.html` automatically. To re-render after editing findings, or to build a report from a previous run's `results.json`:
 
 ```powershell
-$env:AZURE_DEVOPS_EXT_PAT = "<ado-pat>"
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
-# ADO collectors and correlators run automatically when -AdoOrg is present.
-# Or scan a specific project:
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
-# Azure DevOps Server (on-prem collection URL):
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoServerUrl "https://ado.contoso.local/tfs/DefaultCollection" -IncludeTools 'ado-repos-secrets'
-# Or target only the pipeline-security surface:
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-pipelines'
-# Aliases are also supported:
-.\Invoke-AzureAnalyzer.ps1 -AdoOrganization "contoso" -AdoPatToken "<ado-pat>"
+Import-Module .\AzureAnalyzer.psd1
+New-HtmlReport -InputPath .\output\results.json -OutputPath .\output\report.html
+New-MdReport   -InputPath .\output\results.json -OutputPath .\output\report.md
 ```
 
-> ADO Server/on-prem note: `ado-repos-secrets` supports on-prem API shapes, but cloning still uses `RemoteClone.ps1` host allow-list (`github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`). Non-allow-listed on-prem hosts are reported as **Info** skip findings.
-
-**Scenario 6: Local repo CI/CD security scan (zizmor + gitleaks)**
-
-```powershell
-# Scan current directory for workflow issues and leaked secrets
-.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks'
-# Or scan a specific repo path
-.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"
-```
-
-**Scenario 7: Azure + Sentinel threat detection**
-
-```powershell
-Connect-AzAccount -TenantId "<your-tenant-id>"
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<your-subscription-id>" `
-  -SentinelWorkspaceId "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<ws>"
-```
-
-**Scenario 8: Multi-tenant fan-out (MSP / large enterprise)**
-
-```powershell
-# Option A — JSON config with explicit per-tenant subscription lists + labels:
-#   tenants.json: [{"tenantId":"<guid>","subscriptionIds":["<guid>",...],"label":"prod"}, ...]
-.\Invoke-AzureAnalyzer.ps1 -TenantConfig .\tenants.json -OutputPath .\out
-
-# Option B — bare GUID array (uses default subs in each tenant context):
-.\Invoke-AzureAnalyzer.ps1 -Tenants @('<tenant-1-guid>','<tenant-2-guid>')
-```
-
-Per-tenant outputs land under `<OutputPath>/<tenantId>/[<subscriptionId>/]`. Aggregate roll-up is written to `<OutputPath>/multi-tenant-summary.json` (SchemaVersion 1.0) and `multi-tenant-summary.html`. The fan-out is sequential (clean Az / Microsoft.Graph context per tenant via child `pwsh` processes); per-tenant failures are recorded with sanitized stderr and the scan continues. Overall exit code is non-zero when any tenant fails. Requires the calling user to already have cross-tenant access (B2B / multi-tenant credentials) — service-principal impersonation across tenants is deferred to a follow-up issue. `-TenantConfig` and `-Tenants` are mutually exclusive with each other and with single-tenant `-TenantId` / `-SubscriptionId` / `-ManagementGroupId`.
-
-Steps 2 and 3 are optional -- skip `Connect-MgGraph` if you only need Azure resource checks. See [Scoped Runs](#scoped-runs) for cherry-picking individual tools.
-
-Missing prerequisites are detected and reported with install commands. Use **`-InstallMissingModules`** to auto-install them: the installer is **manifest-driven** — it reads each tool's `install` block in `tools/tool-manifest.json` and supports four kinds:
-
-- **`psmodule`** — PSGallery install (PSRule, WARA, Maester, Az.ResourceGraph)
-- **`cli`** — package-manager install (winget / brew / pipx / pip / snap) with a name-allow-list regex and an allow-listed set of managers
-- **`gitclone`** — HTTPS-only clone with a host allow-list (used by AzGovViz auto-bootstrap into `tools/AzGovViz/`)
-- **`none`** — no-op for tools that have nothing to install
-
-The installer enforces a 300s timeout on external commands, scrubs credentials from output via `Remove-Credentials`, returns rich error objects (`New-InstallerError` / `Write-InstallerError`), and retries transient failures via `Invoke-WithInstallRetry` (jittered backoff).
-
-**Supply-chain security**: Version pins + SHA-256 checksums live in `tools/install-manifest.json`. Tools downloaded via direct URLs (Linux azqr, gitleaks, trivy, scorecard) have their SHA-256 verified before use. Package-manager installs (winget/brew/pipx) delegate checksum verification to the respective package manager. Each release includes a **CycloneDX 1.5 SBOM** (`sbom.json`) with exact versions, checksums, and upstream sources for all tools.
-
-**AzGovViz auto-bootstrap:** when `-InstallMissingModules` is set and AzGovViz is enabled, the installer clones `https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting` into `tools/AzGovViz/` on first run — no manual step required.
-
-**Declarative install config:** Drop a `tools/install-config.json` to allow/deny tools and override the package manager per tool. The file is optional; its absence changes nothing. Schema:
-
-```json
-{
-  "schemaVersion": "1.0",
-  "defaults": { "autoInstall": true },
-  "tools": {
-    "trivy":    { "enabled": true,  "manager": "winget" },
-    "gitleaks": { "enabled": false }
-  }
-}
-```
-
-- `enabled: false` skips the tool at both install and scan time (Status=Skipped).
-- `manager` must be in the security allow-list (winget/brew/pipx/pip/snap); other values are rejected.
-- `defaults.autoInstall: true` enables auto-install even without `-InstallMissingModules` (equivalent to passing the flag).
-- **Precedence:** CLI flags > config file > manifest defaults. `-IncludeTools trivy` re-enables trivy even if config sets `enabled: false`. `-InstallMissingModules` (explicit) overrides `defaults.autoInstall`.
-- Pass `-InstallConfigPath` to point at a custom location (defaults to `tools/install-config.json`).
-
-Results land in `output/` - multiple JSON files (findings, entities, portfolio rollup, tool status, and conditionally errors), an HTML dashboard, and a Markdown report. That's it.
-Sensitive tokens are scrubbed from console output, errors.json, and report files before writing.
-
-**Data quality**: Normalizer output is validated at the boundary via `New-FindingRow` schema enforcement — invalid findings are dropped with a tracked warning, not silently passed through (#99). External API calls use `Invoke-WithRetry` with HTTP 429/503 detection, `Retry-After` header support, and jittered exponential backoff (#101).
-
-## Output sinks
-
-Azure Analyzer can optionally ship `results` and `entities` to Log Analytics / Sentinel custom tables using the **Logs Ingestion API** (DCR-based path):
-
-```powershell
-.\Invoke-AzureAnalyzer.ps1 `
-  -SubscriptionId "<sub-guid>" `
-  -SinkLogAnalytics `
-  -LogAnalyticsConfig ".\config\log-analytics-sink.json"
-```
-
-Example config file:
-
-```json
-{
-  "DceEndpoint": "https://my-dce.eastus-1.ingest.monitor.azure.com",
-  "DcrImmutableId": "dcr-000a00a000a00000a000000aa000a0aa",
-  "FindingsStream": "Custom-AzureAnalyzerFindings",
-  "EntitiesStream": "Custom-AzureAnalyzerEntities",
-  "DryRun": false
-}
-```
-
-See [docs/sinks/log-analytics.md](docs/sinks/log-analytics.md) for DCR/table setup and KQL examples.
-
-## Continuous Control mode (#165)
-
-Two unattended entrypoints wrap `Invoke-AzureAnalyzer.ps1` so the scanner runs as a *control* on a schedule, not just an ad-hoc tool:
-
-- **Scheduled GitHub Actions workflow** -- `.github/workflows/scheduled-scan.yml` runs daily at `0 6 * * *` UTC (plus `workflow_dispatch`). It authenticates to Azure via **OIDC federation** (no PATs), uploads `results.json` + `entities.json` + HTML/MD reports as workflow artifacts, and a separate non-Azure `report` job (with `issues: write` only) opens or comments on a single deduped `auto:scheduled-scan` issue when new or escalated Critical-severity findings are detected. The workflow uses **diff-mode** (`modules/shared/Get-NewCriticalFindings.ps1` + `Compare-EntitySnapshots`) to compare against the previous run's snapshot -- only net-new or escalated Criticals trigger an issue, suppressing noise from standing (known) findings. First-run mode (no previous artifact) treats all Criticals as new.
-- **Azure Function (PowerShell)** — `azure-function/` ships `TimerScan/` (NCRONTAB `0 0 6 * * *`) and `HttpScan/` (`authLevel: function`, break-glass on-demand). Both run via the Function App's managed identity. The shared entrypoint reuses the existing Log Analytics sink (`modules/sinks/Send-FindingsToLogAnalytics.ps1`); sink invocation is opt-in via `DCE_ENDPOINT` + `DCR_IMMUTABLE_ID` app settings.
-
-**Required repo variables for the workflow** (configure once via `gh variable set`):
-
-| Variable | Description |
-|---|---|
-| `AZURE_CLIENT_ID` | App registration / user-assigned MI client id with the federated credential |
-| `AZURE_TENANT_ID` | Entra tenant id |
-| `AZURE_SUBSCRIPTION_ID` | Default subscription scope |
-
-**Consumption-plan timeout caveat**: Azure Functions on the Consumption plan have a hard 10-minute per-invocation cap. The default Timer trigger therefore restricts itself to a small toolset (`azqr,psrule`). For a full daily sweep, deploy on the **Premium** plan or **Container Apps**. See [`azure-function/README.md`](azure-function/README.md) for the architecture overview and [`docs/continuous-control.md`](docs/continuous-control.md) for the full 10-minute deployment walkthrough (OIDC setup, Function App provisioning, DCR sink wiring, failure modes, and scheduling). Bicep/Terraform deployment templates are tracked as a follow-up.
-**Consumption-plan timeout caveat**: Azure Functions on the Consumption plan have a hard 10-minute per-invocation cap. The default Timer trigger therefore restricts itself to a small toolset (`azqr,psrule`). For a full daily sweep, deploy on the **Premium** plan or **Container Apps**. See [`azure-function/README.md`](azure-function/README.md). Bicep deployment templates are in [`infra/continuous-control.bicep`](infra/continuous-control.bicep). See the [10-minute deployment walkthrough](docs/continuous-control.md) to get started.
+The HTML report includes an executive Summary tab, a severity-by-resource-group heatmap, a global filter bar (severity, platform, tool, free text), and a CSV export of the currently filtered view.
 
 ## What you get
 
-After a run, `output/` contains:
+- **26 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
+- **Unified v2 schema** with 5 severity levels (Critical, High, Medium, Low, Info) and 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO).
+- **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
+- **HTML + Markdown reports** with executive summary, heatmap, filtering, control-framework chips, and CSV export.
+- **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 
-| File | Description |
-|---|---|
-| `results.json` | Backward-compatible flat findings (v1 format, all tools' observations in single array) |
-| `entities.json` | Entity-centric view (v3 format, observations per entity with platform/type hierarchy) |
-| `portfolio.json` | Management-group / multi-subscription rollup with heatmap data, source counts, top entities, and cross-sub identity correlations |
-| `tool-status.json` | Per-tool execution status (Success, Skipped, Failed) with message and finding count |
-| `errors.json` | Tool failures and error details (only written when errors occur) |
-| `report.html` | Offline HTML report with two tabs (#210): **Summary** (executive dashboard, default view) + **Findings** (donut chart, stat cards, per-source bars, filterable tables, print-friendly) |
-| `report.md` | GitHub-flavored Markdown -- summary tables, per-category findings, action plan |
-| `drift-report.json` | *(optional)* Entity drift delta (Added, Removed, Modified, Unchanged) between previous and current `entities.json` snapshots |
-| `drift-report.md` | *(optional)* Human-readable drift report grouped by change kind and entity type |
-| `dashboard.html` | Standalone single-page **executive dashboard** (#97) -- same content as the report.html Summary tab, kept as a separate file for back-compat and direct linking. Self-contained, no CDN |
-| `history/{yyyy-MM-dd-HHmmss}/` | Per-run snapshot directory (`results.json` + `run-meta.json`) used by the dashboard for trend lines and MTTR. Default retention: 30 runs (`-HistoryRetention <n>`) |
-| `triage.json` | *(optional)* AI-enriched findings -- generated with `-EnableAiTriage` |
+The full tool catalog, parameter reference, schema, scoped-run patterns, incremental-scan modes, and report internals all live in [docs/consumer/](docs/consumer/README.md). That index is the entry point for every advanced consumer page.
 
-**Reports are auto-generated** after the run writes `results.json` -- no manual step needed.
+## More scenarios
 
-### HTML Report features
+The three quickstart scenarios above are the common path. The consumer index in [docs/consumer/](docs/consumer/README.md) covers the rest:
 
-- **Executive summary** -- auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
-- **Pure-CSS donut chart** -- compliance percentage with conic-gradient (no JavaScript)
-- **Clickable stat cards** -- filter findings by severity with keyboard-accessible buttons; Critical now has a distinct dark-red card separate from High
-- **Per-source breakdown** -- horizontal bar chart showing finding counts per tool
-- **Portfolio rollup** -- management-group breadcrumb, per-subscription severity heatmap, and cross-subscription identity reuse summary when you scan an MG; repeated breadcrumb names are preserved exactly and only confirmed subtree subscriptions are attributed to the rollup
-- **Severity borders** -- color-coded left border on each finding row (Critical=dark-red, High=red, Medium=orange, Low=yellow)
-- **Zebra striping** -- alternating row backgrounds for readability
-- **Global interactive filter bar** -- sticky bar above all findings: severity chips (multi-select), platform (Azure/Entra/GitHub/ADO), tool, compliance status, and free-text search filter all finding rows simultaneously across every table; no page reload required
-- **Client-side CSV export** -- ⬇ CSV button exports currently visible (filtered) findings as a download; no re-run required to get data into a spreadsheet
-- **Remediation Priority Stack** -- Critical and High non-compliant findings surfaced at the top of each section with a "Fix Now" panel before category accordions so engineers see the most urgent items immediately
-- **Clickable remediation URLs** -- automatically wrapped in anchor tags
-- **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
-- **Print-friendly CSS** -- hides interactive elements (filter bar, chips), prevents page breaks in rows
-- **Delta banner** -- when a prior run is available (auto-discovered or via `-PreviousRun`), shows New / Resolved / Unchanged chips and net non-compliant delta
-- **Entity drift reporting** -- optional post-processing via `-CompareTo <previous-run-dir>` or `-CompareToPrevious` emits `drift-report.json` + `drift-report.md` from `entities.json` deltas
-- **Trend sparkline** -- when two or more prior runs exist, an inline SVG polyline (`class="trend-sparkline"`) shows NonCompliant count over the last 10 runs; no external assets
+- Azure plus Entra identity (Maester) and cross-tenant identity-graph expansion
+- GitHub Enterprise (GHEC-DR / GHES) targeting
+- Azure DevOps Services and Azure DevOps Server pipeline, service-connection, and repo-secret posture
+- Sentinel coverage and active incidents
+- AKS runtime posture (kubescape, falco, kube-bench)
+- Multi-tenant fan-out for MSPs and large enterprises
+- Continuous control on a schedule (GitHub Actions or Azure Function App, with OIDC)
+- Tuning gitleaks rule patterns: [docs/consumer/gitleaks-pattern-tuning.md](docs/consumer/gitleaks-pattern-tuning.md)
 
-📄 **[View the sample Markdown report →](samples/sample-report.md)** (renders natively on GitHub -- tables, categories, action plan)
+## Permissions at a glance
 
-📊 **[Download the sample HTML report →](samples/sample-report.html)** (open in any browser -- donut chart, stat cards, filterable tables, works offline)
+All tools run **read-only**. Most common scopes:
 
-### Markdown Report features
-
-- **Executive summary** -- GitHub-flavored callouts (WARNING/NOTE/TIP) based on severity
-- **Mermaid pie chart** -- compliance breakdown (rendered natively on GitHub)
-- **Severity badges** -- per-source emoji indicators
-- **Collapsible sections** -- per-category finding tables via `<details>` tags
-- **Tool coverage matrix** -- shows which tools ran, with status column
-- **Changes since last run** -- `## Changes since last run` table (New / Resolved / Unchanged / Net non-compliant delta) emitted after Summary when `-BaselineMode` resolves a prior run
-- **ASCII sparkline** -- `## Trend` section renders block characters (`▁▂▃▄▅▆▇█`, normalised, oldest left) across the last N runs; renders in any Markdown viewer or terminal
-
-<details>
-<summary>📊 Preview: Markdown report output</summary>
-
-The Markdown report renders natively on GitHub with tables, action-plan sections, and per-source breakdowns.
-
-> **Summary**
->
-> | Metric | Count |
-> |---|---|
-> | Total findings | 18 |
-> | Non-compliant | 12 |
-> | Compliant | 6 |
-> | High severity | 5 |
-> | Medium severity | 5 |
-> | Low severity | 2 |
-> | Info | 6 |
->
-> **By source**
->
-> | Source | Findings | Non-compliant |
-> |---|---|---|
-> | azqr | 3 | 2 |
-> | psrule | 4 | 3 |
-> | azgovviz | 3 | 2 |
-> | alz-queries | 4 | 2 |
-> | wara | 4 | 3 |
-> | maester | 2 | 1 |
-> | scorecard | 1 | 1 |
-
-The report groups findings by category, then prioritizes action:
-
-> **Fix now (High, non-compliant)**
->
-> | Title | Source | Detail |
-> |---|---|---|
-> | NSG has no inbound rules restricting SSH access | azqr | NSG allows SSH from any source |
-> | Key Vault soft delete is disabled | azqr | Risks permanent data loss |
-> | Owner role assigned to external guest user | azgovviz | Guest has Owner on subscription |
-> | Public IPs without DDoS protection | alz-queries | 3 public IPs unprotected |
-> | App Service plan has only 1 instance | wara | Single point of failure |
-
-</details>
-
-> 💡 Full sample reports are available in [`samples/`](samples/) -- open `sample-report.html` in a browser or view `sample-report.md` on GitHub.
-
-### Report structure
-
-- **Fix Now** -- High + Critical severity findings
-- **Plan** -- Medium severity
-- **Track** -- Low + Info severity
-- Per-category breakdown with finding counts
-- **Drift (optional)** -- Added / Removed / Modified / Unchanged entities when `-CompareTo` or `-CompareToPrevious` is used
-
-### Drift detection between runs
-
-Use one of the drift flags to compare the current run's `entities.json` with a prior run directory:
-
-```powershell
-# Explicit baseline run directory
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub>" -OutputPath ".\output\runs\2026-04-19" `
-  -CompareTo ".\output\runs\2026-04-18"
-
-# Auto-pick the latest prior sibling run directory under the same output root
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "<sub>" -OutputPath ".\output\runs\2026-04-19" -CompareToPrevious
-```
-
-`tools/tool-manifest.json` currently models executable collectors/correlators and does not yet include a post-processor kind, so drift reporting is orchestrator-driven.
-
-### Portfolio mode
-
-When you run against a management group, azure-analyzer now rolls child subscriptions into a single portfolio view.
-
-```powershell
-# Portfolio scan across an MG subtree
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "platform-connectivity" -Repository "github.com/org/repo"
-```
-
-The generated reports add:
-
-- A management-group breadcrumb at the top of the report
-- A per-subscription heatmap for Critical/High/Medium/Low/Info findings
-- A cross-subscription identity reuse section powered by the identity correlator
-- A stable `portfolio.json` artifact for dashboards and downstream automation
-
-Screenshot placeholder: the HTML report now opens with the portfolio heatmap section above the per-source breakdown whenever `-ManagementGroupId` fans out to multiple subscriptions.
-
-## Architecture & contributor docs
-
-- **Pipeline + dual data model:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- **Add a new tool:** [docs/CONTRIBUTING-TOOLS.md](docs/CONTRIBUTING-TOOLS.md)
-- **Template safety:** report generators must escape `</` as `<\/` when replacing `{{MODEL_JSON}}` in `report-template.html`.
-
-## Prerequisites
-
-| What | Install | Needed for |
-|------|---------|-----------|
-| PowerShell 7.4+ | `winget install Microsoft.PowerShell` | Everything |
-| Az PowerShell module | `Install-Module Az -Scope CurrentUser` | Azure tools (azqr, PSRule, AzGovViz, ALZ, WARA) |
-| Microsoft.Graph module | `Install-Module Microsoft.Graph -Scope CurrentUser` | Maester (identity security) |
-| azqr CLI | `winget install azure-quick-review.azqr` | Resource compliance scanning |
-| scorecard CLI | [Download](https://github.com/ossf/scorecard/releases) | Repository security (optional) |
-| zizmor CLI | [Download](https://github.com/woodruffw/zizmor/releases) | GitHub Actions workflow security (optional) |
-| gitleaks CLI | [Download](https://github.com/gitleaks/gitleaks/releases) | Secrets detection (optional) |
-| trivy CLI ≥ 0.50.0 | [Download](https://github.com/aquasecurity/trivy/releases) | Dependency vulnerability scanning (optional) — download from [official releases](https://github.com/aquasecurity/trivy/releases) only; verify binary integrity |
-
-- **Auto-install**: With -InstallMissingModules the manifest-driven installer covers **all 25 tools**: PowerShell modules (PSRule, WARA, Maester, Az.ResourceGraph, Az.Accounts, Az.CostManagement for cost and FinOps signals, and Sentinel dependencies), CLI tools via winget/brew/pipx/pip/snap (azqr, scorecard, zizmor, gitleaks, trivy, bicep, terraform), REST-backed ADO collectors/correlators, and git-clone bootstraps (AzGovViz). Without the flag, missing prerequisites are only listed with install commands; nothing is mutated.
-
-**AzGovViz** is a standalone script, not a module. With `-InstallMissingModules` it is auto-cloned into `tools/AzGovViz/` on first run. To clone manually:
-```
-git clone https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting tools/AzGovViz
-```
-
-**Identity security (Maester)** requires a Graph connection: `Connect-MgGraph -Scopes (Get-MtGraphScope)`. Not needed if you exclude Maester.
-
-**Repository security (Scorecard)** works best with `GITHUB_AUTH_TOKEN` set (5,000 req/hr vs 60 without). Not needed if you skip Scorecard.
-
-## Developer Setup
-
-### Pre-commit Hook (Optional)
-
-Install a local pre-commit hook that runs **gitleaks** and **zizmor** on every commit to catch secrets and workflow injection risks before pushing:
-
-```powershell
-# Install the hook (one-time setup)
-.\tools\Install-PreCommitHook.ps1
-```
-
-The hook will:
-- ✅ Run gitleaks in v8-compatible pre-commit mode (`gitleaks git --pre-commit` when supported, otherwise `gitleaks protect --staged`)
-- ✅ Run `zizmor` on staged `.github/workflows/*.yml` files, including renamed workflows
-- ⚠️ Skip gracefully with warnings if tools aren't installed
-- 🚫 Block commits if issues are found (use `git commit --no-verify` to bypass)
-
-**Install dependencies:**
-- **gitleaks:** `winget install gitleaks` (Windows) / `brew install gitleaks` (macOS) / [GitHub releases](https://github.com/gitleaks/gitleaks/releases) (Linux)
-- **zizmor:** `pipx install zizmor` (all platforms) / `cargo install zizmor`
-
-The hook is **opt-in** — developers must run the installer manually. It won't be installed automatically.
-
-## Usage
-
-```powershell
-# Single subscription (Azure resource tools only)
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
-
-# Management group (auto-discovers child subscriptions, scans recursively)
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-landing-zone"
-
-# Tenant root (scan all subscriptions in tenant)
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "tenant-root-group-id"
-
-# MG tools only (no per-subscription recursion)
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg" -Recurse:$false
-
-# Azure + Entra ID identity security
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." # Maester runs automatically if Connect-MgGraph is active
-
-# Azure + repository supply chain security
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -Repository "github.com/org/repo"
-
-# GHEC-DR / GHES repository (enterprise GitHub instance)
-.\Invoke-AzureAnalyzer.ps1 -Repository "github.contoso.com/org/repo" -GitHubHost "github.contoso.com"
-
-# Azure DevOps service connections (all projects)
-.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso"
-
-# Azure DevOps + Azure resources
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso" -AdoProject "my-project"
-
-# Full assessment (all 3 dimensions)
-.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -Repository "github.com/org/repo"
-
-# Custom output directory
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -OutputPath "C:\reports\april"
-
-# CI/automation (skip interactive prereq check)
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SkipPrereqCheck
-```
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `-SubscriptionId` | string | -- | Azure subscription to scan |
-| `-ManagementGroupId` | string | -- | Management group (discovers child subs) |
-| `-TenantId` | string | current context | Azure tenant ID (used by WARA) |
-| `-OutputPath` | string | `.\output` | Directory for results, reports, and errors |
-| `-Repository` | string | -- | GitHub repo for Scorecard / zizmor / gitleaks / trivy (e.g. `github.com/org/repo` or full HTTPS URL) |
-| `-AdoRepoUrl` | string | -- | Azure DevOps Git repo URL for zizmor / gitleaks / trivy (HTTPS only, e.g. `https://dev.azure.com/org/proj/_git/repo`) |
-| `-RepoPath` | string | `.` | Local repo path for CI/CD scanning (zizmor, gitleaks) — fallback when no remote target |
-| `-GitHubHost` | string | `github.com` | Custom GitHub host for GHEC-DR/GHES (e.g. `github.contoso.com`) |
-| `-AdoOrg` | string | -- | Azure DevOps organization name (enables ADO tools) |
-| `-AdoProject` | string | -- | Azure DevOps project (scans all projects if omitted) |
-| `-AdoPat` (`-AdoPatToken`) | string | -- | Optional ADO PAT for ADO-scoped wrappers (otherwise resolved from `ADO_PAT_TOKEN` / `AZURE_DEVOPS_EXT_PAT` / `AZ_DEVOPS_PAT`) |
-| `-GitleaksConfigPath` | string | -- | Optional local `.toml` file with custom gitleaks allowlist/rules. Forwarded to `gitleaks` and `ado-repos-secrets` scanners |
-| `-AdoOrganizationUrl` | string | -- | Optional ADO org/collection URL for `ado-repos-secrets` (cloud: `https://dev.azure.com/{org}` / `https://{org}.visualstudio.com`; on-prem: `https://{server}/{collection}`) |
-| `-AdoServerUrl` | string | -- | Optional Azure DevOps Server collection URL for `ado-repos-secrets` (forces on-prem API compatibility mode) |
-| `-IncludeTools` | string[] | -- | Run only these tools (allowlist) |
-| `-ExcludeTools` | string[] | -- | Skip these tools (blocklist) |
-| `-Framework` | `CIS`\|`NIST`\|`PCI` | -- | Scope compliance enrichment + report to a single framework |
-| `-PreviousRun` | string | -- | Path to a prior `results.json`; HTML report renders New/Resolved/Unchanged badges + a delta summary banner |
-| `-Incremental` | switch | `$false` | Run in incremental mode. Auto-resolves baseline from `output/results-baseline.json` when present, persists per-tool last-success timestamps in `output/state/scan-state.json`, and surfaces the run mode (Full / Incremental / FullFallback / Cached / Partial) in HTML and Markdown reports. Falls back to a full bootstrap on the first run. |
-| `-Since` | datetime | -- | Operator-controlled start of the scan window. Wins over the per-tool timestamp when set. Forces incremental run mode. |
-| `-PreviousRun` | string | -- | Explicit path to a prior `results.json`; wins over `-BaselineMode`; HTML renders New/Resolved/Unchanged badges + delta banner |
-| `-BaselineMode` | `auto`\|`none` | `auto` | Controls auto-baseline discovery. `auto` picks the most recent prior `results.json` from `$OutputPath/snapshots/` (logs chosen path); `none` disables comparison AND snapshot archival entirely |
-| `-InstallFalco` | switch | `$false` | Opt-in Falco install mode for AKS (Helm deploy, short capture window, then collect alerts) |
-| `-UninstallFalco` | switch | `$false` | With `-InstallFalco`, uninstall Falco release after collection |
-| `-FalcoCaptureMinutes` | int (1-60) | 5 | Capture window in minutes for Falco install mode before collecting daemonset alerts |
-| `-Recurse` | switch | `$true` when MG set | Discover child subscriptions under MG |
-| `-ScorecardThreshold` | int (0-10) | 7 | Minimum score for a Scorecard check to be compliant |
-| `-ScanPath` | string | `.` | Filesystem path for Trivy dependency scanning |
-| `-ScanType` | string | `fs` | Trivy scan type: `fs` (filesystem) or `repo` (remote repository) |
-| `-InstallMissingModules` | switch | `$false` | Auto-install missing PowerShell modules |
-| `-SkipPrereqCheck` | switch | `$false` | Skip prerequisite detection (for CI pipelines) |
-| `-EnableAiTriage` | switch | `$false` | Enrich findings via GitHub Copilot SDK (requires license) |
-
-### Management Group hierarchy
-
-When you provide `-ManagementGroupId`, subscription-scoped tools (azqr, PSRule, WARA, azure-cost) automatically run per discovered child subscription:
-
-| Scope | Behavior |
-|-------|----------|
-| **Single subscription** | Run tools once for that subscription |
-| **Management group with `-Recurse:$true` (default)** | Discover all child subscriptions; run sub-scoped tools per subscription; run MG-scoped tools once at MG level |
-| **Management group with `-Recurse:$false`** | Run only MG-scoped tools (AzGovViz, ALZ Queries); skip per-subscription tools |
-| **Tenant root group** | Discover all subscriptions in tenant; run sub-scoped tools per subscription |
-
-**Permission requirements:**
-- `Reader` on the management group (inherited to child subscriptions) **OR** `Reader` on each individual subscription
-
-### Scoped Runs
-
-Run **only specific tools** or **exclude certain tools** with `-IncludeTools` (allowlist) and `-ExcludeTools` (blocklist). Mix and match for focused assessments:
-
-| Use Case | Command |
-|----------|---------|
-| **Full assessment** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "..." -Repository "github.com/org/repo"` |
-| **Entire MG tree** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg"` |
-| **MG governance only** (no per-sub scanning) | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "my-mg" -Recurse:$false` |
-| **Azure resources only** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ExcludeTools 'maester','scorecard'` |
-| **Identity security only** (Entra ID) | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'maester'` |
-| **Repository security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'scorecard' -Repository "github.com/org/repo"` |
-| **MG tree + repo security** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -IncludeTools 'azgovviz','alz-queries','scorecard' -Repository "..."` |
-| **Compliance checks only** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -IncludeTools 'azqr','psrule'` |
-| **Everything except governance** | `.\Invoke-AzureAnalyzer.ps1 -ManagementGroupId "..." -ExcludeTools 'azgovviz'` |
-| **ADO service connections only** | `.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-connections'` |
-| **ADO pipeline posture only** | `.\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -IncludeTools 'ado-pipelines'` |
-| **Azure + ADO** | `.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -AdoOrg "contoso"` |
-| **CI/CD security only** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks','trivy' -Repository "github.com/org/repo"` |
-| **Supply chain scan (remote GitHub)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -Repository "github.com/org/repo"` |
-| **Supply chain scan (remote ADO)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -AdoRepoUrl "https://dev.azure.com/org/proj/_git/repo"` |
-| **CI/CD security (local fallback)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'zizmor','gitleaks' -RepoPath "C:\repos\my-app"` |
-| **Supply chain scan (local path)** | `.\Invoke-AzureAnalyzer.ps1 -IncludeTools 'trivy' -ScanPath "./src"` |
-
-**Valid tool names:** `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `finops`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `falco`, `kube-bench`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `identity-graph-expansion`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, `terraform-iac`
-
-Use `-IncludeTools` OR `-ExcludeTools` (not both). The orchestrator throws if you specify both.
-
-### Incremental & scheduled scans
-
-For long-lived deployments where you want trend data instead of one-shot reports, use `-Incremental`:
-
-```powershell
-# First run -- bootstraps baseline + state.
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -OutputPath .\output
-
-# Subsequent runs -- delta vs results-baseline.json, per-tool last-success used as -Since.
-.\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -OutputPath .\output -Incremental
-```
-
-What this gives you:
-
-- `output/results-baseline.json` -- last full-run snapshot, refreshed on each non-incremental success.
-- `output/state/scan-state.json` -- per-tool `lastScanUtc` / `lastSuccessUtc` / `runMode` plus per-finding `FirstSeenUtc` / `LastSeenUtc` history.
-- `output/run-metadata.json` -- run mode, baseline timestamp, per-tool mode badges (consumed by the HTML and Markdown reports).
-- HTML and Markdown reports show a **Run mode** banner with per-tool badges (Full / Incremental / FullFallback / Cached / Partial) on top of the existing **Delta vs previous run** banner.
-
-Tools opt in to true incremental queries over time. Until they do, they are marked `FullFallback` so the report never falsely advertises incremental coverage.
-
-For unattended scheduled runs, copy [`templates/azure-analyzer-scheduled.yml`](templates/azure-analyzer-scheduled.yml) into the consuming repo's `.github/workflows/` folder. It downloads the previous artifact (baseline + state), runs `-Incremental`, and uploads the new state for the next cycle.
-
-### What each tool does
-
-| # | Tool | What it assesses | How it works | License |
-|---|------|-----------------|-------------|---------|
-| 1 | **[azqr](https://azure.github.io/azqr)** | Azure resource compliance -- storage encryption, Key Vault config, App Service HTTPS, SQL auditing, 200+ checks | CLI scans a subscription and emits per-resource recommendations with severity | MIT |
-| 2 | **[PSRule for Azure](https://azure.github.io/PSRule.Rules.Azure/)** | Infrastructure best practices -- managed disks, network isolation, diagnostic settings, WAF alignment | PowerShell module evaluates resources against 400+ rules, returns pass/fail per rule | MIT |
-| 3 | **[AzGovViz](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting)** | Governance hierarchy -- management group structure, RBAC assignments, policy compliance, orphaned resources, diagnostics coverage, and tag hygiene | PowerShell script crawls the tenant tree, then ingests summary JSON + detailed CSV outputs (policy compliance states, role assignments, diagnostics capability, resources without tags) into normalized findings | MIT |
-| 4 | **[ALZ Queries](https://github.com/martinopedal/alz-graph-queries)** | Azure Landing Zone compliance -- 132 ARG queries from Azure review checklists covering networking, identity, compute, storage | Runs each query against Azure Resource Graph and checks the `compliant` column | MIT |
-| 5 | **[WARA](https://github.com/Azure/Azure-Proactive-Resiliency-Library-v2)** | Reliability posture -- single points of failure, missing geo-replication, health probe config, zone redundancy | PSGallery module runs the Well-Architected Reliability Assessment collector | MIT |
-| 6 | **Azure Cost (Consumption API)** | 30-day subscription spend + top 20 costly resources; folds `MonthlyCost` / `Currency` onto existing entities for blast-radius-weighted reporting | Read-only REST call to `Microsoft.Consumption/usageDetails`; no new role required | Azure REST API (MS Service Terms) |
-| 7 | **FinOps Signals** *(first-party)* | Idle or unused Azure resources identified from ARG plus Cost Management correlation (unattached disks, deallocated VMs, unused public IPs, idle ASP plans, low-CPU ASP plans (<5% avg over 30 days), empty RGs, idle network controls, and ungoverned managed-disk snapshots older than 90 days) | Runs `queries/finops-*.json` via Azure Resource Graph, adds Azure Monitor CPU checks for App Service Plans, and enriches each signal with monthly waste estimates from Cost Management query API; metrics access failures degrade gracefully as Info findings | MIT (this project) |
-| 8 | **Defender for Cloud** | Per-subscription Secure Score + non-healthy assessments (MFA, secure transfer, disk encryption, etc.); each recommendation folds onto the same AzureResource entity as azqr/PSRule | Read-only REST call to `Microsoft.Security/secureScores` + `/assessments`; graceful skip when Defender is not enabled | Azure REST API (MS Service Terms) |
-| 9 | **[kubescape](https://github.com/kubescape/kubescape)** | AKS runtime posture — CIS Kubernetes Benchmark + NSA/CISA hardening controls run against each discovered AKS cluster via kubectl | CLI scans each cluster using an isolated per-cluster kubeconfig; each failing control folds onto the AKS cluster AzureResource entity | Apache-2.0 |
-| 10 | **[Falco](https://falco.org/)** | AKS runtime anomaly/threat detection — suspicious runtime activity such as unexpected shells, sensitive writes, and process anomalies | Default query mode reads Falco-related alerts already surfaced in Azure; optional `-InstallFalco` mode can deploy Falco via Helm, capture runtime alerts, and map them to the AKS AzureResource entity | Apache-2.0 |
-| 11 | **[kube-bench](https://github.com/aquasecurity/kube-bench)** | AKS node-level CIS checks — worker node, kubelet, and host hardening controls that complement kubescape API-level posture checks | Applies a temporary `kube-system` Job per cluster, collects kube-bench JSON logs, maps FAIL/WARN checks onto the AKS cluster AzureResource entity, and cleans up Job resources afterward | Apache-2.0 |
-| 12 | **[Maester](https://github.com/maester365/maester)** | Entra ID security configuration -- EIDSCA and CISA baseline compliance checks for identity posture | PowerShell module runs Pester tests against Microsoft Graph and tenant configuration | MIT |
-| 13 | **[OpenSSF Scorecard](https://github.com/ossf/scorecard)** | Repository supply chain security -- branch protection, dependency pinning, CI/CD, commit signing practices | CLI scans a GitHub repository and scores security controls (0-10 per category) | Apache-2.0 |
-| 14 | **ADO Service Connections** *(first-party)* | Azure DevOps service connection inventory -- connection types, authorization schemes, federation status, sharing | Native REST API collector (`modules/Invoke-ADOServiceConnections.ps1`) queries ADO org/projects and catalogs all service endpoints with auth details | MIT (this project — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md#ado-service-connections-scanner-first-party)) |
-| 15 | **ADO Pipeline Security** *(first-party)* | Azure DevOps build/release definitions, variable groups, and environments -- missing approvals, plaintext secret-like variables, broad trigger patterns, and service-connection reuse | Native REST API collector (`modules/Invoke-ADOPipelineSecurity.ps1`) inspects ADO pipeline metadata without reading or emitting secret values | MIT (this project) |
-| 16 | **ADO Repo Secrets** *(first-party)* | Azure DevOps repository secret findings from gitleaks with commit SHA, file path, and rule metadata (cloud + Azure DevOps Server API shapes) | Native REST collector (`modules/Invoke-ADORepoSecrets.ps1`) enumerates projects/repos, clones via `RemoteClone.ps1`, and runs gitleaks with `--redact`; non-allow-listed on-prem hosts are emitted as Info skip findings, inaccessible repos are reported as per-repo Info findings, and the scan continues with partial access | MIT (this project) |
-| 17 | **ADO Pipeline Correlator** *(first-party)* | Correlates leaked commits with pipeline runs and run-log availability to show execution blast radius | Post-collection correlator (`modules/Invoke-ADOPipelineCorrelator.ps1`) matches secret `CommitSha` against build `sourceVersion` and enriches with run metadata | MIT (this project) |
-| 18 | **Identity Correlator** *(first-party)* | Cross-dimensional identity correlation -- links service principals, managed identities, and app registrations across Azure / Entra / GitHub / ADO | In-process correlator (`modules/shared/IdentityCorrelator.ps1`) uses candidate reduction (no bulk SPN enumeration); emits relationship findings plus risk findings (e.g., privileged CI identities, PAT-based ADO auth, multi-binding reuse) | MIT (this project) |
-| 19 | **Identity Graph Expansion** *(first-party)* | Cross-tenant B2B + SPN-to-resource graph expansion on top of the identity correlator | Correlator (`Invoke-IdentityGraphExpansion`) emits typed graph edges and risk findings from Entra + ARM relationship data | MIT (this project) |
-| 20 | **[zizmor](https://github.com/woodruffw/zizmor)** | GitHub Actions workflow security -- expression injection, untrusted inputs, dangerous triggers, artipacked patterns | CLI scans workflow YAML files and reports security anti-patterns with severity | Apache-2.0 |
-| 21 | **[gitleaks](https://github.com/gitleaks/gitleaks)** | Secrets detection -- API keys, tokens, passwords, certificates committed in source code or git history | CLI scans the repository filesystem (or git log) for hardcoded secrets with regex patterns | MIT |
-| 22 | **[Trivy](https://github.com/aquasecurity/trivy)** | Dependency vulnerability scanning -- CVEs in package-lock.json, requirements.txt, go.sum, pom.xml, and other manifests | CLI scans the filesystem (local or cloned remote repo) for known vulnerabilities in dependencies (CRITICAL/HIGH/MEDIUM/LOW) | Apache-2.0 |
-| 23 | **Bicep IaC Validation** *(first-party)* | Bicep syntax and reference validation. Runs `bicep build` against all `.bicep` files to detect compilation errors, unresolved references, and type mismatches | CLI wrapper (`modules/Invoke-IaCBicep.ps1`) dispatches via `IaCAdapters.ps1`; each file is compiled with a 300s timeout; generated ARM JSON artefacts are cleaned up | MIT (this project) |
-| 24 | **Terraform IaC Validation** *(first-party)* | Terraform syntax and HCL security scanning. Runs `terraform validate` for syntax checks and `trivy config` (tfsec engine) for misconfigurations (open security groups, public storage, missing encryption) | CLI wrapper (`modules/Invoke-IaCTerraform.ps1`) dispatches via `IaCAdapters.ps1`; uses trivy's built-in tfsec rules instead of standalone tfsec | MIT (this project) |
-| 25 | **Sentinel (Active Incidents)** | Active Sentinel incidents from a Log Analytics workspace -- severity, status, classification, alert count, owner, provider | Read-only KQL query against `SecurityIncident` table via the workspace query API; graceful skip when the table does not exist (Sentinel not enabled) | Azure REST API (MS Service Terms) |
-| 26 | **Sentinel Coverage (Posture)** *(first-party)* | Detection-posture findings on top of the same workspace -- analytic rules (none configured / disabled >7 days), data connectors (<3 connected), watchlists (empty / TTL <30 days), hunting queries (none configured) | Read-only `Microsoft.SecurityInsights` REST (`alertRules`, `watchlists`, `dataConnectors`) + Log Analytics `savedSearches` filtered to category `Hunting Queries`; graceful skip when Sentinel is not onboarded (HTTP 404/409); all calls wrapped in `Invoke-WithRetry` | MIT (this project) |
-
-Full license text and copyright notices for each tool: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-> **Note:** Scorecard supports GitHub Enterprise Cloud with Data Residency (GHEC-DR) and GitHub Enterprise Server (GHES). Use `-GitHubHost` to specify the enterprise hostname (e.g. `github.contoso.com`). Requires a `GITHUB_AUTH_TOKEN` valid on the enterprise instance. See the [Scorecard docs](https://github.com/ossf/scorecard#authentication) for details.
-
-> **Note:** zizmor, gitleaks, Trivy, Bicep IaC Validation, and Terraform IaC Validation are cloud-first. When `-Repository` / `-AdoOrg` is provided they scan the **remote** repo via a vetted HTTPS clone (`modules/shared/RemoteClone.ps1`: allow-listed hosts github.com, dev.azure.com, `*.visualstudio.com`, `*.ghe.com`; auth tokens scrubbed from `.git/config` after clone). When neither is provided they fall back to scanning `-RepoPath` / `-ScanPath` on the local filesystem. gitleaks is invoked with `--redact` so report files never contain plaintext secrets.
-
-> **ADO gitleaks tuning:** `ado-repos-secrets` supports `-GitleaksConfigPath` for org-level and repo-level allowlist/rule overrides. Use a local `.toml` file only, keep `[extend] useDefault = true` unless you provide vetted custom rules, and review [docs/gitleaks-pattern-tuning.md](docs/gitleaks-pattern-tuning.md) for examples.
-
-## Schema reference
-
-Azure Analyzer writes two JSON output files with different schemas:
-
-- **`results.json`** -- v1 backward-compatible flat findings (10 fields per finding). This is the stable contract consumed by reports and downstream tooling.
-- **`entities.json`** -- v3 entity-centric model. Groups findings by owning entity with aggregated metadata. Each entity's `Observations` array contains full v2 FindingRow objects (24 fields).
-
-### results.json (v1 flat findings)
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `Id` | string | yes | Unique finding identifier |
-| `Source` | string | yes | `azqr`, `psrule`, `azgovviz`, `alz-queries`, `wara`, `azure-cost`, `finops`, `defender-for-cloud`, `sentinel-incidents`, `sentinel-coverage`, `kubescape`, `kube-bench`, `falco`, `maester`, `scorecard`, `ado-connections`, `ado-pipelines`, `ado-repos-secrets`, `ado-pipeline-correlator`, `identity-correlator`, `identity-graph-expansion`, `zizmor`, `gitleaks`, `trivy`, `bicep-iac`, or `terraform-iac` |
-| `Category` | string | | e.g. Security, Reliability, Networking, Compute, Storage, Identity |
-| `Title` | string | yes | Short finding title |
-| `Severity` | string | | `Critical`, `High`, `Medium`, `Low`, or `Info` |
-| `Compliant` | boolean | yes | Whether the resource passes the check |
-| `Detail` | string | | Detailed description of the finding |
-| `Remediation` | string | | Steps to fix (may include URLs) |
-| `ResourceId` | string | | Azure ARM resource ID (or repo URL for Scorecard) |
-| `LearnMoreUrl` | string | | Link to Microsoft Learn documentation |
-
-### entities.json (v3 entity model)
-
-Each entry in `entities.json` represents a real-world resource (subscription, repo, user, app) with all observations aggregated:
-
-| Field | Type | Description |
-|---|---|---|
-| `EntityId` | string | Canonical entity identifier (lowercase ARM ID, repo URL, or synthetic key) |
-| `EntityType` | string | One of 14: `AzureResource`, `Subscription`, `ManagementGroup`, `ServicePrincipal`, `ManagedIdentity`, `Application`, `User`, `Tenant`, `Repository`, `Workflow`, `Pipeline`, `ServiceConnection`, `VariableGroup`, `Environment` |
-| `Platform` | string | `Azure`, `Entra`, `GitHub`, or `ADO` |
-| `DisplayName` | string | Human-readable name for the entity |
-| `SubscriptionId` | string | Azure subscription GUID (when applicable) |
-| `SubscriptionName` | string | Human-readable subscription name |
-| `ResourceGroup` | string | Azure resource group name |
-| `ManagementGroupPath` | string[] | Management group hierarchy path |
-| `ExternalIds` | object[] | Cross-platform identity links |
-| `Observations` | object[] | Array of full v2 FindingRow objects (24 fields each -- see below) |
-| `WorstSeverity` | string | Highest severity across all observations |
-| `CompliantCount` | int | Number of compliant observations |
-| `NonCompliantCount` | int | Number of non-compliant observations |
-| `Sources` | string[] | Tools that contributed observations |
-| `MonthlyCost` | number | Monthly cost (when cost data is available) |
-| `Currency` | string | Cost currency code |
-| `CostTrend` | object | Cost trend metadata |
-| `Frameworks` | object[] | Compliance framework mappings |
-| `Controls` | string[] | Control identifiers from compliance frameworks |
-| `Policies` | object[] | Policy assignments |
-| `Correlations` | object[] | Cross-dimension relationships |
-| `Confidence` | string | `Confirmed`, `Likely`, `Unconfirmed`, or `Unknown` |
-| `MissingDimensions` | string[] | Dimensions the tool could not assess |
-
-### v2 FindingRow (24 fields -- used in entity Observations)
-
-Normalizers produce v2 FindingRow objects internally. These appear as entries in each entity's `Observations` array in `entities.json`. The full field list is defined in `modules/shared/Schema.ps1`:
-
-`Id`, `Source`, `Category`, `Title`, `Severity`, `Compliant`, `Detail`, `Remediation`, `ResourceId`, `LearnMoreUrl`, `EntityId`, `EntityType`, `Platform`, `Provenance` (`{ RunId, Source, RawRecordRef, Timestamp }`), `SubscriptionId`, `SubscriptionName`, `ResourceGroup`, `ManagementGroupPath`, `Frameworks`, `Controls`, `Confidence`, `EvidenceCount`, `MissingDimensions`, `SchemaVersion`
-
-The v3 architecture uses shared schema v2 modules (`modules/shared/Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`) and a tool registry (`tools/tool-manifest.json`) for dual-model outputs. Phase 1 adds seven per-tool normalizers (`modules/normalizers/`) that convert v1 wrapper output to v3 FindingRow objects, and a manifest-driven orchestrator that reads `tool-manifest.json` to resolve eligible tools, run them in parallel via `Invoke-ParallelTools`, and feed normalized findings into the EntityStore pipeline.
-
-## Permissions
-
-All tools operate read-only. No write permissions required anywhere.
-
-| Scope | What needs it |
-|-------|--------------|
-| **Azure Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA, Azure Cost, FinOps Signals, Defender for Cloud |
+| Scope | Used by |
+|-------|---------|
+| Azure **Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA, Azure Cost, FinOps Signals, Defender for Cloud |
 | **Cost Management Reader** (recommended) | FinOps Signals, Azure Cost |
-| **Microsoft Graph** (read) | Maester -- Entra ID security |
-| **GitHub token** (optional) | Scorecard -- repo security (recommended for rate limits) |
-| **Azure DevOps PAT** (optional) | ADO Service Connections, ADO Pipeline Security, ADO Repo Secrets, and ADO Pipeline Correlator |
-| **Local CLI only** (no cloud permissions) | zizmor, gitleaks, Trivy -- scan local filesystem |
-| **Copilot license** (optional) | AI triage -- fully optional; only used with `-EnableAiTriage` flag |
+| Microsoft **Graph** (read) | Maester (Entra ID) |
+| **GitHub PAT** (optional) | Scorecard, remote repo scans |
+| **Azure DevOps PAT** (optional) | ADO Service Connections, Pipeline Security, Repo Secrets, Pipeline Correlator |
+| Local CLI only (no cloud) | zizmor, gitleaks, Trivy on a local path |
 
-See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes, token types, setup commands, and troubleshooting.
+Full breakdown, token types, and setup commands: [PERMISSIONS.md](PERMISSIONS.md).
 
----
+## Continuous control
 
-## PR review gate behavior
+Run azure-analyzer on a schedule and stream findings to Log Analytics or open issues on net-new Critical findings only.
 
-The PR advisory gate now ingests Copilot review threads into a structured triage plan before running the 3-model rubber-duck gate. Each run groups Copilot findings by category (`blocker`, `correctness`, `security`, `style`, `nit`), hashes the plan per head SHA, and fails the `rubberduck-gate` status when Copilot threads are still unaddressed (neither resolved nor carrying a documented multi-model rejection reply). If the advisory step itself degrades (for example a transient GitHub GraphQL failure), it now reports a **successful non-blocking no-op** with a `degraded:` skip reason so mergeability is not blocked by infrastructure hiccups.
+- [docs/consumer/continuous-control.md](docs/consumer/continuous-control.md): 10-minute deployment walkthrough (Function App on Consumption or Premium, OIDC federated credentials, optional Bicep template).
+- [docs/consumer/sinks/log-analytics.md](docs/consumer/sinks/log-analytics.md): streaming findings into Azure Log Analytics via DCE / DCR.
 
----
+## AI-assisted triage (optional)
 
-## Roadmap
-
-- **Azure DevOps posture expansion** -- service connection inventory, pipeline posture, repository secret scanning, and pipeline run-log correlation are live with graceful handling for private or inaccessible repos/projects.
+`-EnableAiTriage` adds AI-assisted finding summaries when a Copilot or Azure OpenAI endpoint is configured. Fully optional, off by default. See [docs/consumer/ai-triage.md](docs/consumer/ai-triage.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process. Key points:
+- [CONTRIBUTING.md](CONTRIBUTING.md): fork / branch / PR workflow, docs-update rule, signed-commit policy.
+- [docs/contributor/README.md](docs/contributor/README.md): architecture, adding a new tool, AI governance, and forward-looking proposals.
+- [docs/contributor/ARCHITECTURE.md](docs/contributor/ARCHITECTURE.md): module layout, normalizer contract, EntityStore design.
+- [docs/contributor/adding-a-tool.md](docs/contributor/adding-a-tool.md): end-to-end guide for registering a new analyzer tool in `tools/tool-manifest.json`.
 
-- Fork → branch → PR against `main`
-- Every PR that changes code must include a docs update (README, CHANGELOG, PERMISSIONS.md as applicable)
-- ARG queries live in `queries/` as JSON -- every query must return a `compliant` column (boolean)
-- All GitHub Actions must use SHA-pinned versions
+The Pester baseline must stay green: `Invoke-Pester -Path .\tests -CI`.
 
-## Data Sources & Attribution
+## Security
 
-Licenses and copyright for every tool are shown inline in the [**What each tool does**](#what-each-tool-does) table above. Full license text and upstream repository links: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
-
-First-party components (MIT, this project): ADO Service Connections scanner, Identity Correlator, orchestrator, schema, normalizers, reports, installer.
+Read-only by design, with a defense-in-depth posture across the codebase: HTTPS-only outbound, host allow-lists, package-manager allow-lists, 300s external-process timeouts, credential scrubbing on all written output, SHA-256-pinned tool binaries, and a CycloneDX 1.5 SBOM per release. Report vulnerabilities via [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
-
-
-
-
-
-
-
-
+MIT. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the full set of upstream-tool licenses and attributions.
