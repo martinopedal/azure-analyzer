@@ -90,7 +90,7 @@ Per-tenant outputs are written to `<OutputPath>/<tenantId>/`; cross-tenant aggre
 
 Azure Analyzer v3 groups capabilities into permission tiers (Tier 0–6) covering
 Azure, Graph, CI/CD, cost, and optional AI access. See
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the tier breakdown.
+[docs/contributor/ARCHITECTURE.md](docs/contributor/ARCHITECTURE.md) for the tier breakdown.
 
 ---
 
@@ -820,7 +820,7 @@ Azure-analyzer follows the principle of least privilege:
 
 | Credential | Purpose |
 |---|---|
-| `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` | Sends non-compliant finding data to GitHub Copilot API for AI-assisted triage. Only used when `-EnableAiTriage` is set. `ghs_` tokens NOT supported. See [docs/ai-triage.md](docs/ai-triage.md). |
+| `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` | Sends non-compliant finding data to GitHub Copilot API for AI-assisted triage. Only used when `-EnableAiTriage` is set. `ghs_` tokens NOT supported. See [docs/consumer/ai-triage.md](docs/consumer/ai-triage.md). |
 
 ---
 

@@ -20,7 +20,7 @@ Adding a new assessment tool requires three components:
 2. **Normalizer** (`modules/normalizers/Normalize-{ToolName}.ps1`) -- converts raw output to schema v2 FindingRow format using `New-FindingRow` from `modules/shared/Schema.ps1`
 3. **Manifest entry** (`tools/tool-manifest.json`) -- registers the tool for orchestration
 
-See [docs/CONTRIBUTING-TOOLS.md](docs/CONTRIBUTING-TOOLS.md) for the full wrapper contract, normalizer template, and testing checklist.
+See [docs/contributor/adding-a-tool.md](docs/contributor/adding-a-tool.md) for the full wrapper contract, normalizer template, and testing checklist.
 
 ## AI-assisted contributions
 

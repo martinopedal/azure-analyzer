@@ -23,7 +23,7 @@ jobs:
             // Check for skip-docs-check label
             const labels = context.payload.pull_request.labels.map(l => l.name);
             if (labels.includes('skip-docs-check')) {
-              core.info('Skipping docs check — skip-docs-check label found.');
+              core.info('Skipping docs check - skip-docs-check label found.');
               return;
             }
 
@@ -62,7 +62,7 @@ jobs:
             const docFiles = changed.filter(isDoc);
 
             if (codeFiles.length === 0) {
-              core.info('No code files changed — docs check not required.');
+              core.info('No code files changed - docs check not required.');
               core.info(`Changed files: ${changed.join(', ')}`);
               return;
             }
@@ -77,3 +77,19 @@ jobs:
                 'See CONTRIBUTING.md for documentation requirements.'
               );
             }
+
+  tool-catalog-fresh:
+    name: Tool catalog fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Verify tool catalog is in sync with manifest
+        shell: pwsh
+        run: |
+          pwsh -File scripts/Generate-ToolCatalog.ps1 -CheckOnly
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::docs/consumer/tool-catalog.md or docs/contributor/tool-catalog.md is stale."
+            Write-Host "::error::Run 'pwsh -File scripts/Generate-ToolCatalog.ps1' and commit the result."
+            exit 1
+          }
