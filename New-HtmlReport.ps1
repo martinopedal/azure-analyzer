@@ -93,6 +93,7 @@ if ($PreviousRun -and (Test-Path $PreviousRun) -and (Get-Command Get-ReportDelta
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 $total = @($findings).Count
 $high = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
+$critical = @($findings | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count
 $medium = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
 $low = @($findings | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
 $compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
@@ -104,7 +105,7 @@ function HE([string]$s) {
 
 function SeverityClass([string]$s) {
     switch ($s) {
-        'Critical' { return 'sev-high' }
+        'Critical' { return 'sev-critical' }
         'High'   { return 'sev-high' }
         'Medium' { return 'sev-medium' }
         'Low'    { return 'sev-low' }
@@ -210,7 +211,8 @@ $rowsJson = ($findings | ForEach-Object {
   detail: `"$(HE $_.Detail)`",
   remediation: `"$(HE $_.Remediation)`",
   resourceId: `"$(HE $_.ResourceId)`",
-  learnMoreUrl: `"$(HE $_.LearnMoreUrl)`"
+  learnMoreUrl: `"$(HE $_.LearnMoreUrl)`",
+  platform: `"$(HE $_.Platform)`"
 }
 "@
 }) -join ','
@@ -241,7 +243,7 @@ $categoryHtml = foreach ($cat in $byCategory) {
                 'Unchanged' { $statusBadge = ' <span class="badge badge-unchanged">Unchanged</span>' }
             }
         }
-        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
+        "<tr class='$sevBorder' data-severity='$(HE $f.Severity)' data-compliant='$compliantBool' data-source='$(HE $f.Source)' data-platform='$(HE $f.Platform)' data-status='$(HE $rowStatus)'><td>$(HE $f.Title)$statusBadge</td><td><span class='badge $sevClass'>$(HE $f.Severity)</span></td><td>$(HE $f.Source)</td><td>$compliantStr</td><td>$(HE $f.Detail)</td><td>$remediationHtml</td><td class=`"resource-id`">$resourceIdHtml</td><td>$learnMoreHtml</td></tr>"
     }
     @"
 <details id="cat-$catId">
@@ -529,6 +531,38 @@ if ($trendArr.Count -ge 2) {
 "@
 }
 
+
+# --- Priority stack: top Critical/High non-compliant findings ---
+$priorityFindings = @($findings | Where-Object { -not $_.Compliant -and ($_.Severity -eq 'Critical' -or $_.Severity -eq 'High') } |
+    Sort-Object @{Expression = { if ($_.Severity -eq 'Critical') { 0 } else { 1 } }}, Title)
+$priorityStackHtml = ''
+if ($priorityFindings.Count -gt 0) {
+    $critBadge = if ($critical -gt 0) { "<span class='badge sev-critical'>$critical Critical</span>" } else { '' }
+    $highBadge = if ($high -gt 0) { "<span class='badge sev-high'>$high High</span>" } else { '' }
+    $priorityItems = ($priorityFindings | Select-Object -First 8 | ForEach-Object {
+        $sevCls = SeverityClass $_.Severity
+        $rem = if ($_.Remediation) { "<div class='priority-rem'>$(HE $_.Remediation)</div>" } else { '' }
+        $titleText = if ($_.Title) { $_.Title } elseif ($_.Description) { $_.Description } else { '(no title)' }
+        "<li><span class='badge $sevCls'>$(HE $_.Severity)</span> <strong>$(HE $titleText)</strong> <span class='priority-source'>[$(HE $_.Source)]</span>$rem</li>"
+    }) -join "`n"
+    $moreText = if ($priorityFindings.Count -gt 8) { "<li class='priority-more'>+ $($priorityFindings.Count - 8) more — use severity filter above</li>" } else { '' }
+    $priorityStackHtml = @"
+<div class="priority-stack">
+  <div class="priority-header">$critBadge $highBadge <span class="priority-label">Requires immediate attention</span></div>
+  <ul class="priority-list">
+$priorityItems
+$moreText
+  </ul>
+</div>
+"@
+}
+
+# --- Source options for filter bar dropdown ---
+$gfSourceOptions = ($sourcesWithResults | Sort-Object | ForEach-Object {
+    $lbl = if ($sourceLabels.ContainsKey($_)) { $sourceLabels[$_] } else { $_ }
+    "<option value=`"$(HE $_)`">$(HE $lbl)</option>"
+}) -join "`n"
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -610,6 +644,7 @@ $html = @"
   .findings-table th:hover { background: #e0e0e0; }
   .findings-table td { padding: 7px 10px; border-top: 1px solid #f0f0f0; vertical-align: top; }
   .findings-table tr:nth-child(even) td { background: #fafafa; }
+  .findings-table tr.sev-border-critical td:first-child { border-left: 3px solid #7f1d1d; }
   .findings-table tr.sev-border-high td:first-child { border-left: 3px solid #d32f2f; }
   .findings-table tr.sev-border-medium td:first-child { border-left: 3px solid #e65100; }
   .findings-table tr.sev-border-low td:first-child { border-left: 3px solid #f9a825; }
@@ -618,6 +653,7 @@ $html = @"
   .findings-table td.resource-id { font-size: 11px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .findings-table tr:hover td { background: #fafafa; }
   .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .sev-critical { background: #7f1d1d; color: #fff; }
   .sev-high { background: #fde8e8; color: #c62828; }
   .sev-medium { background: #fff3e0; color: #bf360c; }
   .sev-low { background: #fff9c4; color: #827717; }
@@ -661,7 +697,7 @@ $html = @"
   /* Print-friendly styles */
   @media print {
     body { background: #fff; padding: 12px; }
-    .no-print, .filter-box, .filter-input { display: none !important; }
+    .no-print, .filter-box, .filter-input, .global-filter-bar { display: none !important; }
     .findings-table th { cursor: default; }
     .findings-table th:hover { background: #f0f0f0; }
     details { break-inside: avoid; }
@@ -669,6 +705,45 @@ $html = @"
     .exec-summary, .source-section, .card, details { box-shadow: none; border: 1px solid #ddd; }
     a { color: #1a1a1a; text-decoration: underline; }
   }
+  /* Global filter bar */
+  .global-filter-bar {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+    padding: 0.6rem 1.5rem; background: #fff; border-bottom: 1px solid #e2e8f0;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    margin-bottom: 16px;
+  }
+  .gf-label { font-size: 0.78rem; font-weight: 600; color: #6b7280; white-space: nowrap; }
+  .gf-chips { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
+  .gf-chip {
+    padding: 0.2rem 0.65rem; border-radius: 999px; border: 1.5px solid #e2e8f0;
+    cursor: pointer; font-size: 0.75rem; font-weight: 600;
+    background: transparent; color: #1a1a1a; transition: background 0.15s, color 0.15s;
+  }
+  .gf-chip.gf-active { background: #1565c0; color: #fff; border-color: #1565c0; }
+  .gf-chip[data-active="true"][data-color="critical"] { background: #7f1d1d; color: #fff; border-color: #7f1d1d; }
+  .gf-chip[data-active="true"][data-color="high"]     { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .gf-chip[data-active="true"][data-color="medium"]   { background: #f59e0b; color: #1f2937; border-color: #f59e0b; }
+  .gf-chip[data-active="true"][data-color="low"]      { background: #facc15; color: #1f2937; border-color: #facc15; }
+  .gf-count  { font-size: 0.75rem; color: #6b7280; white-space: nowrap; }
+  .gf-export, .gf-reset {
+    padding: 0.25rem 0.65rem; border-radius: 6px; border: 1.5px solid #e2e8f0;
+    cursor: pointer; font-size: 0.75rem; background: #fff; color: #1a1a1a; white-space: nowrap;
+  }
+  .gf-export:hover, .gf-reset:hover { background: #1565c0; color: #fff; border-color: #1565c0; }
+  .gf-export select, .gf-filter-bar select { padding: 0.2rem 0.5rem; border-radius: 6px; border: 1.5px solid #e2e8f0; font-size: 0.75rem; background: #fff; }
+  /* Priority stack */
+  .priority-stack {
+    background: #fdf2f2; border: 1px solid #f9c0c0; border-radius: 8px;
+    padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+  }
+  .priority-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .priority-label { font-size: 0.8rem; color: #6b7280; margin-left: 0.25rem; }
+  .priority-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+  .priority-list li { font-size: 0.85rem; }
+  .priority-rem { color: #6b7280; font-size: 0.78rem; margin-top: 0.15rem; padding-left: 1rem; }
+  .priority-source { color: #6b7280; font-size: 0.78rem; }
+  .priority-more { color: #6b7280; font-size: 0.78rem; font-style: italic; padding-top: 0.25rem; }
+  .card-critical .card-value { color: #7f1d1d; }
 </style>
 </head>
 <body>
@@ -682,13 +757,14 @@ $html = @"
   </div>
   <div class="exec-text">
     <p class="exec-highlight">Scanned $uniqueResources resources across $toolsUsed tools. $compliantPct% compliant overall.</p>
-    <p>$high high-severity findings require immediate action.</p>
+    <p>$critical critical-severity and $high high-severity findings require immediate action.</p>
     <p>$medium medium-severity and $low low-severity findings also detected across $($byCategory.Count) categories.</p>
   </div>
 </div>
 
 <div class="cards">
   <button class="card card-total" onclick="filterBySeverity(this,'all')" aria-pressed="false"><div class="card-label">Total findings</div><div class="card-value">$total</div></button>
+  <button class="card card-critical" onclick="filterBySeverity(this,'Critical')" aria-pressed="false"><div class="card-label">Critical (non-compliant)</div><div class="card-value">$critical</div></button>
   <button class="card card-high" onclick="filterBySeverity(this,'High')" aria-pressed="false"><div class="card-label">High (non-compliant)</div><div class="card-value">$high</div></button>
   <button class="card card-medium" onclick="filterBySeverity(this,'Medium')" aria-pressed="false"><div class="card-label">Medium (non-compliant)</div><div class="card-value">$medium</div></button>
   <button class="card card-low" onclick="filterBySeverity(this,'Low')" aria-pressed="false"><div class="card-label">Low (non-compliant)</div><div class="card-value">$low</div></button>
@@ -719,10 +795,143 @@ $($toolCoverageHtml -join "`n")
 $complianceHtml
 
 <h2>Findings by category</h2>
+
+<!-- Global filter bar -->
+<div class="global-filter-bar no-print" role="search" aria-label="Global finding filter" id="global-filter-bar">
+  <div class="gf-chips" role="group" aria-label="Filter by severity">
+    <span class="gf-label">Severity:</span>
+    <button class="gf-chip gf-active" data-sev="all" onclick="toggleSevFilter(this,'all')">All</button>
+    <button class="gf-chip" data-sev="Critical" data-color="critical" onclick="toggleSevFilter(this,'Critical')">Critical</button>
+    <button class="gf-chip" data-sev="High"     data-color="high"     onclick="toggleSevFilter(this,'High')">High</button>
+    <button class="gf-chip" data-sev="Medium"   data-color="medium"   onclick="toggleSevFilter(this,'Medium')">Medium</button>
+    <button class="gf-chip" data-sev="Low"      data-color="low"      onclick="toggleSevFilter(this,'Low')">Low</button>
+  </div>
+  <select id="gf-source" onchange="applyGlobalFilter()" aria-label="Filter by tool">
+    <option value="">All Tools</option>
+$gfSourceOptions
+  </select>
+  <select id="gf-platform" onchange="applyGlobalFilter()" aria-label="Filter by platform">
+    <option value="">All Platforms</option>
+    <option>Azure</option><option>Entra</option>
+    <option>GitHub</option><option>ADO</option>
+  </select>
+  <select id="gf-status" onchange="applyGlobalFilter()" aria-label="Filter by compliance status">
+    <option value="">All Status</option>
+    <option value="false">Non-Compliant Only</option>
+    <option value="true">Compliant Only</option>
+  </select>
+  <input id="gf-text" type="text" placeholder="Search findings…"
+         oninput="applyGlobalFilter()" aria-label="Search findings" style="flex:1;min-width:150px;padding:0.2rem 0.5rem;border-radius:6px;border:1.5px solid #e2e8f0;">
+  <button onclick="resetGlobalFilter()" class="gf-reset" title="Clear filters">✕ Clear</button>
+  <span id="gf-count" class="gf-count" aria-live="polite"></span>
+  <button onclick="exportFilteredCSV()" class="gf-export">⬇ CSV</button>
+</div>
+
+$priorityStackHtml
+
 $($categoryHtml -join "`n")
 
 <script>
 var activeSevFilter = null;
+
+// --- Global filter state ---
+var _gfActiveSev = new Set();
+var _gfSource = '';
+var _gfPlatform = '';
+var _gfStatus = '';
+var _gfText = '';
+
+function applyGlobalFilter() {
+  _gfSource   = document.getElementById('gf-source') ? document.getElementById('gf-source').value : '';
+  _gfPlatform = document.getElementById('gf-platform') ? document.getElementById('gf-platform').value : '';
+  _gfStatus   = document.getElementById('gf-status') ? document.getElementById('gf-status').value : '';
+  _gfText     = (document.getElementById('gf-text') ? document.getElementById('gf-text').value : '').toLowerCase();
+
+  var visible = 0;
+  document.querySelectorAll('tr[data-severity]').forEach(function(row) {
+    var sev      = row.dataset.severity || '';
+    var source   = row.dataset.source || '';
+    var platform = row.dataset.platform || '';
+    var status   = row.dataset.compliant || '';
+    var text     = row.textContent.toLowerCase();
+
+    var sevOk  = _gfActiveSev.size === 0 || _gfActiveSev.has(sev);
+    var srcOk  = !_gfSource   || source   === _gfSource;
+    var platOk = !_gfPlatform || platform === _gfPlatform;
+    var stOk   = !_gfStatus   || status   === _gfStatus;
+    var txtOk  = !_gfText     || text.includes(_gfText);
+
+    var show = sevOk && srcOk && platOk && stOk && txtOk;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  var countEl = document.getElementById('gf-count');
+  if (countEl) countEl.textContent = visible + ' finding' + (visible !== 1 ? 's' : '') + ' shown';
+}
+
+function toggleSevFilter(btn, sev) {
+  if (sev === 'all') {
+    _gfActiveSev.clear();
+    document.querySelectorAll('.gf-chip').forEach(function(c) {
+      c.dataset.active = 'false';
+      if (c.dataset.sev === 'all') c.classList.add('gf-active');
+      else c.classList.remove('gf-active');
+    });
+  } else {
+    document.querySelector('.gf-chip[data-sev="all"]').classList.remove('gf-active');
+    if (_gfActiveSev.has(sev)) { _gfActiveSev.delete(sev); btn.dataset.active = 'false'; }
+    else { _gfActiveSev.add(sev); btn.dataset.active = 'true'; }
+    if (_gfActiveSev.size === 0) {
+      document.querySelector('.gf-chip[data-sev="all"]').classList.add('gf-active');
+    }
+  }
+  applyGlobalFilter();
+}
+
+function resetGlobalFilter() {
+  _gfActiveSev.clear();
+  _gfSource = _gfPlatform = _gfStatus = _gfText = '';
+  document.querySelectorAll('.gf-chip').forEach(function(c) {
+    c.dataset.active = 'false';
+    if (c.dataset.sev === 'all') c.classList.add('gf-active');
+    else c.classList.remove('gf-active');
+  });
+  ['gf-source','gf-platform','gf-status','gf-text'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  applyGlobalFilter();
+}
+
+function exportFilteredCSV() {
+  var rows = Array.from(document.querySelectorAll('tr[data-severity]'))
+    .filter(function(r) { return r.style.display !== 'none'; });
+  var headers = ['Title','Severity','Source','Platform','Compliant','Detail','Remediation','ResourceId'];
+  var csvRows = [headers.join(',')];
+  rows.forEach(function(r) {
+    var cells = r.querySelectorAll('td');
+    var vals = [
+      '"' + (cells[0] ? cells[0].textContent : '').replace(/"/g, '""') + '"',
+      '"' + (r.dataset.severity || '') + '"',
+      '"' + (r.dataset.source || '') + '"',
+      '"' + (r.dataset.platform || '') + '"',
+      '"' + (r.dataset.compliant || '') + '"',
+      '"' + (cells[4] ? cells[4].textContent : '').replace(/"/g, '""') + '"',
+      '"' + (cells[5] ? cells[5].textContent : '').replace(/"/g, '""') + '"',
+      '"' + (cells[6] ? cells[6].textContent : '').replace(/"/g, '""') + '"'
+    ];
+    csvRows.push(vals.join(','));
+  });
+  var blob = new Blob([csvRows.join('\n')], {type: 'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'azure-analyzer-findings.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// Initial count on load
+document.addEventListener('DOMContentLoaded', function() { applyGlobalFilter(); });
+
 function filterBySeverity(btn, severity) {
   var cards = document.querySelectorAll('.card');
   var rows = document.querySelectorAll('.findings-table tbody tr');

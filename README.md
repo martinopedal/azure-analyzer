@@ -190,15 +190,17 @@ After a run, `output/` contains:
 
 - **Executive summary** -- auto-generated compliance prose (resource count, tool count, compliance %, high-severity callout)
 - **Pure-CSS donut chart** -- compliance percentage with conic-gradient (no JavaScript)
-- **Clickable stat cards** -- filter findings by severity with keyboard-accessible buttons
+- **Clickable stat cards** -- filter findings by severity with keyboard-accessible buttons; Critical now has a distinct dark-red card separate from High
 - **Per-source breakdown** -- horizontal bar chart showing finding counts per tool
 - **Portfolio rollup** -- management-group breadcrumb, per-subscription severity heatmap, and cross-subscription identity reuse summary when you scan an MG; repeated breadcrumb names are preserved exactly and only confirmed subtree subscriptions are attributed to the rollup
-- **Severity borders** -- color-coded left border on each finding row (High=red, Medium=orange, Low=yellow)
+- **Severity borders** -- color-coded left border on each finding row (Critical=dark-red, High=red, Medium=orange, Low=yellow)
 - **Zebra striping** -- alternating row backgrounds for readability
-- **Search and filter** -- text input for instant filtering across all finding tables
+- **Global interactive filter bar** -- sticky bar above all findings: severity chips (multi-select), platform (Azure/Entra/GitHub/ADO), tool, compliance status, and free-text search filter all finding rows simultaneously across every table; no page reload required
+- **Client-side CSV export** -- ⬇ CSV button exports currently visible (filtered) findings as a download; no re-run required to get data into a spreadsheet
+- **Remediation Priority Stack** -- Critical and High non-compliant findings surfaced at the top of each section with a "Fix Now" panel before category accordions so engineers see the most urgent items immediately
 - **Clickable remediation URLs** -- automatically wrapped in anchor tags
 - **Tool coverage badges** -- shows actual tool status (Success, Skipped, Failed, Excluded)
-- **Print-friendly CSS** -- hides interactive elements, prevents page breaks in rows
+- **Print-friendly CSS** -- hides interactive elements (filter bar, chips), prevents page breaks in rows
 - **Delta banner** -- when a prior run is available (auto-discovered or via `-PreviousRun`), shows New / Resolved / Unchanged chips and net non-compliant delta
 - **Entity drift reporting** -- optional post-processing via `-CompareTo <previous-run-dir>` or `-CompareToPrevious` emits `drift-report.json` + `drift-report.md` from `entities.json` deltas
 - **Trend sparkline** -- when two or more prior runs exist, an inline SVG polyline (`class="trend-sparkline"`) shows NonCompliant count over the last 10 runs; no external assets

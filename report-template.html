@@ -233,6 +233,7 @@
             color: #fff;
         }
 
+        .badge.critical, span.critical { background: var(--critical, #7f1d1d); color: #fff; }
         .badge.critical { background: var(--critical); }
         .badge.high { background: var(--danger); }
         .badge.medium { background: var(--warning); color: #1f2937; }
@@ -259,7 +260,7 @@
             body {
                 background: #fff;
             }
-            nav.tabs, .filter-row {
+            nav.tabs, .filter-row, .global-filter-bar {
                 display: none;
             }
             header {
@@ -269,6 +270,59 @@
                 break-inside: avoid;
             }
         }
+
+        /* Global filter bar */
+        .global-filter-bar {
+          display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+          padding: 0.6rem 1.5rem; background: var(--panel, #fff);
+          border-bottom: 1px solid var(--border, #e5e7eb);
+          position: sticky; top: 0; z-index: 100;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+        }
+        .gf-label { font-size: 0.78rem; font-weight: 600; color: var(--muted, #6b7280); white-space: nowrap; }
+        .gf-chips { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
+        .gf-chip {
+          padding: 0.2rem 0.65rem; border-radius: 999px;
+          border: 1.5px solid var(--border, #e5e7eb); cursor: pointer;
+          font-size: 0.75rem; font-weight: 600; background: transparent;
+          color: var(--text, #111827); transition: background 0.15s, color 0.15s;
+        }
+        .gf-chip.gf-active { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
+        .gf-chip[data-active="true"][data-color="critical"] { background: var(--critical, #7f1d1d); color: #fff; border-color: var(--critical, #7f1d1d); }
+        .gf-chip[data-active="true"][data-color="high"]     { background: var(--danger, #dc2626);  color: #fff; border-color: var(--danger, #dc2626); }
+        .gf-chip[data-active="true"][data-color="medium"]   { background: var(--warning, #f59e0b); color: #1f2937; border-color: var(--warning, #f59e0b); }
+        .gf-chip[data-active="true"][data-color="low"]      { background: #facc15; color: #1f2937; border-color: #facc15; }
+        .gf-count  { font-size: 0.75rem; color: var(--muted, #6b7280); white-space: nowrap; }
+        .gf-export, .gf-reset {
+          padding: 0.25rem 0.65rem; border-radius: 6px;
+          border: 1.5px solid var(--border, #e5e7eb); cursor: pointer;
+          font-size: 0.75rem; background: var(--panel, #fff);
+          color: var(--text, #111827); white-space: nowrap;
+        }
+        .gf-export:hover, .gf-reset:hover { background: var(--accent, #2563eb); color: #fff; border-color: var(--accent, #2563eb); }
+        .global-filter-bar select, .global-filter-bar input[type="text"] {
+          padding: 0.2rem 0.5rem; border-radius: 6px;
+          border: 1.5px solid var(--border, #e5e7eb); font-size: 0.75rem;
+          background: var(--panel, #fff); color: var(--text, #111827);
+        }
+        @media print { .global-filter-bar { display: none !important; } }
+
+        /* Priority stack */
+        .priority-stack {
+          background: color-mix(in srgb, var(--critical, #7f1d1d) 5%, var(--panel, #fff));
+          border: 1px solid color-mix(in srgb, var(--critical, #7f1d1d) 25%, transparent);
+          border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+        }
+        .priority-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+        .priority-label { font-size: 0.8rem; color: var(--muted, #6b7280); margin-left: 0.25rem; }
+        .priority-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+        .priority-list li { font-size: 0.85rem; }
+        .priority-rem { color: var(--muted, #6b7280); font-size: 0.78rem; margin-top: 0.15rem; padding-left: 1rem; }
+        .priority-source { color: var(--muted, #6b7280); font-size: 0.78rem; }
+        .priority-more { color: var(--muted, #6b7280); font-size: 0.78rem; font-style: italic; padding-top: 0.25rem; }
+
+        /* Severity border for critical rows */
+        .findings-table tr.sev-border-critical td:first-child { border-left: 3px solid var(--critical, #7f1d1d); }
     </style>
 </head>
 <body>
@@ -276,6 +330,35 @@
         <h1>Azure Analyzer Report</h1>
         <p id="report-subtitle">Offline report</p>
     </header>
+
+    <div class="global-filter-bar no-print" role="search" aria-label="Global finding filter" id="global-filter-bar">
+      <div class="gf-chips" role="group" aria-label="Filter by severity">
+        <span class="gf-label">Severity:</span>
+        <button class="gf-chip gf-active" data-sev="all" onclick="toggleSevFilter(this,'all')">All</button>
+        <button class="gf-chip" data-sev="Critical" data-color="critical" onclick="toggleSevFilter(this,'Critical')">Critical</button>
+        <button class="gf-chip" data-sev="High"     data-color="high"     onclick="toggleSevFilter(this,'High')">High</button>
+        <button class="gf-chip" data-sev="Medium"   data-color="medium"   onclick="toggleSevFilter(this,'Medium')">Medium</button>
+        <button class="gf-chip" data-sev="Low"      data-color="low"      onclick="toggleSevFilter(this,'Low')">Low</button>
+      </div>
+      <select id="gf-source" onchange="applyGlobalFilter()" aria-label="Filter by tool">
+        <option value="">All Tools</option>
+      </select>
+      <select id="gf-platform" onchange="applyGlobalFilter()" aria-label="Filter by platform">
+        <option value="">All Platforms</option>
+        <option>Azure</option><option>Entra</option>
+        <option>GitHub</option><option>ADO</option>
+      </select>
+      <select id="gf-status" onchange="applyGlobalFilter()" aria-label="Filter by compliance status">
+        <option value="">All Status</option>
+        <option value="false">Non-Compliant Only</option>
+        <option value="true">Compliant Only</option>
+      </select>
+      <input id="gf-text" type="text" placeholder="Search findings…"
+             oninput="applyGlobalFilter()" aria-label="Search findings" style="flex:1;min-width:150px">
+      <button onclick="resetGlobalFilter()" class="gf-reset" title="Clear filters">✕ Clear</button>
+      <span id="gf-count" class="gf-count" aria-live="polite"></span>
+      <button onclick="exportFilteredCSV()" class="gf-export">⬇ CSV</button>
+    </div>
 
     <nav class="tabs" role="tablist" aria-label="Report sections">
         <button class="tab-button is-active" id="tab-dashboard-button" role="tab" aria-selected="true" aria-controls="tab-dashboard" data-tab="dashboard">Dashboard</button>
@@ -305,26 +388,31 @@
 
         <section class="tab-panel" id="tab-azure" role="tabpanel" aria-labelledby="tab-azure-button">
             <h2 class="section-title">Azure Findings</h2>
+            <div id="azure-priority"></div>
             <div id="azure-table"></div>
         </section>
 
         <section class="tab-panel" id="tab-identity" role="tabpanel" aria-labelledby="tab-identity-button">
             <h2 class="section-title">Identity Findings</h2>
+            <div id="identity-priority"></div>
             <div id="identity-table"></div>
         </section>
 
         <section class="tab-panel" id="tab-cicd" role="tabpanel" aria-labelledby="tab-cicd-button">
             <h2 class="section-title">CI/CD Findings</h2>
+            <div id="cicd-priority"></div>
             <div id="cicd-table"></div>
         </section>
 
         <section class="tab-panel" id="tab-compliance" role="tabpanel" aria-labelledby="tab-compliance-button">
             <h2 class="section-title">Compliance Findings</h2>
+            <div id="compliance-priority"></div>
             <div id="compliance-table"></div>
         </section>
 
         <section class="tab-panel" id="tab-cost" role="tabpanel" aria-labelledby="tab-cost-button">
             <h2 class="section-title">Cost Findings</h2>
+            <div id="cost-priority"></div>
             <div id="cost-table"></div>
         </section>
     </main>
@@ -510,6 +598,10 @@
                 row.appendChild(detailCell);
 
                 row.dataset.search = `${safeText(finding.title || finding.Title)} ${severityText} ${safeText(finding.source || finding.Source)} ${safeText(finding.detail || finding.Detail)}`.toLowerCase();
+                row.dataset.severity = severityText;
+                row.dataset.compliant = String(isCompliant);
+                row.dataset.source = safeText(finding.source || finding.Source);
+                row.dataset.platform = safeText(finding.platform || finding.Platform || '');
                 tbody.appendChild(row);
             });
 
@@ -538,10 +630,15 @@
         renderDonut();
         renderSourceBars();
         renderFindingsTable('azure-table', getTabFindings('azure'));
+        renderPriorityStack(getTabFindings('azure'), 'azure');
         renderFindingsTable('identity-table', getTabFindings('identity'));
+        renderPriorityStack(getTabFindings('identity'), 'identity');
         renderFindingsTable('cicd-table', getTabFindings('cicd'));
+        renderPriorityStack(getTabFindings('cicd'), 'cicd');
         renderFindingsTable('compliance-table', getTabFindings('compliance'));
+        renderPriorityStack(getTabFindings('compliance'), 'compliance');
         renderFindingsTable('cost-table', getTabFindings('cost'));
+        renderPriorityStack(getTabFindings('cost'), 'cost');
 
         document.querySelectorAll('.tab-button').forEach((button) => {
             button.addEventListener('click', () => {
@@ -555,6 +652,149 @@
                     panel.classList.toggle('is-active', panel.id === `tab-${tab}`);
                 });
             });
+        });
+
+        // --- Remediation Priority Stack ---
+        function renderPriorityStack(allRows, containerId) {
+            var container = document.getElementById(containerId + '-priority');
+            if (!container) return;
+            var urgent = allRows.filter(function(f) {
+                return !f.compliant && (f.severity === 'Critical' || f.severity === 'High');
+            });
+            if (urgent.length === 0) { container.style.display = 'none'; return; }
+            urgent.sort(function(a, b) {
+                var r = {Critical:2, High:1};
+                return (r[b.severity]||0) - (r[a.severity]||0);
+            });
+            var critCount = urgent.filter(function(f) { return f.severity === 'Critical'; }).length;
+            var highCount = urgent.filter(function(f) { return f.severity === 'High'; }).length;
+            var html = '<div class="priority-stack">' +
+                '<div class="priority-header">' +
+                (critCount ? '<span class="badge critical">' + critCount + ' Critical</span>' : '') +
+                (highCount ? '<span class="badge high">'     + highCount + ' High</span>'     : '') +
+                '<span class="priority-label">Requires immediate attention</span></div><ul class="priority-list">';
+            urgent.slice(0, 8).forEach(function(f) {
+                html += '<li><span class="badge ' + safeText((f.severity||'info').toLowerCase()) + '">' + safeText(f.severity) + '</span> ' +
+                    '<strong>' + safeText(f.title || f.description) + '</strong>' +
+                    ' <span class="priority-source">[' + safeText(f.source) + ']</span>' +
+                    (f.remediation ? '<div class="priority-rem">' + safeText(f.remediation) + '</div>' : '') +
+                    '</li>';
+            });
+            if (urgent.length > 8) {
+                html += '<li class="priority-more">+ ' + (urgent.length - 8) + ' more — use severity filter above</li>';
+            }
+            html += '</ul></div>';
+            container.innerHTML = html;
+            container.style.display = '';
+        }
+
+        // --- Global filter state ---
+        var _gfActiveSev = new Set();
+        var _gfSource = '';
+        var _gfPlatform = '';
+        var _gfStatus = '';
+        var _gfText = '';
+
+        function applyGlobalFilter() {
+            _gfSource   = document.getElementById('gf-source')  ? document.getElementById('gf-source').value : '';
+            _gfPlatform = document.getElementById('gf-platform') ? document.getElementById('gf-platform').value : '';
+            _gfStatus   = document.getElementById('gf-status')  ? document.getElementById('gf-status').value : '';
+            _gfText     = (document.getElementById('gf-text')   ? document.getElementById('gf-text').value : '').toLowerCase();
+
+            var visible = 0;
+            document.querySelectorAll('tr[data-severity]').forEach(function(row) {
+                var sev      = row.dataset.severity || '';
+                var source   = row.dataset.source || '';
+                var platform = row.dataset.platform || '';
+                var status   = row.dataset.compliant || '';
+                var text     = row.textContent.toLowerCase();
+
+                var sevOk  = _gfActiveSev.size === 0 || _gfActiveSev.has(sev);
+                var srcOk  = !_gfSource   || source   === _gfSource;
+                var platOk = !_gfPlatform || platform === _gfPlatform;
+                var stOk   = !_gfStatus   || status   === _gfStatus;
+                var txtOk  = !_gfText     || text.includes(_gfText);
+
+                var show = sevOk && srcOk && platOk && stOk && txtOk;
+                row.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+
+            var countEl = document.getElementById('gf-count');
+            if (countEl) countEl.textContent = visible + ' finding' + (visible !== 1 ? 's' : '') + ' shown';
+        }
+
+        function toggleSevFilter(btn, sev) {
+            if (sev === 'all') {
+                _gfActiveSev.clear();
+                document.querySelectorAll('.gf-chip').forEach(function(c) {
+                    c.dataset.active = 'false';
+                    if (c.dataset.sev === 'all') c.classList.add('gf-active');
+                    else c.classList.remove('gf-active');
+                });
+            } else {
+                document.querySelector('.gf-chip[data-sev="all"]').classList.remove('gf-active');
+                if (_gfActiveSev.has(sev)) { _gfActiveSev.delete(sev); btn.dataset.active = 'false'; }
+                else { _gfActiveSev.add(sev); btn.dataset.active = 'true'; }
+                if (_gfActiveSev.size === 0) {
+                    document.querySelector('.gf-chip[data-sev="all"]').classList.add('gf-active');
+                }
+            }
+            applyGlobalFilter();
+        }
+
+        function resetGlobalFilter() {
+            _gfActiveSev.clear();
+            _gfSource = _gfPlatform = _gfStatus = _gfText = '';
+            document.querySelectorAll('.gf-chip').forEach(function(c) {
+                c.dataset.active = 'false';
+                if (c.dataset.sev === 'all') c.classList.add('gf-active');
+                else c.classList.remove('gf-active');
+            });
+            ['gf-source','gf-platform','gf-status','gf-text'].forEach(function(id) {
+                var el = document.getElementById(id); if (el) el.value = '';
+            });
+            applyGlobalFilter();
+        }
+
+        function exportFilteredCSV() {
+            var rows = Array.from(document.querySelectorAll('tr[data-severity]'))
+                .filter(function(r) { return r.style.display !== 'none'; });
+            var headers = ['Title','Severity','Source','Platform','Compliant','Detail','Remediation','ResourceId'];
+            var csvRows = [headers.join(',')];
+            rows.forEach(function(r) {
+                var cells = r.querySelectorAll('td');
+                var vals = [
+                    '"' + (cells[0] ? cells[0].textContent : '').replace(/"/g, '""') + '"',
+                    '"' + (r.dataset.severity || '') + '"',
+                    '"' + (r.dataset.source || '') + '"',
+                    '"' + (r.dataset.platform || '') + '"',
+                    '"' + (r.dataset.compliant || '') + '"',
+                    '"' + (cells[1] ? cells[1].textContent : '').replace(/"/g, '""') + '"',
+                    '"' + (cells[2] ? cells[2].textContent : '').replace(/"/g, '""') + '"',
+                    '"' + (cells[3] ? cells[3].textContent : '').replace(/"/g, '""') + '"'
+                ];
+                csvRows.push(vals.join(','));
+            });
+            var blob = new Blob([csvRows.join('\n')], {type: 'text/csv;charset=utf-8;'});
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'azure-analyzer-findings.csv';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        // Populate source dropdown and run initial filter count
+        document.addEventListener('DOMContentLoaded', function() {
+            var sourceEl = document.getElementById('gf-source');
+            if (sourceEl && typeof model !== 'undefined' && model.sources) {
+                model.sources.forEach(function(s) {
+                    var opt = document.createElement('option');
+                    opt.value = s.name || s.source || s;
+                    opt.textContent = opt.value;
+                    sourceEl.appendChild(opt);
+                });
+            }
+            applyGlobalFilter();
         });
     </script>
 </body>
