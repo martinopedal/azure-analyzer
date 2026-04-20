@@ -108,7 +108,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 
 ## Notes
 
-- `tier` is `requiredPermissionTier` (0..6, see [PERMISSIONS.md](../../PERMISSIONS.md) for the tier breakdown).
+- `tier` is `requiredPermissionTier` (0..6, see [docs/contributor/ARCHITECTURE.md](./ARCHITECTURE.md#permission-tiers-tier-06) for the tier breakdown).
 - `phase` is the report grouping hint used by `New-HtmlReport.ps1` and `New-MdReport.ps1`.
 - `report.color` is consumed by the per-source bar chart in the HTML report.
 - `install.kind` is one of `psmodule`, `cli`, `gitclone`, `none` and is enforced by `modules/shared/Installer.ps1`.

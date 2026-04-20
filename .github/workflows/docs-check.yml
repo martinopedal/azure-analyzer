@@ -107,3 +107,19 @@ jobs:
             Write-Host "::error::Run 'pwsh -File scripts/Generate-ToolCatalog.ps1' and commit the result."
             exit 1
           }
+
+  permissions-pages-fresh:
+    name: Permissions pages fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Verify PERMISSIONS.md index + per-tool pages match manifest
+        shell: pwsh
+        run: |
+          pwsh -File scripts/Generate-PermissionsIndex.ps1 -CheckOnly
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::PERMISSIONS.md INDEX section is stale or a per-tool page is missing under docs/consumer/permissions/."
+            Write-Host "::error::Run 'pwsh -File scripts/Generate-PermissionsIndex.ps1' and commit the result."
+            exit 1
+          }
