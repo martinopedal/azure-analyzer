@@ -289,21 +289,21 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       appSettings: [
-        { name: 'AzureWebJobsStorage'; value: baseStorageConnStr }
-        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'; value: baseStorageConnStr }
-        { name: 'WEBSITE_CONTENTSHARE'; value: toLower(appName) }
-        { name: 'FUNCTIONS_EXTENSION_VERSION'; value: '~4' }
-        { name: 'FUNCTIONS_WORKER_RUNTIME'; value: 'powershell' }
+        { name: 'AzureWebJobsStorage', value: baseStorageConnStr }
+        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING', value: baseStorageConnStr }
+        { name: 'WEBSITE_CONTENTSHARE', value: toLower(appName) }
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'powershell' }
         // User-assigned MI client ID so Az module picks up the right identity
-        { name: 'AZURE_CLIENT_ID'; value: userMI.properties.clientId }
+        { name: 'AZURE_CLIENT_ID', value: userMI.properties.clientId }
         // Scan targets
-        { name: 'AZURE_ANALYZER_SUBSCRIPTION_ID'; value: scanSubscriptionId }
-        { name: 'AZURE_ANALYZER_TENANT_ID'; value: scanTenantId }
+        { name: 'AZURE_ANALYZER_SUBSCRIPTION_ID', value: scanSubscriptionId }
+        { name: 'AZURE_ANALYZER_TENANT_ID', value: scanTenantId }
         // Log Analytics sink (empty = sink disabled)
-        { name: 'DCE_ENDPOINT'; value: deployLogAnalytics ? dce.properties.logsIngestion.endpoint : '' }
-        { name: 'DCR_IMMUTABLE_ID'; value: deployLogAnalytics ? dcr.properties.immutableId : '' }
-        { name: 'FINDINGS_STREAM'; value: 'Custom-AzureAnalyzerFindings' }
-        { name: 'ENTITIES_STREAM'; value: 'Custom-AzureAnalyzerEntities' }
+        { name: 'DCE_ENDPOINT', value: deployLogAnalytics ? dce.properties.logsIngestion.endpoint : '' }
+        { name: 'DCR_IMMUTABLE_ID', value: deployLogAnalytics ? dcr.properties.immutableId : '' }
+        { name: 'FINDINGS_STREAM', value: 'Custom-AzureAnalyzerFindings' }
+        { name: 'ENTITIES_STREAM', value: 'Custom-AzureAnalyzerEntities' }
       ]
     }
   }
