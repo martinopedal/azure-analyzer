@@ -76,3 +76,4 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Brief merged to `decisions.md`. Schema 2.2 contract locked (#299). Per-tool ETL issues filed: #311 (Trivy), #312 (Infracost), #313 (Scorecard).
 - Scorecard severity inversion bug (#313): `-1` errored → Info, `0` true failure → Critical. Currently both → High.
 - Trivy misconfig/secret scan types currently disabled (`--scanners vuln` only) — enabling them unlocks two entire finding categories.
+- Manifest-only tool registration still needs full docs freshness updates (`README.md`, `CHANGELOG.md`, permissions page, generated tool catalogs/index), or docs-check and Pester generator tests will fail even if code is unchanged.

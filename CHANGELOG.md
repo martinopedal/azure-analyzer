@@ -31,10 +31,12 @@ All notable changes to azure-analyzer will be documented here.
 - docs(reports): refreshed sample HTML and Markdown reports with new design (heat map, tool coverage grid, top risks panel, dark mode); linked from README. The new samples are the locked design spec; generator alignment is tracked separately in #295 (HTML), #296 (MD), #297 (exec dashboard) and #298 (interactive identity graph).
 - docs(reports): integrated Iris/Atlas/Sage research into the design spec - colored framework badges (CIS / NIST / MITRE / EIDSCA / eIDAS2 / SOC 2 / ISO / MCSB / CAF / WAF), tool-native rule IDs in each row (AZQR.NET.001, EIDSCA.AF01, etc.), structured evidence panel with per-tool docs link, and decision drop at `.squad/decisions/inbox/sentinel-mockup-integration-2026-04-21.md` ratifying the single-page-scroll + sticky-anchor-pills architecture (no JS tabs).
 - docs(schema): planned the additive Schema 2.2 contract (`Frameworks`, `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `MitreTactics`, `MitreTechniques`, `EntityRefs`, `ToolVersion` on `New-FindingRow`) so the renderer never has to fabricate placeholders for fields that wrappers currently drop. Canonical contract: `.squad/decisions/inbox/sentinel-schema-2.2-deltas-2026-04-21.md`. Schema umbrella tracked in #299; per-tool wrapper+normalizer ETL fixes filed as one issue per tool: #300 azqr, #301 PSRule, #302 Defender for Cloud, #303 Prowler, #304 Powerpipe, #305 Maester, #306 Kubescape, #307 AzGovViz, #308 WARA, #309 Sentinel-Incidents, #310 Sentinel-Coverage, #311 Trivy, #312 Infracost, #313 OpenSSF Scorecard.
+- chore(manifest): clarified Falco install-mode prerequisites in the manifest (`-InstallFalco` requires `helm` + `kubectl` on PATH) while keeping query-mode `Az.ResourceGraph` as default.
 
 ### Added
 
 - feat(reports): framework x tool coverage matrix with click-to-filter (closes #230)
+- feat(manifest): registered `azure-quota` (Azure Quota Reports) in `tools/tool-manifest.json` with Azure CLI install metadata and report taxonomy (`Reliability` / `Capacity`) as foundation for #322-#325.
 - feat: Application Insights perf wrapper (slow requests + dependency failures + exception rate via KQL) (closes #237)
 - feat(reports): collapsible Tool/Category/Rule tree with persisted expand state and severity-strip integration (closes #229)
 - **K8s wrappers + orchestrator: `-KubeAuthMode` (Default | Kubelogin | WorkloadIdentity) for kubescape, falco, kube-bench (closes #236, #241, #242).**
@@ -51,6 +53,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 
 - docs: update README tool count to 27 to match current manifest (closes #235)
+- fix(manifest): corrected `alz-queries` upstream pointer to `martinopedal/alz-graph-queries` (repo + release API endpoint) to align with ARG query source of truth.
 - ci: improved CI failure watchdog error extraction to prioritize GitHub Actions annotations (`##[error]`, `::error::`) and fall back to broader exception/exit-code patterns so ci-failure issues include actionable first error lines.
 - fix(ci): prevent docs-check from re-firing + watchdog hash dedupe (closes #266)
 - fix(ci): regenerate tool catalog and permissions index after rapid parallel manifest merges; docs-check now prints manifest-projection diffs when catalog freshness fails (closes #278)

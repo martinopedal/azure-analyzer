@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 34.
+**Total tools registered:** 35.
 
 ## Registration matrix
 
@@ -26,6 +26,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `azgovviz` | AzGovViz | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `azqr` | Azure Quick Review | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `azure-cost` | Azure Cost (Consumption API) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure CAF |
+| `azure-quota` | Azure Quota Reports | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `bicep-iac` | Bicep IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
 | `copilot-triage` | Copilot AI Triage | enrichment | cli | repository | Disabled | 0 | windows, macos, linux | - |
 | `defender-for-cloud` | Microsoft Defender for Cloud | enrichment | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF, SOC2, PCI-DSS |
@@ -65,6 +66,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `azgovviz` | `Normalize-AzGovViz` | script | `modules/Invoke-AzGovViz.ps1` | ManagementGroupId |
 | `azqr` | `Normalize-Azqr` | script | `modules/Invoke-Azqr.ps1` | SubscriptionId |
 | `azure-cost` | `Normalize-AzureCost` | script | `modules/Invoke-AzureCost.ps1` | SubscriptionId |
+| `azure-quota` | `Normalize-AzureQuotaReports` | script | `modules/Invoke-AzureQuotaReports.ps1` | SubscriptionId |
 | `bicep-iac` | `Normalize-IaCBicep` | script | `modules/Invoke-IaCBicep.ps1` | - |
 | `copilot-triage` | `` | script | `modules/Invoke-CopilotTriage.ps1` | - |
 | `defender-for-cloud` | `Normalize-DefenderForCloud` | script | `modules/Invoke-DefenderForCloud.ps1` | SubscriptionId |
@@ -99,11 +101,12 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `aks-karpenter-cost` | psmodule | n/a | `#00695c` | 4 |
 | `aks-rightsizing` | psmodule | n/a | `#2e7d32` | 4 |
-| `alz-queries` | psmodule | Azure/Azure-Landing-Zones-Library @ HEAD | `#e65100` | 1 |
+| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ HEAD | `#e65100` | 1 |
 | `appinsights` | psmodule | n/a | `#00838f` | 4 |
 | `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ HEAD | `#00838f` | 1 |
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |
+| `azure-quota` | cli ("az") | martinopedal/azure-quota-reports | `#455a64` | 4 |
 | `bicep-iac` | cli ("bicep") | Azure/bicep @ latest | `#0d47a1` | 7 |
 | `copilot-triage` | none | n/a | `#6a1b9a` | 8 |
 | `defender-for-cloud` | psmodule | n/a | `#0078d4` | 4 |
