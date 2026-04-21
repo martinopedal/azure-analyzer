@@ -1,12 +1,14 @@
 {
   "items": [
     {
+      "apiVersion": "karpenter.sh/v1beta1",
       "metadata": { "name": "default" },
       "spec": {
         "consolidation": { "enabled": false }
       }
     },
     {
+      "apiVersion": "karpenter.sh/v1beta1",
       "metadata": { "name": "spot" },
       "spec": {
         "consolidation": { "enabled": true },

@@ -74,6 +74,12 @@ Describe 'Invoke-AksKarpenterCost' {
             param([string] $Command, [string[]] $Arguments, [int] $TimeoutSec)
             if ($Command -eq 'kubectl') {
                 $global:KubectlCalls++
+                if (($Arguments -join ' ') -match 'version') {
+                    return [PSCustomObject]@{
+                        ExitCode = 0
+                        Output   = "clientVersion:`n  gitVersion: v1.31.0"
+                    }
+                }
                 $fixturePath = Join-Path $global:AaTestRepoRoot 'tests' 'fixtures' 'aks-karpenter-cost' 'kubectl-provisioners.json'
                 $body = Get-Content $fixturePath -Raw
                 return [PSCustomObject]@{ ExitCode = 0; Output = $body }
@@ -126,6 +132,15 @@ Describe 'Invoke-AksKarpenterCost' {
             $cost = $result.Findings | Where-Object { $_.RuleId -eq 'aks.node-cost-rollup' } | Select-Object -First 1
             $cost.NodeCount | Should -Be 5
             $cost.NodeHours | Should -Be 840.0
+            $cost.Pillar | Should -Be 'Cost Optimization'
+            $cost.Impact | Should -Be 'High'
+            $cost.Effort | Should -Be 'Low'
+            $cost.BaselineTags | Should -Contain 'Karpenter-NodeHours'
+            $cost.BaselineTags | Should -Contain 'RBAC-Reader'
+            $cost.ScoreDelta | Should -Be 840.0
+            $cost.DeepLinkUrl | Should -Match 'Microsoft_Azure_ContainerService'
+            @($cost.EntityRefs) | Should -Contain $global:AaTestClusterId
+            @($cost.EvidenceUris).Count | Should -BeGreaterThan 0
         }
 
         It 'passes LookbackDays into generated KQL' {
@@ -175,6 +190,8 @@ Describe 'Invoke-AksKarpenterCost' {
                 @($result.Findings | Where-Object { $_.RuleId -eq 'karpenter.consolidation-disabled' }).Count | Should -Be 1
                 @($result.Findings | Where-Object { $_.RuleId -eq 'karpenter.no-node-limit' }).Count          | Should -Be 1
                 @($result.Findings | Where-Object { $_.RuleId -eq 'karpenter.over-provisioned' }).Count       | Should -BeGreaterThan 0
+                $result.ToolVersion | Should -Match 'kubectl=v1.31.0'
+                $result.ToolVersion | Should -Match 'karpenter='
                 $global:KubectlCalls  | Should -BeGreaterThan 0
                 $global:KubeAuthCalls | Should -Be 1
             } finally {
