@@ -106,6 +106,46 @@ function New-Sparkline {
     return "<svg width='$Width' height='$Height' viewBox='0 0 $Width $Height' xmlns='http://www.w3.org/2000/svg'><polyline points='$polyline' fill='none' stroke='$Color' stroke-width='1.6'/><circle cx='$lastX' cy='$lastY' r='2.5' fill='$Color'/></svg>"
 }
 
+function Get-FrameworkBadgeClass([string] $Name) {
+    if (-not $Name) { return 'fw-default' }
+    $n = $Name.ToLowerInvariant()
+    switch -Regex ($n) {
+        'cis'        { return 'fw-cis' }
+        'nist'       { return 'fw-nist' }
+        'mitre'      { return 'fw-mitre' }
+        'eidsca'     { return 'fw-eidsca' }
+        'eidas'      { return 'fw-eidas' }
+        'soc'        { return 'fw-soc' }
+        'iso'        { return 'fw-iso' }
+        'mcsb'       { return 'fw-mcsb' }
+        'caf'        { return 'fw-caf' }
+        'waf'        { return 'fw-waf' }
+        'cisa'       { return 'fw-cisa' }
+        'orca'       { return 'fw-orca' }
+        default      { return 'fw-default' }
+    }
+}
+
+# Schema 2.2 (#299) conditional reader. The optional Frameworks field is a
+# [hashtable[]] with at least a 'kind' key (e.g. CIS, NIST, MCSB). This helper
+# extracts unique kind names across all findings; returns @() if no finding
+# carries the field, so legacy results (Schema <= 2.1) render unchanged.
+function Get-FrameworkKindsFromFindings([object[]] $Findings) {
+    $kinds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($f in $Findings) {
+        if (-not $f -or -not $f.PSObject.Properties['Frameworks']) { continue }
+        foreach ($fw in @($f.Frameworks)) {
+            if (-not $fw) { continue }
+            $kind = $null
+            if ($fw -is [hashtable] -and $fw.ContainsKey('kind')) { $kind = [string]$fw['kind'] }
+            elseif ($fw.PSObject.Properties['kind']) { $kind = [string]$fw.kind }
+            elseif ($fw.PSObject.Properties['Kind']) { $kind = [string]$fw.Kind }
+            if ($kind) { [void]$kinds.Add($kind.Trim()) }
+        }
+    }
+    return @($kinds | Sort-Object)
+}
+
 function Format-SignedDelta([double] $Val, [string] $Suffix = '') {
     if ($Val -gt 0) { return "+{0}{1}" -f $Val, $Suffix }
     if ($Val -lt 0) { return "{0}{1}"  -f $Val, $Suffix }
@@ -425,9 +465,10 @@ function Get-ExecDashboardBody {
     if (-not $wafTilesHtml) { $wafTilesHtml = "<div class='empty'>WAF mappings not loaded.</div>" }
 
     $frameworkTableRows = ($Model.FrameworkRows | ForEach-Object {
+        $fwClass = Get-FrameworkBadgeClass $_.DisplayName
         @"
     <tr>
-      <td>$(_ExecHE $_.DisplayName) <span class="muted">v$(_ExecHE $_.Version)</span></td>
+      <td><span class="fw-chip $fwClass">$(_ExecHE $_.DisplayName)</span> <span class="muted">v$(_ExecHE $_.Version)</span></td>
       <td>$($_.ControlsHit) / $($_.ControlsTotal)</td>
       <td><span class="cov cov-$($_.Status)">$($_.PercentCovered)%</span></td>
     </tr>
@@ -494,7 +535,40 @@ function Get-ExecDashboardBody {
     # Body fragment - the contents of <main> from the standalone dashboard.
     # When -Embedded, the caller wraps this in its own panel; when standalone,
     # New-ExecDashboard.ps1 wraps with <header>/<main>/<footer>.
+    # Top severity-count KPI tiles - same primitive as main report's .sev-strip.
+    $sevTilesHtml = ($severitiesForTrend | ForEach-Object {
+        $cls = switch ($_) {
+            'Critical' { 'kpi-crit' }
+            'High'     { 'kpi-high' }
+            'Medium'   { 'kpi-med' }
+            'Low'      { 'kpi-low' }
+            default    { 'kpi-info' }
+        }
+        $n = if ($Model.CurrentSev[$_]) { [int]$Model.CurrentSev[$_] } else { 0 }
+        @"
+    <div class="kpi-tile $cls" title="$_ non-compliant findings">
+      <span class="n">$n</span>
+      <span class="l">$_</span>
+    </div>
+"@
+    }) -join ''
+
+    # Schema 2.2 (#299) conditional: if any finding carries Frameworks[],
+    # render a framework chip strip. Absent => omitted entirely (graceful
+    # degradation; never fabricate).
+    $frameworkKinds = @(Get-FrameworkKindsFromFindings $Model.Findings)
+    $fwStripHtml = ''
+    if (@($frameworkKinds).Count -gt 0) {
+        $chips = ($frameworkKinds | ForEach-Object {
+            $cls = Get-FrameworkBadgeClass $_
+            "<span class='fw-chip $cls'>$(_ExecHE $_)</span>"
+        }) -join ''
+        $fwStripHtml = "<div class='fw-strip'><span class='muted'>Frameworks evaluated:</span>$chips</div>"
+    }
+
     $body = @"
+  <div class="kpi-strip">$sevTilesHtml</div>
+  $fwStripHtml
   <div class="grid grid-top">
     <div class="card">
       <h2>Compliance score</h2>
@@ -569,79 +643,126 @@ function Get-ExecDashboardCss {
     [CmdletBinding()]
     param ([string] $Scope = '')
 
+    # Design tokens harmonized with samples/sample-report.html (issue #297).
+    # Same severity palette (--crit/--high/--med/--low/--info/--pass), framework
+    # badge palette (.fw-*), surface/border/text tokens, radii, shadows, fonts,
+    # and dark-mode variant. Class names match the legacy ExecDashboard surface
+    # so existing tests/selectors keep working; only the underlying tokens move.
     $css = @'
-* { box-sizing: border-box; }
-body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f3f4f6; color: #1f2328; }
-header { background: #0b1220; color: #fff; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center; }
-header h1 { margin: 0; font-size: 20px; font-weight: 600; }
-header .meta { font-size: 12px; opacity: 0.85; }
-main { padding: 20px 28px; max-width: 1400px; margin: 0 auto; }
-.grid { display: grid; gap: 16px; }
-.grid-top { grid-template-columns: minmax(280px, 1fr) 2fr; }
-.grid-mid { grid-template-columns: 1fr 1fr; }
-.grid-bot { grid-template-columns: 1.2fr 1fr 1fr; }
-.card { background: #fff; border-radius: 8px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
-.card h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #57606a; font-weight: 600; }
-.score { display: flex; align-items: baseline; gap: 12px; }
-.score .num { font-size: 56px; font-weight: 700; color: #0b1220; line-height: 1; }
-.score .pct { font-size: 24px; color: #57606a; }
-.pct-delta { font-size: 13px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
-.delta-up   { background: #dcfce7; color: #14532d; }
-.delta-down { background: #fee2e2; color: #7f1d1d; }
-.muted { color: #6b7280; font-size: 12px; }
-.spark-row { display: grid; grid-template-columns: 70px 130px 50px; align-items: center; padding: 4px 0; font-size: 13px; }
-.spark-label { font-weight: 600; }
-.spark-val { text-align: right; color: #1f2328; font-variant-numeric: tabular-nums; }
-.spark-na { color: #9ca3af; font-size: 11px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; color: #57606a; font-weight: 600; }
-td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
-td.ridcol { font-family: ui-monospace, Consolas, monospace; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-td.src { color: #57606a; font-size: 11px; }
-td.empty, .empty { color: #9ca3af; font-style: italic; padding: 12px; }
-.sev { padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; display: inline-block; }
-.sev-critical { background: #a80000; }
-.sev-high { background: #d83b01; }
-.sev-medium { background: #ca5010; }
-.sev-low { background: #107c10; }
-.sev-info { background: #6b7280; }
-.cov { padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
-.cov-green  { background: #107c10; }
-.cov-yellow { background: #ca5010; }
-.cov-red    { background: #a80000; }
-.sub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
-.sub-tile { padding: 10px 12px; border-radius: 6px; border-left: 4px solid #ccc; background: #f9fafb; }
-.sub-tile.sub-red   { border-left-color: #a80000; background: #fef2f2; }
-.sub-tile.sub-amber { border-left-color: #d97706; background: #fff7ed; }
-.sub-tile.sub-green { border-left-color: #107c10; background: #f0fdf4; }
-.sub-id { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #1f2328; }
-.sub-counts { font-size: 11px; margin-top: 4px; display: flex; gap: 8px; }
-.sub-counts .cnt-c { color: #a80000; font-weight: 600; }
-.sub-counts .cnt-h { color: #d83b01; font-weight: 600; }
-.sub-counts .cnt-n { color: #57606a; }
-.waf-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-.waf-tile { padding: 12px; border-radius: 6px; background: #f9fafb; border-top: 4px solid #ccc; text-align: center; }
-.waf-tile.waf-red   { background: #fef2f2; }
-.waf-tile.waf-amber { background: #fff7ed; }
-.waf-tile.waf-green { background: #f0fdf4; }
-.waf-name { font-size: 11px; font-weight: 600; color: #57606a; text-transform: uppercase; }
-.waf-num  { font-size: 28px; font-weight: 700; color: #1f2328; margin: 4px 0; }
-.waf-sub  { font-size: 10px; color: #6b7280; }
-.waf-trend { font-size: 16px; vertical-align: middle; margin-left: 4px; }
-.trend-up   { color: #1a7f37; }
-.trend-down { color: #cf222e; }
-.trend-flat { color: #6b7280; }
-.card-sub { margin: -4px 0 8px; }
-.net-row { display: flex; gap: 14px; align-items: center; font-size: 13px; padding: 4px 0; }
-.net-new { color: #a80000; font-weight: 600; }
-.net-res { color: #107c10; font-weight: 600; }
-.net-net { color: #1f2328; font-weight: 600; }
-.tool-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin: 2px 4px 2px 0; }
-.tool-ok    { background: #dcfce7; color: #14532d; }
-.tool-skip  { background: #f3f4f6; color: #57606a; }
-.tool-fail  { background: #fee2e2; color: #7f1d1d; }
-.tool-other { background: #fef9c3; color: #854d0e; }
-footer { text-align: center; color: #6b7280; font-size: 11px; padding: 16px; }
+:root{
+  --bg:#f7f8fa;--surface:#ffffff;--surface-2:#f1f3f6;--border:#e3e6eb;--border-strong:#cdd2da;
+  --text:#0f172a;--text-muted:#475569;--text-faint:#64748b;
+  --brand:#0b5fff;--brand-ink:#003fb3;--accent:#0ea5e9;
+  --crit:#7f1d1d;--high:#b91c1c;--med:#b45309;--low:#a16207;--info:#475569;
+  --crit-bg:#fef2f2;--high-bg:#fee2e2;--med-bg:#fef3c7;--low-bg:#fefce8;--info-bg:#f1f5f9;
+  --pass:#15803d;--pass-bg:#dcfce7;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);
+  --shadow:0 4px 12px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04);
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;
+  --mono:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace;
+}
+[data-theme="dark"]{
+  --bg:#0b1220;--surface:#111a2e;--surface-2:#172238;--border:#243049;--border-strong:#324264;
+  --text:#e8edf6;--text-muted:#9aa7bf;--text-faint:#7a8aa6;
+  --brand:#3b82f6;--brand-ink:#60a5fa;--accent:#22d3ee;
+  --crit:#f87171;--high:#fb923c;--med:#fbbf24;--low:#facc15;--info:#94a3b8;
+  --crit-bg:#3a1212;--high-bg:#3a1f10;--med-bg:#3a2a0a;--low-bg:#332a0a;--info-bg:#1e293b;
+  --pass:#4ade80;--pass-bg:#0f2a1a;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:var(--font);font-size:14px;line-height:1.5;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+header{position:sticky;top:0;z-index:50;background:var(--surface);color:var(--text);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em}
+header .meta{font-size:12px;color:var(--text-faint)}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text-muted);cursor:pointer;font:inherit}
+.theme-btn:hover{color:var(--text);border-color:var(--border-strong)}
+main{padding:20px 28px;max-width:1440px;margin:0 auto}
+.grid{display:grid;gap:16px}
+.grid-top{grid-template-columns:minmax(280px,1fr) 2fr}
+.grid-mid{grid-template-columns:1fr 1fr}
+.grid-bot{grid-template-columns:1.2fr 1fr 1fr}
+@media(max-width:980px){.grid-top,.grid-mid,.grid-bot{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)}
+.card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600}
+.score{display:flex;align-items:baseline;gap:12px}
+.score .num{font-size:56px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.02em}
+.score .pct{font-size:24px;color:var(--text-muted)}
+.pct-delta{font-size:13px;padding:2px 8px;border-radius:12px;font-weight:600}
+.delta-up{background:var(--pass-bg);color:var(--pass)}
+.delta-down{background:var(--high-bg);color:var(--high)}
+.muted{color:var(--text-muted);font-size:12px}
+.kpi-strip{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.kpi-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;padding:8px 12px;border-radius:8px;color:#fff;font-weight:600;box-shadow:var(--shadow-sm)}
+.kpi-tile .n{font-size:18px;line-height:1}
+.kpi-tile .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;opacity:.95}
+.kpi-tile.kpi-crit{background:var(--crit)}
+.kpi-tile.kpi-high{background:var(--high)}
+.kpi-tile.kpi-med{background:var(--med)}
+.kpi-tile.kpi-low{background:var(--low)}
+.kpi-tile.kpi-info{background:var(--info)}
+.fw-strip{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 16px}
+.fw-strip .muted{align-self:center;margin-right:4px}
+.spark-row{display:grid;grid-template-columns:70px 130px 50px;align-items:center;padding:4px 0;font-size:13px}
+.spark-label{font-weight:600}
+.spark-val{text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
+.spark-na{color:var(--text-faint);font-size:11px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text)}
+td.ridcol{font-family:var(--mono);max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.src{color:var(--text-faint);font-size:11px}
+td.empty,.empty{color:var(--text-faint);font-style:italic;padding:12px}
+.sev{padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;display:inline-block;line-height:1.5}
+.sev-critical{background:var(--crit)}
+.sev-high{background:var(--high)}
+.sev-medium{background:var(--med)}
+.sev-low{background:var(--low)}
+.sev-info{background:var(--info)}
+.cov{padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff}
+.cov-green{background:var(--pass)}
+.cov-yellow{background:var(--med)}
+.cov-red{background:var(--crit)}
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.sub-tile{padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);border-left:4px solid var(--border-strong);background:var(--surface)}
+.sub-tile.sub-red{border-left-color:var(--crit);background:var(--crit-bg)}
+.sub-tile.sub-amber{border-left-color:var(--med);background:var(--med-bg)}
+.sub-tile.sub-green{border-left-color:var(--pass);background:var(--pass-bg)}
+.sub-id{font-family:var(--mono);font-size:11px;color:var(--text)}
+.sub-counts{font-size:11px;margin-top:4px;display:flex;gap:8px}
+.sub-counts .cnt-c{color:var(--crit);font-weight:600}
+.sub-counts .cnt-h{color:var(--high);font-weight:600}
+.sub-counts .cnt-n{color:var(--text-muted)}
+.waf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.waf-tile{padding:12px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);border-top:4px solid var(--border-strong);text-align:center}
+.waf-tile.waf-red{background:var(--crit-bg)}
+.waf-tile.waf-amber{background:var(--med-bg)}
+.waf-tile.waf-green{background:var(--pass-bg)}
+.waf-name{font-size:11px;font-weight:600;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}
+.waf-num{font-size:28px;font-weight:700;color:var(--text);margin:4px 0;letter-spacing:-.02em}
+.waf-sub{font-size:10px;color:var(--text-muted)}
+.waf-trend{font-size:16px;vertical-align:middle;margin-left:4px}
+.trend-up{color:var(--pass)}
+.trend-down{color:var(--crit)}
+.trend-flat{color:var(--text-muted)}
+.card-sub{margin:-4px 0 8px}
+.net-row{display:flex;gap:14px;align-items:center;font-size:13px;padding:4px 0;flex-wrap:wrap}
+.net-new{color:var(--crit);font-weight:600}
+.net-res{color:var(--pass);font-weight:600}
+.net-net{color:var(--text);font-weight:600}
+.tool-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;margin:2px 4px 2px 0;border:1px solid transparent}
+.tool-ok{background:var(--pass-bg);color:var(--pass);border-color:var(--pass)}
+.tool-skip{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
+.tool-fail{background:var(--high-bg);color:var(--high);border-color:var(--high)}
+.tool-other{background:var(--low-bg);color:var(--low);border-color:var(--low)}
+.fw-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;color:#fff;line-height:1.5;margin:1px 2px}
+.fw-cis{background:#d97706}.fw-nist{background:#374151}.fw-mitre{background:#b91c1c}
+.fw-eidsca{background:#1f6feb}.fw-eidas{background:#7c3aed}.fw-soc{background:#0e7490}
+.fw-iso{background:#0f766e}.fw-mcsb{background:#005a9e}.fw-caf{background:#1e3a8a}
+.fw-waf{background:#3a7d0a}.fw-cisa{background:#0f766e}.fw-orca{background:#0891b2}
+.fw-default{background:#475569}
+.mitre-chip{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:10.5px;font-family:var(--mono);background:var(--high-bg);color:var(--high);border:1px solid var(--high);margin:1px 2px}
+footer{text-align:center;color:var(--text-faint);font-size:11px;padding:16px}
 '@
 
     if (-not $Scope) { return $css }
@@ -714,9 +835,10 @@ function Get-ExecDashboardHtml {
 
     $html = @"
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>azure-analyzer - Executive Dashboard</title>
 <style>
 $css
@@ -725,12 +847,32 @@ $css
 <body>
 <header>
   <h1>azure-analyzer - Executive Dashboard</h1>
-  <div class="meta">$date $([char]0x00b7) history: $historyCount run(s)</div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="meta">$date $([char]0x00b7) history: $historyCount run(s)</div>
+    <button class="theme-btn" id="themeToggle" type="button" title="Toggle light/dark theme" aria-label="Toggle theme">$([char]0x263D)</button>
+  </div>
 </header>
 <main>
 $body
 </main>
-<footer>azure-analyzer $([char]0x00b7) executive dashboard v1 $([char]0x00b7) single self-contained file (no external deps)</footer>
+<footer>azure-analyzer $([char]0x00b7) executive dashboard v2 $([char]0x00b7) single self-contained file (no external deps) $([char]0x00b7) design tokens harmonized with main report (#297)</footer>
+<script>
+(function(){
+  var KEY='aa-theme';
+  var html=document.documentElement;
+  var stored=null;
+  try{stored=localStorage.getItem(KEY);}catch(e){}
+  if(stored==='dark'||stored==='light'){html.setAttribute('data-theme',stored);}
+  var btn=document.getElementById('themeToggle');
+  if(btn){
+    btn.addEventListener('click',function(){
+      var cur=html.getAttribute('data-theme')==='dark'?'light':'dark';
+      html.setAttribute('data-theme',cur);
+      try{localStorage.setItem(KEY,cur);}catch(e){}
+    });
+  }
+})();
+</script>
 </body>
 </html>
 "@
