@@ -26,4 +26,23 @@ Describe 'Normalize-AdoConsumption' {
         $rows = @(Normalize-AdoConsumption -ToolResult $script:Fixture)
         @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.RuleId) }).Count | Should -Be 0
     }
+
+    It 'maps schema 2.2 governance metadata' {
+        $rows = @(Normalize-AdoConsumption -ToolResult $script:Fixture)
+        $share = $rows | Where-Object RuleId -eq 'Consumption-MinuteShareHigh' | Select-Object -First 1
+        $regression = $rows | Where-Object RuleId -eq 'Consumption-DurationRegression' | Select-Object -First 1
+        $fail = $rows | Where-Object RuleId -eq 'Consumption-FailRateHigh' | Select-Object -First 1
+
+        $share.Pillar | Should -Be 'Cost Optimization'
+        $share.Impact | Should -Be 'High'
+        $share.Effort | Should -Be 'Low'
+        $share.DeepLinkUrl | Should -Match '_a=analytics'
+        $share.EvidenceUris | Should -Contain 'https://dev.azure.com/contoso/payments/_build'
+        $share.BaselineTags | Should -Contain 'Consumption-MinuteShareHigh'
+        $share.EntityRefs | Should -Contain 'AdoProject/contoso/payments'
+        $share.ToolVersion | Should -Be '2.58.0'
+
+        $regression.ScoreDelta | Should -Be 47.5
+        $fail.Pillar | Should -Be 'Operational Excellence'
+    }
 }

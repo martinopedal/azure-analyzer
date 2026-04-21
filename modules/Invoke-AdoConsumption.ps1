@@ -156,6 +156,38 @@ function Get-BuildDurationMinutes {
     }
 }
 
+function Get-AdoToolVersion {
+    try {
+        if (-not (Get-Command az -ErrorAction SilentlyContinue)) { return '' }
+        $raw = az devops --version 2>&1
+        if ($LASTEXITCODE -ne 0) { return '' }
+        $text = if ($raw -is [array]) { ($raw -join ' ') } else { [string]$raw }
+        $match = [regex]::Match($text, '(\d+\.\d+\.\d+(?:[-+][A-Za-z0-9\.-]+)?)')
+        if ($match.Success) { return $match.Groups[1].Value }
+        return $text.Trim()
+    } catch {
+        return ''
+    }
+}
+
+function Resolve-ProjectTier {
+    param ([double]$SharePercent)
+    if ($SharePercent -gt 50.0) { return 'Tier1' }
+    if ($SharePercent -gt 20.0) { return 'Tier2' }
+    return 'Tier3'
+}
+
+function Resolve-Impact {
+    param (
+        [double]$FailRate,
+        [double]$SharePercent,
+        [double]$BudgetPercent
+    )
+    if ($FailRate -gt 25.0 -or $SharePercent -gt 50.0 -or $BudgetPercent -gt 150.0) { return 'High' }
+    if ($FailRate -gt 10.0 -or $SharePercent -gt 30.0 -or $BudgetPercent -gt 110.0) { return 'Medium' }
+    return 'Low'
+}
+
 $pat = Resolve-AdoPat -Explicit $AdoPat
 if (-not $pat) {
     return [PSCustomObject]@{
@@ -173,6 +205,7 @@ $headers = @{ Authorization = "Basic $base64" }
 
 try {
     $sinceUtc = (Get-Date).ToUniversalTime().AddDays(-1 * $DaysBack)
+    $toolVersion = Get-AdoToolVersion
     $projects = @()
     if ($Project) {
         $projects = @([PSCustomObject]@{ name = $Project })
@@ -201,6 +234,8 @@ try {
         $midpointUtc = $sinceUtc.AddTicks([int64](($nowUtc - $sinceUtc).Ticks / 2))
         $firstHalf = [System.Collections.Generic.List[double]]::new()
         $secondHalf = [System.Collections.Generic.List[double]]::new()
+        $pipelineDefinitionIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+        $pipelineEvidenceUris = [System.Collections.Generic.List[string]]::new()
 
         foreach ($build in $builds) {
             $duration = Get-BuildDurationMinutes -Build $build
@@ -221,6 +256,16 @@ try {
                     continue
                 }
             }
+
+            $definitionId = ''
+            if ($build.PSObject.Properties['definition'] -and $build.definition -and $build.definition.PSObject.Properties['id'] -and $build.definition.id) {
+                $definitionId = [string]$build.definition.id
+            } elseif ($build.PSObject.Properties['definitionId'] -and $build.definitionId) {
+                $definitionId = [string]$build.definitionId
+            }
+            if (-not [string]::IsNullOrWhiteSpace($definitionId) -and $pipelineDefinitionIds.Add($definitionId)) {
+                $pipelineEvidenceUris.Add("https://dev.azure.com/$Organization/$projectName/_build?definitionId=$definitionId&view=results&_a=analytics") | Out-Null
+            }
         }
 
         $totalRuns = $builds.Count
@@ -237,6 +282,8 @@ try {
                 FirstAvg     = $firstAvg
                 SecondAvg    = $secondAvg
                 FailRate     = $failRate
+                DefinitionIds = @($pipelineDefinitionIds)
+                PipelineEvidenceUris = @($pipelineEvidenceUris)
             })
     }
 
@@ -245,14 +292,26 @@ try {
 
     foreach ($stat in $projectStats) {
         $projectId = "ado://$($Organization.ToLowerInvariant())/$($stat.Project.ToLowerInvariant())"
-        $learnMore = "https://dev.azure.com/$Organization/$($stat.Project)/_build"
+        $projectDashboard = "https://dev.azure.com/$Organization/$($stat.Project)/_build"
+        $projectAnalytics = "https://dev.azure.com/$Organization/$($stat.Project)/_build?view=results&_a=analytics"
+        $learnMore = $projectDashboard
         $sharePercent = if ($orgTotalMinutes -gt 0) { [math]::Round((100.0 * $stat.TotalMinutes / $orgTotalMinutes), 2) } else { 0.0 }
+        $projectTier = Resolve-ProjectTier -SharePercent $sharePercent
+        $baseEvidenceUris = @($projectDashboard, $projectAnalytics) + @($stat.PipelineEvidenceUris)
+        $entityRefs = [System.Collections.Generic.List[string]]::new()
+        $entityRefs.Add("AdoOrg/$Organization") | Out-Null
+        $entityRefs.Add("AdoProject/$Organization/$($stat.Project)") | Out-Null
+        foreach ($definitionId in @($stat.DefinitionIds)) {
+            if ([string]::IsNullOrWhiteSpace([string]$definitionId)) { continue }
+            $entityRefs.Add("AdoPipeline/$Organization/$($stat.Project)/$definitionId") | Out-Null
+        }
 
         if ($sharePercent -ge 40) {
+            $ruleId = 'Consumption-MinuteShareHigh'
             $findings.Add([PSCustomObject]@{
                     Id           = [guid]::NewGuid().ToString()
                     Source       = 'ado-consumption'
-                    RuleId       = 'ado.parallel-job-ratio'
+                    RuleId       = $ruleId
                     Category     = 'Cost'
                     Title        = "ADO project '$($stat.Project)' consumes a high share of org runner minutes"
                     Compliant    = $false
@@ -261,16 +320,25 @@ try {
                     Remediation  = 'Review agent pool usage, split heavy schedules, and optimize long-running jobs.'
                     ResourceId   = $projectId
                     LearnMoreUrl = $learnMore
+                    Pillar       = 'Cost Optimization'
+                    Impact       = Resolve-Impact -FailRate $stat.FailRate -SharePercent $sharePercent -BudgetPercent 0.0
+                    Effort       = 'Low'
+                    DeepLinkUrl  = $projectAnalytics
+                    EvidenceUris = @($baseEvidenceUris)
+                    BaselineTags = @($ruleId, "ProjectTier:$projectTier")
+                    EntityRefs   = @($entityRefs)
+                    ToolVersion  = $toolVersion
                     SchemaVersion = '1.0'
                 })
         }
 
         if ($stat.FirstAvg -gt 0 -and $stat.SecondAvg -gt ($stat.FirstAvg * 1.25)) {
             $regressionPct = [math]::Round((($stat.SecondAvg - $stat.FirstAvg) / $stat.FirstAvg) * 100.0, 2)
+            $ruleId = 'Consumption-DurationRegression'
             $findings.Add([PSCustomObject]@{
                     Id           = [guid]::NewGuid().ToString()
                     Source       = 'ado-consumption'
-                    RuleId       = 'ado.duration-regression'
+                    RuleId       = $ruleId
                     Category     = 'Cost'
                     Title        = "ADO project '$($stat.Project)' pipeline duration regressed"
                     Compliant    = $false
@@ -279,15 +347,25 @@ try {
                     Remediation  = 'Inspect recent pipeline changes, dependency updates, and queue bottlenecks.'
                     ResourceId   = $projectId
                     LearnMoreUrl = $learnMore
+                    Pillar       = 'Cost Optimization'
+                    Impact       = Resolve-Impact -FailRate $stat.FailRate -SharePercent $sharePercent -BudgetPercent 0.0
+                    Effort       = 'Low'
+                    DeepLinkUrl  = $projectAnalytics
+                    EvidenceUris = @($baseEvidenceUris)
+                    BaselineTags = @($ruleId, "ProjectTier:$projectTier")
+                    ScoreDelta   = [double]$regressionPct
+                    EntityRefs   = @($entityRefs)
+                    ToolVersion  = $toolVersion
                     SchemaVersion = '1.0'
                 })
         }
 
         if ($stat.TotalRuns -gt 0 -and $stat.FailRate -gt 10) {
+            $ruleId = 'Consumption-FailRateHigh'
             $findings.Add([PSCustomObject]@{
                     Id           = [guid]::NewGuid().ToString()
                     Source       = 'ado-consumption'
-                    RuleId       = 'ado.failed-pipeline-rate'
+                    RuleId       = $ruleId
                     Category     = 'Cost'
                     Title        = "ADO project '$($stat.Project)' failed pipeline rate is high"
                     Compliant    = $false
@@ -296,6 +374,14 @@ try {
                     Remediation  = 'Fix flaky tests and unstable deployment steps to reduce failed run waste.'
                     ResourceId   = $projectId
                     LearnMoreUrl = $learnMore
+                    Pillar       = 'Operational Excellence'
+                    Impact       = Resolve-Impact -FailRate $stat.FailRate -SharePercent $sharePercent -BudgetPercent 0.0
+                    Effort       = 'Low'
+                    DeepLinkUrl  = $projectAnalytics
+                    EvidenceUris = @($baseEvidenceUris)
+                    BaselineTags = @($ruleId, "ProjectTier:$projectTier")
+                    EntityRefs   = @($entityRefs)
+                    ToolVersion  = $toolVersion
                     SchemaVersion = '1.0'
                 })
         }
@@ -303,10 +389,13 @@ try {
         if ($PSBoundParameters.ContainsKey('MonthlyBudgetUsd') -and $MonthlyBudgetUsd -gt 0) {
             $estimatedSpend = [math]::Round(($stat.TotalMinutes * 0.008), 2)
             if ($estimatedSpend -gt $MonthlyBudgetUsd) {
+                $budgetVariance = [math]::Round(($estimatedSpend - $MonthlyBudgetUsd), 2)
+                $budgetPercent = [math]::Round(($estimatedSpend / $MonthlyBudgetUsd) * 100.0, 2)
+                $ruleId = 'Consumption-BudgetOverrun'
                 $findings.Add([PSCustomObject]@{
                         Id           = [guid]::NewGuid().ToString()
                         Source       = 'ado-consumption'
-                        RuleId       = 'ado.monthly-budget-exceeded'
+                        RuleId       = $ruleId
                         Category     = 'Cost'
                         Title        = "ADO project '$($stat.Project)' estimated pipeline spend exceeded budget"
                         Compliant    = $false
@@ -315,6 +404,15 @@ try {
                         Remediation  = 'Tune trigger volume, queue concurrency, and long-running stages.'
                         ResourceId   = $projectId
                         LearnMoreUrl = $learnMore
+                        Pillar       = 'Cost Optimization'
+                        Impact       = Resolve-Impact -FailRate $stat.FailRate -SharePercent $sharePercent -BudgetPercent $budgetPercent
+                        Effort       = 'Low'
+                        DeepLinkUrl  = $projectAnalytics
+                        EvidenceUris = @($baseEvidenceUris)
+                        BaselineTags = @($ruleId, "ProjectTier:$projectTier")
+                        ScoreDelta   = [double]$budgetVariance
+                        EntityRefs   = @($entityRefs)
+                        ToolVersion  = $toolVersion
                         SchemaVersion = '1.0'
                     })
             }
@@ -325,6 +423,7 @@ try {
         Source   = 'ado-consumption'
         Status   = 'Success'
         Message  = Remove-Credentials "Scanned $($projectStats.Count) project(s); produced $($findings.Count) ADO consumption finding(s)."
+        ToolVersion = $toolVersion
         Findings = @($findings)
     }
 } catch {

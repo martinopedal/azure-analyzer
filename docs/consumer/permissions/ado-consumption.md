@@ -5,6 +5,7 @@
 **Scope:** ado | **Provider:** ado
 
 The ADO consumption wrapper reads build run telemetry to detect cost and reliability regressions. It only performs GET operations against Azure DevOps REST APIs.
+Findings are emitted with Schema 2.2 cost-governance metadata (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`).
 
 ## Required PAT scopes
 
@@ -27,6 +28,7 @@ The ADO consumption wrapper reads build run telemetry to detect cost and reliabi
 - Project share of org runner-minute consumption.
 - Build duration regression greater than 25 percent.
 - Failed build run rate greater than 10 percent.
+- Optional budget overrun signal when `-MonthlyBudgetUsd` is supplied.
 
 ## What it does NOT do
 
