@@ -36,6 +36,59 @@ function ConvertTo-FinOpsSeverity {
     return 'Info'
 }
 
+function Resolve-FinOpsImpact {
+    param ([double] $EstimatedMonthlyCost)
+    if ($EstimatedMonthlyCost -gt 500) { return 'High' }
+    if ($EstimatedMonthlyCost -ge 100) { return 'Medium' }
+    return 'Low'
+}
+
+function Resolve-FinOpsEffort {
+    param (
+        [string] $DetectionCategory,
+        [string] $RuleId,
+        [string] $Title,
+        [string] $ResourceType
+    )
+
+    $text = ("$DetectionCategory $RuleId $Title $ResourceType").ToLowerInvariant()
+
+    if ($text -match 'stopped virtual machines|stopped vm|deallocated|idlevm|virtualmachines') { return 'Low' }
+    if ($text -match 'unattached|orphaned|orphaneddisk|managed disk|snapshot') { return 'Low' }
+    if ($text -match 'public ip|empty resource groups') { return 'Low' }
+    if ($text -match 'oversizedsku|appserviceplanidlecpu|app service plan|serverfarms|rightsize|sku') { return 'Medium' }
+    if ($text -match 'architecturalredesign|network controls|load balancer|networksecuritygroups|nsg') { return 'High' }
+    return 'Medium'
+}
+
+function Resolve-CostManagementDeepLink {
+    param (
+        [string] $SubscriptionId,
+        [string] $ResourceId
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SubscriptionId)) {
+        if ($ResourceId -match '/subscriptions/([^/]+)') { $SubscriptionId = [string]$Matches[1] }
+    }
+    if ([string]::IsNullOrWhiteSpace($SubscriptionId)) { return '' }
+
+    $scope = "/subscriptions/$SubscriptionId"
+    $scopeEncoded = [uri]::EscapeDataString($scope)
+    $base = "https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/costanalysis/openingScope/$scopeEncoded"
+    if ([string]::IsNullOrWhiteSpace($ResourceId)) { return $base }
+    return "${base}?resourceId=$([uri]::EscapeDataString($ResourceId))"
+}
+
+function Convert-ToRemediationSnippets {
+    param ([string] $Recommendation)
+
+    if ([string]::IsNullOrWhiteSpace($Recommendation)) { return @() }
+    return @(
+        @{ language = 'bash'; content = "# $Recommendation" },
+        @{ language = 'powershell'; content = "# $Recommendation" }
+    )
+}
+
 function Normalize-FinOpsSignals {
     [CmdletBinding()]
     param (
@@ -89,6 +142,32 @@ function Normalize-FinOpsSignals {
         $findingId = if ($f.PSObject.Properties['Id'] -and $f.Id) { [string]$f.Id } else { [guid]::NewGuid().ToString() }
         $title = if ($f.PSObject.Properties['Title'] -and $f.Title) { [string]$f.Title } else { 'FinOps idle resource signal' }
         $category = if ($f.PSObject.Properties['Category'] -and $f.Category) { [string]$f.Category } else { 'Cost' }
+        $resourceType = if ($f.PSObject.Properties['ResourceType'] -and $f.ResourceType) { [string]$f.ResourceType } else { '' }
+        $impact = Resolve-FinOpsImpact -EstimatedMonthlyCost $monthlyCost
+        $effort = Resolve-FinOpsEffort -DetectionCategory $detectionCategory -RuleId $ruleId -Title $title -ResourceType $resourceType
+        $deepLinkUrl = Resolve-CostManagementDeepLink -SubscriptionId $subId -ResourceId $rawId
+        $queryId = if ($f.PSObject.Properties['QueryId'] -and $f.QueryId) { [string]$f.QueryId } else { '' }
+        $queryEvidenceUrl = if ([string]::IsNullOrWhiteSpace($queryId)) {
+            'https://github.com/martinopedal/alz-graph-queries'
+        } else {
+            "https://github.com/martinopedal/alz-graph-queries/search?q=$([uri]::EscapeDataString($queryId))"
+        }
+        $evidenceUris = @($queryEvidenceUrl)
+        if (-not [string]::IsNullOrWhiteSpace($deepLinkUrl)) { $evidenceUris += $deepLinkUrl }
+        $recommendation = if ($f.PSObject.Properties['Recommendation'] -and $f.Recommendation) { [string]$f.Recommendation } else { $remediation }
+        $remediationSnippets = @(Convert-ToRemediationSnippets -Recommendation $recommendation)
+        [Nullable[double]]$scoreDelta = $null
+        if ($monthlyCost -gt 0) { $scoreDelta = [double]$monthlyCost }
+        $entityRefs = @()
+        if (-not [string]::IsNullOrWhiteSpace($subId)) { $entityRefs += $subId }
+        if (-not [string]::IsNullOrWhiteSpace($rawId)) { $entityRefs += $rawId }
+        $toolVersion = if ($f.PSObject.Properties['ToolVersion'] -and $f.ToolVersion) {
+            [string]$f.ToolVersion
+        } elseif ($ToolResult.PSObject.Properties['ToolVersion'] -and $ToolResult.ToolVersion) {
+            [string]$ToolResult.ToolVersion
+        } else {
+            ''
+        }
 
         $row = New-FindingRow -Id $findingId `
             -Source 'finops' -EntityId $canonicalId -EntityType 'AzureResource' `
@@ -96,14 +175,15 @@ function Normalize-FinOpsSignals {
             -Platform 'Azure' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl ([string]$f.LearnMoreUrl) -ResourceId $rawId `
-            -SubscriptionId $subId -ResourceGroup $rg
+            -SubscriptionId $subId -ResourceGroup $rg `
+            -RuleId $ruleId -Pillar 'Cost Optimization' -Impact $impact -Effort $effort `
+            -DeepLinkUrl $deepLinkUrl -RemediationSnippets $remediationSnippets `
+            -EvidenceUris $evidenceUris -ScoreDelta $scoreDelta -EntityRefs $entityRefs `
+            -ToolVersion $toolVersion
         if ($null -eq $row) { continue }
 
         $row | Add-Member -NotePropertyName MonthlyCost -NotePropertyValue $monthlyCost -Force
         $row | Add-Member -NotePropertyName Currency -NotePropertyValue $currency -Force
-        if (-not [string]::IsNullOrWhiteSpace($ruleId)) {
-            $row | Add-Member -NotePropertyName RuleId -NotePropertyValue $ruleId -Force
-        }
         if (-not [string]::IsNullOrWhiteSpace($detectionCategory)) {
             $row | Add-Member -NotePropertyName DetectionCategory -NotePropertyValue $detectionCategory -Force
         }
