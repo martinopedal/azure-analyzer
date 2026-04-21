@@ -106,3 +106,19 @@ No code changes in this phase. Pester baseline unchanged at 1349 passed / 5 skip
 - Empty repo variable values now fail with explicit `Missing/invalid: <NAME>` errors instead of string index exceptions.
 - GUID validation now runs against `.Value` with clear `Missing/invalid: <NAME> (expected GUID)` messaging for malformed values.
 - Validation run: `Invoke-Pester -Path .\tests -CI` passed at baseline `1369 passed / 0 failed / 5 skipped`.
+## 2026-04-21 - #297 ExecDashboard design-token harmonization (PR #342, merged 50bb48c)
+
+- Replaced ExecDashboard CSS with the shared design-token system locked in samples/sample-report.html: --crit/--high/--med/--low/--info/--pass severity palette, surface/border/text tokens, radii, shadows, font stack.
+- Added full [data-theme=dark] variant with persistent localStorage('aa-theme') toggle in the header (matches main report).
+- Mirrored the .fw-* framework badge palette (CIS/NIST/MITRE/EIDSCA/eIDAS/SOC/ISO/MCSB/CAF/WAF/CISA/ORCA/default) into the framework gap table.
+- Added top KPI severity strip (kpi-tile primitive) matching main report's .sev-strip.
+- Schema 2.2 (#299) conditional consumption: new Get-FrameworkKindsFromFindings helper renders an aggregate 'Frameworks evaluated' chip strip ONLY when wrappers emit the optional Frameworks[] field; legacy Schema <= 2.1 callers omit the strip entirely. No fabrication, no string parsing - the renderer-graceful-degradation contract holds.
+- Class-name back-compat preserved (sev-*, sub-*, waf-*, cov-*, tool-*) so the 1369-test baseline stayed green; only the underlying tokens moved.
+- Output remains a single self-contained HTML file (no external assets) and is sanitized through Remove-Credentials.
+- Files: modules/shared/ExecDashboardRender.ps1 (CSS rewrite + KPI strip + framework strip + theme toggle), CHANGELOG.md.
+- Validations: Pester 1369/1369 green locally; all PR checks (CI win/mac/ubuntu, CodeQL, Analyze actions, advisory-gate, Docs Check, markdown-link, SBOM, Permissions, install manifest, Tool catalog, redirect stub) green; Copilot review thread queue = empty (no comments produced).
+- Worktree removed; branch squad/297-exec-dashboard deleted.
+
+### 2026-04-22 — ETL Sprint Schema 2.2 Launch Complete
+
+**Sprint Summary:** 30 PRs merged (zero open). Schema 2.2 locked across 20+ normalizers. Pester 1495+ tests (1369 baseline → +126 extensions). HTML report null-crash regression fix #416 shipped launch-eve. All squad briefs merged to decisions.md. 15 follow-up ETL issues filed (#300–#313). Launch GO for 08:00 CET 2026-04-22.

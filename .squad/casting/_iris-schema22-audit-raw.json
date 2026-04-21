@@ -1,0 +1,559 @@
+[
+  {
+    "Normalizer": "Normalize-ADOConnections",
+    "Enabled": true,
+    "EnabledToolNames": "ado-connections",
+    "SecurityRelevant": false,
+    "Score": 8.8,
+    "MissingFields": [
+      "Frameworks"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AdoConsumption",
+    "Enabled": true,
+    "EnabledToolNames": "ado-consumption",
+    "SecurityRelevant": false,
+    "Score": 7.5,
+    "MissingFields": [
+      "Frameworks",
+      "RemediationSnippets"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-ADOPipelineCorrelator",
+    "Enabled": true,
+    "EnabledToolNames": "ado-pipeline-correlator",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-ADOPipelineSecurity",
+    "Enabled": true,
+    "EnabledToolNames": "ado-pipelines",
+    "SecurityRelevant": true,
+    "Score": 0.0,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "MitreTactics",
+      "MitreTechniques",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-ADORepoSecrets",
+    "Enabled": true,
+    "EnabledToolNames": "ado-repos-secrets",
+    "SecurityRelevant": true,
+    "Score": 0.0,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "MitreTactics",
+      "MitreTechniques",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AksKarpenterCost",
+    "Enabled": true,
+    "EnabledToolNames": "aks-karpenter-cost",
+    "SecurityRelevant": false,
+    "Score": 8.8,
+    "MissingFields": [
+      "Frameworks"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AksRightsizing",
+    "Enabled": true,
+    "EnabledToolNames": "aks-rightsizing",
+    "SecurityRelevant": false,
+    "Score": 8.8,
+    "MissingFields": [
+      "Frameworks"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AlzQueries",
+    "Enabled": true,
+    "EnabledToolNames": "alz-queries",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AppInsights",
+    "Enabled": true,
+    "EnabledToolNames": "appinsights",
+    "SecurityRelevant": false,
+    "Score": 7.5,
+    "MissingFields": [
+      "Frameworks",
+      "RemediationSnippets"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AzGovViz",
+    "Enabled": true,
+    "EnabledToolNames": "azgovviz",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Azqr",
+    "Enabled": true,
+    "EnabledToolNames": "azqr",
+    "SecurityRelevant": false,
+    "Score": 10.0,
+    "MissingFields": [],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AzureCost",
+    "Enabled": true,
+    "EnabledToolNames": "azure-cost",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 2
+  },
+  {
+    "Normalizer": "Normalize-AzureLoadTesting",
+    "Enabled": true,
+    "EnabledToolNames": "loadtesting",
+    "SecurityRelevant": false,
+    "Score": 7.5,
+    "MissingFields": [
+      "Frameworks",
+      "RemediationSnippets"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-AzureQuotaReports",
+    "Enabled": true,
+    "EnabledToolNames": "azure-quota",
+    "SecurityRelevant": false,
+    "Score": 6.2,
+    "MissingFields": [
+      "Frameworks",
+      "RemediationSnippets",
+      "BaselineTags"
+    ],
+    "NewFindingRowCalls": 2
+  },
+  {
+    "Normalizer": "Normalize-DefenderForCloud",
+    "Enabled": true,
+    "EnabledToolNames": "defender-for-cloud",
+    "SecurityRelevant": true,
+    "Score": 6.2,
+    "MissingFields": [
+      "RemediationSnippets",
+      "BaselineTags",
+      "EntityRefs"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Falco",
+    "Enabled": true,
+    "EnabledToolNames": "falco",
+    "SecurityRelevant": true,
+    "Score": 0.0,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "MitreTactics",
+      "MitreTechniques",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-FinOpsSignals",
+    "Enabled": true,
+    "EnabledToolNames": "finops",
+    "SecurityRelevant": false,
+    "Score": 7.5,
+    "MissingFields": [
+      "Frameworks",
+      "BaselineTags"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-GhActionsBilling",
+    "Enabled": true,
+    "EnabledToolNames": "gh-actions-billing",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Gitleaks",
+    "Enabled": true,
+    "EnabledToolNames": "gitleaks",
+    "SecurityRelevant": true,
+    "Score": 0.0,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "MitreTactics",
+      "MitreTechniques",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-IaCBicep",
+    "Enabled": true,
+    "EnabledToolNames": "bicep-iac",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-IaCTerraform",
+    "Enabled": true,
+    "EnabledToolNames": "terraform-iac",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-IdentityCorrelation",
+    "Enabled": true,
+    "EnabledToolNames": "identity-correlator",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 2
+  },
+  {
+    "Normalizer": "Normalize-IdentityGraphExpansion",
+    "Enabled": true,
+    "EnabledToolNames": "identity-graph-expansion",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Infracost",
+    "Enabled": true,
+    "EnabledToolNames": "infracost",
+    "SecurityRelevant": false,
+    "Score": 10.0,
+    "MissingFields": [],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-KubeBench",
+    "Enabled": true,
+    "EnabledToolNames": "kube-bench",
+    "SecurityRelevant": true,
+    "Score": 8.8,
+    "MissingFields": [
+      "MitreTactics",
+      "MitreTechniques",
+      "EvidenceUris",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Kubescape",
+    "Enabled": true,
+    "EnabledToolNames": "kubescape",
+    "SecurityRelevant": true,
+    "Score": 6.2,
+    "MissingFields": [
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EntityRefs",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Maester",
+    "Enabled": true,
+    "EnabledToolNames": "maester",
+    "SecurityRelevant": true,
+    "Score": 10.0,
+    "MissingFields": [
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Powerpipe",
+    "Enabled": true,
+    "EnabledToolNames": "powerpipe",
+    "SecurityRelevant": false,
+    "Score": 10.0,
+    "MissingFields": [],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Prowler",
+    "Enabled": true,
+    "EnabledToolNames": "prowler",
+    "SecurityRelevant": true,
+    "Score": 8.8,
+    "MissingFields": [
+      "EntityRefs",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-PSRule",
+    "Enabled": true,
+    "EnabledToolNames": "psrule",
+    "SecurityRelevant": false,
+    "Score": 8.8,
+    "MissingFields": [
+      "EvidenceUris",
+      "EntityRefs",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Scorecard",
+    "Enabled": true,
+    "EnabledToolNames": "scorecard",
+    "SecurityRelevant": true,
+    "Score": 7.5,
+    "MissingFields": [
+      "MitreTactics",
+      "MitreTechniques",
+      "EntityRefs",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-SentinelCoverage",
+    "Enabled": true,
+    "EnabledToolNames": "sentinel-coverage",
+    "SecurityRelevant": true,
+    "Score": 7.5,
+    "MissingFields": [
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-SentinelIncidents",
+    "Enabled": true,
+    "EnabledToolNames": "sentinel-incidents",
+    "SecurityRelevant": true,
+    "Score": 7.5,
+    "MissingFields": [
+      "RemediationSnippets",
+      "BaselineTags",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Trivy",
+    "Enabled": true,
+    "EnabledToolNames": "trivy",
+    "SecurityRelevant": true,
+    "Score": 8.8,
+    "MissingFields": [
+      "MitreTactics",
+      "MitreTechniques"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-WARA",
+    "Enabled": true,
+    "EnabledToolNames": "wara",
+    "SecurityRelevant": false,
+    "Score": 10.0,
+    "MissingFields": [
+      "EvidenceUris"
+    ],
+    "NewFindingRowCalls": 1
+  },
+  {
+    "Normalizer": "Normalize-Zizmor",
+    "Enabled": true,
+    "EnabledToolNames": "zizmor",
+    "SecurityRelevant": false,
+    "Score": 1.2,
+    "MissingFields": [
+      "Pillar",
+      "Frameworks",
+      "DeepLinkUrl",
+      "RemediationSnippets",
+      "EvidenceUris",
+      "BaselineTags",
+      "EntityRefs",
+      "ToolVersion",
+      "Impact",
+      "Effort"
+    ],
+    "NewFindingRowCalls": 1
+  }
+]

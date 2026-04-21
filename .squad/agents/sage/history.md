@@ -79,3 +79,15 @@
 - Pester baseline preserved: 1373/1373 pass (1369 + 4 new tests in `tests/shared/HtmlReport.Tests.ps1`).
 - Decision recorded at `.squad/decisions/inbox/sage-identity-graph.md`.
 
+### 2026-04-21 - Issue #325: azure-quota consumer docs finalized
+- PR #339 merged (squash, SHA c167498). All 16 required checks green; no Copilot review threads opened (docs-only diff).
+- Touched: docs/consumer/permissions/azure-quota.md (stub from PR #328 -> full deep doc), CHANGELOG.md (Unreleased entry under 1.2.0).
+- Verified severity ladder against modules/normalizers/Normalize-AzureQuotaReports.ps1: actual is 4-band (>=99 Critical, >=95 High, >=Threshold Medium, <Threshold Info) - the task brief listed 3-band (>=95/>=90/>=80); documented the source-of-truth ladder, not the brief.
+- README.md and PERMISSIONS.md already registered `azure-quota` (lines 44/105 and 35 respectively); no edit required.
+- Tool catalog + permissions index regenerators ran clean - byte-identical output, no churn committed.
+- No docs/tools/ deep-dive folder exists in this repo so no extra file added.
+- Pester baseline preserved at 1369 passing.
+
+### 2026-04-22 — ETL Sprint Schema 2.2 Launch Complete
+
+**Sprint Summary:** 30 PRs merged (zero open). Schema 2.2 locked across 20+ normalizers. Pester 1495+ tests (1369 baseline → +126 extensions). HTML report null-crash regression fix #416 shipped launch-eve. All squad briefs merged to decisions.md. 15 follow-up ETL issues filed (#300–#313). Launch GO for 08:00 CET 2026-04-22.
