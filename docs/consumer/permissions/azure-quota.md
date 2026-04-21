@@ -52,14 +52,26 @@ A normalized `FindingRow` from `Normalize-AzureQuotaReports` looks like:
 ```json
 {
   "Source": "azure-quota",
-  "EntityId": "/subscriptions/00000000-0000-0000-0000-000000000000",
-  "EntityType": "Subscription",
+  "EntityId": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/microsoft.capacity/locations/westeurope/serviceid/vm",
+  "EntityType": "AzureResource",
   "Title": "Quota standardDSv3Family in westeurope is at 92%",
   "RuleId": "azure-quota:vm:standardDSv3Family:westeurope",
   "Compliant": false,
   "Severity": "Medium",
   "Pillar": "Reliability",
+  "Impact": "High",
+  "Effort": "Medium",
   "Category": "Capacity",
+  "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Capacity/QuotaMenuBlade/~/myQuotas/subscriptionId/00000000-0000-0000-0000-000000000000/regionName/westeurope/serviceId/vm",
+  "EvidenceUris": [
+    "https://learn.microsoft.com/azure/virtual-machines/quotas"
+  ],
+  "EntityRefs": [
+    "00000000-0000-0000-0000-000000000000",
+    "westeurope"
+  ],
+  "ScoreDelta": 92,
+  "ToolVersion": "2.77.0",
   "CurrentValue": 92,
   "Limit": 100,
   "UsagePercent": 92,

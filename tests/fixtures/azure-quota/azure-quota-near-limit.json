@@ -2,6 +2,7 @@
   "SchemaVersion": "1.0",
   "Source": "azure-quota",
   "Status": "Success",
+  "ToolVersion": "2.77.0",
   "Message": "fixture",
   "Timestamp": "2026-04-22T00:00:00Z",
   "Findings": [
@@ -25,7 +26,8 @@
       "CurrentValue": 92,
       "Limit": 100,
       "UsagePercent": 92,
-      "Threshold": 80
+      "Threshold": 80,
+      "ToolVersion": "2.77.0"
     }
   ]
 }
