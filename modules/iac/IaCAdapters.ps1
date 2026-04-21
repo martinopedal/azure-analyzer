@@ -143,6 +143,55 @@ function Invoke-BicepValidation {
         [string] $RepoPath
     )
 
+    function Get-BicepDiagnosticMetadata {
+        param (
+            [string] $LineText,
+            [string] $FallbackPath
+        )
+
+        $metadata = [ordered]@{
+            RuleId      = ''
+            Level       = ''
+            RelativePath = $FallbackPath
+            LineNumber  = ''
+            Message     = $LineText
+        }
+
+        $pattern = '^(?<path>.+?)\((?<line>\d+)(?:,\d+)?\)\s*:\s*(?<level>Error|Warning|Info)\s+(?<code>[A-Z]{2,}\d+)\s*:\s*(?<message>.+)$'
+        $match = [regex]::Match($LineText.Trim(), $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        if ($match.Success) {
+            $rawPath = [string]$match.Groups['path'].Value
+            $metadata.RuleId = [string]$match.Groups['code'].Value.ToUpperInvariant()
+            $metadata.Level = [string]$match.Groups['level'].Value
+            $metadata.LineNumber = [string]$match.Groups['line'].Value
+            $metadata.Message = [string]$match.Groups['message'].Value
+            if (-not [string]::IsNullOrWhiteSpace($rawPath)) {
+                try {
+                    $resolved = $rawPath
+                    if ([System.IO.Path]::IsPathRooted($rawPath)) {
+                        $resolved = $rawPath.Substring($RepoPath.Length).TrimStart('\', '/')
+                    }
+                    $metadata.RelativePath = $resolved
+                } catch {
+                    $metadata.RelativePath = $FallbackPath
+                }
+            }
+        }
+
+        if ([string]::IsNullOrWhiteSpace([string]$metadata.RuleId)) {
+            $codeMatch = [regex]::Match($LineText, '\b(BCP\d{3}|AZR-[A-Z0-9-]+)\b', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            if ($codeMatch.Success) { $metadata.RuleId = [string]$codeMatch.Groups[1].Value.ToUpperInvariant() }
+        }
+
+        if ([string]::IsNullOrWhiteSpace([string]$metadata.Level)) {
+            if ($LineText -match '(?i)\berror\b') { $metadata.Level = 'Error' }
+            elseif ($LineText -match '(?i)\bwarning\b') { $metadata.Level = 'Warning' }
+            else { $metadata.Level = 'Info' }
+        }
+
+        return [PSCustomObject]$metadata
+    }
+
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
     $bicepFiles = @(Get-ChildItem -Path $RepoPath -Filter '*.bicep' -Recurse -File -ErrorAction SilentlyContinue)
 
@@ -173,29 +222,41 @@ function Invoke-BicepValidation {
 
                     foreach ($line in $errorLines) {
                         $lineStr = Remove-Credentials $line
-                        $severity = if ($lineStr -match '\bError\b') { 'High' }
-                                    elseif ($lineStr -match '\bWarning\b') { 'Medium' }
-                                    else { 'Medium' }
+                        $diag = Get-BicepDiagnosticMetadata -LineText $lineStr -FallbackPath $relativePath
+                        $severity = if ($diag.Level -match '^(?i)error$') { 'Error' }
+                                    elseif ($diag.Level -match '^(?i)warning$') { 'Warning' }
+                                    else { 'Info' }
+                        $category = 'IaC Validation'
+                        if ($lineStr -match '(?i)security|secret|password|keyvault|identity|rbac|tls|encrypt') { $category = 'Security' }
+                        elseif ($lineStr -match '(?i)cost|sku|pricing|size') { $category = 'Cost' }
+                        elseif ($lineStr -match '(?i)availability|zone|region|failover|backup') { $category = 'Reliability' }
+                        elseif ($lineStr -match '(?i)performance|throughput|latency|concurrency') { $category = 'Performance' }
+                        elseif ($lineStr -match '(?i)diagnostic|logging|monitor|governance|policy') { $category = 'Operations' }
 
                         $findings.Add([PSCustomObject]@{
                             Id          = [guid]::NewGuid().ToString()
-                            Category    = 'IaC Validation'
-                            Title       = "Bicep build error: $relativePath"
+                            RuleId      = $diag.RuleId
+                            Level       = $diag.Level
+                            Category    = $category
+                            Title       = "Bicep diagnostic $($diag.RuleId): $($diag.RelativePath)"
                             Severity    = $severity
                             Compliant   = $false
-                            Detail      = $lineStr
-                            Remediation = "Fix the Bicep syntax or reference error in $relativePath"
-                            ResourceId  = $relativePath
+                            Detail      = $lineStr.Trim()
+                            Remediation = "Fix rule $($diag.RuleId) in $($diag.RelativePath)"
+                            ResourceId  = $diag.RelativePath
                             LearnMoreUrl = 'https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview'
+                            LineNumber  = $diag.LineNumber
                         })
                     }
 
                     if ($errorLines.Count -eq 0) {
                         $findings.Add([PSCustomObject]@{
                             Id          = [guid]::NewGuid().ToString()
+                            RuleId      = 'BICEP-BUILD-FAILED'
+                            Level       = 'Error'
                             Category    = 'IaC Validation'
                             Title       = "Bicep build failed: $relativePath"
-                            Severity    = 'High'
+                            Severity    = 'Error'
                             Compliant   = $false
                             Detail      = Remove-Credentials $outputText
                             Remediation = "Fix the Bicep file at $relativePath"
@@ -209,9 +270,11 @@ function Invoke-BicepValidation {
                 if ($_.Exception.Message -match 'Invoke-WithTimeout') { throw }
                 $findings.Add([PSCustomObject]@{
                     Id          = [guid]::NewGuid().ToString()
+                    RuleId      = 'BICEP-VALIDATION-ERROR'
+                    Level       = 'Error'
                     Category    = 'IaC Validation'
                     Title       = "Bicep validation error: $relativePath"
-                    Severity    = 'High'
+                    Severity    = 'Error'
                     Compliant   = $false
                     Detail      = Remove-Credentials ([string]$_)
                     Remediation = "Ensure bicep CLI is available and the file is valid"

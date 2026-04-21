@@ -35,15 +35,15 @@ Describe 'Normalize-IaCBicep' {
             }
         }
 
-        It 'sets Platform to GitHub' {
+        It 'sets Platform to Azure' {
             foreach ($r in $results) {
-                $r.Platform | Should -Be 'GitHub'
+                $r.Platform | Should -Be 'Azure'
             }
         }
 
-        It 'sets EntityType to Repository' {
+        It 'sets EntityType to AzureResource' {
             foreach ($r in $results) {
-                $r.EntityType | Should -Be 'Repository'
+                $r.EntityType | Should -Be 'AzureResource'
             }
         }
     }
@@ -53,9 +53,9 @@ Describe 'Normalize-IaCBicep' {
             $results = Normalize-IaCBicep -ToolResult $fixture
         }
 
-        It 'uses iac.local/bicep-iac prefix for EntityId' {
+        It 'uses synthetic ARM deployment EntityId for IaC files' {
             foreach ($r in $results) {
-                $r.EntityId | Should -Match '^iac\.local/bicep-iac/'
+                $r.EntityId | Should -Match '^/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/iac-bicep/providers/microsoft\.resources/deployments/'
             }
         }
 
@@ -65,46 +65,38 @@ Describe 'Normalize-IaCBicep' {
             }
         }
 
-        It 'normalizes file paths to lowercase with flattened separators' {
-            $results[0].EntityId | Should -BeExactly 'iac.local/bicep-iac/infra--main.bicep'
+        It 'normalizes deployment token to lowercase' {
+            $results[0].EntityId | Should -BeExactly '/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/iac-bicep/providers/microsoft.resources/deployments/infra-main-bicep'
         }
     }
 
-    Context 'IaC Validation category' {
+    Context 'category preservation' {
         BeforeAll {
             $results = Normalize-IaCBicep -ToolResult $fixture
         }
 
-        It 'preserves IaC Validation category' {
-            foreach ($r in $results) {
-                $r.Category | Should -Be 'IaC Validation'
-            }
+        It 'preserves per-finding categories' {
+            @($results | Where-Object { $_.Category -eq 'Security' }).Count | Should -BeGreaterThan 0
+            @($results | Where-Object { $_.Category -eq 'Cost' }).Count | Should -BeGreaterThan 0
+            @($results | Where-Object { $_.Category -eq 'Operations' }).Count | Should -BeGreaterThan 0
         }
     }
 
-    Context 'severity mapping covers all five levels' {
+    Context 'severity mapping from Error Warning Info' {
         BeforeAll {
             $results = Normalize-IaCBicep -ToolResult $fixture
         }
 
-        It 'maps Critical severity' {
-            ($results | Where-Object { $_.Severity -eq 'Critical' }).Count | Should -BeGreaterThan 0
+        It 'maps Error to High severity' {
+            @($results | Where-Object { $_.Severity -eq 'High' }).Count | Should -BeGreaterThan 0
         }
 
-        It 'maps High severity' {
-            ($results | Where-Object { $_.Severity -eq 'High' }).Count | Should -BeGreaterThan 0
+        It 'maps Warning to Medium severity' {
+            @($results | Where-Object { $_.Severity -eq 'Medium' }).Count | Should -BeGreaterThan 0
         }
 
-        It 'maps Medium severity' {
-            ($results | Where-Object { $_.Severity -eq 'Medium' }).Count | Should -BeGreaterThan 0
-        }
-
-        It 'maps Low severity' {
-            ($results | Where-Object { $_.Severity -eq 'Low' }).Count | Should -BeGreaterThan 0
-        }
-
-        It 'maps Info severity' {
-            ($results | Where-Object { $_.Severity -eq 'Info' }).Count | Should -BeGreaterThan 0
+        It 'maps Info to Low severity' {
+            @($results | Where-Object { $_.Severity -eq 'Low' }).Count | Should -BeGreaterThan 0
         }
     }
 
@@ -135,6 +127,21 @@ Describe 'Normalize-IaCBicep' {
 
         It 'preserves LearnMoreUrl' {
             $results[0].LearnMoreUrl | Should -Match 'learn\.microsoft\.com'
+        }
+
+        It 'maps Schema 2.2 ETL fields' {
+            foreach ($r in $results) {
+                $r.RuleId | Should -Not -BeNullOrEmpty
+                $r.Pillar | Should -Not -BeNullOrEmpty
+                $r.Impact | Should -Not -BeNullOrEmpty
+                $r.Effort | Should -Be 'Low'
+                $r.DeepLinkUrl | Should -Not -BeNullOrEmpty
+                @($r.Frameworks).Count | Should -BeGreaterThan 0
+                @($r.BaselineTags).Count | Should -BeGreaterThan 2
+                @($r.EvidenceUris).Count | Should -BeGreaterThan 0
+                @($r.EntityRefs).Count | Should -BeGreaterThan 0
+                $r.ToolVersion | Should -Not -BeNullOrEmpty
+            }
         }
     }
 

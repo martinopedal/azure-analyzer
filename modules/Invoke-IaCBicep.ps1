@@ -46,6 +46,42 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
 
+function Get-BicepToolVersion {
+    try {
+        $raw = bicep --version 2>&1
+        if ($LASTEXITCODE -ne 0) { return '' }
+        $text = if ($raw -is [array]) { ($raw -join ' ') } else { [string]$raw }
+        $match = [regex]::Match($text, '(\d+\.\d+\.\d+(?:[-+][A-Za-z0-9\.-]+)?)')
+        if ($match.Success) { return $match.Groups[1].Value }
+        return $text.Trim()
+    } catch {
+        return ''
+    }
+}
+
+function Get-PsRuleAzureVersion {
+    try {
+        $module = Get-Module PSRule.Rules.Azure -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
+        if ($module -and $module.Version) { return [string]$module.Version }
+        return ''
+    } catch {
+        return ''
+    }
+}
+
+function ConvertTo-RepositoryWebUrl {
+    param ([string] $Url)
+    if ([string]::IsNullOrWhiteSpace($Url)) { return '' }
+    $normalized = $Url.Trim()
+    if ($normalized -match '^git@([^:]+):(.+)$') {
+        return "https://$($Matches[1])/$($Matches[2] -replace '\.git$','')"
+    }
+    if ($normalized -match '^https?://') {
+        return ($normalized -replace '\.git$','').TrimEnd('/')
+    }
+    return ''
+}
+
 if (-not (Get-Command bicep -ErrorAction SilentlyContinue)) {
     Write-Warning "bicep CLI is not installed. Skipping Bicep IaC validation. Install from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install"
     return [PSCustomObject]@{
@@ -60,6 +96,14 @@ if (-not (Get-Command bicep -ErrorAction SilentlyContinue)) {
 $cloneInfo = $null
 $cleanupClone = $null
 try {
+    $bicepVersion = Get-BicepToolVersion
+    $psRuleVersion = Get-PsRuleAzureVersion
+    $toolVersionParts = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($bicepVersion)) { $toolVersionParts.Add("bicep:$bicepVersion") | Out-Null }
+    if (-not [string]::IsNullOrWhiteSpace($psRuleVersion)) { $toolVersionParts.Add("psrule.rules.azure:$psRuleVersion") | Out-Null }
+    $toolVersion = ($toolVersionParts -join ';')
+    $repositoryUrl = ''
+
     if ($RemoteUrl) {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote URL."
@@ -80,6 +124,9 @@ try {
         }
         $cleanupClone = $cloneInfo.Cleanup
         $RepoPath = $cloneInfo.Path
+        if ($cloneInfo.PSObject.Properties['Url']) {
+            $repositoryUrl = ConvertTo-RepositoryWebUrl -Url ([string]$cloneInfo.Url)
+        }
     }
 
     if (-not (Test-Path $RepoPath)) {
@@ -102,7 +149,43 @@ try {
         }
     }
 
-    return Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $RepoPath
+    if ([string]::IsNullOrWhiteSpace($repositoryUrl)) {
+        try {
+            $origin = git -C $RepoPath config --get remote.origin.url 2>$null
+            if ($origin) { $repositoryUrl = ConvertTo-RepositoryWebUrl -Url ([string]$origin) }
+        } catch {}
+    }
+
+    $result = Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $RepoPath
+    if ($result -and $result.PSObject) {
+        if (-not $result.PSObject.Properties['ToolVersion']) {
+            $result | Add-Member -NotePropertyName ToolVersion -NotePropertyValue $toolVersion
+        } elseif ([string]::IsNullOrWhiteSpace([string]$result.ToolVersion)) {
+            $result.ToolVersion = $toolVersion
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($repositoryUrl)) {
+            if (-not $result.PSObject.Properties['RepositoryUrl']) {
+                $result | Add-Member -NotePropertyName RepositoryUrl -NotePropertyValue $repositoryUrl
+            } else {
+                $result.RepositoryUrl = $repositoryUrl
+            }
+            if (-not $result.PSObject.Properties['RepositoryRef']) {
+                $result | Add-Member -NotePropertyName RepositoryRef -NotePropertyValue 'main'
+            }
+        }
+
+        foreach ($finding in @($result.Findings)) {
+            if (-not $finding) { continue }
+            if (-not $finding.PSObject.Properties['ToolVersion']) {
+                $finding | Add-Member -NotePropertyName ToolVersion -NotePropertyValue $toolVersion
+            } elseif ([string]::IsNullOrWhiteSpace([string]$finding.ToolVersion)) {
+                $finding.ToolVersion = $toolVersion
+            }
+        }
+    }
+
+    return $result
 } catch {
     Write-Warning "Bicep IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
