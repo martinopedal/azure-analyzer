@@ -53,8 +53,8 @@ Describe 'Normalize-Trivy' {
             $results = Normalize-Trivy -ToolResult $fixture
         }
 
-        It 'canonicalizes GitHub repo ResourceId for every finding' {
-            $results[0].EntityId | Should -BeExactly 'github.com/test-org/test-repo'
+        It 'maps image digests to deterministic trivy image entity IDs' {
+            $results[0].EntityId | Should -BeExactly 'trivy/image/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
         }
 
         It 'canonicalizes GitHub repo ResourceId' {
@@ -113,6 +113,21 @@ Describe 'Normalize-Trivy' {
 
         It 'preserves LearnMoreUrl' {
             $results[0].LearnMoreUrl | Should -Match 'avd\.aquasec\.com'
+        }
+
+        It 'passes through Schema 2.2 trivy enrichment fields' {
+            $results[0].RuleId | Should -Be 'CVE-2021-44228'
+            $results[0].Pillar | Should -Be 'Security'
+            $results[0].Impact | Should -Be 'High'
+            $results[0].Effort | Should -Be 'Low'
+            $results[0].DeepLinkUrl | Should -Match 'aquasecurity\.github\.io/trivy'
+            $results[0].ScoreDelta | Should -Be 10.0
+            @($results[0].Frameworks).Count | Should -BeGreaterThan 0
+            @($results[0].RemediationSnippets).Count | Should -Be 1
+            @($results[0].EvidenceUris).Count | Should -BeGreaterThan 0
+            @($results[0].BaselineTags).Count | Should -BeGreaterThan 0
+            @($results[0].EntityRefs).Count | Should -BeGreaterThan 0
+            $results[0].ToolVersion | Should -Match '0.56.2'
         }
     }
 
