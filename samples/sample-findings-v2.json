@@ -33,7 +33,7 @@
         "Name": "PCI DSS"
       }
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Network/NetworkSecurityGroupDetailsBlade/id/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-net%2Fproviders%2FMicrosoft.Network%2FnetworkSecurityGroups%2Fnsg-payments-edge",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/networking/network-security-groups-overview",
     "RemediationSnippets": [
       {
         "language": "azurecli",
@@ -41,7 +41,7 @@
       }
     ],
     "EvidenceUris": [
-      "https://portal.azure.com/#resource/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-payments-net/providers/Microsoft.Network/networkSecurityGroups/nsg-payments-edge",
+      "https://learn.microsoft.com/azure/networking/network-security-groups-overview",
       "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview"
     ],
     "BaselineTags": [
@@ -84,7 +84,7 @@
         "Name": "MCSB"
       }
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_KeyVault/VaultMenuBlade/~/properties/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-sec%2Fproviders%2FMicrosoft.KeyVault%2Fvaults%2Fkv-payments-prod",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/key-vault/general/overview",
     "RemediationSnippets": [
       {
         "language": "bicep",
@@ -144,7 +144,7 @@
     "MitreTechniques": [
       "T1611"
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-aks-prod%2Fproviders%2FMicrosoft.ContainerService%2FmanagedClusters%2Faks-prod-payments",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security",
     "RemediationSnippets": [
       {
         "language": "yaml",
@@ -203,9 +203,9 @@
     "MitreTechniques": [
       "T1190"
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/analytics/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/sentinel/detect-threats-custom",
     "EvidenceUris": [
-      "https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/WorkspaceMenuBlade/AnalyticsRules/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01",
+      "https://learn.microsoft.com/azure/sentinel/detect-threats-custom",
       "https://attack.mitre.org/tactics/TA0001/"
     ],
     "BaselineTags": [
@@ -289,7 +289,7 @@
         "Name": "WAF"
       }
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/AppInsightsExtension/BladeRedirect/BladeName/searchV1/ComponentId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-app%2Fproviders%2Fmicrosoft.insights%2Fcomponents%2Fpayments-api-ai",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions",
     "RemediationSnippets": [
       {
         "language": "kusto",
@@ -297,7 +297,7 @@
       }
     ],
     "EvidenceUris": [
-      "https://portal.azure.com/#blade/AppInsightsExtension/BladeRedirect/BladeName/FailuresV2",
+      "https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions",
       "https://learn.microsoft.com/azure/azure-monitor/app/app-map"
     ],
     "BaselineTags": [
@@ -337,7 +337,7 @@
         "Name": "WAF"
       }
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/costanalysis",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses",
     "RemediationSnippets": [
       {
         "language": "text",
@@ -345,7 +345,7 @@
       }
     ],
     "EvidenceUris": [
-      "https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/overview",
+      "https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses",
       "https://learn.microsoft.com/azure/app-service/overview-hosting-plans"
     ],
     "BaselineTags": [
@@ -459,7 +459,7 @@
         "Name": "WAF"
       }
     ],
-    "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_ContainerService/ManagedClusterNodePoolsMenuBlade/id/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-aks-prod%2Fproviders%2FMicrosoft.ContainerService%2FmanagedClusters%2Faks-prod-payments",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/aks/resize-node-pool",
     "RemediationSnippets": [
       {
         "language": "bash",
@@ -467,7 +467,7 @@
       }
     ],
     "EvidenceUris": [
-      "https://portal.azure.com/#blade/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters",
+      "https://learn.microsoft.com/azure/aks/resize-node-pool",
       "https://learn.microsoft.com/azure/aks/cluster-autoscaler"
     ],
     "BaselineTags": [
@@ -509,4 +509,3 @@
     "ToolVersion": "2.7.0"
   }
 ]
-

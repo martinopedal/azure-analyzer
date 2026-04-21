@@ -162,15 +162,15 @@ Top 30 findings from this run. The [interactive HTML report](sample-report.html)
 
 | # | Tool | Pillar | Impact | Effort | Frameworks | MITRE | Deep link |
 | ---: | --- | --- | --- | --- | --- | --- | --- |
-| 1 | PSRule for Azure | Security | High | Low | CIS · MCSB | - | [Open](https://portal.azure.com/#view/Microsoft_Azure_KeyVault/VaultMenuBlade/~/properties/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-sec%2Fproviders%2FMicrosoft.KeyVault%2Fvaults%2Fkv-payments-prod) |
-| 2 | Azure Quick Review | Security | High | Medium | CIS · NIST 800-53 · PCI DSS | - | [Open](https://portal.azure.com/#view/Microsoft_Azure_Network/NetworkSecurityGroupDetailsBlade/id/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-net%2Fproviders%2FMicrosoft.Network%2FnetworkSecurityGroups%2Fnsg-payments-edge) |
+| 1 | PSRule for Azure | Security | High | Low | CIS · MCSB | - | [Open](https://learn.microsoft.com/azure/key-vault/general/overview) |
+| 2 | Azure Quick Review | Security | High | Medium | CIS · NIST 800-53 · PCI DSS | - | [Open](https://learn.microsoft.com/azure/networking/network-security-groups-overview) |
 | 3 | ADO Pipeline Consumption | Cost Optimization | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build?definitionId=55) |
-| 4 | Kubescape (AKS runtime posture) | Security | High | Medium | CIS · NSA · MITRE ATT&CK | Privilege Escalation, T1611 | [Open](https://portal.azure.com/#view/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-aks-prod%2Fproviders%2FMicrosoft.ContainerService%2FmanagedClusters%2Faks-prod-payments) |
+| 4 | Kubescape (AKS runtime posture) | Security | High | Medium | CIS · NSA · MITRE ATT&CK | Privilege Escalation, T1611 | [Open](https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security) |
 | 5 | ADO Pipeline Run Correlator | Security | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=results) |
-| 6 | AKS Rightsizing (Container Insights utilization) | Cost Optimization | Medium | Medium | WAF | - | [Open](https://portal.azure.com/#view/Microsoft_Azure_ContainerService/ManagedClusterNodePoolsMenuBlade/id/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-aks-prod%2Fproviders%2FMicrosoft.ContainerService%2FmanagedClusters%2Faks-prod-payments) |
-| 7 | Application Insights Performance Signals | Performance Efficiency | Medium | Medium | WAF | - | [Open](https://portal.azure.com/#view/AppInsightsExtension/BladeRedirect/BladeName/searchV1/ComponentId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-app%2Fproviders%2Fmicrosoft.insights%2Fcomponents%2Fpayments-api-ai) |
-| 8 | finops-signals | Cost Optimization | Medium | Low | WAF | - | [Open](https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/costanalysis) |
-| 9 | Microsoft Sentinel (Coverage / Posture) | Security | Medium | Medium | MITRE ATT&CK · NIST 800-53 | Initial Access, T1190 | [Open](https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/analytics/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01) |
+| 6 | AKS Rightsizing (Container Insights utilization) | Cost Optimization | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/aks/resize-node-pool) |
+| 7 | Application Insights Performance Signals | Performance Efficiency | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions) |
+| 8 | finops-signals | Cost Optimization | Medium | Low | WAF | - | [Open](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
+| 9 | Microsoft Sentinel (Coverage / Posture) | Security | Medium | Medium | MITRE ATT&CK · NIST 800-53 | Initial Access, T1190 | [Open](https://learn.microsoft.com/azure/sentinel/detect-threats-custom) |
 | 10 | GitHub Actions Billing | Cost Optimization | Medium | Low | SOC2 | - | [Open](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions) |
 
 ### Evidence and remediation snippets
@@ -200,7 +200,7 @@ resource kvPatch 'Microsoft.KeyVault/vaults@2023-07-01' = {
 - **Baseline tags:** "release:ga", "internet-exposed"
 - **Entity refs:** `/subscriptions/11111111-1111-1111-1111-111111111111`, `nsg:nsg-payments-edge`
 - **Evidence URIs:**
-  - [https://portal.azure.com/#resource/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-payments-net/providers/Microsoft.Network/networkSecurityGroups/nsg-payments-edge](https://portal.azure.com/#resource/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-payments-net/providers/Microsoft.Network/networkSecurityGroups/nsg-payments-edge)
+  - [https://learn.microsoft.com/azure/networking/network-security-groups-overview](https://learn.microsoft.com/azure/networking/network-security-groups-overview)
   - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
 - **Remediation snippets:**
   ```azurecli
@@ -257,7 +257,7 @@ securityContext:
 - **Baseline tags:** "rightsizing", "cluster-autoscaler"
 - **Entity refs:** `cluster:aks-prod-payments`, `nodepool:usernp`
 - **Evidence URIs:**
-  - [https://portal.azure.com/#blade/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters](https://portal.azure.com/#blade/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters)
+  - [https://learn.microsoft.com/azure/aks/resize-node-pool](https://learn.microsoft.com/azure/aks/resize-node-pool)
   - [https://learn.microsoft.com/azure/aks/cluster-autoscaler](https://learn.microsoft.com/azure/aks/cluster-autoscaler)
 - **Remediation snippets:**
   ```bash
@@ -271,7 +271,7 @@ az aks nodepool update -g rg-aks-prod --cluster-name aks-prod-payments -n usernp
 - **Baseline tags:** "release:canary", "latency-regression"
 - **Entity refs:** `appinsights:payments-api-ai`, `service:checkout`
 - **Evidence URIs:**
-  - [https://portal.azure.com/#blade/AppInsightsExtension/BladeRedirect/BladeName/FailuresV2](https://portal.azure.com/#blade/AppInsightsExtension/BladeRedirect/BladeName/FailuresV2)
+  - [https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions)
   - [https://learn.microsoft.com/azure/azure-monitor/app/app-map](https://learn.microsoft.com/azure/azure-monitor/app/app-map)
 - **Remediation snippets:**
   ```kusto
@@ -287,7 +287,7 @@ requests
 - **Baseline tags:** "cost-hotspot", "release:ga"
 - **Entity refs:** `plan:asp-payments-prod`, `subscription:11111111-1111-1111-1111-111111111111`
 - **Evidence URIs:**
-  - [https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/overview](https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/overview)
+  - [https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses)
   - [https://learn.microsoft.com/azure/app-service/overview-hosting-plans](https://learn.microsoft.com/azure/app-service/overview-hosting-plans)
 - **Remediation snippets:**
   ```text
@@ -301,7 +301,7 @@ Downsize to P1v3 and set autoscale max instances to 2.
 - **Baseline tags:** "correlation-gap", "mitre"
 - **Entity refs:** `workspace:law-sec-01`, `mitre:TA0001`, `mitre:T1190`
 - **Evidence URIs:**
-  - [https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/WorkspaceMenuBlade/AnalyticsRules/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01](https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/WorkspaceMenuBlade/AnalyticsRules/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01)
+  - [https://learn.microsoft.com/azure/sentinel/detect-threats-custom](https://learn.microsoft.com/azure/sentinel/detect-threats-custom)
   - [https://attack.mitre.org/tactics/TA0001/](https://attack.mitre.org/tactics/TA0001/)
 
 </details>
