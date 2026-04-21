@@ -195,4 +195,108 @@ Describe 'New-HtmlReport' {
         # No Resources section emitted server-side when there are no entities
         $html | Should -Not -Match '<h2 id="resources">'
     }
+
+    Context 'identity blast-radius graph (#298)' {
+        It 'renders the interactive identity graph section when >=5 identity entities are present' {
+            $tmp = Join-Path $TestDrive 'html-identity-graph-full'
+            $null = New-Item -ItemType Directory -Path $tmp -Force
+            $resultsPath = Join-Path $tmp 'results.json'
+            '[]' | Set-Content -Path $resultsPath -Encoding UTF8
+
+            $sub = '11111111-1111-1111-1111-111111111111'
+            $entities = @()
+            $entities += @{ EntityId = "user-alice@contoso";  EntityType='User';             DisplayName='alice@contoso';      SubscriptionId=$sub; Platform='Entra'; Observations=@() }
+            $entities += @{ EntityId = "user-bob@contoso";    EntityType='User';             DisplayName='bob@contoso';        SubscriptionId=$sub; Platform='Entra'; Observations=@() }
+            $entities += @{ EntityId = "group-admins";        EntityType='Group';            DisplayName='grp-admins';         SubscriptionId=$sub; Platform='Entra'; Observations=@() }
+            $entities += @{ EntityId = "sp-payments";         EntityType='ServicePrincipal'; DisplayName='sp-payments';        SubscriptionId=$sub; Platform='Entra'; Observations=@() }
+            $entities += @{ EntityId = "app-payments";        EntityType='Application';      DisplayName='app-payments';       SubscriptionId=$sub; Platform='Entra'; Observations=@() }
+            $entities += @{ EntityId = "/subscriptions/$sub/rg/x/kv/kv-prod"; EntityType='AzureResource'; DisplayName='kv-prod'; SubscriptionId=$sub; Platform='Azure'; ResourceGroup='rg-x'; WorstSeverity='High'; NonCompliantCount=1; CompliantCount=0; Observations=@() }
+
+            $entitiesPath = Join-Path $tmp 'entities.json'
+            @{ SchemaVersion = '3.1'; Entities = $entities; Edges = @() } | ConvertTo-Json -Depth 8 | Set-Content -Path $entitiesPath -Encoding UTF8
+
+            $outputPath = Join-Path $tmp 'report.html'
+            { & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath $resultsPath -OutputPath $outputPath | Out-Null } | Should -Not -Throw
+
+            Test-Path $outputPath | Should -BeTrue
+            $html = Get-Content $outputPath -Raw
+
+            # Section + container present
+            $html | Should -Match '<h2 id="identity-graph-section">Identity blast-radius graph</h2>'
+            $html | Should -Match 'id="identityGraph"'
+            $html | Should -Match 'id="idgSvg"'
+            # Embedded JSON model with all 6 nodes
+            $html | Should -Match 'id="identity-graph-model"'
+            $html | Should -Match '"label":"alice@contoso"'
+            $html | Should -Match '"label":"sp-payments"'
+            $html | Should -Match '"label":"kv-prod"'
+            # Empty-state markup is hidden by default when nodes are sufficient
+            $html | Should -Match 'id="idgEmpty"\s+hidden'
+            # Click-to-filter wiring: applyFilter helper + idg-node click handler
+            $html | Should -Match 'idg-node'
+            $html | Should -Match 'function applyFilter'
+            $html | Should -Match 'idgClear'
+            # No external CDN references introduced by graph
+            $html | Should -Not -Match 'cdn\.|cdnjs|unpkg|jsdelivr'
+            # Total inlined payload stays under 200 KB additional vs baseline (sanity bound)
+            (Get-Item $outputPath).Length | Should -BeLessThan 1MB
+        }
+
+        It 'shows the empty-state when fewer than 5 identity entities are present' {
+            $tmp = Join-Path $TestDrive 'html-identity-graph-empty'
+            $null = New-Item -ItemType Directory -Path $tmp -Force
+            $resultsPath = Join-Path $tmp 'results.json'
+            '[]' | Set-Content -Path $resultsPath -Encoding UTF8
+
+            # Only 3 identity-relevant entities -> empty state
+            $entities = @(
+                @{ EntityId='u1'; EntityType='User';  DisplayName='u1'; SubscriptionId=''; Platform='Entra'; Observations=@() }
+                @{ EntityId='g1'; EntityType='Group'; DisplayName='g1'; SubscriptionId=''; Platform='Entra'; Observations=@() }
+                @{ EntityId='r1'; EntityType='AzureResource'; DisplayName='r1'; SubscriptionId=''; Platform='Azure'; ResourceGroup=''; WorstSeverity='Info'; NonCompliantCount=0; CompliantCount=0; Observations=@() }
+            )
+            $entitiesPath = Join-Path $tmp 'entities.json'
+            @{ SchemaVersion='3.1'; Entities=$entities; Edges=@() } | ConvertTo-Json -Depth 8 | Set-Content -Path $entitiesPath -Encoding UTF8
+
+            $outputPath = Join-Path $tmp 'report.html'
+            { & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath $resultsPath -OutputPath $outputPath | Out-Null } | Should -Not -Throw
+
+            $html = Get-Content $outputPath -Raw
+            # Section still emitted (so client knows the feature exists)
+            $html | Should -Match 'id="identityGraph"'
+            $html | Should -Match 'id="idgEmpty"'
+            # Model contains exactly the 3 nodes -> client renderer falls into empty-state branch
+            $html | Should -Match '"nodes":\['
+            $html | Should -Match 'Need at least 5 identity-related entities'
+        }
+
+        It 'omits the identity graph entirely when entities.json is missing' {
+            $tmp = Join-Path $TestDrive 'html-identity-graph-missing'
+            $null = New-Item -ItemType Directory -Path $tmp -Force
+            $resultsPath = Join-Path $tmp 'results.json'
+            '[]' | Set-Content -Path $resultsPath -Encoding UTF8
+            $outputPath = Join-Path $tmp 'report.html'
+            { & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath $resultsPath -OutputPath $outputPath | Out-Null } | Should -Not -Throw
+            $html = Get-Content $outputPath -Raw
+            $html | Should -Not -Match 'id="identity-graph-section"'
+        }
+    }
+
+    Context 'samples/sample-report.html identity graph (#298)' {
+        It 'samples/sample-report.html ships the interactive identity graph (no inline teaser SVG)' {
+            $samplePath = Join-Path $RootDir 'samples\sample-report.html'
+            Test-Path $samplePath | Should -BeTrue
+            $html = Get-Content $samplePath -Raw
+            $html | Should -Match 'id="identityGraph"'
+            $html | Should -Match 'IDENTITY_NODES'
+            $html | Should -Match 'IDENTITY_EDGES'
+            $html | Should -Match 'renderIdentityGraph'
+            # Old static teaser must be gone
+            $html | Should -Not -Match 'Hover a node to highlight reachable resources'
+            $html | Should -Not -Match 'Identity blast-radius graph \(mock\)'
+            # Single-file: no CDN references introduced
+            $html | Should -Not -Match 'cdn\.|cdnjs\.|unpkg\.|jsdelivr\.'
+            # Total payload stays well under the 200KB inlined-component budget
+            (Get-Item $samplePath).Length | Should -BeLessThan 200KB
+        }
+    }
 }

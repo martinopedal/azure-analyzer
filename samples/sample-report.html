@@ -236,6 +236,13 @@ nav.sub{position:sticky;top:62px;z-index:40;background:var(--surface);border-bot
 .graph-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-muted)}
 .graph-legend span{display:inline-flex;align-items:center;gap:5px}
 .graph-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.idg-node{cursor:pointer}
+.idg-node:hover circle,.idg-node:focus circle{stroke:var(--brand);stroke-width:2.5}
+.idg-node.idg-sel circle{stroke:var(--brand);stroke-width:3}
+.idg-empty{padding:60px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;
+  background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius-sm);
+  color:var(--text);font-size:13px}
+.graph-wrap[data-empty="true"] .graph-legend{display:none}
 
 /* FOOTER */
 footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:var(--surface);
@@ -461,47 +468,25 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
       <div class="ent-bars" id="entBars"></div>
     </div>
     <div class="card card-pad">
-      <h3 style="margin-bottom:10px">Blast radius: guest accounts <span class="pill ghost"
-        style="margin-left:6px">teaser</span></h3>
+      <h3 style="margin-bottom:10px">Identity blast-radius graph
+        <span class="pill ghost" style="margin-left:6px" id="idgEntityCount">0 nodes</span></h3>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">
-        Edges from <code>EntityStore.Edges</code> (<code>GuestOf · MemberOf · HasRoleOn · OwnsAppRegistration · ConsentedTo</code>).
-        Hover a node to highlight reachable resources.</p>
-      <div class="graph-wrap">
-        <svg viewBox="0 0 600 280" id="graphSvg" aria-label="Identity blast-radius graph (mock)">
-          <g stroke="var(--border-strong)" stroke-width="1" opacity=".7">
-            <line x1="80" y1="140" x2="220" y2="80"/>
-            <line x1="80" y1="140" x2="220" y2="140"/>
-            <line x1="80" y1="140" x2="220" y2="200"/>
-            <line x1="220" y1="80" x2="380" y2="60"/>
-            <line x1="220" y1="80" x2="380" y2="120"/>
-            <line x1="220" y1="140" x2="380" y2="160"/>
-            <line x1="220" y1="200" x2="380" y2="200"/>
-            <line x1="220" y1="200" x2="380" y2="240"/>
-            <line x1="380" y1="60" x2="520" y2="50"/>
-            <line x1="380" y1="120" x2="520" y2="110"/>
-            <line x1="380" y1="160" x2="520" y2="170"/>
-            <line x1="380" y1="200" x2="520" y2="220"/>
-          </g>
-          <g font-family="var(--font)" font-size="10">
-            <g><circle cx="80" cy="140" r="14" fill="var(--high)"/><text x="80" y="166" text-anchor="middle" fill="var(--text)">guest@external</text></g>
-            <g><circle cx="220" cy="80" r="9" fill="var(--brand)"/><text x="220" y="68" text-anchor="middle" fill="var(--text)">grp-finance</text></g>
-            <g><circle cx="220" cy="140" r="9" fill="var(--brand)"/><text x="240" y="143" fill="var(--text)">grp-platform</text></g>
-            <g><circle cx="220" cy="200" r="9" fill="var(--brand)"/><text x="220" y="220" text-anchor="middle" fill="var(--text)">grp-readers</text></g>
-            <g><circle cx="380" cy="60" r="7" fill="var(--accent)"/><text x="380" y="48" text-anchor="middle" fill="var(--text-muted)">sp-payments</text></g>
-            <g><circle cx="380" cy="120" r="7" fill="var(--accent)"/><text x="395" y="123" fill="var(--text-muted)">sp-jobs</text></g>
-            <g><circle cx="380" cy="160" r="7" fill="var(--accent)"/><text x="395" y="163" fill="var(--text-muted)">sp-build</text></g>
-            <g><circle cx="380" cy="200" r="7" fill="var(--accent)"/><text x="395" y="203" fill="var(--text-muted)">sp-monitor</text></g>
-            <g><rect x="510" y="42" width="22" height="16" rx="3" fill="var(--med)"/><text x="540" y="54" fill="var(--text-muted)">kv-prod-payments</text></g>
-            <g><rect x="510" y="102" width="22" height="16" rx="3" fill="var(--med)"/><text x="540" y="114" fill="var(--text-muted)">sa-jobs01</text></g>
-            <g><rect x="510" y="162" width="22" height="16" rx="3" fill="var(--info)"/><text x="540" y="174" fill="var(--text-muted)">acr-build</text></g>
-            <g><rect x="510" y="212" width="22" height="16" rx="3" fill="var(--info)"/><text x="540" y="224" fill="var(--text-muted)">log-monitor</text></g>
-          </g>
-        </svg>
+        Nodes from <code>entities.json</code> (User · ServicePrincipal · Group · Application · AzureResource).
+        Edges: ownership · role assignments · group membership · federated credentials.
+        <strong>Click a node</strong> to filter the findings table by that entity.
+        <a href="#" id="idgClear" style="margin-left:8px;display:none">clear filter</a></p>
+      <div class="graph-wrap" id="identityGraph" data-empty="false">
+        <svg viewBox="0 0 600 280" id="idgSvg" aria-label="Identity blast-radius graph"></svg>
+        <div class="idg-empty" id="idgEmpty" hidden>
+          <strong>Identity graph unavailable.</strong>
+          <span class="muted">Need at least 5 identity-related entities; this run produced fewer.</span>
+        </div>
         <div class="graph-legend">
-          <span><i style="background:var(--high)"></i>Guest</span>
+          <span><i style="background:var(--crit)"></i>User</span>
+          <span><i style="background:var(--high)"></i>ServicePrincipal</span>
           <span><i style="background:var(--brand)"></i>Group</span>
-          <span><i style="background:var(--accent)"></i>Service principal</span>
-          <span><i style="background:var(--med)"></i>Resource</span>
+          <span><i style="background:var(--accent)"></i>Application</span>
+          <span><i style="background:var(--med)"></i>AzureResource</span>
         </div>
       </div>
     </div>
@@ -832,7 +817,7 @@ function renderRisks(){
 }
 
 // ---------- FINDINGS TABLE ----------
-const state={search:'',sev:'all',tool:'',sub:'',status:'',sortKey:'severity',sortDir:1};
+const state={search:'',sev:'all',tool:'',sub:'',status:'',entity:'',sortKey:'severity',sortDir:1};
 const SEV_ORDER={crit:0,high:1,med:2,low:3,info:4};
 
 function populateSelects(){
@@ -847,6 +832,7 @@ function applyFilters(){
   if(state.tool)rows=rows.filter(f=>f.tool===state.tool);
   if(state.sub)rows=rows.filter(f=>f.sub===state.sub);
   if(state.status)rows=rows.filter(f=>f.status===state.status);
+  if(state.entity)rows=rows.filter(f=>f.entity===state.entity||f.entityId===state.entity);
   if(state.search){const q=state.search.toLowerCase();
     rows=rows.filter(f=>f.rule.toLowerCase().includes(q)||f.entity.toLowerCase().includes(q)||
       f.evidence.toLowerCase().includes(q)||f.tool.toLowerCase().includes(q))}
@@ -955,6 +941,93 @@ function renderEntities(){
   }).join('');
 }
 
+// ---------- IDENTITY GRAPH (#298) ----------
+// Mock entity envelope (≥5 nodes triggers real graph; <5 → empty state)
+const IDENTITY_NODES=[
+  {id:'u-alice',  type:'User',             label:'alice@contoso.com'},
+  {id:'u-bob',    type:'User',             label:'bob@contoso.com'},
+  {id:'u-guest',  type:'User',             label:'guest@external'},
+  {id:'g-admins', type:'Group',            label:'grp-admins'},
+  {id:'g-devs',   type:'Group',            label:'grp-devs'},
+  {id:'sp-pay',   type:'ServicePrincipal', label:'sp-payments'},
+  {id:'sp-jobs',  type:'ServicePrincipal', label:'sp-jobs'},
+  {id:'app-pay',  type:'Application',      label:'app-payments'},
+  {id:'r-kv',     type:'AzureResource',    label:'kv-prod-payments'},
+  {id:'r-sa',     type:'AzureResource',    label:'sa-jobs01'},
+  {id:'r-acr',    type:'AzureResource',    label:'acr-build'}
+];
+const IDENTITY_EDGES=[
+  {s:'u-alice', t:'g-admins',kind:'MemberOf'},
+  {s:'u-bob',   t:'g-devs',  kind:'MemberOf'},
+  {s:'u-guest', t:'g-devs',  kind:'MemberOf'},
+  {s:'g-admins',t:'r-kv',    kind:'HasRoleOn'},
+  {s:'g-devs',  t:'r-sa',    kind:'HasRoleOn'},
+  {s:'g-devs',  t:'r-acr',   kind:'HasRoleOn'},
+  {s:'u-alice', t:'app-pay', kind:'OwnsApp'},
+  {s:'app-pay', t:'sp-pay',  kind:'HasServicePrincipal'},
+  {s:'sp-pay',  t:'r-kv',    kind:'HasRoleOn'},
+  {s:'sp-jobs', t:'r-sa',    kind:'HasRoleOn'},
+  {s:'sp-pay',  t:'app-pay', kind:'FederatedCredential'}
+];
+const IDG_COLOR={User:'var(--crit)',ServicePrincipal:'var(--high)',Group:'var(--brand)',
+  Application:'var(--accent)',AzureResource:'var(--med)'};
+function renderIdentityGraph(nodes,edges){
+  const wrap=document.getElementById('identityGraph');
+  const svg=document.getElementById('idgSvg');
+  const empty=document.getElementById('idgEmpty');
+  const cnt=document.getElementById('idgEntityCount');
+  cnt.textContent=nodes.length+' nodes';
+  if(!nodes||nodes.length<5){
+    wrap.dataset.empty='true';svg.style.display='none';empty.hidden=false;return;
+  }
+  wrap.dataset.empty='false';svg.style.display='';empty.hidden=true;
+  const W=600,H=280,CX=W/2,CY=H/2;
+  // Verlet force layout: repulsion + spring + center pull
+  const idIdx={};nodes.forEach((n,i)=>{idIdx[n.id]=i;
+    n.x=CX+Math.cos(i/nodes.length*Math.PI*2)*100;
+    n.y=CY+Math.sin(i/nodes.length*Math.PI*2)*80;n.vx=0;n.vy=0;});
+  const links=edges.filter(e=>idIdx[e.s]!=null&&idIdx[e.t]!=null)
+    .map(e=>({s:nodes[idIdx[e.s]],t:nodes[idIdx[e.t]],kind:e.kind}));
+  const REP=900,SPR=0.04,SPL=70,CTR=0.005,DAMP=0.82;
+  for(let it=0;it<240;it++){
+    for(let i=0;i<nodes.length;i++){const a=nodes[i];
+      for(let j=i+1;j<nodes.length;j++){const b=nodes[j];
+        let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+0.01,f=REP/d2;
+        const d=Math.sqrt(d2);dx/=d;dy/=d;
+        a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;}}
+    links.forEach(l=>{const dx=l.t.x-l.s.x,dy=l.t.y-l.s.y,d=Math.sqrt(dx*dx+dy*dy)+0.01;
+      const f=(d-SPL)*SPR,fx=dx/d*f,fy=dy/d*f;
+      l.s.vx+=fx;l.s.vy+=fy;l.t.vx-=fx;l.t.vy-=fy;});
+    nodes.forEach(n=>{n.vx+=(CX-n.x)*CTR;n.vy+=(CY-n.y)*CTR;
+      n.vx*=DAMP;n.vy*=DAMP;n.x+=n.vx;n.y+=n.vy;
+      n.x=Math.max(40,Math.min(W-40,n.x));n.y=Math.max(28,Math.min(H-28,n.y));});
+  }
+  // Render
+  const linkSvg=links.map(l=>
+    `<line x1="${l.s.x.toFixed(1)}" y1="${l.s.y.toFixed(1)}" x2="${l.t.x.toFixed(1)}" y2="${l.t.y.toFixed(1)}" stroke="var(--border-strong)" stroke-width="1" opacity=".55"><title>${l.kind}</title></line>`
+  ).join('');
+  const nodeSvg=nodes.map(n=>{
+    const c=IDG_COLOR[n.type]||'var(--med)';
+    return `<g class="idg-node" data-id="${n.id}" data-label="${n.label}" tabindex="0" role="button" aria-label="Filter findings by ${n.label}">
+      <circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="9" fill="${c}" stroke="var(--surface)" stroke-width="1.5"/>
+      <text x="${n.x.toFixed(1)}" y="${(n.y+22).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="var(--font)">${n.label}</text>
+      <title>${n.type}: ${n.label} — click to filter findings</title></g>`;
+  }).join('');
+  svg.innerHTML='<g class="idg-edges">'+linkSvg+'</g><g class="idg-nodes">'+nodeSvg+'</g>';
+  svg.querySelectorAll('.idg-node').forEach(g=>{
+    const click=()=>{const id=g.dataset.id,label=g.dataset.label;
+      svg.querySelectorAll('.idg-node').forEach(x=>x.classList.toggle('idg-sel',x===g));
+      state.entity=label;document.getElementById('idgClear').style.display='inline';renderFindings();};
+    g.addEventListener('click',click);
+    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();click();}});
+  });
+}
+document.getElementById('idgClear').addEventListener('click',e=>{
+  e.preventDefault();state.entity='';
+  document.querySelectorAll('#idgSvg .idg-node').forEach(x=>x.classList.remove('idg-sel'));
+  e.target.style.display='none';renderFindings();
+});
+
 // ---------- SUB-NAV ACTIVE LINK ----------
 const subLinks=document.querySelectorAll('.sub-row a');
 const sections=Array.from(subLinks).map(a=>document.querySelector(a.getAttribute('href')));
@@ -972,6 +1045,7 @@ renderHeatmap();
 renderRisks();
 renderFindings();
 renderEntities();
+renderIdentityGraph(IDENTITY_NODES,IDENTITY_EDGES);
 })();
 </script>
 </body>
