@@ -177,6 +177,11 @@ if (-not (Get-Command Invoke-Maester -ErrorAction SilentlyContinue)) {
 }
 
 # Verify Microsoft Graph connection
+if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue)) {
+    Write-Warning "Microsoft Graph SDK command Get-MgContext not found. Install Microsoft.Graph and connect before using Maester."
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Get-MgContext command not available. Install Microsoft.Graph and run Connect-MgGraph.'; Findings = @() }
+}
+
 $mgContext = Get-MgContext -ErrorAction SilentlyContinue
 if (-not $mgContext) {
     Write-Warning "No Microsoft Graph connection found. Run 'Connect-MgGraph -Scopes (Get-MtGraphScope)' before using Maester. Returning empty result."

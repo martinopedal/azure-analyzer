@@ -92,6 +92,7 @@ New-MgIdentityConditionalAccessPolicy -DisplayName ''Require MFA for admins''
         Mock Get-Command {
             param([string]$Name)
             if ($Name -eq 'Invoke-Maester') { return [pscustomobject]@{ Name = 'Invoke-Maester' } }
+            if ($Name -eq 'Get-MgContext') { return [pscustomobject]@{ Name = 'Get-MgContext' } }
             return $null
         }
         Mock Get-MgContext { return [pscustomobject]@{ TenantId = '11111111-1111-1111-1111-111111111111' } }
