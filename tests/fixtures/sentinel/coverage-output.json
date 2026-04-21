@@ -29,6 +29,26 @@
       "Remediation": "Re-enable the rule or document the exception.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/Sentinel-RG/providers/Microsoft.OperationalInsights/workspaces/Sentinel-WS",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/detect-threats-custom",
+      "ToolVersion": "securityinsights-2024-09-01+loganalytics-2020-08-01",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Analytics/subscriptionId/11111111-1111-1111-1111-111111111111/resourceGroup/Sentinel-RG/workspaceName/Sentinel-WS",
+      "Frameworks": [
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": [
+            "T1078",
+            "T1110"
+          ]
+        }
+      ],
+      "MitreTactics": [
+        "InitialAccess",
+        "CredentialAccess"
+      ],
+      "MitreTechniques": [
+        "T1078",
+        "T1110"
+      ],
       "RuleId": "rule-disabled-old",
       "RuleDisplayName": "Anomalous AAD sign-in (legacy)",
       "LastModifiedUtc": "2024-10-01T00:00:00Z",

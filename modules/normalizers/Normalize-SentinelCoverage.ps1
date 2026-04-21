@@ -60,20 +60,39 @@ function Normalize-SentinelCoverage {
         $remediation = if ($f.PSObject.Properties['Remediation']) { [string]$f.Remediation } else { '' }
         $learnMore   = if ($f.PSObject.Properties['LearnMoreUrl']) { [string]$f.LearnMoreUrl } else { '' }
         $category    = if ($f.PSObject.Properties['Category'] -and $f.Category) { [string]$f.Category } else { 'ThreatDetection' }
+        $ruleId      = if ($f.PSObject.Properties['RuleId'] -and $f.RuleId) { [string]$f.RuleId } else { '' }
+        $pillar      = if ($f.PSObject.Properties['Pillar'] -and $f.Pillar) { [string]$f.Pillar } else { 'Security' }
+        $toolVersion = if ($f.PSObject.Properties['ToolVersion'] -and $f.ToolVersion) { [string]$f.ToolVersion } else { '' }
+        $deepLinkUrl = if ($f.PSObject.Properties['DeepLinkUrl'] -and $f.DeepLinkUrl) { [string]$f.DeepLinkUrl } else { '' }
+        $frameworks  = if ($f.PSObject.Properties['Frameworks'] -and $f.Frameworks) { @($f.Frameworks) } else { @() }
+        $mitreTactics = if ($f.PSObject.Properties['MitreTactics'] -and $f.MitreTactics) { @($f.MitreTactics | ForEach-Object { [string]$_ }) } else { @() }
+        $mitreTechniques = if ($f.PSObject.Properties['MitreTechniques'] -and $f.MitreTechniques) { @($f.MitreTechniques | ForEach-Object { [string]$_ }) } else { @() }
+        $entityRefs = if ($f.PSObject.Properties['EntityRefs'] -and $f.EntityRefs) {
+            @($f.EntityRefs | ForEach-Object { [string]$_ })
+        } else {
+            @([string]$canonicalId)
+        }
 
         $row = New-FindingRow -Id $findingId `
             -Source 'sentinel-coverage' -EntityId $canonicalId -EntityType 'AzureResource' `
-            -Title ([string]$f.Title) -Compliant $compliant -ProvenanceRunId $runId `
+            -Title ([string]$f.Title) -RuleId $ruleId -Compliant $compliant -ProvenanceRunId $runId `
             -Platform 'Azure' -Category $category -Severity $sev `
             -Detail ([string]$f.Detail) `
             -Remediation $remediation `
             -LearnMoreUrl $learnMore -ResourceId $rawId `
-            -SubscriptionId $subId -ResourceGroup $rg
+            -SubscriptionId $subId -ResourceGroup $rg `
+            -Frameworks $frameworks `
+            -Pillar $pillar `
+            -DeepLinkUrl $deepLinkUrl `
+            -MitreTactics $mitreTactics `
+            -MitreTechniques $mitreTechniques `
+            -EntityRefs $entityRefs `
+            -ToolVersion $toolVersion
 
         if ($null -eq $row) { continue }
 
         # Attach Sentinel coverage extras (out-of-schema).
-        foreach ($extra in 'RuleId', 'RuleDisplayName', 'LastModifiedUtc', 'AgeDays',
+        foreach ($extra in 'RuleDisplayName', 'LastModifiedUtc', 'AgeDays',
                             'WatchlistAlias', 'WatchlistName', 'DefaultDuration', 'TtlDays', 'ItemCount',
                             'ConnectorCount', 'MinExpected',
                             'AnalyticRuleCount', 'HuntingQueryCount') {
