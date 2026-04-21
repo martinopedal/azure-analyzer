@@ -80,6 +80,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 - **AKS rightsizing now emits Schema 2.2 performance and cost context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) with workload-stable entity IDs for namespace/workload dedup in the entity store.
 - **kube-bench now emits Schema 2.2 AKS hardening context** (`Frameworks`, `Pillar`, `Impact`, `DeepLinkUrl`, `RemediationSnippets`, `BaselineTags`, `EntityRefs`, `ToolVersion`) so CIS control findings preserve benchmark/profile metadata end to end.
 - **Infracost now emits Schema 2.2 cost ETL metadata** (`Pillar=Cost`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) and adds a v1 `ToolSummary` block (`currency`, total and baseline monthly cost, hourly cost, diff monthly cost, project name).
+- **Maester now emits Schema 2.2 identity security context** (`Frameworks`, `Pillar`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTactics`, `MitreTechniques`, `EntityRefs`, `ToolVersion`) so Entra test findings preserve framework tags, MITRE mapping, remediation snippets, and scoped entity references.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 
