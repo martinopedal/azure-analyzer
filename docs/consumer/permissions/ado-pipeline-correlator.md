@@ -5,6 +5,7 @@
 **Scope:** ado | **Provider:** ado
 
 The run correlator (`ado-pipeline-correlator`) is read-only and requires only the minimum PAT scopes needed to enumerate build runs and correlate commit SHAs with `ado-repos-secrets` output.
+Schema 2.2 blast-radius metadata (`DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `EntityRefs`) is derived from the same read-only build and repo context, so no additional PAT scopes are required.
 
 ## Required PAT scopes
 

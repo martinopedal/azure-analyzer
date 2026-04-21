@@ -2,11 +2,12 @@
   "Source": "ado-pipeline-correlator",
   "Status": "Success",
   "Message": "Correlated 2 pipeline run finding(s) from 1 secret finding(s).",
+  "ToolVersion": "azure-devops/1.0.1",
   "Findings": [
     {
       "Id": "corr-1",
       "Category": "Pipeline Run Correlation",
-      "Title": "Secret-bearing commit aaaaaaaa executed in pipeline 'payments-ci'",
+      "Title": "Secret-bearing commit aaaaaaaa executed in pipeline 'payments-ci' [build:1001 secret:secret-1]",
       "Severity": "Critical",
       "Compliant": false,
       "Detail": "Secret type 'github-pat' in file 'src/appsettings.json' was detected in commit 'aaaaaaaa11111111'. BuildId=1001; Logs=4.",
@@ -14,20 +15,42 @@
       "ResourceId": "ado://contoso/payments/pipeline/55",
       "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runs",
       "SchemaVersion": "1.0",
-      "PipelineResourceId": "ado://contoso/payments/pipeline/55"
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "PipelineResourceId": "ado://contoso/payments/pipeline/55",
+      "BuildId": "1001",
+      "BuildUrl": "https://dev.azure.com/contoso/payments/_build/results?buildId=1001",
+      "CommitSha": "aaaaaaaa11111111",
+      "SecretFindingId": "secret-1",
+      "SecretType": "github-pat",
+      "RepositoryCanonicalId": "ado://contoso/payments/repository/payments-api",
+      "CommitUrl": "https://dev.azure.com/contoso/payments/_git/payments-api/commit/aaaaaaaa11111111",
+      "CorrelationStatus": "correlated-direct",
+      "ToolVersion": "azure-devops/1.0.1"
     },
     {
       "Id": "corr-2",
       "Category": "Pipeline Run Correlation",
-      "Title": "Secret-bearing commit aaaaaaaa executed in pipeline 'payments-release'",
+      "Title": "Secret-bearing commit aaaaaaaa was not matched to a pipeline run [build:none secret:secret-2]",
       "Severity": "High",
       "Compliant": false,
-      "Detail": "Secret type 'azure-client-secret' in file 'charts/api/values.yaml' was detected in commit 'aaaaaaaa11111111'. BuildId=1002; Logs=2.",
+      "Detail": "Secret type 'azure-client-secret' in file 'charts/api/values.yaml' was detected in commit 'bbbbbbbb22222222', but no matching build run was found in project 'payments'.",
       "Remediation": "Review the pipeline run and rotate impacted credentials.",
-      "ResourceId": "ado://contoso/payments/pipeline/66",
+      "ResourceId": "ado://contoso/payments/pipeline/unknown",
       "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runs",
       "SchemaVersion": "1.0",
-      "PipelineResourceId": "ado://contoso/payments/pipeline/66"
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "PipelineResourceId": "ado://contoso/payments/pipeline/unknown",
+      "BuildId": "",
+      "BuildUrl": "https://dev.azure.com/contoso/payments/_build",
+      "CommitSha": "bbbbbbbb22222222",
+      "SecretFindingId": "secret-2",
+      "SecretType": "azure-client-secret",
+      "RepositoryCanonicalId": "ado://contoso/payments/repository/payments-api",
+      "CommitUrl": "https://dev.azure.com/contoso/payments/_git/payments-api/commit/bbbbbbbb22222222",
+      "CorrelationStatus": "uncorrelated",
+      "ToolVersion": "azure-devops/1.0.1"
     }
   ]
 }
