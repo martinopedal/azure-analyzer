@@ -75,19 +75,79 @@ function Test-IsTimeoutException {
     return $false
 }
 
+function Get-AzDevOpsToolVersion {
+    [CmdletBinding()]
+    param ()
+
+    try {
+        $azCmd = Get-Command -Name 'az' -ErrorAction SilentlyContinue
+        if (-not $azCmd) { return '' }
+
+        $json = & $azCmd.Source version --output json 2>$null
+        if (-not $json) { return '' }
+        $version = $json | ConvertFrom-Json -Depth 10
+        if ($version.PSObject.Properties['extensions'] -and $version.extensions) {
+            if ($version.extensions.PSObject.Properties['azure-devops']) {
+                return "azure-devops/$($version.extensions.'azure-devops')"
+            }
+        }
+    } catch {
+        return ''
+    }
+
+    return ''
+}
+
+function Get-CommitEvidenceUrl {
+    [CmdletBinding()]
+    param (
+        [string]$RepositoryCanonicalId,
+        [string]$CommitSha
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RepositoryCanonicalId) -or [string]::IsNullOrWhiteSpace($CommitSha)) {
+        return ''
+    }
+
+    if ($RepositoryCanonicalId -match '^ado://([^/]+)/([^/]+)/repository/(.+)$') {
+        $org = $Matches[1]
+        $project = $Matches[2]
+        $repository = $Matches[3]
+        return "https://dev.azure.com/$org/$project/_git/$repository/commit/$CommitSha"
+    }
+
+    return ''
+}
+
+function New-CorrelationTitle {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)][string]$BaseTitle,
+        [string]$BuildId,
+        [string]$SecretFindingId
+    )
+
+    $buildKey = if ($BuildId) { $BuildId } else { 'none' }
+    $secretKey = if ($SecretFindingId) { $SecretFindingId } else { 'none' }
+    return "$BaseTitle [build:$buildKey secret:$secretKey]"
+}
+
 function New-CorrelatorInfoFinding {
     param (
         [Parameter(Mandatory)][string]$Title,
         [Parameter(Mandatory)][string]$Detail,
         [Parameter(Mandatory)][string]$ResourceId,
-        [string]$Project = ''
+        [string]$Project = '',
+        [string]$CorrelationStatus = 'correlated-fallback-project',
+        [string]$ToolVersion = ''
     )
 
+    $titleWithKeys = New-CorrelationTitle -BaseTitle $Title -BuildId '' -SecretFindingId ''
     [PSCustomObject]@{
         Id           = [guid]::NewGuid().ToString()
         Source       = 'ado-pipeline-correlator'
         Category     = 'Pipeline Run Correlation'
-        Title        = (Remove-Credentials $Title)
+        Title        = (Remove-Credentials $titleWithKeys)
         Severity     = 'Info'
         Compliant    = $true
         Detail       = (Remove-Credentials $Detail)
@@ -97,6 +157,8 @@ function New-CorrelatorInfoFinding {
         SchemaVersion = '1.0'
         AdoOrg       = $AdoOrg
         AdoProject   = $Project
+        CorrelationStatus = $CorrelationStatus
+        ToolVersion = $ToolVersion
     }
 }
 
@@ -183,6 +245,7 @@ foreach ($secret in $secrets) {
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 $logLookupFailures = [System.Collections.Generic.List[string]]::new()
 $projectFailures = [System.Collections.Generic.List[string]]::new()
+$toolVersion = Get-AzDevOpsToolVersion
 
 foreach ($entry in $byProject.GetEnumerator()) {
     $project = [string]$entry.Key
@@ -196,6 +259,9 @@ foreach ($entry in $byProject.GetEnumerator()) {
             $secretSeverity = if ($secret.PSObject.Properties['Severity'] -and $secret.Severity) { [string]$secret.Severity } else { 'High' }
             $secretFile = if ($secret.PSObject.Properties['FilePath'] -and $secret.FilePath) { [string]$secret.FilePath } else { 'unknown-file' }
             $secretType = if ($secret.PSObject.Properties['SecretType'] -and $secret.SecretType) { [string]$secret.SecretType } else { 'unknown-secret' }
+            $secretFindingId = if ($secret.PSObject.Properties['Id'] -and $secret.Id) { [string]$secret.Id } else { '' }
+            $repositoryCanonicalId = if ($secret.PSObject.Properties['RepositoryCanonicalId'] -and $secret.RepositoryCanonicalId) { [string]$secret.RepositoryCanonicalId } else { '' }
+            $commitUrl = if ($secret.PSObject.Properties['CommitUrl'] -and $secret.CommitUrl) { [string]$secret.CommitUrl } else { (Get-CommitEvidenceUrl -RepositoryCanonicalId $repositoryCanonicalId -CommitSha $commitSha) }
 
             $matchedBuilds = @($builds | Where-Object {
                     $_.PSObject.Properties['sourceVersion'] -and $_.sourceVersion -and
@@ -227,10 +293,10 @@ foreach ($entry in $byProject.GetEnumerator()) {
                     $findings.Add((New-CorrelatorInfoFinding -Title 'ADO pipeline logs inaccessible - skipped' `
                             -Detail "Build logs for '$project/$buildId' could not be read and were skipped. $($_.Exception.Message)" `
                             -ResourceId "https://dev.azure.com/$AdoOrg/$project/_build/results?buildId=$buildId" `
-                            -Project $project))
+                            -Project $project -ToolVersion $toolVersion))
                 }
 
-                $title = "Secret-bearing commit $($commitSha.Substring(0, [Math]::Min(8, $commitSha.Length))) executed in pipeline '$definitionName'"
+                $title = New-CorrelationTitle -BaseTitle "Secret-bearing commit $($commitSha.Substring(0, [Math]::Min(8, $commitSha.Length))) executed in pipeline '$definitionName'" -BuildId $buildId -SecretFindingId $secretFindingId
                 $detail = "Secret type '$secretType' in file '$secretFile' was detected in commit '$commitSha'. BuildId=$buildId; Logs=$logCount."
 
                 $findings.Add([PSCustomObject]@{
@@ -252,7 +318,45 @@ foreach ($entry in $byProject.GetEnumerator()) {
                         BuildUrl          = $buildUrl
                         BuildTimestamp    = if ($build.PSObject.Properties['startTime']) { [string]$build.startTime } else { '' }
                         CommitSha         = $commitSha
-                        SecretFindingId   = if ($secret.PSObject.Properties['Id']) { [string]$secret.Id } else { '' }
+                        SecretFindingId   = $secretFindingId
+                        SecretType        = $secretType
+                        RepositoryCanonicalId = $repositoryCanonicalId
+                        CommitUrl         = $commitUrl
+                        CorrelationStatus = 'correlated-direct'
+                        ToolVersion       = $toolVersion
+                    })
+            }
+
+            if ($matchedBuilds.Count -eq 0) {
+                $correlationStatus = if ($builds.Count -eq 0) { 'build-not-found' } else { 'uncorrelated' }
+                $title = New-CorrelationTitle -BaseTitle "Secret-bearing commit $($commitSha.Substring(0, [Math]::Min(8, $commitSha.Length))) was not matched to a pipeline run" -BuildId '' -SecretFindingId $secretFindingId
+                $detail = "Secret type '$secretType' in file '$secretFile' was detected in commit '$commitSha', but no matching build run was found in project '$project'."
+
+                $findings.Add([PSCustomObject]@{
+                        Id                  = [guid]::NewGuid().ToString()
+                        Source              = 'ado-pipeline-correlator'
+                        Category            = 'Pipeline Run Correlation'
+                        Title               = (Remove-Credentials $title)
+                        Severity            = $secretSeverity
+                        Compliant           = $false
+                        Detail              = (Remove-Credentials $detail)
+                        Remediation         = 'Review pipeline triggers, verify commit-to-build lineage, rotate exposed secrets, and validate downstream artifacts.'
+                        ResourceId          = "ado://$($AdoOrg.ToLowerInvariant())/$($project.ToLowerInvariant())/pipeline/unknown"
+                        LearnMoreUrl        = 'https://learn.microsoft.com/en-us/azure/devops/pipelines/process/runs'
+                        SchemaVersion       = '1.0'
+                        AdoOrg              = $AdoOrg
+                        AdoProject          = $project
+                        PipelineResourceId  = "ado://$($AdoOrg.ToLowerInvariant())/$($project.ToLowerInvariant())/pipeline/unknown"
+                        BuildId             = ''
+                        BuildUrl            = "https://dev.azure.com/$AdoOrg/$project/_build"
+                        BuildTimestamp      = ''
+                        CommitSha           = $commitSha
+                        SecretFindingId     = $secretFindingId
+                        SecretType          = $secretType
+                        RepositoryCanonicalId = $repositoryCanonicalId
+                        CommitUrl           = $commitUrl
+                        CorrelationStatus   = $correlationStatus
+                        ToolVersion         = $toolVersion
                     })
             }
         }
@@ -263,19 +367,19 @@ foreach ($entry in $byProject.GetEnumerator()) {
         if ($statusCode -in @(401, 403)) {
             $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project inaccessible for pipeline correlation - skipped' `
                     -Detail "Project '$project' returned HTTP $statusCode and was skipped for correlation. $($_.Exception.Message)" `
-                    -ResourceId $projectUri -Project $project))
+                    -ResourceId $projectUri -Project $project -ToolVersion $toolVersion))
         } elseif ($statusCode -eq 404) {
             $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project not found for pipeline correlation - skipped' `
                     -Detail "Project '$project' returned HTTP 404 and was skipped for correlation. $($_.Exception.Message)" `
-                    -ResourceId $projectUri -Project $project))
+                    -ResourceId $projectUri -Project $project -ToolVersion $toolVersion))
         } elseif (Test-IsTimeoutException -Exception $_.Exception) {
             $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project correlation timed out - skipped' `
                     -Detail "Project '$project' timed out during build lookup and was skipped. $($_.Exception.Message)" `
-                    -ResourceId $projectUri -Project $project))
+                    -ResourceId $projectUri -Project $project -ToolVersion $toolVersion))
         } else {
             $findings.Add((New-CorrelatorInfoFinding -Title 'ADO project correlation failed - skipped' `
                     -Detail "Project '$project' failed correlation and was skipped. $($_.Exception.Message)" `
-                    -ResourceId $projectUri -Project $project))
+                    -ResourceId $projectUri -Project $project -ToolVersion $toolVersion))
         }
         Write-Warning (Remove-Credentials "Failed to correlate builds for project '$project': $($_.Exception.Message)")
     }

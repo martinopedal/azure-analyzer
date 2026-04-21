@@ -41,7 +41,10 @@ Describe 'Invoke-ADOPipelineCorrelator' {
 
         It 'returns success with zero correlated findings' {
             $result.Status | Should -Be 'Success'
-            @($result.Findings).Count | Should -Be 0
+            @($result.Findings).Count | Should -Be 1
+            $result.Findings[0].CorrelationStatus | Should -Be 'uncorrelated'
+            $result.Findings[0].SecretFindingId | Should -Be 'secret-1'
+            $result.Findings[0].Title | Should -Match '\[build:none secret:secret-1\]'
         }
     }
 
@@ -78,6 +81,9 @@ Describe 'Invoke-ADOPipelineCorrelator' {
             @($result.Findings | Select-Object -ExpandProperty BuildId) | Should -Contain '2001'
             @($result.Findings | Select-Object -ExpandProperty BuildId) | Should -Contain '2002'
             @($result.Findings | Select-Object -ExpandProperty BuildId) | Should -Contain '2003'
+            @($result.Findings | Select-Object -ExpandProperty CorrelationStatus -Unique) | Should -Contain 'correlated-direct'
+            @($result.Findings | Select-Object -ExpandProperty SecretFindingId -Unique) | Should -Contain 'secret-1'
+            @($result.Findings | Select-Object -ExpandProperty Title | Where-Object { $_ -match '\[build:2001 secret:secret-1\]' }).Count | Should -Be 1
         }
     }
 }

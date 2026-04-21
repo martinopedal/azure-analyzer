@@ -13,7 +13,7 @@ The ado-connections Schema 2.2 auth posture enrichment adds metadata only and do
 | **Azure** | Subscription / management-group / workspace collectors (azqr, PSRule, Powerpipe, AzGovViz, ALZ, WARA, FinOps, Defender, Sentinel, Cost, AKS) | **Reader** at the relevant scope |
 | **Microsoft Graph** | Entra ID / identity collectors (Maester, Identity Correlator optional, Identity Graph Expansion) | Read-only Graph application or delegated scopes |
 | **GitHub** | OpenSSF Scorecard, optional cloning for cloud-first CLI scanners | Repository **Read** PAT (or unauthenticated for public repos with rate-limit penalty) |
-| **Azure DevOps** | Service connections, pipeline security, repo secrets, run correlator, pipeline consumption cost governance telemetry | PAT with read-only scopes (`Build:Read`, `Code:Read`, `Service Connections:Read`, etc.) |
+| **Azure DevOps** | Service connections, pipeline security, repo secrets, run correlator, pipeline consumption cost governance telemetry | PAT with read-only scopes (`Build:Read`, `Code:Read`, `Service Connections:Read`, etc.). The run correlator emits Schema 2.2 evidence links and entity refs without requiring extra scopes. |
 | **Local CLI / IaC** | zizmor, gitleaks, Trivy, bicep-iac, terraform-iac when run against a local checkout | None |
 | **Optional sink** | Streaming findings to Log Analytics (`-SinkLogAnalytics`) | **Monitoring Metrics Publisher** on the DCR (the only write role) |
 
