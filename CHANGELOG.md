@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [1.2.0 - Unreleased]
 
 ### Added
+- docs(fidelity): scaffolded the tool-output fidelity audit deliverable for #432a. Added `docs/tool-output-audit.md` (methodology + per-family field-coverage table covering all 36 enabled tools), `docs/tool-output-audit.template.json` (machine-readable sidecar template grouped by family), `docs/audit/tool-family-followup-template.md` (issue template the coordinator uses to spawn the eight per-family audit issues), and a `## Tool output audit` section in `README.md` linking to the audit. No schema, normalizer, or wrapper edits in this PR; foundation FindingRow extensions land in PR #435 (#432a).
 - feat(schema): added `IaCFile` as a first-class EntityType to the schema v2 enum with Platform=IaC. Canonical ID format is `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). EntityStore deduplicates IaCFile entities by Platform|EntityType|EntityId composite key, enabling cross-tool correlation when multiple IaC scanners (Terraform, Trivy, Checkov, tfsec) report findings on the same file. Canonical ID logic added to `modules/shared/Canonicalize.ps1`, dedup contract validated in EntityStore tests, and documentation updated in `docs/reference/entity-model.md`.
 
 ### Changed

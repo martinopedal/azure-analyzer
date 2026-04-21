@@ -60,3 +60,7 @@ See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.m
 See [docs/contributing/](docs/contributing/CONTRIBUTING.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood.
 
 </details>
+
+## Tool output audit
+
+azure-analyzer follows an audit-first principle: before extending the FindingRow schema or changing normalizers to surface more tool data, we document exactly what each of the 36 underlying tools emits and what currently survives the wrapper plus normalizer plus FindingRow pipeline. The living catalogue lives in [docs/tool-output-audit.md](docs/tool-output-audit.md), with a machine-readable sidecar at [docs/tool-output-audit.template.json](docs/tool-output-audit.template.json) and a per-family follow-up template at [docs/audit/tool-family-followup-template.md](docs/audit/tool-family-followup-template.md). Schema and normalizer work is gated on the audit results so we only add fields the tools actually produce.

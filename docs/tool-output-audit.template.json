@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Per-tool output fidelity audit data. Family audits copy this template to docs/tool-output-audit.json (or merge into it) and populate the per-tool entries. Field semantics are documented in docs/tool-output-audit.md.",
+  "tools": [
+    { "name": "azgovviz",                "family": "azure-gov", "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "psrule",                  "family": "azure-gov", "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "alz-queries",             "family": "azure-gov", "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "powerpipe",               "family": "azure-gov", "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "defender-for-cloud",      "family": "security",  "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "prowler",                 "family": "security",  "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "maester",                 "family": "security",  "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "kubescape",               "family": "k8s",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "kube-bench",              "family": "k8s",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "trivy",                   "family": "k8s",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "falco",                   "family": "k8s",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "ado-connections",         "family": "ado",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "ado-pipelines",           "family": "ado",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "ado-repos-secrets",       "family": "ado",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "ado-consumption",         "family": "ado",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "ado-pipeline-correlator", "family": "ado",       "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "infracost",               "family": "finops",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "azure-cost",              "family": "finops",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "azure-quota",             "family": "finops",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "finops",                  "family": "finops",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "aks-karpenter-cost",      "family": "finops",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "scorecard",               "family": "github",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "zizmor",                  "family": "github",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "gh-actions-billing",      "family": "github",    "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "wara",                    "family": "wara",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "azqr",                    "family": "wara",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+
+    { "name": "sentinel-coverage",       "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "sentinel-incidents",      "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "identity-correlator",     "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "identity-graph-expansion","family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "appinsights",             "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "loadtesting",             "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "aks-rightsizing",         "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "terraform-iac",           "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "bicep-iac",               "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null },
+    { "name": "gitleaks",                "family": "misc",      "rawFields": [], "wrapperPreserved": [], "normalizerPreserved": [], "findingRowMapped": [], "droppedFields": [], "auditedAt": null, "auditor": null }
+  ]
+}
