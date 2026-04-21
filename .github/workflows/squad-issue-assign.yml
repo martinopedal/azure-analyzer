@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Identify assigned member and trigger work
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require('fs');
@@ -119,7 +119,7 @@ jobs:
       # instead of aborting with "Input required and not supplied: github-token".
       - name: Assign @copilot coding agent
         if: github.event.label.name == 'squad:copilot'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           HAS_COPILOT_PAT: ${{ secrets.COPILOT_ASSIGN_TOKEN != '' && '1' || '' }}
         with:
