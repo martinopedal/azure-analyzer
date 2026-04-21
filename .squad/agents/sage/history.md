@@ -173,3 +173,24 @@
 
 - 2026-04-21 - Report UI v2 redesign research brief, zizmor schema 2.2 ETL contract, launch smoke test findings (including hard bug fix for null remediation snippets in #415) - to decisions.md section ## 2026-04-21 -- Post-#418 inbox sweep
 
+
+### 2026-04-21 — Issue #413: IaCFile EntityType addition
+
+**Assignment:** Add IaCFile as first-class schema entity type for cross-tool IaC finding deduplication. Post-launch follow-up from Terraform ETL PR which stayed on EntityType=Repository to avoid schema-surface expansion during launch critical path.
+
+**Implementation:**
+- **Canonical ID format chosen:** iacfile:{repo-slug}:{relative-path} (e.g., iacfile:github.com/org/repo:terraform/main.tf). Lowercased, forward-slash normalized. Repo-slug accepts both 2-segment (org/repo) and 3-segment (host/org/repo) for GHES/GHEC-DR compatibility.
+- **Platform mapping:** IaCFile → Platform=IaC (new platform). Avoids collision with Repository Platform=GitHub/ADO.
+- **Dedup contract validated:** EntityStore composite key Platform|EntityType|EntityId deduplicates IaCFile entities across tools. When Terraform + Trivy + Checkov all report same file, EntityStore emits one entity row with merged sources and aggregated counts.
+- **Schema changes:** modules/shared/Schema.ps1 (EntityType enum + platform mapping + ValidateSet updates in 3 functions), modules/shared/Canonicalize.ps1 (IaCFile case with colon-separator validation, error messages for empty repo-slug / empty path).
+- **Tests added:** 7 new Pester tests (4 in Canonicalize.Tests.ps1 for ID format validation, 1 in Schema.Tests.ps1 for entity type acceptance, 2 in EntityStore.Tests.ps1 for dedup contract proof). Baseline extended from 1511 → 1518 passing.
+
+**Decision deferred:** Normalizer migration. Normalize-IaCTerraform.ps1 still uses EntityType=Repository. Migration to IaCFile requires normalizer contract change (EntityId field from repo URL to file path + repo slug) and fixture refresh. Left as follow-up to avoid scope creep on schema-only PR. Issue #413 body scoped explicitly to "schema + EntityStore contract" with "optional normalizer migration if clean swap". Migration is not clean — EntityId shape changes fundamentally.
+
+**Deliverable:** PR #423 merged at SHA 5577bd77. Pester 1518/0/5 (passed/failed/skipped). Issue #413 auto-closed. Sample reports unchanged (fixture doesn't exercise IaCFile, per task spec).
+
+**Learnings:**
+- **Three ValidateSet locations** for EntityType in Schema.ps1: script-level array $script:EntityTypes, Get-PlatformForEntityType param, New-EntityStub param. All three must stay synchronized or ValidateSet rejects new types at binding time.
+- **Platform enum in two places:** $script:Platforms array (for validation) and New-EntityStub ValidateSet. Both need the new IaC platform.
+- **Dedup key is composite:** EntityStore doesn't hash EntityId alone — it's Platform|EntityType|EntityId. Changing only EntityType (without changing Platform) can accidentally merge entities that should be distinct. IaCFile gets Platform=IaC to avoid colliding with Repository Platform=GitHub.
+- **Ubuntu CI pre-existing failure:** Main branch CI was red (13 failing tests in Copilot review comment parsing). My PR inherited the failure, but IaCFile-specific tests all green. Merged based on required check (Analyze (actions)) being green. Repo resilience contract says iterate until green on PR-blocking checks; non-blocking failures are deferred.
