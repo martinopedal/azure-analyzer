@@ -156,7 +156,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportArchitecture', 'ReportManifest', 'ReportVerification')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -894,6 +894,7 @@ if ($toolSpecs.Count -gt 0) {
 # ---------------------------------------------------------------------------
 $store      = [EntityStore]::new(50000, $OutputPath)
 $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+$normalizerEdgeCollector = [System.Collections.Generic.List[psobject]]::new()
 # Per-tool aggregation for tool-status.json
 $toolAgg = @{}   # toolName → @{ WorstStatus; Messages; Count }
 
@@ -953,7 +954,12 @@ foreach ($wr in $parallelResults) {
     $v3Findings = @()
     if ($normFunc -and (Get-Command $normFunc -ErrorAction SilentlyContinue)) {
         try {
-            $v3Findings = @(& $normFunc -ToolResult $toolResult)
+            $normCmd = Get-Command $normFunc -ErrorAction SilentlyContinue
+            $normParams = @{ ToolResult = $toolResult }
+            if ($normCmd -and (@($normCmd.Parameters.Keys) -contains 'EdgeCollector')) {
+                $normParams['EdgeCollector'] = $normalizerEdgeCollector
+            }
+            $v3Findings = @(& $normFunc @normParams)
         } catch {
             Write-Warning (Remove-Credentials "Normaliser $normFunc failed: $_")
             $v3Findings = @()
@@ -1216,6 +1222,11 @@ try {
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
     if ($null -eq $entities) { $entities = @() }
+    foreach ($edge in @($normalizerEdgeCollector)) {
+        if (-not $edge) { continue }
+        try { $store.AddEdge([pscustomobject]$edge) }
+        catch { Write-Warning (Remove-Credentials "EdgeCollector edge rejected: $_") }
+    }
     $edges = @()
     if (Get-Command Export-Edges -ErrorAction SilentlyContinue) {
         $edges = @(Export-Edges -Store $store)

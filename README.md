@@ -59,4 +59,6 @@ See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.m
 
 See [docs/contributing/](docs/contributing/CONTRIBUTING.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood.
 
+The foundation layer now keeps report evolution safe and additive: schema extensions remain backward compatible, report tier selection is explicit, report-manifest metadata captures runtime decisions, and post-render verification can auto-upgrade rendering architecture once without reducing declared feature availability. This lets feature tracks build on a stable contract while preserving v2 results and v3 entities dual-read behavior.
+
 </details>

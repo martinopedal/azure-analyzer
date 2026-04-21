@@ -143,5 +143,27 @@ Describe 'Error Message Sanitization (Disk Write Scenarios)' {
         $sanitized | Should -Match 'AccountKey=\[REDACTED\]'
         $sanitized | Should -Match 'sig=\[REDACTED\]'
     }
+
+    It 'blocks poisoned Password field across JSON CSV SARIF and manifest sidecars' {
+        $dir = Join-Path $TestDrive 'sanitize-parity'
+        $null = New-Item -ItemType Directory -Path $dir -Force
+
+        $json = Remove-Credentials '{"tool":"x","Password":"secret123"}'
+        $csv = Remove-Credentials "key,value`nPassword,secret123"
+        $sarif = Remove-Credentials '{"runs":[{"results":[{"message":{"text":"Password=secret123"}}]}]}'
+        $manifest = Remove-Credentials '{"SchemaVersion":"1.0","notes":"Password=secret123"}'
+
+        Set-Content -Path (Join-Path $dir 'chunk-findings-1.json') -Value $json -Encoding UTF8
+        Set-Content -Path (Join-Path $dir 'results.csv') -Value $csv -Encoding UTF8
+        Set-Content -Path (Join-Path $dir 'results.sarif') -Value $sarif -Encoding UTF8
+        Set-Content -Path (Join-Path $dir 'report-manifest.json') -Value $manifest -Encoding UTF8
+
+        foreach ($file in @('chunk-findings-1.json', 'results.csv', 'results.sarif', 'report-manifest.json')) {
+            $content = Get-Content -Path (Join-Path $dir $file) -Raw
+            $content | Should -Not -Match 'Password=secret123'
+            $content | Should -Not -Match '"Password":"secret123"'
+            $content | Should -Not -Match 'Password,secret123'
+        }
+    }
 }
 

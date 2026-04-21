@@ -37,7 +37,23 @@ $script:EdgeRelations = @(
     'MemberOf',           # User|ServicePrincipal -> Group/role
     'HasRoleOn',          # ServicePrincipal|User -> AzureResource (RBAC)
     'OwnsAppRegistration',# User|ServicePrincipal -> Application
-    'ConsentedTo'         # User|ServicePrincipal -> Application (delegated/admin consent)
+    'ConsentedTo',        # User|ServicePrincipal -> Application (delegated/admin consent)
+    'TriggeredBy',
+    'AuthenticatesAs',
+    'DeploysTo',
+    'UsesSecret',
+    'HasFederatedCredential',
+    'Declares',
+    'DependsOn',
+    'RegionPinned',
+    'ZonePinned',
+    'BackedUpBy',
+    'FailsOverTo',
+    'ReplicatedTo',
+    'PolicyAssignedTo',
+    'PolicyEnforces',
+    'ExemptedFrom',
+    'InheritsFrom'
 )
 $script:EntityTypes = @(
     'AzureResource',
@@ -264,7 +280,14 @@ function New-FindingRow {
         [string[]] $MitreTactics = @(),
         [string[]] $MitreTechniques = @(),
         [string[]] $EntityRefs = @(),
+        [string] $DocsUrl = '',
+        [string] $RemediationScript = '',
+        [object[]] $ComplianceMappings = @(),
+        [string] $RuleReference = '',
+        [string] $SeverityRationale = '',
+        [string[]] $AffectedProperties = @(),
         [string] $ToolVersion = '',
+        [object[]] $SuggestedPolicies = @(),
 
         [string] $SchemaVersion = $script:SchemaVersion
     )
@@ -363,7 +386,14 @@ function New-FindingRow {
         MitreTactics     = $MitreTactics
         MitreTechniques  = $MitreTechniques
         EntityRefs       = $EntityRefs
+        DocsUrl          = $DocsUrl
+        RemediationScript = $RemediationScript
+        ComplianceMappings = $ComplianceMappings
+        RuleReference    = $RuleReference
+        SeverityRationale = $SeverityRationale
+        AffectedProperties = $AffectedProperties
         ToolVersion      = $ToolVersion
+        SuggestedPolicies = $SuggestedPolicies
         SchemaVersion    = $SchemaVersion
     }
 

@@ -51,7 +51,7 @@ Describe 'New-Edge factory' {
 Describe 'Get-EdgeRelations enum' {
     It 'lists the documented relations' {
         $rels = Get-EdgeRelations
-        foreach ($expected in @('GuestOf','MemberOf','HasRoleOn','OwnsAppRegistration','ConsentedTo')) {
+        foreach ($expected in @('GuestOf','MemberOf','HasRoleOn','OwnsAppRegistration','ConsentedTo','TriggeredBy','DependsOn','PolicyAssignedTo','InheritsFrom')) {
             $rels | Should -Contain $expected
         }
     }

@@ -24,6 +24,8 @@ function Remove-Credentials {
         @{ Pattern = '(?im)Authorization:\s*(Bearer|Basic)\s+\S+'; Replacement = 'Authorization: [REDACTED]' },
         @{ Pattern = '(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*'; Replacement = 'Bearer [REDACTED]' },
         @{ Pattern = '(?i)\b(AccountKey|SharedAccessKey|Password)=[^;]+'; Replacement = '$1=[REDACTED]' },
+        @{ Pattern = '(?i)"(password|accountkey|sharedaccesskey|client_secret)"\s*:\s*"[^"]+"'; Replacement = '"$1":"[REDACTED]"' },
+        @{ Pattern = '(?im)(^|,)\s*(password|accountkey|sharedaccesskey|client_secret)\s*,\s*[^,\r\n]+'; Replacement = '$1$2,[REDACTED]' },
         @{ Pattern = '(?i)\bsig=[A-Za-z0-9%+/=]{10,}'; Replacement = 'sig=[REDACTED]' },
         @{ Pattern = '(?i)\bclient_secret=[^&\s]+'; Replacement = 'client_secret=[REDACTED]' },
         @{ Pattern = '(?i)\bSharedAccessSignature=[^;]+'; Replacement = 'SharedAccessSignature=[REDACTED]' }
