@@ -90,6 +90,7 @@ The three quickstart scenarios above are the common path. The consumer index in 
 - Azure DevOps Services and Azure DevOps Server pipeline, service-connection, repo-secret, and pipeline-consumption posture
 - GitHub Actions billing and runner-minute cost telemetry
 - Sentinel coverage and active incidents
+- AzGovViz governance findings with Schema 2.2 enrichments (pillar, framework controls, baseline tags, portal deep links, evidence URIs)
 - Application Insights performance signals (slow requests, dependency failures, exception clusters)
 - Azure Load Testing failed and regressed runs
 - AKS rightsizing via Container Insights utilization signals

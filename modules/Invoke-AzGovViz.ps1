@@ -106,11 +106,247 @@ function Get-PolicyEffectSeverity {
     }
 }
 
+function ConvertTo-DelimitedList {
+    param ([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) { return @() }
+    return @(
+        $Value -split '[,;|]' |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+}
+
+function Get-AzGovVizPillar {
+    param (
+        [string]$Category,
+        [string]$Title
+    )
+
+    $normalizedCategory = ($Category ?? '').Trim().ToLowerInvariant()
+    $normalizedTitle = ($Title ?? '').Trim().ToLowerInvariant()
+
+    if ($normalizedCategory -match '^(policy|identity)$') { return 'Security' }
+    if ($normalizedCategory -match '^(cost|costoptimization|finops)$') { return 'Cost' }
+    if ($normalizedTitle -match 'orphaned') { return 'Cost' }
+    return 'Operational Excellence'
+}
+
+function ConvertTo-BaselineTag {
+    param ([string]$Name)
+
+    if ([string]::IsNullOrWhiteSpace($Name)) { return '' }
+    $slug = ($Name.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-')
+    if ([string]::IsNullOrWhiteSpace($slug)) { return '' }
+    return "initiative:$slug"
+}
+
+function Get-AzGovVizFrameworks {
+    param ([psobject]$FindingLike)
+
+    if ($FindingLike.PSObject.Properties['Frameworks'] -and @($FindingLike.Frameworks).Count -gt 0) {
+        return @($FindingLike.Frameworks)
+    }
+
+    $policySetId = Get-RowValue -Row $FindingLike -Names @('PolicySetDefinitionId', 'PolicySetId', 'policySetId', 'policySetDefinitionId')
+    $mcsbRaw = Get-RowValue -Row $FindingLike -Names @('MCSBControls', 'McsbControls', 'MCSBControlIds', 'ControlIds')
+    $mcsbControls = ConvertTo-DelimitedList -Value $mcsbRaw
+
+    $frameworks = [System.Collections.Generic.List[hashtable]]::new()
+    if ($policySetId) {
+        $frameworks.Add(@{
+                Name     = 'ALZ'
+                Controls = @($policySetId)
+            })
+    }
+    if (@($mcsbControls).Count -gt 0) {
+        $frameworks.Add(@{
+                Name     = 'MCSB'
+                Controls = @($mcsbControls)
+            })
+    }
+
+    return @($frameworks)
+}
+
+function Get-AzGovVizBaselineTags {
+    param ([psobject]$FindingLike)
+
+    if ($FindingLike.PSObject.Properties['BaselineTags'] -and @($FindingLike.BaselineTags).Count -gt 0) {
+        return @($FindingLike.BaselineTags)
+    }
+
+    $initiativeName = Get-RowValue -Row $FindingLike -Names @(
+        'PolicySetDefinitionName',
+        'PolicyInitiativeName',
+        'PolicyAssignmentName',
+        'InitiativeName'
+    )
+
+    $tags = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in (ConvertTo-DelimitedList -Value $initiativeName)) {
+        $tag = ConvertTo-BaselineTag -Name $name
+        if ($tag) { $tags.Add($tag) }
+    }
+    return @($tags)
+}
+
+function Get-AzGovVizDeepLink {
+    param (
+        [string]$Category,
+        [string]$ResourceId,
+        [string]$Scope,
+        [string]$ManagementGroupId,
+        [string]$ManagementGroupResourceId
+    )
+
+    $normalizedCategory = ($Category ?? '').Trim().ToLowerInvariant()
+    if ($normalizedCategory -eq 'policy') {
+        $effectiveScope = if ($Scope) { $Scope } elseif ($ResourceId) { $ResourceId } elseif ($ManagementGroupResourceId) { $ManagementGroupResourceId } elseif ($ManagementGroupId) { "/providers/Microsoft.Management/managementGroups/$ManagementGroupId" } else { '' }
+        if ($effectiveScope) {
+            return "https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance?scope=$([uri]::EscapeDataString($effectiveScope))"
+        }
+        return 'https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance'
+    }
+
+    if ($ResourceId) {
+        return "https://portal.azure.com/#@/resource$($ResourceId)/overview"
+    }
+    if ($ManagementGroupResourceId) {
+        return "https://portal.azure.com/#@/resource$($ManagementGroupResourceId)/overview"
+    }
+    if ($ManagementGroupId) {
+        return "https://portal.azure.com/#@/resource/providers/Microsoft.Management/managementGroups/$ManagementGroupId/overview"
+    }
+
+    return ''
+}
+
+function Get-AzGovVizEvidenceUris {
+    param (
+        [string]$ReportUri,
+        [string]$Category
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ReportUri)) { return @() }
+    $anchor = switch -Regex (($Category ?? '').Trim().ToLowerInvariant()) {
+        '^policy$' { '#policy' }
+        '^identity$' { '#rbac' }
+        '^cost|costoptimization|finops$' { '#cost' }
+        '^operations$' { '#operations' }
+        default { '#governance' }
+    }
+    return @("$ReportUri$anchor")
+}
+
+function Resolve-AzGovVizReportUri {
+    param ([string]$OutputPath)
+
+    $report = Get-ChildItem -Path $OutputPath -Filter '*.html' -Recurse -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+    if (-not $report) { return '' }
+    return ([System.Uri]::new($report.FullName)).AbsoluteUri
+}
+
+function Get-AzGovVizToolVersion {
+    param ([string]$ScriptPath)
+
+    try {
+        $content = Get-Content -Path $ScriptPath -Raw -ErrorAction Stop
+        foreach ($pattern in @(
+                '(?im)^\s*\$script:Version\s*=\s*[''"](?<v>[^''"]+)[''"]',
+                '(?im)^\s*Version\s*[:=]\s*[''"](?<v>[^''"]+)[''"]',
+                '(?im)^\s*#\s*Version[:\s]+(?<v>\d+\.\d+(?:\.\d+)?)'
+            )) {
+            if ($content -match $pattern) {
+                return $Matches['v']
+            }
+        }
+    } catch {
+        Write-Verbose "Could not infer AzGovViz version from script: $(Remove-Credentials -Text ([string]$_))"
+    }
+
+    return 'unknown'
+}
+
+function New-AzGovVizFinding {
+    param (
+        [Parameter(Mandatory)]
+        [object]$FindingLike,
+        [string]$ManagementGroupId,
+        [string]$ToolVersion,
+        [string]$ReportUri
+    )
+
+    $props = @{}
+    foreach ($p in $FindingLike.PSObject.Properties) {
+        $props[$p.Name] = $p.Value
+    }
+
+    $category = if ($props.ContainsKey('Category')) { [string]$props['Category'] } else { 'Governance' }
+    $title = if ($props.ContainsKey('Title')) { [string]$props['Title'] } else { '' }
+    $resourceId = if ($props.ContainsKey('ResourceId')) { [string]$props['ResourceId'] } else { '' }
+    $scope = if ($props.ContainsKey('Scope')) { [string]$props['Scope'] } else { '' }
+    $managementGroupResourceId = if ($props.ContainsKey('ManagementGroupResourceId')) {
+        [string]$props['ManagementGroupResourceId']
+    } elseif ($ManagementGroupId) {
+        "/providers/Microsoft.Management/managementGroups/$ManagementGroupId"
+    } else {
+        ''
+    }
+
+    $props['Source'] = 'azgovviz'
+    if (-not $props.ContainsKey('SchemaVersion') -or [string]::IsNullOrWhiteSpace([string]$props['SchemaVersion'])) {
+        $props['SchemaVersion'] = '1.0'
+    }
+    if (-not $props.ContainsKey('Category') -or [string]::IsNullOrWhiteSpace([string]$props['Category'])) {
+        $props['Category'] = 'Governance'
+    }
+    if (-not $props.ContainsKey('Pillar') -or [string]::IsNullOrWhiteSpace([string]$props['Pillar'])) {
+        $props['Pillar'] = Get-AzGovVizPillar -Category $category -Title $title
+    }
+    try {
+        if (-not $props.ContainsKey('Frameworks') -or @($props['Frameworks']).Count -eq 0) {
+            $props['Frameworks'] = @(Get-AzGovVizFrameworks -FindingLike ([pscustomobject]$props))
+        }
+    } catch {
+        $props['Frameworks'] = @()
+    }
+    try {
+        if (-not $props.ContainsKey('BaselineTags') -or @($props['BaselineTags']).Count -eq 0) {
+            $props['BaselineTags'] = @(Get-AzGovVizBaselineTags -FindingLike ([pscustomobject]$props))
+        }
+    } catch {
+        $props['BaselineTags'] = @()
+    }
+    if (-not $props.ContainsKey('ToolVersion') -or [string]::IsNullOrWhiteSpace([string]$props['ToolVersion'])) {
+        $props['ToolVersion'] = $ToolVersion
+    }
+    if ($ManagementGroupId -and (-not $props.ContainsKey('ManagementGroupId') -or [string]::IsNullOrWhiteSpace([string]$props['ManagementGroupId']))) {
+        $props['ManagementGroupId'] = $ManagementGroupId
+    }
+    if ($managementGroupResourceId -and (-not $props.ContainsKey('ManagementGroupResourceId') -or [string]::IsNullOrWhiteSpace([string]$props['ManagementGroupResourceId']))) {
+        $props['ManagementGroupResourceId'] = $managementGroupResourceId
+    }
+    if (-not $props.ContainsKey('DeepLinkUrl') -or [string]::IsNullOrWhiteSpace([string]$props['DeepLinkUrl'])) {
+        $props['DeepLinkUrl'] = Get-AzGovVizDeepLink -Category $category -ResourceId $resourceId -Scope $scope -ManagementGroupId $ManagementGroupId -ManagementGroupResourceId $managementGroupResourceId
+    }
+    if (-not $props.ContainsKey('EvidenceUris') -or @($props['EvidenceUris']).Count -eq 0) {
+        $props['EvidenceUris'] = @(Get-AzGovVizEvidenceUris -ReportUri $ReportUri -Category $category)
+    }
+
+    return [pscustomobject]$props
+}
+
 function Import-AzGovVizCsvFindings {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [string] $OutputPath
+        [string] $OutputPath,
+        [string] $ManagementGroupId,
+        [string] $ToolVersion,
+        [string] $ReportUri
     )
 
     $findings = [System.Collections.Generic.List[psobject]]::new()
@@ -133,22 +369,29 @@ function Import-AzGovVizCsvFindings {
                     $effect = Get-RowValue -Row $row -Names @('PolicyEffect', 'effect')
                     $complianceState = Get-RowValue -Row $row -Names @('ComplianceState', 'complianceState')
                     $policyAssignment = Get-RowValue -Row $row -Names @('PolicyAssignmentName', 'policyAssignmentName', 'PolicyAssignment')
+                    $policySetId = Get-RowValue -Row $row -Names @('PolicySetDefinitionId', 'PolicySetId', 'policySetId')
+                    $policyInitiativeName = Get-RowValue -Row $row -Names @('PolicySetDefinitionName', 'PolicyInitiativeName', 'initiativeName')
+                    $mcsbControls = Get-RowValue -Row $row -Names @('MCSBControls', 'McsbControls', 'MCSBControlIds')
                     $resourceId = Get-RowValue -Row $row -Names @('ResourceId', 'resourceId', 'ResourceID', 'Scope', 'scope')
                     $scope = Get-RowValue -Row $row -Names @('Scope', 'scope')
                     $stateText = if ($complianceState) { $complianceState } else { 'Unknown' }
                     $isCompliant = ($complianceState -eq 'Compliant')
                     if ($isCompliant) { continue }
                     $titleSuffix = if ($policyAssignment) { ": $policyAssignment" } else { '' }
-                    $findings.Add([pscustomobject]@{
-                            Source      = 'azgovviz'
-                            Category    = 'Policy'
-                            Title       = "Policy compliance state$titleSuffix"
-                            Compliant   = $false
-                            Severity    = Get-PolicyEffectSeverity -Effect $effect
-                            Detail      = "ComplianceState=$stateText; Effect=$effect; Scope=$scope"
-                            ResourceId  = $resourceId
-                            SchemaVersion = '1.0'
-                        })
+                    $findings.Add((New-AzGovVizFinding -FindingLike ([pscustomobject]@{
+                             Source      = 'azgovviz'
+                             Category    = 'Policy'
+                             Title       = "Policy compliance state$titleSuffix"
+                             Compliant   = $false
+                             Severity    = Get-PolicyEffectSeverity -Effect $effect
+                             Detail      = "ComplianceState=$stateText; Effect=$effect; Scope=$scope"
+                             ResourceId  = $resourceId
+                             Scope       = $scope
+                             PolicySetId = $policySetId
+                             PolicySetDefinitionName = $policyInitiativeName
+                             MCSBControls = $mcsbControls
+                             SchemaVersion = '1.0'
+                         }) -ManagementGroupId $ManagementGroupId -ToolVersion $ToolVersion -ReportUri $ReportUri))
                 }
             }
             'roleassignments' {
@@ -169,18 +412,19 @@ function Import-AzGovVizCsvFindings {
                     $severity = 'High'
                     $resourceId = if ($scope) { $scope } else { '' }
 
-                    $findings.Add([pscustomobject]@{
-                            Source        = 'azgovviz'
-                            Category      = 'Identity'
-                            Title         = "Role assignment: $roleName"
+                    $findings.Add((New-AzGovVizFinding -FindingLike ([pscustomobject]@{
+                             Source        = 'azgovviz'
+                             Category      = 'Identity'
+                             Title         = "Role assignment: $roleName"
                             Compliant     = $false
                             Severity      = $severity
                             Detail        = "PrincipalType=$principalType; Scope=$scope; ScopeType=$scopeType"
                             ResourceId    = $resourceId
-                            PrincipalId   = $principalId
-                            PrincipalType = $principalType
-                            SchemaVersion = '1.0'
-                        })
+                             PrincipalId   = $principalId
+                             PrincipalType = $principalType
+                             Scope         = $scope
+                             SchemaVersion = '1.0'
+                         }) -ManagementGroupId $ManagementGroupId -ToolVersion $ToolVersion -ReportUri $ReportUri))
                 }
             }
             'resourcediagnosticscapabilit' {
@@ -192,17 +436,17 @@ function Import-AzGovVizCsvFindings {
                     if (-not $capable) { continue }
                     if ($configured) { continue }
 
-                    $findings.Add([pscustomobject]@{
-                            Source        = 'azgovviz'
-                            Category      = 'Operations'
+                    $findings.Add((New-AzGovVizFinding -FindingLike ([pscustomobject]@{
+                             Source        = 'azgovviz'
+                             Category      = 'Operations'
                             Title         = 'Resource diagnostics settings not configured'
                             Compliant     = $false
                             Severity      = 'Medium'
                             Detail        = "DiagnosticsCapable=$capable; DiagnosticsConfigured=$configured"
-                            ResourceId    = $resourceId
-                            Remediation   = 'Enable diagnostic settings to route logs and metrics to an approved destination.'
-                            SchemaVersion = '1.0'
-                        })
+                             ResourceId    = $resourceId
+                             Remediation   = 'Enable diagnostic settings to route logs and metrics to an approved destination.'
+                             SchemaVersion = '1.0'
+                         }) -ManagementGroupId $ManagementGroupId -ToolVersion $ToolVersion -ReportUri $ReportUri))
                 }
             }
             'resourceswithouttags' {
@@ -211,17 +455,37 @@ function Import-AzGovVizCsvFindings {
                     if (-not $resourceId) { continue }
                     $missingTags = Get-RowValue -Row $row -Names @('MissingTags', 'missingTags', 'TagNames')
 
-                    $findings.Add([pscustomobject]@{
-                            Source        = 'azgovviz'
-                            Category      = 'Governance'
+                    $findings.Add((New-AzGovVizFinding -FindingLike ([pscustomobject]@{
+                             Source        = 'azgovviz'
+                             Category      = 'Governance'
                             Title         = 'Resource missing required tags'
                             Compliant     = $false
                             Severity      = 'Low'
                             Detail        = if ($missingTags) { "MissingTags=$missingTags" } else { 'Missing one or more required tags.' }
-                            ResourceId    = $resourceId
-                            Remediation   = 'Apply required governance tags according to your tagging policy.'
-                            SchemaVersion = '1.0'
-                        })
+                             ResourceId    = $resourceId
+                             Remediation   = 'Apply required governance tags according to your tagging policy.'
+                             SchemaVersion = '1.0'
+                         }) -ManagementGroupId $ManagementGroupId -ToolVersion $ToolVersion -ReportUri $ReportUri))
+                }
+            }
+            'orphanedresources' {
+                foreach ($row in $rows) {
+                    $resourceId = Get-RowValue -Row $row -Names @('ResourceId', 'resourceId', 'ResourceID')
+                    if (-not $resourceId) { continue }
+                    $monthlyCost = Get-RowValue -Row $row -Names @('EstimatedMonthlyCost', 'MonthlyCost', 'Cost')
+                    $costText = if ($monthlyCost) { "EstimatedMonthlyCost=$monthlyCost" } else { 'Potential cost waste from orphaned resource.' }
+
+                    $findings.Add((New-AzGovVizFinding -FindingLike ([pscustomobject]@{
+                                Source        = 'azgovviz'
+                                Category      = 'Cost'
+                                Title         = 'Orphaned resource detected'
+                                Compliant     = $false
+                                Severity      = 'Medium'
+                                Detail        = $costText
+                                ResourceId    = $resourceId
+                                Remediation   = 'Remove the orphaned resource or attach it to an active workload.'
+                                SchemaVersion = '1.0'
+                            }) -ManagementGroupId $ManagementGroupId -ToolVersion $ToolVersion -ReportUri $ReportUri))
                 }
             }
             default {
@@ -251,6 +515,7 @@ if (-not (Test-Path $OutputPath)) {
 
 try {
     Write-Verbose "Running AzGovViz for management group: $ManagementGroupId"
+    $toolVersion = Get-AzGovVizToolVersion -ScriptPath $azGovVizScript
     $runAzGovViz = {
         $result = Invoke-WithTimeout -Command 'pwsh' -Arguments @(
             '-File', $azGovVizScript,
@@ -265,21 +530,24 @@ try {
     }
     Invoke-WithRetry -ScriptBlock $runAzGovViz -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 10 | Out-Null
 
+    $reportUri = Resolve-AzGovVizReportUri -OutputPath $OutputPath
     $summaryFiles = Get-ChildItem -Path $OutputPath -Filter '*Summary*.json' -Recurse -ErrorAction SilentlyContinue
     $findings = [System.Collections.Generic.List[psobject]]::new()
     foreach ($file in $summaryFiles) {
         try {
             $data = Get-Content -Raw $file.FullName | ConvertFrom-Json -ErrorAction Stop
             if ($data -is [System.Array]) {
-                foreach ($entry in $data) { $findings.Add($entry) }
+                foreach ($entry in $data) {
+                    $findings.Add((New-AzGovVizFinding -FindingLike $entry -ManagementGroupId $ManagementGroupId -ToolVersion $toolVersion -ReportUri $reportUri))
+                }
             } else {
-                $findings.Add($data)
+                $findings.Add((New-AzGovVizFinding -FindingLike $data -ManagementGroupId $ManagementGroupId -ToolVersion $toolVersion -ReportUri $reportUri))
             }
         } catch {
             Write-Warning "Could not parse AzGovViz output $($file.Name): $(Remove-Credentials -Text ([string]$_))"
         }
     }
-    foreach ($csvFinding in (Import-AzGovVizCsvFindings -OutputPath $OutputPath)) {
+    foreach ($csvFinding in (Import-AzGovVizCsvFindings -OutputPath $OutputPath -ManagementGroupId $ManagementGroupId -ToolVersion $toolVersion -ReportUri $reportUri)) {
         $findings.Add($csvFinding)
     }
 

@@ -13,6 +13,32 @@
       "Detail": "Subscription 00000000-0000-0000-0000-000000000001 does not have any resource locks. Critical resources should be protected with CanNotDelete or ReadOnly locks.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources",
       "Remediation": "Add resource locks to critical resources using the Azure Portal or New-AzResourceLock cmdlet.",
+      "Pillar": "Operational Excellence",
+      "DeepLinkUrl": "https://portal.azure.com/#@/resource/subscriptions/00000000-0000-0000-0000-000000000001/overview",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#governance"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Source": "azgovviz",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001",
+      "Category": "Cost",
+      "Title": "Subscription missing monthly budget alert",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "No budget alert is configured for the subscription.",
+      "Pillar": "Cost",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/overview",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#cost"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
       "SchemaVersion": "1.0"
     },
     {
@@ -25,6 +51,32 @@
       "Detail": "Found 3 orphaned custom policy definitions at the Tenant Root Group that are not assigned to any scope. Unused policies should be cleaned up to reduce management overhead.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/governance/policy/overview",
       "Remediation": "Review and remove orphaned custom policy definitions that are no longer in use.",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "ALZ",
+          "Controls": [
+            "/providers/Microsoft.Authorization/policySetDefinitions/alz-security"
+          ]
+        },
+        {
+          "Name": "MCSB",
+          "Controls": [
+            "MCSB-NS-1",
+            "MCSB-IM-3"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "initiative:baseline-security-initiative"
+      ],
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#policy"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
       "SchemaVersion": "1.0"
     },
     {
@@ -37,6 +89,14 @@
       "Detail": "PrincipalType=User; Scope=/subscriptions/00000000-0000-0000-0000-000000000001",
       "PrincipalId": "11111111-1111-1111-1111-111111111111",
       "PrincipalType": "User",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://portal.azure.com/#@/resource/subscriptions/00000000-0000-0000-0000-000000000001/overview",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#rbac"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
       "SchemaVersion": "1.0"
     },
     {
@@ -48,6 +108,14 @@
       "Severity": "Medium",
       "Detail": "DiagnosticsCapable=True; DiagnosticsConfigured=False",
       "Remediation": "Enable diagnostic settings to route logs and metrics to an approved destination.",
+      "Pillar": "Operational Excellence",
+      "DeepLinkUrl": "https://portal.azure.com/#@/resource/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-prod-01/overview",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#operations"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
       "SchemaVersion": "1.0"
     },
     {
@@ -59,6 +127,14 @@
       "Severity": "Low",
       "Detail": "MissingTags=Owner,Environment",
       "Remediation": "Apply required governance tags according to your tagging policy.",
+      "Pillar": "Operational Excellence",
+      "DeepLinkUrl": "https://portal.azure.com/#@/resource/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.storage/storageaccounts/stprod01/overview",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#governance"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
       "SchemaVersion": "1.0"
     },
     {
@@ -69,6 +145,26 @@
       "Compliant": false,
       "Severity": "High",
       "Detail": "ComplianceState=NonCompliant; Effect=Deny; Scope=/subscriptions/00000000-0000-0000-0000-000000000001",
+      "Scope": "/subscriptions/00000000-0000-0000-0000-000000000001",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "ALZ",
+          "Controls": [
+            "/providers/Microsoft.Authorization/policySetDefinitions/alz-network"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "initiative:baseline-network-initiative"
+      ],
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance?scope=%2Fsubscriptions%2F00000000-0000-0000-0000-000000000001",
+      "EvidenceUris": [
+        "file:///C:/reports/azgovviz.html#policy"
+      ],
+      "ToolVersion": "9.9.9",
+      "ManagementGroupId": "mg-platform",
+      "ManagementGroupResourceId": "/providers/Microsoft.Management/managementGroups/mg-platform",
       "SchemaVersion": "1.0"
     }
   ]
