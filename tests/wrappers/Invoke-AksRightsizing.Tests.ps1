@@ -121,6 +121,17 @@ Describe 'Invoke-AksRightsizing' {
         @($result.Findings | Where-Object { $_.FindingCategory -eq 'UnderProvisionedMemory' }).Count | Should -Be 1
         @($result.Findings | Where-Object { $_.FindingCategory -eq 'MissingHpa' }).Count | Should -Be 1
         @($result.Findings | Where-Object { $_.FindingCategory -eq 'OomKilled' }).Count | Should -Be 1
+        $overCpu = $result.Findings | Where-Object { $_.FindingCategory -eq 'OverProvisionedCpu' } | Select-Object -First 1
+        $overCpu.Pillar | Should -Be 'Cost Optimization'
+        $overCpu.Impact | Should -Be 'High'
+        $overCpu.Effort | Should -Be 'Low'
+        $overCpu.DeepLinkUrl | Should -Match 'Microsoft_Azure_Monitoring'
+        @($overCpu.EvidenceUris).Count | Should -BeGreaterThan 0
+        @($overCpu.BaselineTags) | Should -Contain 'AKS-RightSizing-CPU'
+        $overCpu.ScoreDelta | Should -Be 88
+        @($overCpu.RemediationSnippets).Count | Should -BeGreaterThan 0
+        @($overCpu.EntityRefs) | Should -Contain $global:TestClusterId
+        $result.ToolVersion | Should -Match 'Az.Aks|kubectl|^$'
     }
 
     It 'passes LookbackDays into generated KQL' {
