@@ -1,0 +1,62 @@
+[
+  {
+    "Tool": "azqr",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 2
+  },
+  {
+    "Tool": "psrule",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "kubescape",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "sentinel-coverage",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "ado-pipeline-correlator",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "appinsights",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "finops-signals",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "ado-consumption",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "gh-actions-billing",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  },
+  {
+    "Tool": "aks-rightsizing",
+    "Status": "Success",
+    "Message": "",
+    "Findings": 1
+  }
+]

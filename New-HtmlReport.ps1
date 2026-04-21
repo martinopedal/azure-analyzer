@@ -187,10 +187,16 @@ if (Test-Path $toolStatusPath) {
 $toolLabels = @{}
 $toolProvider = @{}
 $toolScope = @{}
+$toolReportColor = @{}
 foreach ($t in $manifestTools) {
     $toolLabels[[string]$t.name] = if ($t.PSObject.Properties['displayName']) { [string]$t.displayName } else { [string]$t.name }
     $toolProvider[[string]$t.name] = if ($t.PSObject.Properties['provider']) { [string]$t.provider } else { 'unknown' }
     $toolScope[[string]$t.name] = if ($t.PSObject.Properties['scope']) { [string]$t.scope } else { 'unknown' }
+    $reportColor = ''
+    if ($t.PSObject.Properties['report'] -and $t.report -and $t.report.PSObject.Properties['color']) {
+        $reportColor = [string]$t.report.color
+    }
+    $toolReportColor[[string]$t.name] = $reportColor
 }
 
 $normalized = foreach ($f in $rawFindings) {
@@ -228,6 +234,9 @@ $normalized = foreach ($f in $rawFindings) {
         EvidenceUris = if ($f.PSObject.Properties['EvidenceUris']) { @($f.EvidenceUris) } else { @() }
         MitreTactics = if ($f.PSObject.Properties['MitreTactics']) { @($f.MitreTactics) } else { @() }
         MitreTechniques = if ($f.PSObject.Properties['MitreTechniques']) { @($f.MitreTechniques) } else { @() }
+        BaselineTags = if ($f.PSObject.Properties['BaselineTags']) { @($f.BaselineTags) } else { @() }
+        EntityRefs = if ($f.PSObject.Properties['EntityRefs']) { @($f.EntityRefs) } else { @() }
+        ScoreDelta = if ($f.PSObject.Properties['ScoreDelta']) { $f.ScoreDelta } else { $null }
         ToolVersion = if ($f.PSObject.Properties['ToolVersion']) { [string]$f.ToolVersion } else { '' }
     }
 }
@@ -343,6 +352,28 @@ $topRisks = @(
 $topRecommendationLimit = [math]::Max(1, $TopRecommendationsCount)
 $topRecs = @($topRisks | Select-Object -First $topRecommendationLimit)
 
+$pillarSummary = @(
+    $nonPass | Group-Object -Property Domain | Sort-Object Count -Descending | ForEach-Object {
+        [pscustomobject]@{
+            Pillar = [string]$_.Name
+            Count = [int]$_.Count
+        }
+    }
+)
+$pillarSummary = @($pillarSummary | Select-Object -First 8)
+$maxPillarCount = 1
+foreach ($pillar in $pillarSummary) {
+    if ($pillar.Count -gt $maxPillarCount) { $maxPillarCount = [int]$pillar.Count }
+}
+$pillarSummaryHtml = if ($pillarSummary.Count -eq 0) {
+    "<div class='faint'>No non-pass findings to summarize by pillar.</div>"
+} else {
+    ($pillarSummary | ForEach-Object {
+        $pct = [math]::Round(($_.Count / $maxPillarCount) * 100)
+        "<div class='pill-row'><span class='pill-name'>$(HE $_.Pillar)</span><div class='pill-track'><i style='width:${pct}%'></i></div><span class='pill-count'>$($_.Count)</span></div>"
+    }) -join "`n"
+}
+
 # Findings rows (server-rendered)
 $findingRows = New-Object System.Collections.Generic.List[string]
 foreach ($row in $normalized) {
@@ -353,6 +384,8 @@ foreach ($row in $normalized) {
     $remediationSnippets = @($row.RemediationSnippets)
     $mitreTactics = @($row.MitreTactics)
     $mitreTechniques = @($row.MitreTechniques)
+    $baselineTags = @($row.BaselineTags)
+    $entityRefs = @($row.EntityRefs)
 
     $evidenceLinks = if ($evidenceUris.Count -gt 0) {
         ($evidenceUris | Where-Object { $_ } | ForEach-Object { "<a href='$(HE $_)' target='_blank' rel='noopener noreferrer'>Evidence link</a>" }) -join ''
@@ -360,8 +393,8 @@ foreach ($row in $normalized) {
 
     $snippetHtml = if ($remediationSnippets.Count -gt 0) {
         ($remediationSnippets | ForEach-Object {
-            $name = if ($_.PSObject.Properties['Name']) { [string]$_.Name } elseif ($_.PSObject.Properties['Title']) { [string]$_.Title } else { 'Snippet' }
-            $code = if ($_.PSObject.Properties['Snippet']) { [string]$_.Snippet } elseif ($_.PSObject.Properties['Code']) { [string]$_.Code } else { [string]$_ }
+            $name = if ($_.PSObject.Properties['Name']) { [string]$_.Name } elseif ($_.PSObject.Properties['Title']) { [string]$_.Title } elseif ($_.PSObject.Properties['language']) { [string]$_.language } elseif ($_.PSObject.Properties['Language']) { [string]$_.Language } else { 'Snippet' }
+            $code = if ($_.PSObject.Properties['Snippet']) { [string]$_.Snippet } elseif ($_.PSObject.Properties['Code']) { [string]$_.Code } elseif ($_.PSObject.Properties['code']) { [string]$_.code } else { [string]$_ }
             "<h4 style='margin-top:10px'>$(HE $name)</h4><pre>$(HE $code)</pre>"
         }) -join ''
     } else { '' }
@@ -371,9 +404,26 @@ foreach ($row in $normalized) {
         $mitreHtml = "<h4 style='margin-top:10px'>MITRE</h4><p>Tactics: $(HE ($mitreTactics -join ', '))<br>Techniques: $(HE ($mitreTechniques -join ', '))</p>"
     }
 
+    $baselineHtml = ''
+    if ($baselineTags.Count -gt 0) {
+        $baselineHtml = "<h4 style='margin-top:10px'>Baseline tags</h4><p>$(HE ($baselineTags -join ', '))</p>"
+    }
+
+    $entityRefsHtml = ''
+    if ($entityRefs.Count -gt 0) {
+        $entityRefsHtml = "<h4 style='margin-top:10px'>Entity refs</h4><pre>$(HE ($entityRefs -join [Environment]::NewLine))</pre>"
+    }
+
     $impactEffort = ''
     if (-not [string]::IsNullOrWhiteSpace($row.Impact) -or -not [string]::IsNullOrWhiteSpace($row.Effort)) {
-        $impactEffort = "<h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: $(HE $row.Impact)<br>Effort: $(HE $row.Effort)</p>"
+        $scoreDeltaText = if ($null -ne $row.ScoreDelta -and [string]$row.ScoreDelta -ne '') { "<br>Score delta: $(HE $row.ScoreDelta)" } else { '' }
+        $impactEffort = "<h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: $(HE $row.Impact)<br>Effort: $(HE $row.Effort)$scoreDeltaText</p>"
+    }
+
+    $toolChipStyle = ''
+    if ($toolReportColor.ContainsKey($row.Tool) -and -not [string]::IsNullOrWhiteSpace([string]$toolReportColor[$row.Tool])) {
+        $color = [string]$toolReportColor[$row.Tool]
+        $toolChipStyle = " style='background:$color;border-color:$color;color:#fff'"
     }
 
     $links = New-Object System.Collections.Generic.List[string]
@@ -387,7 +437,7 @@ foreach ($row in $normalized) {
   <td><div style='font-weight:600'><span class='rule-id'>$(HE $row.RuleKey)</span>$(HE $row.Title)</div><div style='font-size:11.5px;margin-top:3px'>$frameworkBadges <span class='faint' style='margin-left:6px'>$(HE $row.Domain)</span></div></td>
   <td><div class='mono' style='font-size:12px'>$(HE $row.Entity)</div><div class='faint' style='font-size:11px'>$(HE $row.EntityType) · $(HE $row.ResourceGroup)</div></td>
   <td>$(HE $row.Subscription)</td>
-  <td><span class='tool-chip'>$(HE $row.SourceLabel)</span></td>
+  <td><span class='tool-chip'$toolChipStyle>$(HE $row.SourceLabel)</span></td>
   <td><span class='pill $statusClass'>$(HE $row.Status)</span></td>
 </tr>
 <tr class='expand' data-parent-id='$rowId' hidden>
@@ -399,12 +449,14 @@ foreach ($row in $normalized) {
       <pre>$(HE $row.Detail)</pre>
       <div class='links'>$evidenceLinks</div>
       $mitreHtml
+      $baselineHtml
     </div>
     <div class='ev'>
       <h4>Remediation</h4>
       <p>$(HE $row.Remediation)</p>
       $impactEffort
       $snippetHtml
+      $entityRefsHtml
       <div class='links'>$($links -join '')</div>
     </div>
   </div></td>
@@ -615,6 +667,7 @@ nav.sub{position:sticky;top:62px;z-index:40;background:var(--surface);border-bot
 .exec p{margin:0 0 10px;color:var(--text-muted);max-width:65ch}
 .trend-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.trend{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);position:relative;overflow:hidden}
 .trend .lab{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600}.trend .val{font-size:20px;font-weight:700;margin-top:2px}.trend .delta{font-size:11px;font-weight:600;margin-top:2px}.trend svg{width:100%;height:32px;margin-top:6px;display:block}
+.pillars{margin-top:14px;display:flex;flex-direction:column;gap:6px}.pill-row{display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px}.pill-name{font-size:12px;color:var(--text-muted)}.pill-track{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;border:1px solid var(--border)}.pill-track i{display:block;height:100%;background:var(--brand)}.pill-count{font-size:12px;text-align:right;color:var(--text);font-weight:600}
 .recs{display:flex;flex-direction:column;gap:8px}.rec{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
 .rec .ttl{font-weight:600;font-size:13.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rec .meta{font-size:12px;color:var(--text-faint);margin-top:2px}.rec .impact{font-size:11px;color:var(--text-faint);text-align:right}.rec .impact strong{display:block;font-size:14px;color:var(--text)}
 .cov-group{margin-bottom:18px}.cov-group-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none}
@@ -684,6 +737,10 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
     <div class='card card-pad exec'>
       <p><strong>Run summary</strong>: scanned <strong>$total findings</strong> across <strong>$(@($manifestTools).Count) tools</strong> and <strong>$entityCount entities</strong>. Overall compliance is <strong>$compliantPct%</strong>.</p>
       <p>Critical and High findings are prioritized in top risks. Schema 2.2 fields render when present and are skipped when absent.</p>
+      <div class='pillars' aria-label='Pillar breakdown'>
+        <h3 style='margin-bottom:4px'>Pillar breakdown (non-pass)</h3>
+        $pillarSummaryHtml
+      </div>
       $trendHtml
     </div>
     <div class='card card-pad'><h3 style='margin-bottom:10px'>Top recommendations</h3><div class='recs' id='topRecs'>$topRecsHtml</div></div>

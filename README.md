@@ -8,10 +8,10 @@
 
 ## What does the output look like?
 
-Two sample reports built from the same illustrative scan (tenant `contoso-prod`, 17 tools, 222 findings):
+Two sample reports built from the same illustrative scan (tenant `contoso-prod`, launch-day Schema 2.2 showcase):
 
-- **[samples/sample-report.html](samples/sample-report.html)** - interactive single-file HTML with a sortable findings table, control-domain heat map, tool coverage grid, top-risks panel, and a dark mode toggle. Open it locally in any browser; no server, no CDN, no JavaScript dependencies.
-- **[samples/sample-report.md](samples/sample-report.md)** - the same scan rendered as GitHub-Flavored Markdown for pasting into PRs, issues, and email digests.
+- **[samples/sample-report.html](samples/sample-report.html)** - interactive single-file HTML with sortable findings, control-domain and framework heat maps, pillar breakdown, MITRE and evidence details, deep-link shortcuts, remediation snippets, and tool-color badges from `tool-manifest.json`.
+- **[samples/sample-report.md](samples/sample-report.md)** - the same scan rendered as GitHub-Flavored Markdown with a Schema 2.2 spotlight section, MITRE/deep-link context, and expandable evidence plus remediation snippets.
 
 ## Install
 

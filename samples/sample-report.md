@@ -1,16 +1,17 @@
 # Azure Analyzer - Posture Report
 
-**Tenant:** `contoso-prod` &nbsp;|&nbsp; **Scanned:** 22 Apr 2026 09:14 UTC &nbsp;|&nbsp; **Run ID:** `aa-20260422-091413`
+**Tenant:** `contoso-prod` &nbsp;|&nbsp; **Scanned:** 22 Apr 2026 07:52 UTC &nbsp;|&nbsp; **Run ID:** `launch-2026-04-22-0800`
 
-![Critical](https://img.shields.io/badge/Critical-7-7f1d1d)
-![High](https://img.shields.io/badge/High-34-b91c1c)
-![Medium](https://img.shields.io/badge/Medium-81-b45309)
-![Low](https://img.shields.io/badge/Low-62-a16207)
-![Info](https://img.shields.io/badge/Info-38-475569)
-![Posture](https://img.shields.io/badge/Posture-B%20(78%2F100)-2563eb)
-![Compliance](https://img.shields.io/badge/Compliance-81%25-16a34a)
+![Critical](https://img.shields.io/badge/Critical-1-7f1d1d)
+![High](https://img.shields.io/badge/High-4-b91c1c)
+![Medium](https://img.shields.io/badge/Medium-5-b45309)
+![Low](https://img.shields.io/badge/Low-0-a16207)
+![Info](https://img.shields.io/badge/Info-0-475569)
+![Posture](https://img.shields.io/badge/Posture-F%20%289%2F100%29-2563eb)
+![Tools](https://img.shields.io/badge/Tools-36-0369a1)
+![Run](https://img.shields.io/badge/Run-22%20Apr%202026%2007%3A52%20UTC-334155)
 
-> Sample report for documentation purposes. Numbers are illustrative; the matching [interactive HTML report](sample-report.html) renders the same scan with sortable findings, a heat map, a coverage grid, and dark mode.
+> Generated report. For full interactive exploration, open [sample-report.html](sample-report.html).
 
 ## Contents
 
@@ -24,173 +25,306 @@
 
 ## Executive summary
 
-Tenant `contoso-prod` was scanned across 17 tools covering 412 entities in 3 subscriptions (`prod-payments`, `prod-identity`, `dev-shared`). 81% of evaluated controls passed, up 2.3 points versus the previous run on 8 Apr. Posture grade is **B (78/100)**.
+Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope(s). Compliance is 9%. Posture grade is **F (9/100)**.
 
-Seven Critical issues require attention this week, mostly clustered in `prod-identity` (5 of 7). Two new high-severity workflow-injection findings landed in `contoso/payments-api` from the latest `zizmor` sweep. Net delta from the previous run: Critical down 2, High down 5, Medium up 6, Low flat, Info up 1.
+1 critical, 4 high, 5 medium, 0 low, and 0 info findings are currently non-compliant.
 
-**Top recommendations**
+### Pillar breakdown (non-compliant)
 
-1. Enable PIM activation for the 4 standing Owner role assignments in `prod-identity` (Critical, identity).
-2. Resolve the 2 hard-coded secrets in `contoso/payments-api` flagged by `gitleaks` (Critical, secrets).
-3. Pin the 8 unpinned third-party actions in `contoso/payments-api` and `contoso/identity-edge` (High, supply chain).
-4. Right-size the 3 over-provisioned AKS node pools in `prod-payments` (Medium, cost; ~ $1.4k/mo).
-5. Enable Defender for Containers on the remaining 2 AKS clusters in `dev-shared` (High, runtime).
+| Pillar | Findings |
+| --- | ---: |
+| Security | 5 |
+| Cost Optimization | 4 |
+| Performance Efficiency | 1 |
 
 ## Tool coverage
-
-17 active tools across 6 providers. One tool (`copilot-triage`) is registered but disabled in this scan.
 
 ### Azure (subscription / management group / tenant)
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| azqr | subscription | 38 | 79% | OK |
-| psrule | subscription | 47 | 74% | OK |
-| defender-for-cloud | subscription | 22 | 81% | OK |
-| azgovviz | tenant | 11 | 90% | OK |
-| alz-queries | managementGroup | 18 | 86% | OK |
-| wara | subscription | 9 | 88% | OK |
-| azure-cost | subscription | 6 | 92% | OK |
-| finops | subscription | 4 | 95% | OK |
-| aks-rightsize | subscription | 7 | 84% | OK |
+| azqr | subscription | 2 | 50% | OK |
+| kubescape | subscription | 1 | 0% | OK |
+| kube-bench | subscription | 0 | - | _skipped_ |
+| defender-for-cloud | subscription | 0 | - | _skipped_ |
+| prowler | subscription | 0 | - | _skipped_ |
+| falco | subscription | 0 | - | _skipped_ |
+| azure-cost | subscription | 0 | - | _skipped_ |
+| azure-quota | subscription | 0 | - | _skipped_ |
+| finops | subscription | 0 | - | _skipped_ |
+| appinsights | subscription | 1 | 0% | OK |
+| loadtesting | subscription | 0 | - | _skipped_ |
+| aks-rightsizing | subscription | 1 | 0% | OK |
+| aks-karpenter-cost | subscription | 0 | - | _skipped_ |
+| psrule | subscription | 1 | 0% | OK |
+| powerpipe | subscription | 0 | - | _skipped_ |
+| azgovviz | managementGroup | 0 | - | _skipped_ |
+| alz-queries | managementGroup | 0 | - | _skipped_ |
+| wara | subscription | 0 | - | _skipped_ |
+| sentinel-incidents | workspace | 0 | - | _skipped_ |
+| sentinel-coverage | workspace | 1 | 0% | OK |
 
 ### Microsoft 365 / Graph
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| maester | tenant | 14 | 82% | OK |
-| identity-correlator | tenant | 8 | 89% | OK |
+| maester | tenant | 0 | - | _skipped_ |
+| identity-correlator | tenant | 0 | - | _skipped_ |
+| identity-graph-expansion | tenant | 0 | - | _skipped_ |
 
 ### GitHub
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| scorecard | repository | 9 | 78% | OK |
-| gh-actions-billing | repository | 3 | 96% | OK |
-| gitleaks | repository | 4 | 91% | OK |
-| trivy | repository | 11 | 80% | OK |
-| zizmor | repository | 6 | 85% | OK |
+| scorecard | repository | 0 | - | _skipped_ |
+| gh-actions-billing | repository | 1 | 0% | OK |
 
 ### Azure DevOps
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| ado-pipelines | ado | 5 | 89% | OK |
+| ado-connections | ado | 0 | - | _skipped_ |
+| ado-pipelines | ado | 0 | - | _skipped_ |
+| ado-consumption | ado | 1 | 0% | OK |
+| ado-repos-secrets | ado | 0 | - | _skipped_ |
+| ado-pipeline-correlator | ado | 1 | 0% | OK |
+
+### Other
+
+| Tool | Scope | Findings | Pass % | Status |
+| --- | --- | ---: | ---: | --- |
+| zizmor | repository | 0 | - | _skipped_ |
+| gitleaks | repository | 0 | - | _skipped_ |
+| trivy | repository | 0 | - | _skipped_ |
+| bicep-iac | repository | 0 | - | _skipped_ |
+| infracost | repository | 0 | - | _skipped_ |
+| terraform-iac | repository | 0 | - | _skipped_ |
+| copilot-triage | repository | 0 | - | _skipped_ |
 
 ## Heat map
 
-Findings by control domain (rows) and subscription (columns). Cell glyph indicates the highest severity present; the number is the finding count for that intersection.
+Findings by control domain (rows) and subscription (columns). Cell glyph indicates the highest severity present and includes the finding count.
 
-| Control domain | prod-payments | prod-identity | dev-shared | Total |
-| --- | :---: | :---: | :---: | ---: |
-| Identity & access | 🟡 12 | 🔴 28 | 🟢 4 | 44 |
-| Network security | 🟠 14 | 🟡 9 | 🟡 7 | 30 |
-| Data protection | 🟠 11 | 🟠 8 | 🟢 3 | 22 |
-| Logging & monitoring | 🟡 9 | 🟡 6 | 🟡 5 | 20 |
-| Cost & efficiency | 🟡 7 | 🟢 2 | 🟡 6 | 15 |
-| Supply chain (CI/CD) | 🟠 18 | 🟠 9 | 🟡 4 | 31 |
-| Secrets hygiene | 🔴 3 | 🟠 2 | ⚪ 1 | 6 |
-| Workload runtime | 🟠 13 | 🟡 7 | 🟡 4 | 24 |
-| Resilience & DR | 🟡 10 | 🟢 4 | 🟢 2 | 16 |
-| Governance | 🟡 6 | 🟡 5 | 🟢 3 | 14 |
+| Control domain | prod-identity | prod-payments | Total |
+| --- | :---: | :---: | ---: |
+| Cost Optimization | ⚪ 0 | 🟠 4 | 4 |
+| Performance Efficiency | ⚪ 0 | 🟡 1 | 1 |
+| Security | 🟡 1 | 🔴 4 | 5 |
 
-Legend: 🔴 Critical &nbsp; 🟠 High &nbsp; 🟡 Medium &nbsp; 🟢 Low &nbsp; ⚪ Info
+Legend: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low, ⚪ Info
 
 ## Top 10 risks
 
 | # | Severity | Rule | Domain | Tool | Findings |
 | ---: | --- | --- | --- | --- | ---: |
-| 1 | 🔴 Critical | Owner role assigned without PIM | Identity & access | psrule | 4 |
-| 2 | 🔴 Critical | Hard-coded secret in source | Secrets hygiene | gitleaks | 2 |
-| 3 | 🔴 Critical | Storage account public network access enabled | Data protection | azqr | 1 |
-| 4 | 🟠 High | Workflow-injection in pull_request_target handler | Supply chain (CI/CD) | zizmor | 2 |
-| 5 | 🟠 High | Unpinned third-party GitHub Action | Supply chain (CI/CD) | scorecard | 8 |
-| 6 | 🟠 High | Defender for Containers not enabled | Workload runtime | defender-for-cloud | 2 |
-| 7 | 🟠 High | NSG allows 0.0.0.0/0 on management ports | Network security | azqr | 5 |
-| 8 | 🟠 High | Key Vault soft-delete disabled | Data protection | psrule | 3 |
-| 9 | 🟠 High | Guest user in privileged role group | Identity & access | maester | 4 |
-| 10 | 🟠 High | Container image with critical CVE in deployed digest | Workload runtime | trivy | 6 |
+| 1 | 🔴 Critical | Azure.KeyVault.SoftDelete | Security | psrule | 1 |
+| 2 | 🟠 High | ADO.CORR.SECRET | Security | ado-pipeline-correlator | 1 |
+| 3 | 🟠 High | AZQR.NET.012 | Security | azqr | 1 |
+| 4 | 🟠 High | C-0057 | Security | kubescape | 1 |
+| 5 | 🟠 High | Consumption-DurationRegression | Cost Optimization | ado-consumption | 1 |
+| 6 | 🟡 Medium | AKS.RIGHT.001 | Cost Optimization | aks-rightsizing | 1 |
+| 7 | 🟡 Medium | APPINSIGHTS.P95.REGRESSION | Performance Efficiency | appinsights | 1 |
+| 8 | 🟡 Medium | FINOPS.APPSERVICE.IDLE | Cost Optimization | finops-signals | 1 |
+| 9 | 🟡 Medium | GHA-BILLING-BUDGET | Cost Optimization | gh-actions-billing | 1 |
+| 10 | 🟡 Medium | SENT-COV-T1190 | Security | sentinel-coverage | 1 |
 
 ## Findings (top 30)
 
-Top 30 of 222 findings, sorted by severity then domain. The [interactive HTML report](sample-report.html) renders the full set with search, severity pills, tool/subscription filters, sortable columns, and click-to-expand evidence and remediation.
+Top 30 findings from this run. The [interactive HTML report](sample-report.html) renders the full set.
 
-### How to read a row
+### Framework reference
 
-Each finding carries a tool-native rule ID and a colored badge for every compliance framework it satisfies, so an auditor can scan for the framework they care about without reading every row:
-
-![CIS](https://img.shields.io/badge/CIS-amber?color=d97706)
-![NIST](https://img.shields.io/badge/NIST-slate?color=374151)
-![MITRE](https://img.shields.io/badge/MITRE-red?color=b91c1c)
-![EIDSCA](https://img.shields.io/badge/EIDSCA-blue?color=1f6feb)
-![eIDAS2](https://img.shields.io/badge/eIDAS2-violet?color=7c3aed)
-![SOC 2](https://img.shields.io/badge/SOC%202-teal?color=0e7490)
-![ISO 27001](https://img.shields.io/badge/ISO%2027001-teal?color=0f766e)
-![MCSB](https://img.shields.io/badge/MCSB-azure-color=005a9e)
-![CAF](https://img.shields.io/badge/CAF-navy?color=1e3a8a)
-![WAF](https://img.shields.io/badge/WAF-green?color=3a7d0a)
-
-The rule-ID column below uses each tool's native identifier (`AZQR.NET.001`, `EIDSCA.AF01`, `OSSF.001`, etc.) so you can paste it directly into the upstream tool's docs.
+| Framework | Badge text |
+| --- | --- |
+| CIS | [[CIS]] |
+| MCSB | [[MCSB]] |
+| MITRE ATT&CK | [[MITRE ATT&CK]] |
+| NIST 800-53 | [[NIST 800-53]] |
+| NSA | [[NSA]] |
+| PCI DSS | [[PCI DSS]] |
+| SOC2 | [[SOC2]] |
+| WAF | [[WAF]] |
 
 | # | Sev | Rule ID | Rule | Frameworks | Entity | Sub | Tool | Status |
 | ---: | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 🔴 | `EIDSCA.AF01` | Legacy authentication not blocked tenant-wide | CIS · MCSB | `tenant/contoso` | (tenant) | maester | Open |
-| 2 | 🔴 | `MCSB.IM-1` | Owner role assigned without PIM | CIS · MCSB | `user/alice@contoso.com` | prod-identity | psrule | Open |
-| 3 | 🔴 | `MCSB.IM-1` | Owner role assigned without PIM | CIS · MCSB | `sp/payments-deploy` | prod-identity | psrule | Open |
-| 4 | 🔴 | `MCSB.IM-1` | Owner role assigned without PIM | CIS · MCSB | `user/bob@contoso.com` | prod-identity | psrule | Open |
-| 5 | 🔴 | `GLK.AWS-001` | Hard-coded AWS key in repo | CIS · SOC 2 | `repo/contoso/payments-api` | prod-payments | gitleaks | Open |
-| 6 | 🔴 | `GLK.AZ-002` | Hard-coded SAS token in repo | CIS · SOC 2 | `repo/contoso/payments-api` | prod-payments | gitleaks | Open |
-| 7 | 🔴 | `AZQR.STG.001` | Storage account public network access enabled | CAF · WAF · MCSB | `sa/contosoprodlogs01` | prod-payments | azqr | Open |
-| 8 | 🟠 | `ZZM.PR-INJ` | Workflow-injection in pull_request_target handler | SOC 2 | `wf/contoso/payments-api/.github/workflows/pr-bot.yml` | prod-payments | zizmor | Open |
-| 9 | 🟠 | `ZZM.PR-INJ` | Workflow-injection in pull_request_target handler | SOC 2 | `wf/contoso/identity-edge/.github/workflows/triage.yml` | prod-identity | zizmor | Open |
-| 10 | 🟠 | `OSSF.PIN` | Unpinned third-party GitHub Action | SOC 2 | `wf/contoso/payments-api/.github/workflows/release.yml` | prod-payments | scorecard | Open |
-| 11 | 🟠 | `OSSF.PIN` | Unpinned third-party GitHub Action | SOC 2 | `wf/contoso/payments-api/.github/workflows/build.yml` | prod-payments | scorecard | Open |
-| 12 | 🟠 | `OSSF.PIN` | Unpinned third-party GitHub Action | SOC 2 | `wf/contoso/identity-edge/.github/workflows/build.yml` | prod-identity | scorecard | Open |
-| 13 | 🟠 | `MCSB.PV-1` | Defender for Containers not enabled | MCSB · NIST 800-53 | `aks/dev-aks-east` | dev-shared | defender-for-cloud | Open |
-| 14 | 🟠 | `MCSB.PV-1` | Defender for Containers not enabled | MCSB · NIST 800-53 | `aks/dev-aks-west` | dev-shared | defender-for-cloud | Open |
-| 15 | 🟠 | `AZQR.NET.012` | NSG allows 0.0.0.0/0 on RDP (3389) | CIS · MCSB | `nsg/rg-payments-api/edge-nsg` | prod-payments | azqr | Open |
-| 16 | 🟠 | `AZQR.NET.012` | NSG allows 0.0.0.0/0 on SSH (22) | CIS · MCSB | `nsg/rg-payments-data/jump-nsg` | prod-payments | azqr | Open |
-| 17 | 🟠 | `AZQR.NET.012` | NSG allows 0.0.0.0/0 on RDP (3389) | CIS · MCSB | `nsg/rg-identity-core/dc-nsg` | prod-identity | azqr | Open |
-| 18 | 🟠 | `Azure.KV.SoftDelete` | Key Vault soft-delete disabled | CIS · MCSB | `kv/kv-payments-prod` | prod-payments | psrule | Open |
-| 19 | 🟠 | `Azure.KV.SoftDelete` | Key Vault soft-delete disabled | CIS · MCSB | `kv/kv-identity-core` | prod-identity | psrule | Open |
-| 20 | 🟠 | `EIDSCA.PRA01` | Guest user in Privileged Role Administrators | CIS · EIDSCA · MITRE.T1078 | `user/contractor1@partner.com` | (tenant) | maester | Open |
-| 21 | 🟠 | `TRV.CVE` | Container image with critical CVE | MCSB · NIST 800-53 | `acr/contosoprod/payments-api:1.42.0` | prod-payments | trivy | Open |
-| 22 | 🟠 | `TRV.CVE` | Container image with critical CVE | MCSB · NIST 800-53 | `acr/contosoprod/identity-edge:2.7.1` | prod-identity | trivy | Open |
-| 23 | 🟠 | `AZQR.APP.005` | App Service TLS minimum below 1.2 | CIS · MCSB | `app/payments-api-prod` | prod-payments | azqr | Open |
-| 24 | 🟠 | `AZQR.SQL.003` | SQL DB no transparent data encryption | CIS · ISO 27001 · SOC 2 | `sqldb/identity-store` | prod-identity | azqr | Open |
-| 25 | 🟡 | `AZQR.KV.LOG` | Diagnostic settings missing on Key Vault | MCSB · CIS | `kv/kv-payments-prod` | prod-payments | azqr | Open |
-| 26 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned (CPU < 12%) | WAF | `aks/prod-aks-payments/sysnp` | prod-payments | aks-rightsize | Open |
-| 27 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned (CPU < 18%) | WAF | `aks/prod-aks-payments/usernp` | prod-payments | aks-rightsize | Open |
-| 28 | 🟡 | `Azure.Storage.SharedKey` | Storage account allows shared key access | CIS · MCSB | `sa/contosoprodassets` | prod-payments | psrule | Open |
-| 29 | 🟡 | `COST.AI.SAMPLE` | App Insights sampling above target | WAF | `ai/payments-api-ai` | prod-payments | azure-cost | Open |
-| 30 | 🟡 | `ADO.PAR.001` | Pipeline parallel-job ratio above budget | SOC 2 | `ado/contoso-eng/payments-ci` | (ado) | ado-pipelines | Open |
+| 1 | 🔴 | `Azure.KeyVault.SoftDelete` | Key Vault soft delete disabled | CIS · MCSB | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod` | prod-payments | psrule | Open |
+| 2 | 🟠 | `Consumption-DurationRegression` | Pipeline duration regression exceeds budget | - | `ado://contoso/payments/pipeline/55` | prod-payments | ado-consumption | Open |
+| 3 | 🟠 | `AZQR.NET.012` | Internet-exposed management port on NSG | CIS · NIST 800-53 · PCI DSS | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge` | prod-payments | azqr | Open |
+| 4 | 🟠 | `C-0057` | Privileged container in payments namespace | CIS · NSA · MITRE ATT&CK | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments` | prod-payments | kubescape | Open |
+| 5 | 🟠 | `ADO.CORR.SECRET` | Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9] | - | `ado://contoso/payments/pipeline/55` | prod-payments | ado-pipeline-correlator | Open |
+| 6 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments` | prod-payments | aks-rightsizing | Open |
+| 7 | 🟡 | `FINOPS.APPSERVICE.IDLE` | Idle App Service Plan spend exceeds threshold | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod` | prod-payments | finops-signals | Open |
+| 8 | 🟡 | `GHA-BILLING-BUDGET` | Runner minute spend trend exceeds weekly budget | SOC2 | `github.com/contoso/payments-api` | prod-payments | gh-actions-billing | Open |
+| 9 | 🟡 | `APPINSIGHTS.P95.REGRESSION` | API p95 latency regressed by 38% | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai` | prod-payments | appinsights | Open |
+| 10 | 🟡 | `SENT-COV-T1190` | MITRE tactic coverage gap for Initial Access | MITRE ATT&CK · NIST 800-53 | `/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01` | prod-identity | sentinel-coverage | Open |
+
+## Schema 2.2 spotlight
+
+| # | Tool | Pillar | Impact | Effort | Frameworks | MITRE | Deep link |
+| ---: | --- | --- | --- | --- | --- | --- | --- |
+| 1 | PSRule for Azure | Security | High | Low | CIS · MCSB | - | [Open](https://learn.microsoft.com/azure/key-vault/general/overview) |
+| 2 | Azure Quick Review | Security | High | Medium | CIS · NIST 800-53 · PCI DSS | - | [Open](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview) |
+| 3 | ADO Pipeline Consumption | Cost Optimization | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build?definitionId=55) |
+| 4 | Kubescape (AKS runtime posture) | Security | High | Medium | CIS · NSA · MITRE ATT&CK | Privilege Escalation, T1611 | [Open](https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security) |
+| 5 | ADO Pipeline Run Correlator | Security | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=results) |
+| 6 | AKS Rightsizing (Container Insights utilization) | Cost Optimization | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/aks/resize-node-pool) |
+| 7 | Application Insights Performance Signals | Performance Efficiency | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions) |
+| 8 | finops-signals | Cost Optimization | Medium | Low | WAF | - | [Open](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
+| 9 | Microsoft Sentinel (Coverage / Posture) | Security | Medium | Medium | MITRE ATT&CK · NIST 800-53 | Initial Access, T1190 | [Open](https://learn.microsoft.com/azure/sentinel/detect-threats-custom) |
+| 10 | GitHub Actions Billing | Cost Optimization | Medium | Low | SOC2 | - | [Open](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions) |
+
+### Evidence and remediation snippets
+
+<details><summary>Key Vault soft delete disabled</summary>
+
+- **Baseline tags:** "release:ga", "keyvault"
+- **Entity refs:** `/subscriptions/11111111-1111-1111-1111-111111111111`, `kv:kv-payments-prod`
+- **Evidence URIs:**
+  - [https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview](https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview)
+- **Remediation snippets:**
+  ```bicep
+resource kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = { name: 'kv-payments-prod' }
+resource kvPatch 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: kv.name
+  properties: {
+    enableSoftDelete: true
+    enablePurgeProtection: true
+  }
+}
+  ```
+
+</details>
+
+<details><summary>Internet-exposed management port on NSG</summary>
+
+- **Baseline tags:** "release:ga", "internet-exposed"
+- **Entity refs:** `/subscriptions/11111111-1111-1111-1111-111111111111`, `nsg:nsg-payments-edge`
+- **Evidence URIs:**
+  - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
+  - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
+- **Remediation snippets:**
+  ```azurecli
+az network nsg rule update --resource-group rg-payments-net --nsg-name nsg-payments-edge --name Allow-RDP --source-address-prefixes 10.0.0.0/24
+  ```
+
+</details>
+
+<details><summary>Pipeline duration regression exceeds budget</summary>
+
+- **Baseline tags:** "duration-regression", "minutes"
+- **Entity refs:** `pipeline:ado://contoso/payments/pipeline/55`, `project:ado://contoso/payments/project/payments`
+- **Evidence URIs:**
+  - [https://dev.azure.com/contoso/payments/_analytics](https://dev.azure.com/contoso/payments/_analytics)
+  - [https://learn.microsoft.com/azure/devops/pipelines/process/phases](https://learn.microsoft.com/azure/devops/pipelines/process/phases)
+
+</details>
+
+<details><summary>Privileged container in payments namespace</summary>
+
+- **Baseline tags:** "nsa", "cis", "mitreattck"
+- **Entity refs:** `cluster:aks-prod-payments`, `namespace:payments`, `workload:payments-api`
+- **Evidence URIs:**
+  - [https://hub.armosec.io/docs/c-0057](https://hub.armosec.io/docs/c-0057)
+  - [https://attack.mitre.org/techniques/T1611/](https://attack.mitre.org/techniques/T1611/)
+- **Remediation snippets:**
+  ```yaml
+securityContext:
+  privileged: false
+  allowPrivilegeEscalation: false
+  ```
+
+</details>
+
+<details><summary>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</summary>
+
+- **Baseline tags:** "correlated-direct", "secret-category:github-pat"
+- **Entity refs:** `finding:secret-9`, `pipeline:ado://contoso/payments/pipeline/55`, `build:8201`, `repository:ado://contoso/payments/repository/payments-api`, `commit:abcdef1234567890`
+- **Evidence URIs:**
+  - [https://dev.azure.com/contoso/payments/_build/results?buildId=8201](https://dev.azure.com/contoso/payments/_build/results?buildId=8201)
+  - [https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=logs](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=logs)
+  - [https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890](https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890)
+- **Remediation snippets:**
+  ```text
+1) Rotate leaked credentials.
+2) Inspect pipeline variable groups and service connections.
+3) Verify artifact consumers and deployment logs.
+  ```
+
+</details>
+
+<details><summary>AKS node pool over-provisioned</summary>
+
+- **Baseline tags:** "rightsizing", "cluster-autoscaler"
+- **Entity refs:** `cluster:aks-prod-payments`, `nodepool:usernp`
+- **Evidence URIs:**
+  - [https://learn.microsoft.com/azure/aks/resize-node-pool](https://learn.microsoft.com/azure/aks/resize-node-pool)
+  - [https://learn.microsoft.com/azure/aks/cluster-autoscaler](https://learn.microsoft.com/azure/aks/cluster-autoscaler)
+- **Remediation snippets:**
+  ```bash
+az aks nodepool update -g rg-aks-prod --cluster-name aks-prod-payments -n usernp --min-count 3 --max-count 10
+  ```
+
+</details>
+
+<details><summary>API p95 latency regressed by 38%</summary>
+
+- **Baseline tags:** "release:canary", "latency-regression"
+- **Entity refs:** `appinsights:payments-api-ai`, `service:checkout`
+- **Evidence URIs:**
+  - [https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions)
+  - [https://learn.microsoft.com/azure/azure-monitor/app/app-map](https://learn.microsoft.com/azure/azure-monitor/app/app-map)
+- **Remediation snippets:**
+  ```kusto
+requests
+| where cloud_RoleName == "payments-api"
+| summarize p95=percentile(duration,95) by bin(timestamp, 1h)
+  ```
+
+</details>
+
+<details><summary>Idle App Service Plan spend exceeds threshold</summary>
+
+- **Baseline tags:** "cost-hotspot", "release:ga"
+- **Entity refs:** `plan:asp-payments-prod`, `subscription:11111111-1111-1111-1111-111111111111`
+- **Evidence URIs:**
+  - [https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses)
+  - [https://learn.microsoft.com/azure/app-service/overview-hosting-plans](https://learn.microsoft.com/azure/app-service/overview-hosting-plans)
+- **Remediation snippets:**
+  ```text
+Downsize to P1v3 and set autoscale max instances to 2.
+  ```
+
+</details>
+
+<details><summary>MITRE tactic coverage gap for Initial Access</summary>
+
+- **Baseline tags:** "correlation-gap", "mitre"
+- **Entity refs:** `workspace:law-sec-01`, `mitre:TA0001`, `mitre:T1190`
+- **Evidence URIs:**
+  - [https://learn.microsoft.com/azure/sentinel/detect-threats-custom](https://learn.microsoft.com/azure/sentinel/detect-threats-custom)
+  - [https://attack.mitre.org/tactics/TA0001/](https://attack.mitre.org/tactics/TA0001/)
+
+</details>
+
+<details><summary>Runner minute spend trend exceeds weekly budget</summary>
+
+- **Baseline tags:** "runner-minutes", "budget"
+- **Entity refs:** `repo:github.com/contoso/payments-api`, `workflow:.github/workflows/ci.yml`
+- **Evidence URIs:**
+  - [https://github.com/contoso/payments-api/actions](https://github.com/contoso/payments-api/actions)
+  - [https://github.com/contoso/payments-api/settings/actions](https://github.com/contoso/payments-api/settings/actions)
+
+</details>
 
 ## Entity inventory
 
-412 entities discovered across all scopes.
+3 entities discovered across all scopes.
 
 | Entity type | Count |
 | --- | ---: |
-| AzureResource | 246 |
-| Subscription | 3 |
-| Tenant | 1 |
-| User | 58 |
-| ServicePrincipal | 31 |
-| Repository | 14 |
-| Workflow | 39 |
-| AdoProject | 4 |
-| Other | 16 |
-
-<details>
-<summary>Identity blast-radius highlights</summary>
-
-- 3 guest accounts hold Owner on at least one production resource group.
-- 4 service principals have standing Owner without PIM activation.
-- 2 user accounts in `prod-identity` have not signed in for 90+ days but retain Contributor.
-
-The HTML report renders these as an interactive blast-radius graph.
-
-</details>
+| AzureResource | 1 |
+| Pipeline | 1 |
+| Repository | 1 |
 
 ## Run details
 
@@ -199,24 +333,44 @@ The HTML report renders these as an interactive blast-radius graph.
 
 | Tool | Version | Provider |
 | --- | --- | --- |
-| azqr | 2.6.1 | azure |
-| psrule | 1.39.4 | azure |
-| defender-for-cloud | api 2024-08-01 | azure |
-| azgovviz | 6.5.7 | azure |
-| alz-queries | 2026.04 | azure |
-| wara | 1.4.0 | azure |
-| azure-cost | api 2024-09-01 | azure |
-| finops | 0.6.2 | azure |
-| aks-rightsize | 0.4.1 | azure |
-| maester | 1.1.0 | microsoft365 |
-| identity-correlator | 0.3.0 | graph |
-| scorecard | 4.13.1 | github |
-| gh-actions-billing | api 2024-10-01 | github |
-| gitleaks | 8.18.4 | github |
-| trivy | 0.50.1 | github |
-| zizmor | 0.6.0 | github |
-| ado-pipelines | api 7.1 | ado |
+| azqr | 2.7.0 | azure |
+| kubescape | kubescape version v3.1.1 | azure |
+| kube-bench | - | azure |
+| defender-for-cloud | - | azure |
+| prowler | - | azure |
+| falco | - | azure |
+| azure-cost | - | azure |
+| azure-quota | - | azure |
+| finops | - | azure |
+| appinsights | appinsights-api-2024-03-11 | azure |
+| loadtesting | - | azure |
+| aks-rightsizing | aks-rightsizing/0.5.0 | azure |
+| aks-karpenter-cost | - | azure |
+| psrule | 1.40.0 | azure |
+| powerpipe | - | azure |
+| azgovviz | - | azure |
+| alz-queries | - | azure |
+| wara | - | azure |
+| maester | - | microsoft365 |
+| scorecard | - | github |
+| gh-actions-billing | gh-actions-billing-api-2024-10-01 | github |
+| ado-connections | - | ado |
+| ado-pipelines | - | ado |
+| ado-consumption | azure-devops/1.0.1 | ado |
+| ado-repos-secrets | - | ado |
+| ado-pipeline-correlator | azure-devops/1.0.1 | ado |
+| identity-correlator | - | graph |
+| identity-graph-expansion | - | graph |
+| zizmor | - | cli |
+| gitleaks | - | cli |
+| trivy | - | cli |
+| bicep-iac | - | cli |
+| infracost | - | cli |
+| terraform-iac | - | cli |
+| sentinel-incidents | - | azure |
+| sentinel-coverage | securityinsights-2024-09-01+loganalytics-2020-08-01 | azure |
+| copilot-triage | - | cli |
 
 </details>
 
-Generated by **azure-analyzer** v3.0 (mockup) · Schema 2.2 · Report v3. See the [interactive HTML version](sample-report.html), the [tool catalog](../docs/consumer/tool-catalog.md), and [PERMISSIONS.md](../PERMISSIONS.md).
+Generated by **azure-analyzer**. Schema fields are consumed defensively and optional Schema 2.2 fields render when present.

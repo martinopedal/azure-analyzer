@@ -11,6 +11,7 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$htmlSiblingReport = ([System.IO.Path]::GetFileNameWithoutExtension($OutputPath) + '.html')
 
 $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
@@ -127,6 +128,12 @@ function GetFrameworkNames([object]$Finding) {
     return @($names | Select-Object -Unique)
 }
 
+function GetStringArray([object]$Obj, [string]$Name) {
+    if (-not (HasProp $Obj $Name)) { return @() }
+    $raw = GetProp $Obj $Name @()
+    return @($raw | ForEach-Object { SanitizeInline $_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
 if (-not (Test-Path $InputPath)) {
     throw "Results file not found: $InputPath. Run Invoke-AzureAnalyzer.ps1 first."
 }
@@ -165,6 +172,12 @@ $manifestTools = @()
 $manifestPath = Join-Path $PSScriptRoot 'tools' 'tool-manifest.json'
 if (Test-Path $manifestPath) {
     try { $manifestTools = @((Get-Content -Path $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop).tools) } catch { }
+}
+$toolLabels = @{}
+foreach ($tool in $manifestTools) {
+    $toolName = SanitizeInline (GetProp $tool 'name' '')
+    if ([string]::IsNullOrWhiteSpace($toolName)) { continue }
+    $toolLabels[$toolName] = SanitizeInline (GetProp $tool 'displayName' $toolName)
 }
 
 $nonCompliant = @($findings | Where-Object { $_.Compliant -ne $true })
@@ -249,7 +262,7 @@ $lines.Add("![Posture](https://img.shields.io/badge/Posture-$postureBadge-2563eb
 $lines.Add("![Tools](https://img.shields.io/badge/Tools-$toolCountBadge-0369a1)")
 $lines.Add("![Run](https://img.shields.io/badge/Run-$runBadge-334155)")
 $lines.Add('')
-$lines.Add('> Generated report. For full interactive exploration, open [report.html](report.html).')
+$lines.Add('> Generated report. For full interactive exploration, open [' + (MdCell $htmlSiblingReport) + '](' + (MdCell $htmlSiblingReport) + ').')
 $lines.Add('')
 $lines.Add('## Contents')
 $lines.Add('')
@@ -275,6 +288,23 @@ if ($nonCompliant.Count -gt 0) {
     $lines.Add('No non-compliant findings were detected in this run.')
 }
 $lines.Add('')
+
+$pillarRollup = @(
+    $nonCompliant |
+        Group-Object -Property { GetDomainFromFinding $_ } |
+        Sort-Object Count -Descending |
+        Select-Object -First 8
+)
+if ($pillarRollup.Count -gt 0) {
+    $lines.Add('### Pillar breakdown (non-compliant)')
+    $lines.Add('')
+    $lines.Add('| Pillar | Findings |')
+    $lines.Add('| --- | ---: |')
+    foreach ($bucket in $pillarRollup) {
+        $lines.Add("| $(MdCell $bucket.Name) | $($bucket.Count) |")
+    }
+    $lines.Add('')
+}
 
 $lines.Add('## Tool coverage')
 $lines.Add('')
@@ -404,7 +434,7 @@ if ($nonCompliant.Count -eq 0) {
 
 $lines.Add('## Findings (top 30)')
 $lines.Add('')
-$lines.Add("Top 30 findings from this run. The [interactive HTML report](report.html) renders the full set.")
+$lines.Add("Top 30 findings from this run. The [interactive HTML report]($htmlSiblingReport) renders the full set.")
 $lines.Add('')
 
 $frameworkSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
@@ -451,6 +481,72 @@ if ($topFindings.Count -eq 0) {
         $idx++
     }
     $lines.Add('')
+}
+
+$schema22Findings = @(
+    $nonCompliant |
+        Where-Object {
+            (HasProp $_ 'Pillar') -or (HasProp $_ 'DeepLinkUrl') -or (HasProp $_ 'RemediationSnippets') -or
+            (HasProp $_ 'MitreTactics') -or (HasProp $_ 'MitreTechniques') -or (HasProp $_ 'BaselineTags') -or (HasProp $_ 'EntityRefs')
+        } |
+        Sort-Object @{ Expression = { GetSeverityRank (SanitizeInline (GetProp $_ 'Severity' 'Info')) }; Descending = $true }, @{ Expression = { SanitizeInline (GetProp $_ 'Title' '') } } |
+        Select-Object -First 10
+)
+if ($schema22Findings.Count -gt 0) {
+    $lines.Add('## Schema 2.2 spotlight')
+    $lines.Add('')
+    $lines.Add('| # | Tool | Pillar | Impact | Effort | Frameworks | MITRE | Deep link |')
+    $lines.Add('| ---: | --- | --- | --- | --- | --- | --- | --- |')
+    $spot = 1
+    foreach ($f in $schema22Findings) {
+        $toolName = SanitizeInline (GetProp $f 'Source' '')
+        $toolDisplay = if ($toolLabels.ContainsKey($toolName)) { $toolLabels[$toolName] } else { $toolName }
+        $frameworkText = @((GetFrameworkNames $f) | ForEach-Object { MdCell $_ }) -join ' · '
+        if ([string]::IsNullOrWhiteSpace($frameworkText)) { $frameworkText = '-' }
+        $tactics = @(GetStringArray -Obj $f -Name 'MitreTactics')
+        $techniques = @(GetStringArray -Obj $f -Name 'MitreTechniques')
+        $mitreText = @($tactics + $techniques) -join ', '
+        if ([string]::IsNullOrWhiteSpace($mitreText)) { $mitreText = '-' }
+        $deep = SanitizeInline (GetProp $f 'DeepLinkUrl' '')
+        $deepCell = if ([string]::IsNullOrWhiteSpace($deep)) { '-' } else { "[Open]($deep)" }
+        $lines.Add("| $spot | $(MdCell $toolDisplay) | $(MdCell (GetProp $f 'Pillar' '-')) | $(MdCell (GetProp $f 'Impact' '-')) | $(MdCell (GetProp $f 'Effort' '-')) | $frameworkText | $(MdCell $mitreText) | $deepCell |")
+        $spot++
+    }
+    $lines.Add('')
+    $lines.Add('### Evidence and remediation snippets')
+    $lines.Add('')
+    foreach ($f in $schema22Findings) {
+        $title = MdCell (GetProp $f 'Title' 'Untitled finding')
+        $lines.Add("<details><summary>$title</summary>")
+        $lines.Add('')
+        $baselineTags = @(GetStringArray -Obj $f -Name 'BaselineTags')
+        if ($baselineTags.Count -gt 0) {
+            $lines.Add('- **Baseline tags:** ' + (($baselineTags | ForEach-Object { "`"$($_)`"" }) -join ', '))
+        }
+        $entityRefs = @(GetStringArray -Obj $f -Name 'EntityRefs')
+        if ($entityRefs.Count -gt 0) {
+            $lines.Add('- **Entity refs:** `' + (($entityRefs | ForEach-Object { $_ }) -join '`, `') + '`')
+        }
+        $evidenceUris = @(GetStringArray -Obj $f -Name 'EvidenceUris')
+        if ($evidenceUris.Count -gt 0) {
+            $lines.Add('- **Evidence URIs:**')
+            foreach ($uri in $evidenceUris) { $lines.Add("  - [$uri]($uri)") }
+        }
+        $snippets = if (HasProp $f 'RemediationSnippets') { $f.RemediationSnippets } else { @() }
+        if (@($snippets).Count -gt 0) {
+            $lines.Add('- **Remediation snippets:**')
+            foreach ($sn in @($snippets)) {
+                $lang = if (HasProp $sn 'language') { SanitizeInline $sn.language } elseif (HasProp $sn 'Language') { SanitizeInline $sn.Language } else { 'text' }
+                $code = if (HasProp $sn 'code') { [string]$sn.code } elseif (HasProp $sn 'Code') { [string]$sn.Code } elseif (HasProp $sn 'Snippet') { [string]$sn.Snippet } else { [string]$sn }
+                $lines.Add(('  ```' + $lang))
+                $lines.Add((Remove-Credentials $code))
+                $lines.Add('  ```')
+            }
+        }
+        $lines.Add('')
+        $lines.Add('</details>')
+        $lines.Add('')
+    }
 }
 
 $lines.Add('## Entity inventory')
