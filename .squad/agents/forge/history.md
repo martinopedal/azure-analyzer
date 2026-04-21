@@ -77,3 +77,9 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Scorecard severity inversion bug (#313): `-1` errored → Info, `0` true failure → Critical. Currently both → High.
 - Trivy misconfig/secret scan types currently disabled (`--scanners vuln` only) — enabling them unlocks two entire finding categories.
 - Manifest-only tool registration still needs full docs freshness updates (`README.md`, `CHANGELOG.md`, permissions page, generated tool catalogs/index), or docs-check and Pester generator tests will fail even if code is unchanged.
+
+### 2026-04-21: Issue #315 — manifest-driven ALZ query sync script merged (PR #331)
+- Delivered `scripts/Sync-AlzQueries.ps1` with manifest-driven upstream resolution (`tools/tool-manifest.json` → `alz-queries.upstream.repo`), HTTPS/allow-list enforcement via `RemoteClone.ps1`, idempotent hash compare + copy into top-level `queries/alz_additional_queries.json`, `-DryRun`, verbose diagnostics, retry+timeout wrappers, and rich `New-InstallerError` failures with sanitized output.
+- Added `tests/scripts/Sync-AlzQueries.Tests.ps1` covering dry-run no-write behavior, idempotent re-run no-op behavior, transient-clone retry behavior, and credential redaction in verbose logs.
+- Baseline preserved and extended: full Pester run moved from 1349 passed (pre-change) to 1354 passed (post-change), 0 failed, 5 skipped.
+- Key upstream-path learning: the canonical source file in `martinopedal/alz-graph-queries` lives at `queries/alz_additional_queries.json` (not repo root), and sync logic now treats this as the default upstream relative path.
