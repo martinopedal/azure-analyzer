@@ -57,6 +57,10 @@ BeforeAll {
             return [PSCustomObject]@{ ExitCode = 0; Output = '[]' }
         }
 
+        if ($joined -match '^version\b') {
+            return [PSCustomObject]@{ ExitCode = 0; Output = '{"azure-cli":"2.77.0"}' }
+        }
+
         if ($joined -match '^account list\b') {
             return [PSCustomObject]@{ ExitCode = 0; Output = $global:QuotaCliFixtures.AccountList }
         }
@@ -267,9 +271,12 @@ Describe 'Invoke-AzureQuotaReports' {
         $result = & $script:Wrapper -Subscriptions @($script:SubA) -Locations @('eastus')
         $result.SchemaVersion | Should -Be '1.0'
         $result.Source | Should -Be 'azure-quota'
+        $result.ToolVersion | Should -Be '2.77.0'
         @($result.Findings).Count | Should -BeGreaterThan 0
         $result.Findings[0].PSObject.Properties.Name | Should -Contain 'UsagePercent'
         $result.Findings[0].PSObject.Properties.Name | Should -Contain 'SubscriptionId'
+        $result.Findings[0].PSObject.Properties.Name | Should -Contain 'ToolVersion'
+        $result.Findings[0].ToolVersion | Should -Be '2.77.0'
         $result.Findings[0].PSObject.Properties.Name | Should -Not -Contain 'EntityId'
     }
 }

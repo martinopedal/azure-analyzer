@@ -76,6 +76,7 @@ $result = [ordered]@{
     Source        = 'azure-quota'
     Status        = 'Success'
     Message       = ''
+    ToolVersion   = ''
     Findings      = @()
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
@@ -142,6 +143,18 @@ function Invoke-AzNoOutput {
     }
 }
 
+function Get-AzCliVersion {
+    try {
+        $exec = Invoke-WithTimeout -Command 'az' -Arguments @('version', '--output', 'json', '--only-show-errors') -TimeoutSec 300
+        if (-not $exec -or $exec.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$exec.Output)) { return '' }
+        $parsed = ([string]$exec.Output | ConvertFrom-Json -Depth 10 -ErrorAction Stop)
+        $version = [string]($parsed.'azure-cli' ?? '')
+        return $version.Trim()
+    } catch {
+        return ''
+    }
+}
+
 function Get-UsagePercent {
     param([double]$CurrentValue, [double]$Limit)
     if ($Limit -le 0) {
@@ -166,7 +179,8 @@ function Convert-UsageRowsToFindings {
         [Parameter(Mandatory)][string] $SubscriptionName,
         [Parameter(Mandatory)][string] $Location,
         [Parameter(Mandatory)][string] $Service,
-        [Parameter(Mandatory)][int] $ThresholdPercent
+        [Parameter(Mandatory)][int] $ThresholdPercent,
+        [string] $ToolVersion = ''
     )
 
     $items = [System.Collections.Generic.List[object]]::new()
@@ -209,6 +223,7 @@ function Convert-UsageRowsToFindings {
                 Limit            = $limit
                 UsagePercent     = $usagePercent
                 Threshold        = $ThresholdPercent
+                ToolVersion      = $ToolVersion
             }) | Out-Null
     }
     return @($items)
@@ -221,6 +236,8 @@ try {
         return [PSCustomObject]$result
     }
 
+    $toolVersion = Get-AzCliVersion
+    $result.ToolVersion = $toolVersion
     $accounts = @(Invoke-AzJson -Arguments @('account', 'list') -Context 'az account list')
     $enabledAccounts = @($accounts | Where-Object { [string]$_.state -eq 'Enabled' })
 
@@ -265,10 +282,10 @@ try {
             $vmUsage = @(Invoke-AzJson -Arguments @('vm', 'list-usage', '--location', $locationName, '--subscription', $subId) -Context "az vm list-usage ($subId/$locationName)")
             $netUsage = @(Invoke-AzJson -Arguments @('network', 'list-usages', '--location', $locationName, '--subscription', $subId) -Context "az network list-usages ($subId/$locationName)")
 
-            foreach ($f in (Convert-UsageRowsToFindings -Rows $vmUsage -Subscription $subId -SubscriptionName $accountNameById[$subId] -Location $locationName -Service 'vm' -ThresholdPercent $Threshold)) {
+            foreach ($f in (Convert-UsageRowsToFindings -Rows $vmUsage -Subscription $subId -SubscriptionName $accountNameById[$subId] -Location $locationName -Service 'vm' -ThresholdPercent $Threshold -ToolVersion $toolVersion)) {
                 $findings.Add($f) | Out-Null
             }
-            foreach ($f in (Convert-UsageRowsToFindings -Rows $netUsage -Subscription $subId -SubscriptionName $accountNameById[$subId] -Location $locationName -Service 'network' -ThresholdPercent $Threshold)) {
+            foreach ($f in (Convert-UsageRowsToFindings -Rows $netUsage -Subscription $subId -SubscriptionName $accountNameById[$subId] -Location $locationName -Service 'network' -ThresholdPercent $Threshold -ToolVersion $toolVersion)) {
                 $findings.Add($f) | Out-Null
             }
         }
