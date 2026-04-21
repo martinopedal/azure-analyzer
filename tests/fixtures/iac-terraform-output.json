@@ -16,7 +16,7 @@
       "Remediation": "Fix the Terraform configuration in infra/",
       "ResourceId": "infra",
       "LearnMoreUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
-      "Pillar": "Operations",
+      "Pillar": "OperationalExcellence",
       "DeepLinkUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
       "EvidenceUris": [
         "file://infra/main.tf#L12"
@@ -107,7 +107,7 @@
       "Remediation": "Fix the Terraform configuration in network",
       "ResourceId": "network",
       "LearnMoreUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
-      "Pillar": "Operations",
+      "Pillar": "OperationalExcellence",
       "DeepLinkUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
       "EvidenceUris": [
         "file://network/main.tf#L67"

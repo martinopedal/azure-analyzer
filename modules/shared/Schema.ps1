@@ -41,7 +41,6 @@ $script:EdgeRelations = @(
 )
 $script:EntityTypes = @(
     'AzureResource',
-    'IaCFile',
     'ServicePrincipal',
     'ManagedIdentity',
     'Application',
@@ -92,7 +91,6 @@ function Get-PlatformForEntityType {
         [Parameter(Mandatory)]
         [ValidateSet(
             'AzureResource',
-            'IaCFile',
             'ServicePrincipal',
             'ManagedIdentity',
             'Application',
@@ -116,7 +114,6 @@ function Get-PlatformForEntityType {
 
     switch ($EntityType) {
         'AzureResource' { 'Azure' }
-        'IaCFile' { 'Azure' }
         'ManagedIdentity' { 'Azure' }
         'Subscription' { 'Azure' }
         'ManagementGroup' { 'Azure' }
@@ -418,7 +415,6 @@ function New-EntityStub {
         [Parameter(Mandatory)]
         [ValidateSet(
             'AzureResource',
-            'IaCFile',
             'ServicePrincipal',
             'ManagedIdentity',
             'Application',

@@ -213,7 +213,6 @@ function ConvertTo-CanonicalEntityId {
         [Parameter(Mandatory)]
         [ValidateSet(
             'AzureResource',
-            'IaCFile',
             'ServicePrincipal',
             'ManagedIdentity',
             'Application',
@@ -237,7 +236,6 @@ function ConvertTo-CanonicalEntityId {
 
     $canonicalId = switch ($EntityType) {
         'AzureResource' { ConvertTo-CanonicalArmId -ArmId $RawId }
-        'IaCFile' { $RawId.Trim().ToLowerInvariant() -replace '\\', '/' }
         'ManagedIdentity' { ConvertTo-CanonicalArmId -ArmId $RawId }
         'Repository' { ConvertTo-CanonicalRepoId -RepoId $RawId }
         'Workflow' { $RawId.Trim().ToLowerInvariant() -replace '\\', '/' }
@@ -299,7 +297,6 @@ function ConvertTo-CanonicalEntityId {
 
     $platform = switch ($EntityType) {
         'AzureResource' { 'Azure' }
-        'IaCFile' { 'Azure' }
         'ManagedIdentity' { 'Azure' }
         'Subscription' { 'Azure' }
         'ManagementGroup' { 'Azure' }

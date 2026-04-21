@@ -344,9 +344,9 @@ function Resolve-TerraformRulePillar {
     )
 
     $signal = "$RuleId $Title $Description $Category".ToLowerInvariant()
-    if ($signal -match 'cost|price|sku|sizing|idle|rightsiz') { return 'Cost' }
-    if ($signal -match 'performance|latency|throughput|iops|autoscal|cache') { return 'Performance' }
-    if ($signal -match 'operations|operational|monitor|logging|diagnostic|tagging|policy') { return 'Operations' }
+    if ($signal -match 'cost|price|sku|sizing|idle|rightsiz') { return 'CostOptimization' }
+    if ($signal -match 'performance|latency|throughput|iops|autoscal|cache') { return 'PerformanceEfficiency' }
+    if ($signal -match 'operations|operational|monitor|logging|diagnostic|tagging|policy') { return 'OperationalExcellence' }
     if ($signal -match 'reliability|availability|redundan|backup|recovery|resilien') { return 'Reliability' }
     return 'Security'
 }
@@ -635,7 +635,7 @@ function Invoke-TerraformValidateDir {
                 Remediation = "Run 'terraform init' in $RelativeDir before validation, or ensure provider plugins are accessible."
                 ResourceId  = $RelativeDir
                 LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/init'
-                Pillar      = 'Operations'
+                Pillar      = 'OperationalExcellence'
                 Frameworks  = @()
                 DeepLinkUrl = 'https://developer.hashicorp.com/terraform/cli/commands/init'
                 RemediationSnippets = @(@{
@@ -688,7 +688,7 @@ function Invoke-TerraformValidateDir {
                             Remediation = "Fix the Terraform configuration in $RelativeDir"
                             ResourceId  = $RelativeDir
                             LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
-                            Pillar      = 'Operations'
+                            Pillar      = 'OperationalExcellence'
                             Frameworks  = @()
                             DeepLinkUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
                             RemediationSnippets = @(@{
@@ -715,7 +715,7 @@ function Invoke-TerraformValidateDir {
                     Remediation = "Fix the Terraform configuration in $RelativeDir"
                     ResourceId  = $RelativeDir
                     LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
-                    Pillar      = 'Operations'
+                    Pillar      = 'OperationalExcellence'
                     Frameworks  = @()
                     DeepLinkUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
                     RemediationSnippets = @(@{

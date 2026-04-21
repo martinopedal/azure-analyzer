@@ -4,7 +4,7 @@
     Normalizer for Terraform IaC validation findings.
 .DESCRIPTION
     Converts raw Terraform wrapper output to v2.2 FindingRow objects.
-    Platform=Azure with EntityType=AzureResource or IaCFile.
+    Platform=GitHub with EntityType=Repository.
 #>
 [CmdletBinding()]
 param ()
@@ -54,38 +54,61 @@ function Resolve-TerraformRuleId {
     return 'terraform-validate'
 }
 
-function Resolve-TerraformIaCEntity {
-    param([object]$Finding)
-    $armCandidate = ''
-    if ($Finding.PSObject.Properties['ArmResourceId'] -and $Finding.ArmResourceId) { $armCandidate = [string]$Finding.ArmResourceId }
-    if (-not $armCandidate -and $Finding.PSObject.Properties['ResourceAddress'] -and $Finding.ResourceAddress -and [string]$Finding.ResourceAddress -match '^/subscriptions/') {
-        $armCandidate = [string]$Finding.ResourceAddress
+function Resolve-TerraformRepositoryEntityId {
+    param([object]$ToolResult)
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if ($ToolResult.PSObject.Properties['Repository'] -and $ToolResult.Repository) { $candidates.Add([string]$ToolResult.Repository) | Out-Null }
+    if ($ToolResult.PSObject.Properties['RemoteUrl'] -and $ToolResult.RemoteUrl) { $candidates.Add([string]$ToolResult.RemoteUrl) | Out-Null }
+    if ($ToolResult.PSObject.Properties['SourceRepoUrl'] -and $ToolResult.SourceRepoUrl) { $candidates.Add([string]$ToolResult.SourceRepoUrl) | Out-Null }
+
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        try { return (ConvertTo-CanonicalEntityId -RawId $candidate -EntityType 'Repository').CanonicalId } catch { }
     }
-    if ($armCandidate -and $armCandidate -match '^/subscriptions/') {
-        try {
-            return @{
-                EntityType = 'AzureResource'
-                EntityId   = (ConvertTo-CanonicalEntityId -RawId $armCandidate -EntityType 'AzureResource').CanonicalId
-            }
-        } catch { }
+    return 'iac.local/terraform-iac/repository'
+}
+
+function Resolve-TerraformMitreMapping {
+    param (
+        [string] $RuleId,
+        [string] $Title,
+        [string] $Detail,
+        [string] $Category
+    )
+
+    $tactics = [System.Collections.Generic.List[string]]::new()
+    $techniques = [System.Collections.Generic.List[string]]::new()
+
+    if (-not ($Category -match '(?i)security')) {
+        return @{
+            MitreTactics = @()
+            MitreTechniques = @()
+        }
     }
 
-    $path = ''
-    $resourceAddress = if ($Finding.PSObject.Properties['ResourceAddress'] -and $Finding.ResourceAddress) { [string]$Finding.ResourceAddress } else { '' }
-    foreach ($uri in @(Convert-ToStringArray $Finding.EvidenceUris)) {
-        if ($uri -match '^file://([^#]+)') { $path = $Matches[1]; break }
-        if ($uri -match '/blob/[^/]+/(.+?)(?:#L\d+)?$') { $path = $Matches[1]; break }
+    $signal = "$RuleId $Title $Detail".ToLowerInvariant()
+    if ($signal -match 'identity|iam|role|permission|privilege|access') {
+        $tactics.Add('TA0004') | Out-Null
+        $techniques.Add('T1078') | Out-Null
     }
-    if (-not $path) {
-        $raw = if ($Finding.PSObject.Properties['ResourceId'] -and $Finding.ResourceId) { [string]$Finding.ResourceId } else { 'main.tf' }
-        $path = ($raw -replace '\\', '/') -replace '^\./', ''
-        if (-not $path.EndsWith('.tf')) { $path = "$path/main.tf" }
+    if ($signal -match 'public|0\.0\.0\.0/0|ingress|network|nsg|firewall|exposed') {
+        $tactics.Add('TA0001') | Out-Null
+        $techniques.Add('T1190') | Out-Null
     }
-    $id = "iac:terraform:$($path.ToLowerInvariant())"
-    if (-not [string]::IsNullOrWhiteSpace($resourceAddress)) {
-        $id = "$id#$($resourceAddress.ToLowerInvariant())"
+    if ($signal -match 'keyvault|key vault|secret|token|credential|purge protection|encryption') {
+        $tactics.Add('TA0006') | Out-Null
+        $techniques.Add('T1552') | Out-Null
     }
-    return @{ EntityType = 'IaCFile'; EntityId = $id }
+
+    if ($tactics.Count -eq 0) {
+        $tactics.Add('TA0001') | Out-Null
+        $techniques.Add('T1190') | Out-Null
+    }
+
+    return @{
+        MitreTactics = @($tactics | Select-Object -Unique)
+        MitreTechniques = @($techniques | Select-Object -Unique)
+    }
 }
 
 function Normalize-IaCTerraform {
@@ -100,6 +123,7 @@ function Normalize-IaCTerraform {
     }
 
     $runId = [guid]::NewGuid().ToString()
+    $repositoryEntityId = Resolve-TerraformRepositoryEntityId -ToolResult $ToolResult
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     foreach ($finding in $ToolResult.Findings) {
@@ -124,6 +148,13 @@ function Normalize-IaCTerraform {
         $remediation = if ($finding.PSObject.Properties['Remediation'] -and $finding.Remediation) { [string]$finding.Remediation } else { '' }
         $learnMore = if ($finding.PSObject.Properties['LearnMoreUrl'] -and $finding.LearnMoreUrl) { [string]$finding.LearnMoreUrl } else { '' }
         $pillar = if ($finding.PSObject.Properties['Pillar'] -and $finding.Pillar) { [string]$finding.Pillar } else { 'Security' }
+        $pillar = switch -Regex ($pillar.Trim()) {
+            '^(?i)operations?|operational.?excellence$' { 'OperationalExcellence' }
+            '^(?i)cost|costoptimization$' { 'CostOptimization' }
+            '^(?i)performance|performanceefficiency$' { 'PerformanceEfficiency' }
+            '^(?i)reliability$' { 'Reliability' }
+            default { 'Security' }
+        }
         $deepLinkUrl = if ($finding.PSObject.Properties['DeepLinkUrl'] -and $finding.DeepLinkUrl) { [string]$finding.DeepLinkUrl } else { $learnMore }
         $impact = if ($finding.PSObject.Properties['Impact'] -and $finding.Impact) { [string]$finding.Impact } else { '' }
         $effort = if ($finding.PSObject.Properties['Effort'] -and $finding.Effort) { [string]$finding.Effort } else { '' }
@@ -144,18 +175,24 @@ function Normalize-IaCTerraform {
         $rawEntityRefs = if ($finding.PSObject.Properties['EntityRefs']) { $finding.EntityRefs } else { @() }
         $entityRefs = Convert-ToStringArray $rawEntityRefs
         $resourceAddress = if ($finding.PSObject.Properties['ResourceAddress'] -and $finding.ResourceAddress) { [string]$finding.ResourceAddress } else { '' }
-        $entity = Resolve-TerraformIaCEntity -Finding $finding
-
-        if (@($entityRefs).Count -eq 0 -and $entity.EntityType -eq 'IaCFile') {
-            $entityRefs = @($entity.EntityId)
+        if (@($entityRefs).Count -eq 0) {
+            $path = ''
+            foreach ($uri in @($evidenceUris)) {
+                if ($uri -match '^file://([^#]+)') { $path = $Matches[1]; break }
+                if ($uri -match '/blob/[^/]+/(.+?)(?:#L\d+)?$') { $path = $Matches[1]; break }
+            }
+            if (-not $path) {
+                $path = (($rawId -replace '\\', '/') -replace '^\./', '').Trim()
+                if ([string]::IsNullOrWhiteSpace($path)) { $path = 'main.tf' }
+                if (-not $path.EndsWith('.tf')) { $path = "$path/main.tf" }
+            }
+            $entityRefs = @("iac:terraform:$($path.ToLowerInvariant())")
             if (-not [string]::IsNullOrWhiteSpace($resourceAddress)) {
-                $baseEntityId = $entity.EntityId.Split('#')[0]
-                $resourceRef = "$baseEntityId#$($resourceAddress.ToLowerInvariant())"
-                if ($entityRefs -notcontains $resourceRef) {
-                    $entityRefs += $resourceRef
-                }
+                $entityRefs += "iac:terraform:$($path.ToLowerInvariant())#$($resourceAddress.ToLowerInvariant())"
             }
         }
+
+        $mitre = Resolve-TerraformMitreMapping -RuleId $ruleId -Title $title -Detail $detail -Category $category
 
         $rawSnippets = if ($finding.PSObject.Properties['RemediationSnippets']) { $finding.RemediationSnippets } else { @() }
         $snippets = Convert-ToHashtableArray $rawSnippets
@@ -164,14 +201,15 @@ function Normalize-IaCTerraform {
         }
 
         $row = New-FindingRow -Id $findingId `
-            -Source 'terraform-iac' -EntityId $entity.EntityId -EntityType $entity.EntityType `
+            -Source 'terraform-iac' -EntityId $repositoryEntityId -EntityType 'Repository' `
             -Title $title -RuleId $ruleId -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
-            -Platform 'Azure' -Category $category -Severity $severity `
+            -Platform 'GitHub' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '') `
             -Frameworks $frameworks -Pillar $pillar -Impact $impact -Effort $effort `
             -DeepLinkUrl $deepLinkUrl -RemediationSnippets $snippets `
             -EvidenceUris $evidenceUris -BaselineTags $baselineTags `
+            -MitreTactics $mitre.MitreTactics -MitreTechniques $mitre.MitreTechniques `
             -EntityRefs $entityRefs -ToolVersion $toolVersion
         if ($null -ne $row) {
             $normalized.Add($row)
