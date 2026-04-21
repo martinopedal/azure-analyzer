@@ -66,15 +66,100 @@ function Get-AppInsightsLearnMoreUrl {
     $resourceId = if ($Finding.PSObject.Properties['ResourceId']) { [string]$Finding.ResourceId } else { '' }
     if ([string]::IsNullOrWhiteSpace($resourceId)) { return 'https://portal.azure.com/' }
 
+    return "https://portal.azure.com/#@/resource$resourceId/overview"
+}
+
+function Get-AppInsightsDeepLinkUrl {
+    param([pscustomobject] $Finding)
+
+    if ($Finding.PSObject.Properties['DeepLinkUrl'] -and ([string]$Finding.DeepLinkUrl).StartsWith('https://', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [string]$Finding.DeepLinkUrl
+    }
+
+    $resourceId = if ($Finding.PSObject.Properties['ResourceId']) { [string]$Finding.ResourceId } else { '' }
+    if ([string]::IsNullOrWhiteSpace($resourceId)) { return '' }
+
     $timeRangeHours = if ($Finding.PSObject.Properties['TimeRangeHours']) { [int]$Finding.TimeRangeHours } else { 24 }
     $query = switch ([string]$Finding.QueryType) {
-        'requests'     { "requests | where timestamp > ago($($timeRangeHours)h)" }
+        'requests'     { "requests | where timestamp > ago($($timeRangeHours)h) | where duration > 5s" }
         'dependencies' { "dependencies | where timestamp > ago($($timeRangeHours)h) | where success == false" }
         'exceptions'   { "exceptions | where timestamp > ago($($timeRangeHours)h)" }
         default        { "traces | where timestamp > ago($($timeRangeHours)h)" }
     }
-    $encodedQuery = [System.Uri]::EscapeDataString($query)
-    return "https://portal.azure.com/#@/resource$resourceId/logs?timespan=PT$($timeRangeHours)H&query=$encodedQuery"
+    $resourceIdEncoded = [System.Uri]::EscapeDataString($resourceId)
+    $queryEncoded = [System.Uri]::EscapeDataString($query)
+    return "https://portal.azure.com/#blade/Microsoft_OperationsManagementSuite_Workspace/AnalyticsBlade/resourceId/$resourceIdEncoded/query/$queryEncoded/timespan/PT$($timeRangeHours)H"
+}
+
+function Convert-ToStringArray {
+    param ([object]$Value)
+    if ($null -eq $Value) { return @() }
+
+    $items = [System.Collections.Generic.List[string]]::new()
+    if ($Value -is [string]) {
+        if (-not [string]::IsNullOrWhiteSpace($Value)) { $items.Add($Value.Trim()) | Out-Null }
+    } else {
+        foreach ($item in @($Value)) {
+            if ($null -eq $item) { continue }
+            $text = [string]$item
+            if (-not [string]::IsNullOrWhiteSpace($text)) { $items.Add($text.Trim()) | Out-Null }
+        }
+    }
+
+    return @($items)
+}
+
+function Resolve-AppInsightsPillar {
+    param([pscustomobject] $Finding)
+
+    if ($Finding.PSObject.Properties['Pillar'] -and -not [string]::IsNullOrWhiteSpace([string]$Finding.Pillar)) {
+        return [string]$Finding.Pillar
+    }
+
+    if ([string]$Finding.QueryType -eq 'exceptions') { return 'Reliability' }
+    return 'PerformanceEfficiency'
+}
+
+function Resolve-AppInsightsImpact {
+    param([pscustomobject] $Finding)
+
+    if ($Finding.PSObject.Properties['Impact'] -and -not [string]::IsNullOrWhiteSpace([string]$Finding.Impact)) {
+        return [string]$Finding.Impact
+    }
+
+    $count = if ($Finding.PSObject.Properties['Count']) { [int]$Finding.Count } else { 0 }
+    $avg = if ($Finding.PSObject.Properties['AvgDurationSeconds']) { [double]$Finding.AvgDurationSeconds } else { 0.0 }
+    if ([string]$Finding.QueryType -eq 'exceptions') {
+        if ($count -ge 150) { return 'High' }
+        if ($count -ge 75) { return 'Medium' }
+        return 'Low'
+    }
+
+    if ($count -ge 100 -and $avg -ge 10) { return 'High' }
+    if ($count -ge 20 -or $avg -ge 5) { return 'Medium' }
+    return 'Low'
+}
+
+function Resolve-AppInsightsEffort {
+    param([pscustomobject] $Finding)
+
+    if ($Finding.PSObject.Properties['Effort'] -and -not [string]::IsNullOrWhiteSpace([string]$Finding.Effort)) {
+        return [string]$Finding.Effort
+    }
+
+    $avg = if ($Finding.PSObject.Properties['AvgDurationSeconds']) { [double]$Finding.AvgDurationSeconds } else { 0.0 }
+    switch ([string]$Finding.QueryType) {
+        'exceptions' { return 'Low' }
+        'dependencies' {
+            if ($avg -ge 10) { return 'High' }
+            return 'Medium'
+        }
+        'requests' {
+            if ($avg -ge 15) { return 'High' }
+            return 'Medium'
+        }
+        default { return 'Medium' }
+    }
 }
 
 function Normalize-AppInsights {
@@ -106,6 +191,24 @@ function Normalize-AppInsights {
             $canonicalId = $rawId.ToLowerInvariant()
         }
 
+        $pillar = Resolve-AppInsightsPillar -Finding $f
+        $impact = Resolve-AppInsightsImpact -Finding $f
+        $effort = Resolve-AppInsightsEffort -Finding $f
+        $deepLinkUrl = Get-AppInsightsDeepLinkUrl -Finding $f
+        $evidenceUris = @(Convert-ToStringArray -Value $(if ($f.PSObject.Properties['EvidenceUris']) { $f.EvidenceUris } else { @() }))
+        if ($deepLinkUrl) { $evidenceUris = @($evidenceUris + @($deepLinkUrl) | Select-Object -Unique) }
+        $learnMoreUrl = Get-AppInsightsLearnMoreUrl -Finding $f
+        if ($learnMoreUrl) { $evidenceUris = @($evidenceUris + @($learnMoreUrl) | Select-Object -Unique) }
+        $baselineTags = @(Convert-ToStringArray -Value $(if ($f.PSObject.Properties['BaselineTags']) { $f.BaselineTags } else { @() }))
+        $entityRefs = @(Convert-ToStringArray -Value $(if ($f.PSObject.Properties['EntityRefs']) { $f.EntityRefs } else { @() }))
+        $toolVersion = if ($f.PSObject.Properties['ToolVersion']) { [string]$f.ToolVersion } elseif ($ToolResult.PSObject.Properties['ToolVersion']) { [string]$ToolResult.ToolVersion } else { '' }
+        $scoreDelta = $null
+        if ($f.PSObject.Properties['ScoreDelta'] -and $null -ne $f.ScoreDelta) {
+            $scoreDelta = [Nullable[double]]([double]$f.ScoreDelta)
+        } elseif ($f.PSObject.Properties['AvgDurationSeconds'] -and $null -ne $f.AvgDurationSeconds) {
+            $scoreDelta = [Nullable[double]]([double]$f.AvgDurationSeconds)
+        }
+
         $row = New-FindingRow -Id $(if ($f.PSObject.Properties['Id']) { [string]$f.Id } else { [guid]::NewGuid().ToString() }) `
             -Source $(if ($f.PSObject.Properties['Source']) { [string]$f.Source } else { 'appinsights' }) `
             -EntityId $canonicalId -EntityType 'AzureResource' `
@@ -116,12 +219,16 @@ function Normalize-AppInsights {
             -Severity (Get-AppInsightsSeverity -Finding $f) `
             -Detail $(if ($f.PSObject.Properties['Detail']) { [string]$f.Detail } else { '' }) `
             -Remediation $(if ($f.PSObject.Properties['Remediation']) { [string]$f.Remediation } else { '' }) `
-            -LearnMoreUrl (Get-AppInsightsLearnMoreUrl -Finding $f) `
-            -ResourceId $rawId -SubscriptionId $subId -ResourceGroup $rg
+            -LearnMoreUrl $learnMoreUrl `
+            -ResourceId $rawId -SubscriptionId $subId -ResourceGroup $rg `
+            -Pillar $pillar -Impact $impact -Effort $effort `
+            -DeepLinkUrl $deepLinkUrl -EvidenceUris $evidenceUris `
+            -BaselineTags $baselineTags -ScoreDelta $scoreDelta `
+            -EntityRefs $entityRefs -ToolVersion $toolVersion
 
         if ($null -eq $row) { continue }
 
-        foreach ($extra in @('QueryType', 'RequestName', 'DependencyName', 'DependencyType', 'ProblemId', 'Count', 'AvgDurationSeconds', 'TimeRangeHours')) {
+        foreach ($extra in @('QueryType', 'RequestName', 'DependencyName', 'DependencyType', 'ProblemId', 'Count', 'AvgDurationSeconds', 'TimeRangeHours', 'ScoreDelta')) {
             if ($f.PSObject.Properties[$extra] -and $null -ne $f.$extra) {
                 $row | Add-Member -NotePropertyName $extra -NotePropertyValue $f.$extra -Force
             }

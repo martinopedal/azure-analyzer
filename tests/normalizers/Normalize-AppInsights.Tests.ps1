@@ -38,12 +38,27 @@ Describe 'Normalize-AppInsights' {
         ($rows | Where-Object { $_.Id -eq 'appinsights/appi-prod/exceptions/nullref' }).Title | Should -Be 'Exception cluster: NullReferenceException hit 88 times'
     }
 
-    It 'sets HTTPS portal deep links with query and timespan' {
+    It 'sets HTTPS portal fix links' {
         $rows = @(Normalize-AppInsights -ToolResult $script:Fixture)
         foreach ($row in $rows) {
             $row.LearnMoreUrl | Should -Match '^https://portal\.azure\.com/'
-            $row.LearnMoreUrl | Should -Match 'timespan=PT24H'
+            $row.LearnMoreUrl | Should -Match '/overview$'
         }
-        ($rows | Where-Object { $_.Id -eq 'appinsights/appi-prod/requests/get-orders' }).LearnMoreUrl | Should -Match 'requests%20%7C%20where%20timestamp'
+    }
+
+    It 'maps schema 2.2 appinsights metadata fields' {
+        $rows = @(Normalize-AppInsights -ToolResult $script:Fixture)
+        $request = @($rows | Where-Object { $_.Id -eq 'appinsights/appi-prod/requests/get-orders' })[0]
+        $exception = @($rows | Where-Object { $_.Id -eq 'appinsights/appi-prod/exceptions/nullref' })[0]
+
+        $request.Pillar | Should -Be 'PerformanceEfficiency'
+        $exception.Pillar | Should -Be 'Reliability'
+        $request.DeepLinkUrl | Should -Match '^https://portal\.azure\.com/#blade/Microsoft_OperationsManagementSuite_Workspace/AnalyticsBlade/'
+        $request.BaselineTags | Should -Contain 'AppInsights-SlowRequests'
+        $request.ScoreDelta | Should -Be 31.2
+        $request.ToolVersion | Should -Be 'Az.ApplicationInsights/2.5.0'
+        $request.EvidenceUris | Should -Contain $request.DeepLinkUrl
+        $request.EvidenceUris | Should -Contain $request.LearnMoreUrl
+        @($request.EntityRefs).Count | Should -BeGreaterThan 1
     }
 }

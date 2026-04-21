@@ -21,7 +21,10 @@ Describe 'Invoke-AppInsights' {
         function global:Get-Module {
             [CmdletBinding()]
             param([string] $Name, [switch] $ListAvailable)
-            [pscustomobject]@{ Name = 'Az.Accounts' }
+            switch ($Name) {
+                'Az.ApplicationInsights' { return [pscustomobject]@{ Name = 'Az.ApplicationInsights'; Version = [version]'2.5.0' } }
+                default { return [pscustomobject]@{ Name = 'Az.Accounts'; Version = [version]'2.17.1' } }
+            }
         }
         function global:Get-AzContext {
             [CmdletBinding()]
@@ -71,6 +74,9 @@ Describe 'Invoke-AppInsights' {
                             @{
                                 id = $global:TestAppId
                                 name = 'appi-prod'
+                                tags = @{
+                                    "hidden-link:/subscriptions/$($global:TestSubId)/resourceGroups/perf-rg/providers/Microsoft.Web/sites/orders-api" = 'Resource'
+                                }
                                 properties = @{
                                     WorkspaceResourceId = "/subscriptions/$($global:TestSubId)/resourceGroups/perf-rg/providers/Microsoft.OperationalInsights/workspaces/ws1"
                                 }
@@ -123,6 +129,16 @@ Describe 'Invoke-AppInsights' {
         @($result.Findings | Where-Object { $_.QueryType -eq 'dependencies' }).Count | Should -Be 1
         @($result.Findings | Where-Object { $_.QueryType -eq 'exceptions' }).Count | Should -Be 1
         @($global:CapturedTimeSpans | Select-Object -Unique) | Should -Be @(24)
+
+        $requestFinding = @($result.Findings | Where-Object { $_.QueryType -eq 'requests' })[0]
+        $requestFinding.Pillar | Should -Be 'PerformanceEfficiency'
+        $requestFinding.DeepLinkUrl | Should -Match '^https://portal\.azure\.com/#blade/Microsoft_OperationsManagementSuite_Workspace/AnalyticsBlade/'
+        $requestFinding.EvidenceUris | Should -Contain $requestFinding.DeepLinkUrl
+        $requestFinding.BaselineTags | Should -Contain 'AppInsights-SlowRequests'
+        $requestFinding.ScoreDelta | Should -Be 6
+        $requestFinding.ToolVersion | Should -Be 'Az.ApplicationInsights/2.5.0'
+        $requestFinding.EntityRefs | Should -Contain $script:AppId
+        @($requestFinding.EntityRefs | Where-Object { $_ -match '/providers/Microsoft\.Web/sites/orders-api$' }).Count | Should -Be 1
     }
 
     It 'uses resource group and app name filters in discovery URI' {

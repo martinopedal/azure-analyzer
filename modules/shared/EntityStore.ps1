@@ -103,20 +103,23 @@ function Merge-FrameworksUnion {
     return Merge-UniqueByKey -Existing $Existing -Incoming $Incoming -KeySelector {
         param ($item)
         $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'kind'
+        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Kind' }
+        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Name' }
+        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'framework' }
+        if ($null -eq $kind -and $item -is [System.Collections.IDictionary]) {
+            $kind = ($item['kind'] ?? $item['Kind'] ?? $item['Name'] ?? $item['framework'])
+        }
+
         $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'controlId'
-        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Kind' }
-        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'name' }
-        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Name' }
-        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'ControlId' }
-        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'id' }
-        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'Id' }
-        if ($item -is [System.Collections.IDictionary]) {
-            if ([string]::IsNullOrWhiteSpace([string]$kind)) {
-                $kind = $item['kind'] ?? $item['Kind'] ?? $item['name'] ?? $item['Name']
-            }
-            if ([string]::IsNullOrWhiteSpace([string]$controlId)) {
-                $controlId = $item['controlId'] ?? $item['ControlId'] ?? $item['id'] ?? $item['Id']
-            }
+        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'name' }
+        if ($null -eq $controlId) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'ControlId' }
+        if ($null -eq $controlId) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'id' }
+        if ($null -eq $controlId) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'Id' }
+        if ($null -eq $kind -and $item -is [System.Collections.IDictionary]) {
+            $kind = ($item['kind'] ?? $item['Kind'] ?? $item['name'] ?? $item['Name'] ?? $item['framework'])
+        }
+        if ($null -eq $controlId -and $item -is [System.Collections.IDictionary]) {
+            $controlId = ($item['controlId'] ?? $item['ControlId'] ?? $item['id'] ?? $item['Id'])
         }
         if ([string]::IsNullOrWhiteSpace([string]$kind) -or [string]::IsNullOrWhiteSpace([string]$controlId)) { return $null }
         return "$kind|$controlId"
@@ -333,15 +336,57 @@ class EntityStore {
             $Target.LearnMoreUrl = $Incoming.LearnMoreUrl
         }
 
+        foreach ($scalar in @('Pillar', 'Impact', 'Effort', 'DeepLinkUrl', 'ToolVersion')) {
+            if ((-not $Target.PSObject.Properties[$scalar] -or [string]::IsNullOrWhiteSpace([string]$Target.$scalar)) -and
+                $Incoming.PSObject.Properties[$scalar] -and -not [string]::IsNullOrWhiteSpace([string]$Incoming.$scalar)) {
+                if (-not $Target.PSObject.Properties[$scalar]) {
+                    $Target | Add-Member -NotePropertyName $scalar -NotePropertyValue $Incoming.$scalar
+                } else {
+                    $Target.$scalar = $Incoming.$scalar
+                }
+            }
+        }
+
+        if ($Incoming.PSObject.Properties['ScoreDelta'] -and $null -ne $Incoming.ScoreDelta -and
+            (-not $Target.PSObject.Properties['ScoreDelta'] -or $null -eq $Target.ScoreDelta)) {
+            if (-not $Target.PSObject.Properties['ScoreDelta']) {
+                $Target | Add-Member -NotePropertyName 'ScoreDelta' -NotePropertyValue $Incoming.ScoreDelta
+            } else {
+                $Target.ScoreDelta = $Incoming.ScoreDelta
+            }
+        }
+
         if ($Incoming.PSObject.Properties['Frameworks']) {
-            $Target.Frameworks = Merge-FrameworksUnion -Existing $Target.Frameworks -Incoming $Incoming.Frameworks
+            $mergedFrameworks = Merge-FrameworksUnion -Existing @($Target.Frameworks) -Incoming @($Incoming.Frameworks)
+            if ($mergedFrameworks.Count -gt 0) {
+                if (-not $Target.PSObject.Properties['Frameworks']) {
+                    $Target | Add-Member -NotePropertyName 'Frameworks' -NotePropertyValue $mergedFrameworks
+                } else {
+                    $Target.Frameworks = $mergedFrameworks
+                }
+            }
         }
+
         if ($Incoming.PSObject.Properties['BaselineTags']) {
-            $Target.BaselineTags = Merge-BaselineTagsUnion -Existing $Target.BaselineTags -Incoming $Incoming.BaselineTags
+            $mergedTags = Merge-BaselineTagsUnion -Existing @($Target.BaselineTags) -Incoming @($Incoming.BaselineTags)
+            if ($mergedTags.Count -gt 0) {
+                if (-not $Target.PSObject.Properties['BaselineTags']) {
+                    $Target | Add-Member -NotePropertyName 'BaselineTags' -NotePropertyValue $mergedTags
+                } else {
+                    $Target.BaselineTags = $mergedTags
+                }
+            }
         }
-        if ($Incoming.PSObject.Properties['EvidenceUris']) {
-            $Target.EvidenceUris = Merge-UniqueByKey -Existing $Target.EvidenceUris -Incoming $Incoming.EvidenceUris -KeySelector {
-                param ($item) [string]$item
+
+        foreach ($arrayField in @('EvidenceUris', 'EntityRefs', 'MitreTactics', 'MitreTechniques')) {
+            if (-not $Incoming.PSObject.Properties[$arrayField]) { continue }
+            $mergedValues = Merge-UniqueByKey -Existing @($Target.$arrayField) -Incoming @($Incoming.$arrayField) -KeySelector { param ($item) [string]$item }
+            if ($mergedValues.Count -gt 0) {
+                if (-not $Target.PSObject.Properties[$arrayField]) {
+                    $Target | Add-Member -NotePropertyName $arrayField -NotePropertyValue $mergedValues
+                } else {
+                    $Target.$arrayField = $mergedValues
+                }
             }
         }
 
@@ -478,8 +523,8 @@ class EntityStore {
         $entity.ExternalIds = Merge-UniqueByKey -Existing $entity.ExternalIds -Incoming $EntityStub.ExternalIds -KeySelector {
             param ($item) "$($item.Platform)|$($item.Id)"
         }
-        $entity.Frameworks = Merge-FrameworksUnion -Existing $entity.Frameworks -Incoming $EntityStub.Frameworks
-        $entity.BaselineTags = Merge-BaselineTagsUnion -Existing $entity.BaselineTags -Incoming $EntityStub.BaselineTags
+        $entity.Frameworks = Merge-FrameworksUnion -Existing @($entity.Frameworks) -Incoming @($EntityStub.Frameworks)
+        $entity.BaselineTags = Merge-BaselineTagsUnion -Existing @($entity.BaselineTags) -Incoming @($EntityStub.BaselineTags)
         $entity.Policies = Merge-UniqueByKey -Existing $entity.Policies -Incoming $EntityStub.Policies -KeySelector {
             param ($item) "$($item.PolicyName)|$($item.AssignmentScope)"
         }
