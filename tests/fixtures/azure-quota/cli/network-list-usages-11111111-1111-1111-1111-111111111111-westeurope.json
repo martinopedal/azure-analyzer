@@ -1,0 +1,11 @@
+[
+  {
+    "name": {
+      "localizedValue": "Load Balancers",
+      "value": "LoadBalancers"
+    },
+    "currentValue": 6,
+    "limit": 20,
+    "unit": "Count"
+  }
+]

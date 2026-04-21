@@ -143,7 +143,7 @@ Manifest pin: `tools/tool-manifest.json` -> `alz-queries.upstream.repo` points a
 - Docs Check note: stacked PR titles formatted as `(PR-x of y)` skip docs enforcement until the final part, while missing docs errors now emit explicit `error:` lines for CI triage.
 - Redirect stub deadlines are enforced by `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` (CI workflow: `stub-deadline-check.yml`).
 
-The Pester baseline must stay green: `Invoke-Pester -Path .\tests -CI`.
+The Pester baseline must stay green: `Invoke-Pester -Path .\tests -CI`. Wrapper suites include deep Azure Quota coverage (subscription/region fanout, retry semantics, sanitizer paths, and strict v1 envelope assertions) backed by realistic Azure CLI fixtures.
 
 ## Security
 

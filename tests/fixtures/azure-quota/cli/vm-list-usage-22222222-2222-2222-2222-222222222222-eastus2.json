@@ -1,0 +1,11 @@
+[
+  {
+    "name": {
+      "localizedValue": "Standard D Family vCPUs",
+      "value": "standardDFamily"
+    },
+    "currentValue": 52,
+    "limit": 100,
+    "unit": "Count"
+  }
+]

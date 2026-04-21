@@ -98,12 +98,20 @@ function Invoke-AzJson {
     )
 
     $argsForAz = $Arguments + @('--output', 'json', '--only-show-errors')
-    $exec = Invoke-WithRetry -MaxAttempts 4 -InitialDelaySeconds 2 -MaxDelaySeconds 30 -ScriptBlock {
-        Invoke-WithTimeout -Command 'az' -Arguments $argsForAz -TimeoutSec 300
+    try {
+        $exec = Invoke-WithRetry -MaxAttempts 4 -InitialDelaySeconds 2 -MaxDelaySeconds 30 -ScriptBlock {
+            $attempt = Invoke-WithTimeout -Command 'az' -Arguments $argsForAz -TimeoutSec 300
+            if (-not $attempt) { throw [System.Exception]::new("$Context failed with no CLI response.") }
+            if ($attempt.ExitCode -ne 0) {
+                throw [System.Exception]::new(([string]$attempt.Output))
+            }
+            return $attempt
+        }
+    } catch {
+        Throw-QuotaFailure -Reason "$Context failed." -Output ([string]$_.Exception.Message)
     }
-    if (-not $exec -or $exec.ExitCode -ne 0) {
-        $out = if ($exec) { [string]$exec.Output } else { '' }
-        Throw-QuotaFailure -Reason "$Context failed." -Output $out
+    if (-not $exec) {
+        Throw-QuotaFailure -Reason "$Context failed." -Output ''
     }
     $raw = [string]$exec.Output
     if ([string]::IsNullOrWhiteSpace($raw)) { return @() }
@@ -117,12 +125,20 @@ function Invoke-AzNoOutput {
         [Parameter(Mandatory)][string] $Context
     )
     $argsForAz = $Arguments + @('--only-show-errors')
-    $exec = Invoke-WithRetry -MaxAttempts 4 -InitialDelaySeconds 2 -MaxDelaySeconds 30 -ScriptBlock {
-        Invoke-WithTimeout -Command 'az' -Arguments $argsForAz -TimeoutSec 300
+    try {
+        $exec = Invoke-WithRetry -MaxAttempts 4 -InitialDelaySeconds 2 -MaxDelaySeconds 30 -ScriptBlock {
+            $attempt = Invoke-WithTimeout -Command 'az' -Arguments $argsForAz -TimeoutSec 300
+            if (-not $attempt) { throw [System.Exception]::new("$Context failed with no CLI response.") }
+            if ($attempt.ExitCode -ne 0) {
+                throw [System.Exception]::new(([string]$attempt.Output))
+            }
+            return $attempt
+        }
+    } catch {
+        Throw-QuotaFailure -Reason "$Context failed." -Output ([string]$_.Exception.Message)
     }
-    if (-not $exec -or $exec.ExitCode -ne 0) {
-        $out = if ($exec) { [string]$exec.Output } else { '' }
-        Throw-QuotaFailure -Reason "$Context failed." -Output $out
+    if (-not $exec) {
+        Throw-QuotaFailure -Reason "$Context failed." -Output ''
     }
 }
 
@@ -145,7 +161,7 @@ function Get-SeverityFromPercent {
 
 function Convert-UsageRowsToFindings {
     param(
-        [Parameter(Mandatory)][object[]] $Rows,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Rows,
         [Parameter(Mandatory)][string] $Subscription,
         [Parameter(Mandatory)][string] $SubscriptionName,
         [Parameter(Mandatory)][string] $Location,

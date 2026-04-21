@@ -1,0 +1,11 @@
+[
+  {
+    "name": {
+      "localizedValue": "Standard DSv5 Family vCPUs",
+      "value": "standardDSv5Family"
+    },
+    "currentValue": 74,
+    "limit": 100,
+    "unit": "Count"
+  }
+]
