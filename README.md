@@ -41,7 +41,7 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`.
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`. Defender findings now flow Schema 2.2 metadata end-to-end, including Frameworks, Pillar, DeepLinkUrl, EvidenceUris, ToolVersion, and MITRE tactics and techniques when present in Defender alert payloads.
 
 ### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
 
