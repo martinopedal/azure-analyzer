@@ -41,7 +41,7 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-Runs every tool whose prerequisites are present (azqr, PSRule for Azure, Powerpipe, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud, Prowler) and writes findings to `output\` plus `report.html` and `report.md`. Defender findings now flow Schema 2.2 metadata end-to-end, including Frameworks, Pillar, DeepLinkUrl, EvidenceUris, ToolVersion, and MITRE tactics and techniques when present in Defender alert payloads. Azure Quota Reports now emits Schema 2.2 reliability-capacity context (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `EntityRefs`, `ScoreDelta`, `ToolVersion`) without Framework or MITRE taxonomy. FinOps findings now emit Schema 2.2 cost context (`Pillar=Cost Optimization`, Impact/Effort tiers, Cost Management deep links, evidence URIs, remediation snippets, score deltas, entity refs, and tool version) through wrapper and normalizer ETL.
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, Powerpipe, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud, Prowler) and writes findings to `output\` plus `report.html` and `report.md`. Defender, Azure Quota Reports, FinOps, and Azure Load Testing findings now flow Schema 2.2 metadata end to end, including Pillar, Impact, Effort, DeepLinkUrl, EvidenceUris, BaselineTags, ScoreDelta, EntityRefs, and ToolVersion where available.
 
 ### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
 

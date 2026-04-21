@@ -47,10 +47,21 @@ Describe 'Normalize-AzureLoadTesting' {
         $failed.TestName | Should -Be 'checkout'
         $failed.TestRunId | Should -Be 'testrun-001'
         $failed.FailureCause | Should -Be '5xx spike'
+        $failed.Pillar | Should -Be 'Performance Efficiency'
+        $failed.DeepLinkUrl | Should -Match 'Microsoft_Azure_LoadTesting'
+        @($failed.BaselineTags) | Should -Contain 'LoadTesting-PassFailCriteriaFailed'
+        @($failed.EntityRefs) | Should -Contain '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod'
+        @($failed.EntityRefs) | Should -Contain 'testrun-001'
 
         $regressed = $rows | Where-Object { $_.Id -like '*/regression/*' }
         $regressed.MetricName | Should -Be 'ResponseTimeP95'
         $regressed.RegressionPercent | Should -Be 24.5
         $regressed.ThresholdPercent | Should -Be 10
+        $regressed.ScoreDelta | Should -Be 24.5
+        $regressed.Impact | Should -Be 'High'
+        $regressed.Effort | Should -Be 'Medium'
+        @($regressed.BaselineTags) | Should -Contain 'LoadTesting-ResponseTimeP95'
+        @($regressed.EvidenceUris).Count | Should -BeGreaterThan 1
+        $regressed.ToolVersion | Should -Be 'Az.LoadTesting/2.2.0'
     }
 }

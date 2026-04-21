@@ -3,6 +3,7 @@
   "Source": "loadtesting",
   "Status": "Success",
   "Message": "Fixture",
+  "ToolVersion": "Az.LoadTesting/2.2.0",
   "Subscription": "11111111-1111-1111-1111-111111111111",
   "Timestamp": "2026-04-20T00:00:00Z",
   "Findings": [
@@ -17,6 +18,21 @@
       "Remediation": "Review backend telemetry.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod",
       "LearnMoreUrl": "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-001",
+      "Pillar": "Performance Efficiency",
+      "Impact": "Medium",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-001",
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-001"
+      ],
+      "BaselineTags": [
+        "LoadTesting-PassFailCriteriaFailed"
+      ],
+      "EntityRefs": [
+        "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod",
+        "testrun-001"
+      ],
+      "ToolVersion": "Az.LoadTesting/2.2.0",
       "LoadTestResourceName": "lt-prod",
       "TestName": "checkout",
       "TestRunId": "testrun-001",
@@ -35,6 +51,24 @@
       "Remediation": "Investigate recent deployment changes.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod",
       "LearnMoreUrl": "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-010",
+      "Pillar": "Performance Efficiency",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-010",
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-010",
+        "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-010/metricName/ResponseTimeP95"
+      ],
+      "BaselineTags": [
+        "LoadTesting-PassFailCriteriaPassed",
+        "LoadTesting-ResponseTimeP95"
+      ],
+      "ScoreDelta": 24.5,
+      "EntityRefs": [
+        "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod",
+        "testrun-010"
+      ],
+      "ToolVersion": "Az.LoadTesting/2.2.0",
       "LoadTestResourceName": "lt-prod",
       "TestName": "search",
       "TestRunId": "testrun-010",
@@ -56,6 +90,21 @@
       "Remediation": "",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod",
       "LearnMoreUrl": "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-020",
+      "Pillar": "Performance Efficiency",
+      "Impact": "Low",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-020",
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fperf-rg%2Fproviders%2FMicrosoft.LoadTestService%2FloadTests%2Flt-prod/testRunId/testrun-020"
+      ],
+      "BaselineTags": [
+        "LoadTesting-PassFailCriteriaPassed"
+      ],
+      "EntityRefs": [
+        "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/perf-rg/providers/Microsoft.LoadTestService/loadTests/lt-prod",
+        "testrun-020"
+      ],
+      "ToolVersion": "Az.LoadTesting/2.2.0",
       "LoadTestResourceName": "lt-prod",
       "TestName": "catalog",
       "TestRunId": "testrun-020",
