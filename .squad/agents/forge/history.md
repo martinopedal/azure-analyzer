@@ -94,3 +94,9 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Added retry-wrapped git helper (`Invoke-GitCommand` via `Invoke-WithRetry`) for fetch/checkout/reset/add/commit/push paths and switched remote-existing branch pushes to `--force-with-lease` to keep one PR per tool bump.
 - Added open-PR reuse logic (`gh pr list` + `gh pr edit`) so reruns update the existing PR instead of failing on duplicate `gh pr create`.
 - Added `tests/scripts/Update-ToolPins.Tests.ps1` with mocked `git`/`gh` coverage of the previously failing remote-branch-exists path; asserts checkout/reset behavior and no `checkout -b` call.
+
+### 2026-04-21: Issue #300 azqr wrapper and normalizer Schema 2.2 ETL
+- Upgraded `modules/Invoke-Azqr.ps1` to project raw findings into stable fields and include `ToolVersion`, WAF pillar mapping, framework refs, and MITRE metadata in the wrapper payload.
+- Upgraded `modules/normalizers/Normalize-Azqr.ps1` to pass Schema 2.2 optional fields through `New-FindingRow` without dropping legacy fields.
+- Added fixture coverage for `RecommendationId`, `Impact`, `Effort`, `DeepLinkUrl`, `Frameworks`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTactics`, `MitreTechniques`, `EntityRefs`, and `ToolVersion`.
+- Extended wrapper and normalizer Pester tests to assert the new ETL contract end-to-end.

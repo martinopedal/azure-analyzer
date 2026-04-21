@@ -117,6 +117,37 @@ Describe 'Normalize-Azqr' {
         It 'preserves Detail' {
             $results[0].Detail | Should -Not -BeNullOrEmpty
         }
+
+        It 'emits RuleId from RecommendationId' {
+            $results[0].RuleId | Should -Be 'AZQR.SEC.001'
+            $results[1].RuleId | Should -Be 'AZQR.REL.010'
+        }
+
+        It 'emits Schema 2.2 value fields' {
+            $results[0].Impact | Should -Be 'High'
+            $results[0].Effort | Should -Be 'Medium'
+            $results[0].DeepLinkUrl | Should -Match '^https://portal\.azure\.com/'
+            $results[0].ToolVersion | Should -Be '2.6.1'
+        }
+
+        It 'emits framework and pillar metadata' {
+            $results[0].Pillar | Should -Be 'Security'
+            $results[0].Frameworks | Should -Not -BeNullOrEmpty
+            $results[0].Frameworks[0].kind | Should -Be 'WAF'
+            $results[0].Frameworks[0].controlId | Should -Be 'Security'
+            $results[1].Pillar | Should -Be 'Reliability'
+            $results[2].Pillar | Should -Be 'OperationalExcellence'
+        }
+
+        It 'emits mitigation and MITRE fields when present' {
+            $results[0].RemediationSnippets | Should -Not -BeNullOrEmpty
+            $results[0].RemediationSnippets[0]['language'] | Should -Be 'AzureCLI'
+            $results[0].EvidenceUris | Should -Contain 'https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview'
+            $results[0].BaselineTags | Should -Contain 'release:ga'
+            $results[0].MitreTactics | Should -Contain 'TA0001'
+            $results[0].MitreTechniques | Should -Contain 'T1078'
+            $results[0].EntityRefs | Should -Contain 'vm-web-01'
+        }
     }
 
     Context 'error handling' {
