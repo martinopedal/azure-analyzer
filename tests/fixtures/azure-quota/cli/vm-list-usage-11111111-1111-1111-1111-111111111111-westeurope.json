@@ -1,0 +1,11 @@
+[
+  {
+    "name": {
+      "localizedValue": "Standard NV Family vCPUs",
+      "value": "standardNVFamily"
+    },
+    "currentValue": 45,
+    "limit": 100,
+    "unit": "Count"
+  }
+]

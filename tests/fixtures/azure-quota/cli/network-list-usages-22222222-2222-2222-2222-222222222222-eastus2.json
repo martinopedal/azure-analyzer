@@ -1,0 +1,11 @@
+[
+  {
+    "name": {
+      "localizedValue": "Virtual Networks",
+      "value": "VirtualNetworks"
+    },
+    "currentValue": 33,
+    "limit": 50,
+    "unit": "Count"
+  }
+]

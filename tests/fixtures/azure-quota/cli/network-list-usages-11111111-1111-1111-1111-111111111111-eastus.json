@@ -1,0 +1,11 @@
+[
+  {
+    "name": {
+      "localizedValue": "Public IP Addresses",
+      "value": "PublicIPAddresses"
+    },
+    "currentValue": 21,
+    "limit": 40,
+    "unit": "Count"
+  }
+]
