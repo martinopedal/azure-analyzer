@@ -64,3 +64,9 @@
 - Schema 2.2 contract locked (#299): 13 new optional fields including `Frameworks`, `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `BaselineTags`, `RemediationSnippets`, `EvidenceUris`.
 - PSRule severity-hardcode bug (#301) confirmed as highest-leverage quick fix — single-line change, instant signal improvement.
 - Heat-map default ratified: Control-Domain x Subscription (WAF Pillar axis).
+
+### 2026-04-22 - Falco install-mode docs gap (Issue #320 filed)
+
+- Follow-up from upstream-audit sweep: falco manifest install block does not declare dependencies on `helm` + `kubectl` for `-InstallFalco` mode.
+- **Issue #320:** `chore: clarify falco manifest install block — query-mode vs install-mode prerequisites` (labels: `squad`, `documentation`)
+- Low-priority documentation fix; not a wrong-upstream bug like `alz-queries`. Both tools are commonly pre-installed so impact is low, but manifests should be machine-readable for air-gapped environments.

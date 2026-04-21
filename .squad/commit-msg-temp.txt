@@ -1,0 +1,7 @@
+chore(squad): merge quota-reports wrap verdict + falco docs issue
+
+- Atlas: azure-quota-reports research → 🟢 wrap-as-tool, filed #321-#325
+- Sage: falco install-mode docs gap, filed #320
+- 6 new issues total, all dependencies declared
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

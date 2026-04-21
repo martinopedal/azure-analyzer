@@ -280,6 +280,60 @@ Two-agent arc: Atlas (source-of-truth audit + issue filing), Sage (manifest-wide
 
 ---
 
+## 2026-04-22 — azure-quota-reports Wrap Verdict + falco Docs Issue
+
+Two-agent arc: Atlas (azure-quota-reports research + 🟢 verdict), Sage (falco install-mode docs gap follow-up from upstream-audit).
+
+### Azure-Quota-Reports: 🟢 Implement as Wrapper
+
+**Decision:** Wrap `martinopedal/azure-quota-reports` into azure-analyzer as a new tool.
+
+**Rationale:**
+- **Zero overlap** with 30 existing tools (`grep quota tools/tool-manifest.json` returns nothing).
+- **Closest neighbor** is WARA (emits reliability advice); azure-quota-reports enumerates `% quota used` per `(sub, region, sku)` — complementary, not duplicative.
+- **Pattern match:** Mirrors subscription-fanout + Reader-only model of `azure-cost`, `finops`, `defender-for-cloud`.
+- **Schema fit:** Maps cleanly to Schema 2.2 with no new fields needed.
+
+**Schema Mapping:**
+- **Compliant formula:** `compliant = (UsagePercent < 80%)`
+- **EntityType:** `Subscription` (canonical bare GUID)
+- **Pillar:** `Reliability` (Schema 2.2)
+- **Category:** `Capacity` (new, semantically distinct from `CostOptimization`)
+- **Severity ladder:** Critical (≥99%), High (≥95%), Medium (≥80%), Info (below)
+- **RuleId:** `azure-quota:{Provider}:{QuotaId}:{Location}`
+- **Properties preserved:** `CurrentUsage`, `Limit`, `Unit`, `UsagePercent`, `QuotaId`, `QuotaName`, `Provider`, `Location`, `Source`
+- **Tags:** `['capacity', 'quota', $Provider]`
+- **Status:** `Pass` (compliant), `Fail` (over threshold), `Error` (from _errors.csv rows)
+
+**Issues Filed (5-issue chain):**
+| Issue | Type | Description | Depends |
+|-------|------|-------------|---------|
+| #321  | feat | Register `azure-quota` in `tool-manifest.json` | — |
+| #322  | feat | Add `modules/Invoke-AzureQuotaReports.ps1` wrapper | #321 |
+| #323  | feat | Add `modules/normalizers/Normalize-AzureQuotaReports.ps1` | #322 |
+| #324  | feat | Tests (wrapper + normalizer + fixture covering all 4 severity bands) | #323 |
+| #325  | docs | Add permissions page + CHANGELOG + tool catalog | #324 |
+
+**Design Notes:**
+- Region fanout scales O(subs × ~60 regions × 2 providers). Mitigate with parallel runspaces (`-ThrottleLimit 8`) + `Invoke-WithRetry` for 429s.
+- Out of scope: Reservations / Capacity Reservations (distinct `Microsoft.Capacity` API), `Microsoft.Quota` RP migration (tracked as lower-priority follow-up).
+
+**Status:** Active — issues filed, PRs pending squad dispatch.
+
+### Falco Install-Mode Docs Gap (Issue #320)
+
+**Finding:** Falco manifest install block does not declare dependencies on `helm` + `kubectl` for `-InstallFalco` mode.
+
+**Context:** Upstream-audit sweep found this as a secondary documentation gap (not a wrong upstream pointer like `alz-queries`). Low impact — both tools are commonly pre-installed — but manifests should be machine-readable.
+
+**Issue #320:** `chore: clarify falco manifest install block — query-mode vs install-mode prerequisites`
+- **Labels:** `squad`, `documentation`
+- **Remediation:** Add `helm` and `kubectl` to the install block prerequisites list with optional/conditional markers if they're only needed for `-InstallFalco`.
+
+**Status:** Active — issue filed.
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

@@ -146,3 +146,16 @@ Smallest change, matches reality the wrapper already encodes. Two PRs proposed: 
 - **`gh api repos/<owner>/<repo>/contents/<path>` returns base64-encoded `content`** — useful for cheap README inspection without cloning. `[Convert]::FromBase64String` then `[System.Text.Encoding]::UTF8.GetString` decodes inline.
 - **`[System.IO.Path]::GetTempFileName()` / `New-TemporaryFile` returns a path, not a directory** — appending `.json` then cleaning both is the safe pattern when you need a typed extension for `Get-FileHash`.
 - **Orphan data files in a content folder are a real risk.** 7 of 15 files in `queries/` are written but never read. Worth a recurring sweep — anything in `queries/` whose filename prefix doesn't match a literal-or-glob hit in `modules/*.ps1` is a candidate for deletion or activation.
+
+## 2026-04-22 - Filed issues for azure-quota-reports (5-issue chain)
+
+**2026-04-21T10:32:34Z:** Verdict ratified by Martin. Issues filed post-approval:
+
+### Azure-Quota-Reports Issues (5-issue chain)
+- #321 — feat: register azure-quota-reports tool in tool-manifest.json — https://github.com/martinopedal/azure-analyzer/issues/321
+- #322 — feat: add modules/Invoke-AzureQuotaReports.ps1 wrapper — https://github.com/martinopedal/azure-analyzer/issues/322  *(depends on #321)*
+- #323 — feat: add modules/normalizers/Normalize-AzureQuotaReports.ps1 — https://github.com/martinopedal/azure-analyzer/issues/323  *(depends on #322)*
+- #324 — feat: tests for azure-quota-reports wrapper + normalizer (with fixture) — https://github.com/martinopedal/azure-analyzer/issues/324  *(depends on #323)*
+- #325 — docs: add azure-quota-reports to README + PERMISSIONS.md + CHANGELOG.md + tool catalog regen — https://github.com/martinopedal/azure-analyzer/issues/325  *(depends on #324)*
+
+**Decision ratified:** `compliant = (UsagePercent < 80%)`, `EntityType=Subscription`, `Pillar='Reliability'`, `Category='Capacity'`. Schema 2.2 ready (no new fields required). Full schema mapping locked in research brief + issue descriptions.
