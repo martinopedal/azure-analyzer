@@ -1,28 +1,9 @@
 #Requires -Version 7.4
-<#
-.SYNOPSIS
-    Generate a Markdown report from azure-analyzer results.
-.DESCRIPTION
-    Reads output/results.json (or a specified file) and writes a Markdown
-    report to output/report.md.
-    Sections: summary table, per-category findings, and Fix Now / Plan / Track.
-.PARAMETER InputPath
-    Path to results.json. Defaults to .\output\results.json.
-.PARAMETER OutputPath
-    Path for report.md. Defaults to .\output\report.md.
-.PARAMETER BaselinePath
-    Path to a prior results.json to diff against. When provided, a "Changes since last run"
-    section is emitted with New / Resolved / Unchanged / Net non-compliant delta counts.
-.PARAMETER Trend
-    Optional array of run-trend objects from Get-RunTrend. When provided, an ASCII sparkline
-    using block characters (normalised, max 10 cells) is rendered on a single line so it
-    displays in any Markdown viewer.
-#>
 [CmdletBinding()]
 param (
     [string] $InputPath = (Join-Path $PSScriptRoot 'output' 'results.json'),
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output' 'report.md'),
-    [string] $TriagePath,
+    [string] $TriagePath = '',
     [object] $Portfolio,
     [string] $BaselinePath = '',
     [object[]] $Trend = @()
@@ -32,423 +13,493 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
-if (Test-Path $sanitizePath) {
-    . $sanitizePath
-}
-$frameworkMapperPath = Join-Path $PSScriptRoot 'modules' 'shared' 'FrameworkMapper.ps1'
-if (Test-Path $frameworkMapperPath) {
-    . $frameworkMapperPath
-}
-$reportDeltaPath = Join-Path $PSScriptRoot 'modules' 'shared' 'ReportDelta.ps1'
-if (Test-Path $reportDeltaPath) {
-    . $reportDeltaPath
-}
+if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
+}
+
+function Sanitize([object]$Value) {
+    if ($null -eq $Value) { return '' }
+    return [string](Remove-Credentials ([string]$Value))
+}
+
+function SanitizeInline([object]$Value) {
+    return (Sanitize $Value).Replace("`r", ' ').Replace("`n", ' ').Trim()
+}
+
+function MdCell([object]$Value) {
+    return (SanitizeInline $Value) -replace '\|', '\\|'
+}
+
+function HasProp([object]$Obj, [string]$Name) {
+    return $null -ne $Obj -and $Obj.PSObject.Properties.Match($Name).Count -gt 0
+}
+
+function GetProp([object]$Obj, [string]$Name, [object]$Default = '') {
+    if (HasProp $Obj $Name) { return $Obj.$Name }
+    return $Default
+}
+
+function GetSeverityRank([string]$Severity) {
+    switch -Regex ($Severity) {
+        '^(?i)critical$' { return 5 }
+        '^(?i)high$' { return 4 }
+        '^(?i)medium$' { return 3 }
+        '^(?i)low$' { return 2 }
+        default { return 1 }
+    }
+}
+
+function GetSeverityGlyph([string]$Severity) {
+    switch -Regex ($Severity) {
+        '^(?i)critical$' { return '🔴' }
+        '^(?i)high$' { return '🟠' }
+        '^(?i)medium$' { return '🟡' }
+        '^(?i)low$' { return '🟢' }
+        default { return '⚪' }
+    }
+}
+
+function GetSeverityWeight([string]$Severity) {
+    switch -Regex ($Severity) {
+        '^(?i)critical$' { return 5.0 }
+        '^(?i)high$' { return 4.0 }
+        '^(?i)medium$' { return 3.0 }
+        '^(?i)low$' { return 2.0 }
+        default { return 1.0 }
+    }
+}
+
+function GetPostureGrade([int]$Score) {
+    if ($Score -ge 90) { return 'A' }
+    if ($Score -ge 80) { return 'B' }
+    if ($Score -ge 70) { return 'C' }
+    if ($Score -ge 60) { return 'D' }
+    return 'F'
+}
+
+function GetSubscriptionFromFinding([object]$Finding) {
+    $name = SanitizeInline (GetProp $Finding 'SubscriptionName' '')
+    if (-not [string]::IsNullOrWhiteSpace($name)) { return $name }
+    $id = SanitizeInline (GetProp $Finding 'SubscriptionId' '')
+    if (-not [string]::IsNullOrWhiteSpace($id)) { return $id }
+    $resourceId = SanitizeInline (GetProp $Finding 'ResourceId' '')
+    if ($resourceId -match '/subscriptions/([^/]+)') { return $Matches[1] }
+    if ($resourceId -match '/SUBSCRIPTIONS/([^/]+)') { return $Matches[1] }
+    return '(tenant)'
+}
+
+function GetDomainFromFinding([object]$Finding) {
+    $pillar = SanitizeInline (GetProp $Finding 'Pillar' '')
+    if (-not [string]::IsNullOrWhiteSpace($pillar)) { return $pillar }
+    $category = SanitizeInline (GetProp $Finding 'Category' '')
+    if (-not [string]::IsNullOrWhiteSpace($category)) { return $category }
+    return 'Uncategorized'
+}
+
+function GetRuleIdFromFinding([object]$Finding) {
+    foreach ($candidate in @('RuleId', 'Rule', 'ControlId')) {
+        $raw = SanitizeInline (GetProp $Finding $candidate '')
+        if (-not [string]::IsNullOrWhiteSpace($raw)) { return $raw }
+    }
+    $title = SanitizeInline (GetProp $Finding 'Title' '')
+    if ($title -match '^([A-Za-z][A-Za-z0-9._-]{2,})\s*[:\-]\s+') { return $Matches[1] }
+    if ([string]::IsNullOrWhiteSpace($title)) { return 'n/a' }
+    return $title
+}
+
+function GetFrameworkNames([object]$Finding) {
+    $names = New-Object System.Collections.Generic.List[string]
+    $frameworks = GetProp $Finding 'Frameworks' @()
+    if ((HasProp $Finding 'Frameworks') -and $frameworks) {
+        foreach ($f in @($frameworks)) {
+            $name = if ($f -is [string]) { SanitizeInline $f } elseif (HasProp $f 'Name') { SanitizeInline $f.Name } elseif (HasProp $f 'framework') { SanitizeInline $f.framework } else { SanitizeInline $f }
+            if (-not [string]::IsNullOrWhiteSpace($name)) { $null = $names.Add($name) }
+        }
+    }
+    $controls = GetProp $Finding 'Controls' @()
+    if ($names.Count -eq 0 -and (HasProp $Finding 'Controls') -and $controls) {
+        foreach ($c in @($controls)) {
+            $control = SanitizeInline $c
+            if (-not [string]::IsNullOrWhiteSpace($control)) { $null = $names.Add($control) }
+        }
+    }
+    return @($names | Select-Object -Unique)
 }
 
 if (-not (Test-Path $InputPath)) {
     throw "Results file not found: $InputPath. Run Invoke-AzureAnalyzer.ps1 first."
 }
 
-$findings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
-if (-not $Portfolio) {
-    $portfolioPath = Join-Path (Split-Path $InputPath -Parent) 'portfolio.json'
-    if (Test-Path $portfolioPath) {
-        try {
-            $Portfolio = Get-Content $portfolioPath -Raw | ConvertFrom-Json -ErrorAction Stop
-        } catch {
-            Write-Warning (Remove-Credentials "Could not load portfolio data from ${portfolioPath}: $_")
+$findings = @(Get-Content -Path $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+$runDir = Split-Path $InputPath -Parent
+
+$entities = @()
+$entitiesPath = Join-Path $runDir 'entities.json'
+if (Test-Path $entitiesPath) {
+    try {
+        $entitiesDoc = Get-Content -Path $entitiesPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if (HasProp $entitiesDoc 'Entities') { $entities = @($entitiesDoc.Entities) }
+    } catch {
+        Write-Warning (Sanitize "Could not parse entities.json: $_")
+    }
+}
+
+$runMetadata = $null
+$runMetadataPath = Join-Path $runDir 'run-metadata.json'
+if (Test-Path $runMetadataPath) {
+    try { $runMetadata = Get-Content -Path $runMetadataPath -Raw | ConvertFrom-Json -ErrorAction Stop } catch { }
+}
+
+$statusMap = @{}
+$statusPath = Join-Path $runDir 'tool-status.json'
+if (Test-Path $statusPath) {
+    try {
+        foreach ($s in @(Get-Content -Path $statusPath -Raw | ConvertFrom-Json -ErrorAction Stop)) {
+            $statusMap[[string]$s.Tool] = [string]$s.Status
+        }
+    } catch { }
+}
+
+$manifestTools = @()
+$manifestPath = Join-Path $PSScriptRoot 'tools' 'tool-manifest.json'
+if (Test-Path $manifestPath) {
+    try { $manifestTools = @((Get-Content -Path $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop).tools) } catch { }
+}
+
+$nonCompliant = @($findings | Where-Object { $_.Compliant -ne $true })
+$total = $findings.Count
+$critical = @($nonCompliant | Where-Object { $_.Severity -match '^(?i)critical$' }).Count
+$high = @($nonCompliant | Where-Object { $_.Severity -match '^(?i)high$' }).Count
+$medium = @($nonCompliant | Where-Object { $_.Severity -match '^(?i)medium$' }).Count
+$low = @($nonCompliant | Where-Object { $_.Severity -match '^(?i)low$' }).Count
+$info = @($nonCompliant | Where-Object { $_.Severity -notmatch '^(?i)(critical|high|medium|low)$' }).Count
+$compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
+$compliancePct = if ($total -gt 0) { [math]::Round(($compliantCount / $total) * 100) } else { 0 }
+$postureScore = $compliancePct
+$postureGrade = GetPostureGrade -Score $postureScore
+
+$tenant = SanitizeInline (GetProp $runMetadata 'tenantId' '')
+if ([string]::IsNullOrWhiteSpace($tenant)) { $tenant = 'unknown' }
+$runId = SanitizeInline (GetProp $runMetadata 'runId' '')
+$scanStamp = SanitizeInline (GetProp $runMetadata 'startedAtUtc' '')
+if ([string]::IsNullOrWhiteSpace($scanStamp)) { $scanStamp = (Get-Date -Format 'dd MMM yyyy HH:mm UTC') }
+
+$sourceGroups = @{}
+foreach ($f in $findings) {
+    $src = SanitizeInline (GetProp $f 'Source' 'unknown')
+    if (-not $sourceGroups.ContainsKey($src)) { $sourceGroups[$src] = [System.Collections.Generic.List[object]]::new() }
+    $sourceGroups[$src].Add($f)
+}
+
+$versionByTool = @{}
+foreach ($f in $findings) {
+    $src = SanitizeInline (GetProp $f 'Source' '')
+    if ([string]::IsNullOrWhiteSpace($src) -or $versionByTool.ContainsKey($src)) { continue }
+    $v = SanitizeInline (GetProp $f 'ToolVersion' '')
+    if (-not [string]::IsNullOrWhiteSpace($v)) { $versionByTool[$src] = $v }
+}
+if ($runMetadata -and (HasProp $runMetadata 'tools') -and $runMetadata.tools) {
+    foreach ($t in @($runMetadata.tools)) {
+        $toolName = SanitizeInline (GetProp $t 'tool' '')
+        $toolVersion = SanitizeInline (GetProp $t 'version' '')
+        if (-not [string]::IsNullOrWhiteSpace($toolName) -and -not [string]::IsNullOrWhiteSpace($toolVersion) -and -not $versionByTool.ContainsKey($toolName)) {
+            $versionByTool[$toolName] = $toolVersion
         }
     }
 }
 
-# --- Report v2 delta vs previous run ---
-$mdDeltaSection = ''
-if ($BaselinePath -and (Test-Path $BaselinePath) -and (Get-Command Get-ReportDelta -ErrorAction SilentlyContinue)) {
-    try {
-        $prev       = @(Get-Content $BaselinePath -Raw | ConvertFrom-Json -ErrorAction Stop)
-        $delta      = Get-ReportDelta -Current $findings -Previous $prev
-        $netSign    = if ($delta.Summary.NetNonCompliantDelta -gt 0) { '+' } else { '' }
-        $mdDeltaSection = @(
-            '## Changes since last run'
-            ''
-            "| Change | Count |"
-            "|---|---|"
-            "| New findings | $($delta.Summary.New) |"
-            "| Resolved findings | $($delta.Summary.Resolved) |"
-            "| Unchanged findings | $($delta.Summary.Unchanged) |"
-            "| Net non-compliant delta | $netSign$($delta.Summary.NetNonCompliantDelta) |"
-            ''
-        ) -join "`n"
-    } catch {
-        Write-Warning (Remove-Credentials "MD report delta computation failed: $_")
+$providerBuckets = @(
+    [PSCustomObject]@{ Key = 'azure'; Heading = 'Azure (subscription / management group / tenant)'; Tools = [System.Collections.Generic.List[object]]::new() }
+    [PSCustomObject]@{ Key = 'm365graph'; Heading = 'Microsoft 365 / Graph'; Tools = [System.Collections.Generic.List[object]]::new() }
+    [PSCustomObject]@{ Key = 'github'; Heading = 'GitHub'; Tools = [System.Collections.Generic.List[object]]::new() }
+    [PSCustomObject]@{ Key = 'ado'; Heading = 'Azure DevOps'; Tools = [System.Collections.Generic.List[object]]::new() }
+    [PSCustomObject]@{ Key = 'other'; Heading = 'Other'; Tools = [System.Collections.Generic.List[object]]::new() }
+)
+foreach ($tool in $manifestTools) {
+    $provider = SanitizeInline (GetProp $tool 'provider' '')
+    $bucket = switch -Regex ($provider) {
+        '^(?i)azure$' { 'azure' }
+        '^(?i)(microsoft365|graph)$' { 'm365graph' }
+        '^(?i)github$' { 'github' }
+        '^(?i)ado$' { 'ado' }
+        default { 'other' }
     }
+    ($providerBuckets | Where-Object { $_.Key -eq $bucket } | Select-Object -First 1).Tools.Add($tool)
 }
-
-# --- ASCII sparkline from trend data ---
-$mdSparklineSection = ''
-$trendArr = @($Trend | Where-Object { $_ })
-if ($trendArr.Count -ge 2) {
-    $blocks  = [char[]]@(0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, 0x2588)
-    $vals    = @($trendArr | ForEach-Object { [int]$_.NonCompliant })
-    $maxVal  = ($vals | Measure-Object -Maximum).Maximum
-    if ($maxVal -eq 0) { $maxVal = 1 }
-    $cells   = $vals | ForEach-Object {
-        $idx = [math]::Floor(($_ / $maxVal) * ($blocks.Length - 1))
-        $blocks[$idx]
-    }
-    $sparkStr = $cells -join ''
-    $firstId  = [string]$trendArr[0].RunId
-    $lastId   = [string]$trendArr[-1].RunId
-    $mdSparklineSection = @(
-        '## Trend'
-        ''
-        "Non-compliant findings over the last $($trendArr.Count) runs (oldest left, newest right):"
-        ''
-        "``$sparkStr`` — $firstId to $lastId"
-        ''
-    ) -join "`n"
-}
-
-$date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
-$total = @($findings).Count
-$critical = @($findings | Where-Object { $_.Severity -eq 'Critical' }).Count
-$high = @($findings | Where-Object { $_.Severity -eq 'High' }).Count
-$medium = @($findings | Where-Object { $_.Severity -eq 'Medium' }).Count
-$low = @($findings | Where-Object { $_.Severity -eq 'Low' }).Count
-$info = @($findings | Where-Object { $_.Severity -eq 'Info' }).Count
-$compliantCount = @($findings | Where-Object { $_.Compliant -eq $true }).Count
-$nonCompliantCount = $total - $compliantCount
 
 $lines = [System.Collections.Generic.List[string]]::new()
-
-function Get-PortfolioSlug([string] $text) {
-    if ([string]::IsNullOrWhiteSpace($text)) { return 'unknown' }
-    return (($text.ToLowerInvariant() -replace '[^a-z0-9]+', '-') -replace '(^-|-$)', '')
-}
-
-$lines.Add("# Azure Analyzer Report - $date")
+$lines.Add('# Azure Analyzer - Posture Report')
+$lines.Add('')
+$runIdDisplay = if ([string]::IsNullOrWhiteSpace($runId)) { 'n/a' } else { $runId }
+$tenantCell = MdCell $tenant
+$scanCell = MdCell $scanStamp
+$runIdCell = MdCell $runIdDisplay
+$lines.Add('**Tenant:** `' + $tenantCell + '` &nbsp;|&nbsp; **Scanned:** ' + $scanCell + ' &nbsp;|&nbsp; **Run ID:** `' + $runIdCell + '`')
+$lines.Add('')
+$postureBadge = [uri]::EscapeDataString("$postureGrade ($postureScore/100)")
+$toolCountBadge = @($manifestTools | Where-Object { $_.enabled }).Count
+$runBadge = [uri]::EscapeDataString($scanStamp)
+$lines.Add("![Critical](https://img.shields.io/badge/Critical-$critical-7f1d1d)")
+$lines.Add("![High](https://img.shields.io/badge/High-$high-b91c1c)")
+$lines.Add("![Medium](https://img.shields.io/badge/Medium-$medium-b45309)")
+$lines.Add("![Low](https://img.shields.io/badge/Low-$low-a16207)")
+$lines.Add("![Info](https://img.shields.io/badge/Info-$info-475569)")
+$lines.Add("![Posture](https://img.shields.io/badge/Posture-$postureBadge-2563eb)")
+$lines.Add("![Tools](https://img.shields.io/badge/Tools-$toolCountBadge-0369a1)")
+$lines.Add("![Run](https://img.shields.io/badge/Run-$runBadge-334155)")
+$lines.Add('')
+$lines.Add('> Generated report. For full interactive exploration, open [report.html](report.html).')
+$lines.Add('')
+$lines.Add('## Contents')
+$lines.Add('')
+$lines.Add('1. [Executive summary](#executive-summary)')
+$lines.Add('2. [Tool coverage](#tool-coverage)')
+$lines.Add('3. [Heat map](#heat-map)')
+$lines.Add('4. [Top 10 risks](#top-10-risks)')
+$lines.Add('5. [Findings (top 30)](#findings-top-30)')
+$lines.Add('6. [Entity inventory](#entity-inventory)')
+$lines.Add('7. [Run details](#run-details)')
 $lines.Add('')
 
-# Run-mode metadata (incremental / scheduled — issue #94)
-$runMetadata = $null
-$runMetadataPath = Join-Path (Split-Path $InputPath -Parent) 'run-metadata.json'
-if (Test-Path $runMetadataPath) {
-    try { $runMetadata = Get-Content $runMetadataPath -Raw | ConvertFrom-Json -ErrorAction Stop }
-    catch { Write-Warning (Remove-Credentials "Failed to read run-metadata.json: $_") }
+$uniqueSubs = @($findings | ForEach-Object { GetSubscriptionFromFinding $_ } | Select-Object -Unique)
+$entityCount = if ($entities.Count -gt 0) { $entities.Count } else { @($findings | Where-Object { -not [string]::IsNullOrWhiteSpace((SanitizeInline (GetProp $_ 'EntityId' ''))) }).Count }
+$activeToolCount = @($manifestTools | Where-Object { $_.enabled }).Count
+$lines.Add('## Executive summary')
+$lines.Add('')
+$lines.Add('Tenant `' + $tenantCell + '` was scanned across ' + $activeToolCount + ' tools covering ' + $entityCount + ' entities in ' + $uniqueSubs.Count + ' scope(s). Compliance is ' + $compliancePct + '%. Posture grade is **' + $postureGrade + ' (' + $postureScore + '/100)**.')
+$lines.Add('')
+if ($nonCompliant.Count -gt 0) {
+    $lines.Add("$critical critical, $high high, $medium medium, $low low, and $info info findings are currently non-compliant.")
+} else {
+    $lines.Add('No non-compliant findings were detected in this run.')
 }
-if ($runMetadata) {
-    $rmMode = if ($runMetadata.PSObject.Properties['runMode'] -and $runMetadata.runMode) { [string]$runMetadata.runMode } else { 'Full' }
-    $rmSince = if ($runMetadata.PSObject.Properties['sinceUtc'] -and $runMetadata.sinceUtc) { [string]$runMetadata.sinceUtc } else { '' }
-    $rmBaseline = if ($runMetadata.PSObject.Properties['baselineUtc'] -and $runMetadata.baselineUtc) { [string]$runMetadata.baselineUtc } else { '' }
-    $lines.Add("**Run mode:** $rmMode" + $(if ($rmSince) { " | **Since:** $rmSince" } else { '' }) + $(if ($rmBaseline) { " | **Baseline:** $rmBaseline" } else { '' }))
+$lines.Add('')
+
+$lines.Add('## Tool coverage')
+$lines.Add('')
+if ($manifestTools.Count -eq 0) {
+    $lines.Add('Tool manifest unavailable. No coverage table can be rendered.')
     $lines.Add('')
-}
-
-$lines.Add('## Summary')
-$lines.Add('')
-$lines.Add('| Metric | Count |')
-$lines.Add('|---|---|')
-$lines.Add("| Total findings | $total |")
-$lines.Add("| Non-compliant | $nonCompliantCount |")
-$lines.Add("| Compliant | $compliantCount |")
-$lines.Add("| Critical severity | $critical |")
-$lines.Add("| High severity | $high |")
-$lines.Add("| Medium severity | $medium |")
-$lines.Add("| Low severity | $low |")
-$lines.Add("| Info | $info |")
-$lines.Add('')
-
-# Emit delta and trend sections right after Summary
-if ($mdDeltaSection) {
-    foreach ($l in ($mdDeltaSection -split "`n")) { $lines.Add($l) }
-}
-if ($mdSparklineSection) {
-    foreach ($l in ($mdSparklineSection -split "`n")) { $lines.Add($l) }
-}
-
-$bySource = @($findings | Group-Object -Property Source)
-$sourceCountMap = @{}
-foreach ($sg in $bySource) { $sourceCountMap[$sg.Name] = $sg }
-
-# Load tool status metadata if available (manifest-driven source list)
-$manifestPath = Join-Path $PSScriptRoot 'tools' 'tool-manifest.json'
-$allSources   = @()
-$sourceLabels = @{}
-if (Test-Path $manifestPath) {
-    try {
-        $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-        foreach ($t in $manifest.tools) {
-            if (-not $t.enabled) { continue }
-            $allSources += $t.name
-            $sourceLabels[$t.name] = $t.displayName
-        }
-    } catch {
-        Write-Warning "Could not parse tool-manifest.json; falling back to built-in source list. $_"
-    }
-}
-if ($allSources.Count -eq 0) {
-    $allSources   = @('azqr','psrule','azgovviz','alz-queries','wara','defender-for-cloud','kubescape','kube-bench','falco','maester','scorecard','ado-connections','ado-pipelines','identity-correlator','zizmor','gitleaks','trivy','azure-cost','finops','bicep-iac','terraform-iac','sentinel-incidents','sentinel-coverage')
-    $sourceLabels = @{ 'azqr'='Azure Quick Review'; 'psrule'='PSRule'; 'azgovviz'='AzGovViz'; 'alz-queries'='ALZ Queries'; 'wara'='WARA'; 'defender-for-cloud'='Defender for Cloud'; 'kubescape'='Kubescape'; 'kube-bench'='kube-bench'; 'falco'='Falco'; 'maester'='Maester'; 'scorecard'='Scorecard'; 'ado-connections'='ADO Service Connections'; 'ado-pipelines'='ADO Pipeline Security'; 'identity-correlator'='Identity Correlator'; 'zizmor'='zizmor'; 'gitleaks'='gitleaks'; 'trivy'='Trivy'; 'azure-cost'='Azure Cost'; 'finops'='FinOps Signals'; 'bicep-iac'='Bicep IaC Validation'; 'terraform-iac'='Terraform IaC Validation'; 'sentinel-incidents'='Microsoft Sentinel'; 'sentinel-coverage'='Sentinel Coverage' }
-}
-$toolStatusMap = @{}
-$toolRunModeMap = @{}
-if ($runMetadata -and $runMetadata.PSObject.Properties['tools'] -and $runMetadata.tools) {
-    foreach ($rt in @($runMetadata.tools)) {
-        if ($rt.PSObject.Properties['tool']) {
-            $toolRunModeMap[[string]$rt.tool] = if ($rt.PSObject.Properties['runMode']) { [string]$rt.runMode } else { '' }
-        }
-    }
-}
-$statusJsonPath = Join-Path (Split-Path $InputPath -Parent) 'tool-status.json'
-if (Test-Path $statusJsonPath) {
-    try {
-        $statusData = @(Get-Content $statusJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
-        foreach ($ts in $statusData) { $toolStatusMap[$ts.Tool] = $ts.Status }
-    } catch { }
-}
-
-$lines.Add('### By source')
-$lines.Add('')
-$lines.Add('| Source | Status | Mode | Findings | Non-compliant |')
-$lines.Add('|---|---|---|---|---|')
-foreach ($src in $allSources) {
-    $label = $sourceLabels[$src]
-    $status = if ($toolStatusMap.ContainsKey($src)) { $toolStatusMap[$src] } else { if ($sourceCountMap.ContainsKey($src)) { 'Success' } else { 'Skipped' } }
-    $mode   = if ($toolRunModeMap.ContainsKey($src) -and $toolRunModeMap[$src]) { $toolRunModeMap[$src] } else { '-' }
-    if ($sourceCountMap.ContainsKey($src)) {
-        $grp = $sourceCountMap[$src]
-        $nc = @($grp.Group | Where-Object { -not $_.Compliant }).Count
-        $lines.Add("| $label | $status | $mode | $($grp.Count) | $nc |")
-    } else {
-        $lines.Add("| $label | $status | $mode | 0 | 0 |")
-    }
-}
-$lines.Add('')
-
-if ($Portfolio -and $Portfolio.PSObject.Properties['Subscriptions']) {
-    $portfolioSubs = @($Portfolio.Subscriptions)
-    $portfolioCorrelations = if ($Portfolio.PSObject.Properties['Correlations']) { @($Portfolio.Correlations) } else { @() }
-    $portfolioMgs = if ($Portfolio.PSObject.Properties['ManagementGroups']) { @($Portfolio.ManagementGroups) } else { @() }
-
-    $portfolioSummary = if ($Portfolio.PSObject.Properties['Summary']) { $Portfolio.Summary } else { $null }
-    $lines.Add('## Portfolio rollup')
-    $lines.Add('')
-
-    $breadcrumbPath = @()
-    if (@($portfolioMgs).Count -gt 0 -and $portfolioMgs[0].PSObject.Properties['ManagementGroupPath']) {
-        $breadcrumbPath = @($portfolioMgs[0].ManagementGroupPath)
-    } elseif (@($portfolioSubs).Count -gt 0 -and $portfolioSubs[0].PSObject.Properties['ManagementGroupPath']) {
-        $breadcrumbPath = @($portfolioSubs[0].ManagementGroupPath)
-    } elseif ($portfolioSummary -and $portfolioSummary.PSObject.Properties['ManagementGroupId'] -and $portfolioSummary.ManagementGroupId) {
-        $breadcrumbPath = @([string]$portfolioSummary.ManagementGroupId)
-    }
-    if (@($breadcrumbPath).Count -gt 0) {
-        $lines.Add("**Management group path:** $($breadcrumbPath -join ' > ')")
+} else {
+    foreach ($providerEntry in $providerBuckets) {
+        $toolsInBucket = @($providerEntry.Tools)
+        if ($toolsInBucket.Count -eq 0) { continue }
+        $lines.Add("### $([string]$providerEntry.Heading)")
         $lines.Add('')
-    }
-
-    if (@($portfolioSubs).Count -gt 0) {
-        $lines.Add("**Subscriptions scanned:** $(@($portfolioSubs).Count)")
-        $lines.Add('')
-        $lines.Add('| Subscription | Critical | High | Medium | Low | Info | Non-compliant | Monthly cost | Worst |')
-        $lines.Add('|---|---:|---:|---:|---:|---:|---:|---|---|')
-        foreach ($sub in $portfolioSubs) {
-            $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
-            $subLabel = ($subName -replace '\|', '\\|')
-            $anchor = Get-PortfolioSlug -text ([string]$sub.SubscriptionId)
-            $costText = if ($null -ne $sub.MonthlyCost -and [double]$sub.MonthlyCost -gt 0) {
-                "{0:N2} {1}" -f [double]$sub.MonthlyCost, ($(if ($sub.Currency) { [string]$sub.Currency } else { 'USD' }))
+        $lines.Add('| Tool | Scope | Findings | Pass % | Status |')
+        $lines.Add('| --- | --- | ---: | ---: | --- |')
+        foreach ($tool in $toolsInBucket) {
+            $name = SanitizeInline (GetProp $tool 'name' '')
+            $scope = SanitizeInline (GetProp $tool 'scope' '')
+            $enabled = [bool](GetProp $tool 'enabled' $false)
+            $toolFindings = @($findings | Where-Object { (SanitizeInline (GetProp $_ 'Source' '')) -eq $name })
+            $count = $toolFindings.Count
+            $passPct = if ($count -gt 0) { [math]::Round((@($toolFindings | Where-Object { $_.Compliant -eq $true }).Count / $count) * 100) } else { 0 }
+            $status = if (-not $enabled) {
+                '_skipped_'
+            } elseif ($statusMap.ContainsKey($name)) {
+                $raw = SanitizeInline $statusMap[$name]
+                if ($raw -match '^(?i)success$') { 'OK' } elseif ($raw -match '^(?i)skipped$') { '_skipped_' } else { MdCell $raw }
+            } elseif ($count -gt 0) {
+                'OK'
             } else {
-                'n/a'
+                '_skipped_'
             }
-            $lines.Add("| [$subLabel](#portfolio-sub-$anchor) | $([int]$sub.SeverityCounts.Critical) | $([int]$sub.SeverityCounts.High) | $([int]$sub.SeverityCounts.Medium) | $([int]$sub.SeverityCounts.Low) | $([int]$sub.SeverityCounts.Info) | $([int]$sub.NonCompliantCount) | $costText | $($sub.WorstSeverity) |")
+            $passText = if ($count -gt 0) { "$passPct%" } else { '-' }
+            $lines.Add("| $(MdCell $name) | $(MdCell $scope) | $count | $passText | $status |")
         }
         $lines.Add('')
+    }
+}
 
-        $lines.Add('### Cross-subscription identities')
-        $lines.Add('')
-        if (@($portfolioCorrelations).Count -gt 0) {
-            $lines.Add('| Identity | Severity | Subscriptions | Detail |')
-            $lines.Add('|---|---|---:|---|')
-            foreach ($corr in $portfolioCorrelations) {
-                $corrTitle = ([string]$corr.Title -replace '\|', '\\|' -replace "`n|`r", ' ')
-                $corrDetail = ([string]$corr.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-                $lines.Add("| $corrTitle | $($corr.Severity) | $($corr.EvidenceCount) | $corrDetail |")
+$lines.Add('## Heat map')
+$lines.Add('')
+$lines.Add('Findings by control domain (rows) and subscription (columns). Cell glyph indicates the highest severity present and includes the finding count.')
+$lines.Add('')
+
+$domainList = @($nonCompliant | ForEach-Object { GetDomainFromFinding $_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$subList = @($nonCompliant | ForEach-Object { GetSubscriptionFromFinding $_ } | Sort-Object -Unique)
+
+if ($domainList.Count -gt 0 -and $subList.Count -gt 0) {
+    $lines.Add('| Control domain | ' + (($subList | ForEach-Object { MdCell $_ }) -join ' | ') + ' | Total |')
+    $lines.Add('| --- | ' + (($subList | ForEach-Object { ':---:' }) -join ' | ') + ' | ---: |')
+    foreach ($domain in $domainList) {
+        $rowTotal = 0
+        $cells = New-Object System.Collections.Generic.List[string]
+        foreach ($sub in $subList) {
+            $slice = @($nonCompliant | Where-Object { (GetDomainFromFinding $_) -eq $domain -and (GetSubscriptionFromFinding $_) -eq $sub })
+            $count = $slice.Count
+            $rowTotal += $count
+            if ($count -gt 0) {
+                $max = ($slice | ForEach-Object { GetSeverityRank (SanitizeInline (GetProp $_ 'Severity' 'Info')) } | Measure-Object -Maximum).Maximum
+                $sev = switch ($max) { 5 { 'Critical' } 4 { 'High' } 3 { 'Medium' } 2 { 'Low' } default { 'Info' } }
+                $cells.Add("$(GetSeverityGlyph $sev) $count")
+            } else {
+                $cells.Add('⚪ 0')
             }
-        } else {
-            $lines.Add('No cross-subscription identity reuse was detected in this run.')
         }
-        $lines.Add('')
+        $lines.Add("| $(MdCell $domain) | $($cells -join ' | ') | $rowTotal |")
+    }
+} elseif ($manifestTools.Count -gt 0) {
+    $lines.Add('| Tool | Critical | High | Medium | Low | Info | Total |')
+    $lines.Add('| --- | :---: | :---: | :---: | :---: | :---: | ---: |')
+    foreach ($tool in $manifestTools) {
+        $name = SanitizeInline (GetProp $tool 'name' '')
+        $toolFindings = @($nonCompliant | Where-Object { (SanitizeInline (GetProp $_ 'Source' '')) -eq $name })
+        $c = @($toolFindings | Where-Object { $_.Severity -match '^(?i)critical$' }).Count
+        $h = @($toolFindings | Where-Object { $_.Severity -match '^(?i)high$' }).Count
+        $m = @($toolFindings | Where-Object { $_.Severity -match '^(?i)medium$' }).Count
+        $l = @($toolFindings | Where-Object { $_.Severity -match '^(?i)low$' }).Count
+        $i = @($toolFindings | Where-Object { $_.Severity -notmatch '^(?i)(critical|high|medium|low)$' }).Count
+        $lines.Add("| $(MdCell $name) | 🔴 $c | 🟠 $h | 🟡 $m | 🟢 $l | ⚪ $i | $($toolFindings.Count) |")
+    }
+} else {
+    $lines.Add('No findings available to render a heat map.')
+}
+$lines.Add('')
+$lines.Add('Legend: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low, ⚪ Info')
+$lines.Add('')
 
-        foreach ($sub in $portfolioSubs) {
-            $subName = if ($sub.SubscriptionName) { [string]$sub.SubscriptionName } else { [string]$sub.SubscriptionId }
-            $anchor = Get-PortfolioSlug -text ([string]$sub.SubscriptionId)
-            $lines.Add("<a id=`"portfolio-sub-$anchor`"></a>")
-            $lines.Add("### Portfolio sub $subName")
-            $lines.Add('')
-            if ($sub.PSObject.Properties['ManagementGroupPath'] -and @($sub.ManagementGroupPath).Count -gt 0) {
-                $lines.Add("- **Management group path:** $(@($sub.ManagementGroupPath) -join ' > ')")
-            }
-            $lines.Add("- **Worst severity:** $($sub.WorstSeverity)")
-            if ($null -ne $sub.MonthlyCost -and [double]$sub.MonthlyCost -gt 0) {
-                $lines.Add(("- **Monthly cost:** {0:N2} {1}" -f [double]$sub.MonthlyCost, ($(if ($sub.Currency) { [string]$sub.Currency } else { 'USD' }))))
-            }
-            if ($sub.PSObject.Properties['SourceCounts'] -and @($sub.SourceCounts).Count -gt 0) {
-                $sourceSummary = @($sub.SourceCounts | ForEach-Object { "$($_.Source)=$($_.Count)" }) -join ', '
-                $lines.Add("- **By source:** $sourceSummary")
-            }
-            $lines.Add('')
-            $lines.Add('| Top entity | Type | Worst severity | Non-compliant | Monthly cost |')
-            $lines.Add('|---|---|---|---:|---:|')
-            if ($sub.PSObject.Properties['TopEntities'] -and @($sub.TopEntities).Count -gt 0) {
-                foreach ($entity in @($sub.TopEntities)) {
-                    $entityName = if ($entity.DisplayName) { [string]$entity.DisplayName } else { [string]$entity.EntityId }
-                    $entityName = $entityName -replace '\|', '\|'
-                    $lines.Add("| $entityName | $($entity.EntityType) | $($entity.WorstSeverity) | $([int]$entity.NonCompliantCount) | $([double]$entity.MonthlyCost) |")
+$lines.Add('## Top 10 risks')
+$lines.Add('')
+if ($nonCompliant.Count -eq 0) {
+    $lines.Add('No non-compliant findings to rank.')
+    $lines.Add('')
+} else {
+    $riskRows = @(
+        $nonCompliant |
+            Group-Object -Property { "$(GetRuleIdFromFinding $_)|$(GetDomainFromFinding $_)|$(SanitizeInline (GetProp $_ 'Source' ''))" } |
+            ForEach-Object {
+                $groupItems = @($_.Group)
+                $best = $groupItems | Sort-Object @{ Expression = { GetSeverityRank (SanitizeInline (GetProp $_ 'Severity' 'Info')) }; Descending = $true } | Select-Object -First 1
+                $entityKeys = @($groupItems | ForEach-Object {
+                    $id = SanitizeInline (GetProp $_ 'EntityId' '')
+                    if ([string]::IsNullOrWhiteSpace($id)) { $id = SanitizeInline (GetProp $_ 'ResourceId' '') }
+                    if ([string]::IsNullOrWhiteSpace($id)) { $id = SanitizeInline (GetProp $_ 'Id' '') }
+                    $id
+                } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+                $severity = SanitizeInline (GetProp $best 'Severity' 'Info')
+                [PSCustomObject]@{
+                    Severity = $severity
+                    Rule = GetRuleIdFromFinding $best
+                    Domain = GetDomainFromFinding $best
+                    Tool = SanitizeInline (GetProp $best 'Source' '')
+                    Findings = $groupItems.Count
+                    Score = ([double](GetSeverityWeight $severity) * [double]([math]::Max(1, $entityKeys.Count)))
                 }
-            } else {
-                $lines.Add('| No entities captured |  |  | 0 | 0 |')
-            }
-            $lines.Add('')
-        }
-    } else {
-        $lines.Add('No findings in portfolio.')
-        $lines.Add('')
-    }
-}
-
-# AI Triage section
-if ($TriagePath -and (Test-Path $TriagePath)) {
-    try {
-        $td = @(Get-Content $TriagePath -Raw | ConvertFrom-Json -ErrorAction Stop)
-        $te = @($td | Where-Object { $null -ne $_.AiPriority } | Sort-Object AiPriority)
-        if ($te.Count -gt 0) {
-            $lines.Add('## AI-Assisted Triage')
-            $lines.Add('')
-            $lines.Add('| # | Finding | Severity | Source | Risk | Remediation |')
-            $lines.Add('|---|---|---|---|---|---|')
-            foreach ($t in $te) {
-                $title = ($t.Title -replace '\|', '\\|')
-                $risk = ($t.AiRiskContext -replace '\|', '\\|' -replace "`n|`r", ' ')
-                $rem = ($t.AiRemediation -replace '\|', '\\|' -replace "`n|`r", ' ')
-                $lines.Add("| $($t.AiPriority) | $title | $($t.Severity) | $($t.Source) | $risk | $rem |")
-            }
-            $lines.Add('')
-        }
-    } catch { }
-}
-
-# Compliance framework coverage
-if (Get-Command Get-FrameworkCoverage -ErrorAction SilentlyContinue) {
-    try {
-        $coverage = @(Get-FrameworkCoverage -Findings $findings)
-        if ($coverage.Count -gt 0) {
-            $lines.Add('## Compliance coverage')
-            $lines.Add('')
-            $lines.Add('| Framework | Version | Controls hit | Total controls | Coverage | Status |')
-            $lines.Add('|---|---|---:|---:|---:|---|')
-            foreach ($c in $coverage) {
-                $icon = switch ($c.Status) { 'green' { '🟢' } 'yellow' { '🟡' } 'red' { '🔴' } default { '⚪' } }
-                $lines.Add("| $($c.DisplayName) | $($c.Version) | $($c.ControlsHit) | $($c.ControlsTotal) | $($c.PercentCovered)% | $icon |")
-            }
-            $lines.Add('')
-        }
-    } catch { }
-}
-
-# Per-category sections
-$lines.Add('## Findings by category')
-$lines.Add('')
-$byCategory = @($findings | Group-Object -Property Category | Sort-Object Name)
-foreach ($cat in $byCategory) {
-    $lines.Add("### $($cat.Name)")
-    $lines.Add('')
-    $lines.Add('| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |')
-    $lines.Add('|---|---|---|---|---|---|---|')
-    foreach ($f in ($cat.Group | Sort-Object Severity, Title)) {
-        $compliantStr = if ($f.Compliant) { 'Yes' } else { 'No' }
-        $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $title = ($f.Title -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $resId = ($f.ResourceId -replace '\|', '\\|')
-        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
-        $lines.Add("| $title | $($f.Severity) | $($f.Source) | $compliantStr | $detail | $resId | $learnMore |")
+            } |
+            Sort-Object @{ Expression = { $_.Score }; Descending = $true }, @{ Expression = { GetSeverityRank $_.Severity }; Descending = $true }, @{ Expression = { $_.Findings }; Descending = $true }, Rule |
+            Select-Object -First 10
+    )
+    $lines.Add('| # | Severity | Rule | Domain | Tool | Findings |')
+    $lines.Add('| ---: | --- | --- | --- | --- | ---: |')
+    $idx = 1
+    foreach ($r in $riskRows) {
+        $lines.Add("| $idx | $(GetSeverityGlyph $r.Severity) $(MdCell $r.Severity) | $(MdCell $r.Rule) | $(MdCell $r.Domain) | $(MdCell $r.Tool) | $($r.Findings) |")
+        $idx++
     }
     $lines.Add('')
 }
 
-# Action sections
-$fixNow = @($findings | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant } | Sort-Object Title)
-$planFix = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title)
-$track = @($findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title)
-$fixNow = @($findings | Where-Object { ($_.Severity -eq 'Critical' -or $_.Severity -eq 'High') -and -not $_.Compliant } | Sort-Object @{Expression={if($_.Severity -eq 'Critical'){0}else{1}}}, Title)
-$planFix = @($findings | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant } | Sort-Object Title)
-$track = @($findings | Where-Object { ($_.Severity -eq 'Low' -or $_.Severity -eq 'Info') -and -not $_.Compliant } | Sort-Object Title)
-
-$lines.Add('## Action plan')
+$lines.Add('## Findings (top 30)')
 $lines.Add('')
-$lines.Add('### Fix now (Critical/High, non-compliant)')
-$lines.Add('')
-if ($fixNow.Count -eq 0) {
-    $lines.Add('No critical or high-severity non-compliant findings.')
-} else {
-    $lines.Add('| Title | Source | Detail | Remediation | Resource ID | Fix it |')
-    $lines.Add('|---|---|---|---|---|---|')
-    foreach ($f in $fixNow) {
-        $title = ($f.Title -replace '\|', '\\|')
-        $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $rem = ($f.Remediation -replace '\|', '\\|')
-        $resId = ($f.ResourceId -replace '\|', '\\|')
-        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
-        $lines.Add("| $title | $($f.Source) | $detail | $rem | $resId | $learnMore |")
-    }
-}
+$lines.Add("Top 30 findings from this run. The [interactive HTML report](report.html) renders the full set.")
 $lines.Add('')
 
-$lines.Add('### Plan to fix (Medium, non-compliant)')
-$lines.Add('')
-if ($planFix.Count -eq 0) {
-    $lines.Add('No medium-severity non-compliant findings.')
-} else {
-    $lines.Add('| Title | Source | Detail | Resource ID | Fix it |')
-    $lines.Add('|---|---|---|---|---|')
-    foreach ($f in $planFix) {
-        $title = ($f.Title -replace '\|', '\\|')
-        $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $resId = ($f.ResourceId -replace '\|', '\\|')
-        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
-        $lines.Add("| $title | $($f.Source) | $detail | $resId | $learnMore |")
-    }
+$frameworkSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($f in $findings) {
+    foreach ($fw in @(GetFrameworkNames $f)) { $null = $frameworkSet.Add($fw) }
 }
-$lines.Add('')
+if ($frameworkSet.Count -gt 0) {
+    $lines.Add('### Framework reference')
+    $lines.Add('')
+    $lines.Add('| Framework | Badge text |')
+    $lines.Add('| --- | --- |')
+    foreach ($fw in @($frameworkSet | Sort-Object)) {
+        $lines.Add("| $(MdCell $fw) | `[[$(MdCell $fw)]]` |")
+    }
+    $lines.Add('')
+}
 
-$lines.Add('### Track (Low/Info, non-compliant)')
-$lines.Add('')
-if ($track.Count -eq 0) {
-    $lines.Add('No low/info non-compliant findings.')
+$topFindingsSource = if ($nonCompliant.Count -gt 0) { $nonCompliant } else { $findings }
+$topFindings = @(
+    $topFindingsSource |
+        Sort-Object @{ Expression = { GetSeverityRank (SanitizeInline (GetProp $_ 'Severity' 'Info')) }; Descending = $true }, @{ Expression = { GetDomainFromFinding $_ } }, @{ Expression = { SanitizeInline (GetProp $_ 'Title' '') } } |
+        Select-Object -First 30
+)
+
+if ($topFindings.Count -eq 0) {
+    $lines.Add('No findings available.')
+    $lines.Add('')
 } else {
-    $lines.Add('| Title | Severity | Source | Detail | Resource ID | Fix it |')
-    $lines.Add('|---|---|---|---|---|---|')
-    foreach ($f in $track) {
-        $title = ($f.Title -replace '\|', '\\|')
-        $detail = ($f.Detail -replace '\|', '\\|' -replace "`n|`r", ' ')
-        $resId = ($f.ResourceId -replace '\|', '\\|')
-        $learnMore = if ([string]::IsNullOrWhiteSpace($f.LearnMoreUrl)) { '' } else { "[$($f.LearnMoreUrl)]($($f.LearnMoreUrl))" }
-        $lines.Add("| $title | $($f.Severity) | $($f.Source) | $detail | $resId | $learnMore |")
+    $lines.Add('| # | Sev | Rule ID | Rule | Frameworks | Entity | Sub | Tool | Status |')
+    $lines.Add('| ---: | --- | --- | --- | --- | --- | --- | --- | --- |')
+    $idx = 1
+    foreach ($f in $topFindings) {
+        $severity = SanitizeInline (GetProp $f 'Severity' 'Info')
+        $frameworks = @((GetFrameworkNames $f) | ForEach-Object { MdCell $_ })
+        $frameworkText = if ($frameworks.Count -gt 0) { $frameworks -join ' · ' } else { '-' }
+        $entity = SanitizeInline (GetProp $f 'EntityId' '')
+        if ([string]::IsNullOrWhiteSpace($entity)) { $entity = SanitizeInline (GetProp $f 'ResourceId' '') }
+        if ([string]::IsNullOrWhiteSpace($entity)) { $entity = '(unknown)' }
+        $status = SanitizeInline (GetProp $f 'Status' '')
+        if ([string]::IsNullOrWhiteSpace($status)) { $status = if ($f.Compliant -eq $true) { 'Pass' } else { 'Open' } }
+        $ruleCell = MdCell (GetRuleIdFromFinding $f)
+        $entityCell = MdCell $entity
+        $lines.Add("| $idx | $(GetSeverityGlyph $severity) | ``$ruleCell`` | $(MdCell (GetProp $f 'Title' '')) | $frameworkText | ``$entityCell`` | $(MdCell (GetSubscriptionFromFinding $f)) | $(MdCell (GetProp $f 'Source' '')) | $(MdCell $status) |")
+        $idx++
     }
+    $lines.Add('')
+}
+
+$lines.Add('## Entity inventory')
+$lines.Add('')
+if ($entities.Count -gt 0) {
+    $lines.Add("$($entities.Count) entities discovered across all scopes.")
+    $lines.Add('')
+    $lines.Add('| Entity type | Count |')
+    $lines.Add('| --- | ---: |')
+    foreach ($g in @($entities | Group-Object -Property { SanitizeInline (GetProp $_ 'EntityType' 'Other') } | Sort-Object Name)) {
+        $name = if ([string]::IsNullOrWhiteSpace($g.Name)) { 'Other' } else { $g.Name }
+        $lines.Add("| $(MdCell $name) | $($g.Count) |")
+    }
+    $lines.Add('')
+} else {
+    $lines.Add('No entity inventory was produced for this run.')
+    $lines.Add('')
+}
+
+$lines.Add('## Run details')
+$lines.Add('')
+$lines.Add('<details>')
+$lines.Add('<summary>Tool versions</summary>')
+$lines.Add('')
+$lines.Add('| Tool | Version | Provider |')
+$lines.Add('| --- | --- | --- |')
+if ($manifestTools.Count -gt 0) {
+    foreach ($tool in $manifestTools) {
+        $name = SanitizeInline (GetProp $tool 'name' '')
+        $version = if ($versionByTool.ContainsKey($name)) { $versionByTool[$name] } else { '-' }
+        $provider = SanitizeInline (GetProp $tool 'provider' '')
+        $lines.Add("| $(MdCell $name) | $(MdCell $version) | $(MdCell $provider) |")
+    }
+} else {
+    $lines.Add('| n/a | n/a | n/a |')
 }
 $lines.Add('')
+$lines.Add('</details>')
+$lines.Add('')
+$lines.Add('Generated by **azure-analyzer**. Schema fields are consumed defensively and optional Schema 2.2 fields render when present.')
 
 try {
-    $outputDir = Split-Path $OutputPath -Parent
-    if (-not (Test-Path $outputDir)) {
-        $null = New-Item -ItemType Directory -Path $outputDir -Force
-    }
-    $output = Remove-Credentials ($lines -join "`n")
-    $output | Set-Content -Path $OutputPath -Encoding UTF8 -NoNewline
+    $outDir = Split-Path $OutputPath -Parent
+    if (-not (Test-Path $outDir)) { $null = New-Item -ItemType Directory -Path $outDir -Force }
+    $final = Remove-Credentials ($lines -join "`n")
+    $final | Set-Content -Path $OutputPath -Encoding UTF8 -NoNewline
 } catch {
-    Write-Error (Remove-Credentials "Failed to write Markdown report to ${OutputPath}: $_")
+    Write-Error (Sanitize "Failed to write Markdown report to ${OutputPath}: $_")
     return
 }
+
 Write-Host "Markdown report written to: $OutputPath" -ForegroundColor Green
