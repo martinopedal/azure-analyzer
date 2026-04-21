@@ -80,12 +80,18 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 # https://learn.microsoft.com/rest/api/loganalytics/saved-searches/list-by-workspace
 $script:SentinelApiVersion = '2024-09-01'
 $script:LogAnalyticsApiVersion = '2020-08-01'
+$script:ToolVersion = "securityinsights-$($script:SentinelApiVersion)+loganalytics-$($script:LogAnalyticsApiVersion)"
 $script:DisabledRuleStaleDays = 7  # legacy default, overridden by -LookbackDays at runtime
 $script:WatchlistTtlMinDays   = 30
 $script:MinEnabledConnectors  = 3
 
 $subId = ''
 if ($WorkspaceResourceId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
+$rgName = ''
+if ($WorkspaceResourceId -match '/resourceGroups/([^/]+)') { $rgName = $Matches[1] }
+$workspaceName = ''
+if ($WorkspaceResourceId -match '/workspaces/([^/]+)$') { $workspaceName = $Matches[1] }
+$analyticsBladeUrl = "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/Analytics/subscriptionId/$subId/resourceGroup/$rgName/workspaceName/$workspaceName"
 
 $result = [ordered]@{
     SchemaVersion = '1.0'
@@ -200,8 +206,21 @@ function Add-Finding {
         [Parameter(Mandatory)] [string] $Detail,
         [Parameter(Mandatory)] [string] $Remediation,
         [string] $LearnMoreUrl,
+        [string[]] $MitreTactics = @(),
+        [string[]] $MitreTechniques = @(),
+        [object[]] $Frameworks = @(),
+        [string] $DeepLinkUrl = '',
         [hashtable] $Extras
     )
+    $frameworkRows = @($Frameworks)
+    if ($frameworkRows.Count -eq 0 -and @($MitreTechniques).Count -gt 0) {
+        $frameworkRows = @(
+            [ordered]@{
+                Name     = 'MITRE ATT&CK'
+                Controls = @($MitreTechniques)
+            }
+        )
+    }
     $row = [ordered]@{
         Id           = $Id
         Source       = 'sentinel-coverage'
@@ -213,11 +232,41 @@ function Add-Finding {
         Remediation  = $Remediation
         ResourceId   = $WorkspaceResourceId
         LearnMoreUrl = if ($LearnMoreUrl) { $LearnMoreUrl } else { 'https://learn.microsoft.com/azure/sentinel/' }
+        ToolVersion  = $script:ToolVersion
+        Pillar       = 'Security'
+        Frameworks   = $frameworkRows
+        MitreTactics = @($MitreTactics)
+        MitreTechniques = @($MitreTechniques)
+        DeepLinkUrl  = if ($DeepLinkUrl) { $DeepLinkUrl } else { $analyticsBladeUrl }
     }
     if ($Extras) {
         foreach ($k in $Extras.Keys) { $row[$k] = $Extras[$k] }
     }
     $findings.Add([pscustomobject]$row) | Out-Null
+}
+
+function ConvertTo-StringArray {
+    param ([object] $Value)
+    $result = [System.Collections.Generic.List[string]]::new()
+    if ($null -eq $Value) { return @($result) }
+    foreach ($item in @($Value)) {
+        if ($null -eq $item) { continue }
+        if ($item -is [string]) {
+            if (-not [string]::IsNullOrWhiteSpace($item)) { $result.Add($item) | Out-Null }
+            continue
+        }
+        if ($item.PSObject.Properties['name'] -and $item.name) {
+            $result.Add([string]$item.name) | Out-Null
+            continue
+        }
+        if ($item.PSObject.Properties['id'] -and $item.id) {
+            $result.Add([string]$item.id) | Out-Null
+            continue
+        }
+        $s = [string]$item
+        if (-not [string]::IsNullOrWhiteSpace($s)) { $result.Add($s) | Out-Null }
+    }
+    return @($result)
 }
 
 $base       = "https://management.azure.com${WorkspaceResourceId}"
@@ -316,12 +365,22 @@ foreach ($r in $disabledRules) {
     if ($null -eq $age -or $age -ge $staleThreshold) {
         $ageDays = if ($age) { [math]::Round($age.TotalDays, 1) } else { 'unknown' }
         $title   = if ($r.properties.PSObject.Properties['displayName']) { [string]$r.properties.displayName } else { $name }
+        $mitreTactics = @()
+        $mitreTechniques = @()
+        if ($r.properties.PSObject.Properties['tactics']) {
+            $mitreTactics = @(ConvertTo-StringArray -Value $r.properties.tactics)
+        }
+        if ($r.properties.PSObject.Properties['techniques']) {
+            $mitreTechniques = @(ConvertTo-StringArray -Value $r.properties.techniques)
+        }
         Add-Finding -Id "sentinel/coverage/disabled-rule/$name" `
             -Category 'ThreatDetection' -Severity 'Medium' `
             -Title "Analytic rule disabled >$LookbackDays days: $title" `
             -Detail "Rule '$title' (id $name) has been disabled for $ageDays day(s). Disabled rules generate no incidents." `
             -Remediation 'Re-enable the rule, archive it via configuration-as-code, or document the exception.' `
             -LearnMoreUrl 'https://learn.microsoft.com/azure/sentinel/detect-threats-custom' `
+            -MitreTactics $mitreTactics `
+            -MitreTechniques $mitreTechniques `
             -Extras @{ RuleId = $name; RuleDisplayName = $title; LastModifiedUtc = $lastModRaw; AgeDays = $ageDays; StaleThresholdDays = $LookbackDays }
     }
 }

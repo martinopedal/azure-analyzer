@@ -77,7 +77,7 @@ Describe 'Invoke-SentinelCoverage: happy path with all six detection categories 
                 $payload = @{
                     value = @(
                         @{ name = 'rule-enabled-1'; properties = @{ enabled = $true;  displayName = 'Rule A'; lastModifiedUtc = (Get-Date).ToUniversalTime().AddDays(-1).ToString('o') } },
-                        @{ name = 'rule-stale-1';   properties = @{ enabled = $false; displayName = 'Rule B'; lastModifiedUtc = (Get-Date).ToUniversalTime().AddDays(-60).ToString('o') } }
+                        @{ name = 'rule-stale-1';   properties = @{ enabled = $false; displayName = 'Rule B'; lastModifiedUtc = (Get-Date).ToUniversalTime().AddDays(-60).ToString('o'); tactics = @('InitialAccess'); techniques = @('T1078') } }
                     )
                 }
                 return [PSCustomObject]@{ StatusCode = 200; Content = ($payload | ConvertTo-Json -Depth 10) }
@@ -123,6 +123,21 @@ Describe 'Invoke-SentinelCoverage: happy path with all six detection categories 
     }
     It 'all findings are Compliant=false' {
         foreach ($f in $script:r.Findings) { $f.Compliant | Should -BeFalse }
+    }
+    It 'stale disabled rule includes MITRE fields and framework controls' {
+        $f = $script:r.Findings | Where-Object { $_.Id -eq 'sentinel/coverage/disabled-rule/rule-stale-1' }
+        $f.MitreTactics    | Should -Be @('InitialAccess')
+        $f.MitreTechniques | Should -Be @('T1078')
+        @($f.Frameworks).Count | Should -Be 1
+        $f.Frameworks[0].Name | Should -Be 'MITRE ATT&CK'
+        $f.Frameworks[0].Controls | Should -Be @('T1078')
+    }
+    It 'all findings include Schema 2.2 security metadata' {
+        foreach ($f in $script:r.Findings) {
+            $f.Pillar      | Should -Be 'Security'
+            $f.ToolVersion | Should -Not -BeNullOrEmpty
+            $f.DeepLinkUrl | Should -Match 'Microsoft_Azure_Security_Insights/MainMenuBlade'
+        }
     }
     It 'all findings target the workspace ARM resource' {
         foreach ($f in $script:r.Findings) { $f.ResourceId | Should -Be $script:WsId }

@@ -66,6 +66,20 @@ Describe 'Normalize-SentinelCoverage' {
         $r.AgeDays         | Should -Be 42
     }
 
+    It 'maps Schema 2.2 MITRE metadata and deep link for disabled rule findings' {
+        $rows = @(Normalize-SentinelCoverage -ToolResult $script:Fixture)
+        $r = $rows | Where-Object { $_.Id -like 'sentinel/coverage/disabled-rule/*' }
+        $r.Pillar           | Should -Be 'Security'
+        $r.ToolVersion      | Should -Be 'securityinsights-2024-09-01+loganalytics-2020-08-01'
+        $r.DeepLinkUrl      | Should -Match 'Microsoft_Azure_Security_Insights/MainMenuBlade'
+        $r.MitreTactics     | Should -Be @('InitialAccess', 'CredentialAccess')
+        $r.MitreTechniques  | Should -Be @('T1078', 'T1110')
+        @($r.Frameworks).Count | Should -Be 1
+        $r.Frameworks[0].Name | Should -Be 'MITRE ATT&CK'
+        $r.Frameworks[0].Controls | Should -Be @('T1078', 'T1110')
+        $r.EntityRefs | Should -Contain $r.EntityId
+    }
+
     It 'few-connectors detection maps to Medium and preserves counts' {
         $rows = @(Normalize-SentinelCoverage -ToolResult $script:Fixture)
         $r = $rows | Where-Object { $_.Id -eq 'sentinel/coverage/few-connectors' }
