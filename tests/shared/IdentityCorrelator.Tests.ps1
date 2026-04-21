@@ -170,6 +170,66 @@ Describe 'Invoke-IdentityCorrelation' {
         $row.MissingDimensions | Should -Not -Contain 'Azure'
     }
 
+    It 'emits Schema 2.2 identity attack-path metadata on correlated findings' {
+        $entities = @(
+            [PSCustomObject]@{
+                EntityId    = 'spn/11111111-2222-3333-4444-555555555555'
+                EntityType  = 'ServicePrincipal'
+                Platform    = 'Entra'
+                DisplayName = 'deploy-bot'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' },
+                    [PSCustomObject]@{ Platform = 'Entra'; Id = '11111111-2222-3333-4444-555555555555' }
+                )
+                Observations = @()
+            },
+            [PSCustomObject]@{
+                EntityId    = '/subscriptions/abc12345-6789-4abc-8def-1234567890ab/resourcegroups/rg/providers/microsoft.authorization/roleassignments/ra1'
+                EntityType  = 'AzureResource'
+                Platform    = 'Azure'
+                DisplayName = 'RBAC Assignment'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }
+                )
+                Observations = @(
+                    [PSCustomObject]@{
+                        Title    = 'SPN has Contributor on subscription'
+                        Detail   = 'appId: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee assigned Contributor role'
+                        Source   = 'alz-queries'
+                        Platform = 'Azure'
+                    }
+                )
+            },
+            [PSCustomObject]@{
+                EntityId    = 'ado://contoso/proj/serviceconnection/sc1'
+                EntityType  = 'ServiceConnection'
+                Platform    = 'ADO'
+                DisplayName = 'sc1'
+                ExternalIds = @(
+                    [PSCustomObject]@{ Platform = 'EntraApp'; Id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }
+                )
+                Observations = @()
+            }
+        )
+
+        $rows = @(Invoke-IdentityCorrelation -EntityStore $entities -TenantId 'test-tenant-id')
+        $row = $rows | Where-Object { $_.Category -eq 'Identity Correlation' } | Select-Object -First 1
+        $row | Should -Not -BeNullOrEmpty
+        $row.Pillar | Should -Be 'Security'
+        $row.Frameworks[0].Name | Should -Be 'NIST 800-53'
+        $row.Frameworks[1].Name | Should -Be 'CIS Controls v8'
+        $row.MitreTactics | Should -Contain 'TA0001'
+        $row.MitreTactics | Should -Contain 'TA0006'
+        $row.MitreTactics | Should -Contain 'TA0008'
+        $row.MitreTechniques | Should -Contain 'T1078'
+        $row.MitreTechniques | Should -Contain 'T1550'
+        $row.MitreTechniques | Should -Contain 'T1021'
+        $row.DeepLinkUrl | Should -Match 'entra\.microsoft\.com'
+        $row.ToolVersion | Should -Be 'identity-correlator'
+        $row.EntityRefs | Should -Contain $row.EntityId
+        $row.EntityRefs | Should -Contain 'objectid:11111111-2222-3333-4444-555555555555'
+    }
+
     It 'returns empty array when no cross-dimensional candidates exist' {
         $entities = @(
             [PSCustomObject]@{

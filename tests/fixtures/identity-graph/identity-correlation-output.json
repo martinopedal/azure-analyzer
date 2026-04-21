@@ -1,0 +1,34 @@
+{
+  "Source": "identity-correlator",
+  "Status": "Success",
+  "RunId": "test-run-identity-correlation",
+  "ToolVersion": "identity-correlator-fixture",
+  "Findings": [
+    {
+      "Id": "ic-001",
+      "EntityId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "EntityType": "ServicePrincipal",
+      "AppId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "ObjectId": "11111111-2222-3333-4444-555555555555",
+      "Title": "Privileged SPN is linked to CI/CD blast radius",
+      "Compliant": false,
+      "Severity": "High",
+      "Category": "Identity Correlation Risk",
+      "Detail": "appId: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee and objectId: 11111111-2222-3333-4444-555555555555 were observed in Azure, GitHub, and ADO.",
+      "Remediation": "Rotate credentials and scope RBAC to least privilege.",
+      "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/conditional-access/concept-workload-identity"
+    },
+    {
+      "Id": "ic-002",
+      "EntityId": "99999999-aaaa-bbbb-cccc-dddddddddddd",
+      "PrincipalType": "User",
+      "Title": "User identity appears in cross-tenant workload chain",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Category": "Identity Correlation",
+      "Detail": "objectId: 99999999-aaaa-bbbb-cccc-dddddddddddd has stale credentials and appears in correlated access paths.",
+      "Remediation": "Review user access and require phishing-resistant authentication.",
+      "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/authentication/concept-authentication-strengths"
+    }
+  ]
+}
