@@ -93,3 +93,21 @@ Stored these in `tools/install-manifest.json` with `pinningNote` field per platf
 - Root failure pattern observed: watchdog did not capture GitHub annotation lines (`##[error]`) from failed logs.
 - Hardening applied in `.github/workflows/ci-failure-watchdog.yml` to extract actionable first error lines using annotation-first matching and broader fallback patterns.
 - Validation: `Invoke-Pester -Path .\tests -CI` passed (1213 passed, 0 failed, 5 skipped).
+
+
+- **2026-04-21:** Dependabot batch #288-292 — all 5 merged
+
+  | PR | Action | Verdict | SHA |
+  |----|--------|---------|-----|
+  | #288 | azure/login 2.3.0 -> 3.0.0 | Merged | 4a50783 |
+  | #289 | actions/github-script 7.1.0 -> 9.0.0 | Merged | 1dc8fb8 |
+  | #290 | github/codeql-action SHA bump (4.35.1 -> 4.35.2) | Merged with comment fix | 1a6a957 |
+  | #291 | softprops/action-gh-release 2.0.9 -> 3.0.0 | Merged with comment fix | 1b88dfe |
+  | #292 | actions/upload-artifact 4.4.3 -> 7.0.1 | Merged | f2d6ccd |
+
+  Notes for future-Forge:
+  - **upload-artifact v7**: safe here only because we have ZERO download-artifact consumers and both upload calls already use unique names (sbom-{sha}, scheduled-scan-{run_id}). Adding a matrix consumer of upload-artifact later requires per-matrix-leg name suffix.
+  - **github-script v9**: `require('@actions/github')` is gone and `getOctokit` is now an injected param. Inline scripts must not redeclare `getOctokit` with const/let.
+  - **action-gh-release v3** and **azure/login v3**: Node 20 -> Node 24 runtime only. Self-hosted runners must support node24.
+  - **Dependabot stale comment quirk**: Dependabot occasionally bumps the SHA but leaves the version comment at the previous tag (#290 left v4.35.1 for a v4.35.2 SHA; #291 left v2.2.0 for a v3.0.0 SHA). Always diff before merging; fix with a follow-up commit on the dependabot branch.
+  - **Required checks reality**: branch protection requires BOTH `Analyze (actions)` AND `rubberduck-gate` (with strict=true), not just Analyze as the runbook claimed. Each merge invalidates downstream PRs because of strict; expect to `gh pr update-branch` + wait ~90s + retry merge for each subsequent PR in a batch.
