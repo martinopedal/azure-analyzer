@@ -6,13 +6,23 @@
     Reads alz_additional_queries.json, runs each queryable item via Search-AzGraph,
     and returns an array of PSObjects with compliance results.
     Requires the Az.ResourceGraph module.
-    Never throws — skips items that fail individually, warns on module absence.
+    Never throws: skips items that fail individually, warns on module absence.
+
+    Source of truth for the query set is the canonical upstream repo
+    https://github.com/martinopedal/alz-graph-queries. That repo owns the query
+    schema (every query MUST emit a boolean `compliant` column) and the
+    validation tooling. The local queries/alz_additional_queries.json file in
+    this repo is a cached snapshot of that upstream JSON; refresh it with
+    scripts/Sync-AlzQueries.ps1 (issue #315, in flight) or by copying
+    alz_additional_queries.json from a fresh clone of alz-graph-queries.
+    See the README.md "ALZ queries" section for the full provenance chain.
 .PARAMETER SubscriptionId
     Scope queries to a specific subscription.
 .PARAMETER ManagementGroupId
     Scope queries to a management group.
 .PARAMETER QueriesFile
-    Path to alz_additional_queries.json.
+    Path to alz_additional_queries.json (cached snapshot of the canonical
+    martinopedal/alz-graph-queries upstream).
     Defaults to .\queries\alz_additional_queries.json relative to this script.
 #>
 [CmdletBinding(DefaultParameterSetName = 'Subscription')]
