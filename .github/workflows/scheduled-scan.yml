@@ -230,7 +230,7 @@ jobs:
       # Deliberately no id-token: this job does NOT touch Azure.
     steps:
       - name: Open or update scheduled-scan issue (deduped)
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const newCount  = parseInt('${{ needs.scan.outputs.new_critical_count }}',      10) || 0;
