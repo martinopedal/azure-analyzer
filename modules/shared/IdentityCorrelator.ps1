@@ -507,6 +507,111 @@ function Get-PortfolioCorrelationSeverity {
     return 'Low'
 }
 
+function Get-IdentityCorrelationImpact {
+    [CmdletBinding()]
+    param([ValidateSet('Critical', 'High', 'Medium', 'Low', 'Info')][string] $Severity)
+    switch ($Severity) {
+        'Critical' { return 'High' }
+        'High' { return 'High' }
+        'Medium' { return 'Medium' }
+        default { return 'Low' }
+    }
+}
+
+function Get-IdentityCorrelationEffort {
+    [CmdletBinding()]
+    param([ValidateSet('Critical', 'High', 'Medium', 'Low', 'Info')][string] $Severity)
+    switch ($Severity) {
+        'Critical' { return 'High' }
+        'High' { return 'Medium' }
+        'Medium' { return 'Medium' }
+        default { return 'Low' }
+    }
+}
+
+function Get-IdentityCorrelationDeepLinkUrl {
+    [CmdletBinding()]
+    param(
+        [string] $AppId,
+        [string] $ObjectId
+    )
+
+    if ($AppId) {
+        return "https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Overview/appId/$($AppId.ToLowerInvariant())"
+    }
+    if ($ObjectId) {
+        return "https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/$($ObjectId.ToLowerInvariant())"
+    }
+    return ''
+}
+
+function Get-IdentityCorrelationEntityRefs {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $EntityId,
+        [string] $AppId,
+        [string] $ObjectId
+    )
+
+    $refs = [System.Collections.Generic.List[string]]::new()
+    $appRef = $null
+    if ($AppId) { $appRef = "appId:$($AppId.ToLowerInvariant())" }
+    $objectRef = $null
+    if ($ObjectId) { $objectRef = "objectId:$($ObjectId.ToLowerInvariant())" }
+
+    foreach ($candidate in @($EntityId, $appRef, $objectRef)) {
+        if ([string]::IsNullOrWhiteSpace([string]$candidate)) { continue }
+        if (-not $refs.Contains([string]$candidate)) {
+            $refs.Add([string]$candidate) | Out-Null
+        }
+    }
+    return @($refs)
+}
+
+function Get-IdentityCorrelationSchema22Context {
+    [CmdletBinding()]
+    param(
+        [ValidateSet('Critical', 'High', 'Medium', 'Low', 'Info')]
+        [string] $Severity,
+        [Parameter(Mandatory)]
+        [string] $EntityId,
+        [string] $AppId,
+        [string] $ObjectId,
+        [string] $LearnMoreUrl,
+        [string[]] $MitreTechniques = @('T1078', 'T1550', 'T1021')
+    )
+
+    $entityRefs = Get-IdentityCorrelationEntityRefs -EntityId $EntityId -AppId $AppId -ObjectId $ObjectId
+    $deepLinkUrl = Get-IdentityCorrelationDeepLinkUrl -AppId $AppId -ObjectId $ObjectId
+    $evidenceUris = @()
+    if ($LearnMoreUrl -and $LearnMoreUrl -match '^https://') { $evidenceUris += $LearnMoreUrl }
+    if ($deepLinkUrl) { $evidenceUris += $deepLinkUrl }
+
+    return @{
+        Frameworks = @(
+            @{ Name = 'NIST 800-53'; Controls = @('AC-2', 'AC-6', 'IA-5') },
+            @{ Name = 'CIS Controls v8'; Controls = @('5.3', '6.3', '6.7') }
+        )
+        Pillar = 'Security'
+        Impact = (Get-IdentityCorrelationImpact -Severity $Severity)
+        Effort = (Get-IdentityCorrelationEffort -Severity $Severity)
+        DeepLinkUrl = $deepLinkUrl
+        RemediationSnippets = @(
+            @{
+                language = 'text'
+                code     = 'Reduce blast radius by using workload identity federation and least privilege RBAC.'
+            }
+        )
+        EvidenceUris = @($evidenceUris)
+        BaselineTags = @('identity-correlator', 'attack-path-correlation')
+        MitreTactics = @('TA0001', 'TA0006', 'TA0008')
+        MitreTechniques = @($MitreTechniques)
+        EntityRefs = @($entityRefs)
+        ToolVersion = 'identity-correlator'
+    }
+}
+
 function New-CorrelationRiskFinding {
     [CmdletBinding()]
     param (
@@ -521,8 +626,15 @@ function New-CorrelationRiskFinding {
         [string] $Severity,
         [Parameter(Mandatory)]
         [string] $Detail,
-        [int] $EvidenceCount = 0
+        [int] $EvidenceCount = 0,
+        [string] $AppId = '',
+        [string] $ObjectId = '',
+        [string] $LearnMoreUrl = ''
     )
+
+    $schema22 = Get-IdentityCorrelationSchema22Context `
+        -Severity $Severity -EntityId $EntityId -AppId $AppId -ObjectId $ObjectId `
+        -LearnMoreUrl $LearnMoreUrl -MitreTechniques @('T1078', 'T1550', 'T1021')
 
     return (New-FindingRow `
         -Id ([guid]::NewGuid().ToString()) `
@@ -537,7 +649,20 @@ function New-CorrelationRiskFinding {
         -Severity $Severity `
         -Detail $Detail `
         -Confidence 'Likely' `
-        -EvidenceCount $EvidenceCount)
+        -EvidenceCount $EvidenceCount `
+        -Frameworks $schema22.Frameworks `
+        -Pillar $schema22.Pillar `
+        -Impact $schema22.Impact `
+        -Effort $schema22.Effort `
+        -DeepLinkUrl $schema22.DeepLinkUrl `
+        -RemediationSnippets $schema22.RemediationSnippets `
+        -EvidenceUris $schema22.EvidenceUris `
+        -BaselineTags $schema22.BaselineTags `
+        -MitreTactics $schema22.MitreTactics `
+        -MitreTechniques $schema22.MitreTechniques `
+        -EntityRefs $schema22.EntityRefs `
+        -ToolVersion $schema22.ToolVersion `
+        -LearnMoreUrl $LearnMoreUrl)
 }
 
 function Invoke-IdentityCorrelation {
@@ -669,6 +794,11 @@ function Invoke-IdentityCorrelation {
                 if ($tenantIds.Count -gt 0) { $detailParts.Add("Tenants: $($tenantIds -join ', ')") }
                 if ($candidate.ManagementGroupPaths.Count -gt 0) { $detailParts.Add("Management groups: $($candidate.ManagementGroupPaths -join '; ')") }
 
+                $portfolioSchema22 = Get-IdentityCorrelationSchema22Context `
+                    -Severity $portfolioSeverity -EntityId $entityId -AppId $candidate.AppId `
+                    -ObjectId $candidate.ObjectId `
+                    -LearnMoreUrl 'https://learn.microsoft.com/entra/identity/conditional-access/concept-workload-identity'
+
                 $findings.Add((New-FindingRow `
                         -Id ([guid]::NewGuid().ToString()) `
                         -Source 'identity-correlator' `
@@ -684,7 +814,20 @@ function Invoke-IdentityCorrelation {
                         -Confidence $portfolioConfidence `
                         -EvidenceCount $subscriptionIds.Count `
                         -SubscriptionId $subscriptionIds[0] `
-                        -ManagementGroupPath $managementGroupPath))
+                        -ManagementGroupPath $managementGroupPath `
+                        -Frameworks $portfolioSchema22.Frameworks `
+                        -Pillar $portfolioSchema22.Pillar `
+                        -Impact $portfolioSchema22.Impact `
+                        -Effort $portfolioSchema22.Effort `
+                        -DeepLinkUrl $portfolioSchema22.DeepLinkUrl `
+                        -RemediationSnippets $portfolioSchema22.RemediationSnippets `
+                        -EvidenceUris $portfolioSchema22.EvidenceUris `
+                        -BaselineTags @($portfolioSchema22.BaselineTags + 'cross-subscription-reuse') `
+                        -MitreTactics $portfolioSchema22.MitreTactics `
+                        -MitreTechniques $portfolioSchema22.MitreTechniques `
+                        -EntityRefs $portfolioSchema22.EntityRefs `
+                        -ToolVersion $portfolioSchema22.ToolVersion `
+                        -LearnMoreUrl 'https://learn.microsoft.com/entra/identity/conditional-access/concept-workload-identity'))
             }
         }
 
@@ -711,6 +854,10 @@ function Invoke-IdentityCorrelation {
 
         $title = "SPN $displayName spans $($dimensionNames -join ', ')"
 
+        $correlationSchema22 = Get-IdentityCorrelationSchema22Context `
+            -Severity 'Info' -EntityId $entityId -AppId $candidate.AppId -ObjectId $candidate.ObjectId `
+            -LearnMoreUrl 'https://learn.microsoft.com/entra/identity/conditional-access/concept-workload-identity'
+
         $row = New-FindingRow `
             -Id ([guid]::NewGuid().ToString()) `
             -Source 'identity-correlator' `
@@ -725,7 +872,20 @@ function Invoke-IdentityCorrelation {
             -Detail $detail `
             -Confidence $confidence `
             -EvidenceCount $evidenceCount `
-            -MissingDimensions $missingDims
+            -MissingDimensions $missingDims `
+            -Frameworks $correlationSchema22.Frameworks `
+            -Pillar $correlationSchema22.Pillar `
+            -Impact $correlationSchema22.Impact `
+            -Effort $correlationSchema22.Effort `
+            -DeepLinkUrl $correlationSchema22.DeepLinkUrl `
+            -RemediationSnippets $correlationSchema22.RemediationSnippets `
+            -EvidenceUris $correlationSchema22.EvidenceUris `
+            -BaselineTags @($correlationSchema22.BaselineTags + 'cross-dimension-spn') `
+            -MitreTactics $correlationSchema22.MitreTactics `
+            -MitreTechniques $correlationSchema22.MitreTechniques `
+            -EntityRefs $correlationSchema22.EntityRefs `
+            -ToolVersion $correlationSchema22.ToolVersion `
+            -LearnMoreUrl 'https://learn.microsoft.com/entra/identity/conditional-access/concept-workload-identity'
 
         $findings.Add($row)
 
@@ -746,7 +906,10 @@ function Invoke-IdentityCorrelation {
                 -Title "Privileged SPN $displayName is used by CI/CD identity chain" `
                 -Severity 'High' `
                 -Detail "Identity has Azure Owner/Contributor evidence and is linked to CI/CD dimensions ($($dimensionNames -join ', '))." `
-                -EvidenceCount $evidenceCount))
+                -EvidenceCount $evidenceCount `
+                -AppId $candidate.AppId `
+                -ObjectId $candidate.ObjectId `
+                -LearnMoreUrl 'https://learn.microsoft.com/azure/role-based-access-control/best-practices'))
         }
 
         $hasPatBasedAuth = [bool]$candidate.HasPatBasedAdoAuth
@@ -765,7 +928,10 @@ function Invoke-IdentityCorrelation {
                 -Title "SPN $displayName is linked to PAT-based ADO service connection" `
                 -Severity 'Medium' `
                 -Detail 'ADO evidence indicates token/PAT authentication. Prefer workload identity federation where possible.' `
-                -EvidenceCount $evidenceCount))
+                -EvidenceCount $evidenceCount `
+                -AppId $candidate.AppId `
+                -ObjectId $candidate.ObjectId `
+                -LearnMoreUrl 'https://learn.microsoft.com/azure/devops/pipelines/library/connect-to-azure'))
         }
 
         $ciBindings = [int]$candidate.CiEvidenceCount
@@ -778,7 +944,10 @@ function Invoke-IdentityCorrelation {
                 -Title "SPN $displayName is reused across multiple CI/CD bindings" `
                 -Severity 'Medium' `
                 -Detail "Detected $ciBindings CI/CD evidences (GitHub + ADO). Consider reducing identity reuse and scope." `
-                -EvidenceCount $ciBindings))
+                -EvidenceCount $ciBindings `
+                -AppId $candidate.AppId `
+                -ObjectId $candidate.ObjectId `
+                -LearnMoreUrl 'https://learn.microsoft.com/entra/workload-id/workload-identity-federation'))
         }
     }
 

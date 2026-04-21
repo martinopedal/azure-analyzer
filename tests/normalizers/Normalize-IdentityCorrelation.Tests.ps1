@@ -9,38 +9,7 @@ BeforeAll {
 Describe 'Normalize-IdentityCorrelation' {
     Context 'FindingRow emission' {
         BeforeAll {
-            $script:input = [PSCustomObject]@{
-                Status   = 'Success'
-                RunId    = 'test-run-001'
-                Findings = @(
-                    [PSCustomObject]@{
-                        Id            = 'f1'
-                        EntityId      = '11111111-1111-1111-1111-111111111111'
-                        EntityType    = 'ServicePrincipal'
-                        Title         = 'SPN with excessive permissions'
-                        Compliant     = $false
-                        Severity      = 'High'
-                        Category      = 'Identity'
-                        Detail        = 'Has Owner on 3 subscriptions'
-                        Remediation   = 'Reduce scope'
-                        LearnMoreUrl  = ''
-                        ResourceId    = ''
-                    },
-                    [PSCustomObject]@{
-                        Id            = 'f2'
-                        EntityId      = '22222222-2222-2222-2222-222222222222'
-                        PrincipalType = 'User'
-                        Title         = 'User with stale credentials'
-                        Compliant     = $false
-                        Severity      = 'Medium'
-                        Category      = 'Identity'
-                        Detail        = 'Last sign-in 180 days ago'
-                        Remediation   = 'Disable account'
-                        LearnMoreUrl  = ''
-                        ResourceId    = ''
-                    }
-                )
-            }
+            $script:input = Get-Content (Join-Path $PSScriptRoot '..\fixtures\identity-graph\identity-correlation-output.json') -Raw | ConvertFrom-Json
             $script:rows = @(Normalize-IdentityCorrelation -ToolResult $script:input)
         }
 
@@ -75,7 +44,38 @@ Describe 'Normalize-IdentityCorrelation' {
 
         It 'detects User EntityType from PrincipalType field' {
             $user = $script:rows | Where-Object { $_.EntityType -eq 'User' }
-            $user.Title | Should -Be 'User with stale credentials'
+            $user.Title | Should -Be 'User identity appears in cross-tenant workload chain'
+        }
+
+        It 'populates Schema 2.2 identity ETL fields including MITRE metadata' {
+            $row = $script:rows | Where-Object { $_.EntityType -eq 'ServicePrincipal' } | Select-Object -First 1
+            $row.Pillar | Should -Be 'Security'
+            $row.Impact | Should -Be 'High'
+            $row.Effort | Should -Be 'Medium'
+            $row.DeepLinkUrl | Should -Match 'entra\.microsoft\.com'
+            $row.ToolVersion | Should -Be 'identity-correlator-fixture'
+            @($row.Frameworks).Count | Should -Be 2
+            $row.Frameworks[0].Name | Should -Be 'NIST 800-53'
+            $row.Frameworks[1].Name | Should -Be 'CIS Controls v8'
+            $row.MitreTactics | Should -Contain 'TA0001'
+            $row.MitreTactics | Should -Contain 'TA0006'
+            $row.MitreTactics | Should -Contain 'TA0008'
+            $row.MitreTechniques | Should -Contain 'T1078'
+            $row.MitreTechniques | Should -Contain 'T1550'
+            $row.MitreTechniques | Should -Contain 'T1021'
+            @($row.RemediationSnippets).Count | Should -BeGreaterThan 0
+            $row.RemediationSnippets[0].language | Should -Be 'text'
+            @($row.EvidenceUris).Count | Should -BeGreaterThan 0
+            $row.EvidenceUris | Should -Contain 'https://learn.microsoft.com/entra/identity/conditional-access/concept-workload-identity'
+            $row.BaselineTags | Should -Contain 'identity-correlator'
+            $row.EntityRefs | Should -Contain $row.EntityId
+            $row.EntityRefs | Should -Contain 'objectid:11111111-2222-3333-4444-555555555555'
+        }
+
+        It 'creates Entra deep link and entity refs for user findings' {
+            $user = $script:rows | Where-Object { $_.EntityType -eq 'User' }
+            $user.DeepLinkUrl | Should -Match 'UserProfileMenuBlade'
+            $user.EntityRefs | Should -Contain 'objectid:99999999-aaaa-bbbb-cccc-dddddddddddd'
         }
     }
 
