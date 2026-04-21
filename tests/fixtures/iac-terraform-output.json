@@ -1,40 +1,101 @@
 {
   "Source": "terraform-iac",
+  "SchemaVersion": "1.0",
   "Status": "Success",
   "Message": "",
+  "ToolVersion": "Terraform v1.8.5; Version: 0.50.2",
   "Findings": [
     {
       "Id": "a1b2c3d4-e5f6-7890-abcd-tf1234560001",
       "Category": "IaC Validation",
       "Title": "Terraform validate: Missing required argument",
+      "RuleId": "terraform-validate",
       "Severity": "High",
       "Compliant": false,
       "Detail": "The argument 'location' is required, but no definition was found.",
       "Remediation": "Fix the Terraform configuration in infra/",
       "ResourceId": "infra",
-      "LearnMoreUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate"
+      "LearnMoreUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
+      "Pillar": "Operations",
+      "DeepLinkUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
+      "EvidenceUris": [
+        "file://infra/main.tf#L12"
+      ],
+      "BaselineTags": [
+        "terraform:rule:terraform-validate",
+        "terraform:provider:azurerm",
+        "terraform:tool:terraform"
+      ],
+      "EntityRefs": [
+        "iac:terraform:infra/main.tf"
+      ],
+      "ToolVersion": "Terraform v1.8.5"
     },
     {
       "Id": "a1b2c3d4-e5f6-7890-abcd-tf1234560002",
       "Category": "IaC Security",
       "Title": "AVD-AZU-0001: Storage account allows public access",
+      "RuleId": "AVD-AZU-0001",
       "Severity": "Critical",
       "Compliant": false,
       "Detail": "Storage account is configured to allow public blob access. This may expose sensitive data.",
       "Remediation": "Set allow_blob_public_access to false in the azurerm_storage_account resource.",
       "ResourceId": "modules/storage",
-      "LearnMoreUrl": "https://avd.aquasec.com/misconfig/avd-azu-0001"
+      "LearnMoreUrl": "https://avd.aquasec.com/misconfig/avd-azu-0001",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://avd.aquasec.com/misconfig/avd-azu-0001",
+      "Frameworks": [
+        { "kind": "Azure WAF", "controlId": "AVD-AZU-0001" },
+        { "kind": "CIS Azure", "controlId": "AVD-AZU-0001" },
+        { "kind": "Azure Security Benchmark", "controlId": "AVD-AZU-0001" },
+        { "kind": "NIST 800-53", "controlId": "AVD-AZU-0001" }
+      ],
+      "RemediationSnippets": [
+        { "language": "hcl", "code": "- allow_blob_public_access = true\n+ allow_blob_public_access = false" }
+      ],
+      "EvidenceUris": [
+        "file://modules/storage/main.tf#L23",
+        "https://github.com/martinopedal/azure-analyzer/blob/HEAD/modules/storage/main.tf#L23"
+      ],
+      "BaselineTags": [
+        "terraform:rule:avd-azu-0001",
+        "terraform:provider:azurerm",
+        "terraform:tool:trivy"
+      ],
+      "EntityRefs": [
+        "iac:terraform:modules/storage/main.tf",
+        "iac:terraform:modules/storage/main.tf#azurerm_storage_account.main"
+      ],
+      "ResourceAddress": "azurerm_storage_account.main",
+      "ToolVersion": "Version: 0.50.2"
     },
     {
       "Id": "a1b2c3d4-e5f6-7890-abcd-tf1234560003",
       "Category": "IaC Security",
       "Title": "AVD-AZU-0027: Network security group allows ingress from 0.0.0.0/0",
+      "RuleId": "AVD-AZU-0027",
       "Severity": "Medium",
       "Compliant": false,
       "Detail": "A network security group rule allows ingress from any source (0.0.0.0/0) to a sensitive port.",
       "Remediation": "Restrict the source address prefix to specific IP ranges.",
       "ResourceId": "network",
-      "LearnMoreUrl": "https://avd.aquasec.com/misconfig/avd-azu-0027"
+      "LearnMoreUrl": "https://avd.aquasec.com/misconfig/avd-azu-0027",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://avd.aquasec.com/misconfig/avd-azu-0027",
+      "EvidenceUris": [
+        "file://network/main.tf#L48"
+      ],
+      "BaselineTags": [
+        "terraform:rule:avd-azu-0027",
+        "terraform:provider:azurerm",
+        "terraform:tool:trivy"
+      ],
+      "EntityRefs": [
+        "iac:terraform:network/main.tf",
+        "iac:terraform:network/main.tf#module.network.azurerm_network_security_group.main"
+      ],
+      "ResourceAddress": "module.network.azurerm_network_security_group.main",
+      "ToolVersion": "Version: 0.50.2"
     },
     {
       "Id": "a1b2c3d4-e5f6-7890-abcd-tf1234560004",
@@ -45,18 +106,48 @@
       "Detail": "The attribute 'enable_accelerated_networking' is deprecated. Use 'accelerated_networking_enabled' instead.",
       "Remediation": "Fix the Terraform configuration in network",
       "ResourceId": "network",
-      "LearnMoreUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate"
+      "LearnMoreUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
+      "Pillar": "Operations",
+      "DeepLinkUrl": "https://developer.hashicorp.com/terraform/cli/commands/validate",
+      "EvidenceUris": [
+        "file://network/main.tf#L67"
+      ],
+      "BaselineTags": [
+        "terraform:rule:terraform-validate",
+        "terraform:provider:azurerm",
+        "terraform:tool:terraform"
+      ],
+      "EntityRefs": [
+        "iac:terraform:network/main.tf"
+      ],
+      "ToolVersion": "Terraform v1.8.5"
     },
     {
       "Id": "a1b2c3d4-e5f6-7890-abcd-tf1234560005",
       "Category": "IaC Security",
       "Title": "AVD-AZU-0050: Key Vault does not have purge protection enabled",
-      "Severity": "Info",
+      "RuleId": "AVD-AZU-0050",
+      "Severity": "UNKNOWN",
       "Compliant": false,
       "Detail": "Azure Key Vault does not have purge protection enabled, which prevents permanent deletion during retention period.",
       "Remediation": "Enable purge protection on the Key Vault resource.",
       "ResourceId": "modules/keyvault",
-      "LearnMoreUrl": "https://avd.aquasec.com/misconfig/avd-azu-0050"
+      "LearnMoreUrl": "https://avd.aquasec.com/misconfig/avd-azu-0050",
+      "Pillar": "Reliability",
+      "DeepLinkUrl": "https://avd.aquasec.com/misconfig/avd-azu-0050",
+      "EvidenceUris": [
+        "file://modules/keyvault/main.tf#L31"
+      ],
+      "BaselineTags": [
+        "terraform:rule:avd-azu-0050",
+        "terraform:provider:azapi",
+        "terraform:tool:checkov"
+      ],
+      "EntityRefs": [
+        "iac:terraform:modules/keyvault/main.tf",
+        "iac:terraform:modules/keyvault/main.tf#azapi_resource.kv"
+      ],
+      "ResourceAddress": "azapi_resource.kv"
     }
   ]
 }

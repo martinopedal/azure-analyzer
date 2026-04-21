@@ -65,7 +65,9 @@ function Invoke-IaCAdapter {
 
         [string] $RepoPath,
 
-        [string] $RemoteUrl
+        [string] $RemoteUrl,
+
+        [string] $SourceRepoUrl = ''
     )
 
     $cloneInfo = $null
@@ -103,7 +105,10 @@ function Invoke-IaCAdapter {
 
         switch ($Flavour) {
             'bicep' { return Invoke-BicepValidation -RepoPath $RepoPath }
-            'terraform' { return Invoke-TerraformValidation -RepoPath $RepoPath }
+            'terraform' {
+                $sourceUrl = if ($RemoteUrl) { $RemoteUrl } else { $SourceRepoUrl }
+                return Invoke-TerraformValidation -RepoPath $RepoPath -SourceRepoUrl $sourceUrl
+            }
             default {
                 return [PSCustomObject]@{
                     Source = "iac-$Flavour"; Status = 'Skipped'
@@ -301,6 +306,219 @@ function Invoke-BicepValidation {
     }
 }
 
+function Get-TerraformToolVersion {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string] $Command,
+        [string[]] $Arguments = @('--version')
+    )
+
+    if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) { return '' }
+    try {
+        Assert-TimeoutHelperLoaded
+        $result = Invoke-WithTimeout -Command $Command -Arguments $Arguments -TimeoutSec $script:IaCTimeoutSec
+        if ($result.ExitCode -eq 0 -and $result.Output) {
+            return (($result.Output -split "`r?`n")[0]).Trim()
+        }
+    } catch {
+        Write-Verbose "Version probe failed for $Command`: $(Remove-Credentials ([string]$_.Exception.Message))"
+    }
+    return ''
+}
+
+function Resolve-TerraformToolLabel {
+    param ([string] $RuleId)
+    if ([string]::IsNullOrWhiteSpace($RuleId)) { return 'terraform' }
+    if ($RuleId -match '^(?i)CKV_') { return 'checkov' }
+    if ($RuleId -match '^(?i)TFSEC|^AWS\d+|^AZU\d+') { return 'tfsec' }
+    return 'trivy'
+}
+
+function Resolve-TerraformRulePillar {
+    param (
+        [string] $RuleId,
+        [string] $Title,
+        [string] $Description,
+        [string] $Category
+    )
+
+    $signal = "$RuleId $Title $Description $Category".ToLowerInvariant()
+    if ($signal -match 'cost|price|sku|sizing|idle|rightsiz') { return 'Cost' }
+    if ($signal -match 'performance|latency|throughput|iops|autoscal|cache') { return 'Performance' }
+    if ($signal -match 'operations|operational|monitor|logging|diagnostic|tagging|policy') { return 'Operations' }
+    if ($signal -match 'reliability|availability|redundan|backup|recovery|resilien') { return 'Reliability' }
+    return 'Security'
+}
+
+function Resolve-TerraformFrameworks {
+    param (
+        [string] $RuleId,
+        [string] $Title,
+        [string] $Description
+    )
+
+    $frameworks = [System.Collections.Generic.List[hashtable]]::new()
+    $signal = "$RuleId $Title $Description".ToLowerInvariant()
+    $control = if ([string]::IsNullOrWhiteSpace($RuleId)) { 'terraform-validate' } else { $RuleId.ToUpperInvariant() }
+
+    function Add-Framework {
+        param([string] $Kind, [string] $ControlId)
+        if ([string]::IsNullOrWhiteSpace($Kind) -or [string]::IsNullOrWhiteSpace($ControlId)) { return }
+        foreach ($existing in $frameworks) {
+            if ($existing.kind -eq $Kind -and $existing.controlId -eq $ControlId) { return }
+        }
+        $frameworks.Add(@{ kind = $Kind; controlId = $ControlId }) | Out-Null
+    }
+
+    if ($signal -match 'avd-azu-|azure|azurerm|azapi') {
+        Add-Framework -Kind 'Azure WAF' -ControlId $control
+        Add-Framework -Kind 'CIS Azure' -ControlId $control
+        Add-Framework -Kind 'Azure Security Benchmark' -ControlId $control
+        Add-Framework -Kind 'NIST 800-53' -ControlId $control
+    } else {
+        if ($signal -match 'waf|well-architected') { Add-Framework -Kind 'Azure WAF' -ControlId $control }
+        if ($signal -match 'cis') { Add-Framework -Kind 'CIS Azure' -ControlId $control }
+        if ($signal -match 'asb|azure security benchmark|microsoft cloud security benchmark') { Add-Framework -Kind 'Azure Security Benchmark' -ControlId $control }
+        if ($signal -match 'nist') { Add-Framework -Kind 'NIST 800-53' -ControlId $control }
+    }
+
+    return @($frameworks)
+}
+
+function Resolve-TerraformDeepLinkUrl {
+    param (
+        [string] $RuleId,
+        [string] $PrimaryUrl,
+        [string[]] $References
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($PrimaryUrl)) { return $PrimaryUrl.Trim() }
+    foreach ($reference in @($References)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$reference)) { return ([string]$reference).Trim() }
+    }
+    if ([string]::IsNullOrWhiteSpace($RuleId)) { return '' }
+
+    $upperRule = $RuleId.Trim().ToUpperInvariant()
+    if ($upperRule -match '^AVD-[A-Z]+-\d+$') {
+        return "https://avd.aquasec.com/misconfig/$($upperRule.ToLowerInvariant())"
+    }
+    if ($upperRule -match '^TFSEC') {
+        return "https://aquasecurity.github.io/tfsec/latest/checks/#$($upperRule.ToLowerInvariant())"
+    }
+    if ($upperRule -match '^CKV_') {
+        return "https://www.checkov.io/5.Policy%20Index/all.html#$($upperRule.ToLowerInvariant())"
+    }
+    return ''
+}
+
+function Resolve-TerraformProviderTag {
+    param (
+        [string] $RuleId,
+        [string] $Title,
+        [string] $Description
+    )
+
+    $signal = "$RuleId $Title $Description".ToLowerInvariant()
+    if ($signal -match 'azapi') { return 'azapi' }
+    return 'azurerm'
+}
+
+function Resolve-TerraformRemediationSnippets {
+    param (
+        [string] $RuleId,
+        [string] $Resolution
+    )
+
+    $snippets = [System.Collections.Generic.List[hashtable]]::new()
+    $rule = if ($RuleId) { $RuleId.ToUpperInvariant() } else { '' }
+    if ($rule -eq 'AVD-AZU-0001') {
+        $snippets.Add(@{
+                language = 'hcl'
+                code     = "- allow_blob_public_access = true`n+ allow_blob_public_access = false"
+            }) | Out-Null
+    } elseif ($rule -eq 'AVD-AZU-0050') {
+        $snippets.Add(@{
+                language = 'hcl'
+                code     = "- purge_protection_enabled = false`n+ purge_protection_enabled = true"
+            }) | Out-Null
+    } elseif (-not [string]::IsNullOrWhiteSpace($Resolution)) {
+        $snippets.Add(@{
+                language = 'hcl'
+                code     = "- # insecure configuration`n+ # remediation: $($Resolution.Trim())"
+            }) | Out-Null
+    }
+
+    return @($snippets)
+}
+
+function Resolve-TerraformGitHubBlobBase {
+    param ([string] $SourceRepoUrl)
+    if ([string]::IsNullOrWhiteSpace($SourceRepoUrl)) { return '' }
+    $trimmed = $SourceRepoUrl.Trim()
+
+    if ($trimmed -match '^(?i)https://([^/]+)/([^/]+)/([^/.]+?)(?:\.git)?/?$') {
+        return "https://$($Matches[1])/$($Matches[2])/$($Matches[3])/blob/HEAD"
+    }
+    if ($trimmed -match '^(?i)github\.com/([^/]+)/([^/.]+?)(?:\.git)?/?$') {
+        return "https://github.com/$($Matches[1])/$($Matches[2])/blob/HEAD"
+    }
+    return ''
+}
+
+function Resolve-TerraformEvidenceUris {
+    param (
+        [string] $RepoPath,
+        [string] $RelativeDir,
+        [string] $TargetPath,
+        [int] $Line,
+        [string] $SourceRepoUrl
+    )
+
+    $target = if ([string]::IsNullOrWhiteSpace($TargetPath)) { 'main.tf' } else { $TargetPath }
+    $relativePath = if ([System.IO.Path]::IsPathRooted($target)) {
+        if ($target.StartsWith($RepoPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $target.Substring($RepoPath.Length).TrimStart('\', '/')
+        } else {
+            [System.IO.Path]::GetFileName($target)
+        }
+    } elseif ($RelativeDir -eq '.' -or [string]::IsNullOrWhiteSpace($RelativeDir)) {
+        $target.TrimStart('\', '/')
+    } else {
+        Join-Path $RelativeDir $target
+    }
+    $relativePath = $relativePath -replace '\\', '/'
+
+    $lineAnchor = if ($Line -gt 0) { "#L$Line" } else { '' }
+    $uris = [System.Collections.Generic.List[string]]::new()
+    $blobBase = Resolve-TerraformGitHubBlobBase -SourceRepoUrl $SourceRepoUrl
+    if (-not [string]::IsNullOrWhiteSpace($blobBase)) {
+        $uris.Add("$blobBase/$relativePath$lineAnchor") | Out-Null
+    }
+    $uris.Add("file://$relativePath$lineAnchor") | Out-Null
+    return @($uris | Select-Object -Unique)
+}
+
+function Resolve-TerraformEntityRefs {
+    param (
+        [string] $RelativePath,
+        [string] $ResourceAddress
+    )
+
+    $refs = [System.Collections.Generic.List[string]]::new()
+    $path = $RelativePath -replace '\\', '/' -replace '^\./', ''
+    if (-not [string]::IsNullOrWhiteSpace($path)) {
+        $refs.Add("iac:terraform:$path") | Out-Null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ResourceAddress)) {
+        $refs.Add("iac:terraform:$path#$ResourceAddress") | Out-Null
+        if ($ResourceAddress -match '^(module\.[^.]+)') {
+            $refs.Add("iac:terraform:$path#$($Matches[1])") | Out-Null
+        }
+    }
+    return @($refs | Select-Object -Unique)
+}
+
 function Invoke-TerraformValidation {
     <#
     .SYNOPSIS
@@ -309,15 +527,12 @@ function Invoke-TerraformValidation {
         Discovers directories containing .tf files and runs terraform validate
         (syntax-only, no init required for basic validation) plus trivy config
         for security scanning of HCL files.
-
-        Design choice: uses trivy config instead of standalone tfsec because
-        Aqua merged tfsec into trivy. Since trivy is already in our manifest,
-        this avoids adding another external dependency.
     #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [string] $RepoPath
+        [string] $RepoPath,
+        [string] $SourceRepoUrl = ''
     )
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -331,6 +546,21 @@ function Invoke-TerraformValidation {
         }
     }
 
+    $versions = @{
+        terraform = Get-TerraformToolVersion -Command 'terraform' -Arguments @('version')
+        trivy     = Get-TerraformToolVersion -Command 'trivy' -Arguments @('--version')
+        tfsec     = Get-TerraformToolVersion -Command 'tfsec' -Arguments @('--version')
+        checkov   = Get-TerraformToolVersion -Command 'checkov' -Arguments @('--version')
+    }
+
+    $summary = [System.Collections.Generic.List[string]]::new()
+    foreach ($key in @('terraform', 'trivy', 'tfsec', 'checkov')) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$versions[$key])) {
+            $summary.Add($versions[$key]) | Out-Null
+        }
+    }
+    $toolVersionSummary = ($summary -join '; ')
+
     # Get unique directories containing .tf files
     $tfDirs = $tfFiles | ForEach-Object { $_.DirectoryName } | Select-Object -Unique
 
@@ -338,19 +568,17 @@ function Invoke-TerraformValidation {
         $relativeDir = $dir.Substring($RepoPath.Length).TrimStart('\', '/')
         if (-not $relativeDir) { $relativeDir = '.' }
 
-        # Run terraform validate (syntax-only mode)
-        Invoke-TerraformValidateDir -Dir $dir -RelativeDir $relativeDir -Findings $findings
-
-        # Run trivy config for HCL security scanning (preferred over tfsec)
-        Invoke-TrivyConfigDir -Dir $dir -RelativeDir $relativeDir -Findings $findings
+        Invoke-TerraformValidateDir -RepoPath $RepoPath -Dir $dir -RelativeDir $relativeDir -Findings $findings -ToolVersions $versions -ToolVersionSummary $toolVersionSummary -SourceRepoUrl $SourceRepoUrl
+        Invoke-TrivyConfigDir -RepoPath $RepoPath -Dir $dir -RelativeDir $relativeDir -Findings $findings -ToolVersions $versions -ToolVersionSummary $toolVersionSummary -SourceRepoUrl $SourceRepoUrl
     }
 
     return [PSCustomObject]@{
-        Source   = 'terraform-iac'
+        Source      = 'terraform-iac'
         SchemaVersion = '1.0'
-        Status   = 'Success'
-        Message  = ''
-        Findings = $findings
+        Status      = 'Success'
+        Message     = ''
+        ToolVersion = $toolVersionSummary
+        Findings    = $findings
     }
 }
 
@@ -366,6 +594,9 @@ function Invoke-TerraformValidateDir {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
+        [string] $RepoPath,
+
+        [Parameter(Mandatory)]
         [string] $Dir,
 
         [Parameter(Mandatory)]
@@ -373,7 +604,11 @@ function Invoke-TerraformValidateDir {
 
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
-        [System.Collections.Generic.List[PSCustomObject]] $Findings
+        [System.Collections.Generic.List[PSCustomObject]] $Findings,
+
+        [hashtable] $ToolVersions = @{},
+        [string] $ToolVersionSummary = '',
+        [string] $SourceRepoUrl = ''
     )
 
     if (-not (Get-Command terraform -ErrorAction SilentlyContinue)) {
@@ -387,17 +622,30 @@ function Invoke-TerraformValidateDir {
         # to download provider schemas without configuring remote state
         $initResult = Invoke-WithTimeout -Command 'terraform' -Arguments @('-chdir', $Dir, 'init', '-backend=false', '-input=false') -TimeoutSec $script:IaCTimeoutSec
         if ($initResult.ExitCode -ne 0) {
+            $evidenceUris = Resolve-TerraformEvidenceUris -RepoPath $RepoPath -RelativeDir $RelativeDir -TargetPath 'main.tf' -Line 0 -SourceRepoUrl $SourceRepoUrl
             # init failed; emit a finding and skip validate for this directory
             $Findings.Add([PSCustomObject]@{
                 Id          = [guid]::NewGuid().ToString()
                 Category    = 'IaC Validation'
                 Title       = "Terraform init required: $RelativeDir"
+                RuleId      = 'terraform-init'
                 Severity    = 'Medium'
                 Compliant   = $false
                 Detail      = Remove-Credentials "terraform init -backend=false failed. Provider plugins may be unavailable. Output: $($initResult.Output.Substring(0, [Math]::Min($initResult.Output.Length, 500)))"
                 Remediation = "Run 'terraform init' in $RelativeDir before validation, or ensure provider plugins are accessible."
                 ResourceId  = $RelativeDir
                 LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/init'
+                Pillar      = 'Operations'
+                Frameworks  = @()
+                DeepLinkUrl = 'https://developer.hashicorp.com/terraform/cli/commands/init'
+                RemediationSnippets = @(@{
+                            language = 'hcl'
+                            code     = "- # provider not initialized`n+ terraform init -backend=false"
+                        })
+                EvidenceUris = $evidenceUris
+                BaselineTags = @('terraform:rule:terraform-init','terraform:provider:azurerm','terraform:tool:terraform')
+                EntityRefs   = Resolve-TerraformEntityRefs -RelativePath (Join-Path $RelativeDir 'main.tf') -ResourceAddress ''
+                ToolVersion  = if ($ToolVersions.terraform) { [string]$ToolVersions.terraform } else { $ToolVersionSummary }
             })
             return
         }
@@ -417,30 +665,67 @@ function Invoke-TerraformValidateDir {
                             default   { 'Medium' }
                         }
                         $detail = if ($diag.PSObject.Properties['detail'] -and $diag.detail) { $diag.detail } else { $diag.summary }
+                        $line = 0
+                        $targetPath = 'main.tf'
+                        if ($diag.PSObject.Properties['range'] -and $diag.range) {
+                            if ($diag.range.PSObject.Properties['start'] -and $diag.range.start -and $diag.range.start.PSObject.Properties['line']) {
+                                $line = [int]$diag.range.start.line
+                            }
+                            if ($diag.range.PSObject.Properties['filename'] -and $diag.range.filename) {
+                                $targetPath = [string]$diag.range.filename
+                            }
+                        }
+                        $evidenceUris = Resolve-TerraformEvidenceUris -RepoPath $RepoPath -RelativeDir $RelativeDir -TargetPath $targetPath -Line $line -SourceRepoUrl $SourceRepoUrl
+                        $relativePath = ($evidenceUris[0] -replace '^file://', '') -replace '#L\d+$', ''
                         $Findings.Add([PSCustomObject]@{
                             Id          = [guid]::NewGuid().ToString()
                             Category    = 'IaC Validation'
                             Title       = "Terraform validate: $($diag.summary)"
+                            RuleId      = 'terraform-validate'
                             Severity    = $severity
                             Compliant   = $false
                             Detail      = Remove-Credentials $detail
                             Remediation = "Fix the Terraform configuration in $RelativeDir"
                             ResourceId  = $RelativeDir
                             LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
+                            Pillar      = 'Operations'
+                            Frameworks  = @()
+                            DeepLinkUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
+                            RemediationSnippets = @(@{
+                                        language = 'hcl'
+                                        code     = "- # failing expression`n+ # update expression to satisfy terraform validate"
+                                    })
+                            EvidenceUris = $evidenceUris
+                            BaselineTags = @('terraform:rule:terraform-validate','terraform:provider:azurerm','terraform:tool:terraform')
+                            EntityRefs   = Resolve-TerraformEntityRefs -RelativePath $relativePath -ResourceAddress ''
+                            ToolVersion  = if ($ToolVersions.terraform) { [string]$ToolVersions.terraform } else { $ToolVersionSummary }
                         })
                     }
                 }
             } catch {
+                $evidenceUris = Resolve-TerraformEvidenceUris -RepoPath $RepoPath -RelativeDir $RelativeDir -TargetPath 'main.tf' -Line 0 -SourceRepoUrl $SourceRepoUrl
                 $Findings.Add([PSCustomObject]@{
                     Id          = [guid]::NewGuid().ToString()
                     Category    = 'IaC Validation'
                     Title       = "Terraform validate failed: $RelativeDir"
+                    RuleId      = 'terraform-validate'
                     Severity    = 'High'
                     Compliant   = $false
                     Detail      = Remove-Credentials ($jsonText.Substring(0, [Math]::Min($jsonText.Length, 500)))
                     Remediation = "Fix the Terraform configuration in $RelativeDir"
                     ResourceId  = $RelativeDir
                     LearnMoreUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
+                    Pillar      = 'Operations'
+                    Frameworks  = @()
+                    DeepLinkUrl = 'https://developer.hashicorp.com/terraform/cli/commands/validate'
+                    RemediationSnippets = @(@{
+                                language = 'hcl'
+                                code     = "- # invalid terraform configuration`n+ # fix diagnostics and re-run terraform validate"
+                            })
+                    EvidenceUris = $evidenceUris
+                    BaselineTags = @('terraform:rule:terraform-validate','terraform:provider:azurerm','terraform:tool:terraform')
+                    EntityRefs   = Resolve-TerraformEntityRefs -RelativePath (Join-Path $RelativeDir 'main.tf') -ResourceAddress ''
+                    ToolVersion  = if ($ToolVersions.terraform) { [string]$ToolVersions.terraform } else { $ToolVersionSummary }
                 })
             }
         }
@@ -462,6 +747,9 @@ function Invoke-TrivyConfigDir {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
+        [string] $RepoPath,
+
+        [Parameter(Mandatory)]
         [string] $Dir,
 
         [Parameter(Mandatory)]
@@ -469,7 +757,11 @@ function Invoke-TrivyConfigDir {
 
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
-        [System.Collections.Generic.List[PSCustomObject]] $Findings
+        [System.Collections.Generic.List[PSCustomObject]] $Findings,
+
+        [hashtable] $ToolVersions = @{},
+        [string] $ToolVersionSummary = '',
+        [string] $SourceRepoUrl = ''
     )
 
     if (-not (Get-Command trivy -ErrorAction SilentlyContinue)) {
@@ -481,16 +773,29 @@ function Invoke-TrivyConfigDir {
         Assert-TimeoutHelperLoaded
         $result = Invoke-WithTimeout -Command 'trivy' -Arguments @('config', '--format', 'json', '--output', $reportFile, $Dir) -TimeoutSec $script:IaCTimeoutSec
         if ($result.ExitCode -eq -1) {
+            $evidenceUris = Resolve-TerraformEvidenceUris -RepoPath $RepoPath -RelativeDir $RelativeDir -TargetPath 'main.tf' -Line 0 -SourceRepoUrl $SourceRepoUrl
             $Findings.Add([PSCustomObject]@{
                 Id          = [guid]::NewGuid().ToString()
                 Category    = 'IaC Security'
                 Title       = "Trivy scan incomplete: timed out after $($script:IaCTimeoutSec)s"
+                RuleId      = 'trivy-timeout'
                 Severity    = 'High'
                 Compliant   = $false
                 Detail      = Remove-Credentials "trivy config timed out after $($script:IaCTimeoutSec) seconds scanning $RelativeDir. Security findings may be missing."
                 Remediation = "Reduce the scan scope or increase the timeout budget. Consider scanning subdirectories individually."
                 ResourceId  = $RelativeDir
                 LearnMoreUrl = 'https://github.com/aquasecurity/trivy'
+                Pillar      = 'Security'
+                Frameworks  = @()
+                DeepLinkUrl = 'https://github.com/aquasecurity/trivy'
+                RemediationSnippets = @(@{
+                            language = 'hcl'
+                            code     = "- # scan scope too broad`n+ # split Terraform modules into smaller directories"
+                        })
+                EvidenceUris = $evidenceUris
+                BaselineTags = @('terraform:rule:trivy-timeout','terraform:provider:azurerm','terraform:tool:trivy')
+                EntityRefs   = Resolve-TerraformEntityRefs -RelativePath (Join-Path $RelativeDir 'main.tf') -ResourceAddress ''
+                ToolVersion  = if ($ToolVersions.trivy) { [string]$ToolVersions.trivy } else { $ToolVersionSummary }
             })
             return
         }
@@ -524,18 +829,21 @@ function Invoke-TrivyConfigDir {
                             $mcDesc = if ($mc.PSObject.Properties['Description'] -and $mc.Description) { $mc.Description } else { '' }
                             $mcRes = if ($mc.PSObject.Properties['Resolution'] -and $mc.Resolution) { $mc.Resolution } else { '' }
                             $mcSev = if ($mc.PSObject.Properties['Severity'] -and $mc.Severity) { $mc.Severity } else { 'MEDIUM' }
+                            $mcPrimary = if ($mc.PSObject.Properties['PrimaryURL'] -and $mc.PrimaryURL) { [string]$mc.PrimaryURL } else { '' }
+                            $mcReferences = if ($mc.PSObject.Properties['References'] -and $mc.References) { @($mc.References) } else { @() }
                             $mcUrl = ''
-                            if ($mc.PSObject.Properties['PrimaryURL'] -and $mc.PrimaryURL) {
-                                $mcUrl = $mc.PrimaryURL
-                            } elseif ($mc.PSObject.Properties['References'] -and $mc.References -and $mc.References.Count -gt 0) {
-                                $mcUrl = $mc.References[0]
+                            if (-not [string]::IsNullOrWhiteSpace($mcPrimary)) {
+                                $mcUrl = $mcPrimary
+                            } elseif ($mcReferences.Count -gt 0) {
+                                $mcUrl = [string]$mcReferences[0]
                             }
 
-                            $severity = switch ($mcSev.ToUpperInvariant()) {
+                            $severity = switch -Regex ($mcSev.ToString().ToLowerInvariant()) {
                                 'CRITICAL' { 'Critical' }
                                 'HIGH'     { 'High' }
                                 'MEDIUM'   { 'Medium' }
                                 'LOW'      { 'Low' }
+                                'UNKNOWN'  { 'Info' }
                                 default    { 'Info' }
                             }
 
@@ -543,17 +851,56 @@ function Invoke-TrivyConfigDir {
                                      elseif ($mcId) { $mcId }
                                      elseif ($mcTitle) { $mcTitle }
                                      else { 'Unknown misconfiguration' }
+                            $targetPath = if ($result.PSObject.Properties['Target'] -and $result.Target) { [string]$result.Target } else { 'main.tf' }
+                            $resourceAddress = ''
+                            if ($mc.PSObject.Properties['CauseMetadata'] -and $mc.CauseMetadata -and $mc.CauseMetadata.PSObject.Properties['Resource'] -and $mc.CauseMetadata.Resource) {
+                                $resourceAddress = [string]$mc.CauseMetadata.Resource
+                            } elseif ($mc.PSObject.Properties['Query'] -and $mc.Query) {
+                                $resourceAddress = [string]$mc.Query
+                            }
+                            $startLine = 0
+                            if ($mc.PSObject.Properties['CauseMetadata'] -and $mc.CauseMetadata -and $mc.CauseMetadata.PSObject.Properties['StartLine'] -and $mc.CauseMetadata.StartLine) {
+                                $startLine = [int]$mc.CauseMetadata.StartLine
+                            }
+                            $evidenceUris = Resolve-TerraformEvidenceUris -RepoPath $RepoPath -RelativeDir $RelativeDir -TargetPath $targetPath -Line $startLine -SourceRepoUrl $SourceRepoUrl
+                            $relativePath = ($evidenceUris[0] -replace '^file://', '') -replace '#L\d+$', ''
+                            $providerTag = Resolve-TerraformProviderTag -RuleId $mcId -Title $mcTitle -Description $mcDesc
+                            $toolLabel = Resolve-TerraformToolLabel -RuleId $mcId
+                            $ruleId = if ($mcId) { [string]$mcId } else { 'terraform-misconfiguration' }
+                            $deepLinkUrl = Resolve-TerraformDeepLinkUrl -RuleId $ruleId -PrimaryUrl $mcPrimary -References $mcReferences
+                            $frameworks = Resolve-TerraformFrameworks -RuleId $ruleId -Title $mcTitle -Description $mcDesc
+                            $pillar = Resolve-TerraformRulePillar -RuleId $ruleId -Title $mcTitle -Description $mcDesc -Category 'IaC Security'
+                            $remediationSnippets = Resolve-TerraformRemediationSnippets -RuleId $ruleId -Resolution $mcRes
+                            $entityRefs = Resolve-TerraformEntityRefs -RelativePath $relativePath -ResourceAddress $resourceAddress
+                            $toolVersion = ''
+                            if ($ToolVersions.ContainsKey($toolLabel) -and $ToolVersions[$toolLabel]) {
+                                $toolVersion = [string]$ToolVersions[$toolLabel]
+                            } elseif ($ToolVersions.trivy) {
+                                $toolVersion = [string]$ToolVersions.trivy
+                            } else {
+                                $toolVersion = $ToolVersionSummary
+                            }
 
                             $Findings.Add([PSCustomObject]@{
                                 Id          = [guid]::NewGuid().ToString()
                                 Category    = 'IaC Security'
                                 Title       = $title
+                                RuleId      = $ruleId
                                 Severity    = $severity
                                 Compliant   = $false
                                 Detail      = Remove-Credentials $mcDesc
                                 Remediation = $mcRes
                                 ResourceId  = $RelativeDir
                                 LearnMoreUrl = $mcUrl
+                                Pillar      = $pillar
+                                Frameworks  = $frameworks
+                                DeepLinkUrl = $deepLinkUrl
+                                RemediationSnippets = $remediationSnippets
+                                EvidenceUris = $evidenceUris
+                                BaselineTags = @("terraform:rule:$($ruleId.ToLowerInvariant())","terraform:provider:$providerTag","terraform:tool:$toolLabel")
+                                EntityRefs   = $entityRefs
+                                ResourceAddress = $resourceAddress
+                                ToolVersion = $toolVersion
                             })
                         }
                     }
