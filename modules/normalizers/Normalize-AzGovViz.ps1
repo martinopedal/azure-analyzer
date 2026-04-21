@@ -20,6 +20,169 @@ function Get-PropertyValue {
     return $p.Value
 }
 
+function Get-StringArrayValue {
+    param ([object]$Obj, [string]$Name)
+    $value = Get-PropertyValue -Obj $Obj -Name $Name -Default @()
+    if ($null -eq $value) { return @() }
+    if ($value -is [System.Array]) {
+        return @($value | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    if ($value -is [string]) {
+        if ([string]::IsNullOrWhiteSpace($value)) { return @() }
+        return @($value -split '[,;|]' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    return @([string]$value)
+}
+
+function Get-AzGovVizPillar {
+    param ([string]$Category, [string]$Title)
+
+    $normalizedCategory = ($Category ?? '').Trim().ToLowerInvariant()
+    $normalizedTitle = ($Title ?? '').Trim().ToLowerInvariant()
+    if ($normalizedCategory -match '^(policy|identity)$') { return 'Security' }
+    if ($normalizedCategory -match '^(cost|costoptimization|finops)$') { return 'Cost' }
+    if ($normalizedTitle -match 'orphaned') { return 'Cost' }
+    return 'Operational Excellence'
+}
+
+function Resolve-AzGovVizEntity {
+    param ([psobject]$Finding)
+
+    $rawId = Get-PropertyValue $Finding 'ResourceId' ''
+    $scope = Get-PropertyValue $Finding 'Scope' ''
+    $category = Get-PropertyValue $Finding 'Category' 'Governance'
+    $principalId = Get-PropertyValue $Finding 'PrincipalId' ''
+    $principalType = Get-PropertyValue $Finding 'PrincipalType' ''
+    $managementGroupResourceId = Get-PropertyValue $Finding 'ManagementGroupResourceId' ''
+    $managementGroupId = Get-PropertyValue $Finding 'ManagementGroupId' ''
+    $tenantId = Get-PropertyValue $Finding 'TenantId' ''
+    $subId = ''
+    $rg = ''
+    $canonicalId = ''
+    $entityType = 'ManagementGroup'
+    $platformOverride = $null
+
+    if ($category -eq 'Identity' -and $principalId) {
+        $principalTypeValue = $principalType.ToLowerInvariant()
+        $prefixedId = if ($principalId -match '^(objectId|appId):') { $principalId } else { "objectId:$principalId" }
+        if ($principalTypeValue -match 'user') {
+            $entityType = 'User'
+            $canonicalId = (ConvertTo-CanonicalEntityId -RawId $prefixedId -EntityType 'User').CanonicalId
+        } else {
+            $entityType = 'ServicePrincipal'
+            $canonicalId = (ConvertTo-CanonicalEntityId -RawId $prefixedId -EntityType 'ServicePrincipal').CanonicalId
+        }
+        $platformOverride = 'Azure'
+    }
+
+    if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
+    if ($scope -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
+    if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }
+
+    if (-not $canonicalId) {
+        $candidate = @($rawId, $scope, $managementGroupResourceId) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
+        if ($candidate -and $candidate -match '^/providers/microsoft\.management/managementgroups/') {
+            $entityType = 'ManagementGroup'
+            $canonicalId = $candidate.ToLowerInvariant()
+        } elseif ($candidate -and $candidate -match '^/subscriptions/[^/]+$') {
+            $entityType = 'Subscription'
+            if ($candidate -match '/subscriptions/([^/]+)') {
+                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $Matches[1] -EntityType 'Subscription').CanonicalId
+            }
+        } elseif ($candidate -and $candidate -match '^/subscriptions/') {
+            $entityType = 'AzureResource'
+            try {
+                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $candidate -EntityType 'AzureResource').CanonicalId
+            } catch {
+                $canonicalId = $candidate.ToLowerInvariant()
+            }
+        } elseif ($tenantId) {
+            $entityType = 'Tenant'
+            $canonicalId = (ConvertTo-CanonicalEntityId -RawId $tenantId -EntityType 'Tenant').CanonicalId
+        } elseif ($managementGroupId) {
+            $entityType = 'ManagementGroup'
+            $canonicalId = "/providers/microsoft.management/managementgroups/$($managementGroupId.ToLowerInvariant())"
+        } else {
+            $entityType = 'ManagementGroup'
+            $cat  = Get-PropertyValue $Finding 'Category' 'unknown'
+            $ttl  = Get-PropertyValue $Finding 'Title' (Get-PropertyValue $Finding 'Description' 'unknown')
+            $stableKey = "$cat/$ttl".ToLowerInvariant() -replace '[^a-z0-9/]', '-'
+            $canonicalId = "azgovviz/$stableKey"
+        }
+    }
+
+    return [pscustomobject]@{
+        EntityType             = $entityType
+        CanonicalId            = $canonicalId
+        SubscriptionId         = $subId
+        ResourceGroup          = $rg
+        PlatformOverride       = $platformOverride
+        ManagementGroupId      = $managementGroupId
+        ManagementGroupResId   = $managementGroupResourceId
+        TenantId               = $tenantId
+    }
+}
+
+function Get-AzGovVizEntityRefs {
+    param (
+        [psobject]$Finding,
+        [psobject]$EntityResolution
+    )
+
+    $refs = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $entityType = $EntityResolution.EntityType
+    $entityId = $EntityResolution.CanonicalId
+
+    function Add-Ref {
+        param ([string]$RefId, [string]$RefType)
+        if ([string]::IsNullOrWhiteSpace($RefId)) { return }
+        try {
+            $canonical = (ConvertTo-CanonicalEntityId -RawId $RefId -EntityType $RefType).CanonicalId
+            if ($canonical -and $canonical -ne $entityId -and $seen.Add($canonical)) {
+                $refs.Add($canonical)
+            }
+        } catch {
+            return
+        }
+    }
+
+    $subId = $EntityResolution.SubscriptionId
+    if ($subId -and $entityType -ne 'Subscription') {
+        Add-Ref -RefId $subId -RefType 'Subscription'
+    }
+
+    $mgRef = if ($EntityResolution.ManagementGroupResId) {
+        $EntityResolution.ManagementGroupResId
+    } elseif ($EntityResolution.ManagementGroupId) {
+        "/providers/Microsoft.Management/managementGroups/$($EntityResolution.ManagementGroupId)"
+    } else {
+        ''
+    }
+    if ($mgRef -and $entityType -ne 'ManagementGroup') {
+        Add-Ref -RefId $mgRef -RefType 'ManagementGroup'
+    }
+
+    $mgPath = Get-StringArrayValue -Obj $Finding -Name 'ManagementGroupPath'
+    foreach ($mg in $mgPath) {
+        $mgRefId = if ($mg -match '^/providers/microsoft\.management/managementgroups/') { $mg } else { "/providers/Microsoft.Management/managementGroups/$mg" }
+        if ($entityType -ne 'ManagementGroup') {
+            Add-Ref -RefId $mgRefId -RefType 'ManagementGroup'
+        }
+    }
+
+    $parentMgId = Get-PropertyValue -Obj $Finding -Name 'ParentManagementGroupId' -Default ''
+    if ($parentMgId) {
+        Add-Ref -RefId "/providers/Microsoft.Management/managementGroups/$parentMgId" -RefType 'ManagementGroup'
+    }
+
+    if ($EntityResolution.TenantId -and $entityType -ne 'Tenant') {
+        Add-Ref -RefId $EntityResolution.TenantId -RefType 'Tenant'
+    }
+
+    return @($refs)
+}
+
 function Normalize-AzGovViz {
     [CmdletBinding()]
     param (
@@ -37,65 +200,7 @@ function Normalize-AzGovViz {
     foreach ($finding in $ToolResult.Findings) {
         $rawId = Get-PropertyValue $finding 'ResourceId' ''
         $category = Get-PropertyValue $finding 'Category' 'Governance'
-        $principalId = Get-PropertyValue $finding 'PrincipalId' ''
-        $principalType = Get-PropertyValue $finding 'PrincipalType' ''
-        $subId = ''
-        $rg = ''
-        $canonicalId = ''
-        $entityType = 'ManagementGroup'
-        $platformOverride = $null
-
-        if ($category -eq 'Identity' -and $principalId) {
-            $principalTypeValue = $principalType.ToLowerInvariant()
-            # AzGovViz PrincipalId is always an objectId; prefix it for the canonicalizer
-            $prefixedId = if ($principalId -match '^(objectId|appId):') { $principalId } else { "objectId:$principalId" }
-            if ($principalTypeValue -match 'user') {
-                $entityType = 'User'
-                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $prefixedId -EntityType 'User').CanonicalId
-            } else {
-                $entityType = 'ServicePrincipal'
-                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $prefixedId -EntityType 'ServicePrincipal').CanonicalId
-            }
-            # AzGovViz Identity findings represent Azure RBAC assignments.
-            $platformOverride = 'Azure'
-        }
-
-        if (-not $canonicalId -and $rawId -and $rawId -match '^/subscriptions/') {
-            # Bare /subscriptions/{id} → Subscription; deeper paths → AzureResource
-            if ($rawId -match '^/subscriptions/[^/]+$') {
-                $entityType = 'Subscription'
-                # For Subscription EntityType, EntityId is just the GUID
-                if ($rawId -match '/subscriptions/([^/]+)') {
-                    $canonicalId = $Matches[1].ToLowerInvariant()
-                }
-            } else {
-                $entityType = 'AzureResource'
-                # For AzureResource, use full ARM path
-                try {
-                    $canonicalId = (ConvertTo-CanonicalEntityId -RawId $rawId -EntityType 'AzureResource').CanonicalId
-                } catch {
-                    $canonicalId = $rawId.ToLowerInvariant()
-                }
-            }
-            if ($rawId -match '/subscriptions/([^/]+)') { $subId = $Matches[1] }
-            if ($rawId -match '/resourceGroups/([^/]+)') { $rg = $Matches[1] }
-        }
-
-        if (-not $canonicalId) {
-            # For MG findings, build a stable ID from Category+Title instead of random GUID
-            $mgId = Get-PropertyValue $finding 'ManagementGroupId' ''
-            if ($mgId) {
-                $canonicalId = "azgovviz/mg/$($mgId.ToLowerInvariant())"
-            } else {
-                $cat  = Get-PropertyValue $finding 'Category' 'unknown'
-                $ttl  = Get-PropertyValue $finding 'Title' (Get-PropertyValue $finding 'Description' 'unknown')
-                $stableKey = "$cat/$ttl".ToLowerInvariant() -replace '[^a-z0-9/]', '-'
-                $canonicalId = "azgovviz/$stableKey"
-            }
-            # For management group findings, keep the ManagementGroup type
-            $entityType = 'ManagementGroup'
-        }
-
+        $entityResolution = Resolve-AzGovVizEntity -Finding $finding
         $title = Get-PropertyValue $finding 'Title' (Get-PropertyValue $finding 'Description' 'Unknown')
 
         $rawSev = Get-PropertyValue $finding 'Severity' 'Info'
@@ -115,12 +220,23 @@ function Normalize-AzGovViz {
         $detail = Get-PropertyValue $finding 'Detail' ''
         $remediation = Get-PropertyValue $finding 'Remediation' ''
         $learnMore = Get-PropertyValue $finding 'LearnMoreUrl' (Get-PropertyValue $finding 'LearnMoreLink' '')
+        $pillar = Get-PropertyValue $finding 'Pillar' ''
+        if (-not $pillar) {
+            $pillar = Get-AzGovVizPillar -Category $category -Title $title
+        }
+        $frameworks = Get-PropertyValue $finding 'Frameworks' @()
+        $baselineTags = Get-StringArrayValue -Obj $finding -Name 'BaselineTags'
+        $evidenceUris = Get-StringArrayValue -Obj $finding -Name 'EvidenceUris'
+        $entityRefs = Get-AzGovVizEntityRefs -Finding $finding -EntityResolution $entityResolution
+        $toolVersion = Get-PropertyValue $finding 'ToolVersion' ''
+        $deepLinkUrl = Get-PropertyValue $finding 'DeepLinkUrl' ''
+        $mgPath = Get-StringArrayValue -Obj $finding -Name 'ManagementGroupPath'
 
         $newFindingParams = @{
             Id              = ([guid]::NewGuid().ToString())
             Source          = 'azgovviz'
-            EntityId        = $canonicalId
-            EntityType      = $entityType
+            EntityId        = $entityResolution.CanonicalId
+            EntityType      = $entityResolution.EntityType
             Title           = $title
             Compliant       = [bool]$compliant
             ProvenanceRunId = $runId
@@ -130,11 +246,19 @@ function Normalize-AzGovViz {
             Remediation     = $remediation
             LearnMoreUrl    = ($learnMore ?? '')
             ResourceId      = ($rawId ?? '')
-            SubscriptionId  = $subId
-            ResourceGroup   = $rg
+            SubscriptionId  = $entityResolution.SubscriptionId
+            ResourceGroup   = $entityResolution.ResourceGroup
+            ManagementGroupPath = $mgPath
+            Frameworks      = $frameworks
+            Pillar          = $pillar
+            DeepLinkUrl     = $deepLinkUrl
+            EvidenceUris    = $evidenceUris
+            BaselineTags    = $baselineTags
+            EntityRefs      = $entityRefs
+            ToolVersion     = $toolVersion
         }
-        if ($platformOverride) {
-            $newFindingParams.Platform = $platformOverride
+        if ($entityResolution.PlatformOverride) {
+            $newFindingParams.Platform = $entityResolution.PlatformOverride
         }
 
         $row = New-FindingRow @newFindingParams

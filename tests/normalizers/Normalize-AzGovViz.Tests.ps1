@@ -5,6 +5,7 @@ BeforeAll {
     $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
     . (Join-Path $repoRoot 'modules\shared\Canonicalize.ps1')
     . (Join-Path $repoRoot 'modules\shared\Schema.ps1')
+    . (Join-Path $repoRoot 'modules\shared\EntityStore.ps1')
     . (Join-Path $repoRoot 'modules\normalizers\Normalize-AzGovViz.ps1')
 }
 
@@ -20,7 +21,7 @@ Describe 'Normalize-AzGovViz' {
         }
 
         It 'returns the correct number of findings' {
-            @($results).Count | Should -Be 6
+            @($results).Count | Should -Be 7
         }
 
         It 'sets SchemaVersion to 2.0' {
@@ -54,9 +55,10 @@ Describe 'Normalize-AzGovViz' {
         }
 
         It 'maps governance findings without ResourceId to ManagementGroup EntityType' {
-            $mgFinding = $results | Where-Object { $_.EntityType -eq 'ManagementGroup' }
+            $mgFinding = $results | Where-Object { $_.Title -eq 'Management group has orphaned custom policy definitions' }
             $mgFinding | Should -Not -BeNullOrEmpty
             $mgFinding.EntityType | Should -Be 'ManagementGroup'
+            $mgFinding.EntityId | Should -Be '/providers/microsoft.management/managementgroups/mg-platform'
         }
 
         It 'maps RBAC user findings to User EntityType with canonical objectId format' {
@@ -77,7 +79,7 @@ Describe 'Normalize-AzGovViz' {
         It 'uses stable canonical IDs for MG findings (not random GUIDs)' {
             $mgFinding = $results | Where-Object { $_.EntityType -eq 'ManagementGroup' }
             $mgFinding | Should -Not -BeNullOrEmpty
-            $mgFinding.EntityId | Should -Match '^azgovviz/'
+            $mgFinding.EntityId | Should -Match '^/providers/microsoft\.management/managementgroups/'
             $mgFinding.EntityId | Should -Not -Match '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
         }
     }
@@ -123,6 +125,7 @@ Describe 'Normalize-AzGovViz' {
             ($results | Where-Object { $_.Title -eq 'Management group has orphaned custom policy definitions' }).Severity | Should -Be 'Low'
             ($results | Where-Object { $_.Title -eq 'Role assignment: Owner' }).Severity | Should -Be 'High'
             ($results | Where-Object { $_.Title -eq 'Resource diagnostics settings not configured' }).Severity | Should -Be 'Medium'
+            ($results | Where-Object { $_.Title -eq 'Subscription missing monthly budget alert' }).Severity | Should -Be 'Medium'
         }
 
         It 'preserves Category values' {
@@ -130,10 +133,50 @@ Describe 'Normalize-AzGovViz' {
             ($results | Where-Object { $_.Title -eq 'Management group has orphaned custom policy definitions' }).Category | Should -Be 'Policy'
             ($results | Where-Object { $_.Title -eq 'Role assignment: Owner' }).Category | Should -Be 'Identity'
             ($results | Where-Object { $_.Title -eq 'Resource diagnostics settings not configured' }).Category | Should -Be 'Operations'
+            ($results | Where-Object { $_.Title -eq 'Subscription missing monthly budget alert' }).Category | Should -Be 'Cost'
         }
 
         It 'preserves Title' {
             $results[0].Title | Should -Not -BeNullOrEmpty
+        }
+
+        It 'emits schema 2.2 fields through New-FindingRow' {
+            $policyFinding = $results | Where-Object { $_.Title -eq 'Policy compliance state: Deny public IP on workloads' } | Select-Object -First 1
+            $policyFinding | Should -Not -BeNullOrEmpty
+            $policyFinding.Pillar | Should -Be 'Security'
+            @($policyFinding.Frameworks).Count | Should -BeGreaterThan 0
+            @($policyFinding.BaselineTags).Count | Should -BeGreaterThan 0
+            @($policyFinding.EvidenceUris).Count | Should -BeGreaterThan 0
+            $policyFinding.DeepLinkUrl | Should -Match '^https://portal\.azure\.com/'
+            $policyFinding.ToolVersion | Should -Be '9.9.9'
+        }
+
+        It 'derives pillar values across azgovviz categories' {
+            ($results | Where-Object { $_.Category -eq 'Governance' } | Select-Object -First 1).Pillar | Should -Be 'Operational Excellence'
+            ($results | Where-Object { $_.Category -eq 'Policy' } | Select-Object -First 1).Pillar | Should -Be 'Security'
+            ($results | Where-Object { $_.Category -eq 'Cost' } | Select-Object -First 1).Pillar | Should -Be 'Cost'
+            ($results | Where-Object { $_.Category -eq 'Identity' } | Select-Object -First 1).Pillar | Should -Be 'Security'
+        }
+    }
+
+    Context 'entity dedup through EntityStore' {
+        It 'merges subscription and management-group entities across repeated findings' {
+            $results = Normalize-AzGovViz -ToolResult $fixture
+            $storePath = Join-Path $TestDrive 'entity-dedup'
+            $store = [EntityStore]::new(1000, $storePath)
+            try {
+                foreach ($finding in $results) {
+                    $store.AddFinding($finding)
+                }
+
+                $entities = @($store.GetEntities())
+                @($entities | Where-Object { $_.EntityType -eq 'Subscription' -and $_.EntityId -eq '00000000-0000-0000-0000-000000000001' }).Count | Should -Be 1
+                @($entities | Where-Object { $_.EntityType -eq 'ManagementGroup' -and $_.EntityId -eq '/providers/microsoft.management/managementgroups/mg-platform' }).Count | Should -Be 1
+            } finally {
+                if ($null -ne $store) {
+                    $store.CleanupSpillFiles()
+                }
+            }
         }
     }
 
