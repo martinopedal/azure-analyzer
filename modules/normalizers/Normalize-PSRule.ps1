@@ -28,6 +28,35 @@ function Normalize-PSRule {
     $runId = [guid]::NewGuid().ToString()
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+    function Get-RemediationSnippets {
+        param([string] $Recommendation)
+        if ([string]::IsNullOrWhiteSpace($Recommendation)) {
+            return @()
+        }
+
+        $snippets = [System.Collections.Generic.List[hashtable]]::new()
+        $matches = [regex]::Matches($Recommendation, '(?ms)```(?<language>[^\r\n`]*)\r?\n(?<code>.*?)```')
+        foreach ($match in $matches) {
+            $code = [string]$match.Groups['code'].Value
+            if ([string]::IsNullOrWhiteSpace($code)) { continue }
+            $language = [string]$match.Groups['language'].Value
+            if ([string]::IsNullOrWhiteSpace($language)) { $language = 'text' }
+            $snippets.Add(@{
+                    language = $language.Trim().ToLowerInvariant()
+                    code     = $code.Trim()
+                }) | Out-Null
+        }
+
+        if ($snippets.Count -eq 0) {
+            $snippets.Add(@{
+                    language = 'text'
+                    code     = $Recommendation.Trim()
+                }) | Out-Null
+        }
+
+        return @($snippets)
+    }
+
     foreach ($finding in $ToolResult.Findings) {
         $rawId = ''
         if ($finding.PSObject.Properties['ResourceId'] -and $finding.ResourceId) {
@@ -74,14 +103,24 @@ function Normalize-PSRule {
         $detail = if ($finding.PSObject.Properties['Detail'] -and $finding.Detail) { $finding.Detail } else { '' }
         $remediation = if ($finding.PSObject.Properties['Remediation'] -and $finding.Remediation) { $finding.Remediation } else { '' }
         $learnMore = if ($finding.PSObject.Properties['LearnMoreUrl'] -and $finding.LearnMoreUrl) { $finding.LearnMoreUrl } else { '' }
+        $ruleId = if ($finding.PSObject.Properties['RuleId'] -and $finding.RuleId) { [string]$finding.RuleId } else { $category }
+        $pillar = if ($finding.PSObject.Properties['Pillar'] -and $finding.Pillar) { [string]$finding.Pillar } else { '' }
+        $deepLinkUrl = if ($finding.PSObject.Properties['DeepLinkUrl'] -and $finding.DeepLinkUrl) { [string]$finding.DeepLinkUrl } else { '' }
+        $frameworks = if ($finding.PSObject.Properties['Frameworks'] -and $finding.Frameworks) { @($finding.Frameworks) } else { @() }
+        $baselineTags = if ($finding.PSObject.Properties['BaselineTags'] -and $finding.BaselineTags) { @($finding.BaselineTags) } else { @() }
+        $toolVersion = if ($finding.PSObject.Properties['ToolVersion'] -and $finding.ToolVersion) { [string]$finding.ToolVersion } else { '' }
+        $remediationSnippets = Get-RemediationSnippets -Recommendation $remediation
 
         $row = New-FindingRow -Id $findingId `
             -Source 'psrule' -EntityId $canonicalId -EntityType 'AzureResource' `
-            -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
+            -Title $title -RuleId $ruleId -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
             -Platform 'Azure' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '') `
-            -SubscriptionId $subId -ResourceGroup $rg
+            -SubscriptionId $subId -ResourceGroup $rg `
+            -Frameworks $frameworks -Pillar $pillar -DeepLinkUrl $deepLinkUrl `
+            -RemediationSnippets $remediationSnippets -BaselineTags $baselineTags `
+            -ToolVersion $toolVersion
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)

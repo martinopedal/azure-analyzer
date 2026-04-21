@@ -7,36 +7,83 @@
       "Source": "psrule",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Sql/servers/sql-prod-01/databases/db-app",
       "Category": "Azure.SQL.TDE",
+      "RuleId": "AZR-100100",
       "Title": "SQL Database should have Transparent Data Encryption enabled",
       "Compliant": false,
       "Severity": "High",
       "Detail": "The SQL database db-app on server sql-prod-01 does not have Transparent Data Encryption (TDE) enabled. TDE encrypts data at rest.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-tde-overview",
-      "Remediation": "Enable TDE via the Azure Portal under the SQL database Security settings or using Set-AzSqlDatabaseTransparentDataEncryption.",
+      "DeepLinkUrl": "https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.SQL.TDE/",
+      "Remediation": "Enable TDE via the Azure Portal under the SQL database Security settings.\n```bicep\nresource sqlDb 'Microsoft.Sql/servers/databases@2021-11-01' = {\n  name: 'sql-prod-01/db-app'\n  properties: {\n    transparentDataEncryption: 'Enabled'\n  }\n}\n```",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "WAF",
+          "Controls": [
+            "Azure.SQL.TDE"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "Azure.Default",
+        "Azure.GA_2024_06"
+      ],
+      "ToolVersion": "1.35.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "psrule",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Network/networkSecurityGroups/nsg-web-subnet",
       "Category": "Azure.NSG.Associated",
+      "RuleId": "AZR-100200",
       "Title": "Network security group should be associated to a subnet or NIC",
       "Compliant": true,
       "Severity": "Info",
       "Detail": "Network security group nsg-web-subnet is associated with subnet web-subnet in virtual network vnet-prod.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview",
+      "DeepLinkUrl": "https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.NSG.Associated/",
       "Remediation": "",
+      "Pillar": "Reliability",
+      "Frameworks": [
+        {
+          "Name": "WAF",
+          "Controls": [
+            "Azure.NSG.Associated"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "Azure.Default"
+      ],
+      "ToolVersion": "1.35.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "psrule",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Web/sites/app-api-prod",
       "Category": "Azure.AppService.MinTLS",
+      "RuleId": "AZR-100300",
       "Title": "App Service should use minimum TLS 1.2",
       "Compliant": false,
       "Severity": "High",
       "Detail": "App Service app-api-prod is configured with TLS 1.0. Minimum TLS version should be set to 1.2 to meet security best practices.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/app-service/configure-ssl-bindings",
+      "DeepLinkUrl": "https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.AppService.MinTLS/",
       "Remediation": "Set the minimum TLS version to 1.2 in the App Service TLS/SSL settings.",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "WAF",
+          "Controls": [
+            "Azure.AppService.MinTLS"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "Azure.Default",
+        "Azure.GA_2024_06"
+      ],
+      "ToolVersion": "1.35.0",
       "SchemaVersion": "1.0"
     }
   ]
