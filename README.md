@@ -53,6 +53,7 @@ Invoke-AzureAnalyzer -Repository "github.com/<org>/<repo>" -IncludeTools 'zizmor
 ```
 
 The remote repo is fetched through `modules/shared/RemoteClone.ps1` (HTTPS-only, host allow-list, automatic token scrub) into a scratch path that is cleaned up at the end of the run. A local `-RepoPath "C:\repos\my-app"` fallback is available when working offline.
+Scorecard findings include Schema 2.2 metadata (`Pillar`, `Frameworks`, `BaselineTags`, `ToolVersion`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`) so HTML and Markdown reports render supply-chain context without placeholders.
 
 ### 3. Generate an HTML report from an existing run
 

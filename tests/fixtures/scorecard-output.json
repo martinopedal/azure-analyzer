@@ -6,49 +6,160 @@
     {
       "Source": "scorecard",
       "ResourceId": "github.com/test-org/test-repo",
-      "Category": "Supply Chain",
-      "Title": "Branch protection is not enabled on default branch",
+      "Category": "Code-Review",
+      "Title": "Branch-Protection",
+      "CheckName": "Branch-Protection",
+      "Score": 0,
       "Compliant": false,
-      "Severity": "High",
-      "Detail": "Score 0/10. The default branch does not have branch protection rules configured. This allows direct pushes without review.",
+      "Severity": "Critical",
+      "Detail": "Score 0/10. Branch protection is not enabled on default branch.",
       "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection",
-      "Remediation": "Enable branch protection on the default branch requiring at least one review approval and status checks.",
+      "DeepLinkUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection",
+      "Remediation": "Enable branch protection and require reviews.",
+      "RemediationSnippets": [
+        {
+          "Kind": "Documentation",
+          "Title": "text",
+          "Content": "Enable branch protection and require reviews."
+        }
+      ],
+      "CheckDetails": [
+        "Evidence in .github/workflows/ci.yml missing required checks.",
+        "See commit 1111111 for direct push history."
+      ],
+      "Frameworks": [
+        {
+          "Name": "OpenSSF Scorecard",
+          "Controls": [
+            "Branch-Protection"
+          ]
+        },
+        {
+          "Name": "SLSA",
+          "Controls": [
+            "Source L3"
+          ]
+        }
+      ],
+      "Pillar": "Security",
+      "BaselineTags": [
+        "v4.13.0"
+      ],
+      "ToolVersion": "scorecard version: v4.13.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "scorecard",
       "ResourceId": "github.com/test-org/test-repo",
-      "Category": "Supply Chain",
-      "Title": "Dependencies are pinned to specific versions",
+      "Category": "Code-Review",
+      "Title": "Code-Review",
+      "CheckName": "Code-Review",
+      "Score": 10,
       "Compliant": true,
       "Severity": "Info",
-      "Detail": "Score 10/10. All dependencies in package manifests and GitHub Actions workflows are pinned to specific versions or SHA hashes.",
-      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies",
+      "Detail": "Score 10/10. Code review enforcement is configured.",
+      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#code-review",
+      "DeepLinkUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#code-review",
       "Remediation": "",
+      "RemediationSnippets": [],
+      "CheckDetails": [
+        "Policy page https://github.com/test-org/test-repo/settings/branch_protection_rules"
+      ],
+      "Frameworks": [
+        {
+          "Name": "OpenSSF Scorecard",
+          "Controls": [
+            "Code-Review"
+          ]
+        },
+        {
+          "Name": "SLSA",
+          "Controls": [
+            "Source L3"
+          ]
+        }
+      ],
+      "Pillar": "Security",
+      "BaselineTags": [
+        "v4.13.0"
+      ],
+      "ToolVersion": "scorecard version: v4.13.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "scorecard",
       "ResourceId": "github.com/test-org/test-repo",
-      "Category": "Supply Chain",
-      "Title": "SAST tool is not integrated in CI pipeline",
+      "Category": "SAST",
+      "Title": "SAST",
+      "CheckName": "SAST",
+      "Score": 6,
       "Compliant": false,
       "Severity": "Medium",
-      "Detail": "Score 0/10. No static analysis security testing (SAST) tool detected in CI/CD pipeline configuration.",
+      "Detail": "Score 6/10. SAST tool is partially integrated in CI pipeline.",
       "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#sast",
-      "Remediation": "Integrate a SAST tool such as CodeQL or Semgrep into the CI pipeline.",
+      "DeepLinkUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#sast",
+      "Remediation": "Integrate a full SAST workflow on pull requests and default branch pushes.",
+      "RemediationSnippets": [
+        {
+          "Kind": "Documentation",
+          "Title": "text",
+          "Content": "Integrate a full SAST workflow on pull requests and default branch pushes."
+        }
+      ],
+      "CheckDetails": [
+        "Missing file .github/workflows/codeql.yml"
+      ],
+      "Frameworks": [
+        {
+          "Name": "OpenSSF Scorecard",
+          "Controls": [
+            "SAST"
+          ]
+        }
+      ],
+      "Pillar": "Security",
+      "BaselineTags": [
+        "v4.13.0"
+      ],
+      "ToolVersion": "scorecard version: v4.13.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "scorecard",
       "ResourceId": "github.com/test-org/test-repo",
-      "Category": "Supply Chain",
-      "Title": "Signed releases are not configured",
-      "Compliant": false,
-      "Severity": "Medium",
-      "Detail": "Score 2/10. Repository releases are not signed. Signed releases help verify artifact provenance and integrity.",
-      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#signed-releases",
-      "Remediation": "Configure GPG signing for releases and enable Sigstore for artifact attestation.",
+      "Category": "Dependencies",
+      "Title": "Pinned-Dependencies",
+      "CheckName": "Pinned-Dependencies",
+      "Score": 8,
+      "Compliant": true,
+      "Severity": "Low",
+      "Detail": "Score 8/10. Dependency pinning is mostly configured.",
+      "LearnMoreUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies",
+      "DeepLinkUrl": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies",
+      "Remediation": "",
+      "RemediationSnippets": [],
+      "CheckDetails": [
+        "File package-lock.json is pinned."
+      ],
+      "Frameworks": [
+        {
+          "Name": "OpenSSF Scorecard",
+          "Controls": [
+            "Pinned-Dependencies"
+          ]
+        },
+        {
+          "Name": "SLSA",
+          "Controls": [
+            "Build L3"
+          ]
+        }
+      ],
+      "Pillar": "Security",
+      "BaselineTags": [
+        "v4.13.0"
+      ],
+      "ToolVersion": "scorecard version: v4.13.0",
       "SchemaVersion": "1.0"
     }
   ]

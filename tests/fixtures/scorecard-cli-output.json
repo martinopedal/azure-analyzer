@@ -1,0 +1,66 @@
+{
+  "repo": {
+    "name": "test-org/test-repo"
+  },
+  "checks": [
+    {
+      "name": "Branch-Protection",
+      "score": 2,
+      "reason": "Default branch allows force pushes.",
+      "details": [
+        "Workflow file .github/workflows/ci.yml has no required status checks.",
+        "See commit 7f9a12b3c4d5e6f7890ab12cd34ef56789012345 for bypassed policy evidence."
+      ],
+      "documentation": {
+        "url": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection",
+        "text": "Enable branch protection and require PR reviews."
+      }
+    },
+    {
+      "name": "SAST",
+      "score": 5,
+      "reason": "No SAST workflow found on default branch.",
+      "details": [
+        "Missing file .github/workflows/codeql.yml"
+      ],
+      "documentation": {
+        "url": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#sast",
+        "text": "Add CodeQL or equivalent SAST scanner to CI."
+      }
+    },
+    {
+      "name": "Pinned-Dependencies",
+      "score": 9,
+      "reason": "Most dependency manifests are pinned.",
+      "details": [
+        "File package-lock.json is pinned."
+      ],
+      "documentation": {
+        "url": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies"
+      }
+    },
+    {
+      "name": "Code-Review",
+      "score": 10,
+      "reason": "All commits require reviewed pull requests.",
+      "details": [
+        "Policy evidence URL: https://github.com/test-org/test-repo/settings/branch_protection_rules"
+      ],
+      "documentation": {
+        "url": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#code-review"
+      }
+    },
+    {
+      "name": "Token-Permissions",
+      "score": -1,
+      "reason": "API rate-limit prevented check execution.",
+      "details": [
+        "Check errored for commit a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+      ],
+      "documentation": {
+        "url": "https://github.com/ossf/scorecard/blob/main/docs/checks.md#token-permissions",
+        "text": "Set least-privilege token permissions in workflow YAML."
+      }
+    }
+  ]
+}
