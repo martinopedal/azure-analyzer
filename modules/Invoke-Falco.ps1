@@ -232,6 +232,103 @@ function Convert-PriorityToSeverity {
     }
 }
 
+function New-FalcoRuleId {
+    param([string]$RuleName)
+    if ([string]::IsNullOrWhiteSpace($RuleName)) { return 'falco:runtime-alert' }
+    $slug = ($RuleName.ToLowerInvariant() -replace '[^a-z0-9]+', '-').Trim('-')
+    if ([string]::IsNullOrWhiteSpace($slug)) { $slug = 'runtime-alert' }
+    return "falco:$slug"
+}
+
+function Get-FalcoMitreMapping {
+    param(
+        [string]$RuleName,
+        [string]$Priority,
+        [string]$Detail
+    )
+    $text = "$RuleName $Detail".ToLowerInvariant()
+    if ($text -match 'shell|exec') {
+        return @{
+            Tactics    = @('Execution')
+            Techniques = @('T1059')
+        }
+    }
+    if ($text -match 'capabilit|privilege|root|escalat') {
+        return @{
+            Tactics    = @('PrivilegeEscalation')
+            Techniques = @('T1068')
+        }
+    }
+    if ($text -match 'write|modify|executable|binary|filesystem') {
+        return @{
+            Tactics    = @('DefenseEvasion')
+            Techniques = @('T1070')
+        }
+    }
+
+    $p = ($Priority ?? '').ToLowerInvariant()
+    if ($p -eq 'critical' -or $p -eq 'error') {
+        return @{
+            Tactics    = @('Execution')
+            Techniques = @('T1059')
+        }
+    }
+    return @{
+        Tactics    = @()
+        Techniques = @()
+    }
+}
+
+function Get-FalcoFrameworks {
+    param(
+        [string]$RuleId,
+        [string]$RuleName
+    )
+    if ([string]::IsNullOrWhiteSpace($RuleName)) { return @() }
+    return @(
+        @{
+            Name      = 'CIS Kubernetes Benchmark'
+            ControlId = $RuleId
+            Controls  = @($RuleId)
+        }
+    )
+}
+
+function Get-FalcoImpact {
+    param([string]$Severity)
+    switch ($Severity) {
+        'Critical' { return 'High' }
+        'High'     { return 'High' }
+        'Medium'   { return 'Medium' }
+        'Low'      { return 'Low' }
+        default    { return 'Low' }
+    }
+}
+
+function Get-FalcoEffort {
+    param([string]$Severity)
+    switch ($Severity) {
+        'Critical' { return 'Medium' }
+        'High'     { return 'Medium' }
+        'Medium'   { return 'Low' }
+        'Low'      { return 'Low' }
+        default    { return 'Low' }
+    }
+}
+
+function Get-FalcoToolVersion {
+    $fallback = 'falco-alert-pipeline'
+    if (-not (Get-Command falco -ErrorAction SilentlyContinue)) { return $fallback }
+    try {
+        $raw = @(& falco --version 2>$null) -join ' '
+        if ([string]::IsNullOrWhiteSpace($raw)) { return $fallback }
+        return (($raw -replace '\s+', ' ').Trim())
+    } catch {
+        return $fallback
+    }
+}
+
+$falcoToolVersion = Get-FalcoToolVersion
 $findings = [System.Collections.Generic.List[object]]::new()
 
 if (-not $InstallFalco) {
@@ -270,13 +367,24 @@ Resources
         $proc = Get-MatchValue -Text ([string]$a.extendedProperties) -Pattern '(?i)"(?:proc|process|Process|proc\.name)"\s*:\s*"([^"]+)"'
 
         $sev = Convert-PriorityToSeverity -Priority $priority
+        $ruleId = New-FalcoRuleId -RuleName $rule
+        $impact = Get-FalcoImpact -Severity $sev
+        $effort = Get-FalcoEffort -Severity $sev
+        $mitre = Get-FalcoMitreMapping -RuleName $rule -Priority $priority -Detail ([string]$a.description)
+        $frameworks = Get-FalcoFrameworks -RuleId $ruleId -RuleName $rule
         $ruleDisplay = if ($rule) { $rule } else { [string]$a.alertName }
         if (-not $ruleDisplay) { $ruleDisplay = 'Falco runtime alert' }
+        $deepLinkUrl = if ($a.id) { "https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/6/id/$([uri]::EscapeDataString([string]$a.id))" } else { '' }
+        $evidenceUris = @()
+        if ($a.id) { $evidenceUris += [string]$a.id }
+        if ($deepLinkUrl) { $evidenceUris += $deepLinkUrl }
+        if (-not [string]::IsNullOrWhiteSpace([string]$rid)) { $evidenceUris += [string]$rid }
 
         $findings.Add([pscustomobject]@{
             Id          = if ($a.id) { "falco/$($a.id)" } else { "falco/$([guid]::NewGuid())" }
             Source      = 'falco'
             Category    = 'KubernetesRuntimeThreatDetection'
+            RuleId      = $ruleId
             Severity    = $sev
             Priority    = $priority
             Compliant   = $false
@@ -288,6 +396,21 @@ Resources
             Pod         = $pod
             Process     = $proc
             LearnMoreUrl = 'https://falco.org/docs/'
+            Frameworks  = @($frameworks)
+            Pillar      = 'Security'
+            Impact      = $impact
+            Effort      = $effort
+            DeepLinkUrl = $deepLinkUrl
+            RemediationSnippets = @(@{
+                    language = 'text'
+                    code     = 'Investigate container activity, validate expected process behavior, and tighten pod security controls.'
+                })
+            EvidenceUris = @($evidenceUris)
+            BaselineTags = @('falco', 'aks-runtime-threat', $ruleId)
+            MitreTactics = @($mitre.Tactics)
+            MitreTechniques = @($mitre.Techniques)
+            EntityRefs   = @([string]$rid)
+            ToolVersion  = $falcoToolVersion
         }) | Out-Null
     }
 
@@ -391,11 +514,21 @@ foreach ($cluster in $clusters) {
             $pod = Get-MatchValue -Text $line -Pattern '(?i)"k8s\.pod\.name"\s*:\s*"([^"]+)"'
             $proc = Get-MatchValue -Text $line -Pattern '(?i)"proc\.name"\s*:\s*"([^"]+)"'
             $sev = Convert-PriorityToSeverity -Priority $priority
+            $ruleId = New-FalcoRuleId -RuleName $rule
+            $impact = Get-FalcoImpact -Severity $sev
+            $effort = Get-FalcoEffort -Severity $sev
+            $mitre = Get-FalcoMitreMapping -RuleName $rule -Priority $priority -Detail ([string]$line)
+            $frameworks = Get-FalcoFrameworks -RuleId $ruleId -RuleName $rule
+            $deepLinkUrl = if ($cluster.id) { "https://portal.azure.com/#@/resource$([string]$cluster.id)" } else { '' }
+            $evidenceUris = @()
+            if ($deepLinkUrl) { $evidenceUris += $deepLinkUrl }
+            if (-not [string]::IsNullOrWhiteSpace([string]$cluster.id)) { $evidenceUris += [string]$cluster.id }
 
             $findings.Add([pscustomobject]@{
                 Id          = "falco/$($cluster.id)/$([guid]::NewGuid())"
                 Source      = 'falco'
                 Category    = 'KubernetesRuntimeThreatDetection'
+                RuleId      = $ruleId
                 Severity    = $sev
                 Priority    = $priority
                 Compliant   = $false
@@ -407,6 +540,21 @@ foreach ($cluster in $clusters) {
                 Pod         = $pod
                 Process     = $proc
                 LearnMoreUrl = 'https://falco.org/docs/'
+                Frameworks  = @($frameworks)
+                Pillar      = 'Security'
+                Impact      = $impact
+                Effort      = $effort
+                DeepLinkUrl = $deepLinkUrl
+                RemediationSnippets = @(@{
+                        language = 'text'
+                        code     = 'Investigate container activity, validate expected process behavior, and tighten pod security controls.'
+                    })
+                EvidenceUris = @($evidenceUris)
+                BaselineTags = @('falco', 'aks-runtime-threat', $ruleId)
+                MitreTactics = @($mitre.Tactics)
+                MitreTechniques = @($mitre.Techniques)
+                EntityRefs   = @([string]$cluster.id)
+                ToolVersion  = $falcoToolVersion
             }) | Out-Null
         }
 

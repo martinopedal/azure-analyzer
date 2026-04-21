@@ -9,6 +9,7 @@
       "Id": "falco/alert-1",
       "Source": "falco",
       "Category": "KubernetesRuntimeThreatDetection",
+      "RuleId": "falco:terminal-shell-in-container",
       "Priority": "Critical",
       "Compliant": false,
       "Title": "Falco: Terminal shell in container",
@@ -18,7 +19,33 @@
       "RuleName": "Terminal shell in container",
       "Pod": "payment-api-7bb4f4",
       "Process": "bash",
-      "LearnMoreUrl": "https://falco.org/docs/"
+      "LearnMoreUrl": "https://falco.org/docs/",
+      "Frameworks": [
+        {
+          "Name": "CIS Kubernetes Benchmark",
+          "ControlId": "falco:terminal-shell-in-container",
+          "Controls": ["falco:terminal-shell-in-container"]
+        }
+      ],
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/6/id/alert-1",
+      "RemediationSnippets": [
+        {
+          "language": "text",
+          "code": "Investigate interactive shell activity and enforce workload restrictions."
+        }
+      ],
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_Security/SecurityMenuBlade/~/6/id/alert-1",
+        "https://falco.org/docs/"
+      ],
+      "BaselineTags": ["falco", "aks-runtime-threat", "falco:terminal-shell-in-container"],
+      "MitreTactics": ["Execution"],
+      "MitreTechniques": ["T1059"],
+      "EntityRefs": ["/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks"],
+      "ToolVersion": "falco 0.39.1"
     },
     {
       "Id": "falco/alert-2",

@@ -8,6 +8,7 @@ Identity Correlator Schema 2.2 ETL enrichment adds attack-path metadata only (fr
 The ado-connections Schema 2.2 auth posture enrichment adds metadata only and does not require any new Azure DevOps PAT scopes.
 The gitleaks Schema 2.2 ETL enrichment adds metadata only (framework mapping, evidence links, remediation snippets, baseline tags, and tool version) and does not introduce any new permissions.
 The zizmor Schema 2.2 ETL enrichment only adds metadata fields and does not introduce new GitHub or Azure permissions.
+The falco Schema 2.2 ETL enrichment adds runtime metadata only (CIS framework mapping, MITRE tags, evidence links, and tool version) and does not introduce any new Azure RBAC requirements.
 
 ## Permission domains at a glance
 
