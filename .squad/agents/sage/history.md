@@ -168,3 +168,8 @@
 - Heat-map default (Control Domain × Subscription): decisions.md #112
 - Identity graph (existing): issue #298, decisions.md Sage history 2026-04-22
 - ETL gap tracking: issues #300-#313
+
+## Decisions logged
+
+- 2026-04-21 - Report UI v2 redesign research brief, zizmor schema 2.2 ETL contract, launch smoke test findings (including hard bug fix for null remediation snippets in #415) - to decisions.md section ## 2026-04-21 -- Post-#418 inbox sweep
+

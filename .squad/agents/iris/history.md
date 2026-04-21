@@ -19,3 +19,8 @@
 - 2026-04-22 — Added Normalize-AzureQuotaReports.ps1 for issue #323. The normalizer emits one FindingRow per wrapper record, canonicalizes Subscription IDs via ConvertTo-CanonicalEntityId, locks compliant to UsagePercent < Threshold (default 80), and maps severity using the quota ladder (Critical >=99, High >=95, Medium >=threshold, Info below).
 - 2026-04-22 — Deepened `Invoke-AzureQuotaReports` wrapper tests (#324) with realistic Azure CLI fixtures (`tests/fixtures/azure-quota/cli/*`) covering subscription/region fanout, scope filters, threshold passthrough, sanitization, and v1 envelope shape. While authoring tests, found and fixed a retry bug: non-zero az exit codes were not thrown inside `Invoke-WithRetry`, so transient failures skipped retry; wrapper now retries and still emits sanitized installer-style failures for permanent errors.
 - 2026-04-22 — Aligned `New-HtmlReport.ps1` to `samples/sample-report.html` for issue #295: sticky header/subnav single-scroll layout, provider/scope tool coverage tiles (manifest-driven), heatmap mode fallback to Tool×Severity when subscriptions are absent, top risks capped at 10 with findings anchors, and server-rendered findings `<tr>` rows with conditional Schema 2.2 detail blocks.
+
+## Decisions logged
+
+- 2026-04-21 - v2 HTML report PR1 foundations (Maester/Kubescape UI patterns, framework badge palette, dark mode + accessibility) + ado-repos-secrets schema 2.2 ETL - to decisions.md section ## 2026-04-21 -- Post-#418 inbox sweep
+

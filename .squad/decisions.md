@@ -2,6 +2,43 @@
 
 > Entries older than 30 days archived to `decisions-archive.md` (2026-04-21).
 
+## 2026-04-21 — Post-#418 inbox sweep
+
+### Vault-write directive
+**Source:** `.squad/decisions/inbox/copilot-directive-vault-write-2026-04-21T17-00-00Z.md`
+All squad agents write durable cross-repo learnings to `C:\git\memory-vault` (Obsidian vault, `martinopedal/memory-vault`), structured as reusable patterns (`wiki/patterns/`), architectural decisions (`wiki/decisions/`), project context (`wiki/projects/azure-analyzer/`), and global standards (`global/`). Follow vault `AGENTS.md` rules: YAML frontmatter, mandatory `## Related` with 2+ wikilinks, kebab-case filenames, never delete (archive instead). The Scheduled Task `MemoryVaultSync` picks up vault changes every 15 min (allowlist + gitleaks gates). Do NOT manually run `vault-sync.ps1` from inside azure-analyzer.
+**Status:** approved
+
+### Docs progressive-disclosure directive
+**Source:** `.squad/decisions/inbox/copilot-directive-docs-progressive-disclosure-2026-04-21T16-26-28Z.md`
+Core sections (purpose, quickstart, basic usage) must be crystal-clear and visible without scrolling. Advanced/reference material (tool list, all params, ETL explanation, schema depth) lives in expandable `<details>` blocks (HTML in markdown). No user should need to dig through filler to find "what this tool is" or "how do I run it". Simple operations visible, advanced depth in collapsibles.
+**Status:** approved
+
+### v2 HTML report PR1 — Sage proposal + Iris implementation shipped via #418
+**Source:** `.squad/decisions/inbox/sage-report-ui-v2-redesign.md` + `.squad/decisions/inbox/iris-maester-ui-patterns.md`
+PR #418 shipped v2 HTML report foundations per Sage's research brief: light+dark mode (WCAG AA, system fonts, CSS custom props), semantic landmarks, skip-to-content link, dark-mode toggle (localStorage + prefers-color-scheme), severity icon decorators (color-blind safe), pillar bars, filter chips, responsive grid (≥360px mobile), print stylesheet, prefers-reduced-motion. Framework badge palette ratified: CIS=amber, MITRE=red, EIDSCA=blue. Test suite extended 8→15 cases. Deferred MITRE 12-col heatmap, Impact×Effort matrix, framework table, entity pivot to PR2/PR3. Maester native HTML patterns and Kubescape per-resource remediation codified in squad inbox drops for Sentinel rebuild.
+**Status:** shipped
+
+### Docs restructure — Forge proposal + shipped via #418
+**Source:** `.squad/decisions/inbox/forge-docs-restructure-proposal.md` + `.squad/decisions/inbox/forge-docs-restructure-shipped-via-418.md`
+Complete docs restructure per progressive disclosure + crystal clarity principles. New tree: `docs/getting-started/`, `docs/guides/`, `docs/reference/`, `docs/operators/`, `docs/contributing/`, `docs/architecture/`, `docs/decisions/`. Root README.md reshaped to ~50-line visible contract with collapsed sections. New reference pages: `orchestrator-params.md`, `etl-pipeline.md`, `entity-model.md`. All 40+ permission pages moved to `docs/reference/permissions/`. Pester baseline maintained (1501 passed). **Branch confusion lesson:** Forge and Iris shared the same worktree in the same session; commits interleaved on Iris's branch (`feat/v2-html-report-pr1-foundations`). Future fix: parallel agents MUST use distinct `git worktree` or serialize. Despite interleaving, all work landed in #418.
+**Status:** shipped
+
+### Schema 2.2 ETL completions — 8 tools
+**Source:** `.squad/decisions/inbox/` (cygnus, draco, extra-376, forge-ghactionsbilling, iris-adoreposecrets, lyra, orion, sage-zizmor, vega)
+Identity-correlator (Cygnus, #403), identity-graph (Draco, #404), terraform-iac (Extra, #376), gh-actions-billing (Forge, #366), ado-repos-secrets (Iris, #370), azure-cost (Lyra, #402), alz-queries (Orion, #400), zizmor (Sage, #372), azgovviz (Vega, #401) all upgraded end-to-end. Each wrapper emits Schema 2.2 precursor metadata (Frameworks, Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets, EvidenceUris, BaselineTags, MitreTactics, MitreTechniques, EntityRefs, ToolVersion); normalizers emit full `New-FindingRow` fields. Fixture-backed tests added. All targeted + full Pester suites green. Baseline preserved: 1501 passed, 0 failed, 5 skipped.
+**Status:** shipped
+
+### Launch readiness: audit + smoke test
+**Source:** `.squad/decisions/inbox/forge-docs-launch-audit.md` + `.squad/decisions/inbox/sage-launch-smoke-test.md`
+Forge audit: README first-screen clear, regenerated tool catalogs + permissions index, schema 2.2 coverage called out, markdown-link-check green, all CI/CodeQL/License badge URLs return 200, LICENSE present. Sage smoke test: fixture pipeline (6 tools, 20 findings, 11 entities) → HTML/MD reports; schema 2.2 rendering verified (Pillar, Frameworks, MITRE, deep links, remediation collapsibles, severity distro match). Hard bug found + fixed: #415 `New-HtmlReport` crashes on null remediation snippets (PropertyNotFoundException). Fixed snippet rendering to skip null, support code + before/after shapes. All Pester green post-fix. Cosmetic gaps (empty MITRE rows on fixtures, "37 tools" framing) deferred post-launch.
+**Status:** shipped
+
+### Launch polish — Atlas sample report regeneration
+**Source:** `.squad/decisions/inbox/atlas-launch-sample-polish.md`
+Curated new sample findings dataset (10 tools: azqr, psrule, kubescape, sentinel-coverage, ado-pipeline-correlator, appinsights, finops-signals, ado-consumption, gh-actions-billing, aks-rightsizing). Regenerated `samples/sample-report.html` and `samples/sample-report.md` from schema 2.2 dataset. HTML report improved to show pillar breakdown, tool-color badges (manifest-driven), expanded details for BaselineTags, EntityRefs, ScoreDelta, remediation snippets, MITRE, evidence links, deep links. Markdown report improved with schema 2.2 spotlight table + expandable evidence/remediation. Before: static, legacy framing. After: launch-grade schema 2.2 showcase.
+**Status:** shipped
+
 ## Active Decisions
 
 ### Canonical Entity IDsin Test Fixtures (2026-04-18)
