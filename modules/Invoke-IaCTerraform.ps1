@@ -110,7 +110,7 @@ try {
         }
     }
 
-    return Invoke-IaCAdapter -Flavour 'terraform' -RepoPath $RepoPath
+    return Invoke-IaCAdapter -Flavour 'terraform' -RepoPath $RepoPath -SourceRepoUrl $RemoteUrl
 } catch {
     Write-Warning "Terraform IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{

@@ -154,12 +154,10 @@ Describe 'IaCAdapters' {
             }
 
             $result = Invoke-TerraformValidation -RepoPath $script:tfDir
-            # Should call at least twice: init + validate
-            Should -Invoke Invoke-WithTimeout -Times 2 -Exactly
-            $script:timeoutCalls[0].Command | Should -Be 'terraform'
-            $script:timeoutCalls[0].Arguments | Should -Contain 'init'
-            $script:timeoutCalls[1].Command | Should -Be 'terraform'
-            $script:timeoutCalls[1].Arguments | Should -Contain 'validate'
+            # Should call at least init + validate; version probes may add calls
+            Should -Invoke Invoke-WithTimeout -Times 2
+            ($script:timeoutCalls | Where-Object { $_.Command -eq 'terraform' -and $_.Arguments -contains 'init' }).Count | Should -BeGreaterThan 0
+            ($script:timeoutCalls | Where-Object { $_.Command -eq 'terraform' -and $_.Arguments -contains 'validate' }).Count | Should -BeGreaterThan 0
         }
     }
 
@@ -203,7 +201,8 @@ Describe 'IaCAdapters' {
             }
 
             $result = Invoke-TerraformValidation -RepoPath $script:trivyDir
-            Should -Invoke Invoke-WithTimeout -Times 1 -Exactly
+            # Trivy scan call is required; version probes may add calls
+            Should -Invoke Invoke-WithTimeout -Times 1
         }
     }
 
