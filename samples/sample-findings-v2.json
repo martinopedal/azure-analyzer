@@ -33,7 +33,7 @@
         "Name": "PCI DSS"
       }
     ],
-    "DeepLinkUrl": "https://learn.microsoft.com/azure/networking/network-security-groups-overview",
+    "DeepLinkUrl": "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview",
     "RemediationSnippets": [
       {
         "language": "azurecli",
@@ -41,7 +41,7 @@
       }
     ],
     "EvidenceUris": [
-      "https://learn.microsoft.com/azure/networking/network-security-groups-overview",
+      "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview",
       "https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview"
     ],
     "BaselineTags": [
@@ -509,3 +509,4 @@
     "ToolVersion": "2.7.0"
   }
 ]
+

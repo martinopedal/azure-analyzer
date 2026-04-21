@@ -163,7 +163,7 @@ Top 30 findings from this run. The [interactive HTML report](sample-report.html)
 | # | Tool | Pillar | Impact | Effort | Frameworks | MITRE | Deep link |
 | ---: | --- | --- | --- | --- | --- | --- | --- |
 | 1 | PSRule for Azure | Security | High | Low | CIS · MCSB | - | [Open](https://learn.microsoft.com/azure/key-vault/general/overview) |
-| 2 | Azure Quick Review | Security | High | Medium | CIS · NIST 800-53 · PCI DSS | - | [Open](https://learn.microsoft.com/azure/networking/network-security-groups-overview) |
+| 2 | Azure Quick Review | Security | High | Medium | CIS · NIST 800-53 · PCI DSS | - | [Open](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview) |
 | 3 | ADO Pipeline Consumption | Cost Optimization | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build?definitionId=55) |
 | 4 | Kubescape (AKS runtime posture) | Security | High | Medium | CIS · NSA · MITRE ATT&CK | Privilege Escalation, T1611 | [Open](https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security) |
 | 5 | ADO Pipeline Run Correlator | Security | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=results) |
@@ -200,7 +200,7 @@ resource kvPatch 'Microsoft.KeyVault/vaults@2023-07-01' = {
 - **Baseline tags:** "release:ga", "internet-exposed"
 - **Entity refs:** `/subscriptions/11111111-1111-1111-1111-111111111111`, `nsg:nsg-payments-edge`
 - **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/networking/network-security-groups-overview](https://learn.microsoft.com/azure/networking/network-security-groups-overview)
+  - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
   - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
 - **Remediation snippets:**
   ```azurecli
