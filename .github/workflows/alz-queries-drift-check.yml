@@ -1,0 +1,28 @@
+name: ALZ queries drift check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift-check:
+    name: Detect ALZ query drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run ALZ query sync in dry-run mode
+        shell: pwsh
+        run: |
+          $result = ./scripts/Sync-AlzQueries.ps1 -DryRun
+          if ($result.Changed) {
+            throw 'ALZ query drift detected. Run scripts/Sync-AlzQueries.ps1 and commit the updated queries/alz_additional_queries.json cache.'
+          }
+
+          Write-Host 'ALZ query cache is in sync with upstream.'

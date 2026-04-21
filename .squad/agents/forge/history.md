@@ -83,3 +83,8 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Added `tests/scripts/Sync-AlzQueries.Tests.ps1` covering dry-run no-write behavior, idempotent re-run no-op behavior, transient-clone retry behavior, and credential redaction in verbose logs.
 - Baseline preserved and extended: full Pester run moved from 1349 passed (pre-change) to 1354 passed (post-change), 0 failed, 5 skipped.
 - Key upstream-path learning: the canonical source file in `martinopedal/alz-graph-queries` lives at `queries/alz_additional_queries.json` (not repo root), and sync logic now treats this as the default upstream relative path.
+
+### 2026-04-22: Issue #316 — scheduled ALZ query drift detection workflow
+- Added `.github/workflows/alz-queries-drift-check.yml` with weekly Monday 06:00 UTC schedule plus manual dispatch to run `scripts/Sync-AlzQueries.ps1 -DryRun` and fail when `.Changed` is true.
+- Kept permissions minimal (`contents: read`) and action pinning compliant (`actions/checkout@de0fac2e... # v6`) to satisfy repo security posture and Actions CodeQL scanning.
+- Updated `CHANGELOG.md` and validated baseline remained green at `Tests Passed: 1354, Failed: 0, Skipped: 5`.
