@@ -70,3 +70,12 @@
 - Follow-up from upstream-audit sweep: falco manifest install block does not declare dependencies on `helm` + `kubectl` for `-InstallFalco` mode.
 - **Issue #320:** `chore: clarify falco manifest install block — query-mode vs install-mode prerequisites` (labels: `squad`, `documentation`)
 - Low-priority documentation fix; not a wrong-upstream bug like `alz-queries`. Both tools are commonly pre-installed so impact is low, but manifests should be machine-readable for air-gapped environments.
+
+### 2026-04-22 - Issue #298: interactive identity blast-radius graph (HTML report + sample mockup)
+- Replaced the inline static teaser SVG in `samples/sample-report.html` (lines 463-507 in old layout) with a real interactive force-directed identity graph.
+- Wired the same renderer into `New-HtmlReport.ps1` driven by `entities.json` v3.1 envelope. Identity entities (User / ServicePrincipal / Group / Application / AzureResource) become nodes; edges synthesised as `HasRoleOn` from identity types to AzureResource entities sharing SubscriptionId until `EntityStore.Edges` ships real edges.
+- Vanilla SVG + ~100-line Verlet force layout, no D3 — total inlined payload < 6 KB JS + ~500B model JSON, well under the 200 KB spec budget. No CDN. Single-file output preserved.
+- Click a node -> filters the findings table by entity label. Empty-state panel renders when < 5 identity-relevant entities exist.
+- Pester baseline preserved: 1373/1373 pass (1369 + 4 new tests in `tests/shared/HtmlReport.Tests.ps1`).
+- Decision recorded at `.squad/decisions/inbox/sage-identity-graph.md`.
+

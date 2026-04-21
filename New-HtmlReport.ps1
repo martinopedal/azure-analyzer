@@ -1229,6 +1229,76 @@ $($rowsHtml -join "`n")
     $resourcesModelJson = ($modelObj | ConvertTo-Json -Depth 12 -Compress) -replace '</', '<\/'
 }
 
+# --- Identity graph (issue #298) — User/ServicePrincipal/Group/Application/AzureResource ---
+$identityGraphJson = '{"nodes":[],"edges":[]}'
+$identityGraphSectionHtml = ''
+if ($entities.Count -gt 0) {
+    $idgRelevantTypes = @('User','ServicePrincipal','Group','Application','AzureResource')
+    $idgEntities = @($entities | Where-Object { $idgRelevantTypes -contains [string]$_.EntityType })
+    $idgNodes = New-Object System.Collections.Generic.List[object]
+    foreach ($e in $idgEntities) {
+        $eId = [string]$e.EntityId
+        $eType = [string]$e.EntityType
+        $eName = if ($e.PSObject.Properties['DisplayName'] -and $e.DisplayName) { [string]$e.DisplayName }
+                 elseif ($e.PSObject.Properties['EntityName'] -and $e.EntityName) { [string]$e.EntityName }
+                 else { $eId }
+        $eSub = if ($e.PSObject.Properties['SubscriptionId']) { [string]$e.SubscriptionId } else { '' }
+        $idgNodes.Add([PSCustomObject]@{ id = $eId; type = $eType; label = $eName; sub = $eSub })
+    }
+    # Synthesize edges: identity entities (User/SP/Group/Application) HasRoleOn AzureResources sharing SubscriptionId.
+    # Real edge data (ownership, role assignment, group membership, federated cred) will replace this when EntityStore.Edges lands.
+    $idgEdges = New-Object System.Collections.Generic.List[object]
+    $idgIdentities = @($idgNodes | Where-Object { $_.type -in @('User','ServicePrincipal','Group','Application') })
+    $idgResources  = @($idgNodes | Where-Object { $_.type -eq 'AzureResource' })
+    $maxEdges = 80
+    foreach ($iden in $idgIdentities) {
+        if ($idgEdges.Count -ge $maxEdges) { break }
+        foreach ($res in $idgResources) {
+            if ($idgEdges.Count -ge $maxEdges) { break }
+            if ($iden.sub -and $res.sub -and $iden.sub -eq $res.sub) {
+                $idgEdges.Add([PSCustomObject]@{ s = $iden.id; t = $res.id; kind = 'HasRoleOn' })
+            }
+        }
+    }
+    $idgNodesArr = @()
+    foreach ($n in $idgNodes) {
+        $idgNodesArr += [PSCustomObject]@{ id = [string]$n.id; type = [string]$n.type; label = [string]$n.label }
+    }
+    $idgEdgesArr = @()
+    foreach ($e in $idgEdges) {
+        $idgEdgesArr += [PSCustomObject]@{ s = [string]$e.s; t = [string]$e.t; kind = [string]$e.kind }
+    }
+    $idgModel = [ordered]@{ nodes = $idgNodesArr; edges = $idgEdgesArr }
+    $identityGraphJson = ($idgModel | ConvertTo-Json -Depth 6 -Compress) -replace '</', '<\/'
+
+    $identityGraphSectionHtml = @"
+<h2 id="identity-graph-section">Identity blast-radius graph</h2>
+<div class="identity-graph-card">
+  <p class="muted" style="margin:0 0 10px;font-size:12.5px">
+    Nodes: User · ServicePrincipal · Group · Application · AzureResource.
+    Edges: ownership · role assignments · group membership · federated credentials.
+    <strong>Click a node</strong> to filter the findings table by that entity.
+    <a href="#" id="idgClear" style="margin-left:8px;display:none">clear filter</a>
+    <span class="badge" id="idgEntityCount" style="margin-left:8px">0 nodes</span>
+  </p>
+  <div class="graph-wrap" id="identityGraph" data-empty="false">
+    <svg viewBox="0 0 600 280" id="idgSvg" aria-label="Identity blast-radius graph" style="width:100%;height:280px;display:block;background:#f8f9fa;border:1px solid #ddd;border-radius:6px"></svg>
+    <div class="idg-empty" id="idgEmpty" hidden>
+      <strong>Identity graph unavailable.</strong>
+      <span>Need at least 5 identity-related entities (User / ServicePrincipal / Group / Application / AzureResource); this run produced fewer.</span>
+    </div>
+    <div class="idg-legend">
+      <span><i style="background:#d32f2f"></i>User</span>
+      <span><i style="background:#f57c00"></i>ServicePrincipal</span>
+      <span><i style="background:#1565c0"></i>Group</span>
+      <span><i style="background:#7b1fa2"></i>Application</span>
+      <span><i style="background:#fbc02d"></i>AzureResource</span>
+    </div>
+  </div>
+</div>
+"@
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang="en">
@@ -1568,6 +1638,20 @@ $html = @"
   .observations-table { margin: 0.25rem 0; background: #fafafa; }
   .observations-table th { background: #eef2f7; }
 
+  /* Identity blast-radius graph (#298) */
+  .identity-graph-card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .identity-graph-card .graph-wrap { position: relative; }
+  .identity-graph-card .idg-node { cursor: pointer; }
+  .identity-graph-card .idg-node:hover circle,
+  .identity-graph-card .idg-node:focus circle { stroke: #1565c0; stroke-width: 2.5; }
+  .identity-graph-card .idg-node.idg-sel circle { stroke: #1565c0; stroke-width: 3; }
+  .identity-graph-card .idg-empty { padding: 60px 20px; text-align: center; display: flex; flex-direction: column; gap: 6px; background: #f8f9fa; border: 1px dashed #ccc; border-radius: 6px; color: #444; font-size: 13px; }
+  .identity-graph-card .idg-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: #555; }
+  .identity-graph-card .idg-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .identity-graph-card .idg-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .identity-graph-card .graph-wrap[data-empty="true"] .idg-legend { display: none; }
+  .identity-graph-card #idgClear { color: #1565c0; text-decoration: underline; font-size: 12px; }
+
 $summaryTabCss
 </style>
 </head>
@@ -1700,7 +1784,10 @@ $($findingsTreeHtml -join "`n")
 
 $resourcesSectionHtml
 
+$identityGraphSectionHtml
+
 <script type="application/json" id="report-model">$resourcesModelJson</script>
+<script type="application/json" id="identity-graph-model">$identityGraphJson</script>
 <script>
 var activeSevFilter = null;
 
@@ -2054,6 +2141,108 @@ function rtSwitchTab(btn, key) {
     p.classList.toggle('is-active', p.id === 'rt-tab-' + key);
   });
 }
+
+// ---------- Identity blast-radius graph (#298) ----------
+(function(){
+  var modelEl = document.getElementById('identity-graph-model');
+  if (!modelEl) return;
+  var model;
+  try { model = JSON.parse(modelEl.textContent || '{}'); } catch(e) { return; }
+  var nodes = (model && model.nodes) ? model.nodes.slice() : [];
+  var edges = (model && model.edges) ? model.edges : [];
+  var wrap = document.getElementById('identityGraph');
+  var svg = document.getElementById('idgSvg');
+  var empty = document.getElementById('idgEmpty');
+  var cnt = document.getElementById('idgEntityCount');
+  if (!wrap || !svg) return;
+  if (cnt) cnt.textContent = nodes.length + ' nodes';
+  if (nodes.length < 5) {
+    wrap.dataset.empty = 'true';
+    svg.style.display = 'none';
+    if (empty) empty.hidden = false;
+    return;
+  }
+  wrap.dataset.empty = 'false';
+  if (empty) empty.hidden = true;
+  var COLOR = { User:'#d32f2f', ServicePrincipal:'#f57c00', Group:'#1565c0',
+                Application:'#7b1fa2', AzureResource:'#fbc02d' };
+  var W = 600, H = 280, CX = W/2, CY = H/2;
+  var idIdx = {};
+  nodes.forEach(function(n, i) {
+    idIdx[n.id] = i;
+    n.x = CX + Math.cos(i / nodes.length * Math.PI * 2) * 110;
+    n.y = CY + Math.sin(i / nodes.length * Math.PI * 2) * 90;
+    n.vx = 0; n.vy = 0;
+  });
+  var links = edges.filter(function(e){ return idIdx[e.s] != null && idIdx[e.t] != null; })
+    .map(function(e){ return { s: nodes[idIdx[e.s]], t: nodes[idIdx[e.t]], kind: e.kind || '' }; });
+  var REP=900, SPR=0.04, SPL=70, CTR=0.005, DAMP=0.82;
+  for (var it=0; it<240; it++) {
+    for (var i=0; i<nodes.length; i++) {
+      var a = nodes[i];
+      for (var j=i+1; j<nodes.length; j++) {
+        var b = nodes[j];
+        var dx = a.x - b.x, dy = a.y - b.y, d2 = dx*dx + dy*dy + 0.01;
+        var d = Math.sqrt(d2), f = REP / d2;
+        dx /= d; dy /= d;
+        a.vx += dx*f; a.vy += dy*f; b.vx -= dx*f; b.vy -= dy*f;
+      }
+    }
+    links.forEach(function(l){
+      var dx = l.t.x - l.s.x, dy = l.t.y - l.s.y, d = Math.sqrt(dx*dx+dy*dy) + 0.01;
+      var f = (d - SPL) * SPR, fx = dx/d*f, fy = dy/d*f;
+      l.s.vx += fx; l.s.vy += fy; l.t.vx -= fx; l.t.vy -= fy;
+    });
+    nodes.forEach(function(n){
+      n.vx += (CX - n.x) * CTR; n.vy += (CY - n.y) * CTR;
+      n.vx *= DAMP; n.vy *= DAMP;
+      n.x += n.vx; n.y += n.vy;
+      n.x = Math.max(40, Math.min(W-40, n.x));
+      n.y = Math.max(28, Math.min(H-28, n.y));
+    });
+  }
+  function esc(s){return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var linkSvg = links.map(function(l){
+    return '<line x1="'+l.s.x.toFixed(1)+'" y1="'+l.s.y.toFixed(1)+'" x2="'+l.t.x.toFixed(1)+'" y2="'+l.t.y.toFixed(1)+'" stroke="#9aa0a6" stroke-width="1" opacity=".55"><title>'+esc(l.kind)+'</title></line>';
+  }).join('');
+  var nodeSvg = nodes.map(function(n){
+    var c = COLOR[n.type] || '#9aa0a6';
+    return '<g class="idg-node" data-id="'+esc(n.id)+'" data-label="'+esc(n.label)+'" tabindex="0" role="button" aria-label="Filter findings by '+esc(n.label)+'">'
+      + '<circle cx="'+n.x.toFixed(1)+'" cy="'+n.y.toFixed(1)+'" r="9" fill="'+c+'" stroke="#fff" stroke-width="1.5"/>'
+      + '<text x="'+n.x.toFixed(1)+'" y="'+(n.y+22).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#444">'+esc(n.label)+'</text>'
+      + '<title>'+esc(n.type)+': '+esc(n.label)+' — click to filter findings</title></g>';
+  }).join('');
+  svg.innerHTML = '<g class="idg-edges">'+linkSvg+'</g><g class="idg-nodes">'+nodeSvg+'</g>';
+  function applyFilter(label){
+    if (typeof filterTable === 'function') {
+      var inputs = document.querySelectorAll('.filter-input');
+      inputs.forEach(function(inp){ inp.value = label || ''; filterTable(inp, inp.getAttribute('onkeyup') ? 'findings-table' : null); });
+    }
+    var ft = document.getElementById('findings-table') || document.querySelector('.findings-table');
+    if (ft) {
+      var rows = ft.getElementsByTagName('tr');
+      for (var i=1; i<rows.length; i++) {
+        rows[i].style.display = (!label || rows[i].textContent.toLowerCase().indexOf(String(label).toLowerCase()) !== -1) ? '' : 'none';
+      }
+    }
+    var clear = document.getElementById('idgClear');
+    if (clear) clear.style.display = label ? 'inline' : 'none';
+  }
+  svg.querySelectorAll('.idg-node').forEach(function(g){
+    function click(){
+      svg.querySelectorAll('.idg-node').forEach(function(x){ x.classList.toggle('idg-sel', x === g); });
+      applyFilter(g.dataset.label);
+    }
+    g.addEventListener('click', click);
+    g.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); click(); }});
+  });
+  var clr = document.getElementById('idgClear');
+  if (clr) clr.addEventListener('click', function(e){
+    e.preventDefault();
+    svg.querySelectorAll('.idg-node').forEach(function(x){ x.classList.remove('idg-sel'); });
+    applyFilter('');
+  });
+})();
 </script>
 </body>
 </html>
