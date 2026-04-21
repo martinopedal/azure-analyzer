@@ -1,0 +1,30 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "azure-quota",
+  "Status": "Success",
+  "Message": "fixture",
+  "Timestamp": "2026-04-22T00:00:00Z",
+  "Findings": [
+    {
+      "Id": "azure-quota/11111111-1111-1111-1111-111111111111/centralus/vm/standardnvadsa10v5family",
+      "Source": "azure-quota",
+      "Category": "Capacity",
+      "Pillar": "Reliability",
+      "EntityType": "Subscription",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Title": "vm quota usage for 'standardNVADSA10v5Family' in centralus",
+      "Detail": "Usage=99, Limit=100, UsagePercent=99%, Threshold=80%.",
+      "SubscriptionId": "11111111-1111-1111-1111-111111111111",
+      "Location": "centralus",
+      "Service": "vm",
+      "Sku": "standardNVADSA10v5Family",
+      "MetricName": "standardNVADSA10v5Family",
+      "Unit": "Count",
+      "CurrentValue": 99,
+      "Limit": 100,
+      "UsagePercent": 99,
+      "Threshold": 80
+    }
+  ]
+}
