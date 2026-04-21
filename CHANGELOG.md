@@ -27,6 +27,7 @@ All notable changes to azure-analyzer will be documented here.
 
 - Reports: HTML/MD column "Learn more" renamed to "Fix it" (presentational only; field name `LearnMoreUrl` unchanged) (closes #228).
 - queries: moved 7 orphan KQL catalog files (3 `appinsights-*.json`, 4 `aks-rightsizing-*.json`) into new `queries/library/` subfolder with a README explaining the reference-catalog convention. Files are not loaded by any wrapper; they mirror inline KQL in `Invoke-AppInsights.ps1` / `Invoke-AksRightsizing.ps1` and exist as operator-facing documentation (closes #318).
+- queries: reorganized `queries/` into per-tool subfolders. `alz_additional_queries.json` moved to `queries/alz/`; the seven `finops-*.json` catalogs moved to `queries/finops/`. Wrapper defaults (`Invoke-AlzQueries.ps1`, `Invoke-FinOpsSignals.ps1`), `scripts/Sync-AlzQueries.ps1` destination, and tests updated. New `queries/README.md` documents the convention; `queries/library/` is unchanged. All moves done with `git mv` to preserve blame (closes #317).
 
 ## [Unreleased]
 
