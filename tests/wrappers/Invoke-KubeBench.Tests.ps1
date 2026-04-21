@@ -39,6 +39,7 @@ Describe 'Invoke-KubeBench: kubeconfig param surface (#240)' {
         $cmd.Parameters.Keys | Should -Contain 'KubeconfigPath'
         $cmd.Parameters.Keys | Should -Contain 'KubeContext'
         $cmd.Parameters.Keys | Should -Contain 'Namespace'
+        $cmd.Parameters.Keys | Should -Contain 'KubeBenchImage'
     }
 
     It 'defaults Namespace to "kube-system"' {
@@ -58,6 +59,14 @@ Describe 'Invoke-KubeBench: kubeconfig param surface (#240)' {
     It 'rejects URL-style kubeconfig values' {
         { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kc' } |
             Should -Throw -ExpectedMessage '*URLs are not accepted*'
+    }
+
+    It 'defaults KubeBenchImage to a tagged aquasec image' {
+        $cmd = Get-Command -Name $script:Wrapper
+        $defaultImage = $cmd.ScriptBlock.Ast.ParamBlock.Parameters |
+            Where-Object { $_.Name.VariablePath.UserPath -eq 'KubeBenchImage' } |
+            ForEach-Object { $_.DefaultValue.Extent.Text.Trim("'") }
+        $defaultImage | Should -Be 'aquasec/kube-bench:v0.7.2'
     }
 }
 
