@@ -39,6 +39,16 @@ Forge audit: README first-screen clear, regenerated tool catalogs + permissions 
 Curated new sample findings dataset (10 tools: azqr, psrule, kubescape, sentinel-coverage, ado-pipeline-correlator, appinsights, finops-signals, ado-consumption, gh-actions-billing, aks-rightsizing). Regenerated `samples/sample-report.html` and `samples/sample-report.md` from schema 2.2 dataset. HTML report improved to show pillar breakdown, tool-color badges (manifest-driven), expanded details for BaselineTags, EntityRefs, ScoreDelta, remediation snippets, MITRE, evidence links, deep links. Markdown report improved with schema 2.2 spotlight table + expandable evidence/remediation. Before: static, legacy framing. After: launch-grade schema 2.2 showcase.
 **Status:** shipped
 
+### IaCFile EntityType — Schema + EntityStore contract (2026-04-21)
+**Source:** `.squad/decisions/inbox/sage-iacfile-entitytype.md`
+IaCFile added as first-class entity type for cross-tool IaC file deduplication. Canonical ID format: `iacfile:repo-slug:file-path` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). Schema.ps1 + Canonicalize.ps1 updated; 7 new unit tests (canonicalization, validation, Platform=IaC mapping, EntityStore dedup contract). Normalizer migration (terraform-iac EntityType=Repository to file-scoped IaCFile) deferred to follow-up. PR #423 merged SHA 5577bd77. Pester 1511->1518 passed, 0 failed.
+**Status:** shipped
+
+### Sample MD cleanup + generator-path verification (2026-04-21)
+**Source:** `.squad/decisions/inbox/iris-sample-md-cleanup-shipped.md`
+Regenerated `samples/sample-report.html` and `samples/sample-report.md` from curated v2 fixture (11 findings, 9/100 posture). Verified `New-HtmlReport.ps1` and `New-MdReport.ps1` are intentionally at repo root (exported from AzureAnalyzer.psd1) not scripts/ — no move needed. Both samples now render same schema 2.2 dataset. PR #421 merged, branch deleted. Tests green (24/24 reports, 14/14 CI checks).
+**Status:** shipped
+
 ## Active Decisions
 
 ### Canonical Entity IDsin Test Fixtures (2026-04-18)

@@ -145,6 +145,7 @@ Smallest change, matches reality the wrapper already encodes. Two PRs proposed: 
 - **Drift can preserve item count and still be real.** Same 206 / 132 counts, different bytes, different SHA. `Measure-Object` on parsed JSON is not a sufficient drift check; SHA-256 of the file is.
 - **`gh api repos/<owner>/<repo>/contents/<path>` returns base64-encoded `content`** — useful for cheap README inspection without cloning. `[Convert]::FromBase64String` then `[System.Text.Encoding]::UTF8.GetString` decodes inline.
 - **`[System.IO.Path]::GetTempFileName()` / `New-TemporaryFile` returns a path, not a directory** — appending `.json` then cleaning both is the safe pattern when you need a typed extension for `Get-FileHash`.
+- 2026-04-21 — IaCFile EntityType (schema + EntityStore dedup contract) now available for IaC normalizers to use. Canonical ID: `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). Enables cross-tool file-level dedup when terraform-iac, Trivy, Checkov, and tfsec report findings on the same IaC file. Migration of terraform-iac normalizer from EntityType=Repository to IaCFile deferred to follow-up. PR #423 (SHA 5577bd77).
 - **Orphan data files in a content folder are a real risk.** 7 of 15 files in `queries/` are written but never read. Worth a recurring sweep — anything in `queries/` whose filename prefix doesn't match a literal-or-glob hit in `modules/*.ps1` is a candidate for deletion or activation.
 
 ## 2026-04-22 - Filed issues for azure-quota-reports (5-issue chain)
