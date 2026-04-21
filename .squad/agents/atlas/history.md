@@ -107,3 +107,27 @@ Implemented framework x tool coverage matrix in New-HtmlReport with click-to-fil
 Implemented GH Actions billing plus ADO pipeline consumption cost telemetry for v1.2.0 with two independent wrappers (Invoke-GhActionsBilling.ps1, Invoke-AdoConsumption.ps1), two normalizers (Normalize-GhActionsBilling, Normalize-AdoConsumption), manifest registration, fixtures, wrapper and normalizer tests, and permission docs (gh-actions-billing.md, ado-consumption.md).
 
 Validation: full Invoke-Pester -Path .\\tests -CI passed with **1321 passed / 0 failed / 5 skipped** (baseline before work: **1307 passed**), plus manifest-driven docs regeneration (Generate-ToolCatalog.ps1, Generate-PermissionsIndex.ps1).
+
+## 2026-04-22 - Triaged 7 orphan query JSON files (#318 -> PR #327)
+
+PR #327 squash-merged at 9c6ab7d. All 7 orphans (3 `appinsights-*.json` + 4 `aks-rightsizing-*.json`) routed to fate (c) library: `git mv` into new `queries/library/` subfolder + README codifying the reference-catalog convention. CHANGELOG Unreleased / Changed entry added.
+
+### Per-file fate
+- `appinsights-slow-requests.json` -> (c) mirrors `` in `Invoke-AppInsights.ps1`
+- `appinsights-dependency-failures.json` -> (c) mirrors ``
+- `appinsights-exception-rate.json` -> (c) mirrors ``
+- `aks-rightsizing-{missing-hpa,oomkilled,over-provisioned,under-provisioned}.json` -> (c) mirror `` in `Invoke-AksRightsizing.ps1`
+
+### Why uniform (c)
+Both wrappers ship complete inline KQL today. Files are hand-curated catalogs with operator-facing reference value (copy-paste into Log Analytics) and align 1:1 with shipped detections. Deletion would lose curation; wiring up is a refactor outside triage scope. `queries/library/` + README prevents the next audit from re-flagging them.
+
+### Pester / CI
+- 1349 passed / 0 failed / 5 skipped (expected baseline preserved).
+- All 17 required checks green; `Analyze (actions)` green; mergeable=CLEAN.
+- No Copilot review comments after ~3 min wait, mergeStateStatus CLEAN, squash-merged.
+
+### Learnings
+- **`git mv` triggers no test failure when the moved file is an orphan.** Confirms the audit hypothesis: if no wrapper reads the file, no test depends on its path. Useful as a fast smoke-test for "is this really an orphan?" -- mv to a sibling folder, run Pester, watch for surprises. Zero failures = true orphan.
+- **Em-dash gate fires on README.md inside subfolders.** `rg -- "—"` recursively walks; need to scrub before commit even in newly-created subdirectories.
+- **`gh pr merge --squash` from inside a worktree fails** with `'main' is already used by worktree at <root>`. Run merge from the repo root or from any path outside the worktree, OR pass `--repo`. Worktree cleanup also must run from repo root, never from inside the worktree (matches prior 2026-04-19 learning, now confirmed for the merge step too).
+- **Two `Unreleased` sections in CHANGELOG.md.** `[1.2.0 - Unreleased]` is the active band; `[Unreleased]` below it is the older legacy band. Add new entries to the 1.2.0 band.
