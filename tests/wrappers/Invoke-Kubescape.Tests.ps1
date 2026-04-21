@@ -112,3 +112,48 @@ Describe 'Invoke-Kubescape: KubeAuthMode param surface (#241/#242)' {
     }
 }
 
+Describe 'Invoke-Kubescape: Schema 2.2 ETL projection (#306)' {
+    BeforeAll {
+        $script:Fixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'kubeconfig-mock.yaml'
+        $global:KubescapeRawFixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'kubescape-raw-scan.json'
+        function global:kubescape {
+            param([Parameter(ValueFromRemainingArguments = $true)][object[]] $Args)
+            if ($Args -contains '--version') {
+                $global:LASTEXITCODE = 0
+                return 'kubescape version v3.1.0'
+            }
+            $outputIndex = [Array]::IndexOf($Args, '--output')
+            if ($outputIndex -ge 0 -and ($outputIndex + 1) -lt $Args.Count) {
+                Copy-Item -Path $global:KubescapeRawFixture -Destination ([string]$Args[$outputIndex + 1]) -Force
+            }
+            $global:LASTEXITCODE = 0
+        }
+    }
+
+    AfterAll {
+        Remove-Item Function:\kubescape -ErrorAction SilentlyContinue
+        Remove-Variable -Name KubescapeRawFixture -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'emits Frameworks, MITRE, Pillar, BaselineTags, and ToolVersion in findings' {
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubescape' } } -ParameterFilter { $Name -eq 'kubescape' }
+        Mock Get-Command { return [pscustomobject]@{ Name = 'kubectl' } } -ParameterFilter { $Name -eq 'kubectl' }
+
+        $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+            -KubeconfigPath $script:Fixture -KubeContext 'mock-ctx'
+
+        $result.Status | Should -Be 'Success'
+        @($result.Findings).Count | Should -Be 2
+        $first = $result.Findings | Where-Object { $_.ControlId -eq 'C-0017' } | Select-Object -First 1
+        $first.Pillar | Should -Be 'Security'
+        $first.ToolVersion | Should -Be 'kubescape version v3.1.0'
+        @($first.Frameworks.Name) | Should -Contain 'NSA'
+        @($first.Frameworks.Name) | Should -Contain 'CIS'
+        @($first.Frameworks.Name) | Should -Contain 'MITRE ATT&CK'
+        $first.MitreTactics | Should -Contain 'TA0001'
+        $first.MitreTechniques | Should -Contain 'T1611'
+        $first.BaselineTags | Should -Contain 'nsa'
+        $first.BaselineTags | Should -Contain 'cis'
+    }
+}
+

@@ -71,7 +71,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 ## What you get
 
 - **33 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
-- **Unified v2.2 schema** with 5 severity levels (Critical, High, Medium, Low, Info) and 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO).
+- **Unified v2.2 schema** with 5 severity levels (Critical, High, Medium, Low, Info), 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO), and additive metadata fields (`Frameworks`, `Pillar`, `MitreTactics`, `MitreTechniques`, `EvidenceUris`, `BaselineTags`, `ToolVersion`).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, top impact recommendations, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
