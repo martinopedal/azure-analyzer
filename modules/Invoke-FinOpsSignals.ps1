@@ -182,6 +182,52 @@ function Get-EstimatedMonthlyCost {
     return [math]::Round([double]$CostMap[$costKey], 2)
 }
 
+function Get-FinOpsToolVersion {
+    $loadedModule = Get-Module -Name 'AzureAnalyzer' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($loadedModule -and $loadedModule.PSObject.Properties['Version'] -and $loadedModule.Version) {
+        return [string]$loadedModule.Version
+    }
+
+    $manifestPath = Join-Path $PSScriptRoot '..' 'AzureAnalyzer.psd1'
+    if (Test-Path $manifestPath) {
+        try {
+            $manifest = Test-ModuleManifest -Path $manifestPath -ErrorAction Stop
+            if ($manifest -and $manifest.Version) { return [string]$manifest.Version }
+        } catch {
+        }
+    }
+
+    return ''
+}
+
+function Get-FinOpsRecommendationText {
+    param (
+        [string] $DetectionCategory,
+        [string] $RuleId
+    )
+
+    $key = ("$DetectionCategory|$RuleId").ToLowerInvariant()
+    if ($key -match 'appserviceplanidlecpumetricsdegraded') {
+        return 'Grant Monitoring Reader on the App Service Plan scope, ensure Az.Monitor is available, then rerun FinOps idle CPU analysis.'
+    }
+    if ($key -match 'appserviceplanidlecpu') {
+        return 'Rightsize the App Service Plan SKU/instance count or consolidate workloads when CPU remains below 5 percent.'
+    }
+    if ($key -match 'unattached|disk|snapshot') {
+        return 'Delete orphaned storage artifacts or move them to lower-cost tiers if retention is required.'
+    }
+    if ($key -match 'virtual machine|stopped|deallocated|idle') {
+        return 'Deallocate and delete idle compute resources, or downsize to the smallest SKU that meets demand.'
+    }
+    if ($key -match 'public ip|empty resource groups') {
+        return 'Remove unused networking resources and empty containers to avoid persistent standing charges.'
+    }
+    if ($key -match 'network controls|load balancer|nsg') {
+        return 'Review architecture and remove or redesign premium networking controls that have no active data path.'
+    }
+    return 'Review whether this resource can be deleted, downscaled, or rightsized.'
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'finops'
@@ -243,6 +289,7 @@ try {
 $findings = [System.Collections.Generic.List[object]]::new()
 $queryErrors = [System.Collections.Generic.List[string]]::new()
 $executedQueryCount = 0
+$toolVersion = Get-FinOpsToolVersion
 
 foreach ($queryFile in $QueryFiles) {
     try {
@@ -287,6 +334,8 @@ foreach ($queryFile in $QueryFiles) {
 
                 $findingIdBase = if (-not [string]::IsNullOrWhiteSpace($resourceId)) { $resourceId } else { [guid]::NewGuid().ToString() }
                 $findingId = "finops/$([string]$queryItem.guid)/$($findingIdBase.ToLowerInvariant())"
+                $detectionCategory = if ($queryItem.subcategory) { [string]$queryItem.subcategory } else { [string]$queryItem.category }
+                $recommendationText = Get-FinOpsRecommendationText -DetectionCategory $detectionCategory -RuleId $ruleId
                 $findings.Add([PSCustomObject]@{
                     Id                   = $findingId
                     Source               = 'finops'
@@ -302,11 +351,13 @@ foreach ($queryFile in $QueryFiles) {
                     ResourceGroup        = $resourceGroup
                     SubscriptionId       = $SubscriptionId
                     Location             = $location
-                    DetectionCategory    = if ($queryItem.subcategory) { [string]$queryItem.subcategory } else { [string]$queryItem.category }
+                    DetectionCategory    = $detectionCategory
                     EstimatedMonthlyCost = $estimatedMonthlyCost
                     Currency             = $currency
                     LearnMoreUrl         = 'https://learn.microsoft.com/azure/cost-management-billing/costs/cost-mgt-best-practices'
                     QueryId              = [string]$queryItem.guid
+                    Recommendation       = $recommendationText
+                    ToolVersion          = $toolVersion
                 }) | Out-Null
             }
         }
@@ -341,6 +392,8 @@ try {
         }
 
         if (-not $canCollectMetrics) {
+            $degradedDetectionCategory = 'AppServicePlanIdleCpuMetricsDegraded'
+            $degradedRecommendation = Get-FinOpsRecommendationText -DetectionCategory $degradedDetectionCategory -RuleId 'finops-appserviceplan-idle-cpu'
             $findings.Add([PSCustomObject]@{
                     Id                   = "finops/AppServicePlanIdleCpuMetricsDegraded/$($resourceId.ToLowerInvariant())"
                     Source               = 'finops'
@@ -356,11 +409,13 @@ try {
                     ResourceGroup        = $resourceGroup
                     SubscriptionId       = $SubscriptionId
                     Location             = $location
-                    DetectionCategory    = 'AppServicePlanIdleCpuMetricsDegraded'
+                    DetectionCategory    = $degradedDetectionCategory
                     EstimatedMonthlyCost = $estimatedMonthlyCost
                     Currency             = $currency
                     LearnMoreUrl         = 'https://learn.microsoft.com/azure/azure-monitor/essentials/metrics-supported#microsoftwebserverfarms'
                     QueryId              = 'AppServicePlanIdleCpu'
+                    Recommendation       = $degradedRecommendation
+                    ToolVersion          = $toolVersion
                 }) | Out-Null
             continue
         }
@@ -383,6 +438,8 @@ try {
             $cpuAverage = [math]::Round((($samples | Measure-Object -Average).Average), 2)
             if ($cpuAverage -ge 5.0) { continue }
 
+            $idleDetectionCategory = 'AppServicePlanIdleCpu'
+            $idleRecommendation = Get-FinOpsRecommendationText -DetectionCategory $idleDetectionCategory -RuleId 'finops-appserviceplan-idle-cpu'
             $findings.Add([PSCustomObject]@{
                     Id                   = "finops/AppServicePlanIdleCpu/$($resourceId.ToLowerInvariant())"
                     Source               = 'finops'
@@ -398,14 +455,18 @@ try {
                     ResourceGroup        = $resourceGroup
                     SubscriptionId       = $SubscriptionId
                     Location             = $location
-                    DetectionCategory    = 'AppServicePlanIdleCpu'
+                    DetectionCategory    = $idleDetectionCategory
                     EstimatedMonthlyCost = $estimatedMonthlyCost
                     Currency             = $currency
                     LearnMoreUrl         = 'https://learn.microsoft.com/azure/app-service/overview-manage-costs'
                     QueryId              = 'AppServicePlanIdleCpu'
+                    Recommendation       = $idleRecommendation
+                    ToolVersion          = $toolVersion
                 }) | Out-Null
         } catch {
             $metricError = Remove-Credentials -Text ([string]$_.Exception.Message)
+            $degradedDetectionCategory = 'AppServicePlanIdleCpuMetricsDegraded'
+            $degradedRecommendation = Get-FinOpsRecommendationText -DetectionCategory $degradedDetectionCategory -RuleId 'finops-appserviceplan-idle-cpu'
             $findings.Add([PSCustomObject]@{
                     Id                   = "finops/AppServicePlanIdleCpuMetricsDegraded/$($resourceId.ToLowerInvariant())"
                     Source               = 'finops'
@@ -421,11 +482,13 @@ try {
                     ResourceGroup        = $resourceGroup
                     SubscriptionId       = $SubscriptionId
                     Location             = $location
-                    DetectionCategory    = 'AppServicePlanIdleCpuMetricsDegraded'
+                    DetectionCategory    = $degradedDetectionCategory
                     EstimatedMonthlyCost = $estimatedMonthlyCost
                     Currency             = $currency
                     LearnMoreUrl         = 'https://learn.microsoft.com/azure/azure-monitor/metrics/metrics-troubleshoot'
                     QueryId              = 'AppServicePlanIdleCpu'
+                    Recommendation       = $degradedRecommendation
+                    ToolVersion          = $toolVersion
                 }) | Out-Null
         }
     }
@@ -447,6 +510,7 @@ $messages.Add("Executed $executedQueryCount FinOps query definition(s); emitted 
 if ($costError) { $messages.Add("Cost enrichment unavailable: $costError") | Out-Null }
 if ($queryErrors.Count -gt 0) { $messages.Add(($queryErrors -join ' | ')) | Out-Null }
 $result.Message = $messages -join ' '
+$result.ToolVersion = $toolVersion
 
 if ($OutputPath) {
     try {

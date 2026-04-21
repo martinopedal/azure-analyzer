@@ -79,6 +79,12 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
             $result.Status | Should -BeIn @('Success', 'PartialSuccess')
             @($result.Findings).Count | Should -BeGreaterThan 0
         }
+
+        It 'adds recommendation text and tool version fields to findings' {
+            $finding = @($result.Findings)[0]
+            $finding.Recommendation | Should -Not -BeNullOrEmpty
+            $finding.ToolVersion | Should -Not -BeNullOrEmpty
+        }
     }
 
     Context 'with snapshot query and custom threshold' {
