@@ -2,8 +2,12 @@
   "Source": "maester",
   "Status": "Success",
   "Message": "",
+  "TenantId": "11111111-1111-1111-1111-111111111111",
+  "ToolVersion": "1.0.0",
   "Findings": [
     {
+      "Id": "maester/MT.1001",
+      "TestId": "MT.1001",
       "Source": "maester",
       "ResourceId": "",
       "Category": "Identity",
@@ -12,31 +16,137 @@
       "Severity": "Critical",
       "Detail": "Multi-factor authentication is not enforced for all users with administrative roles. 3 out of 12 admin accounts do not have MFA registered.",
       "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/authentication/concept-mfa-howitworks",
-      "Remediation": "Create a Conditional Access policy requiring MFA for all administrative roles, or enable security defaults.",
+      "Remediation": "Create a Conditional Access policy requiring MFA for all administrative roles.\n```powershell\nNew-MgIdentityConditionalAccessPolicy -DisplayName 'Require MFA for admins'\n```",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://maester.dev/docs/tests/MT.1001",
+      "Frameworks": [
+        {
+          "kind": "CIS Microsoft 365",
+          "Name": "CIS Microsoft 365",
+          "controlId": "CIS-MS365-1.1.1",
+          "Controls": [
+            "CIS-MS365-1.1.1"
+          ]
+        },
+        {
+          "kind": "EIDSCA",
+          "Name": "EIDSCA",
+          "controlId": "EIDSCA-AT01",
+          "Controls": [
+            "EIDSCA-AT01"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "CIS-MS365-1.1.1",
+        "EIDSCA-AT01"
+      ],
+      "EvidenceUris": [
+        "https://github.com/maester365/maester/blob/main/tests/MT.1001.Tests.ps1",
+        "https://learn.microsoft.com/entra/identity/authentication/concept-mfa-howitworks"
+      ],
+      "RemediationSnippets": [
+        {
+          "language": "powershell",
+          "code": "New-MgIdentityConditionalAccessPolicy -DisplayName 'Require MFA for admins'"
+        }
+      ],
+      "EntityRefs": [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222"
+      ],
+      "MitreTactics": [
+        "TA0001"
+      ],
+      "MitreTechniques": [
+        "T1078"
+      ],
+      "ToolVersion": "1.0.0",
       "SchemaVersion": "1.0"
     },
     {
+      "Id": "maester/MT.2001",
+      "TestId": "MT.2001",
       "Source": "maester",
       "ResourceId": "",
       "Category": "Security",
       "Title": "Legacy authentication protocols are not blocked",
       "Compliant": false,
       "Severity": "High",
-      "Detail": "Legacy authentication protocols (IMAP, POP3, SMTP) are not blocked by Conditional Access. Legacy protocols cannot enforce MFA and are a common attack vector.",
+      "Detail": "Legacy authentication protocols (IMAP, POP3, SMTP) are not blocked by Conditional Access.",
       "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/conditional-access/block-legacy-authentication",
       "Remediation": "Create a Conditional Access policy to block legacy authentication for all users.",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://maester.dev/docs/tests/MT.2001",
+      "Frameworks": [
+        {
+          "kind": "NIST 800-53",
+          "Name": "NIST 800-53",
+          "controlId": "NIST-800-53-AC-2",
+          "Controls": [
+            "NIST-800-53-AC-2"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "NIST-800-53-AC-2"
+      ],
+      "EvidenceUris": [
+        "https://github.com/maester365/maester/blob/main/tests/MT.2001.Tests.ps1",
+        "https://learn.microsoft.com/entra/identity/conditional-access/block-legacy-authentication"
+      ],
+      "RemediationSnippets": [
+        {
+          "language": "text",
+          "code": "Create a Conditional Access policy to block legacy authentication for all users."
+        }
+      ],
+      "EntityRefs": [
+        "11111111-1111-1111-1111-111111111111"
+      ],
+      "MitreTactics": [],
+      "MitreTechniques": [],
+      "ToolVersion": "1.0.0",
       "SchemaVersion": "1.0"
     },
     {
+      "Id": "maester/MT.3001",
+      "TestId": "MT.3001",
       "Source": "maester",
       "ResourceId": "",
       "Category": "Identity",
       "Title": "Self-service password reset is enabled for all users",
       "Compliant": true,
       "Severity": "Info",
-      "Detail": "Self-service password reset (SSPR) is enabled for all users in the tenant, reducing helpdesk load and improving user experience.",
+      "Detail": "Self-service password reset (SSPR) is enabled for all users in the tenant.",
       "LearnMoreUrl": "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-howitworks",
       "Remediation": "",
+      "Pillar": "Security",
+      "DeepLinkUrl": "https://maester.dev/docs/tests/MT.3001",
+      "Frameworks": [
+        {
+          "kind": "EIDSCA",
+          "Name": "EIDSCA",
+          "controlId": "EIDSCA-AT05",
+          "Controls": [
+            "EIDSCA-AT05"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "EIDSCA-AT05"
+      ],
+      "EvidenceUris": [
+        "https://github.com/maester365/maester/blob/main/tests/MT.3001.Tests.ps1",
+        "https://learn.microsoft.com/entra/identity/authentication/concept-sspr-howitworks"
+      ],
+      "RemediationSnippets": [],
+      "EntityRefs": [
+        "11111111-1111-1111-1111-111111111111"
+      ],
+      "MitreTactics": [],
+      "MitreTechniques": [],
+      "ToolVersion": "1.0.0",
       "SchemaVersion": "1.0"
     }
   ]

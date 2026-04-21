@@ -23,7 +23,7 @@ Describe 'Normalize-Maester' {
             @($results).Count | Should -Be 3
         }
 
-        It 'sets SchemaVersion to 2.0' {
+        It 'sets SchemaVersion to 2.2' {
             foreach ($r in $results) {
                 $r.SchemaVersion | Should -Be '2.2'
             }
@@ -107,6 +107,28 @@ Describe 'Normalize-Maester' {
 
         It 'preserves Detail' {
             $results[0].Detail | Should -Not -BeNullOrEmpty
+        }
+
+        It 'propagates Schema 2.2 Maester enrichments through New-FindingRow' {
+            $first = $results[0]
+            $first.RuleId | Should -Be 'MT.1001'
+            $first.Pillar | Should -Be 'Security'
+            $first.DeepLinkUrl | Should -Be 'https://maester.dev/docs/tests/MT.1001'
+            $first.ToolVersion | Should -Be '1.0.0'
+            $first.BaselineTags | Should -Contain 'CIS-MS365-1.1.1'
+            $first.BaselineTags | Should -Contain 'EIDSCA-AT01'
+            @($first.Frameworks).Count | Should -Be 2
+            $first.MitreTactics | Should -Contain 'TA0001'
+            $first.MitreTechniques | Should -Contain 'T1078'
+            $first.EntityRefs | Should -Contain 'tenant:11111111-1111-1111-1111-111111111111'
+            $first.EntityRefs | Should -Contain 'appid:22222222-2222-2222-2222-222222222222'
+            $first.EvidenceUris | Should -Contain 'https://learn.microsoft.com/entra/identity/authentication/concept-mfa-howitworks'
+        }
+
+        It 'preserves remediation snippets' {
+            $first = $results[0]
+            @($first.RemediationSnippets).Count | Should -BeGreaterThan 0
+            $first.RemediationSnippets[0].language | Should -Be 'powershell'
         }
     }
 
