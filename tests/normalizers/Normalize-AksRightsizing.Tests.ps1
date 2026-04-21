@@ -21,6 +21,7 @@ Describe 'Normalize-AksRightsizing' {
             $row.Platform | Should -Be 'Azure'
             $row.Source | Should -Be 'aks-rightsizing'
             $row.Category | Should -Be 'Performance'
+            $row.SchemaVersion | Should -Be '2.2'
         }
     }
 
@@ -34,11 +35,33 @@ Describe 'Normalize-AksRightsizing' {
 
     It 'produces canonical lowercase entity IDs and extracts scope fields' {
         $rows = @(Normalize-AksRightsizing -ToolResult $script:Fixture)
+        @($rows | Select-Object -ExpandProperty EntityId -Unique).Count | Should -Be 2
         foreach ($row in $rows) {
             $row.EntityId | Should -Be $row.EntityId.ToLowerInvariant()
+            $row.EntityId | Should -Match '/namespaces/'
             $row.SubscriptionId | Should -Be '11111111-1111-1111-1111-111111111111'
             $row.ResourceGroup | Should -Be 'rg-aks'
         }
+    }
+
+    It 'derives schema 2.2 metadata for workload rightsizing rows' {
+        $rows = @(Normalize-AksRightsizing -ToolResult $script:Fixture)
+        $overCpu = $rows | Where-Object { $_.FindingCategory -eq 'OverProvisionedCpu' } | Select-Object -First 1
+        $underMemory = $rows | Where-Object { $_.FindingCategory -eq 'UnderProvisionedMemory' } | Select-Object -First 1
+        $missingHpa = $rows | Where-Object { $_.FindingCategory -eq 'MissingHpa' } | Select-Object -First 1
+
+        $overCpu.Pillar | Should -Be 'Cost Optimization'
+        $underMemory.Pillar | Should -Be 'Performance Efficiency'
+        $overCpu.Impact | Should -Be 'High'
+        $overCpu.Effort | Should -Be 'Low'
+        $missingHpa.Effort | Should -Be 'Medium'
+        $overCpu.ScoreDelta | Should -Be 88
+        @($overCpu.BaselineTags) | Should -Contain 'AKS-RightSizing-CPU'
+        @($overCpu.EntityRefs) | Should -Contain 'namespace:prod'
+        @($overCpu.EntityRefs) | Should -Contain 'workload:api'
+        @($overCpu.MitreTactics | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }).Count | Should -Be 0
+        @($overCpu.MitreTechniques | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }).Count | Should -Be 0
+        @($overCpu.Frameworks | Where-Object { $_ }).Count | Should -Be 0
     }
 
     It 'contains representative KQL fixture rows for each category' {
