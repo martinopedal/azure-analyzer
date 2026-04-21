@@ -17,7 +17,23 @@
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks",
       "ControlId": "4.2.6",
       "Status": "FAIL",
-      "LearnMoreUrl": "https://github.com/aquasecurity/kube-bench"
+      "LearnMoreUrl": "https://github.com/aquasecurity/kube-bench",
+      "DeepLinkUrl": "https://github.com/aquasecurity/kube-bench",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Frameworks": [
+        { "kind": "CIS Kubernetes Benchmark", "controlId": "4.2.6" },
+        { "kind": "CIS-AKS", "controlId": "4.2.6" }
+      ],
+      "BaselineTags": ["4.2.6", "FAIL"],
+      "RemediationSnippets": [
+        { "language": "bash", "content": "Edit the kubelet config file to set protectKernelDefaults: true." }
+      ],
+      "EntityRefs": [
+        "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks",
+        "node:aks-nodepool1-12345-vmss000001"
+      ],
+      "ToolVersion": "v0.7.2"
     },
     {
       "Id": "kube-bench/cluster1/4.2.7/2",
@@ -31,7 +47,22 @@
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks",
       "ControlId": "4.2.7",
       "Status": "WARN",
-      "LearnMoreUrl": "https://github.com/aquasecurity/kube-bench"
+      "LearnMoreUrl": "https://github.com/aquasecurity/kube-bench",
+      "DeepLinkUrl": "https://github.com/aquasecurity/kube-bench",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Frameworks": [
+        { "kind": "CIS Kubernetes Benchmark", "controlId": "4.2.7" },
+        { "kind": "CIS-AKS", "controlId": "4.2.7" }
+      ],
+      "BaselineTags": ["4.2.7", "WARN"],
+      "RemediationSnippets": [
+        { "language": "bash", "content": "Set makeIPTablesUtilChains to true in kubelet configuration." }
+      ],
+      "EntityRefs": [
+        "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks"
+      ],
+      "ToolVersion": "v0.7.2"
     },
     {
       "Id": "kube-bench/cluster1/4.2.8/3",

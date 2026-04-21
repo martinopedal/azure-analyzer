@@ -100,6 +100,18 @@ function Get-KubeBenchFailedChecks {
     $items = [System.Collections.Generic.List[object]]::new()
     if (-not $Report) { return @($items) }
 
+    function Get-KubeBenchValue {
+        param(
+            [object]$Object,
+            [string[]]$Candidates
+        )
+        if (-not $Object) { return $null }
+        foreach ($candidate in $Candidates) {
+            if ($Object.PSObject.Properties[$candidate]) { return $Object.$candidate }
+        }
+        return $null
+    }
+
     $controls = @()
     if ($Report.PSObject.Properties['Controls']) { $controls = @($Report.Controls) }
     elseif ($Report.PSObject.Properties['controls']) { $controls = @($Report.controls) }
@@ -119,6 +131,13 @@ function Get-KubeBenchFailedChecks {
                 $section = if ($test.PSObject.Properties['section']) { [string]$test.section } else { '' }
                 $remediation = if ($r.PSObject.Properties['remediation']) { [string]$r.remediation } else { '' }
                 $audit = if ($r.PSObject.Properties['audit']) { [string]$r.audit } else { '' }
+                $nodeRef = [string](Get-KubeBenchValue -Object $r -Candidates @('node', 'node_name', 'nodeName', 'node_id', 'nodeId', 'target'))
+                if ([string]::IsNullOrWhiteSpace($nodeRef)) {
+                    $nodeRef = [string](Get-KubeBenchValue -Object $test -Candidates @('node', 'node_name', 'nodeName', 'node_id', 'nodeId', 'target'))
+                }
+                if ([string]::IsNullOrWhiteSpace($nodeRef)) {
+                    $nodeRef = [string](Get-KubeBenchValue -Object $control -Candidates @('node', 'node_name', 'nodeName', 'node_id', 'nodeId', 'target'))
+                }
 
                 $controlId = if ($testNumber) { $testNumber } elseif ($section) { $section } else { [guid]::NewGuid().ToString() }
                 $title = if ($testNumber -and $testDesc) { "${testNumber}: $testDesc" } elseif ($testDesc) { $testDesc } else { "kube-bench check $controlId" }
@@ -132,12 +151,74 @@ function Get-KubeBenchFailedChecks {
                     Severity     = $severity
                     Detail       = $detail
                     Remediation  = $remediation
+                    NodeRef      = $nodeRef
                 }) | Out-Null
             }
         }
     }
 
     return @($items)
+}
+
+function Resolve-KubeBenchToolVersion {
+    param(
+        [Parameter(Mandatory)][string]$Image
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Image)) { return '' }
+    $clean = $Image.Trim()
+    $withoutDigest = $clean.Split('@')[0]
+    $parts = $withoutDigest.Split(':')
+    if ($parts.Count -gt 1 -and -not [string]::IsNullOrWhiteSpace($parts[-1])) {
+        return $parts[-1]
+    }
+    return $withoutDigest
+}
+
+function Resolve-KubeBenchRemediationLanguage {
+    param([string]$Remediation)
+
+    if ([string]::IsNullOrWhiteSpace($Remediation)) { return '' }
+    if ($Remediation -match '(?im)^\s*(apiVersion|kind|metadata|spec)\s*:') { return 'yaml' }
+    return 'bash'
+}
+
+function Resolve-KubeBenchImpact {
+    param([string]$Severity)
+
+    switch -Regex ($Severity) {
+        '^(?i)(critical|high)$' { return 'High' }
+        '^(?i)medium$' { return 'Medium' }
+        default { return 'Low' }
+    }
+}
+
+function Get-KubeBenchFrameworks {
+    param(
+        [string]$ControlId,
+        [string]$ResourceId
+    )
+
+    if ([string]::IsNullOrWhiteSpace($ControlId)) { return @() }
+
+    $frameworkNames = [System.Collections.Generic.List[string]]::new()
+    $frameworkNames.Add('CIS Kubernetes Benchmark') | Out-Null
+    if (-not [string]::IsNullOrWhiteSpace($ResourceId) -and $ResourceId -match '(?i)/providers/microsoft\.containerservice/managedclusters/') {
+        $frameworkNames.Add('CIS-AKS') | Out-Null
+    } elseif (-not [string]::IsNullOrWhiteSpace($ResourceId) -and $ResourceId -match '(?i)/providers/eks') {
+        $frameworkNames.Add('CIS-EKS') | Out-Null
+    }
+
+    $frameworks = [System.Collections.Generic.List[hashtable]]::new()
+    foreach ($frameworkName in ($frameworkNames | Select-Object -Unique)) {
+        $frameworks.Add(@{
+                kind      = $frameworkName
+                controlId = $ControlId
+                Name      = $frameworkName
+                Controls  = @($ControlId)
+            }) | Out-Null
+    }
+    return $frameworks.ToArray()
 }
 
 function Get-ShortSha256 {
@@ -161,6 +242,8 @@ $result = [ordered]@{
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
+
+$toolVersion = Resolve-KubeBenchToolVersion -Image $KubeBenchImage
 
 $kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or `
                            $PSBoundParameters.ContainsKey('KubeContext')
@@ -374,6 +457,24 @@ spec:
         $clusterKey = Get-ShortSha256 -InputText ([string]$cluster.id)
         foreach ($f in $clusterFindings) {
             $idx++
+            $frameworks = Get-KubeBenchFrameworks -ControlId $f.ControlId -ResourceId ([string]$cluster.id)
+            $baselineTags = @($f.ControlId, $f.Status | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            $remediation = [string]$f.Remediation
+            $snippetLanguage = Resolve-KubeBenchRemediationLanguage -Remediation $remediation
+            $remediationSnippets = @()
+            if (-not [string]::IsNullOrWhiteSpace($remediation) -and -not [string]::IsNullOrWhiteSpace($snippetLanguage)) {
+                $remediationSnippets = @(@{
+                        language = $snippetLanguage
+                        content  = $remediation
+                    })
+            }
+            $entityRefs = [System.Collections.Generic.List[string]]::new()
+            if (-not [string]::IsNullOrWhiteSpace([string]$cluster.id)) {
+                $entityRefs.Add([string]$cluster.id) | Out-Null
+            }
+            if ($f.PSObject.Properties['NodeRef'] -and -not [string]::IsNullOrWhiteSpace([string]$f.NodeRef)) {
+                $entityRefs.Add([string]$f.NodeRef) | Out-Null
+            }
             $findings.Add([pscustomobject]@{
                 Id           = "kube-bench/$clusterKey/$($f.ControlId)/$idx"
                 Source       = 'kube-bench'
@@ -387,6 +488,14 @@ spec:
                 ControlId    = $f.ControlId
                 Status       = $f.Status
                 LearnMoreUrl = 'https://github.com/aquasecurity/kube-bench'
+                DeepLinkUrl  = 'https://github.com/aquasecurity/kube-bench'
+                Pillar       = 'Security'
+                Impact       = Resolve-KubeBenchImpact -Severity ([string]$f.Severity)
+                Frameworks   = @($frameworks)
+                BaselineTags = @($baselineTags)
+                RemediationSnippets = @($remediationSnippets)
+                ToolVersion  = $toolVersion
+                EntityRefs   = @($entityRefs | Select-Object -Unique)
             }) | Out-Null
         }
 

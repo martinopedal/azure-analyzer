@@ -23,6 +23,8 @@
 
 kube-bench needs to run as a Pod on each node to read node-level kubelet configuration. That requires permission to create / delete a Job in `kube-system`. The Job itself is short-lived and the wrapper deletes it after collection. No persistent in-cluster footprint.
 
+Schema 2.2 ETL enrichment (framework/profile tags, impact, deep links, remediation snippets, entity refs, tool version) is metadata-only. It uses the same collected output and introduces no additional API calls or permission requirements.
+
 ## What it does NOT do
 
 - No node modification.

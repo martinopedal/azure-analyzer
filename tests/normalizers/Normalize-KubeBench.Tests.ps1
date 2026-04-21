@@ -33,10 +33,33 @@ Describe 'Normalize-KubeBench' {
         ($rows | Where-Object { $_.Severity -eq 'Medium' }).Count | Should -Be 1
     }
 
-    It 'attaches kube-bench ControlId values' {
+    It 'maps control identity to RuleId and Controls' {
         $rows = @(Normalize-KubeBench -ToolResult $script:Fixture)
-        $ids = @($rows | ForEach-Object { $_.ControlId })
-        $ids | Should -Contain '4.2.6'
-        $ids | Should -Contain '4.2.7'
+        $ruleIds = @($rows | ForEach-Object { $_.RuleId })
+        $ruleIds | Should -Contain 'kube-bench:4.2.6'
+        $ruleIds | Should -Contain 'kube-bench:4.2.7'
+        ($rows | Where-Object { $_.RuleId -eq 'kube-bench:4.2.6' }).Controls | Should -Contain '4.2.6'
+    }
+
+    It 'propagates Schema 2.2 kube-bench metadata fields' {
+        $rows = @(Normalize-KubeBench -ToolResult $script:Fixture)
+        foreach ($row in $rows) {
+            $row.SchemaVersion | Should -Be '2.2'
+            $row.Pillar | Should -Be 'Security'
+            $row.DeepLinkUrl | Should -Be 'https://github.com/aquasecurity/kube-bench'
+            @($row.Frameworks).Count | Should -BeGreaterThan 1
+            @($row.BaselineTags).Count | Should -BeGreaterThan 1
+            @($row.RemediationSnippets).Count | Should -BeGreaterThan 0
+            @($row.EntityRefs).Count | Should -BeGreaterThan 0
+            $row.ToolVersion | Should -Be 'v0.7.2'
+        }
+
+        $fail = $rows | Where-Object { $_.RuleId -eq 'kube-bench:4.2.6' } | Select-Object -First 1
+        $warn = $rows | Where-Object { $_.RuleId -eq 'kube-bench:4.2.7' } | Select-Object -First 1
+        $fail.Impact | Should -Be 'High'
+        $warn.Impact | Should -Be 'Medium'
+        @($fail.Frameworks.kind) | Should -Contain 'CIS Kubernetes Benchmark'
+        @($fail.Frameworks.kind) | Should -Contain 'CIS-AKS'
+        $fail.BaselineTags | Should -Contain 'FAIL'
     }
 }
