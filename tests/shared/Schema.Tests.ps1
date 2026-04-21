@@ -266,13 +266,6 @@ Describe 'New-FindingRow Schema 2.2 additive fields (#299)' {
         @($f.MitreTactics).Count | Should -Be 0
         @($f.MitreTechniques).Count | Should -Be 0
         @($f.EntityRefs).Count | Should -Be 0
-        $f.DocsUrl | Should -Be ''
-        $f.RemediationScript | Should -Be ''
-        @($f.ComplianceMappings).Count | Should -Be 0
-        $f.RuleReference | Should -Be ''
-        $f.SeverityRationale | Should -Be ''
-        @($f.AffectedProperties).Count | Should -Be 0
-        @($f.SuggestedPolicies).Count | Should -Be 0
         $f.ScoreDelta | Should -BeNullOrEmpty
     }
 
@@ -313,25 +306,18 @@ Describe 'New-FindingRow Schema 2.2 additive fields (#299)' {
         $f.Frameworks[0].controlId | Should -Be '1.1.1'
     }
 
-    It 'persists foundation additive metadata fields when supplied' {
+    It 'accepts arbitrary additional optional fields through schema hook' {
         $f = New-FindingRow @script:baseArgs `
-            -DocsUrl 'https://learn.microsoft.com/azure/security/' `
-            -RemediationScript 'az policy assignment create --name test' `
-            -ComplianceMappings @([pscustomobject]@{ framework = 'NIST'; control = 'AC-2'; version = 'rev5' }) `
-            -RuleReference 'AZR-9001' `
-            -SeverityRationale 'Exploitability is high' `
-            -AffectedProperties @('identity.type', 'networkAcls.defaultAction') `
-            -SuggestedPolicies @([pscustomobject]@{ source = 'ALZ'; policyId = '/providers/microsoft.authorization/policydefinitions/123'; docsUrl = 'https://example.test/policy' })
+            -AdditionalOptionalFields @{
+                ExtCustomUrl = 'https://example.test/finding'
+                ExtControlMap = @([pscustomobject]@{ framework = 'NIST'; control = 'AC-2'; version = 'rev5' })
+                ExtNotes = @('alpha', 'beta')
+            }
 
-        $f.DocsUrl | Should -Be 'https://learn.microsoft.com/azure/security/'
-        $f.RemediationScript | Should -Match 'az policy assignment create'
-        @($f.ComplianceMappings).Count | Should -Be 1
-        $f.ComplianceMappings[0].framework | Should -Be 'NIST'
-        $f.RuleReference | Should -Be 'AZR-9001'
-        $f.SeverityRationale | Should -Be 'Exploitability is high'
-        $f.AffectedProperties | Should -Contain 'identity.type'
-        @($f.SuggestedPolicies).Count | Should -Be 1
-        $f.SuggestedPolicies[0].source | Should -Be 'ALZ'
+        $f.ExtCustomUrl | Should -Be 'https://example.test/finding'
+        @($f.ExtControlMap).Count | Should -Be 1
+        $f.ExtControlMap[0].framework | Should -Be 'NIST'
+        $f.ExtNotes | Should -Contain 'alpha'
     }
 
     It 'round-trips Schema 2.2 fields through JSON serialization (EntityStore v3.1 envelope)' {

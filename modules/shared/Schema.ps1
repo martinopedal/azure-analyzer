@@ -280,14 +280,8 @@ function New-FindingRow {
         [string[]] $MitreTactics = @(),
         [string[]] $MitreTechniques = @(),
         [string[]] $EntityRefs = @(),
-        [string] $DocsUrl = '',
-        [string] $RemediationScript = '',
-        [object[]] $ComplianceMappings = @(),
-        [string] $RuleReference = '',
-        [string] $SeverityRationale = '',
-        [string[]] $AffectedProperties = @(),
         [string] $ToolVersion = '',
-        [object[]] $SuggestedPolicies = @(),
+        [hashtable] $AdditionalOptionalFields = @{},
 
         [string] $SchemaVersion = $script:SchemaVersion
     )
@@ -386,15 +380,19 @@ function New-FindingRow {
         MitreTactics     = $MitreTactics
         MitreTechniques  = $MitreTechniques
         EntityRefs       = $EntityRefs
-        DocsUrl          = $DocsUrl
-        RemediationScript = $RemediationScript
-        ComplianceMappings = $ComplianceMappings
-        RuleReference    = $RuleReference
-        SeverityRationale = $SeverityRationale
-        AffectedProperties = $AffectedProperties
         ToolVersion      = $ToolVersion
-        SuggestedPolicies = $SuggestedPolicies
         SchemaVersion    = $SchemaVersion
+    }
+
+    if ($AdditionalOptionalFields) {
+        foreach ($entry in $AdditionalOptionalFields.GetEnumerator()) {
+            if ([string]::IsNullOrWhiteSpace([string]$entry.Key)) { continue }
+            if ($row.PSObject.Properties[[string]$entry.Key]) {
+                $row.([string]$entry.Key) = $entry.Value
+            } else {
+                $row | Add-Member -NotePropertyName ([string]$entry.Key) -NotePropertyValue $entry.Value
+            }
+        }
     }
 
     # Validate the row before returning it

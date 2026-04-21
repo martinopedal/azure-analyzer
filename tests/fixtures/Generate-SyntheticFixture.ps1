@@ -69,14 +69,13 @@ function New-SyntheticFixture {
             Confidence         = 'Likely'
             EvidenceCount      = 1
             MissingDimensions  = @()
-            DocsUrl            = 'https://learn.microsoft.com/azure/well-architected/'
-            RemediationScript  = 'az policy assignment create --name synthetic'
-            ComplianceMappings = @([pscustomobject]@{ framework = 'CIS'; control = '1.1.1'; version = '1.4.0' })
-            RuleReference      = "SYN-$($i % 25)"
-            SeverityRationale  = "Pattern score for $severity"
-            AffectedProperties = @('identity.type', 'networkProfile')
+            ExtHookMeta        = [pscustomobject]@{
+                Documentation = 'https://learn.microsoft.com/azure/well-architected/'
+                RuleRef       = "SYN-$($i % 25)"
+                SeverityWhy   = "Pattern score for $severity"
+            }
             ToolVersion        = 'synthetic-1.0.0'
-            SuggestedPolicies  = @([pscustomobject]@{ source = 'AzAdvertizer'; policyId = "/providers/microsoft.authorization/policydefinitions/syn-$($i % 10)"; docsUrl = 'https://www.azadvertizer.net/' })
+            ExtHookPolicies    = @([pscustomobject]@{ source = 'AzAdvertizer'; policyId = "/providers/microsoft.authorization/policydefinitions/syn-$($i % 10)"; docsUrl = 'https://www.azadvertizer.net/' })
             SchemaVersion      = '2.2'
         }) | Out-Null
 
