@@ -1,37 +1,8 @@
 # Squad Decisions
 
+> Entries older than 30 days archived to `decisions-archive.md` (2026-04-22).
+
 ## Active Decisions
-
-### Routing Infrastructure (2024-12-19)
-- **Decision:** routing.md uses `## Work Type → Agent` header format
-- **Rationale:** Clear separation of concerns and agent dispatch rules
-- **Status:** Active
-
-### GitHub Actions Security (2024-12-19)
-- **Decision:** All GitHub Actions MUST be SHA-pinned (never use tags)
-- **Rationale:** Security hardening; prevents workflow injection attacks
-- **Implementation:** Applied across 10 action references in 4 workflows
-- **Status:** Active
-
-### Signed Commits Policy (2024-12-19)
-- **Decision:** Signed commits NOT required for this repository
-- **Rationale:** Breaks GitHub Dependabot and GitHub API commits; solo maintenance model
-- **Status:** Active
-
-### Triage Keyword Robustness (2024-12-19)
-- **Decision:** Generic keywords in triage (go:needs-research) must be conditional, not unconditional
-- **Rationale:** Prevents false-positive labeling; improves signal-to-noise ratio
-- **Status:** Active
-
-### Routing Table & Casting Registry Migration (2024-12-19)
-- **Decision:** Squad routing infrastructure fully initialized with domain-specific routing table and casting registry
-- **Details:**
-  - routing.md section header: `## Work Type → Agent` (Ralph parser requirement)
-  - 11 work-type mappings covering all agent specializations
-  - Module Ownership section added (12 module-to-owner mappings)
-  - Casting registry populated with 6 agents marked `legacy_named: true`
-- **Commit:** 85d8c5e
-- **Status:** Active
 
 ### Multi-Model Development Process Codified (2026-01-15)
 - **Decision:** All code changes follow the mandatory multi-model review pipeline: Build -> Review (3 models) -> Fix -> Re-gate -> CI -> Merge. Models: Opus 4.6, Goldeneye, GPT-5.3-codex. All 3 must approve before merge.
@@ -60,13 +31,6 @@
 - **PR:** #154 (SHA 0f287ad)
 - **Status:** Active
 
-### SBOM + Pinned Versions Implementation (#102) (2025-01-01)
-- **Decision:** Created separate `install-manifest.json` for supply-chain security (versions, checksums) distinct from `tool-manifest.json` (orchestration). Added CycloneDX 1.5 SBOM generation, SHA-256 verification functions, and CI/release workflow gates.
-- **Rationale:** Clean separation of concerns. Package managers (winget/brew) verify checksums; we document delegation via `pinningNote`. Direct downloads use SHA-256 verification. Industry-standard CycloneDX format with GitHub/Docker/CI integration.
-- **Key Choices:** Per-platform entries (Windows/macOS use package managers; Linux uses direct downloads). Separate manifest prevents mixing orchestration and supply-chain concerns.
-- **Consequences:** Positive: supply-chain transparency on every release, reproducible installs (where possible), CI gate on hash verification. Negative: maintenance burden when tool versions bump (must update SHA-256).
-- **Status:** Active
-
 ### Error Sanitization Boundary (2026-04-18)
 - **Decision:** Sanitize at error-capture time (in `catch` blocks), not write-time. Every exception message assigned to a `Message` property must wrap with `Remove-Credentials`.
 - **Rationale:** Single boundary enforcement prevents bypasses. If we sanitized only at write-time, future developers might write new output paths and forget. Keeps error messages in result objects always safe.
@@ -83,12 +47,6 @@
 ### PR #120 Revision for Issue #126 Gate (2026-04-17)
 - **Decision:** Applied five corrections to wrapper error paths: (1) parser safety via `"${testNumber}: $testDesc"` string formatting; (2) test hard-fail with `$ErrorActionPreference = 'Stop'`; (3) retry API alignment with `-MaxAttempts` canonical (backward-compat `-MaxRetries` mapped); (4) sanitization invariant on all 17 wrappers; (5) `PartialSuccess` semantics for multi-target scans with mixed success/failure.
 - **Rationale:** Prevents parse regressions, improves test signal, reduces secret leakage, preserves findings during partial outages.
-- **Status:** Active
-
-### SHA-Pinning + Triage Keyword Routing + Consistency Fixes (2025-01-26)
-- **Decision:** (1) SHA-pinned 4 squad workflows (10 action instances); (2) replaced generic triage keywords in workflows and ralph-triage.js with azure-analyzer specialist keywords; (3) removed contradiction in copilot-instructions.md line 49; (4) made `go:needs-research` conditional (only applied to issues routed to Lead or with no domain match).
-- **Keywords:** Atlas (`arg`, `kql`, `query`), Iris (`entra`, `identity`, `graph`, `pim`), Forge (`pipeline`, `workflow`, `ci`, `devops`), Sentinel (`security`, `compliance`, `azqr`, `score`), Sage (`research`, `spike`, `investigation`).
-- **Impact:** ✅ Security (all workflows SHA-pinned), ✅ Triage accuracy (route to specialists), ✅ Label hygiene (`go:needs-research` only when needed).
 - **Status:** Active
 
 ### PR Review Gate Model Selection (2026-04-17)
@@ -127,6 +85,176 @@
 - **Example:** PR #290 bumped codeql-action to SHA matching v4.35.2 but left comment as `v4.35.1`. PR #291 bumped action-gh-release to v3.0.0 SHA but left comment as `v2.2.0`.
 - **Mitigation:** Always `git diff` before merging Dependabot PRs. Fix stale comments with a follow-up commit on the Dependabot branch (before merge) to maintain SHA-pin policy accuracy.
 - **Status:** Documented
+
+---
+
+## 2026-04-22 — Report UX Redesign + Schema 2.2
+
+Six-agent research arc covering 13 tools. Briefs delivered by Iris (Maester, Kubescape), Atlas (AzGovViz), Sage (azqr, PSRule, Defender, Prowler, Powerpipe), Forge (Trivy, Infracost, Scorecard), Lead (WARA, Sentinel). Sentinel synthesised, shipped locked mockup + Schema 2.2 contract + 15 issues (#299–#313).
+
+### Report Architecture: Single-Scroll with Sticky Anchors (2026-04-22)
+- **Decision:** Unified HTML report uses a single-page scroll with sticky in-page anchor pills (`#overview`, `#coverage`, `#heatmap`, `#risks`, `#findings`, `#entities`). No JS TabStrip.
+- **Rationale:** AzGovViz's `display:none` tabs break Ctrl+F, hide findings behind a click (wrong CISO default), and add JS state management. Sticky anchors give equivalent density. Browser back-button, URL fragments, and print-to-PDF all work natively. Atlas and Sentinel independently converged on this.
+- **Locked in:** `samples/sample-report.html` (58 KB design spec).
+- **Status:** Active
+
+### Schema 2.2 Additive Bump (2026-04-22)
+- **Decision:** Add 13 optional parameters to `New-FindingRow` in `modules/shared/Schema.ps1`. Bump `$script:SchemaVersion = '2.2'`. All backward-compatible (empty defaults, existing tests green).
+- **New fields:** `Frameworks [hashtable[]]`, `Pillar [string]`, `Impact [string]`, `Effort [string]`, `DeepLinkUrl [string]`, `RemediationSnippets [hashtable[]]`, `EvidenceUris [string[]]`, `BaselineTags [string[]]`, `ScoreDelta [double]`, `MitreTactics [string[]]`, `MitreTechniques [string[]]`, `EntityRefs [string[]]`, `ToolVersion [string]`.
+- **EntityStore:** Envelope v3.1 → v3.2 with additive `RunContexts: object[]` sidecar. New helpers: `Merge-FrameworksUnion`, `Merge-BaselineTagsUnion`.
+- **Umbrella issue:** #299
+- **Status:** Active
+
+### Framework Badge Palette (2026-04-22)
+- **Decision:** Unified `<framework-chip>` component across all tools. Colors are framework-keyed (not tool-keyed): CIS is always amber regardless of source scanner.
+- **Palette (WCAG-AA on white):** CIS `#D97706`, NIST `#374151`, MITRE `#B91C1C`, EIDSCA `#1F6FEB`, eIDAS2 `#7C3AED`, SOC/ISO `#0F766E`, CISA `#0F766E`, MCSB `#005A9E`, CAF `#1E3A8A`, WAF `#3A7D0A`, ORCA `#0891B2`.
+- **Status:** Active
+
+### Severity + Status Color Tokens (2026-04-22)
+- **Decision:** Unified severity palette: Critical `#B00020`, High `#D93B00`, Medium `#B26A00`, Low `#0B6FA8`, Info `#5C6770`. Status: Pass `#1E8E3E`, Fail `#C5221F`, Investigate `#B26A00`, Skipped `#5C6770`, Error `#7B1FA2`. All WCAG-AA at 14px on white.
+- **Status:** Active
+
+### Heat-Map Default: Control-Domain × Subscription (2026-04-22)
+- **Decision:** Default heatmap axis is Control-Domain (WAF Pillar) × Subscription. Two alternate toggles: Severity × ResourceGroup (operational), Framework × Subscription (compliance).
+- **Rationale:** Execs under-served today; this answers "where are my CAF/WAF coverage gaps across the estate?" Endorsed by Sage, Atlas, Defender Compliance Manager pattern.
+- **Cell encoding:** Defender-style split-bar (green/red/grey) preferred; v1 fallback is sequential single-hue ramp on `% compliant`.
+- **Status:** Active
+
+### Bugs Uncovered in ETL Review (2026-04-22)
+- **PSRule severity hardcode** — `Invoke-PSRule.ps1` sets `Severity = 'Medium'` for every finding. Fix: map `Error→High`, `Warning→Medium`, `Information→Info`. Issue #301.
+- **Scorecard severity inversion** — Score `-1` (errored) → `High` (should be `Info`); score `0` (true failure) → `High` (should be `Critical`). Issue #313.
+- **WARA ImpactedResources truncation** — Only `[0]` taken; N-1 resources lost. Breaks effort axis. Issue #308.
+- **WARA Remediation/LearnMoreUrl aliasing** — Both set to same URL; remediation text lost. Issue #308.
+- **Defender missing regulatoryCompliance API** — No CIS/NIST/PCI/ISO framework tags collected. Issue #302.
+- **azqr field-projection gap** — Raw JSON dump; no `RecommendationId`, `Impact`, or Pillar extracted. Issue #300.
+- **Status:** Tracked — each assigned to its per-tool issue
+
+### Per-Tool ETL Gap Summary (2026-04-22)
+
+Condensed from 6 deep-dive briefs. Each tool's critical dropped fields and the target schema slot.
+
+#### Maester (Issue #305)
+| Dropped field | Target slot |
+|---|---|
+| `Tags` (Block.Tag + Test.Tag — EIDSCA/CIS/MITRE/eIDAS2/NIST) | `Frameworks[]` (first-class) |
+| `TestId` (e.g. `EIDSCA.AF01`) | `RuleId` (first-class) |
+| `TestDescription` (markdown) | `Properties.Description` (container) |
+| `TestRemediation` (markdown with portal links) | `Remediation` (first-class — stop blanking it) |
+| `HelpUrl` (parsed from `See https://...`) | `LearnMoreUrl` (first-class — stop blanking it) |
+| `Result = Investigate / Error` (squashed to Compliant=true) | `Properties.ResultState` + `MissingDimensions[]` |
+| `Duration`, `ScriptBlock`, `MgContext`, module version | `Properties` bag + `RunContexts` sidecar |
+
+#### Kubescape (Issue #306)
+| Dropped field | Target slot |
+|---|---|
+| Framework membership (`control.frameworks[]`) | `Frameworks[]` (first-class) |
+| `control.description` / `control.remediation` (real text) | `Detail` / `Remediation` (stop fabricating) |
+| `scoreFactor` (1–10 numeric) | `Properties.ScoreFactor` (container) |
+| `failedPaths` / `fixPaths` (JSONPath + YAML remediation) | `Properties.FailedPaths` / `Properties.FixPaths` |
+| Per-resource granularity (`results[].controls[].rules[]`) | One FindingRow per (controlID, resourceID) |
+| Posture Score (0–100) + per-framework scores | `RunContexts` sidecar |
+| Status counters (passed/failed/skipped/excluded/irrelevant) | `RunContexts` sidecar |
+
+#### AzGovViz (Issue #307)
+| Dropped field | Target slot |
+|---|---|
+| `*_HierarchyMap.json` (MG tree) | `ManagementGroup` entities + parent links |
+| AzAdvertizer URLs (per-definition evidence links) | `LearnMoreUrl` or `Properties` |
+| `PrincipalDisplayName` / `PrincipalUPN` | Dedicated extras on FindingRow |
+| PIM eligibility flag | Dedicated extra |
+| `*_ALZPolicyVersionChecker.csv` | New `ALZ-Policy` category findings |
+| `*_OrphanedResources.csv` | New `CostOptimization` category findings |
+
+#### azqr (Issue #300)
+| Dropped field | Target slot |
+|---|---|
+| `RecommendationId` (stable GUID) | `RuleId` (first-class) |
+| `Impact` (H/M/L, separate from Severity) | `Impact` (new Schema 2.2) |
+| WAF Pillar mapping | `Pillar` (new Schema 2.2) |
+| Azure-portal deep link | `DeepLinkUrl` (new Schema 2.2) |
+| `Remediation` overloaded with URL | Fix: separate Remediation from LearnMoreUrl |
+
+#### PSRule (Issue #301)
+| Dropped field | Target slot |
+|---|---|
+| Rule severity/level (Error/Warning/Information) | `Severity` (fix the hardcode bug!) |
+| WAF Pillar tag (`Azure.WAF/pillar=Security`) | `Pillar` (new Schema 2.2) |
+| CIS/NIST/PCI/ISO annotation keys | `Frameworks[]` (new Schema 2.2) |
+| Baseline tags (release: GA/preview/deprecated) | `BaselineTags[]` (new Schema 2.2) |
+| Remediation snippets (Bicep examples) | `RemediationSnippets[]` (new Schema 2.2) |
+
+#### Defender for Cloud (Issue #302)
+| Dropped field | Target slot |
+|---|---|
+| Regulatory compliance tags (PCI/ISO/SOC/CIS/NIST) | `Frameworks[]` — requires new API call |
+| MCSB control IDs | `Frameworks[{kind:'MCSB'}]` |
+| Azure-portal deep link to assessment blade | `DeepLinkUrl` (new Schema 2.2) |
+| `additionalData` evidence blob | `EvidenceUris` or `Properties.EvidenceData` |
+| Secure Score delta vs previous run | `ScoreDelta` (new Schema 2.2) |
+
+#### WARA (Issue #308)
+| Dropped field | Target slot |
+|---|---|
+| `ImpactedResources[]` full array | Emit one finding per resource |
+| `Potential Benefit` | `Properties.RemediationBenefit` |
+| `Pillar` / `Recommendation Control` | `Pillar` (new Schema 2.2) |
+| `Service` (short name) | `Properties.ServiceShortName` |
+| Remediation text (distinct from URL) | `Remediation` (stop aliasing) |
+
+#### Sentinel Incidents (Issue #309)
+| Dropped field | Target slot |
+|---|---|
+| `Tactics[]` / `Techniques[]` (MITRE) | `MitreTactics` / `MitreTechniques` (new Schema 2.2) |
+| `AlertIds[]` (full array) | `EntityRefs` or dedicated field |
+| `RelatedAnalyticRuleIds` | Cross-link to coverage findings |
+| `Labels[]`, `Comments[]` | `Labels` or `Properties` |
+| `FirstActivityTime` / `LastActivityTime` | Dedicated extras |
+| Entity refs (from SecurityAlert join) | `EntityRefs` (new Schema 2.2) |
+
+#### Sentinel Coverage (Issue #310)
+| Dropped field | Target slot |
+|---|---|
+| Analytic rule MITRE tactics/techniques | `MitreTactics` / `MitreTechniques` |
+| Connector health / last heartbeat | Finding `Detail` |
+
+#### Trivy (Issue #311)
+| Dropped field | Target slot |
+|---|---|
+| CVSS V3Score / V3Vector | `Properties.CvssScore` / `Properties.CvssVector` |
+| CweIDs[] | `Tags` (with `cwe-` prefix) |
+| References[] (full list) | `EvidenceUris` |
+| Result.Type (npm/go/os-pkgs) + Class | `Tags` (ecosystem/class) |
+| Misconfigurations + Secrets scan types | Enable `--scanners vuln,misconfig,secret` |
+
+#### Infracost (Issue #312)
+| Dropped field | Target slot |
+|---|---|
+| `diff` mode (cost delta vs baseline) | New `CompareTo` wrapper param |
+| `costComponents[]` breakdown | `Properties.CostComponents` |
+| Project-level rollup totals | `ToolSummary` envelope |
+| `MonthlyCost` / `Currency` (via Add-Member) | `Properties` bag (typed) |
+
+#### Scorecard (Issue #313)
+| Dropped field | Target slot |
+|---|---|
+| Aggregate `score` (0–10 hero KPI) | `ToolSummary` envelope |
+| `check.details[]` (file:line evidence) | `EvidenceUris` or `Properties.Evidence` |
+| `documentation.short` (check description) | `Properties.Description` |
+| `scorecard.version` + `repo.commit` | `ProvenanceSource` / `ToolVersion` |
+| `-1` severity inversion bug | Fix: errored → Info, 0 → Critical |
+
+### PR Sequencing (2026-04-22)
+- **Step 1:** Schema 2.2 + EntityStore merge helpers (#299) — no wrapper changes
+- **Steps 2–14:** Per-tool wrapper+normalizer updates (#300–#313) — parallelizable
+- **Step 15:** Report consumes Schema 2.2 fields (#295/#296) — does NOT block on steps 2–14
+- **Step 16:** Remove Add-Member orphan props (cleanup)
+- **Status:** Planned
+
+### Renderer Graceful-Degradation Contract (2026-04-22)
+- **Decision:** Report renderer must render new fields when present and non-empty; omit entirely when absent. Never parse a field out of another field's string blob. Never fabricate placeholders. Mockup placeholders are pedagogical, not contractual.
+- **Status:** Active
+
+---
 
 ## Governance
 

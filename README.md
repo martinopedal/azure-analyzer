@@ -6,6 +6,13 @@
 
 **One PowerShell command, 32 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
+## What does the output look like?
+
+Two sample reports built from the same illustrative scan (tenant `contoso-prod`, 17 tools, 222 findings):
+
+- **[samples/sample-report.html](samples/sample-report.html)** - interactive single-file HTML with a sortable findings table, control-domain heat map, tool coverage grid, top-risks panel, and a dark mode toggle. Open it locally in any browser; no server, no CDN, no JavaScript dependencies.
+- **[samples/sample-report.md](samples/sample-report.md)** - the same scan rendered as GitHub-Flavored Markdown for pasting into PRs, issues, and email digests.
+
 ## Install
 
 ```powershell
