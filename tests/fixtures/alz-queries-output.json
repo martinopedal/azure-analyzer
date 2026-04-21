@@ -1,42 +1,52 @@
 {
   "Source": "alz-queries",
+  "ToolVersion": "1.0.0",
   "Status": "Success",
   "Message": "",
   "Findings": [
     {
       "Source": "alz-queries",
+      "Id": "e8aa1e41-870d-4968-94c6-77be14f510ac",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Network/virtualNetworks/vnet-prod",
       "Category": "Networking",
+      "Subcategory": "Perimeter",
       "Title": "Virtual network does not have DDoS Protection Plan enabled",
       "Compliant": false,
       "Severity": "High",
       "Detail": "Virtual network vnet-prod does not have an Azure DDoS Protection Plan associated. DDoS Protection Standard provides enhanced mitigation for virtual network resources.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/ddos-protection/ddos-protection-overview",
       "Remediation": "Associate an Azure DDoS Protection Plan with the virtual network.",
+      "ToolVersion": "1.0.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "alz-queries",
+      "Id": "1049d403-a923-4c34-94d0-0018ac6a9e01",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-db-01",
       "Category": "Identity",
+      "Subcategory": "Identity",
       "Title": "VM does not use managed identity",
       "Compliant": false,
       "Severity": "Medium",
       "Detail": "Virtual machine vm-db-01 does not have a system-assigned or user-assigned managed identity. Managed identities eliminate the need for credentials in code.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/overview",
       "Remediation": "Enable system-assigned managed identity on the VM or assign a user-assigned managed identity.",
+      "ToolVersion": "1.0.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "alz-queries",
+      "Id": "6c573937-7602-421f-bad6-b12d990f9f88",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.ContainerService/managedClusters/aks-prod-01",
       "Category": "Security",
+      "Subcategory": "Baseline",
       "Title": "AKS cluster has RBAC enabled",
       "Compliant": true,
       "Severity": "Info",
       "Detail": "AKS cluster aks-prod-01 has Kubernetes RBAC enabled, providing fine-grained access control.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/aks/concepts-identity",
       "Remediation": "",
+      "ToolVersion": "1.0.0",
       "SchemaVersion": "1.0"
     }
   ]

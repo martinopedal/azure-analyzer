@@ -13,6 +13,7 @@
 ## What it does with these permissions
 
 The wrapper executes `Search-AzGraph` against the queries shipped under `queries/`. Each query returns a `compliant` column. No writes, no resource modification.
+Schema 2.2 enrichment for ALZ findings (Frameworks, Pillar, DeepLinkUrl, EvidenceUris, BaselineTags, EntityRefs, ToolVersion, Impact, Effort) is metadata-only and introduces no additional permissions.
 
 ## How to grant
 
