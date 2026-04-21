@@ -8,7 +8,7 @@ Azure-analyzer is **read-first**. Every collector targets the minimum scope it n
 
 | Domain | What it covers | Baseline role |
 |---|---|---|
-| **Azure** | Subscription / management-group / workspace collectors (azqr, PSRule, AzGovViz, ALZ, WARA, FinOps, Defender, Sentinel, Cost, AKS) | **Reader** at the relevant scope |
+| **Azure** | Subscription / management-group / workspace collectors (azqr, PSRule, Powerpipe, AzGovViz, ALZ, WARA, FinOps, Defender, Sentinel, Cost, AKS) | **Reader** at the relevant scope |
 | **Microsoft Graph** | Entra ID / identity collectors (Maester, Identity Correlator optional, Identity Graph Expansion) | Read-only Graph application or delegated scopes |
 | **GitHub** | OpenSSF Scorecard, optional cloning for cloud-first CLI scanners | Repository **Read** PAT (or unauthenticated for public repos with rate-limit penalty) |
 | **Azure DevOps** | Service connections, pipeline security, repo secrets, run correlator | PAT with read-only scopes (`Build:Read`, `Code:Read`, `Service Connections:Read`, etc.) |
@@ -39,6 +39,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | **kube-bench (AKS node-level CIS compliance)** | Subscription | [`kube-bench.md`](docs/consumer/permissions/kube-bench.md) |
 | **Kubescape (AKS runtime posture)** | Subscription | [`kubescape.md`](docs/consumer/permissions/kubescape.md) |
 | **Azure Load Testing (Failed and Regressed Runs)** | Subscription | [`loadtesting.md`](docs/consumer/permissions/loadtesting.md) |
+| **Powerpipe Compliance Benchmarks** | Subscription | [`powerpipe.md`](docs/consumer/permissions/powerpipe.md) |
 | **PSRule for Azure** | Subscription | [`psrule.md`](docs/consumer/permissions/psrule.md) |
 | **Microsoft Sentinel (Coverage / Posture)** | Workspace | [`sentinel-coverage.md`](docs/consumer/permissions/sentinel-coverage.md) |
 | **Microsoft Sentinel (Active Incidents)** | Workspace | [`sentinel-incidents.md`](docs/consumer/permissions/sentinel-incidents.md) |

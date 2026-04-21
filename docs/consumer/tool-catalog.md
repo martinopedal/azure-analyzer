@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 34. **Disabled / opt-in:** 1.
+**Total enabled:** 35. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -40,6 +40,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `kubescape` | Kubescape (AKS runtime posture) | subscription | azure | CIS Azure, NIST 800-53 | Runtime posture for AKS clusters: misconfigurations, RBAC, network policies, vulnerabilities. | - |
 | `loadtesting` | Azure Load Testing (Failed and Regressed Runs) | subscription | azure | Azure WAF | Azure Load Testing reliability signals: failed runs, cancelled runs, and metric regressions. | - |
 | `maester` | Maester | tenant | microsoft365 | NIST 800-53, SOC2, PCI-DSS | Microsoft Entra (Identity) security baseline: conditional access, MFA, privileged roles. | [docs](./ai-triage.md) |
+| `powerpipe` | Powerpipe Compliance Benchmarks | subscription | azure | CIS Azure, NIST 800-53, PCI-DSS, SOC2 | Powerpipe control-pack benchmark results with framework-aware compliance metadata. | - |
 | `psrule` | PSRule for Azure | subscription | azure | CIS Azure, NIST 800-53, Azure WAF, Azure CAF | Microsoft PSRule for Azure: Well-Architected and best-practice rule baseline. | - |
 | `scorecard` | OpenSSF Scorecard | repository | github | NIST 800-53, SOC2 | OpenSSF Scorecard for repository supply-chain hygiene. | - |
 | `sentinel-coverage` | Microsoft Sentinel (Coverage / Posture) | workspace | azure | NIST 800-53, SOC2, PCI-DSS, Azure WAF | Sentinel detection posture: analytic rules, watchlists, data connectors, hunting queries. | - |

@@ -103,6 +103,7 @@ $consumerBlurb = @{
     'finops'                   = 'FinOps signals: idle / orphaned resources that drive avoidable spend.'
     'loadtesting'              = 'Azure Load Testing reliability signals: failed runs, cancelled runs, and metric regressions.'
     'psrule'                   = 'Microsoft PSRule for Azure: Well-Architected and best-practice rule baseline.'
+    'powerpipe'                = 'Powerpipe control-pack benchmark results with framework-aware compliance metadata.'
     'azgovviz'                 = 'Azure Governance Visualizer: management-group / subscription / RBAC / policy posture.'
     'alz-queries'              = 'ALZ Resource Graph queries: landing-zone compliance and drift detection.'
     'wara'                     = 'Well-Architected Reliability Assessment workflow for production workloads.'
