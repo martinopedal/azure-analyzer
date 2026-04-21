@@ -5,6 +5,7 @@
 **Scope:** repository | **Provider:** cli
 
 gitleaks scans repository filesystems for hardcoded secrets. Invoked with `--redact` so the report file **never contains plaintext secrets** (Secret / Match fields are also stripped from parsed JSON as defense-in-depth).
+Schema 2.2 enrichments (`Frameworks`, `Pillar`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`) are metadata only and do not require extra scopes.
 
 **Cloud-first**: when `-Repository` (GitHub) or `-AdoOrg` / `-AdoRepoUrl` (Azure DevOps) is provided, it scans a remote checkout via `modules/shared/RemoteClone.ps1` (HTTPS-only; host allow-list: `github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`; tokens scrubbed from `.git/config` after clone).
 

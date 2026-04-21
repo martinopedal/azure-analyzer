@@ -45,14 +45,21 @@ Describe 'Invoke-Gitleaks' {
             $script:RepoPath = Join-Path $script:TestRoot 'repo'
             $null = New-Item -ItemType Directory -Path $script:RepoPath -Force
             Set-Content -Path (Join-Path $script:RepoPath 'README.md') -Value 'fixture' -Encoding UTF8
+            $null = git -C $script:RepoPath init 2>$null
+            $null = git -C $script:RepoPath remote add origin https://github.com/test-org/test-repo.git 2>$null
 
             $global:CapturedArgs = @()
+            $global:MockGitleaksReport = '[]'
             function global:gitleaks {
                 param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
+                if (@($Args).Count -eq 1 -and $Args[0] -eq 'version') {
+                    $global:LASTEXITCODE = 0
+                    return 'gitleaks version 8.24.2'
+                }
                 $global:CapturedArgs = @($Args)
                 $idx = [Array]::IndexOf($Args, '--report-path')
                 if ($idx -ge 0) {
-                    Set-Content -Path $Args[$idx + 1] -Value '[]' -Encoding UTF8
+                    Set-Content -Path $Args[$idx + 1] -Value $global:MockGitleaksReport -Encoding UTF8
                 }
                 $global:LASTEXITCODE = 0
             }
@@ -62,6 +69,7 @@ Describe 'Invoke-Gitleaks' {
         AfterEach {
             Remove-Item Function:\gitleaks -ErrorAction SilentlyContinue
             Remove-Variable -Name CapturedArgs -Scope Global -ErrorAction SilentlyContinue
+            Remove-Variable -Name MockGitleaksReport -Scope Global -ErrorAction SilentlyContinue
             if ($script:TestRoot -and (Test-Path $script:TestRoot)) {
                 Remove-Item -Path $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
             }
@@ -128,6 +136,38 @@ useDefault = true
             $infoFinding[0].Severity | Should -Be 'Info'
             $infoFinding[0].Detail | Should -Match 'sig=\[REDACTED\]'
             $infoFinding[0].Detail | Should -Not -Match 'sig=abcdefghijklmnopqrstuvwxyz123456'
+        }
+
+        It 'emits Schema 2.2 gitleaks metadata and tool version' {
+            $global:MockGitleaksReport = @'
+[
+  {
+    "RuleID": "aws-access-key-id",
+    "Description": "AWS Access Key",
+    "File": ".github/workflows/deploy.yml",
+    "StartLine": 12,
+    "Commit": "1234567890abcdef",
+    "Fingerprint": "1234567890abcdef:.github/workflows/deploy.yml:aws-access-key-id:12",
+    "Tags": ["secret","aws","key"]
+  }
+]
+'@
+
+            $result = & $script:Wrapper -RepoPath $script:RepoPath
+            $first = @($result.Findings)[0]
+
+            $result.ToolVersion | Should -Be '8.24.2'
+            $result.RepositoryEntityId | Should -Be 'github.com/test-org/test-repo'
+            $first.RuleId | Should -Be 'aws-access-key-id'
+            $first.Pillar | Should -Be 'Security'
+            $first.Severity | Should -Be 'Critical'
+            $first.DeepLinkUrl | Should -Match 'gitleaks.toml'
+            $first.BaselineTags | Should -Contain 'gitleaks:rule:aws-access-key-id'
+            @($first.EvidenceUris).Count | Should -Be 2
+            $first.EvidenceUris[1] | Should -Match '#L12'
+            $first.EntityRefs | Should -Contain 'workflow:test-org/test-repo/.github/workflows/deploy.yml'
+            $first.ToolVersion | Should -Be '8.24.2'
+            @($first.RemediationSnippets).Count | Should -BeGreaterThan 1
         }
     }
 }
