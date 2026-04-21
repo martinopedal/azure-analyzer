@@ -59,3 +59,10 @@
 - WARA bugs confirmed: ImpactedResources[0] truncation (#308) + Remediation/LearnMoreUrl aliasing (#308).
 - Sentinel KQL projection gaps documented — 7 missing columns are single-line KQL additions per column.
 - Two-palette severity approach ratified: WAF pillar colors for posture, Defender colors for threats.
+
+### 2026-04-21 - Markdown report generator aligned to canonical sample (#296)
+
+- Replaced legacy Markdown renderer shape with canonical sample structure: badge row, anchor TOC, executive summary, provider-grouped coverage tables, emoji heat map, top-10 risks, top-30 findings, entity inventory, and run-details tool version block.
+- Wired tool coverage to `tools/tool-manifest.json` with italic `_skipped_` rendering for disabled/not-run tools, and added graceful empty states for each major section.
+- Added defensive Schema 2.2 consumption (`Frameworks`, `Pillar`, `ToolVersion`, and related optional fields) plus explicit sanitization via `Remove-Credentials` on dynamic output paths.
+- Added new Pester coverage at `tests/reports/New-MdReport.Tests.ps1` for section order, badge row, heat-map glyph legend, findings 30-cap, details block, and no em-dash invariant.
