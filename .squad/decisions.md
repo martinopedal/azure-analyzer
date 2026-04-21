@@ -1,16 +1,10 @@
 # Squad Decisions
 
-> Entries older than 30 days archived to `decisions-archive.md` (2026-04-22).
+> Entries older than 30 days archived to `decisions-archive.md` (2026-04-21).
 
 ## Active Decisions
 
-### Multi-Model Development Process Codified (2026-01-15)
-- **Decision:** All code changes follow the mandatory multi-model review pipeline: Build -> Review (3 models) -> Fix -> Re-gate -> CI -> Merge. Models: Opus 4.6, Goldeneye, GPT-5.3-codex. All 3 must approve before merge.
-- **Why:** Ensures code quality through independent multi-perspective validation. Catches bugs that single-model review misses. Proven across 4 phases with 50+ findings caught.
-- **Enforcement:** Documented in `.copilot/copilot-instructions.md` and `.squad/ceremonies.md` for automatic discovery by future sessions.
-- **Status:** Active
-
-### Canonical Entity IDs in Test Fixtures (2026-04-18)
+### Canonical Entity IDsin Test Fixtures (2026-04-18)
 - **Decision:** Wrapper and normalizer fixtures must use canonical entity ID shapes expected by `ConvertTo-CanonicalEntityId` (`Subscription` as bare GUID, `Repository` as `host/owner/repo`).
 - **Rationale:** Strict `New-FindingRow` validation now enforces canonical IDs, and non-canonical fixture data causes false-negative unit test failures unrelated to wrapper behavior.
 - **Implementation:** Updated fixtures/tests for azure-cost, defender-for-cloud, gitleaks, scorecard, trivy, plus subscription-ID handling in Azure Cost/Defender normalizers.
@@ -253,6 +247,36 @@ Condensed from 6 deep-dive briefs. Each tool's critical dropped fields and the t
 ### Renderer Graceful-Degradation Contract (2026-04-22)
 - **Decision:** Report renderer must render new fields when present and non-empty; omit entirely when absent. Never parse a field out of another field's string blob. Never fabricate placeholders. Mockup placeholders are pedagogical, not contractual.
 - **Status:** Active
+
+---
+
+## 2026-04-22 — ALZ Queries SoT Migration + Manifest Upstream Audit
+
+Two-agent arc: Atlas (source-of-truth audit + issue filing), Sage (manifest-wide upstream-pointer sweep).
+
+### ALZ Queries Upstream Realignment — Path A Adopted
+
+- **Decision:** `martinopedal/alz-graph-queries` is the canonical upstream for `queries/alz_additional_queries.json`. The current manifest pin (`Azure/Azure-Landing-Zones-Library`) is wrong — that repo ships Bicep/policy, not ARG queries.
+- **Rationale:** Wrapper docstring (`Invoke-AlzQueries.ps1:59`) and `.copilot/copilot-instructions.md` already treat `alz-graph-queries` as canonical. Only `tools/tool-manifest.json:638` disagrees. Path A (flip the pointer) is the smallest change to match reality. Paths B (MS Library canonical) and D (merge repos) were evaluated and rejected.
+- **Migration plan (6 issues filed):**
+  - **#314** — `fix:` flip `upstream.repo` to `martinopedal/alz-graph-queries`
+  - **#315** — `feat:` add `scripts/Sync-AlzQueries.ps1` (manifest-driven query sync + install block)
+  - **#316** — `feat:` CI drift detection via `alz-queries-sync.yml` + `alz-queries-fresh` docs-check job
+  - **#317** — `chore:` reorganize `queries/` into `alz/`, `finops/` subfolders
+  - **#318** — `bug:` 7 orphan `queries/*.json` files (appinsights-*, aks-rightsizing-*) never read by wrappers
+  - **#319** — `docs:` clarify upstream contract in README + wrapper docstring
+- **Dependency chain:** #314 → #315 → #316; #319 depends on #314; #317 and #318 are independent.
+- **Status:** Active — issues filed, PRs not yet started
+
+### Manifest Upstream-Pointer Audit — Clean (30/33)
+
+- **Decision:** No other tools in `tools/tool-manifest.json` have ALZ-class wrong-upstream bugs.
+- **Audit scope:** All 33 tools; 15 have `upstream` blocks, 18 are Az-module-only or REST-only.
+- **Results:** 1 🔴 (`alz-queries` — already tracked above), 2 🟡 (minor), 30 🟢.
+- **🟡 alz-queries install block:** manifest declares `psmodule` for `Az.ResourceGraph` only but wrapper also needs the query JSON on disk. Folded into #315 (sync script adds the missing artifact fetch).
+- **🟡 falco docs gap:** `-InstallFalco` mode shells out to `helm` + `kubectl`, neither declared in manifest install block. Low priority — docs hygiene only, not a wrong pointer.
+- **Notable verifications:** WARA upstream (`Azure/Azure-Proactive-Resiliency-Library-v2`) confirmed correct. AzGovViz upstream rename (`…-Generator` → `…-Reporting`) already reflected. Scorecard, zizmor, gitleaks, trivy all clean.
+- **Status:** Documented — no new issues needed beyond the alz-queries chain
 
 ---
 

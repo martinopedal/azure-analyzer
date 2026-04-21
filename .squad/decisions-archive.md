@@ -49,3 +49,11 @@ Entries older than 30 days, moved from `decisions.md` to keep the active file un
 - **Key Choices:** Per-platform entries (Windows/macOS use package managers; Linux uses direct downloads). Separate manifest prevents mixing orchestration and supply-chain concerns.
 - **Consequences:** Positive: supply-chain transparency on every release, reproducible installs (where possible), CI gate on hash verification. Negative: maintenance burden when tool versions bump (must update SHA-256).
 - **Status:** Active (archived for size)
+
+## Archived 2026-04-21
+
+### Multi-Model Development Process Codified (2026-01-15)
+- **Decision:** All code changes follow the mandatory multi-model review pipeline: Build -> Review (3 models) -> Fix -> Re-gate -> CI -> Merge. Models: Opus 4.6, Goldeneye, GPT-5.3-codex. All 3 must approve before merge.
+- **Why:** Ensures code quality through independent multi-perspective validation. Catches bugs that single-model review misses. Proven across 4 phases with 50+ findings caught.
+- **Enforcement:** Documented in `.copilot/copilot-instructions.md` and `.squad/ceremonies.md` for automatic discovery by future sessions.
+- **Status:** Active (archived for size)

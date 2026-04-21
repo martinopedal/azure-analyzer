@@ -11,22 +11,25 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 
 - ARG queries live in `queries/` as JSON, must return `compliant` boolean. All Azure tool invocations read-only (Reader role).
 - `docs-check.yml` detection uses inline JS snippet with `ignoredPatterns` + `isDoc` predicate. After restructure: `docPathPatterns.some(p => p.test(f))`.
-- Em-dash gate is zero-tolerance: `rg -- "-"` over every `.md` before commit.
+- Em-dash gate is zero-tolerance: `rg -- "-"` over every `.md` before commit. Applies to new content only, not historical entries.
 - `git mv` + stub at old path defeats rename detection in `git status` (shows M+A not R); `git log --follow` still works.
 - Parallel `git commit` calls collide on `index.lock` — always serialize.
 - Authority limits trump sweep instructions — don't touch README/CHANGELOG if off-limits in the PR scope.
 - Inbound-link search: exclude `.squad/agents/*/history.md`, `.squad/log/**`, `.squad/orchestration-log/**` (append-only logs, outdated paths are truth).
 - Required check is `Analyze (actions)` (CodeQL). `rubberduck-gate` reports "Gate skipped: non-squad-author" on solo runs.
+- Any Pester test invoking a script expected to exit non-zero MUST reset `$LASTEXITCODE` in `finally`/`AfterAll`.
+- `gh pr view --json mergeStateStatus` is the first check when "checks did not trigger" (DIRTY = silent conflict-suppression).
+- Worktree cleanup must run from the repo root, not from inside the worktree.
 
-## 2026-04-19 Session Outcomes
+### Shipped PRs (2026-04-19 to 2026-04-20)
 
-- Issue #166 delivered and merged via PR #182 (`6bb07aec`).
-- Added Azure DevOps repo secret scanning and pipeline run-log correlation.
-- Post-merge follow-ups: #197 ADO Server, #198 private-repo edge cases, #199 advanced gitleaks patterns.
-
-## 2026-04-20 PR-1 Foundation Restructure (PR #243, squash-merge ed6041d0)
-
-Landed 5-PR consumer-first doc restructure PR-1: 9 doc moves under `docs/consumer/` and `docs/contributor/`, redirect stubs, two index pages, `docs-check.yml` updates. All 11 checks green on first run.
+- **#182** (Issue #166) — ADO repo secret scanning + pipeline run-log correlation. Follow-ups: #197, #198, #199.
+- **#243** (PR-1) — Consumer-first doc restructure: 9 doc moves under `docs/consumer/` + `docs/contributor/`, redirect stubs, `docs-check.yml` updates.
+- **#246** (PR-2) — README rewrite 660→126 lines. Badges + value prop + install + quickstart.
+- **#247** (PR-3) — `Generate-ToolCatalog.ps1` (manifest-driven, idempotent, `-CheckOnly`) + 14 Pester tests + `operations.md` + `troubleshooting.md` + `tool-catalog-fresh` CI job.
+- **#257** (Issue #252) — PERMISSIONS.md split: 867→116 lines, 27 per-tool pages, `Generate-PermissionsIndex.ps1`, `permissions-pages-fresh` CI job.
+- **Issue #230** — Framework x tool coverage matrix in `New-HtmlReport` with click-to-filter. Suite: 1294 pass / 5 skipped.
+- **Issue #232** — GH Actions billing + ADO consumption cost telemetry (2 wrappers, 2 normalizers). Suite: 1321 pass / 5 skipped.
 
 ### 2026-04-22 - Report UX arc: AzGovViz deep-dive completed
 
@@ -34,15 +37,19 @@ Landed 5-PR consumer-first doc restructure PR-1: 9 doc moves under `docs/consume
 - Key wrapper gaps: `*_HierarchyMap.json` not parsed (blocks MG ancestry breadcrumbs), AzAdvertizer URLs dropped, PIM eligibility flag not extracted.
 - CSS-only management-group tree adopted as a reusable primitive. TableFilter (vanilla JS, MIT) recommended over jQuery DataTables.
 - Schema 2.2 contract locked with 13 new optional FindingRow fields (#299 umbrella issue).
-- **Required check is `Analyze (actions)`** (CodeQL). All other checks (CI matrix, Docs Check, Verify install manifest, advisory gate, Copilot review request, rubberduck-gate) ran green too. `rubberduck-gate` reports "Gate skipped: non-squad-author" when the PR author is martinopedal directly - expected on solo runs.
 
+## 2026-04-21 - azure-quota-reports wrapper viability research (decisions inbox)
 
+Research-only. Wrote `.squad/decisions/inbox/atlas-azure-quota-reports-research.md`.
 
-## 2026-04-20T13-12-02Z - PR-2 (consumer-first README rewrite) #246, merged `e2d42d7`
+### Verdict
+🟢 Implement as wrapper. Zero overlap with the 30 existing tools (grep for `quota` in `tool-manifest.json` returns nothing); closest neighbor WARA emits reliability advice but never enumerates `% quota used` per `(sub, region, sku)`. Repo is already PS 7 + `az` CLI + Reader-only — mirrors the `azure-cost` / `finops` / `defender-for-cloud` subscription-fanout pattern. Maps onto Schema 2.2 with no new fields (`Pillar='Reliability'`, new `Category='Capacity'`).
 
-Shipped PR-2: rewrote root README from 660 to 126 lines. First scroll = badges + value prop + install + 3 quickstart scenarios. Merged on first try, all 9 checks green.
+### Repo summary
+`scripts/Get-AzureQuotas.ps1` — PS 7 + `az vm list-usage` + `az network list-usages` across subscription × location fanout. Four auth modes (CurrentSession default, Interactive, ServicePrincipal via env-var secret, ManagedIdentity). CSV out (`AzureQuotas_TIMESTAMP.csv` + `_errors.csv`), terminal warning table at default 80% threshold. Columns include `UsagePercent` — the natural `compliant` axis.
 
-**Key learnings:** Link constraints trump consolidated-plan suggestions. Em-dash gate applies to new content only, not historical entries. Worktree cleanup must run from the repo root, not from inside the worktree.
+### Normalizer plan
+One `FindingRow` per `(SubscriptionId, Location, Provider, QuotaId)`. `EntityType=Subscription` (bare-GUID canonical ID). Severity ladder Critical/High/Medium/Info at 99/95/80/below thresholds. `RuleId=azure-quota:{Provider}:{QuotaId}:{Location}`. `Properties` bag preserves `CurrentUsage`/`Limit`/`Unit`/`UsagePercent` for heatmap.
 
 ## 2026-04-20 - PR-3 (consumer-first restructure, items G/H/I/J/K)
 
@@ -93,22 +100,27 @@ Both wrappers ship complete inline KQL today. Files are hand-curated catalogs wi
 ## 2026-04-22 - AzGovViz UI pattern research drop (decisions inbox)
 
 Research-only task for Sentinel's HTML report rebuild. Wrote \.squad\decisions\inbox\atlas-azgovviz-ui-patterns.md.
+### Follow-ups proposed (4 issues)
+1. Wrapper `Invoke-AzureQuotas.ps1` (vendor or fork, retry+timeout+sanitize, parallel runspaces).
+2. `Normalize-AzureQuotas` with severity ladder + Capacity category.
+3. Manifest registration + permissions page + CHANGELOG.
+4. Lower-priority: migrate to unified `Microsoft.Quota` RP for broader provider coverage.
+5. Lower-priority: add Capacity heatmap lane (Subscription × Region) to the unified report.
 
 ### Learnings
-
-- **AzGovViz HTML is single-file, no tab-strip.** Four stacked resizable panes (HierarchyMap / TenantSummary / DefinitionInsights / HierarchyTables), each its own <div> with a show/hide button and CSS background tint. The "tab" feel is a <button class="collapsible"> + <div class="content"> pattern per section.
-- **Hierarchy tree is pure CSS**, not D3 / Mermaid: nested <ul><li> with ::before/::after connectors. ~40 lines of CSS, prints clean. Each node is a fixed-width <a> with dashed sides and rounded top, badges via <abbr title>, click jumps to #table_<id> anchors.
-- **DataTables substitute is TableFilter (Max Guglielmi)** — vanilla JS, MIT, ~80KB, gives per-column dropdown filters, search box, CSV export, column show/hide, pagination, localStorage state. Better choice than jQuery DataTables for our self-contained HTML.
-- **Severity is icon-only.** Body text is always #000 on tinted panes (AAA). Color is reserved for 9px FontAwesome glyphs. If we render severity as a text chip we must darken the AzGovViz palette (#ff0000 → #c00000, #67C409 → #3a7d0a) to clear AA.
-- **Pane backgrounds:** white / #e0f2ff (sky) / #DAFFD1 (mint) / #EEEEEE (page). Sub-table accent #FFDF5C. Default-MG warning #FFCBC7.
-- **Our wrapper drops a lot:** HierarchyMap.json (the MG ancestry), AzAdvertizer evidence URLs per policy/role, PrincipalDisplayName, PIM-eligible flag, ALZ Policy Version Checker, Orphan Resources, ClassicAdministrators. Most are additive parsers — no FindingRow contract change needed.
-- **Big-picture report pick:** sticky top-bar of in-page anchor pills + single long scroll, not a JS tab strip. Preserves Ctrl+F + browser back-button while still giving AzGovViz's section structure.
-- **Sources:** repo is JulianHayward/Azure-MG-Sub-Governance-Reporting (the JulianHayward/AzGovViz URL 404s — it's a redirect/alias). Demo: https://www.azadvertizer.net/azgovvizv4/demo/AzGovViz_demo.html. CSS bundle: zgovvizmain_004_047.css.
-
+- **`az vm list-usage` / `az network list-usages` is the legacy quota surface.** The unified `Microsoft.Quota` RP (`az quota`) supersedes it and would broaden coverage (Storage, AppService, Logic Apps), but Reader is enough for reads on either path. Worth a follow-up issue, not a blocker for v1.
+- **Reservations / Capacity Reservations are a distinct API** (`Microsoft.Capacity`) — explicitly out of scope for any quota wrapper. Note in docstring to prevent scope creep.
+- **`grep "quota" tools/tool-manifest.json` is a fast gap-test.** Zero hits = clean greenfield. Same trick worked for the ALZ queries audit.
 
 ## 2026-04-22 - ALZ queries source-of-truth audit (decisions inbox)
 
 Investigation-only task. Wrote `.squad/decisions/inbox/atlas-alz-queries-source-of-truth.md`.
+
+### Issues filed: #314–#319 (ALZ-graph-queries Path A migration)
+
+Filed 6 issues for the `alz-queries` upstream realignment:
+- #314 fix manifest `upstream.repo`, #315 sync script, #316 CI drift detection, #317 folder reorg, #318 orphan query cleanup, #319 docs update.
+- Dependency chain: #314 → #315 → #316; #317/#318 independent.
 
 ### Findings
 - `tools/tool-manifest.json:638` pins `upstream.repo` to `Azure/Azure-Landing-Zones-Library`, but that repo ships Bicep modules and policy JSON — **no ARG queries**. The pin is decorative / wrong artifact.

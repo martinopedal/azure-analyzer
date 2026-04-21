@@ -49,6 +49,15 @@
 - **Cross-tool merge requirement**: `Merge-FrameworksUnion` / `Merge-BaselineTagsUnion` helpers needed in EntityStore so that Prowler+PSRule+azqr CIS-Azure tags on the same finding union rather than last-write-wins.
 - 6-PR sequencing recommended in brief (XS bug fix → schema → 3 tool PRs → report consumption).
 
+### 2026-04-22 - Tool manifest upstream-pointer audit (complete: 30/33 clean)
+- Audited all 33 tools in `tools/tool-manifest.json` for ALZ-class wrong-upstream bugs after Atlas's `alz-queries` migration.
+- 15 tools have `upstream` blocks; 18 do not (Az PS-module-only or REST-only tools).
+- Only 🔴 found: `alz-queries` itself (already in flight). No second instance of a fundamentally wrong upstream pointer.
+- Two 🟡 findings on the `alz-queries` and `falco` install blocks — both documentation/completeness, not wrong pointers. Falco install-mode quietly depends on `helm` + `kubectl` not declared in the manifest install block.
+- Verified WARA pointer is correct: the `WARA` PSGallery module is published from `Azure/Azure-Proactive-Resiliency-Library-v2`, not the v1 archive — easy mistake to flag as stale, but it's right.
+- Verified AzGovViz upstream rename (`…-Generator` → `…-Reporting`) is already reflected in the manifest.
+- Deliverable: `.squad/decisions/inbox/sage-tool-upstream-audit.md`.
+
 ### 2026-04-22 - Report UX arc: briefs merged, Schema 2.2 locked
 
 - All briefs merged to `decisions.md`. ETL gap tables preserved. Per-tool issues filed: #300 (azqr), #301 (PSRule), #302 (Defender), #303 (Prowler), #304 (Powerpipe).
