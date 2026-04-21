@@ -128,3 +128,8 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Orphaned stubs with redirect deadlines create maintenance overhead. Delete or consolidate, not redirect with deadline tracking.
 - ETL and field mapping deserve their own reference page (not scattered across CHANGELOG, README, ARCHITECTURE, tool pages). One stop for "what raw field -> what v2 slot" questions.
 - Parameter reference page (orchestrator-params.md) should group params by scenario (subscription scan, repo scan, multi-tenant, CI/CD, etc.) and collapse advanced params. Consumers find their scenario, maintainers find exhaustive reference.
+
+## Decisions logged
+
+- 2026-04-21 - Docs progressive-disclosure directive, docs restructure proposal (8 new pages, visibility policy) + shipped-via-#418 (branch confusion lesson), gh-actions-billing schema 2.2 ETL, launch audit - to decisions.md section ## 2026-04-21 -- Post-#418 inbox sweep
+
