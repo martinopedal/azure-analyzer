@@ -27,41 +27,63 @@ function Normalize-ADOPipelineSecurity {
     $runId = [guid]::NewGuid().ToString()
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+    function ConvertTo-StringArray {
+        param ([object] $Value)
+        if ($null -eq $Value) { return @() }
+        if ($Value -is [string]) {
+            if ([string]::IsNullOrWhiteSpace($Value)) { return @() }
+            return @($Value.Trim())
+        }
+        if ($Value -is [System.Collections.IEnumerable]) {
+            return @($Value | ForEach-Object {
+                    if ($null -eq $_) { return }
+                    $candidate = [string]$_
+                    if (-not [string]::IsNullOrWhiteSpace($candidate)) { $candidate.Trim() }
+                } | Select-Object -Unique)
+        }
+        return @([string]$Value)
+    }
+
+    function ConvertTo-Snippets {
+        param ([object] $Value)
+        if ($null -eq $Value) { return @() }
+        $snippets = [System.Collections.Generic.List[hashtable]]::new()
+        foreach ($snippet in @($Value)) {
+            if ($null -eq $snippet) { continue }
+            $language = if ($snippet.PSObject.Properties['language'] -and $snippet.language) { [string]$snippet.language } else { 'bash' }
+            $content = if ($snippet.PSObject.Properties['content'] -and $snippet.content) { [string]$snippet.content } elseif ($snippet.PSObject.Properties['code'] -and $snippet.code) { [string]$snippet.code } else { '' }
+            if ([string]::IsNullOrWhiteSpace($content)) { continue }
+            $snippets.Add(@{
+                    language = $language.Trim().ToLowerInvariant()
+                    content  = $content.Trim()
+                }) | Out-Null
+        }
+        return @($snippets)
+    }
+
+    function Get-ControlTagFromRuleId {
+        param ([string] $RuleId)
+        if ([string]::IsNullOrWhiteSpace($RuleId)) { return '' }
+        if ($RuleId -match '^(Approval-Missing)') { return 'Approval-Missing' }
+        if ($RuleId -match '^(Approval-Present)') { return 'Approval-Present' }
+        if ($RuleId -match '^(Approval-Verification)') { return 'Approval-Verification' }
+        if ($RuleId -match '^(Branch-Unprotected)') { return 'Branch-Unprotected' }
+        if ($RuleId -match '^(Secret-InVariable)') { return 'Secret-InVariable' }
+        if ($RuleId -match '^(SecretStore-KeyVault-Missing)') { return 'SecretStore-KeyVault-Missing' }
+        if ($RuleId -match '^(ServiceConnection-OverReuse)') { return 'ServiceConnection-OverReuse' }
+        return $RuleId
+    }
+
     foreach ($finding in $ToolResult.Findings) {
-        $assetType = if ($finding.PSObject.Properties['AssetType'] -and $finding.AssetType) {
-            [string]$finding.AssetType
-        } else {
-            'Pipeline'
+        $assetType = if ($finding.PSObject.Properties['AssetType'] -and $finding.AssetType) { [string]$finding.AssetType } else { 'BuildDefinition' }
+        $entityType = $assetType
+        $org = if ($finding.PSObject.Properties['AdoOrg'] -and $finding.AdoOrg) { [string]$finding.AdoOrg } else { 'unknown' }
+        $project = if ($finding.PSObject.Properties['AdoProject'] -and $finding.AdoProject) { [string]$finding.AdoProject } else { 'unknown' }
+        $assetId = if ($finding.PSObject.Properties['AssetId'] -and $finding.AssetId) { [string]$finding.AssetId } else { '' }
+        if ([string]::IsNullOrWhiteSpace($assetId)) {
+            $assetId = if ($finding.PSObject.Properties['AssetName'] -and $finding.AssetName) { [string]$finding.AssetName } else { [guid]::NewGuid().ToString() }
         }
-
-        $entityType = switch -Regex ($assetType.ToLowerInvariant()) {
-            '^variablegroup$' { 'VariableGroup' }
-            '^environment$' { 'Environment' }
-            '^serviceconnection$' { 'ServiceConnection' }
-            default { 'Pipeline' }
-        }
-
-        $resourceId = if ($finding.PSObject.Properties['ResourceId'] -and $finding.ResourceId) {
-            [string]$finding.ResourceId
-        } else {
-            ''
-        }
-
-        $canonicalId = ''
-        if ($resourceId) {
-            try {
-                $canonicalId = (ConvertTo-CanonicalEntityId -RawId $resourceId -EntityType $entityType).CanonicalId
-            } catch {
-                $canonicalId = $resourceId.ToLowerInvariant()
-            }
-        }
-
-        if (-not $canonicalId) {
-            $org = if ($finding.PSObject.Properties['AdoOrg']) { [string]$finding.AdoOrg } else { 'unknown' }
-            $project = if ($finding.PSObject.Properties['AdoProject']) { [string]$finding.AdoProject } else { 'unknown' }
-            $assetName = if ($finding.PSObject.Properties['AssetName']) { [string]$finding.AssetName } else { 'unknown' }
-            $canonicalId = "ado://$($org.ToLowerInvariant())/$($project.ToLowerInvariant())/$($assetType.ToLowerInvariant())/$($assetName.ToLowerInvariant())"
-        }
+        $canonicalId = "$org/$project/$assetType/$assetId".ToLowerInvariant()
 
         $findingId = if ($finding.PSObject.Properties['Id'] -and $finding.Id) {
             [string]$finding.Id
@@ -82,12 +104,34 @@ function Normalize-ADOPipelineSecurity {
             'Info'
         }
 
+        $resourceId = if ($finding.PSObject.Properties['ResourceId'] -and $finding.ResourceId) { [string]$finding.ResourceId } else { '' }
+        $ruleId = if ($finding.PSObject.Properties['RuleId'] -and $finding.RuleId) { [string]$finding.RuleId } else { '' }
+        $baselineTags = [System.Collections.Generic.List[string]]::new()
+        $baselineTags.Add("Asset-$assetType") | Out-Null
+        $controlTag = Get-ControlTagFromRuleId -RuleId $ruleId
+        if (-not [string]::IsNullOrWhiteSpace($controlTag)) {
+            $baselineTags.Add($controlTag) | Out-Null
+        }
+        $entityRefs = ConvertTo-StringArray -Value $(if ($finding.PSObject.Properties['EntityRefs']) { $finding.EntityRefs } else { @() })
+        $evidenceUris = ConvertTo-StringArray -Value $(if ($finding.PSObject.Properties['EvidenceUris']) { $finding.EvidenceUris } else { @() })
+        $remediationSnippets = ConvertTo-Snippets -Value $(if ($finding.PSObject.Properties['RemediationSnippets']) { $finding.RemediationSnippets } else { @() })
+        $toolVersion = if ($finding.PSObject.Properties['ToolVersion'] -and $finding.ToolVersion) { [string]$finding.ToolVersion } else { 'unknown' }
+        $pillar = if ($finding.PSObject.Properties['Pillar'] -and $finding.Pillar) { [string]$finding.Pillar } else { 'Security' }
+        $impact = if ($finding.PSObject.Properties['Impact'] -and $finding.Impact) { [string]$finding.Impact } else { '' }
+        $effort = if ($finding.PSObject.Properties['Effort'] -and $finding.Effort) { [string]$finding.Effort } else { '' }
+        $deepLinkUrl = if ($finding.PSObject.Properties['DeepLinkUrl'] -and $finding.DeepLinkUrl) { [string]$finding.DeepLinkUrl } else { '' }
+
         $row = New-FindingRow -Id $findingId `
             -Source 'ado-pipelines' -EntityId $canonicalId -EntityType $entityType `
-            -Title ([string]$finding.Title) -Compliant ([bool]$finding.Compliant) -ProvenanceRunId $runId `
-            -Platform 'ADO' -Category ([string]$finding.Category) -Severity $severity `
+            -Title ([string]$finding.Title) -RuleId $ruleId -Compliant ([bool]$finding.Compliant) -ProvenanceRunId $runId `
+            -Platform 'AzureDevOps' -Category ([string]$finding.Category) -Severity $severity `
             -Detail ([string]$finding.Detail) -Remediation ([string]$finding.Remediation) `
-            -LearnMoreUrl ([string]$finding.LearnMoreUrl) -ResourceId $resourceId
+            -LearnMoreUrl ([string]$finding.LearnMoreUrl) -ResourceId $resourceId `
+            -Pillar $pillar -Impact $impact -Effort $effort -DeepLinkUrl $deepLinkUrl `
+            -RemediationSnippets $remediationSnippets -EvidenceUris $evidenceUris `
+            -Frameworks @() -MitreTactics @() -MitreTechniques @() `
+            -BaselineTags @($baselineTags | Select-Object -Unique) -EntityRefs $entityRefs `
+            -ToolVersion $toolVersion
 
         if ($null -ne $row) {
             $normalized.Add($row)

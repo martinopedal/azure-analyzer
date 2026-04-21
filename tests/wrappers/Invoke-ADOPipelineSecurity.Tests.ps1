@@ -189,6 +189,17 @@ Describe 'Invoke-ADOPipelineSecurity' {
             ($reuseFindings.Title -join ' ') | Should -Match 'Azure-Prod'
             ($reuseFindings.Title -join ' ') | Should -Not -Match 'LatestVersion|rg-payments-prod'
         }
+
+        It 'emits schema 2.2 ETL fields for findings' {
+            $branchFinding = @($result.Findings | Where-Object { $_.RuleId -eq 'Branch-Unprotected' })[0]
+            $branchFinding.AssetType | Should -Be 'BuildDefinition'
+            $branchFinding.Pillar | Should -Be 'Security'
+            $branchFinding.DeepLinkUrl | Should -Match '_build/definition'
+            @($branchFinding.EvidenceUris).Count | Should -BeGreaterThan 1
+            @($branchFinding.BaselineTags) | Should -Contain 'Asset-BuildDefinition'
+            @($branchFinding.RemediationSnippets).Count | Should -BeGreaterThan 0
+            $branchFinding.ToolVersion | Should -Not -BeNullOrEmpty
+        }
     }
 
     Context 'when evaluating pipeline trigger types' {

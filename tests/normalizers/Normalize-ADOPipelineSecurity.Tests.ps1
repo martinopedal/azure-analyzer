@@ -29,14 +29,15 @@ Describe 'Normalize-ADOPipelineSecurity' {
             }
         }
 
-        It 'sets Platform to ADO' {
+        It 'sets Platform to AzureDevOps' {
             foreach ($r in $results) {
-                $r.Platform | Should -Be 'ADO'
+                $r.Platform | Should -Be 'AzureDevOps'
             }
         }
 
         It 'maps ADO assets to the expected entity types' {
-            @($results.EntityType | Select-Object -Unique) | Should -Contain 'Pipeline'
+            @($results.EntityType | Select-Object -Unique) | Should -Contain 'BuildDefinition'
+            @($results.EntityType | Select-Object -Unique) | Should -Contain 'ReleaseDefinition'
             @($results.EntityType | Select-Object -Unique) | Should -Contain 'VariableGroup'
             @($results.EntityType | Select-Object -Unique) | Should -Contain 'Environment'
             @($results.EntityType | Select-Object -Unique) | Should -Contain 'ServiceConnection'
@@ -60,10 +61,41 @@ Describe 'Normalize-ADOPipelineSecurity' {
             ($results | Where-Object { $_.Severity -eq 'Low' }).Count | Should -Be 1
         }
 
-        It 'uses ado:// canonical IDs for every finding' {
+        It 'uses AzureDevOps entity key format for every finding' {
             foreach ($r in $results) {
-                $r.EntityId | Should -Match '^ado://'
+                $r.EntityId | Should -Match '^[^/]+/[^/]+/[^/]+/.+'
             }
+        }
+    }
+
+    Context 'schema 2.2 enrichment' {
+        BeforeAll {
+            $results = Normalize-ADOPipelineSecurity -ToolResult $fixture
+            $branch = $results | Where-Object { $_.RuleId -eq 'Branch-Unprotected' } | Select-Object -First 1
+        }
+
+        It 'sets Pillar and tool metadata' {
+            $branch.Pillar | Should -Be 'Security'
+            $branch.ToolVersion | Should -Be '1.0.0'
+        }
+
+        It 'emits baseline tags and cross-entity references' {
+            @($branch.BaselineTags) | Should -Contain 'Asset-BuildDefinition'
+            @($branch.BaselineTags) | Should -Contain 'Branch-Unprotected'
+            @($branch.EntityRefs).Count | Should -BeGreaterThan 0
+        }
+
+        It 'carries deep links, evidence URIs, and remediation snippets' {
+            $branch.DeepLinkUrl | Should -Match '_build/definition'
+            @($branch.EvidenceUris | Where-Object { $_ -match '_apis/build/definitions' }).Count | Should -Be 1
+            @($branch.RemediationSnippets).Count | Should -BeGreaterThan 0
+            $branch.RemediationSnippets[0].language | Should -Be 'bash'
+        }
+
+        It 'does not emit Frameworks or MITRE arrays for ado-pipelines' {
+            @($branch.Frameworks).Count | Should -Be 0
+            @($branch.MitreTactics).Count | Should -Be 0
+            @($branch.MitreTechniques).Count | Should -Be 0
         }
     }
 
