@@ -102,6 +102,32 @@
 - **Rationale:** Consistency across the squad. The issue is the contract; the PR is the implementation. Forces planning before code.
 - **Status:** Active
 
+### Rubberduck-Gate in Required Checks (2026-04-21)
+- **Decision:** Branch protection enforces BOTH `Analyze (actions)` AND `rubberduck-gate` (strict=true), not just `Analyze (actions)`.
+- **Impact:** With strict=true, each PR merge invalidates downstream PRs in a batch. Requires `gh pr update-branch` + ~90s CI wait per subsequent merge.
+- **Operational Guidance:** Run Dependabot batches sequentially, not in parallel. Update coordinator runbook to reflect dual-gate requirement.
+- **Discovery:** Found during Dependabot batch #288-#292 processing (2026-04-21).
+- **Status:** Active
+
+### Upload-Artifact v7 Matrix Safety Pattern (2026-04-21)
+- **Decision:** `actions/upload-artifact@v7` is safe in this repo because (a) zero `download-artifact` consumers, (b) both upload sites use unique artifact names (sbom-{sha}, scheduled-scan-{run_id}).
+- **Future Watchpoint:** Any new matrix consumer of `actions/upload-artifact@v7` MUST suffix artifact name with matrix variable (v5+ no longer merges same-named artifacts across matrix legs).
+- **Pattern Example:** `name: sbom-${{ matrix.os }}-${{ github.sha }}` instead of `name: sbom`
+- **Status:** Documented
+
+### GitHub-Script v9 Compatibility Pattern (2026-04-21)
+- **Decision:** `actions/github-script@v9` removed `require('@actions/github')`. The `getOctokit` function is now injected as a parameter, not defined via `const` or `let`.
+- **Incompatible Pattern:** `const getOctokit = require('@actions/github').getOctokit;` or redeclaring with `const getOctokit = ...`
+- **Compatible Pattern:** Use the injected `getOctokit` directly: `const octokit = getOctokit();`
+- **Audit Result:** Zero instances of incompatible patterns found in 9 inline-script consumers. Safe to deploy.
+- **Status:** Documented
+
+### Dependabot Stale Version Comment Quirk (2026-04-21)
+- **Decision:** Dependabot sometimes bumps the action SHA to a newer version but leaves the version comment tag at the previous release.
+- **Example:** PR #290 bumped codeql-action to SHA matching v4.35.2 but left comment as `v4.35.1`. PR #291 bumped action-gh-release to v3.0.0 SHA but left comment as `v2.2.0`.
+- **Mitigation:** Always `git diff` before merging Dependabot PRs. Fix stale comments with a follow-up commit on the Dependabot branch (before merge) to maintain SHA-pin policy accuracy.
+- **Status:** Documented
+
 ## Governance
 
 - All meaningful changes require team consensus
