@@ -1,0 +1,48 @@
+[
+  {
+    "RuleName": "Azure.Storage.SoftDelete",
+    "RuleId": "AZR-000001",
+    "Outcome": "Fail",
+    "Level": "Error",
+    "TargetName": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Storage/storageAccounts/stprod001",
+    "Detail": {
+      "Reason": [
+        "Storage account stprod001 does not have blob soft delete enabled."
+      ]
+    },
+    "Info": {
+      "DisplayName": "Storage accounts should enable blob soft delete",
+      "Recommendation": "Enable blob soft delete on the storage account.\n```bicep\nresource stprod001 'Microsoft.Storage/storageAccounts@2023-01-01' = {\n  name: 'stprod001'\n  properties: {\n    deleteRetentionPolicy: {\n      enabled: true\n      days: 14\n    }\n  }\n}\n```",
+      "Baseline": [
+        "Azure.Default",
+        "Azure.GA_2024_06"
+      ],
+      "Annotations": {
+        "online version": "https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SoftDelete/",
+        "Azure.WAF/pillar": "Security"
+      }
+    }
+  },
+  {
+    "RuleName": "Azure.NSG.Associated",
+    "RuleId": "AZR-000042",
+    "Outcome": "Pass",
+    "Level": "Information",
+    "TargetName": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Network/networkSecurityGroups/nsg-web-subnet",
+    "Detail": {
+      "Reason": [
+        "Network security group is associated correctly."
+      ]
+    },
+    "Info": {
+      "DisplayName": "Network security groups should be associated",
+      "Recommendation": "",
+      "Baseline": [
+        "Azure.Default"
+      ],
+      "Annotations": {
+        "Azure.WAF/pillar": "Reliability"
+      }
+    }
+  }
+]

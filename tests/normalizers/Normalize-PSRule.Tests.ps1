@@ -118,6 +118,26 @@ Describe 'Normalize-PSRule' {
         It 'preserves Detail' {
             $results[0].Detail | Should -Not -BeNullOrEmpty
         }
+
+        It 'propagates Schema 2.2 PSRule enrichments through New-FindingRow' {
+            $first = $results[0]
+            $first.RuleId | Should -Be 'AZR-100100'
+            $first.Pillar | Should -Be 'Security'
+            $first.DeepLinkUrl | Should -Be 'https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.SQL.TDE/'
+            $first.ToolVersion | Should -Be '1.35.0'
+            $first.BaselineTags | Should -Contain 'Azure.Default'
+            $first.BaselineTags | Should -Contain 'Azure.GA_2024_06'
+            @($first.Frameworks).Count | Should -Be 1
+            $first.Frameworks[0].Name | Should -Be 'WAF'
+            $first.Frameworks[0].Controls[0] | Should -Be 'Azure.SQL.TDE'
+        }
+
+        It 'extracts remediation snippets from recommendation markdown' {
+            $first = $results[0]
+            @($first.RemediationSnippets).Count | Should -BeGreaterThan 0
+            $first.RemediationSnippets[0].language | Should -Be 'bicep'
+            $first.RemediationSnippets[0].code | Should -Match 'transparentDataEncryption'
+        }
     }
 
     Context 'error handling' {

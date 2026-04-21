@@ -38,6 +38,69 @@ function Test-PSRuleInstalled {
     $null -ne (Get-Module -Name PSRule.Rules.Azure -ListAvailable -ErrorAction SilentlyContinue)
 }
 
+function Get-PSRuleToolVersion {
+    $module = Get-Module -Name PSRule.Rules.Azure -ListAvailable -ErrorAction SilentlyContinue |
+        Sort-Object -Property Version -Descending |
+        Select-Object -First 1
+    if ($module -and $module.Version) {
+        return [string]$module.Version
+    }
+    return ''
+}
+
+function Convert-PSRuleLevelToSeverity {
+    param (
+        [Parameter(Mandatory)]
+        [string] $Level
+    )
+
+    switch -Regex ($Level.ToLowerInvariant()) {
+        'critical'    { return 'Critical' }
+        'error|high'  { return 'High' }
+        'warning|medium' { return 'Medium' }
+        'low'         { return 'Low' }
+        'information|info' { return 'Info' }
+        default       { return 'Medium' }
+    }
+}
+
+function Get-PSRuleAnnotationValue {
+    param (
+        [Parameter(Mandatory)]
+        [object] $Annotations,
+        [Parameter(Mandatory)]
+        [string[]] $KeyHints
+    )
+
+    if ($null -eq $Annotations) { return $null }
+    foreach ($property in $Annotations.PSObject.Properties) {
+        $name = [string]$property.Name
+        foreach ($hint in $KeyHints) {
+            if ($name -match $hint) {
+                return $property.Value
+            }
+        }
+    }
+    return $null
+}
+
+function ConvertTo-StringArray {
+    param([object] $Value)
+    if ($null -eq $Value) { return @() }
+    if ($Value -is [string]) {
+        if ([string]::IsNullOrWhiteSpace($Value)) { return @() }
+        return @($Value.Trim())
+    }
+    if ($Value -is [System.Collections.IEnumerable]) {
+        return @($Value | ForEach-Object {
+                if ($null -eq $_) { return }
+                $candidate = [string]$_
+                if (-not [string]::IsNullOrWhiteSpace($candidate)) { $candidate.Trim() }
+            } | Where-Object { $_ } | Select-Object -Unique)
+    }
+    return @([string]$Value)
+}
+
 if (-not (Test-PSRuleInstalled)) {
     Write-Warning "PSRule.Rules.Azure is not installed. Skipping PSRule scan. Run: Install-Module PSRule.Rules.Azure"
     return [PSCustomObject]@{
@@ -49,6 +112,7 @@ if (-not (Test-PSRuleInstalled)) {
 }
 
 try {
+    $toolVersion = Get-PSRuleToolVersion
     $invokeParams = @{
         Module = 'PSRule.Rules.Azure'
     }
@@ -65,27 +129,71 @@ try {
 
     $findings = $results | ForEach-Object {
         $info = $_.Info
-        $ruleName = $_.RuleName
+        $ruleName = if ($_.PSObject.Properties['RuleName'] -and $_.RuleName) { [string]$_.RuleName } else { '' }
+        $ruleId = if ($_.PSObject.Properties['RuleId'] -and $_.RuleId) { [string]$_.RuleId } elseif ($ruleName) { $ruleName } else { '' }
         $title = if ($info -and $info.DisplayName) { $info.DisplayName } else { $ruleName }
         $detail = if ($_.Detail -and $_.Detail.Reason) { $_.Detail.Reason -join '; ' } else { '' }
-        $learnUrl = ''
-        if ($info -and $info.Annotations) {
-            $onlineVer = $info.Annotations.'online version'
-            if ($onlineVer) { $learnUrl = $onlineVer }
+        $learnUrl = if ($ruleId) { "https://azure.github.io/PSRule.Rules.Azure/en/rules/$ruleId/" } else { '' }
+        $deepLinkUrl = $learnUrl
+        $annotations = if ($info -and $info.Annotations) { $info.Annotations } else { $null }
+        $onlineVersion = Get-PSRuleAnnotationValue -Annotations $annotations -KeyHints @('(?i)^online version$', '(?i)url$')
+        if ($onlineVersion) {
+            $learnUrl = [string]$onlineVersion
+            $deepLinkUrl = [string]$onlineVersion
         }
+
+        $pillar = ''
+        $pillarValue = Get-PSRuleAnnotationValue -Annotations $annotations -KeyHints @('(?i)waf.*/pillar', '(?i)^pillar$')
+        if ($pillarValue) {
+            $pillar = [string]$pillarValue
+        }
+
+        $baselineTags = @()
+        if ($info -and $info.PSObject.Properties['Baseline']) {
+            $baselineTags += ConvertTo-StringArray -Value $info.Baseline
+        }
+        $annotationBaselines = Get-PSRuleAnnotationValue -Annotations $annotations -KeyHints @('(?i)baseline')
+        if ($annotationBaselines) {
+            $baselineTags += ConvertTo-StringArray -Value $annotationBaselines
+        }
+        $baselineTags = @($baselineTags | Select-Object -Unique)
+
         $remediation = if ($info -and $info.Recommendation) { $info.Recommendation } else { '' }
+        $frameworks = @()
+        if ($ruleName) {
+            $frameworks = @(
+                @{
+                    Name     = 'WAF'
+                    Controls = @($ruleName)
+                }
+            )
+        }
+
+        $outcome = ''
+        if ($_.PSObject.Properties['Outcome'] -and $_.Outcome) {
+            $outcome = [string]$_.Outcome
+        }
+        $isCompliant = ($outcome -eq 'Pass')
+        $level = if ($_.PSObject.Properties['Level'] -and $_.Level) { [string]$_.Level } else { 'Warning' }
+        $severity = if ($isCompliant) { 'Info' } else { Convert-PSRuleLevelToSeverity -Level $level }
 
         [PSCustomObject]@{
-            Source        = 'psrule'
-            Title         = $title
-            Category      = $ruleName
-            Compliant     = ($_.Outcome.ToString() -eq 'Pass')
-            Severity      = 'Medium'
-            Detail        = $detail
-            ResourceId    = if ($_.TargetName -match '^/subscriptions/') { $_.TargetName } else { '' }
-            LearnMoreUrl  = $learnUrl
-            Remediation   = $remediation
-            SchemaVersion = '1.0'
+            Source         = 'psrule'
+            Title          = $title
+            Category       = $ruleName
+            RuleId         = $ruleId
+            Compliant      = $isCompliant
+            Severity       = $severity
+            Detail         = $detail
+            ResourceId     = if ($_.TargetName -match '^/subscriptions/') { $_.TargetName } else { '' }
+            LearnMoreUrl   = $learnUrl
+            DeepLinkUrl    = $deepLinkUrl
+            Remediation    = $remediation
+            Pillar         = $pillar
+            Frameworks     = $frameworks
+            BaselineTags   = $baselineTags
+            ToolVersion    = $toolVersion
+            SchemaVersion  = '1.0'
         }
     }
 
