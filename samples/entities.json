@@ -1,0 +1,43 @@
+{
+  "SchemaVersion": "3.1",
+  "Entities": [
+    {
+      "EntityId": "ado://contoso/payments/pipeline/55",
+      "EntityType": "Pipeline",
+      "Platform": "ADO",
+      "DisplayName": "payments-ci",
+      "WorstSeverity": "High",
+      "CompliantCount": 0,
+      "NonCompliantCount": 2,
+      "Sources": [
+        "ado-pipeline-correlator",
+        "ado-consumption"
+      ]
+    },
+    {
+      "EntityId": "github.com/contoso/payments-api",
+      "EntityType": "Repository",
+      "Platform": "GitHub",
+      "DisplayName": "contoso/payments-api",
+      "WorstSeverity": "Medium",
+      "CompliantCount": 0,
+      "NonCompliantCount": 1,
+      "Sources": [
+        "gh-actions-billing"
+      ]
+    },
+    {
+      "EntityId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments",
+      "EntityType": "AzureResource",
+      "Platform": "Azure",
+      "DisplayName": "aks-prod-payments",
+      "WorstSeverity": "High",
+      "CompliantCount": 0,
+      "NonCompliantCount": 2,
+      "Sources": [
+        "kubescape",
+        "aks-rightsizing"
+      ]
+    }
+  ]
+}

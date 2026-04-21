@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang='en' data-theme='light'>
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Azure Analyzer - Posture Report (Mockup)</title>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>Azure Analyzer - Posture Report</title>
 <style>
 :root{
   --bg:#f7f8fa;--surface:#ffffff;--surface-2:#f1f3f6;--border:#e3e6eb;--border-strong:#cdd2da;
@@ -18,7 +18,7 @@
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;
   --mono:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace;
 }
-[data-theme="dark"]{
+[data-theme='dark']{
   --bg:#0b1220;--surface:#111a2e;--surface-2:#172238;--border:#243049;--border-strong:#324264;
   --text:#e8edf6;--text-muted:#9aa7bf;--text-faint:#7a8aa6;
   --brand:#3b82f6;--brand-ink:#60a5fa;--accent:#22d3ee;
@@ -26,1026 +26,1235 @@
   --crit-bg:#3a1212;--high-bg:#3a1f10;--med-bg:#3a2a0a;--low-bg:#332a0a;--info-bg:#1e293b;
   --pass:#4ade80;--pass-bg:#0f2a1a;
 }
-*,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{font-family:var(--font);font-size:14px;line-height:1.5;color:var(--text);background:var(--bg);
-  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+*,*::before,*::after{box-sizing:border-box} html,body{margin:0;padding:0}
+body{font-family:var(--font);font-size:14px;line-height:1.5;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
-h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em}
-h1{font-size:18px}h2{font-size:16px}h3{font-size:14px}
+h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em} h1{font-size:18px}h2{font-size:16px}h3{font-size:14px}
 code,kbd{font-family:var(--mono);font-size:12.5px}
-.muted{color:var(--text-muted)}.faint{color:var(--text-faint)}
-.mono{font-family:var(--mono)}
-.row{display:flex;gap:12px;align-items:center}
-.col{display:flex;flex-direction:column;gap:12px}
-.grow{flex:1 1 auto}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;
-  font-size:12px;font-weight:600;line-height:1.4;border:1px solid transparent;white-space:nowrap}
+.muted{color:var(--text-muted)}.faint{color:var(--text-faint)}.mono{font-family:var(--mono)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.4;border:1px solid transparent;white-space:nowrap}
 .pill.ghost{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
-.sev-crit{background:var(--crit);color:#fff}
-.sev-high{background:var(--high);color:#fff}
-.sev-med{background:var(--med);color:#fff}
-.sev-low{background:var(--low);color:#fff}
-.sev-info{background:var(--info);color:#fff}
-.sev-pass{background:var(--pass);color:#fff}
-.sev-text-crit{color:var(--crit)}.sev-text-high{color:var(--high)}.sev-text-med{color:var(--med)}
-.sev-text-low{color:var(--low)}.sev-text-info{color:var(--info)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  box-shadow:var(--shadow-sm)}
-.card-pad{padding:18px}
-.section{padding:28px 32px;max-width:1440px;margin:0 auto}
-.section h2{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.section h2 .badge{font-size:11px;font-weight:600;color:var(--text-faint);
-  background:var(--surface-2);padding:2px 8px;border-radius:999px;border:1px solid var(--border)}
-
-/* HEADER */
-header.app{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);
-  box-shadow:var(--shadow-sm)}
+.sev-crit{background:var(--crit);color:#fff}.sev-high{background:var(--high);color:#fff}.sev-med{background:var(--med);color:#fff}.sev-low{background:var(--low);color:#fff}.sev-info{background:var(--info);color:#fff}.sev-pass{background:var(--pass);color:#fff}
+.sev-text-crit{color:var(--crit)}.sev-text-high{color:var(--high)}.sev-text-med{color:var(--med)}.sev-text-low{color:var(--low)}.sev-text-info{color:var(--info)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm)} .card-pad{padding:18px}
+.section{padding:28px 32px;max-width:1440px;margin:0 auto}.section h2{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.section h2 .badge{font-size:11px;font-weight:600;color:var(--text-faint);background:var(--surface-2);padding:2px 8px;border-radius:999px;border:1px solid var(--border)}
+header.app{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm)}
 .hdr-row{display:flex;align-items:center;gap:18px;padding:12px 32px;max-width:1440px;margin:0 auto;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
-.brand svg{width:26px;height:26px}
-.tenant{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border);
-  border-radius:999px;font-size:12.5px;color:var(--text-muted);background:var(--surface-2)}
-.tenant strong{color:var(--text)}
-.kpis{display:flex;gap:8px;flex-wrap:wrap}
-.kpi{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface-2);
-  border:1px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--text-muted)}
-.kpi strong{color:var(--text);font-weight:600}
-.kpi .delta-up{color:var(--pass);font-weight:600}
-.kpi .delta-down{color:var(--high);font-weight:600}
-.score{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--surface-2);
-  border:1px solid var(--border);border-radius:999px}
-.score svg{display:block}
-.score-text{display:flex;flex-direction:column;line-height:1.15}
-.score-text .num{font-weight:700;font-size:15px}
-.score-text .lbl{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}
-.sev-strip{display:flex;gap:6px}
-.sev-cnt{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-width:54px;padding:6px 10px;border-radius:8px;color:#fff;font-weight:600}
-.sev-cnt .n{font-size:16px;line-height:1}
-.sev-cnt .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;opacity:.95}
-.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
-  border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text-muted)}
-.theme-btn:hover{color:var(--text);border-color:var(--border-strong)}
-
-/* SUBNAV */
-nav.sub{position:sticky;top:62px;z-index:40;background:var(--surface);border-bottom:1px solid var(--border)}
-.sub-row{display:flex;gap:4px;padding:6px 32px;max-width:1440px;margin:0 auto;overflow-x:auto}
-.sub-row a{padding:8px 12px;border-radius:6px;color:var(--text-muted);font-weight:500;font-size:13px;
-  white-space:nowrap}
-.sub-row a:hover{background:var(--surface-2);color:var(--text);text-decoration:none}
-.sub-row a.active{background:var(--surface-2);color:var(--text)}
-
-/* OVERVIEW */
-.over-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
-@media(max-width:1024px){.over-grid{grid-template-columns:1fr}}
+.tenant{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12.5px;color:var(--text-muted);background:var(--surface-2)} .tenant strong{color:var(--text)}
+.kpis{display:flex;gap:8px;flex-wrap:wrap}.kpi{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--text-muted)}.kpi strong{color:var(--text);font-weight:600}
+.score{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px}
+.score-text{display:flex;flex-direction:column;line-height:1.15}.score-text .num{font-weight:700;font-size:15px}.score-text .lbl{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}
+.sev-strip{display:flex;gap:6px}.sev-cnt{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;padding:6px 10px;border-radius:8px;color:#fff;font-weight:600}
+.sev-cnt .n{font-size:16px;line-height:1}.sev-cnt .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;opacity:.95}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text-muted)}
+nav.sub{position:sticky;top:62px;z-index:40;background:var(--surface);border-bottom:1px solid var(--border)} .sub-row{display:flex;gap:4px;padding:6px 32px;max-width:1440px;margin:0 auto;overflow-x:auto}
+.sub-row a{padding:8px 12px;border-radius:6px;color:var(--text-muted);font-weight:500;font-size:13px;white-space:nowrap}.sub-row a.active{background:var(--surface-2);color:var(--text)}
+.over-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}@media(max-width:1024px){.over-grid{grid-template-columns:1fr}}
 .exec p{margin:0 0 10px;color:var(--text-muted);max-width:65ch}
-.trend-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
-.trend{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
-  background:var(--surface);position:relative;overflow:hidden}
-.trend .lab{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600}
-.trend .val{font-size:20px;font-weight:700;margin-top:2px}
-.trend .delta{font-size:11px;font-weight:600;margin-top:2px}
-.trend svg{width:100%;height:32px;margin-top:6px;display:block}
-.recs{display:flex;flex-direction:column;gap:8px}
-.rec{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;
-  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
-.rec .body{min-width:0}
-.rec .ttl{font-weight:600;font-size:13.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rec .meta{font-size:12px;color:var(--text-faint);margin-top:2px}
-.rec .impact{font-size:11px;color:var(--text-faint);text-align:right}
-.rec .impact strong{display:block;font-size:14px;color:var(--text)}
-</style>
-<style>
-/* COVERAGE */
-.cov-group{margin-bottom:18px}
-.cov-group-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);
-  border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none}
-.cov-group-h .chev{transition:transform .15s;color:var(--text-faint)}
-.cov-group.collapsed .chev{transform:rotate(-90deg)}
-.cov-group.collapsed .cov-grid{display:none}
-.cov-group-h h3{margin:0;font-size:13px}
-.cov-group-h .cnt{margin-left:auto;font-size:12px;color:var(--text-faint)}
+.trend-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.trend{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);position:relative;overflow:hidden}
+.trend .lab{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600}.trend .val{font-size:20px;font-weight:700;margin-top:2px}.trend .delta{font-size:11px;font-weight:600;margin-top:2px}.trend svg{width:100%;height:32px;margin-top:6px;display:block}
+.pillars{margin-top:14px;display:flex;flex-direction:column;gap:6px}.pill-row{display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px}.pill-name{font-size:12px;color:var(--text-muted)}.pill-track{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;border:1px solid var(--border)}.pill-track i{display:block;height:100%;background:var(--brand)}.pill-count{font-size:12px;text-align:right;color:var(--text);font-weight:600}
+.recs{display:flex;flex-direction:column;gap:8px}.rec{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+.rec .ttl{font-weight:600;font-size:13.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rec .meta{font-size:12px;color:var(--text-faint);margin-top:2px}.rec .impact{font-size:11px;color:var(--text-faint);text-align:right}.rec .impact strong{display:block;font-size:14px;color:var(--text)}
+.cov-group{margin-bottom:18px}.cov-group-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none}
+.cov-group.collapsed .cov-grid{display:none}.cov-group-h .cnt{margin-left:auto;font-size:12px;color:var(--text-faint)}
 .cov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px}
-.tool{padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);
-  display:flex;flex-direction:column;gap:8px;transition:border-color .15s,box-shadow .15s}
-.tool:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
-.tool .top{display:flex;align-items:center;gap:8px}
-.tool .ico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;
-  background:var(--surface-2);color:var(--text-muted);flex-shrink:0}
-.tool .name{font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tool .scope{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);
-  background:var(--surface-2);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
-.tool .pass{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
-.tool .bar{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
-.tool .bar > i{display:block;height:100%;background:var(--pass);border-radius:3px}
-.tool .stack{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--surface-2)}
-.tool .stack > i{display:block;height:100%}
-.tool .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint)}
-.tool.disabled{opacity:.55}
-.tool.disabled .name::after{content:" · disabled";color:var(--text-faint);font-weight:400;font-size:11px}
-
-/* HEATMAP */
-.hm-wrap{padding:18px}
-.hm-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);
-  border-radius:8px;padding:3px;gap:2px;margin-bottom:14px}
-.hm-toggle button{padding:6px 12px;font-size:12.5px;border-radius:6px;color:var(--text-muted);font-weight:500}
-.hm-toggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
-.hm-table{width:100%;border-collapse:separate;border-spacing:3px}
-.hm-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--text-faint);padding:6px;text-align:left;white-space:nowrap}
-.hm-table thead th{text-align:center}
+.tool{padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.tool .top{display:flex;align-items:center;gap:8px}.tool .ico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text-muted);flex-shrink:0}
+.tool .name{font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool .scope{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);background:var(--surface-2);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+.tool .pass{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}.tool .bar{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}.tool .bar>i{display:block;height:100%;background:var(--pass);border-radius:3px}
+.tool .stack{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--surface-2)}.tool .stack>i{display:block;height:100%}.tool .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint)}.tool.disabled{opacity:.55}
+.hm-wrap{padding:18px}.hm-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px}.hm-toggle button{padding:6px 12px;font-size:12.5px;border-radius:6px;color:var(--text-muted);font-weight:500}.hm-toggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+.hm-table{width:100%;border-collapse:separate;border-spacing:3px}.hm-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);padding:6px;text-align:left;white-space:nowrap}.hm-table thead th{text-align:center}
 .hm-table td.row-h{font-size:12px;color:var(--text-muted);padding:6px 10px 6px 6px;white-space:nowrap}
-.hm-cell{position:relative;padding:0;border-radius:6px;height:38px;text-align:center;
-  font-size:12px;font-weight:600;color:#fff;cursor:pointer;border:1px solid transparent;
-  transition:transform .1s,box-shadow .1s}
-.hm-cell:hover{transform:scale(1.04);box-shadow:0 4px 10px rgba(0,0,0,.18);z-index:2;border-color:var(--text)}
-.hm-cell.empty{background:var(--surface-2);color:var(--text-faint);cursor:default}
-.hm-cell.empty:hover{transform:none;box-shadow:none;border-color:transparent}
-.hm-legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--text-faint)}
-.hm-legend .grad{width:160px;height:10px;border-radius:5px;
-  background:linear-gradient(90deg,var(--surface-2),var(--low),var(--med),var(--high),var(--crit))}
-
-/* RISKS */
-.risks{display:flex;flex-direction:column;gap:6px}
-.risk{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;
-  padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
-.risk .ttl{font-weight:600;font-size:13.5px}
-.risk .meta{font-size:12px;color:var(--text-faint);margin-top:2px}
-.risk .count{text-align:right;font-size:11px;color:var(--text-faint)}
-.risk .count strong{display:block;font-size:15px;color:var(--text);font-weight:700}
-.risk .tool-tag{font-size:11px;color:var(--text-muted);font-family:var(--mono);
-  padding:3px 7px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border)}
-
-/* FINDINGS */
-.fnd-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;
-  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:12px}
-.fnd-toolbar input[type=search],.fnd-toolbar select{font:inherit;font-size:13px;padding:6px 10px;
-  border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:160px}
+.hm-cell{position:relative;padding:0;border-radius:6px;height:38px;text-align:center;font-size:12px;font-weight:600;color:#fff;border:1px solid transparent}.hm-cell.empty{background:var(--surface-2);color:var(--text-faint)}
+.hm-legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--text-faint)}.hm-legend .grad{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--surface-2),var(--low),var(--med),var(--high),var(--crit))}
+.risks{display:flex;flex-direction:column;gap:6px}.risk{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+.risk .ttl{font-weight:600;font-size:13.5px}.risk .meta{font-size:12px;color:var(--text-faint);margin-top:2px}.risk .count{text-align:right;font-size:11px;color:var(--text-faint)}.risk .count strong{display:block;font-size:15px;color:var(--text);font-weight:700}.risk .tool-tag{font-size:11px;color:var(--text-muted);font-family:var(--mono);padding:3px 7px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border)}
+.fnd-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:12px}
+.fnd-toolbar input[type=search],.fnd-toolbar select{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:160px}
 .fnd-toolbar input[type=search]{flex:1;min-width:240px}
-.fnd-toolbar input[type=search]::placeholder{color:var(--text-faint)}
-.sev-filter{display:flex;gap:4px;background:var(--surface-2);padding:3px;border-radius:8px;
-  border:1px solid var(--border)}
-.sev-filter button{padding:4px 9px;border-radius:5px;font-size:12px;font-weight:600;color:var(--text-muted)}
-.sev-filter button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
-.sev-filter button[data-sev=crit].on{color:var(--crit)}
-.sev-filter button[data-sev=high].on{color:var(--high)}
-.sev-filter button[data-sev=med].on{color:var(--med)}
-.sev-filter button[data-sev=low].on{color:var(--low)}
-.sev-filter button[data-sev=info].on{color:var(--info)}
-.fnd-table{width:100%;border-collapse:collapse;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
-.fnd-table th{background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--text-faint);padding:9px 12px;text-align:left;cursor:pointer;user-select:none;
-  border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
-.fnd-table th:hover{color:var(--text)}
-.fnd-table th .arr{opacity:.4;margin-left:4px}
-.fnd-table th.sorted .arr{opacity:1;color:var(--brand)}
+.sev-filter{display:flex;gap:4px;background:var(--surface-2);padding:3px;border-radius:8px;border:1px solid var(--border)}
+.sev-filter button{padding:4px 9px;border-radius:5px;font-size:12px;font-weight:600;color:var(--text-muted)}.sev-filter button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+.fnd-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.fnd-table th{background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);padding:9px 12px;text-align:left;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
 .fnd-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top}
-.fnd-table tr.row{cursor:pointer}
-.fnd-table tr.row:hover td{background:var(--surface-2)}
-.fnd-table tr.row td:first-child{border-left:3px solid var(--border-strong)}
-.fnd-table tr.row.s-crit td:first-child{border-left-color:var(--crit)}
-.fnd-table tr.row.s-high td:first-child{border-left-color:var(--high)}
-.fnd-table tr.row.s-med td:first-child{border-left-color:var(--med)}
-.fnd-table tr.row.s-low td:first-child{border-left-color:var(--low)}
-.fnd-table tr.row.s-info td:first-child{border-left-color:var(--info)}
-.fnd-table tr.expand td{background:var(--surface-2);padding:14px 18px}
-.fnd-table tr.expand .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.fnd-table tr.expand .ev h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--text-faint);margin:0 0 4px}
-.fnd-table tr.expand .ev pre{margin:0;padding:10px;background:var(--surface);border:1px solid var(--border);
-  border-radius:6px;font-size:12px;overflow-x:auto;color:var(--text)}
-.fnd-table tr.expand .ev p{margin:0;color:var(--text);font-size:13px}
+.fnd-table tr.row{cursor:pointer}.fnd-table tr.row:hover td{background:var(--surface-2)}
+.fnd-table tr.row td:first-child{border-left:3px solid var(--border-strong)}.fnd-table tr.row.s-crit td:first-child{border-left-color:var(--crit)}.fnd-table tr.row.s-high td:first-child{border-left-color:var(--high)}.fnd-table tr.row.s-med td:first-child{border-left-color:var(--med)}.fnd-table tr.row.s-low td:first-child{border-left-color:var(--low)}.fnd-table tr.row.s-info td:first-child{border-left-color:var(--info)}
+.fnd-table tr.expand td{background:var(--surface-2);padding:14px 18px}.fnd-table tr.expand .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.fnd-table tr.expand .ev h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin:0 0 4px}.fnd-table tr.expand .ev pre{margin:0;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:12px;overflow-x:auto;color:var(--text)}
+.fnd-table tr.expand .ev p{margin:0;color:var(--text);font-size:13px}.fnd-table tr.expand .ev .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.fnd-table tr.expand .ev .links a{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--brand)}
 .empty-row td{text-align:center;color:var(--text-faint);padding:32px;font-style:italic}
 .fnd-foot{margin-top:10px;font-size:12px;color:var(--text-faint);display:flex;justify-content:space-between}
-
-/* ENTITIES */
-.ent-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-@media(max-width:1024px){.ent-grid{grid-template-columns:1fr}}
-.ent-bars{display:flex;flex-direction:column;gap:8px}
-.ent-bar{display:grid;grid-template-columns:140px 1fr 50px;gap:10px;align-items:center;font-size:13px}
-.ent-bar .lab{color:var(--text-muted)}
-.ent-bar .track{height:18px;background:var(--surface-2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
-.ent-bar .fill{height:100%;background:var(--brand);border-radius:3px}
-.ent-bar .n{text-align:right;font-weight:600;color:var(--text)}
-.graph-wrap{position:relative}
-.graph-wrap svg{width:100%;height:280px;display:block;background:var(--surface-2);border-radius:var(--radius-sm);
-  border:1px solid var(--border)}
-.graph-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-muted)}
-.graph-legend span{display:inline-flex;align-items:center;gap:5px}
-.graph-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.idg-node{cursor:pointer}
-.idg-node:hover circle,.idg-node:focus circle{stroke:var(--brand);stroke-width:2.5}
-.idg-node.idg-sel circle{stroke:var(--brand);stroke-width:3}
-.idg-empty{padding:60px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;
-  background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius-sm);
-  color:var(--text);font-size:13px}
-.graph-wrap[data-empty="true"] .graph-legend{display:none}
-
-/* FOOTER */
-footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:var(--surface);
-  margin-top:24px}
-.foot-row{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start}
-.versions{font-size:12px;color:var(--text-faint)}
-.versions table{border-collapse:collapse;margin-top:6px}
-.versions td{padding:2px 12px 2px 0;font-family:var(--mono);font-size:11.5px}
-.foot-actions{display:flex;gap:8px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border);
-  border-radius:6px;background:var(--surface-2);color:var(--text-muted);font-size:12.5px;font-weight:500}
-.btn:hover{color:var(--text);border-color:var(--border-strong)}
-
-/* FRAMEWORK BADGES (Iris #3.4 palette + Atlas WCAG-AA notes) */
-.fw{display:inline-flex;align-items:center;padding:1px 6px;margin-right:4px;border-radius:4px;
-  font-size:10.5px;font-weight:600;line-height:1.5;letter-spacing:.02em;color:#fff;
-  font-family:var(--mono);white-space:nowrap}
-.fw-cis{background:#d97706}.fw-nist{background:#374151}.fw-mitre{background:#b91c1c}
-.fw-eidsca{background:#1f6feb}.fw-eidas{background:#7c3aed}.fw-soc{background:#0e7490}
-.fw-iso{background:#0f766e}.fw-mcsb{background:#005a9e}.fw-caf{background:#1e3a8a}
-.fw-waf{background:#3a7d0a}.fw-cisa{background:#0f766e}.fw-orca{background:#0891b2}
-.fw-default{background:#475569}
-[data-theme="dark"] .fw{color:#0b1220;filter:brightness(1.15) saturate(.9)}
-.tool-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:4px;
-  font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-muted);
-  background:var(--surface-2);border:1px solid var(--border)}
-.rule-id{font-family:var(--mono);font-size:11px;color:var(--text-faint);background:var(--surface-2);
-  padding:1px 5px;border-radius:3px;border:1px solid var(--border);margin-right:6px}
-.fnd-table tr.expand .ev .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.fnd-table tr.expand .ev .links a{display:inline-flex;align-items:center;gap:4px;font-size:12px;
-  padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);
-  color:var(--brand)}
-.fnd-table tr.expand .ev .links a:hover{border-color:var(--brand);text-decoration:none}
-
-/* TOOLTIP */
-.tip{position:absolute;z-index:100;background:#0f172a;color:#fff;padding:8px 10px;border-radius:6px;
-  font-size:12px;line-height:1.4;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.3);
-  max-width:240px;opacity:0;transform:translateY(2px);transition:opacity .12s}
-.tip.on{opacity:1;transform:translateY(0)}
-[data-theme="dark"] .tip{background:#e8edf6;color:#0f172a}
+.ent-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:1024px){.ent-grid{grid-template-columns:1fr}}
+.ent-bars{display:flex;flex-direction:column;gap:8px}.ent-bar{display:grid;grid-template-columns:140px 1fr 50px;gap:10px;align-items:center;font-size:13px}.ent-bar .lab{color:var(--text-muted)}.ent-bar .track{height:18px;background:var(--surface-2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}.ent-bar .fill{height:100%;background:var(--brand);border-radius:3px}.ent-bar .n{text-align:right;font-weight:600;color:var(--text)}
+.graph-wrap svg{width:100%;height:280px;display:block;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.graph-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-muted)}.graph-legend span{display:inline-flex;align-items:center;gap:5px}.graph-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:var(--surface);margin-top:24px}.foot-row{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start}.versions{font-size:12px;color:var(--text-faint)}.versions table{border-collapse:collapse;margin-top:6px}.versions td{padding:2px 12px 2px 0;font-family:var(--mono);font-size:11.5px}
+.foot-actions{display:flex;gap:8px}.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--text-muted);font-size:12.5px;font-weight:500}
+.fw{display:inline-flex;align-items:center;padding:1px 6px;margin-right:4px;border-radius:4px;font-size:10.5px;font-weight:600;line-height:1.5;letter-spacing:.02em;color:#fff;font-family:var(--mono);white-space:nowrap}
+.fw-cis{background:#d97706}.fw-nist{background:#374151}.fw-mitre{background:#b91c1c}.fw-eidsca{background:#1f6feb}.fw-eidas{background:#7c3aed}.fw-soc{background:#0e7490}.fw-iso{background:#0f766e}.fw-mcsb{background:#005a9e}.fw-caf{background:#1e3a8a}.fw-waf{background:#3a7d0a}.fw-cisa{background:#0f766e}.fw-orca{background:#0891b2}.fw-default{background:#475569}
+.tool-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border)}
+.rule-id{font-family:var(--mono);font-size:11px;color:var(--text-faint);background:var(--surface-2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);margin-right:6px}
 </style>
 </head>
 <body>
-<header class="app" role="banner">
-  <div class="hdr-row">
-    <div class="brand">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#0b5fff"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
-        <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#bg)"/>
-        <path d="M7 16l3.5-8 3.5 8M8.5 13.5h4M14.5 16h2.5" stroke="#fff" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-      <span>Azure Analyzer</span>
-      <span class="pill ghost" title="Schema 2.2 / Report v3 mockup">v3 mockup</span>
+<header class='app' role='banner'>
+  <div class='hdr-row'>
+    <div class='brand'><span>Azure Analyzer</span><span class='pill ghost'>report v3</span></div>
+    <div class='tenant'><strong>tenant</strong> · 2 subs</div>
+    <div class='kpi'><strong>2026-04-21 16:55 UTC</strong></div>
+    <div class='score'><div class='score-text'><span class='num'>D<span style='font-size:11px;color:var(--text-faint);font-weight:500'> (9/100)</span></span><span class='lbl'>Posture</span></div></div>
+    <div class='sev-strip' role='group' aria-label='Findings by severity'>
+      <div class='sev-cnt sev-crit'><span class='n'>1</span><span class='l'>Crit</span></div>
+      <div class='sev-cnt sev-high'><span class='n'>4</span><span class='l'>High</span></div>
+      <div class='sev-cnt sev-med'><span class='n'>5</span><span class='l'>Med</span></div>
+      <div class='sev-cnt sev-low'><span class='n'>0</span><span class='l'>Low</span></div>
+      <div class='sev-cnt sev-info'><span class='n'>0</span><span class='l'>Info</span></div>
     </div>
-    <div class="tenant" title="Tenant ID 8f3b…d12c">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>
-      <strong>contoso-prod</strong> · 3 subs · 2 MGs
-    </div>
-    <div class="kpi" title="Scan completed 2026-04-22 09:14 UTC">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <strong>22 Apr 2026</strong> 09:14 UTC
-    </div>
-    <div class="grow"></div>
-    <div class="score" title="Overall posture score">
-      <svg width="44" height="44" viewBox="0 0 44 44">
-        <circle cx="22" cy="22" r="18" fill="none" stroke="var(--border)" stroke-width="4"/>
-        <circle cx="22" cy="22" r="18" fill="none" stroke="var(--brand)" stroke-width="4"
-          stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="24.9"
-          transform="rotate(-90 22 22)"/>
-        <text x="22" y="26" text-anchor="middle" font-size="13" font-weight="700"
-          fill="var(--text)" font-family="var(--font)">B</text>
-      </svg>
-      <div class="score-text"><span class="num">78<span style="font-size:11px;color:var(--text-faint);font-weight:500">/100</span></span><span class="lbl">Posture</span></div>
-    </div>
-    <div class="sev-strip" role="group" aria-label="Findings by severity">
-      <div class="sev-cnt sev-crit"><span class="n">7</span><span class="l">Crit</span></div>
-      <div class="sev-cnt sev-high"><span class="n">34</span><span class="l">High</span></div>
-      <div class="sev-cnt sev-med"><span class="n">81</span><span class="l">Med</span></div>
-      <div class="sev-cnt sev-low"><span class="n">62</span><span class="l">Low</span></div>
-      <div class="sev-cnt sev-info"><span class="n">38</span><span class="l">Info</span></div>
-    </div>
-    <div class="kpis" aria-label="Scan KPIs">
-      <span class="kpi"><strong>17</strong> tools</span>
-      <span class="kpi"><strong>412</strong> entities</span>
-      <span class="kpi"><strong>81%</strong> compliant <span class="delta-up">▲ 2.3</span></span>
-    </div>
-    <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark mode">
-      <svg id="iconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-      <svg id="iconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2" stroke-linecap="round" aria-hidden="true" style="display:none">
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-    </button>
+    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>37</strong> tools</span><span class='kpi'><strong>3</strong> entities</span><span class='kpi'><strong>9%</strong> compliant</span></div>
+    <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
-<nav class="sub" aria-label="Section">
-  <div class="sub-row">
-    <a href="#overview" class="active">Overview</a>
-    <a href="#coverage">Tool coverage</a>
-    <a href="#heatmap">Heatmap</a>
-    <a href="#risks">Top risks</a>
-    <a href="#findings">Findings</a>
-    <a href="#entities">Entities</a>
-  </div>
-</nav>
+<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
 <main>
-<section class="section" id="overview">
-  <h2>Overview <span class="badge">executive summary</span></h2>
-  <div class="over-grid">
-    <div class="card card-pad exec">
-      <p><strong>Tenant <code>contoso-prod</code></strong> scanned across <strong>17 tools</strong> covering
-        <strong>412 entities</strong> in 3 subscriptions. <strong>81%</strong> of evaluated controls passed,
-        up<span class="sev-text-low" style="font-weight:600">2.3 pts</span> versus the previous run on 8 Apr.
-        Posture grade <strong>B (78/100)</strong>.</p>
-      <p>Seven <span class="pill sev-crit">Critical</span> issues require attention this week, mostly clustered
-        in <code>prod-identity</code> (5 of 7). Two new high-severity workflow-injection findings landed in
-        <code>contoso/payments-api</code> from the latest <code>zizmor</code> sweep.</p>
-      <div class="trend-strip" aria-label="5-run trend by severity">
-        <div class="trend"><div class="lab">Critical</div><div class="val sev-text-crit">7</div>
-          <div class="delta sev-text-low">▼ 2 vs prev</div>
-          <svg viewBox="0 0 100 32"><polyline fill="none" stroke="var(--crit)" stroke-width="1.8"
-            points="0,8 25,4 50,12 75,10 100,18"/></svg></div>
-        <div class="trend"><div class="lab">High</div><div class="val sev-text-high">34</div>
-          <div class="delta sev-text-low">▼ 5</div>
-          <svg viewBox="0 0 100 32"><polyline fill="none" stroke="var(--high)" stroke-width="1.8"
-            points="0,6 25,10 50,8 75,12 100,16"/></svg></div>
-        <div class="trend"><div class="lab">Medium</div><div class="val sev-text-med">81</div>
-          <div class="delta sev-text-high">▲ 6</div>
-          <svg viewBox="0 0 100 32"><polyline fill="none" stroke="var(--med)" stroke-width="1.8"
-            points="0,22 25,18 50,14 75,12 100,8"/></svg></div>
-        <div class="trend"><div class="lab">Low</div><div class="val sev-text-low">62</div>
-          <div class="delta faint">flat</div>
-          <svg viewBox="0 0 100 32"><polyline fill="none" stroke="var(--low)" stroke-width="1.8"
-            points="0,16 25,18 50,14 75,16 100,15"/></svg></div>
-        <div class="trend"><div class="lab">Info</div><div class="val sev-text-info">38</div>
-          <div class="delta faint">▲ 1</div>
-          <svg viewBox="0 0 100 32"><polyline fill="none" stroke="var(--info)" stroke-width="1.8"
-            points="0,20 25,18 50,18 75,16 100,15"/></svg></div>
+<section class='section' id='overview'>
+  <h2>Overview <span class='badge'>executive summary</span></h2>
+  <div class='over-grid'>
+    <div class='card card-pad exec'>
+      <p><strong>Run summary</strong>: scanned <strong>11 findings</strong> across <strong>37 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>9%</strong>.</p>
+      <p>Critical and High findings are prioritized in top risks. Schema 2.2 fields render when present and are skipped when absent.</p>
+      <div class='pillars' aria-label='Pillar breakdown'>
+        <h3 style='margin-bottom:4px'>Pillar breakdown (non-pass)</h3>
+        <div class='pill-row'><span class='pill-name'>Security</span><div class='pill-track'><i style='width:100%'></i></div><span class='pill-count'>5</span></div>
+<div class='pill-row'><span class='pill-name'>Cost Optimization</span><div class='pill-track'><i style='width:80%'></i></div><span class='pill-count'>4</span></div>
+<div class='pill-row'><span class='pill-name'>Performance Efficiency</span><div class='pill-track'><i style='width:20%'></i></div><span class='pill-count'>1</span></div>
       </div>
+      <div class='trend-strip'><div class='trend' style='grid-column:1 / -1'><div class='lab'>Trend</div><div class='val'>n/a</div><div class='delta faint'>trend coming after 2nd run</div></div></div>
     </div>
-    <div class="card card-pad">
-      <h3 style="margin-bottom:10px">Top recommendations</h3>
-      <div class="recs" id="topRecs"></div>
-    </div>
+    <div class='card card-pad'><h3 style='margin-bottom:10px'>Top recommendations</h3><div class='recs' id='topRecs'><div class='rec'>
+  <span class='pill sev-crit'>Critical</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Azure.KeyVault.SoftDelete");return false;'>Key Vault soft delete disabled</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='impact'><strong>10</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("ADO.CORR.SECRET");return false;'>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("AZQR.NET.012");return false;'>Internet-exposed management port on NSG</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("C-0057");return false;'>Privileged container in payments namespace</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Consumption-DurationRegression");return false;'>Pipeline duration regression exceeds budget</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-med'>Medium</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("AKS.RIGHT.001");return false;'>AKS node pool over-provisioned</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='impact'><strong>2</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-med'>Medium</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("APPINSIGHTS.P95.REGRESSION");return false;'>API p95 latency regressed by 38%</a></span><div class='meta'>1 findings · Performance Efficiency</div></div>
+  <div class='impact'><strong>2</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-med'>Medium</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("FINOPS.APPSERVICE.IDLE");return false;'>Idle App Service Plan spend exceeds threshold</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='impact'><strong>2</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-med'>Medium</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("GHA-BILLING-BUDGET");return false;'>Runner minute spend trend exceeds weekly budget</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='impact'><strong>2</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-med'>Medium</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("SENT-COV-T1190");return false;'>MITRE tactic coverage gap for Initial Access</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='impact'><strong>2</strong>impact</div>
+</div></div></div>
   </div>
 </section>
-<section class="section" id="coverage">
-  <h2>Tool coverage <span class="badge">17 active · 1 disabled</span></h2>
-  <div id="covRoot"></div>
-</section>
-<section class="section" id="heatmap">
-  <h2>Heatmap <span class="badge">control density</span></h2>
-  <div class="card hm-wrap">
-    <div class="hm-toggle" role="tablist" aria-label="Heatmap view">
-      <button class="on" data-hm="domain">Control domain × Subscription</button>
-      <button data-hm="sevrg">Severity × Resource group</button>
-      <button data-hm="fwsub">Framework × Subscription</button>
+<section class='section' id='coverage'><h2>Tool coverage <span class='badge'>37 registered</span></h2><div id='covRoot'><div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>Azure DevOps · ado</h3>
+    <span class='cnt'>5 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>ADO Pipeline Consumption</div>
+    <span class='scope'>ado</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>ado-consumption</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>ADO Pipeline Run Correlator</div>
+    <span class='scope'>ado</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>ado-pipeline-correlator</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>ADO Pipeline Security</div>
+    <span class='scope'>ado</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-pipelines</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>ADO Repos Secret Scanning</div>
+    <span class='scope'>ado</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-repos-secrets</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>ADO Service Connections</div>
+    <span class='scope'>ado</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-connections</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>Azure · managementGroup</h3>
+    <span class='cnt'>2 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>ALZ Resource Graph Queries</div>
+    <span class='scope'>managementGroup</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>alz-queries</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>AzGovViz</div>
+    <span class='scope'>managementGroup</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>azgovviz</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>Azure · subscription</h3>
+    <span class='cnt'>16 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>AKS Karpenter Cost (consolidation + node utilization)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>aks-karpenter-cost</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>AKS Rightsizing (Container Insights utilization)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>aks-rightsizing</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Application Insights Performance Signals</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>appinsights</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Azure Cost (Consumption API)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>azure-cost</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Azure Load Testing (Failed and Regressed Runs)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>loadtesting</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Azure Quick Review</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>50% pass</span><div class='bar'><i style='width:50%'></i></div></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>azqr</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Azure Quota Reports</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>azure-quota</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Falco (AKS runtime anomaly detection)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>falco</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>FinOps Signals (Idle Resource Detection)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>finops</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>kube-bench (AKS node-level CIS compliance)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>kube-bench</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Kubescape (AKS runtime posture)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>kubescape</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Microsoft Defender for Cloud</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>defender-for-cloud</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Powerpipe Compliance Benchmarks</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>powerpipe</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Prowler (Azure security posture)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>prowler</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>PSRule for Azure</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--crit)' title='1 Critical'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>psrule</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Well-Architected Reliability Assessment</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>wara</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>Azure · workspace</h3>
+    <span class='cnt'>2 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Microsoft Sentinel (Active Incidents)</div>
+    <span class='scope'>workspace</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>sentinel-incidents</span></div>
+</div>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Microsoft Sentinel (Coverage / Posture)</div>
+    <span class='scope'>workspace</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>sentinel-coverage</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>CLI / local · repository</h3>
+    <span class='cnt'>7 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Bicep IaC Validation</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>bicep-iac</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Copilot AI Triage</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>copilot-triage</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>gitleaks (Secrets Scanner)</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>gitleaks</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Infracost IaC Cost Estimation</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>infracost</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Terraform IaC Validation</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>terraform-iac</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Trivy Vulnerability Scanner</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>trivy</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>zizmor (Actions YAML Scanner)</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>zizmor</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>GitHub · repository</h3>
+    <span class='cnt'>2 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool '>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>GitHub Actions Billing</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>gh-actions-billing</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>OpenSSF Scorecard</div>
+    <span class='scope'>repository</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>scorecard</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>Microsoft Graph · tenant</h3>
+    <span class='cnt'>2 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Identity Correlator</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>identity-correlator</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Identity Graph Expansion</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>identity-graph-expansion</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>Microsoft 365 · tenant</h3>
+    <span class='cnt'>1 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Maester</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>maester</span></div>
+</div>
+  </div>
+</div></div></section>
+<section class='section' id='heatmap'>
+  <h2>Heatmap <span class='badge'>control density</span></h2>
+  <div class='card hm-wrap'>
+    <div class='hm-toggle' role='tablist' aria-label='Heatmap view'>
+      <button class='on' data-hm='domain'>Control domain × Subscription</button>
+      <button data-hm='toolsev'>Tool × Severity</button>
+      <button data-hm='fwsub'>Framework × Subscription</button>
     </div>
-    <div id="hmRoot"></div>
-    <div class="hm-legend">
-      <span>Fewer findings</span>
-      <span class="grad" aria-hidden="true"></span>
-      <span>More findings · darker = higher max severity</span>
-    </div>
+    <div id='hmRoot'></div>
+    <div class='hm-legend'><span>Fewer findings</span><span class='grad' aria-hidden='true'></span><span>More findings</span></div>
   </div>
 </section>
-<section class="section" id="risks">
-  <h2>Top risks <span class="badge">ranked by impact</span></h2>
-  <div class="risks" id="risksRoot"></div>
-</section>
-
-<section class="section" id="findings">
-  <h2>Findings <span class="badge" id="fndCountBadge">0 of 0</span></h2>
-  <div class="fnd-toolbar">
-    <input type="search" id="fndSearch" placeholder="Search rule, entity, message…" aria-label="Search findings">
-    <div class="sev-filter" role="group" aria-label="Severity filter">
-      <button data-sev="all" class="on">All</button>
-      <button data-sev="crit">Crit</button>
-      <button data-sev="high">High</button>
-      <button data-sev="med">Med</button>
-      <button data-sev="low">Low</button>
-      <button data-sev="info">Info</button>
-    </div>
-    <select id="fndTool" aria-label="Tool"><option value="">All tools</option></select>
-    <select id="fndSub" aria-label="Subscription"><option value="">All subscriptions</option></select>
-    <select id="fndStatus" aria-label="Status">
-      <option value="">All statuses</option><option value="Fail">Fail</option>
-      <option value="Pass">Pass</option><option value="Warning">Warning</option>
-    </select>
-    <button class="btn" id="exportCsv" title="Download visible rows as CSV">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-      Export CSV
-    </button>
+<section class='section' id='risks'><h2>Top risks <span class='badge'>ranked by impact</span></h2><div class='risks' id='risksRoot'><div class='risk'>
+  <span class='pill sev-crit'>Critical</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("Azure.KeyVault.SoftDelete");return false;'>Key Vault soft delete disabled</a></div>
+    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-mcsb' title='MCSB'>MCSB</span></div>
   </div>
-  <table class="fnd-table" id="fndTable">
-    <thead><tr>
-      <th data-sort="severity" class="sorted">Sev <span class="arr">▾</span></th>
-      <th data-sort="rule">Rule <span class="arr">▾</span></th>
-      <th data-sort="entity">Entity <span class="arr">▾</span></th>
-      <th data-sort="sub">Subscription <span class="arr">▾</span></th>
-      <th data-sort="tool">Tool <span class="arr">▾</span></th>
-      <th data-sort="status">Status <span class="arr">▾</span></th>
-    </tr></thead>
-    <tbody id="fndBody"></tbody>
+  <span class='tool-tag'>PSRule for Azure</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("ADO.CORR.SECRET");return false;'>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</a></div>
+    <div class='meta'>Security · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>ADO Pipeline Run Correlator</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("AZQR.NET.012");return false;'>Internet-exposed management port on NSG</a></div>
+    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span><span class='fw fw-default' title='PCI DSS'>PCI DSS</span></div>
+  </div>
+  <span class='tool-tag'>Azure Quick Review</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("C-0057");return false;'>Privileged container in payments namespace</a></div>
+    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-default' title='NSA'>NSA</span><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span></div>
+  </div>
+  <span class='tool-tag'>Kubescape (AKS runtime posture)</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("Consumption-DurationRegression");return false;'>Pipeline duration regression exceeds budget</a></div>
+    <div class='meta'>Cost Optimization · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>ADO Pipeline Consumption</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-med'>Medium</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("AKS.RIGHT.001");return false;'>AKS node pool over-provisioned</a></div>
+    <div class='meta'>Cost Optimization · <span class='fw fw-waf' title='WAF'>WAF</span></div>
+  </div>
+  <span class='tool-tag'>AKS Rightsizing (Container Insights utilization)</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-med'>Medium</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("APPINSIGHTS.P95.REGRESSION");return false;'>API p95 latency regressed by 38%</a></div>
+    <div class='meta'>Performance Efficiency · <span class='fw fw-waf' title='WAF'>WAF</span></div>
+  </div>
+  <span class='tool-tag'>Application Insights Performance Signals</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-med'>Medium</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("FINOPS.APPSERVICE.IDLE");return false;'>Idle App Service Plan spend exceeds threshold</a></div>
+    <div class='meta'>Cost Optimization · <span class='fw fw-waf' title='WAF'>WAF</span></div>
+  </div>
+  <span class='tool-tag'>finops-signals</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-med'>Medium</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("GHA-BILLING-BUDGET");return false;'>Runner minute spend trend exceeds weekly budget</a></div>
+    <div class='meta'>Cost Optimization · <span class='fw fw-soc' title='SOC2'>SOC2</span></div>
+  </div>
+  <span class='tool-tag'>GitHub Actions Billing</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-med'>Medium</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("SENT-COV-T1190");return false;'>MITRE tactic coverage gap for Initial Access</a></div>
+    <div class='meta'>Security · <span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span></div>
+  </div>
+  <span class='tool-tag'>Microsoft Sentinel (Coverage / Posture)</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div></div></section>
+<section class='section' id='findings'>
+  <h2>Findings <span class='badge' id='fndCountBadge'>11 of 11</span></h2>
+  <div class='fnd-toolbar'>
+    <input type='search' id='fndSearch' placeholder='Search rule, entity, message' aria-label='Search findings'>
+    <div class='sev-filter' role='group' aria-label='Severity filter'>
+      <button data-sev='all' class='on'>All</button><button data-sev='crit'>Crit</button><button data-sev='high'>High</button><button data-sev='med'>Med</button><button data-sev='low'>Low</button><button data-sev='info'>Info</button>
+    </div>
+    <select id='fndTool' aria-label='Tool'><option value=''>All tools</option></select>
+    <select id='fndSub' aria-label='Subscription'><option value=''>All subscriptions</option></select>
+    <select id='fndStatus' aria-label='Status'><option value=''>All statuses</option><option value='Fail'>Fail</option><option value='Pass'>Pass</option><option value='Warning'>Warning</option></select>
+    <button class='btn' id='exportCsv'>Export CSV</button>
+  </div>
+  <table class='fnd-table' id='fndTable'>
+    <thead><tr><th data-sort='severity' class='sorted'>Sev <span class='arr'>▾</span></th><th data-sort='rule'>Rule <span class='arr'>▾</span></th><th data-sort='entity'>Entity <span class='arr'>▾</span></th><th data-sort='sub'>Subscription <span class='arr'>▾</span></th><th data-sort='tool'>Tool <span class='arr'>▾</span></th><th data-sort='status'>Status <span class='arr'>▾</span></th></tr></thead>
+    <tbody id='fndBody'>
+<tr class='row s-high' data-id='azqr-net-001' data-severity='high' data-rule='AZQR.NET.012' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge' data-sub='11111111-1111-1111-1111-111111111111' data-tool='azqr' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>AZQR.NET.012</span>Internet-exposed management port on NSG</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span><span class='fw fw-default' title='PCI DSS'>PCI DSS</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-net</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='azqr-net-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</pre>
+      <div class='links'><a href='https://portal.azure.com/#resource/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-payments-net/providers/Microsoft.Network/networkSecurityGroups/nsg-payments-edge' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:ga, internet-exposed</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Restrict inbound access to JIT or approved source ranges.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
+      <h4 style='margin-top:10px'>azurecli</h4><pre>az network nsg rule update --resource-group rg-payments-net --nsg-name nsg-payments-edge --name Allow-RDP --source-address-prefixes 10.0.0.0/24</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>/subscriptions/11111111-1111-1111-1111-111111111111
+nsg:nsg-payments-edge</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/Microsoft_Azure_Network/NetworkSecurityGroupDetailsBlade/id/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-net%2Fproviders%2FMicrosoft.Network%2FnetworkSecurityGroups%2Fnsg-payments-edge' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-crit' data-id='psrule-kv-001' data-severity='crit' data-rule='Azure.KeyVault.SoftDelete' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='psrule' data-status='Fail'>
+  <td><span class='pill sev-crit'>Critical</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>Azure.KeyVault.SoftDelete</span>Key Vault soft delete disabled</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-mcsb' title='MCSB'>MCSB</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-sec</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip' style='background:#6a1b9a;border-color:#6a1b9a;color:#fff'>PSRule for Azure</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='psrule-kv-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</pre>
+      <div class='links'><a href='https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:ga, keyvault</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable soft delete and purge protection on production Key Vaults.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Low</p>
+      <h4 style='margin-top:10px'>bicep</h4><pre>resource kv &#39;Microsoft.KeyVault/vaults@2023-07-01&#39; existing = { name: &#39;kv-payments-prod&#39; }
+resource kvPatch &#39;Microsoft.KeyVault/vaults@2023-07-01&#39; = {
+  name: kv.name
+  properties: {
+    enableSoftDelete: true
+    enablePurgeProtection: true
+  }
+}</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>/subscriptions/11111111-1111-1111-1111-111111111111
+kv:kv-payments-prod</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/Microsoft_Azure_KeyVault/VaultMenuBlade/~/properties/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-sec%2Fproviders%2FMicrosoft.KeyVault%2Fvaults%2Fkv-payments-prod' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='kubescape-001' data-severity='high' data-rule='C-0057' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments' data-sub='11111111-1111-1111-1111-111111111111' data-tool='kubescape' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>C-0057</span>Privileged container in payments namespace</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-default' title='NSA'>NSA</span><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments</div><div class='faint' style='font-size:11px'>AzureResource · rg-aks-prod</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip' style='background:#7b1fa2;border-color:#7b1fa2;color:#fff'>Kubescape (AKS runtime posture)</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='kubescape-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Deployment payments-api uses privileged=true in one container.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Deployment payments-api uses privileged=true in one container.</pre>
+      <div class='links'><a href='https://hub.armosec.io/docs/c-0057' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://attack.mitre.org/techniques/T1611/' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      <h4 style='margin-top:10px'>MITRE</h4><p>Tactics: Privilege Escalation<br>Techniques: T1611</p>
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>nsa, cis, mitreattck</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Drop privileged mode and enforce Pod Security Standards.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
+      <h4 style='margin-top:10px'>yaml</h4><pre>securityContext:
+  privileged: false
+  allowPrivilegeEscalation: false</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>cluster:aks-prod-payments
+namespace:payments
+workload:payments-api</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters/resourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-aks-prod%2Fproviders%2FMicrosoft.ContainerService%2FmanagedClusters%2Faks-prod-payments' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='sentinel-coverage-001' data-severity='med' data-rule='SENT-COV-T1190' data-entity='/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01' data-sub='22222222-2222-2222-2222-222222222222' data-tool='sentinel-coverage' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>SENT-COV-T1190</span>MITRE tactic coverage gap for Initial Access</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01</div><div class='faint' style='font-size:11px'>AzureResource · rg-sec</div></td>
+  <td>22222222-2222-2222-2222-222222222222</td>
+  <td><span class='tool-chip' style='background:#3949ab;border-color:#3949ab;color:#fff'>Microsoft Sentinel (Coverage / Posture)</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='sentinel-coverage-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>No enabled analytics rules mapped to Initial Access in the last 14 days.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>No enabled analytics rules mapped to Initial Access in the last 14 days.</pre>
+      <div class='links'><a href='https://portal.azure.com/#blade/Microsoft_Azure_Security_Insights/WorkspaceMenuBlade/AnalyticsRules/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://attack.mitre.org/tactics/TA0001/' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      <h4 style='margin-top:10px'>MITRE</h4><p>Tactics: Initial Access<br>Techniques: T1190</p>
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>correlation-gap, mitre</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable analytics for external-facing service exploitation and suspicious sign-ins.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium</p>
+      
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>workspace:law-sec-01
+mitre:TA0001
+mitre:T1190</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/analytics/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='ado-corr-001' data-severity='high' data-rule='ADO.CORR.SECRET' data-entity='ado://contoso/payments/pipeline/55' data-sub='' data-tool='ado-pipeline-correlator' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>ADO.CORR.SECRET</span>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>ado://contoso/payments/pipeline/55</div><div class='faint' style='font-size:11px'>Pipeline · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>ADO Pipeline Run Correlator</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='ado-corr-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</pre>
+      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201&amp;view=logs' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>correlated-direct, secret-category:github-pat</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Rotate affected secret, audit variable groups, and inspect downstream artifacts.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
+      <h4 style='margin-top:10px'>text</h4><pre>1) Rotate leaked credentials.
+2) Inspect pipeline variable groups and service connections.
+3) Verify artifact consumers and deployment logs.</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>finding:secret-9
+pipeline:ado://contoso/payments/pipeline/55
+build:8201
+repository:ado://contoso/payments/repository/payments-api
+commit:abcdef1234567890</pre>
+      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201&amp;view=results' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='appi-001' data-severity='med' data-rule='APPINSIGHTS.P95.REGRESSION' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai' data-sub='11111111-1111-1111-1111-111111111111' data-tool='appinsights' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>APPINSIGHTS.P95.REGRESSION</span>API p95 latency regressed by 38%</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Performance Efficiency</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-app</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>Application Insights Performance Signals</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='appi-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</pre>
+      <div class='links'><a href='https://portal.azure.com/#blade/AppInsightsExtension/BladeRedirect/BladeName/FailuresV2' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/azure-monitor/app/app-map' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:canary, latency-regression</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Profile hot endpoints and reduce dependency latency in checkout path.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium<br>Score delta: 38</p>
+      <h4 style='margin-top:10px'>kusto</h4><pre>requests
+| where cloud_RoleName == &quot;payments-api&quot;
+| summarize p95=percentile(duration,95) by bin(timestamp, 1h)</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>appinsights:payments-api-ai
+service:checkout</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/AppInsightsExtension/BladeRedirect/BladeName/searchV1/ComponentId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-app%2Fproviders%2Fmicrosoft.insights%2Fcomponents%2Fpayments-api-ai' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='finops-001' data-severity='med' data-rule='FINOPS.APPSERVICE.IDLE' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='finops-signals' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>FINOPS.APPSERVICE.IDLE</span>Idle App Service Plan spend exceeds threshold</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-app</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip'>finops-signals</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='finops-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</pre>
+      <div class='links'><a href='https://portal.azure.com/#blade/Microsoft_Azure_CostManagement/Menu/overview' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/app-service/overview-hosting-plans' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>cost-hotspot, release:ga</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Right-size to P1v3 or consolidate workloads into shared plan.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Low<br>Score delta: 1420</p>
+      <h4 style='margin-top:10px'>text</h4><pre>Downsize to P1v3 and set autoscale max instances to 2.</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>plan:asp-payments-prod
+subscription:11111111-1111-1111-1111-111111111111</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/costanalysis' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='ado-consume-001' data-severity='high' data-rule='Consumption-DurationRegression' data-entity='ado://contoso/payments/pipeline/55' data-sub='' data-tool='ado-consumption' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>Consumption-DurationRegression</span>Pipeline duration regression exceeds budget</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
+  <td><div class='mono' style='font-size:12px'>ado://contoso/payments/pipeline/55</div><div class='faint' style='font-size:11px'>Pipeline · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#5e35b1;border-color:#5e35b1;color:#fff'>ADO Pipeline Consumption</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='ado-consume-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>payments-ci average duration increased by 44% week-over-week.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>payments-ci average duration increased by 44% week-over-week.</pre>
+      <div class='links'><a href='https://dev.azure.com/contoso/payments/_analytics' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/devops/pipelines/process/phases' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>duration-regression, minutes</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Parallelize tests and cache dependencies for build stages.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium<br>Score delta: 44</p>
+      
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>pipeline:ado://contoso/payments/pipeline/55
+project:ado://contoso/payments/project/payments</pre>
+      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build?definitionId=55' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='gh-billing-001' data-severity='med' data-rule='GHA-BILLING-BUDGET' data-entity='github.com/contoso/payments-api' data-sub='' data-tool='gh-actions-billing' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>GHA-BILLING-BUDGET</span>Runner minute spend trend exceeds weekly budget</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-soc' title='SOC2'>SOC2</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
+  <td><div class='mono' style='font-size:12px'>github.com/contoso/payments-api</div><div class='faint' style='font-size:11px'>Repository · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#8e24aa;border-color:#8e24aa;color:#fff'>GitHub Actions Billing</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='gh-billing-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</pre>
+      <div class='links'><a href='https://github.com/contoso/payments-api/actions' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://github.com/contoso/payments-api/settings/actions' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>runner-minutes, budget</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable path filters and reduce redundant workflow triggers.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Low<br>Score delta: 32</p>
+      
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>repo:github.com/contoso/payments-api
+workflow:.github/workflows/ci.yml</pre>
+      <div class='links'><a href='https://github.com/organizations/contoso/settings/billing/actions' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='aks-right-001' data-severity='med' data-rule='AKS.RIGHT.001' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments' data-sub='11111111-1111-1111-1111-111111111111' data-tool='aks-rightsizing' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>AKS.RIGHT.001</span>AKS node pool over-provisioned</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments</div><div class='faint' style='font-size:11px'>AzureResource · rg-aks-prod</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip' style='background:#2e7d32;border-color:#2e7d32;color:#fff'>AKS Rightsizing (Container Insights utilization)</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='aks-right-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Node pool usernp average CPU 11% and memory 18% over 7 days.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Node pool usernp average CPU 11% and memory 18% over 7 days.</pre>
+      <div class='links'><a href='https://portal.azure.com/#blade/HubsExtension/Resources/resourceType/Microsoft.ContainerService%2FmanagedClusters' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/aks/cluster-autoscaler' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
+      
+      <h4 style='margin-top:10px'>Baseline tags</h4><p>rightsizing, cluster-autoscaler</p>
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Reduce min node count from 6 to 3 and enable cluster autoscaler profile.</p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium<br>Score delta: 1200</p>
+      <h4 style='margin-top:10px'>bash</h4><pre>az aks nodepool update -g rg-aks-prod --cluster-name aks-prod-payments -n usernp --min-count 3 --max-count 10</pre>
+      <h4 style='margin-top:10px'>Entity refs</h4><pre>cluster:aks-prod-payments
+nodepool:usernp</pre>
+      <div class='links'><a href='https://portal.azure.com/#view/Microsoft_Azure_ContainerService/ManagedClusterNodePoolsMenuBlade/id/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-aks-prod%2Fproviders%2FMicrosoft.ContainerService%2FmanagedClusters%2Faks-prod-payments' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-low' data-id='azqr-pass-001' data-severity='low' data-rule='AZQR.KV.LOG' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='azqr' data-status='Pass'>
+  <td><span class='pill sev-low'>Low</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>AZQR.KV.LOG</span>Diagnostic settings configured for Key Vault</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span> <span class='faint' style='margin-left:6px'>Operational Excellence</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-sec</div></td>
+  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
+  <td><span class='pill sev-pass'>Pass</span></td>
+</tr>
+<tr class='expand' data-parent-id='azqr-pass-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Key Vault kv-payments-prod streams audit logs to Log Analytics.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Key Vault kv-payments-prod streams audit logs to Log Analytics.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p></p>
+      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Low<br>Effort: Low</p>
+      
+      
+      <div class='links'><span class='tool-chip'>No links provided</span></div>
+    </div>
+  </div></td>
+</tr>
+    </tbody>
   </table>
-  <div class="fnd-foot">
-    <span id="fndShown">0 shown</span>
-    <span>Click any row to expand evidence and remediation</span>
-  </div>
+  <div class='fnd-foot'><span id='fndShown'>11 shown</span><span>Click any row to expand evidence and remediation</span></div>
 </section>
-<!-- findings consolidated above -->
-<section class="section" id="entities">
-  <h2>Entities <span class="badge">412 across 5 platforms</span></h2>
-  <div class="ent-grid">
-    <div class="card card-pad">
-      <h3 style="margin-bottom:14px">Inventory by type</h3>
-      <div class="ent-bars" id="entBars"></div>
-    </div>
-    <div class="card card-pad">
-      <h3 style="margin-bottom:10px">Identity blast-radius graph
-        <span class="pill ghost" style="margin-left:6px" id="idgEntityCount">0 nodes</span></h3>
-      <p class="muted" style="margin:0 0 10px;font-size:12.5px">
-        Nodes from <code>entities.json</code> (User · ServicePrincipal · Group · Application · AzureResource).
-        Edges: ownership · role assignments · group membership · federated credentials.
-        <strong>Click a node</strong> to filter the findings table by that entity.
-        <a href="#" id="idgClear" style="margin-left:8px;display:none">clear filter</a></p>
-      <div class="graph-wrap" id="identityGraph" data-empty="false">
-        <svg viewBox="0 0 600 280" id="idgSvg" aria-label="Identity blast-radius graph"></svg>
-        <div class="idg-empty" id="idgEmpty" hidden>
-          <strong>Identity graph unavailable.</strong>
-          <span class="muted">Need at least 5 identity-related entities; this run produced fewer.</span>
-        </div>
-        <div class="graph-legend">
-          <span><i style="background:var(--crit)"></i>User</span>
-          <span><i style="background:var(--high)"></i>ServicePrincipal</span>
-          <span><i style="background:var(--brand)"></i>Group</span>
-          <span><i style="background:var(--accent)"></i>Application</span>
-          <span><i style="background:var(--med)"></i>AzureResource</span>
-        </div>
-      </div>
-    </div>
+<section class='section' id='entities'>
+  <h2>Entities <span class='badge'>3 total</span></h2>
+  <div class='ent-grid'>
+    <div class='card card-pad'><h3 style='margin-bottom:14px'>Inventory by type</h3><div class='ent-bars' id='entBars'><div class='ent-bar'><span class='lab'>AzureResource</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
+<div class='ent-bar'><span class='lab'>Repository</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
+<div class='ent-bar'><span class='lab'>Pipeline</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div></div></div>
+    <div class='card card-pad'><h3 style='margin-bottom:10px'>Blast radius: identity teaser</h3><p class='muted' style='margin:0 0 10px;font-size:12.5px'>Edges preview from entity graph.</p><div class='graph-wrap'><svg viewBox='0 0 600 280'><g stroke='var(--border-strong)' stroke-width='1' opacity='.7'><line x1='80' y1='140' x2='220' y2='100'/><line x1='220' y1='100' x2='380' y2='80'/><line x1='380' y1='80' x2='520' y2='70'/></g><g><circle cx='80' cy='140' r='14' fill='var(--high)'/><circle cx='220' cy='100' r='10' fill='var(--brand)'/><circle cx='380' cy='80' r='8' fill='var(--accent)'/><rect x='510' y='62' width='22' height='16' rx='3' fill='var(--med)'/></g></svg><div class='graph-legend'><span><i style='background:var(--high)'></i>Identity</span><span><i style='background:var(--brand)'></i>Group</span><span><i style='background:var(--accent)'></i>Service principal</span><span><i style='background:var(--med)'></i>Resource</span></div></div></div>
   </div>
 </section>
 </main>
-<footer class="app">
-  <div class="foot-row">
-    <div class="versions">
-      <strong style="color:var(--text)">Tool versions used in this run</strong>
-      <table>
-        <tr><td>azqr</td><td>2.7.1</td><td>psrule</td><td>2.9.0</td><td>maester</td><td>1.4.2</td></tr>
-        <tr><td>defender-for-cloud</td><td>api 2024-08-01</td><td>azgovviz</td><td>v6.5.0</td><td>wara</td><td>1.2.3</td></tr>
-        <tr><td>scorecard</td><td>5.0.0</td><td>gitleaks</td><td>8.21.2</td><td>trivy</td><td>0.55.0</td></tr>
-        <tr><td>zizmor</td><td>1.3.0</td><td>finops</td><td>0.4.1</td><td>aks-rightsize</td><td>0.2.0</td></tr>
-      </table>
-      <div style="margin-top:10px">
-        Generated by <a href="https://github.com/martinopedal/azure-analyzer">azure-analyzer</a>
-        v3.0 (mockup) · Schema 2.2 · Report v3 ·
-        <a href="../README.md">Docs</a>
-      </div>
-    </div>
-    <div class="foot-actions">
-      <button class="btn" onclick="window.print()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
-        Print
-      </button>
-      <a class="btn" href="#overview">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-        Top
-      </a>
-    </div>
+<footer class='app'>
+  <div class='foot-row'>
+    <div class='versions'><strong style='color:var(--text)'>Tool versions used in this run</strong><table><tr><td>ADO Pipeline Consumption</td><td>azure-devops/1.0.1</td></tr>
+<tr><td>ADO Pipeline Run Correlator</td><td>azure-devops/1.0.1</td></tr>
+<tr><td>AKS Rightsizing (Container Insights utilization)</td><td>aks-rightsizing/0.5.0</td></tr>
+<tr><td>Application Insights Performance Signals</td><td>appinsights-api-2024-03-11</td></tr>
+<tr><td>Azure Quick Review</td><td>2.7.0</td></tr>
+<tr><td>finops-signals</td><td>finops-signals/0.7.0</td></tr>
+<tr><td>GitHub Actions Billing</td><td>gh-actions-billing-api-2024-10-01</td></tr>
+<tr><td>Kubescape (AKS runtime posture)</td><td>kubescape version v3.1.1</td></tr>
+<tr><td>PSRule for Azure</td><td>1.40.0</td></tr>
+<tr><td>Microsoft Sentinel (Coverage / Posture)</td><td>securityinsights-2024-09-01+loganalytics-2020-08-01</td></tr></table><div style='margin-top:10px'>Generated by <a href='https://github.com/martinopedal/azure-analyzer'>azure-analyzer</a> · Schema 2.2 · Report v3 · <a href='../README.md'>Docs</a></div></div>
+    <div class='foot-actions'><button class='btn' onclick='window.print()'>Print</button><a class='btn' href='#overview'>Top</a></div>
   </div>
 </footer>
-<div class="tip" id="tip" role="tooltip"></div>
+<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"fwsub":{"rowLabel":"Framework","rows":["CIS","MCSB","MITRE ATT&CK","NIST 800-53","NSA","PCI DSS","SOC2","WAF"],"cols":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"cells":{"CIS||22222222-2222-2222-2222-222222222222":0,"SOC2||22222222-2222-2222-2222-222222222222":0,"MITRE ATT&CK||11111111-1111-1111-1111-111111111111":1,"NIST 800-53||22222222-2222-2222-2222-222222222222":1,"NIST 800-53||11111111-1111-1111-1111-111111111111":1,"PCI DSS||11111111-1111-1111-1111-111111111111":1,"CIS||11111111-1111-1111-1111-111111111111":3,"SOC2||11111111-1111-1111-1111-111111111111":0,"NSA||11111111-1111-1111-1111-111111111111":1,"WAF||22222222-2222-2222-2222-222222222222":0,"NSA||22222222-2222-2222-2222-222222222222":0,"MITRE ATT&CK||22222222-2222-2222-2222-222222222222":1,"PCI DSS||22222222-2222-2222-2222-222222222222":0,"MCSB||11111111-1111-1111-1111-111111111111":1,"MCSB||22222222-2222-2222-2222-222222222222":0,"WAF||11111111-1111-1111-1111-111111111111":3}},"domain":{"rowLabel":"Control domain","rows":["Cost Optimization","Operational Excellence","Performance Efficiency","Security"],"cols":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"cells":{"Cost Optimization||11111111-1111-1111-1111-111111111111":2,"Security||22222222-2222-2222-2222-222222222222":1,"Cost Optimization||22222222-2222-2222-2222-222222222222":0,"Operational Excellence||22222222-2222-2222-2222-222222222222":0,"Performance Efficiency||22222222-2222-2222-2222-222222222222":0,"Operational Excellence||11111111-1111-1111-1111-111111111111":0,"Security||11111111-1111-1111-1111-111111111111":3,"Performance Efficiency||11111111-1111-1111-1111-111111111111":1}},"toolsev":{"rowLabel":"Tool","rows":["azqr","kubescape","kube-bench","defender-for-cloud","prowler","falco","azure-cost","azure-quota","finops","appinsights","loadtesting","aks-rightsizing","aks-karpenter-cost","psrule","powerpipe","azgovviz","alz-queries","wara","maester","scorecard","gh-actions-billing","ado-connections","ado-pipelines","ado-consumption","ado-repos-secrets","ado-pipeline-correlator","identity-correlator","identity-graph-expansion","zizmor","gitleaks","trivy","bicep-iac","infracost","terraform-iac","sentinel-incidents","sentinel-coverage","copilot-triage"],"cols":["crit","high","med","low","info"],"cells":{"ado-pipeline-correlator||crit":0,"azqr||info":0,"infracost||high":0,"sentinel-coverage||crit":0,"terraform-iac||med":0,"ado-consumption||high":1,"psrule||crit":1,"azgovviz||crit":0,"falco||high":0,"gitleaks||low":0,"terraform-iac||low":0,"terraform-iac||crit":0,"prowler||high":0,"aks-rightsizing||low":0,"psrule||info":0,"ado-repos-secrets||low":0,"identity-graph-expansion||info":0,"ado-pipeline-correlator||info":0,"wara||low":0,"identity-correlator||med":0,"psrule||low":0,"ado-connections||med":0,"ado-pipelines||med":0,"gitleaks||info":0,"identity-correlator||low":0,"azure-quota||low":0,"aks-karpenter-cost||high":0,"prowler||info":0,"gh-actions-billing||low":0,"azgovviz||high":0,"zizmor||crit":0,"aks-rightsizing||crit":0,"finops||high":0,"aks-karpenter-cost||low":0,"azure-quota||med":0,"wara||crit":0,"azgovviz||med":0,"alz-queries||med":0,"maester||med":0,"zizmor||high":0,"kubescape||high":1,"trivy||info":0,"trivy||high":0,"wara||high":0,"finops||crit":0,"gitleaks||med":0,"maester||high":0,"powerpipe||crit":0,"azqr||crit":0,"scorecard||high":0,"ado-connections||high":0,"gitleaks||high":0,"kube-bench||info":0,"scorecard||med":0,"ado-connections||info":0,"azure-cost||low":0,"aks-rightsizing||high":0,"copilot-triage||info":0,"loadtesting||low":0,"azure-quota||info":0,"finops||low":0,"scorecard||info":0,"bicep-iac||med":0,"sentinel-coverage||info":0,"kube-bench||med":0,"azgovviz||info":0,"bicep-iac||info":0,"sentinel-coverage||low":0,"azgovviz||low":0,"infracost||low":0,"identity-graph-expansion||high":0,"loadtesting||high":0,"azure-quota||high":0,"kube-bench||crit":0,"defender-for-cloud||info":0,"maester||crit":0,"copilot-triage||med":0,"maester||info":0,"falco||crit":0,"ado-pipeline-correlator||high":1,"defender-for-cloud||low":0,"ado-consumption||low":0,"maester||low":0,"loadtesting||info":0,"appinsights||low":0,"trivy||crit":0,"scorecard||low":0,"aks-karpenter-cost||crit":0,"loadtesting||med":0,"defender-for-cloud||med":0,"sentinel-incidents||med":0,"ado-connections||low":0,"appinsights||high":0,"alz-queries||info":0,"gh-actions-billing||high":0,"azure-cost||info":0,"ado-pipelines||low":0,"copilot-triage||high":0,"appinsights||med":1,"ado-pipelines||crit":0,"ado-repos-secrets||info":0,"appinsights||crit":0,"psrule||high":0,"alz-queries||crit":0,"azure-quota||crit":0,"ado-connections||crit":0,"powerpipe||high":0,"falco||low":0,"sentinel-coverage||med":1,"loadtesting||crit":0,"sentinel-incidents||info":0,"ado-pipeline-correlator||low":0,"kube-bench||low":0,"scorecard||crit":0,"zizmor||info":0,"infracost||med":0,"ado-pipelines||high":0,"azure-cost||high":0,"sentinel-incidents||high":0,"ado-pipeline-correlator||med":0,"ado-consumption||crit":0,"aks-karpenter-cost||med":0,"appinsights||info":0,"azure-cost||med":0,"terraform-iac||info":0,"azqr||med":0,"powerpipe||info":0,"azqr||low":0,"identity-correlator||high":0,"identity-graph-expansion||crit":0,"infracost||info":0,"zizmor||low":0,"powerpipe||low":0,"kubescape||crit":0,"defender-for-cloud||crit":0,"prowler||med":0,"aks-rightsizing||med":1,"falco||med":0,"psrule||med":0,"alz-queries||low":0,"identity-graph-expansion||low":0,"trivy||low":0,"ado-repos-secrets||high":0,"zizmor||med":0,"bicep-iac||low":0,"bicep-iac||high":0,"prowler||low":0,"azqr||high":1,"copilot-triage||crit":0,"bicep-iac||crit":0,"aks-karpenter-cost||info":0,"sentinel-coverage||high":0,"aks-rightsizing||info":0,"ado-pipelines||info":0,"kube-bench||high":0,"identity-graph-expansion||med":0,"terraform-iac||high":0,"ado-consumption||info":0,"gh-actions-billing||med":1,"gh-actions-billing||crit":0,"infracost||crit":0,"azure-cost||crit":0,"defender-for-cloud||high":0,"prowler||crit":0,"copilot-triage||low":0,"identity-correlator||crit":0,"finops||med":0,"kubescape||low":0,"sentinel-incidents||crit":0,"wara||med":0,"trivy||med":0,"sentinel-incidents||low":0,"powerpipe||med":0,"ado-repos-secrets||med":0,"wara||info":0,"ado-repos-secrets||crit":0,"kubescape||med":0,"alz-queries||high":0,"gitleaks||crit":0,"identity-correlator||info":0,"gh-actions-billing||info":0,"kubescape||info":0,"ado-consumption||med":0,"finops||info":0,"falco||info":0}}},"toolLabels":{"ado-pipeline-correlator":"ADO Pipeline Run Correlator","appinsights":"Application Insights Performance Signals","bicep-iac":"Bicep IaC Validation","identity-graph-expansion":"Identity Graph Expansion","sentinel-incidents":"Microsoft Sentinel (Active Incidents)","azqr":"Azure Quick Review","copilot-triage":"Copilot AI Triage","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","azure-quota":"Azure Quota Reports","terraform-iac":"Terraform IaC Validation","wara":"Well-Architected Reliability Assessment","azure-cost":"Azure Cost (Consumption API)","finops":"FinOps Signals (Idle Resource Detection)","prowler":"Prowler (Azure security posture)","scorecard":"OpenSSF Scorecard","ado-pipelines":"ADO Pipeline Security","kube-bench":"kube-bench (AKS node-level CIS compliance)","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","defender-for-cloud":"Microsoft Defender for Cloud","gh-actions-billing":"GitHub Actions Billing","zizmor":"zizmor (Actions YAML Scanner)","azgovviz":"AzGovViz","maester":"Maester","infracost":"Infracost IaC Cost Estimation","ado-connections":"ADO Service Connections","falco":"Falco (AKS runtime anomaly detection)","trivy":"Trivy Vulnerability Scanner","powerpipe":"Powerpipe Compliance Benchmarks","alz-queries":"ALZ Resource Graph Queries","ado-repos-secrets":"ADO Repos Secret Scanning","identity-correlator":"Identity Correlator","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)","ado-consumption":"ADO Pipeline Consumption","gitleaks":"gitleaks (Secrets Scanner)","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","psrule":"PSRule for Azure","kubescape":"Kubescape (AKS runtime posture)"},"severityLabels":{"high":"High","med":"Medium","crit":"Critical","info":"Info","low":"Low"}}</script>
 <script>
 (function(){
 'use strict';
-
-// ---------- THEME ----------
 const themeBtn=document.getElementById('themeBtn');
 const root=document.documentElement;
 const saved=localStorage.getItem('aa-theme');
-if(saved==='dark') setTheme('dark');
-function setTheme(t){
-  root.setAttribute('data-theme',t);
-  document.getElementById('iconSun').style.display=t==='dark'?'none':'';
-  document.getElementById('iconMoon').style.display=t==='dark'?'':'none';
-  localStorage.setItem('aa-theme',t);
-}
+if(saved==='dark'){setTheme('dark');}
+function setTheme(t){root.setAttribute('data-theme',t);localStorage.setItem('aa-theme',t);}
 themeBtn.addEventListener('click',()=>setTheme(root.getAttribute('data-theme')==='dark'?'light':'dark'));
 
-// ---------- DATA: tools (subset of tool-manifest.json) ----------
-const TOOLS=[
- {id:'azqr',name:'Azure Quick Review',provider:'azure',scope:'subscription',phase:'operate'},
- {id:'psrule',name:'PSRule for Azure',provider:'azure',scope:'subscription',phase:'design'},
- {id:'defender-for-cloud',name:'Defender for Cloud',provider:'azure',scope:'subscription',phase:'protect'},
- {id:'azgovviz',name:'AzGovViz',provider:'azure',scope:'managementGroup',phase:'govern'},
- {id:'alz-queries',name:'ALZ Resource Graph',provider:'azure',scope:'managementGroup',phase:'govern'},
- {id:'wara',name:'Well-Architected Review',provider:'azure',scope:'subscription',phase:'design'},
- {id:'azure-cost',name:'Azure Cost Insights',provider:'azure',scope:'subscription',phase:'optimise'},
- {id:'finops',name:'FinOps Toolkit',provider:'azure',scope:'subscription',phase:'optimise'},
- {id:'aks-rightsize',name:'AKS Right-sizing',provider:'azure',scope:'subscription',phase:'optimise'},
- {id:'maester',name:'Maester',provider:'microsoft365',scope:'tenant',phase:'protect'},
- {id:'identity-correlator',name:'Identity Correlator',provider:'graph',scope:'tenant',phase:'govern'},
- {id:'scorecard',name:'OpenSSF Scorecard',provider:'github',scope:'repository',phase:'develop'},
- {id:'gh-actions-billing',name:'Actions Billing',provider:'github',scope:'repository',phase:'optimise'},
- {id:'gitleaks',name:'Gitleaks',provider:'github',scope:'repository',phase:'develop'},
- {id:'trivy',name:'Trivy',provider:'github',scope:'repository',phase:'develop'},
- {id:'zizmor',name:'Zizmor',provider:'github',scope:'repository',phase:'develop'},
- {id:'ado-pipelines',name:'ADO Pipelines Audit',provider:'ado',scope:'ado',phase:'develop'},
- {id:'copilot-triage',name:'Copilot Triage',provider:'cli',scope:'workspace',phase:'develop',disabled:true}
-];
-const PROVIDERS={azure:{label:'Azure',color:'#0089d6'},microsoft365:{label:'Microsoft 365',color:'#d83b01'},
-  graph:{label:'Microsoft Graph',color:'#5c2d91'},github:{label:'GitHub',color:'#1f2937'},
-  ado:{label:'Azure DevOps',color:'#0078d4'},cli:{label:'CLI / local',color:'#475569'}};
-const SUBS=[{id:'prod-payments',name:'prod-payments',mg:'corp-prod'},
-  {id:'prod-identity',name:'prod-identity',mg:'corp-prod'},
-  {id:'dev-shared',name:'dev-shared',mg:'corp-dev'}];
-const RGS=['rg-payments-api','rg-payments-data','rg-identity-core','rg-identity-edge',
-  'rg-shared-net','rg-shared-monitor','rg-dev-sandbox','rg-dev-build'];
-const FRAMEWORKS=['CAF','WAF','CIS','MCSB','ISO 27001','SOC 2','NIST 800-53'];
-const DOMAINS=['Identity','Network','Data protection','Logging & monitoring','Cost',
-  'Resilience','Supply chain','Workload security'];
-const SEVS=['crit','high','med','low','info'];
-const SEV_LABEL={crit:'Critical',high:'High',med:'Medium',low:'Low',info:'Info'};
-const SEV_W={crit:10,high:5,med:2,low:1,info:.1};
-
-// rule templates
-const RULES=[
- {t:'azqr',d:'Network',s:'crit',n:'Public IP exposed without DDoS protection',f:['CAF','WAF','MCSB']},
- {t:'azqr',d:'Resilience',s:'high',n:'Storage account replication is LRS in production',f:['WAF']},
- {t:'azqr',d:'Logging & monitoring',s:'med',n:'Diagnostic settings missing on Key Vault',f:['MCSB','CIS']},
- {t:'psrule',d:'Identity',s:'high',n:'Managed identity not assigned to App Service',f:['CAF','MCSB']},
- {t:'psrule',d:'Data protection',s:'crit',n:'SQL DB transparent data encryption disabled',f:['CIS','ISO 27001','SOC 2']},
- {t:'psrule',d:'Network',s:'med',n:'NSG allows 0.0.0.0/0 on management ports',f:['CIS','MCSB']},
- {t:'defender-for-cloud',d:'Workload security',s:'crit',n:'Critical CVE on AKS node image',f:['MCSB','NIST 800-53']},
- {t:'defender-for-cloud',d:'Identity',s:'high',n:'MFA not enforced for subscription owners',f:['CIS','MCSB']},
- {t:'defender-for-cloud',d:'Data protection',s:'med',n:'SQL auditing not configured',f:['MCSB']},
- {t:'azgovviz',d:'Identity',s:'high',n:'Custom role grants */write at MG scope',f:['CAF']},
- {t:'azgovviz',d:'Logging & monitoring',s:'low',n:'Activity log not exported to Log Analytics',f:['CAF','MCSB']},
- {t:'alz-queries',d:'Network',s:'med',n:'Hub-spoke peering missing for spoke VNet',f:['CAF']},
- {t:'wara',d:'Resilience',s:'high',n:'No availability zones configured for VMSS',f:['WAF']},
- {t:'wara',d:'Cost',s:'low',n:'Reserved instance coverage below target',f:['WAF']},
- {t:'azure-cost',d:'Cost',s:'med',n:'Idle public IP allocated for >30 days',f:['WAF']},
- {t:'finops',d:'Cost',s:'low',n:'Untagged spend exceeds 5% of monthly cost',f:['WAF']},
- {t:'aks-rightsize',d:'Cost',s:'med',n:'AKS node pool over-provisioned (avg CPU < 15%)',f:['WAF']},
- {t:'maester',d:'Identity',s:'crit',n:'Legacy authentication not blocked tenant-wide',f:['CIS','MCSB']},
- {t:'maester',d:'Identity',s:'high',n:'Privileged role activations without PIM',f:['CIS']},
- {t:'maester',d:'Identity',s:'med',n:'Conditional Access excludes >5 accounts',f:['CIS']},
- {t:'identity-correlator',d:'Identity',s:'high',n:'Guest user with Owner role on production resource',f:['CIS','MCSB']},
- {t:'identity-correlator',d:'Identity',s:'med',n:'Service principal with stale credentials (>180 d)',f:['MCSB']},
- {t:'scorecard',d:'Supply chain',s:'med',n:'Repository missing branch protection',f:['SOC 2']},
- {t:'scorecard',d:'Supply chain',s:'low',n:'Dependency-update tool not configured',f:['SOC 2']},
- {t:'gh-actions-billing',d:'Cost',s:'info',n:'Workflow consumed >2× org-median minutes',f:[]},
- {t:'gitleaks',d:'Supply chain',s:'crit',n:'Hardcoded Azure storage key in source',f:['CIS','SOC 2']},
- {t:'trivy',d:'Workload security',s:'high',n:'High-severity CVE in container base image',f:['MCSB','NIST 800-53']},
- {t:'zizmor',d:'Supply chain',s:'high',n:'Workflow expression injection via pull_request_target',f:['SOC 2']},
- {t:'zizmor',d:'Supply chain',s:'med',n:'GitHub Action pinned by tag instead of SHA',f:['SOC 2']},
- {t:'ado-pipelines',d:'Supply chain',s:'med',n:'Pipeline grants secrets to forked PR builds',f:['SOC 2']}
-];
-
-// PRNG for deterministic mocked findings
-let _s=1337;function rnd(){_s=(_s*9301+49297)%233280;return _s/233280}
-function pick(a){return a[Math.floor(rnd()*a.length)]}
-
-// ---------- FRAMEWORK BADGES (Iris #3.4 palette) ----------
-function fwClass(f){
-  const u=f.toUpperCase();
-  if(u.startsWith('CIS'))return 'fw-cis';
-  if(u.startsWith('NIST'))return 'fw-nist';
-  if(u.startsWith('MITRE'))return 'fw-mitre';
-  if(u.startsWith('EIDSCA'))return 'fw-eidsca';
-  if(u.startsWith('EIDAS'))return 'fw-eidas';
-  if(u.startsWith('SOC'))return 'fw-soc';
-  if(u.startsWith('ISO'))return 'fw-iso';
-  if(u==='MCSB')return 'fw-mcsb';
-  if(u==='CAF')return 'fw-caf';
-  if(u==='WAF')return 'fw-waf';
-  if(u.startsWith('CISA'))return 'fw-cisa';
-  if(u.startsWith('ORCA'))return 'fw-orca';
-  return 'fw-default';
-}
-function fwBadges(arr){
-  if(!arr||!arr.length)return '<span class="faint" style="font-size:11px">no framework mapping</span>';
-  return arr.map(f=>`<span class="fw ${fwClass(f)}" title="${f}">${f}</span>`).join('');
-}
-const RULE_ID_PREFIX={azqr:'AZQR',psrule:'Azure',
-  'defender-for-cloud':'MCSB',azgovviz:'AZGV','alz-queries':'ALZ',
-  wara:'WARA','azure-cost':'COST',finops:'FINOPS','aks-rightsize':'AKS',
-  maester:'EIDSCA','identity-correlator':'IDC',scorecard:'OSSF',
-  'gh-actions-billing':'GHB',gitleaks:'GLK',trivy:'TRV',zizmor:'ZZM','ado-pipelines':'ADO'};
-function ruleIdOf(tool,idx){
-  const p=RULE_ID_PREFIX[tool]||tool.toUpperCase();
-  return `${p}.${String(idx+1).padStart(3,'0')}`;
-}
-function docUrlOf(tool){
-  const map={azqr:'https://azure.github.io/azqr/docs/recommendations/',
-    psrule:'https://azure.github.io/PSRule.Rules.Azure/en/rules/',
-    'defender-for-cloud':'https://learn.microsoft.com/azure/defender-for-cloud/',
-    azgovviz:'https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting',
-    maester:'https://maester.dev/docs/tests/',
-    scorecard:'https://github.com/ossf/scorecard/blob/main/docs/checks.md',
-    gitleaks:'https://github.com/gitleaks/gitleaks',
-    trivy:'https://aquasecurity.github.io/trivy/',
-    zizmor:'https://woodruffw.github.io/zizmor/audits/',
-    wara:'https://aka.ms/wara'};
-  return map[tool]||'#';
-}
-
-const FINDINGS=[];
-let _id=0;
-RULES.forEach((r,rIdx)=>{
-  const occ=2+Math.floor(rnd()*9); // 2-10 occurrences per rule
-  for(let i=0;i<occ;i++){
-    const sub=pick(SUBS),rg=pick(RGS);
-    const status=rnd()<.85?'Fail':(rnd()<.7?'Warning':'Pass');
-    FINDINGS.push({
-      id:'F'+(++_id).toString().padStart(4,'0'),
-      severity:r.s,rule:r.n,domain:r.d,tool:r.t,
-      ruleId:ruleIdOf(r.t,rIdx),docUrl:docUrlOf(r.t),
-      sub:sub.id,subName:sub.name,mg:sub.mg,rg:rg,
-      entity:pick(['vm-','sa-','kv-','sql-','app-','aks-','func-'])+
-        pick(['payments','identity','jobs','build','monitor','01','02','prod','edge'])+
-        '-'+(100+Math.floor(rnd()*899)),
-      entityType:pick(['AzureResource','AzureResource','AzureResource','User','ServicePrincipal','Repository','Workflow']),
-      status:status,frameworks:r.f,
-      evidence:'Resource property '+pick(['publicNetworkAccess','tlsVersion','keyExpiry','rbacAssignment'])+
-        ' = '+pick(['"Enabled"','"1.0"','null','"Owner"'])+' (expected '+pick(['"Disabled"','"1.2"','rotated <90d','"Reader"'])+')',
-      remediation:'Apply policy '+pick(['/policy/identity-mfa','/policy/storage-tls','/policy/network-deny-public','/policy/rbac-least-priv'])+
-        ' and re-run the affected '+pick(['deployment','module','workflow'])+'.'
-    });
-  }
-});
-
-// ---------- TOOLTIP ----------
-const tip=document.getElementById('tip');
-function showTip(html,x,y){tip.innerHTML=html;tip.style.left=(x+14)+'px';tip.style.top=(y+14)+'px';tip.classList.add('on')}
-function hideTip(){tip.classList.remove('on')}
-document.addEventListener('mousemove',e=>{if(tip.classList.contains('on')){tip.style.left=(e.pageX+14)+'px';tip.style.top=(e.pageY+14)+'px'}});
-
-// ---------- COVERAGE ----------
-function renderCoverage(){
-  const root=document.getElementById('covRoot');
-  const byProv={};
-  TOOLS.forEach(t=>{(byProv[t.provider]=byProv[t.provider]||[]).push(t)});
-  const html=Object.keys(PROVIDERS).filter(p=>byProv[p]).map(p=>{
-    const list=byProv[p];
-    const tiles=list.map(t=>{
-      const fs=FINDINGS.filter(f=>f.tool===t.id);
-      const cnt={crit:0,high:0,med:0,low:0,info:0};
-      fs.forEach(f=>cnt[f.severity]++);
-      const total=fs.length;const fail=fs.filter(f=>f.status==='Fail').length;
-      const passPct=total?Math.round(((total-fail)/total)*100):(t.disabled?0:100);
-      const stack=SEVS.map(s=>{
-        const w=total?Math.round((cnt[s]/total)*100):0;
-        return w>0?`<i style="width:${w}%;background:var(--${s})" title="${cnt[s]} ${SEV_LABEL[s]}"></i>`:'';
-      }).join('');
-      return `<div class="tool ${t.disabled?'disabled':''}">
-        <div class="top">
-          <div class="ico" style="color:${PROVIDERS[p].color}">${providerIcon(p)}</div>
-          <div class="name">${t.name}</div>
-          <span class="scope">${t.scope}</span>
-        </div>
-        <div class="pass"><span>${passPct}% pass</span><div class="bar"><i style="width:${passPct}%"></i></div></div>
-        <div class="stack">${stack||'<i style="width:100%;background:var(--surface-2)"></i>'}</div>
-        <div class="meta"><span>${total} findings</span><span class="mono">${t.id}</span></div>
-      </div>`;
-    }).join('');
-    return `<div class="cov-group" data-prov="${p}">
-      <div class="cov-group-h" onclick="this.parentNode.classList.toggle('collapsed')">
-        <span class="chev">▾</span>
-        <h3>${PROVIDERS[p].label}</h3>
-        <span class="cnt">${list.length} tool${list.length>1?'s':''}</span>
-      </div>
-      <div class="cov-grid">${tiles}</div>
-    </div>`;
-  }).join('');
-  root.innerHTML=html;
-}
-function providerIcon(p){
-  const i={
-    azure:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13.05 4.24L6.56 18.05l8.24-1.46-4.79-5.74 4.59-2.16-1.55-4.45zM3 18.42l6.74-1.18 5.93-7.06-2.63-7.51z"/></svg>',
-    microsoft365:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5l9-2v9H3zm0 14l9 2v-9H3zm10 2l9-2v-9h-9zm0-20v9h9V3z"/></svg>',
-    graph:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 7l4 9M17 7l-4 9"/></svg>',
-    github:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.8 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.4-1.3-5.4-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2 1-.3 2-.4 3-.4s2 .1 3 .4c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.4 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.5-1.5 7.8-5.8 7.8-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>',
-    ado:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 6.5v11l-5 4.5-9-3.3v3.3L3.5 18l13-1.5V6.7l5.5-1.2zM7 17.5l9.5 1.7V6.5L7 8z"/></svg>',
-    cli:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>'
-  };return i[p]||''
-}
-
-// ---------- HEATMAP ----------
-let hmMode='domain';
-function renderHeatmap(){
-  const root=document.getElementById('hmRoot');
-  let rows,cols,getKey,colTitle,rowTitle;
-  if(hmMode==='domain'){rows=DOMAINS;cols=SUBS.map(s=>s.id);
-    getKey=(r,c)=>FINDINGS.filter(f=>f.domain===r&&f.sub===c);
-    colTitle=id=>SUBS.find(s=>s.id===id).name;rowTitle='Control domain';}
-  else if(hmMode==='sevrg'){rows=SEVS.map(s=>SEV_LABEL[s]);cols=RGS;
-    getKey=(r,c)=>FINDINGS.filter(f=>SEV_LABEL[f.severity]===r&&f.rg===c);
-    colTitle=id=>id;rowTitle='Severity';}
-  else{rows=FRAMEWORKS;cols=SUBS.map(s=>s.id);
-    getKey=(r,c)=>FINDINGS.filter(f=>f.frameworks.includes(r)&&f.sub===c);
-    colTitle=id=>SUBS.find(s=>s.id===id).name;rowTitle='Framework';}
-  // find max for scaling
-  let max=1;
-  rows.forEach(r=>cols.forEach(c=>{const n=getKey(r,c).length;if(n>max)max=n}));
-  let h='<table class="hm-table"><thead><tr><th>'+rowTitle+'</th>'+
-    cols.map(c=>'<th>'+colTitle(c)+'</th>').join('')+'</tr></thead><tbody>';
-  rows.forEach(r=>{
-    h+='<tr><td class="row-h">'+r+'</td>';
-    cols.forEach(c=>{
-      const fs=getKey(r,c);const n=fs.length;
-      if(n===0){h+='<td class="hm-cell empty">·</td>';return}
-      const maxSev=SEVS.find(s=>fs.some(f=>f.severity===s))||'info';
-      const intensity=.25+.75*(n/max);
-      const bg=`var(--${maxSev})`;
-      const tipHtml=`<strong>${r} × ${colTitle(c)}</strong><br>${n} findings · max sev ${SEV_LABEL[maxSev]}`;
-      h+=`<td class="hm-cell" style="background:${bg};opacity:${intensity.toFixed(2)}"
-        onmouseenter="window.__tip(event,'${tipHtml.replace(/'/g,"&#39;")}')"
-        onmouseleave="window.__hideTip()">${n}</td>`;
-    });
-    h+='</tr>';
-  });
-  h+='</tbody></table>';
-  root.innerHTML=h;
-}
-window.__tip=function(e,html){showTip(html,e.pageX,e.pageY)};
-window.__hideTip=hideTip;
-document.querySelectorAll('.hm-toggle button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('.hm-toggle button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');hmMode=b.dataset.hm;renderHeatmap();
-  });
-});
-
-// ---------- TOP RISKS / RECS ----------
-function impact(rule){
-  const fs=FINDINGS.filter(f=>f.rule===rule.n&&f.status!=='Pass');
-  const ents=new Set(fs.map(f=>f.entity)).size;
-  return {rule:rule,fs:fs,score:SEV_W[rule.s]*fs.length*Math.max(1,ents)};
-}
-function renderRisks(){
-  const ranked=RULES.map(impact).sort((a,b)=>b.score-a.score).slice(0,10);
-  document.getElementById('risksRoot').innerHTML=ranked.map((x,i)=>{
-    const r=x.rule;const tool=TOOLS.find(t=>t.id===r.t);
-    return `<div class="risk">
-      <span class="pill sev-${r.s}">${SEV_LABEL[r.s]}</span>
-      <div><div class="ttl">#${i+1} · ${r.n}</div>
-        <div class="meta">${r.d} · ${fwBadges(r.f)}</div></div>
-      <span class="tool-tag">${tool?tool.name:r.t}</span>
-      <div class="count"><strong>${x.fs.length}</strong>findings</div>
-    </div>`;
-  }).join('');
-  // top recs (top 5)
-  document.getElementById('topRecs').innerHTML=ranked.slice(0,5).map((x,i)=>{
-    const r=x.rule;
-    return `<div class="rec">
-      <span class="pill sev-${r.s}">${SEV_LABEL[r.s]}</span>
-      <div class="body"><span class="ttl">${r.n}</span>
-        <div class="meta">${x.fs.length} findings · ${r.d}</div></div>
-      <div class="impact"><strong>${Math.round(x.score)}</strong>impact</div>
-    </div>`;
-  }).join('');
-}
-
-// ---------- FINDINGS TABLE ----------
-const state={search:'',sev:'all',tool:'',sub:'',status:'',entity:'',sortKey:'severity',sortDir:1};
+const state={search:'',sev:'all',tool:'',sub:'',status:'',sortKey:'severity',sortDir:1,rule:''};
 const SEV_ORDER={crit:0,high:1,med:2,low:3,info:4};
 
-function populateSelects(){
-  const tSel=document.getElementById('fndTool');
-  TOOLS.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name;tSel.appendChild(o)});
-  const sSel=document.getElementById('fndSub');
-  SUBS.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sSel.appendChild(o)});
-}
-function applyFilters(){
-  let rows=FINDINGS.slice();
-  if(state.sev!=='all')rows=rows.filter(f=>f.severity===state.sev);
-  if(state.tool)rows=rows.filter(f=>f.tool===state.tool);
-  if(state.sub)rows=rows.filter(f=>f.sub===state.sub);
-  if(state.status)rows=rows.filter(f=>f.status===state.status);
-  if(state.entity)rows=rows.filter(f=>f.entity===state.entity||f.entityId===state.entity);
-  if(state.search){const q=state.search.toLowerCase();
-    rows=rows.filter(f=>f.rule.toLowerCase().includes(q)||f.entity.toLowerCase().includes(q)||
-      f.evidence.toLowerCase().includes(q)||f.tool.toLowerCase().includes(q))}
-  rows.sort((a,b)=>{
-    let av,bv;
-    if(state.sortKey==='severity'){av=SEV_ORDER[a.severity];bv=SEV_ORDER[b.severity]}
-    else if(state.sortKey==='rule'){av=a.rule;bv=b.rule}
-    else if(state.sortKey==='entity'){av=a.entity;bv=b.entity}
-    else if(state.sortKey==='sub'){av=a.subName;bv=b.subName}
-    else if(state.sortKey==='tool'){av=a.tool;bv=b.tool}
-    else{av=a.status;bv=b.status}
-    return av<bv?-1*state.sortDir:av>bv?1*state.sortDir:0;
+function collectRows(){
+  const body=document.getElementById('fndBody');
+  const rows=[];
+  body.querySelectorAll('tr.row').forEach(r=>{
+    const id=r.dataset.id;
+    const ex=body.querySelector("tr.expand[data-parent-id='" + id + "']");
+    rows.push({row:r,expand:ex});
   });
   return rows;
 }
-function renderFindings(){
-  const rows=applyFilters();
+
+function ensureSelectOptions(){
+  const tools=[...new Set(collectRows().map(x=>x.row.dataset.tool).filter(Boolean))].sort();
+  const subs=[...new Set(collectRows().map(x=>x.row.dataset.sub).filter(Boolean))].sort();
+  const toolSel=document.getElementById('fndTool');
+  const subSel=document.getElementById('fndSub');
+  tools.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;toolSel.appendChild(o)});
+  subs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;subSel.appendChild(o)});
+}
+
+function applyFilters(){
+  let shown=0;
+  collectRows().forEach(pair=>{
+    const r=pair.row;
+    const txt=r.textContent.toLowerCase();
+    const okSev=(state.sev==='all'||r.dataset.severity===state.sev);
+    const okTool=(!state.tool||r.dataset.tool===state.tool);
+    const okSub=(!state.sub||r.dataset.sub===state.sub);
+    const okStatus=(!state.status||r.dataset.status===state.status);
+    const okRule=(!state.rule||r.dataset.rule===state.rule);
+    const okSearch=(!state.search||txt.includes(state.search));
+    const show=okSev&&okTool&&okSub&&okStatus&&okRule&&okSearch;
+    r.style.display=show?'':'none';
+    if(!show && pair.expand){pair.expand.hidden=true;pair.expand.style.display='none';}
+    if(show){shown++;}
+  });
+  const total=collectRows().length;
+  document.getElementById('fndCountBadge').textContent=shown + ' of ' + total;
+  document.getElementById('fndShown').textContent=shown + ' shown';
+}
+
+function sortRows(){
   const body=document.getElementById('fndBody');
-  document.getElementById('fndCountBadge').textContent=`${rows.length} of ${FINDINGS.length}`;
-  document.getElementById('fndShown').textContent=`${rows.length} shown`;
-  if(!rows.length){body.innerHTML='<tr class="empty-row"><td colspan="6">No findings match the current filters.</td></tr>';return}
-  const slice=rows.slice(0,250);
-  body.innerHTML=slice.map(f=>{
-    const tool=TOOLS.find(t=>t.id===f.tool);
-    return `<tr class="row s-${f.severity}" data-id="${f.id}">
-      <td><span class="pill sev-${f.severity}">${SEV_LABEL[f.severity]}</span></td>
-      <td><div style="font-weight:600"><span class="rule-id" title="Rule identifier">${f.ruleId}</span>${f.rule}</div>
-        <div style="font-size:11.5px;margin-top:3px">${fwBadges(f.frameworks)}<span class="faint" style="margin-left:6px">${f.domain}</span></div></td>
-      <td><div class="mono" style="font-size:12px">${f.entity}</div>
-        <div class="faint" style="font-size:11px">${f.entityType} · ${f.rg}</div></td>
-      <td>${f.subName}<div class="faint" style="font-size:11px">${f.mg}</div></td>
-      <td><span class="tool-chip">${tool?tool.name:f.tool}</span></td>
-      <td><span class="pill ${f.status==='Pass'?'sev-pass':f.status==='Warning'?'sev-med':'sev-high'}">${f.status}</span></td>
-    </tr>`;
-  }).join('') + (rows.length>250?`<tr class="empty-row"><td colspan="6">Showing first 250 of ${rows.length}, refine filters to narrow.</td></tr>`:'');
-  // row click → expand
-  body.querySelectorAll('tr.row').forEach(tr=>{
-    tr.addEventListener('click',()=>{
-      const next=tr.nextElementSibling;
-      if(next&&next.classList.contains('expand')){next.remove();return}
-      const f=FINDINGS.find(x=>x.id===tr.dataset.id);
-      const tool=TOOLS.find(t=>t.id===f.tool);
-      const ex=document.createElement('tr');ex.className='expand';
-      ex.innerHTML=`<td colspan="6"><div class="ev-grid">
-        <div class="ev"><h4>Why this matters</h4>
-          <p>${f.rule}. Severity <strong>${SEV_LABEL[f.severity]}</strong> reflects ${tool?tool.name:f.tool}'s impact rating for ${f.domain.toLowerCase()} controls.</p>
-          <h4 style="margin-top:10px">Evidence</h4><pre>${f.evidence}</pre>
-          <h4 style="margin-top:10px">Compliance frameworks</h4>
-          <div>${fwBadges(f.frameworks)}</div></div>
-        <div class="ev"><h4>Remediation</h4><p>${f.remediation}</p>
-          <h4 style="margin-top:10px">Entity</h4><pre>${f.entity}\n${f.entityType} in ${f.rg} (${f.subName})</pre>
-          <div class="links">
-            <a href="${f.docUrl}" target="_blank" rel="noopener noreferrer">📖 ${tool?tool.name:f.tool} docs ↗</a>
-            <a href="#" onclick="event.preventDefault();navigator.clipboard&&navigator.clipboard.writeText('${f.id}')">📋 Copy finding ID (${f.id})</a>
-            <span class="tool-chip">source: ${f.ruleId}</span>
-          </div></div>
-      </div></td>`;
-      tr.parentNode.insertBefore(ex,tr.nextSibling);
+  const pairs=collectRows();
+  pairs.sort((a,b)=>{
+    let av='',bv='';
+    if(state.sortKey==='severity'){av=SEV_ORDER[a.row.dataset.severity]??99;bv=SEV_ORDER[b.row.dataset.severity]??99;}
+    else if(state.sortKey==='rule'){av=a.row.dataset.rule||'';bv=b.row.dataset.rule||'';}
+    else if(state.sortKey==='entity'){av=a.row.dataset.entity||'';bv=b.row.dataset.entity||'';}
+    else if(state.sortKey==='sub'){av=a.row.dataset.sub||'';bv=b.row.dataset.sub||'';}
+    else if(state.sortKey==='tool'){av=a.row.dataset.tool||'';bv=b.row.dataset.tool||'';}
+    else {av=a.row.dataset.status||'';bv=b.row.dataset.status||'';}
+    if(av<bv)return -1*state.sortDir;
+    if(av>bv)return 1*state.sortDir;
+    return 0;
+  });
+  pairs.forEach(p=>{body.appendChild(p.row);if(p.expand)body.appendChild(p.expand);});
+}
+
+function bindEvents(){
+  document.getElementById('fndSearch').addEventListener('input',e=>{state.search=(e.target.value||'').toLowerCase();applyFilters();});
+  document.querySelectorAll('.sev-filter button').forEach(b=>{
+    b.addEventListener('click',()=>{document.querySelectorAll('.sev-filter button').forEach(x=>x.classList.remove('on'));b.classList.add('on');state.sev=b.dataset.sev;applyFilters();});
+  });
+  document.getElementById('fndTool').addEventListener('change',e=>{state.tool=e.target.value;applyFilters();});
+  document.getElementById('fndSub').addEventListener('change',e=>{state.sub=e.target.value;applyFilters();});
+  document.getElementById('fndStatus').addEventListener('change',e=>{state.status=e.target.value;applyFilters();});
+  document.querySelectorAll('.fnd-table th[data-sort]').forEach(th=>{
+    th.addEventListener('click',()=>{const k=th.dataset.sort;if(state.sortKey===k){state.sortDir*=-1;}else{state.sortKey=k;state.sortDir=1;}document.querySelectorAll('.fnd-table th').forEach(x=>x.classList.remove('sorted'));th.classList.add('sorted');sortRows();applyFilters();});
+  });
+  collectRows().forEach(pair=>{
+    pair.row.addEventListener('click',()=>{if(!pair.expand)return;const open=!pair.expand.hidden;pair.expand.hidden=open;pair.expand.style.display=open?'none':'';});
+  });
+  document.getElementById('exportCsv').addEventListener('click',()=>{
+    const header=['severity','rule','entity','subscription','tool','status'];
+    const data=[header.join(',')];
+    collectRows().forEach(pair=>{
+      if(pair.row.style.display==='none')return;
+      const vals=[pair.row.dataset.severity,pair.row.dataset.rule,pair.row.dataset.entity,pair.row.dataset.sub,pair.row.dataset.tool,pair.row.dataset.status]
+        .map(v=>'"' + String(v||'').replace(/"/g,'""') + '"');
+      data.push(vals.join(','));
     });
+    const blob=new Blob([data.join('\n')],{type:'text/csv'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='findings.csv';a.click();
   });
 }
-// listeners
-document.getElementById('fndSearch').addEventListener('input',e=>{state.search=e.target.value;renderFindings()});
-document.querySelectorAll('.sev-filter button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('.sev-filter button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');state.sev=b.dataset.sev;renderFindings();
-  });
-});
-['fndTool','fndSub','fndStatus'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',e=>{
-    state[id.replace('fnd','').toLowerCase()]=e.target.value;renderFindings();
-  });
-});
-document.querySelectorAll('.fnd-table th[data-sort]').forEach(th=>{
-  th.addEventListener('click',()=>{
-    const k=th.dataset.sort;
-    if(state.sortKey===k)state.sortDir*=-1;else{state.sortKey=k;state.sortDir=1}
-    document.querySelectorAll('.fnd-table th').forEach(x=>x.classList.remove('sorted'));
-    th.classList.add('sorted');renderFindings();
-  });
-});
-document.getElementById('exportCsv').addEventListener('click',()=>{
-  const rows=applyFilters();
-  const head=['id','severity','rule','entity','entityType','sub','rg','tool','status','frameworks'];
-  const csv=[head.join(',')].concat(rows.map(f=>head.map(k=>{
-    const v=k==='frameworks'?f[k].join(';'):f[k];return '"'+String(v).replace(/"/g,'""')+'"';
-  }).join(','))).join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='findings.csv';a.click();
-});
 
-// ---------- ENTITIES ----------
-function renderEntities(){
-  const types={};FINDINGS.forEach(f=>{types[f.entityType]=(types[f.entityType]||0)+1});
-  // mock additional entity counts that aren't all in findings
-  const seed={Subscription:3,Tenant:1,AzureResource:248,User:78,ServicePrincipal:42,Repository:28,Workflow:12};
-  Object.keys(seed).forEach(k=>{if(!types[k])types[k]=seed[k]});
-  const max=Math.max(...Object.values(seed));
-  document.getElementById('entBars').innerHTML=Object.keys(seed).sort((a,b)=>seed[b]-seed[a]).map(k=>{
-    const n=seed[k],pct=Math.round(n/max*100);
-    return `<div class="ent-bar"><span class="lab">${k}</span>
-      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
-      <span class="n">${n}</span></div>`;
-  }).join('');
+window.focusRisk=function(ruleKey){
+  state.rule=ruleKey||'';
+  const search=document.getElementById('fndSearch');
+  if(search){search.value='';state.search='';}
+  applyFilters();
+};
+
+const hmModel=JSON.parse(document.getElementById('hmModel').textContent||'{}');
+let hmMode=hmModel.defaultMode||'domain';
+function renderHeatmap(){
+  const root=document.getElementById('hmRoot');
+  const matrix=(hmModel.matrices||{})[hmMode];
+  if(!matrix||!matrix.rows||!matrix.cols||matrix.rows.length===0||matrix.cols.length===0){root.innerHTML='<p class="muted">No data for this heatmap view.</p>';return;}
+  let max=1;matrix.rows.forEach(r=>matrix.cols.forEach(c=>{const n=(matrix.cells||{})[r + '||' + c]||0;if(n>max)max=n;}));
+  let html='<table class="hm-table"><thead><tr><th>'+matrix.rowLabel+'</th>'+matrix.cols.map(c=>'<th>'+labelCol(c)+'</th>').join('')+'</tr></thead><tbody>';
+  matrix.rows.forEach(r=>{html+='<tr><td class="row-h">'+labelRow(r)+'</td>';matrix.cols.forEach(c=>{const n=(matrix.cells||{})[r + '||' + c]||0;if(n===0){html+='<td class="hm-cell empty">·</td>';return;}const intensity=(.25+.75*(n/max)).toFixed(2);const sev=colorSeverity(r,c);html+='<td class="hm-cell" style="background:var(--'+sev+');opacity:'+intensity+'">'+n+'</td>';});html+='</tr>';});
+  html+='</tbody></table>';root.innerHTML=html;
 }
+function labelRow(v){if(hmMode==='toolsev'){return (hmModel.toolLabels&&hmModel.toolLabels[v])||v;}return v;}
+function labelCol(v){if(hmMode==='toolsev'){return (hmModel.severityLabels&&hmModel.severityLabels[v])||v;}return v;}
+function colorSeverity(r,c){if(hmMode==='toolsev'){return c;}const x=String(r||'').toLowerCase();if(x.includes('crit'))return 'crit';if(x.includes('high'))return 'high';if(x.includes('med'))return 'med';if(x.includes('low'))return 'low';return 'info';}
 
-// ---------- IDENTITY GRAPH (#298) ----------
-// Mock entity envelope (≥5 nodes triggers real graph; <5 → empty state)
-const IDENTITY_NODES=[
-  {id:'u-alice',  type:'User',             label:'alice@contoso.com'},
-  {id:'u-bob',    type:'User',             label:'bob@contoso.com'},
-  {id:'u-guest',  type:'User',             label:'guest@external'},
-  {id:'g-admins', type:'Group',            label:'grp-admins'},
-  {id:'g-devs',   type:'Group',            label:'grp-devs'},
-  {id:'sp-pay',   type:'ServicePrincipal', label:'sp-payments'},
-  {id:'sp-jobs',  type:'ServicePrincipal', label:'sp-jobs'},
-  {id:'app-pay',  type:'Application',      label:'app-payments'},
-  {id:'r-kv',     type:'AzureResource',    label:'kv-prod-payments'},
-  {id:'r-sa',     type:'AzureResource',    label:'sa-jobs01'},
-  {id:'r-acr',    type:'AzureResource',    label:'acr-build'}
-];
-const IDENTITY_EDGES=[
-  {s:'u-alice', t:'g-admins',kind:'MemberOf'},
-  {s:'u-bob',   t:'g-devs',  kind:'MemberOf'},
-  {s:'u-guest', t:'g-devs',  kind:'MemberOf'},
-  {s:'g-admins',t:'r-kv',    kind:'HasRoleOn'},
-  {s:'g-devs',  t:'r-sa',    kind:'HasRoleOn'},
-  {s:'g-devs',  t:'r-acr',   kind:'HasRoleOn'},
-  {s:'u-alice', t:'app-pay', kind:'OwnsApp'},
-  {s:'app-pay', t:'sp-pay',  kind:'HasServicePrincipal'},
-  {s:'sp-pay',  t:'r-kv',    kind:'HasRoleOn'},
-  {s:'sp-jobs', t:'r-sa',    kind:'HasRoleOn'},
-  {s:'sp-pay',  t:'app-pay', kind:'FederatedCredential'}
-];
-const IDG_COLOR={User:'var(--crit)',ServicePrincipal:'var(--high)',Group:'var(--brand)',
-  Application:'var(--accent)',AzureResource:'var(--med)'};
-function renderIdentityGraph(nodes,edges){
-  const wrap=document.getElementById('identityGraph');
-  const svg=document.getElementById('idgSvg');
-  const empty=document.getElementById('idgEmpty');
-  const cnt=document.getElementById('idgEntityCount');
-  cnt.textContent=nodes.length+' nodes';
-  if(!nodes||nodes.length<5){
-    wrap.dataset.empty='true';svg.style.display='none';empty.hidden=false;return;
-  }
-  wrap.dataset.empty='false';svg.style.display='';empty.hidden=true;
-  const W=600,H=280,CX=W/2,CY=H/2;
-  // Verlet force layout: repulsion + spring + center pull
-  const idIdx={};nodes.forEach((n,i)=>{idIdx[n.id]=i;
-    n.x=CX+Math.cos(i/nodes.length*Math.PI*2)*100;
-    n.y=CY+Math.sin(i/nodes.length*Math.PI*2)*80;n.vx=0;n.vy=0;});
-  const links=edges.filter(e=>idIdx[e.s]!=null&&idIdx[e.t]!=null)
-    .map(e=>({s:nodes[idIdx[e.s]],t:nodes[idIdx[e.t]],kind:e.kind}));
-  const REP=900,SPR=0.04,SPL=70,CTR=0.005,DAMP=0.82;
-  for(let it=0;it<240;it++){
-    for(let i=0;i<nodes.length;i++){const a=nodes[i];
-      for(let j=i+1;j<nodes.length;j++){const b=nodes[j];
-        let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+0.01,f=REP/d2;
-        const d=Math.sqrt(d2);dx/=d;dy/=d;
-        a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;}}
-    links.forEach(l=>{const dx=l.t.x-l.s.x,dy=l.t.y-l.s.y,d=Math.sqrt(dx*dx+dy*dy)+0.01;
-      const f=(d-SPL)*SPR,fx=dx/d*f,fy=dy/d*f;
-      l.s.vx+=fx;l.s.vy+=fy;l.t.vx-=fx;l.t.vy-=fy;});
-    nodes.forEach(n=>{n.vx+=(CX-n.x)*CTR;n.vy+=(CY-n.y)*CTR;
-      n.vx*=DAMP;n.vy*=DAMP;n.x+=n.vx;n.y+=n.vy;
-      n.x=Math.max(40,Math.min(W-40,n.x));n.y=Math.max(28,Math.min(H-28,n.y));});
-  }
-  // Render
-  const linkSvg=links.map(l=>
-    `<line x1="${l.s.x.toFixed(1)}" y1="${l.s.y.toFixed(1)}" x2="${l.t.x.toFixed(1)}" y2="${l.t.y.toFixed(1)}" stroke="var(--border-strong)" stroke-width="1" opacity=".55"><title>${l.kind}</title></line>`
-  ).join('');
-  const nodeSvg=nodes.map(n=>{
-    const c=IDG_COLOR[n.type]||'var(--med)';
-    return `<g class="idg-node" data-id="${n.id}" data-label="${n.label}" tabindex="0" role="button" aria-label="Filter findings by ${n.label}">
-      <circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="9" fill="${c}" stroke="var(--surface)" stroke-width="1.5"/>
-      <text x="${n.x.toFixed(1)}" y="${(n.y+22).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="var(--font)">${n.label}</text>
-      <title>${n.type}: ${n.label} — click to filter findings</title></g>`;
-  }).join('');
-  svg.innerHTML='<g class="idg-edges">'+linkSvg+'</g><g class="idg-nodes">'+nodeSvg+'</g>';
-  svg.querySelectorAll('.idg-node').forEach(g=>{
-    const click=()=>{const id=g.dataset.id,label=g.dataset.label;
-      svg.querySelectorAll('.idg-node').forEach(x=>x.classList.toggle('idg-sel',x===g));
-      state.entity=label;document.getElementById('idgClear').style.display='inline';renderFindings();};
-    g.addEventListener('click',click);
-    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();click();}});
-  });
-}
-document.getElementById('idgClear').addEventListener('click',e=>{
-  e.preventDefault();state.entity='';
-  document.querySelectorAll('#idgSvg .idg-node').forEach(x=>x.classList.remove('idg-sel'));
-  e.target.style.display='none';renderFindings();
-});
+document.querySelectorAll('.hm-toggle button').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.hm-toggle button').forEach(x=>x.classList.remove('on'));b.classList.add('on');hmMode=b.dataset.hm;renderHeatmap();});});
 
-// ---------- SUB-NAV ACTIVE LINK ----------
 const subLinks=document.querySelectorAll('.sub-row a');
 const sections=Array.from(subLinks).map(a=>document.querySelector(a.getAttribute('href')));
-function onScroll(){
-  const y=window.scrollY+140;let active=0;
-  sections.forEach((s,i)=>{if(s&&s.offsetTop<=y)active=i});
-  subLinks.forEach((a,i)=>a.classList.toggle('active',i===active));
-}
-window.addEventListener('scroll',onScroll,{passive:true});
+window.addEventListener('scroll',()=>{const y=window.scrollY+140;let active=0;sections.forEach((s,i)=>{if(s&&s.offsetTop<=y)active=i});subLinks.forEach((a,i)=>a.classList.toggle('active',i===active));},{passive:true});
 
-// ---------- INIT ----------
-populateSelects();
-renderCoverage();
+ensureSelectOptions();
+bindEvents();
+sortRows();
+applyFilters();
 renderHeatmap();
-renderRisks();
-renderFindings();
-renderEntities();
-renderIdentityGraph(IDENTITY_NODES,IDENTITY_EDGES);
 })();
 </script>
 </body>

@@ -1,0 +1,27 @@
+{
+  "tenantId": "contoso-prod",
+  "runId": "launch-2026-04-22-0800",
+  "startedAtUtc": "22 Apr 2026 07:52 UTC",
+  "tools": [
+    {
+      "version": "2.7.0",
+      "tool": "azqr"
+    },
+    {
+      "version": "1.40.0",
+      "tool": "psrule"
+    },
+    {
+      "version": "v3.1.1",
+      "tool": "kubescape"
+    },
+    {
+      "version": "2024-09-01",
+      "tool": "sentinel-coverage"
+    },
+    {
+      "version": "azure-devops/1.0.1",
+      "tool": "ado-pipeline-correlator"
+    }
+  ]
+}
