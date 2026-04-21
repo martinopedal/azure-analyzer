@@ -31,7 +31,7 @@ Describe 'Update-ToolPins' {
         $global:GitCalls = New-Object System.Collections.Generic.List[string]
         $global:GhCalls = New-Object System.Collections.Generic.List[string]
 
-        function global:git {
+        function git {
             param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
             $cmd = ($Args -join ' ')
             $global:GitCalls.Add($cmd) | Out-Null
@@ -56,7 +56,7 @@ Describe 'Update-ToolPins' {
             }
         }
 
-        function global:gh {
+        function gh {
             param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
             $cmd = ($Args -join ' ')
             $global:GhCalls.Add($cmd) | Out-Null
@@ -83,14 +83,13 @@ Describe 'Update-ToolPins' {
             & $script:ScriptPath -ManifestPath $manifestPath
         } finally {
             Pop-Location
-            Remove-Item function:\global\git -ErrorAction SilentlyContinue
-            Remove-Item function:\global\gh -ErrorAction SilentlyContinue
+            Remove-Item function:\git -ErrorAction SilentlyContinue
+            Remove-Item function:\gh -ErrorAction SilentlyContinue
         }
 
         $global:GitCalls | Should -Contain 'checkout -B chore/bump-scorecard-1.1.0 origin/chore/bump-scorecard-1.1.0'
         $global:GitCalls | Should -Contain 'reset --hard origin/main'
         ($global:GitCalls | Where-Object { $_ -eq 'checkout -b chore/bump-scorecard-1.1.0' }).Count | Should -Be 0
-
         Remove-Variable -Name GitCalls, GhCalls -Scope Global -ErrorAction SilentlyContinue
     }
 }
