@@ -20,6 +20,7 @@ Canonical entity types (from `modules/shared/Schema.ps1`):
 - `ServicePrincipal` — Entra ID service principals / app registrations
 - `Group` — Entra ID groups
 - `Repository` — GitHub/ADO repositories
+- `IaCFile` - Infrastructure-as-Code files (Terraform, Bicep, etc.)
 - `Workflow` — GitHub Actions workflows
 - `Pipeline` — Azure DevOps pipelines
 - `BuildRun` — Pipeline execution instances
@@ -36,6 +37,7 @@ Entities use canonical ID formats (via `ConvertTo-CanonicalEntityId`):
 - User: `user:{upn}` or `user:{objectId}`
 - Service principal: `appId:{guid}`
 - Repository: `repo:{owner}/{name}`
+- IaCFile: `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`)
 
 ## Entity Store
 

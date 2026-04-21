@@ -45,6 +45,7 @@ $script:EntityTypes = @(
     'ManagedIdentity',
     'Application',
     'Repository',
+    'IaCFile',
     'BuildDefinition',
     'ReleaseDefinition',
     'Pipeline',
@@ -59,7 +60,7 @@ $script:EntityTypes = @(
     'AdoProject',
     'KarpenterProvisioner'
 )
-$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps')
+$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
 $script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -95,6 +96,7 @@ function Get-PlatformForEntityType {
             'ManagedIdentity',
             'Application',
             'Repository',
+            'IaCFile',
             'BuildDefinition',
             'ReleaseDefinition',
             'Pipeline',
@@ -123,6 +125,7 @@ function Get-PlatformForEntityType {
         'User' { 'Entra' }
         'Tenant' { 'Entra' }
         'Repository' { 'GitHub' }
+        'IaCFile' { 'IaC' }
         'BuildDefinition' { 'AzureDevOps' }
         'ReleaseDefinition' { 'AzureDevOps' }
         'Workflow' { 'GitHub' }
@@ -419,6 +422,7 @@ function New-EntityStub {
             'ManagedIdentity',
             'Application',
             'Repository',
+            'IaCFile',
             'BuildDefinition',
             'ReleaseDefinition',
             'Pipeline',
@@ -433,7 +437,7 @@ function New-EntityStub {
         )]
         [string] $EntityType,
 
-        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps')]
+        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC')]
         [string] $Platform,
 
         [string] $DisplayName,

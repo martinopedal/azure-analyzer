@@ -94,4 +94,42 @@ Describe 'ConvertTo-CanonicalEntityId' {
     It 'throws on empty input' {
         { ConvertTo-CanonicalEntityId -RawId '' -EntityType 'Repository' } | Should -Throw
     }
+
+    It 'canonicalizes IaCFile entity IDs' {
+        $result = ConvertTo-CanonicalEntityId `
+            -RawId 'github.com/org/repo:terraform/main.tf' `
+            -EntityType 'IaCFile'
+
+        $result.Platform | Should -Be 'IaC'
+        $result.EntityType | Should -Be 'IaCFile'
+        $result.CanonicalId | Should -Be 'iacfile:github.com/org/repo:terraform/main.tf'
+    }
+
+    It 'canonicalizes IaCFile with iacfile prefix' {
+        $result = ConvertTo-CanonicalEntityId `
+            -RawId 'iacfile:github.com/org/repo:terraform/main.tf' `
+            -EntityType 'IaCFile'
+
+        $result.CanonicalId | Should -Be 'iacfile:github.com/org/repo:terraform/main.tf'
+    }
+
+    It 'lowercases IaCFile components and normalizes slashes' {
+        $result = ConvertTo-CanonicalEntityId `
+            -RawId 'GitHub.com/Org/Repo:Terraform\Main.TF' `
+            -EntityType 'IaCFile'
+
+        $result.CanonicalId | Should -Be 'iacfile:github.com/org/repo:terraform/main.tf'
+    }
+
+    It 'throws when IaCFile ID lacks colon separator' {
+        { ConvertTo-CanonicalEntityId -RawId 'github.com/org/repo/file.tf' -EntityType 'IaCFile' } | Should -Throw
+    }
+
+    It 'throws when IaCFile repo-slug is empty' {
+        { ConvertTo-CanonicalEntityId -RawId ':terraform/main.tf' -EntityType 'IaCFile' } | Should -Throw
+    }
+
+    It 'throws when IaCFile path is empty' {
+        { ConvertTo-CanonicalEntityId -RawId 'github.com/org/repo:' -EntityType 'IaCFile' } | Should -Throw
+    }
 }

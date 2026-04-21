@@ -86,6 +86,21 @@ Describe 'New-FindingRow' {
         $finding.Platform | Should -Be 'Azure'
     }
 
+    It 'accepts IaCFile as a valid EntityType' {
+        $finding = New-FindingRow `
+            -Id 'f-iacfile' `
+            -Source 'terraform-iac' `
+            -EntityId 'iacfile:github.com/org/repo:terraform/main.tf' `
+            -EntityType 'IaCFile' `
+            -Title 'IaC file has security issue' `
+            -Compliant $false `
+            -ProvenanceRunId 'tf-run-1'
+
+        $finding | Should -Not -BeNullOrEmpty
+        $finding.EntityType | Should -Be 'IaCFile'
+        $finding.Platform | Should -Be 'IaC'
+    }
+
     It 'accepts BuildDefinition with AzureDevOps platform' {
         $finding = New-FindingRow `
             -Id 'f-build-def' `
@@ -116,6 +131,9 @@ Describe 'Get-PlatformForEntityType (v2.1 additions)' {
     }
     It 'maps ReleaseDefinition to AzureDevOps' {
         Get-PlatformForEntityType -EntityType 'ReleaseDefinition' | Should -Be 'AzureDevOps'
+    }
+    It 'maps IaCFile to IaC' {
+        Get-PlatformForEntityType -EntityType 'IaCFile' | Should -Be 'IaC'
     }
 
 }
