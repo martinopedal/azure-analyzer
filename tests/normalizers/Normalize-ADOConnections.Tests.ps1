@@ -60,16 +60,16 @@ Describe 'Normalize-ADOConnections' {
             }
         }
 
-        It 'has ado:// prefix in EntityId' {
+        It 'uses ado canonical EntityId format with connectionId name' {
             foreach ($r in $results) {
-                $r.EntityId | Should -Match '^ado://'
+                $r.EntityId | Should -Match '^ado://[^/]+/[^/]+/serviceconnection/[0-9a-f-]{36}$'
             }
         }
 
-        It 'includes org/project/serviceconnection/name in EntityId' {
-            $results[0].EntityId | Should -BeExactly 'ado://contoso/my-project/serviceconnection/azure-prod'
-            $results[1].EntityId | Should -BeExactly 'ado://contoso/my-project/serviceconnection/github-org'
-            $results[2].EntityId | Should -BeExactly 'ado://contoso/my-project/serviceconnection/generic-webhook'
+        It 'includes org/project/serviceconnection/connectionId in EntityId' {
+            $results[0].EntityId | Should -BeExactly 'ado://contoso/my-project/serviceconnection/a1b2c3d4-0000-1111-2222-333344445555'
+            $results[1].EntityId | Should -BeExactly 'ado://contoso/my-project/serviceconnection/b2c3d4e5-1111-2222-3333-444455556666'
+            $results[2].EntityId | Should -BeExactly 'ado://contoso/my-project/serviceconnection/c3d4e5f6-2222-3333-4444-555566667777'
         }
     }
 
@@ -109,8 +109,21 @@ Describe 'Normalize-ADOConnections' {
 
         It 'preserves Detail with auth info' {
             $results[0].Detail | Should -Match 'AuthScheme=WorkloadIdentityFederation'
-            $results[1].Detail | Should -Match 'AuthScheme=Token'
+            $results[1].Detail | Should -Match 'AuthScheme=PAT'
             $results[2].Detail | Should -Match 'AuthScheme=ServicePrincipal'
+        }
+
+        It 'maps Schema 2.2 ado-connections metadata fields' {
+            $results[0].Pillar | Should -Be 'Security'
+            $results[1].Impact | Should -Be 'High'
+            $results[2].Effort | Should -Be 'Low'
+            $results[0].DeepLinkUrl | Should -Match '_settings/adminservices'
+            @($results[0].RemediationSnippets).Count | Should -BeGreaterThan 0
+            @($results[0].EvidenceUris).Count | Should -Be 2
+            @($results[0].BaselineTags) | Should -Contain 'Connection-Scoped'
+            @($results[1].BaselineTags) | Should -Contain 'Connection-Shared'
+            @($results[0].EntityRefs).Count | Should -Be 3
+            $results[0].ToolVersion | Should -Be 'ado-rest-api-7.1'
         }
     }
 
@@ -153,7 +166,7 @@ Describe 'Normalize-ADOConnections' {
         It 'processes PartialSuccess findings normally' {
             $results = Normalize-ADOConnections -ToolResult $partialFixture
             @($results).Count | Should -Be 1
-            $results[0].EntityId | Should -BeExactly 'ado://contoso/open-project/serviceconnection/azure-dev'
+            $results[0].EntityId | Should -BeExactly 'ado://contoso/open-project/serviceconnection/d4e5f6a7-3333-4444-5555-666677778888'
         }
 
         It 'handles missing optional fields gracefully' {
