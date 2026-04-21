@@ -22,6 +22,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Changed
 
 - Reports: HTML/MD column "Learn more" renamed to "Fix it" (presentational only; field name `LearnMoreUrl` unchanged) (closes #228).
+- queries: moved 7 orphan KQL catalog files (3 `appinsights-*.json`, 4 `aks-rightsizing-*.json`) into new `queries/library/` subfolder with a README explaining the reference-catalog convention. Files are not loaded by any wrapper; they mirror inline KQL in `Invoke-AppInsights.ps1` / `Invoke-AksRightsizing.ps1` and exist as operator-facing documentation (closes #318).
 
 ## [Unreleased]
 
