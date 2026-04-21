@@ -45,6 +45,7 @@ $result = [ordered]@{
     Source        = 'loadtesting'
     Status        = 'Success'
     Message       = ''
+    ToolVersion   = ''
     Findings      = @()
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
@@ -113,6 +114,17 @@ function Get-PortalRunUrl {
     return "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/$encoded/testRunId/$RunId"
 }
 
+function Get-PortalMetricUrl {
+    param(
+        [Parameter(Mandatory)] [string] $ResourceId,
+        [Parameter(Mandatory)] [string] $RunId,
+        [Parameter(Mandatory)] [string] $MetricName
+    )
+    $encoded = [System.Uri]::EscapeDataString($ResourceId)
+    $metricEncoded = [System.Uri]::EscapeDataString($MetricName)
+    return "https://portal.azure.com/#view/Microsoft_Azure_LoadTesting/LoadTestResourceMenuBlade/~/testRun/resourceId/$encoded/testRunId/$RunId/metricName/$metricEncoded"
+}
+
 function Get-PortalResourceUrl {
     param([Parameter(Mandatory)] [string] $ResourceId)
     return "https://portal.azure.com/#@/resource$ResourceId/overview"
@@ -143,6 +155,23 @@ function Get-RunTimestampUtc {
         }
     }
     return $null
+}
+
+function Get-RunRawResultsUri {
+    param([object] $Run)
+    foreach ($candidate in @(
+            (Get-PropertyPathValue -Object $Run -Path 'properties.testResultFileInfo.url'),
+            (Get-PropertyPathValue -Object $Run -Path 'properties.testResult.fileUri'),
+            (Get-PropertyPathValue -Object $Run -Path 'properties.resultFileUrl'),
+            (Get-PropertyPathValue -Object $Run -Path 'properties.artifacts.resultsUrl'),
+            (Get-PropertyPathValue -Object $Run -Path 'properties.rawResultUrl')
+        )) {
+        $uri = Get-OptionalString $candidate
+        if (-not [string]::IsNullOrWhiteSpace($uri)) {
+            return $uri
+        }
+    }
+    return ''
 }
 
 function Get-PropertyPathValue {
@@ -220,6 +249,78 @@ function Test-PassFailCriteriaFailed {
     return $false
 }
 
+function Get-PassFailCriteriaTags {
+    param([object] $Run)
+
+    $tags = [System.Collections.Generic.List[string]]::new()
+    $criteriaFailed = Test-PassFailCriteriaFailed -Run $Run
+    if ($criteriaFailed) {
+        $tags.Add('LoadTesting-PassFailCriteriaFailed') | Out-Null
+    } else {
+        $tags.Add('LoadTesting-PassFailCriteriaPassed') | Out-Null
+    }
+
+    $criteria = Get-PropertyPathValue -Object $Run -Path 'properties.passFailCriteria'
+    if ($criteria) {
+        foreach ($collectionName in @('passFailMetrics', 'passFailAggregation', 'metrics')) {
+            if (-not $criteria.PSObject.Properties[$collectionName]) { continue }
+            foreach ($metric in @($criteria.$collectionName)) {
+                $status = ''
+                foreach ($field in @('status', 'result', 'state')) {
+                    if ($metric.PSObject.Properties[$field] -and $metric.$field) {
+                        $status = [string]$metric.$field
+                        break
+                    }
+                }
+                if ($status -notmatch '^(?i)failed$') { continue }
+                $metricName = ''
+                if ($metric.PSObject.Properties['metricName']) { $metricName = Get-OptionalString $metric.metricName }
+                if (-not $metricName -and $metric.PSObject.Properties['name']) { $metricName = Get-OptionalString $metric.name }
+                if (-not [string]::IsNullOrWhiteSpace($metricName)) {
+                    $metricTag = ($metricName -replace '[^A-Za-z0-9]+', '')
+                    if (-not [string]::IsNullOrWhiteSpace($metricTag)) {
+                        $tags.Add("LoadTesting-$metricTag") | Out-Null
+                    }
+                }
+            }
+        }
+    }
+    return @($tags | Select-Object -Unique)
+}
+
+function Get-RegressionImpact {
+    param(
+        [double] $RegressionPercent,
+        [double] $ThresholdPercent
+    )
+    if ($RegressionPercent -ge (2 * $ThresholdPercent)) { return 'High' }
+    if ($RegressionPercent -gt $ThresholdPercent) { return 'Medium' }
+    return 'Low'
+}
+
+function Get-LoadTestingToolVersion {
+    try {
+        $module = Get-Module -ListAvailable -Name Az.LoadTesting | Sort-Object Version -Descending | Select-Object -First 1
+        if ($module -and $module.Version) {
+            return "Az.LoadTesting/$($module.Version.ToString())"
+        }
+    } catch {
+    }
+
+    try {
+        $cliRaw = az version --output json 2>$null
+        if ($LASTEXITCODE -eq 0 -and $cliRaw) {
+            $cliVersion = ([string]($cliRaw | ConvertFrom-Json).'azure-cli').Trim()
+            if (-not [string]::IsNullOrWhiteSpace($cliVersion)) {
+                return "azure-cli/$cliVersion"
+            }
+        }
+    } catch {
+    }
+
+    return ''
+}
+
 $findings = [System.Collections.Generic.List[object]]::new()
 $apiVersion = '2022-12-01'
 $windowStartUtc = (Get-Date).ToUniversalTime().AddDays(-$DaysBack)
@@ -258,6 +359,8 @@ function Add-LoadTestingFinding {
 }
 
 try {
+    $toolVersion = Get-LoadTestingToolVersion
+    $result.ToolVersion = $toolVersion
     $resourceUris = @()
     if ($ResourceGroup -and $LoadTestResourceName) {
         $resourceUris += "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$([System.Uri]::EscapeDataString($ResourceGroup))/providers/Microsoft.LoadTestService/loadTests/$([System.Uri]::EscapeDataString($LoadTestResourceName))?api-version=$apiVersion"
@@ -332,6 +435,14 @@ try {
                         LoadTestResourceName = $resourceName
                         TestName             = $testName
                         DaysBack             = $DaysBack
+                        Pillar               = 'Performance Efficiency'
+                        Impact               = 'Low'
+                        Effort               = 'Low'
+                        DeepLinkUrl          = (Get-PortalResourceUrl -ResourceId $resourceId)
+                        EvidenceUris         = @((Get-PortalResourceUrl -ResourceId $resourceId))
+                        BaselineTags         = @('LoadTesting-StaleCadence')
+                        EntityRefs           = @($resourceId, 'testrun:none')
+                        ToolVersion          = $toolVersion
                     }
                 continue
             }
@@ -353,24 +464,40 @@ try {
             if (-not $failureCause) { $failureCause = 'No failure cause provided by the API.' }
 
             $criteriaFailed = Test-PassFailCriteriaFailed -Run $latest
+            $passFailTags = @(Get-PassFailCriteriaTags -Run $latest)
             $isFailed = $runStatus -in @('FAILED', 'CANCELLED') -or $criteriaFailed
             $hadRegression = $false
+            $runUrl = Get-PortalRunUrl -ResourceId $resourceId -RunId $runId
+            $rawResultsUri = Get-RunRawResultsUri -Run $latest
 
             if ($isFailed) {
+                $evidenceUris = [System.Collections.Generic.List[string]]::new()
+                $evidenceUris.Add($runUrl) | Out-Null
+                if (-not [string]::IsNullOrWhiteSpace($rawResultsUri)) {
+                    $evidenceUris.Add($rawResultsUri) | Out-Null
+                }
                 Add-LoadTestingFinding -Id "loadtesting/$resourceName/$testName/$runId/failed" `
                     -Severity 'High' -Compliant $false `
                     -Title "Load test '$testName' run $runId failed: $failureCause" `
                     -Detail "Latest run status is '$runStatus'. Pass/fail criteria failed: $criteriaFailed. Cause: $failureCause" `
                     -ResourceId $resourceId `
-                    -LearnMoreUrl (Get-PortalRunUrl -ResourceId $resourceId -RunId $runId) `
+                    -LearnMoreUrl $runUrl `
                     -Remediation 'Review test logs, recent deployment changes, and backend telemetry before promoting the release.' `
                     -Extras @{
-                        LoadTestResourceName = $resourceName
-                        TestName             = $testName
-                        TestRunId            = $runId
-                        RunStatus            = $runStatus
-                        FailureCause         = $failureCause
+                        LoadTestResourceName   = $resourceName
+                        TestName               = $testName
+                        TestRunId              = $runId
+                        RunStatus              = $runStatus
+                        FailureCause           = $failureCause
                         PassFailCriteriaFailed = $criteriaFailed
+                        Pillar                 = 'Performance Efficiency'
+                        Impact                 = 'Medium'
+                        Effort                 = 'Medium'
+                        DeepLinkUrl            = $runUrl
+                        EvidenceUris           = @($evidenceUris.ToArray())
+                        BaselineTags           = @($passFailTags)
+                        EntityRefs             = @($resourceId, $runId)
+                        ToolVersion            = $toolVersion
                     }
             }
 
@@ -427,12 +554,23 @@ try {
                     if ($deltaPercent -ge $RegressionThresholdPercent) {
                         $hadRegression = $true
                         $roundedDelta = [math]::Round($deltaPercent, 2)
+                        $metricPortalUrl = Get-PortalMetricUrl -ResourceId $resourceId -RunId $runId -MetricName $metric.Name
+                        $impact = Get-RegressionImpact -RegressionPercent $roundedDelta -ThresholdPercent $RegressionThresholdPercent
+                        $evidenceUris = [System.Collections.Generic.List[string]]::new()
+                        $evidenceUris.Add($runUrl) | Out-Null
+                        $evidenceUris.Add($metricPortalUrl) | Out-Null
+                        if (-not [string]::IsNullOrWhiteSpace($rawResultsUri)) {
+                            $evidenceUris.Add($rawResultsUri) | Out-Null
+                        }
+                        $baselineTags = [System.Collections.Generic.List[string]]::new()
+                        foreach ($tag in $passFailTags) { $baselineTags.Add($tag) | Out-Null }
+                        $baselineTags.Add("LoadTesting-$($metric.Name)") | Out-Null
                         Add-LoadTestingFinding -Id "loadtesting/$resourceName/$testName/$runId/regression/$($metric.Name)" `
                             -Severity 'Medium' -Compliant $false `
                             -Title "Load test '$testName' regressed by $roundedDelta% in $($metric.Display)" `
                             -Detail "Latest value: $([math]::Round($latestValue, 4)); baseline value: $([math]::Round($previousValue, 4)); threshold: $RegressionThresholdPercent%." `
                             -ResourceId $resourceId `
-                            -LearnMoreUrl (Get-PortalRunUrl -ResourceId $resourceId -RunId $runId) `
+                            -LearnMoreUrl $runUrl `
                             -Remediation 'Investigate recent code and infrastructure changes, then re-run load tests before release.' `
                             -Extras @{
                                 LoadTestResourceName  = $resourceName
@@ -444,6 +582,15 @@ try {
                                 CurrentValue          = [math]::Round($latestValue, 6)
                                 RegressionPercent     = $roundedDelta
                                 ThresholdPercent      = $RegressionThresholdPercent
+                                Pillar                = 'Performance Efficiency'
+                                Impact                = $impact
+                                Effort                = 'Medium'
+                                DeepLinkUrl           = $runUrl
+                                EvidenceUris          = @($evidenceUris.ToArray())
+                                BaselineTags          = @($baselineTags | Select-Object -Unique)
+                                ScoreDelta            = [double]$roundedDelta
+                                EntityRefs            = @($resourceId, $runId)
+                                ToolVersion           = $toolVersion
                             }
                     }
                 }
@@ -455,7 +602,7 @@ try {
                     -Title "Load test '$testName' run $runId is healthy" `
                     -Detail "Latest run status is '$runStatus' and no tracked metric regressed beyond $RegressionThresholdPercent% against the prior run." `
                     -ResourceId $resourceId `
-                    -LearnMoreUrl (Get-PortalRunUrl -ResourceId $resourceId -RunId $runId) `
+                    -LearnMoreUrl $runUrl `
                     -Remediation '' `
                     -Extras @{
                         LoadTestResourceName = $resourceName
@@ -463,6 +610,14 @@ try {
                         TestRunId            = $runId
                         RunStatus            = $runStatus
                         ThresholdPercent     = $RegressionThresholdPercent
+                        Pillar               = 'Performance Efficiency'
+                        Impact               = 'Low'
+                        Effort               = 'Low'
+                        DeepLinkUrl          = $runUrl
+                        EvidenceUris         = @($runUrl)
+                        BaselineTags         = @($passFailTags)
+                        EntityRefs           = @($resourceId, $runId)
+                        ToolVersion          = $toolVersion
                     }
             }
         }

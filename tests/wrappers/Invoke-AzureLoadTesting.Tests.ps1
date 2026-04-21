@@ -30,7 +30,10 @@ Describe 'Invoke-AzureLoadTesting' {
         function global:Get-Module {
             [CmdletBinding()]
             param([string] $Name, [switch] $ListAvailable)
-            [PSCustomObject]@{ Name = 'Az.Accounts' }
+            if ($Name -eq 'Az.LoadTesting') {
+                return [PSCustomObject]@{ Name = 'Az.LoadTesting'; Version = [version]'2.2.0' }
+            }
+            [PSCustomObject]@{ Name = 'Az.Accounts'; Version = [version]'3.0.0' }
         }
         function global:Get-AzContext {
             [CmdletBinding()]
@@ -147,10 +150,32 @@ Describe 'Invoke-AzureLoadTesting' {
         if ($result.Status -eq 'Failed') { throw $result.Message }
 
         $result.Status | Should -Be 'Success'
+        $result.ToolVersion | Should -Be 'Az.LoadTesting/2.2.0'
         @($result.Findings | Where-Object { $_.Id -like '*/failed' }).Count | Should -Be 1
         @($result.Findings | Where-Object { $_.Id -like '*/regression/*' }).Count | Should -Be 1
         @($result.Findings | Where-Object { $_.Id -like '*/no-runs' }).Count | Should -Be 1
         @($result.Findings | Where-Object { $_.Id -like '*/healthy' }).Count | Should -Be 0
+
+        $failed = @($result.Findings | Where-Object { $_.Id -like '*/failed' })[0]
+        $failed.Pillar | Should -Be 'Performance Efficiency'
+        $failed.DeepLinkUrl | Should -Match 'Microsoft_Azure_LoadTesting'
+        @($failed.EvidenceUris).Count | Should -BeGreaterThan 0
+        @($failed.BaselineTags) | Should -Contain 'LoadTesting-PassFailCriteriaFailed'
+        @($failed.EntityRefs) | Should -Contain $script:ResourceId
+        @($failed.EntityRefs) | Should -Contain 'run-failed-001'
+        $failed.ToolVersion | Should -Be 'Az.LoadTesting/2.2.0'
+
+        $regressed = @($result.Findings | Where-Object { $_.Id -like '*/regression/*' })[0]
+        $regressed.ScoreDelta | Should -Be 30
+        $regressed.Impact | Should -Be 'High'
+        $regressed.Effort | Should -Be 'Medium'
+        @($regressed.BaselineTags) | Should -Contain 'LoadTesting-ResponseTimeP95'
+        @($regressed.EvidenceUris).Count | Should -BeGreaterThan 1
+
+        $stale = @($result.Findings | Where-Object { $_.Id -like '*/no-runs' })[0]
+        $stale.Effort | Should -Be 'Low'
+        $stale.Impact | Should -Be 'Low'
+        @($stale.BaselineTags) | Should -Contain 'LoadTesting-StaleCadence'
     }
 
     It 'emits healthy finding only when IncludeHealthyRuns is set' {

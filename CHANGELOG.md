@@ -78,6 +78,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
  
+- fix(loadtesting): upgraded `Invoke-AzureLoadTesting.ps1` + `Normalize-AzureLoadTesting.ps1` to Schema 2.2 ETL for performance findings, including `Pillar=Performance Efficiency`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, and `ToolVersion` (Az.LoadTesting or Azure CLI). Added fixture and wrapper/normalizer test coverage for test run deep links, regression score delta, and baseline tag propagation (closes #363).
 - fix(psrule): close PSRule wrapper and normalizer ETL gap to Schema 2.2 by mapping severity from PSRule level (removes hardcoded Medium), promoting RuleId, and plumbing Pillar, Frameworks, BaselineTags, DeepLinkUrl, ToolVersion, and RemediationSnippets through `New-FindingRow` with updated fixtures and wrapper/normalizer tests (closes #301).
 - fix(ci): scheduled scan scope validation now uses named PowerShell objects instead of nested arrays, preventing index exceptions when any scope variable is empty and raising explicit `Missing/invalid: <NAME>` errors instead (closes #340).
 - fix(azure-quota): make Azure CLI non-zero exits retryable by raising failures inside `Invoke-WithRetry` script blocks before emitting sanitized installer-style failures.
