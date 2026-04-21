@@ -392,10 +392,36 @@ foreach ($row in $normalized) {
     } else { '' }
 
     $snippetHtml = if ($remediationSnippets.Count -gt 0) {
-        ($remediationSnippets | ForEach-Object {
-            $name = if ($_.PSObject.Properties['Name']) { [string]$_.Name } elseif ($_.PSObject.Properties['Title']) { [string]$_.Title } elseif ($_.PSObject.Properties['language']) { [string]$_.language } elseif ($_.PSObject.Properties['Language']) { [string]$_.Language } else { 'Snippet' }
-            $code = if ($_.PSObject.Properties['Snippet']) { [string]$_.Snippet } elseif ($_.PSObject.Properties['Code']) { [string]$_.Code } elseif ($_.PSObject.Properties['code']) { [string]$_.code } else { [string]$_ }
-            "<h4 style='margin-top:10px'>$(HE $name)</h4><pre>$(HE $code)</pre>"
+        ($remediationSnippets | Where-Object { $null -ne $_ } | ForEach-Object {
+            $snippet = $_
+            $name = if ($snippet.PSObject.Properties.Match('Name').Count -gt 0) {
+                [string]$snippet.Name
+            } elseif ($snippet.PSObject.Properties.Match('Title').Count -gt 0) {
+                [string]$snippet.Title
+            } elseif ($snippet.PSObject.Properties.Match('language').Count -gt 0) {
+                "Snippet ($([string]$snippet.language))"
+            } elseif ($snippet.PSObject.Properties.Match('Language').Count -gt 0) {
+                "Snippet ($([string]$snippet.Language))"
+            } else {
+                'Snippet'
+            }
+
+            $code = ''
+            if ($snippet.PSObject.Properties.Match('Snippet').Count -gt 0) {
+                $code = [string]$snippet.Snippet
+            } elseif ($snippet.PSObject.Properties.Match('Code').Count -gt 0) {
+                $code = [string]$snippet.Code
+            } elseif ($snippet.PSObject.Properties.Match('code').Count -gt 0) {
+                $code = [string]$snippet.code
+            } elseif ($snippet.PSObject.Properties.Match('before').Count -gt 0 -or $snippet.PSObject.Properties.Match('after').Count -gt 0) {
+                $before = if ($snippet.PSObject.Properties.Match('before').Count -gt 0) { [string]$snippet.before } else { '' }
+                $after = if ($snippet.PSObject.Properties.Match('after').Count -gt 0) { [string]$snippet.after } else { '' }
+                $code = "Before:`n$before`n`nAfter:`n$after"
+            } else {
+                $code = [string]$snippet
+            }
+
+            "<details style='margin-top:8px'><summary>$(HE $name)</summary><pre>$(HE $code)</pre></details>"
         }) -join ''
     } else { '' }
 

@@ -126,4 +126,29 @@ Describe 'New HTML report redesign contract (#295)' {
         $html | Should -Match 'Tool × Severity'
         $html | Should -Match '"toolsev"'
     }
+
+    It 'skips null remediation snippets and renders schema 2.2 before/after snippets' {
+        $tmp = Join-Path $TestDrive 'report-contract-remediation-snippets'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        @(
+            [pscustomobject]@{
+                Id='F-1'; Source='zizmor'; Severity='High'; Compliant=$false; Title='template-injection'; RuleId='template-injection'
+                Detail='d'; Remediation='r'; EntityId='octo/repo/.github/workflows/ci.yml'
+                RemediationSnippets=@(
+                    $null,
+                    [pscustomobject]@{
+                        language='yaml'
+                        before='uses: actions/checkout@v4'
+                        after='uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6'
+                    }
+                )
+            }
+        ) | ConvertTo-Json -Depth 10 | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        { & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null } | Should -Not -Throw
+        $html = Get-Content $out -Raw
+        $html | Should -Match '<details'
+        $html | Should -Match 'Before:'
+        $html | Should -Match 'After:'
+    }
 }
