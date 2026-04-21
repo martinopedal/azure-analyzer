@@ -63,6 +63,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 
 - fix(azure-quota): make Azure CLI non-zero exits retryable by raising failures inside `Invoke-WithRetry` script blocks before emitting sanitized installer-style failures.
+- fix(ci): make `tools/Update-ToolPins.ps1` idempotent when bump branches already exist by reusing/resetting branch state, retry-wrapping git operations, and updating existing open PRs instead of failing branch creation (closes #341).
 - docs: update README tool count to 27 to match current manifest (closes #235)
 - fix(manifest): corrected `alz-queries` upstream pointer to `martinopedal/alz-graph-queries` (repo + release API endpoint) to align with ARG query source of truth.
 - ci: improved CI failure watchdog error extraction to prioritize GitHub Actions annotations (`##[error]`, `::error::`) and fall back to broader exception/exit-code patterns so ci-failure issues include actionable first error lines.
