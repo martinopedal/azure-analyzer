@@ -183,3 +183,23 @@ Reorganized `queries/` runtime catalogs into per-tool subfolders matching their 
 ### Wrapper-glob ownership stays invisible to grep
 
 Reinforced the lesson from the orphan-query audit: `Invoke-FinOpsSignals.ps1` reads its catalogs via a directory glob (`Get-ChildItem -Filter 'finops-*.json'`), so a literal-filename grep returns zero hits. Per-tool subfolders make this ownership visible in the tree, which is the durable fix.
+## 2026-04-22 - Issue #299 Schema 2.2 additive bump (PR #343, merged at 97b8277)
+
+Foundational schema work. Bumped New-FindingRow to Schema 2.2: 13 new optional fields with zero-value defaults (Frameworks, Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets, EvidenceUris, BaselineTags, ScoreDelta, MitreTactics, MitreTechniques, EntityRefs, ToolVersion). Two new union-merge helpers (Merge-FrameworksUnion, Merge-BaselineTagsUnion) in EntityStore.ps1. Backward-compatible: existing callers get the same row shape plus zero-value new fields.
+
+### Acceptance
+- Baseline 1369 / 0 / 5 -> 1381 / 0 / 5 (+12 new tests across 	ests/shared/Schema.Tests.ps1 and 	ests/shared/EntityStore.Tests.ps1).
+- 17 test files mechanically updated for '2.1' -> '2.2' literal version assertions; zero behavioural coverage modified.
+- All 17 required checks green; `Analyze (actions)` green; squash-merged via --auto after main settled.
+- Decision file: .squad/decisions/inbox/atlas-schema-22.md (locked parameter names + downstream guidance for #300-#313).
+
+### Unblocks
+14 per-tool ETL closures: #300 (azqr), #301 (PSRule), #302 (Defender), #303-#304 (TBD slots), #305 (Maester), #306 (Kubescape), #307 (AzGovViz), #308 (WARA), #309 (Sentinel Incidents), #310 (Sentinel Coverage), #311 (Trivy), #312 (Infracost), #313 (Scorecard).
+
+### Learnings
+- **CHANGELOG.md is a hot conflict file during fast-moving days.** Three rebase cycles in this PR alone, each with the same 1-line `### Added` collision against a sibling PR. Resolve by hand-keeping both lines (additive). Faster than `gh pr merge --auto` + waiting for the queue when main is churning at >1 PR / 5 min.
+- **gh pr merge --admin --auto is rejected** on this repo (mutually exclusive flags). Use `--auto` alone (drops admin override) or sit on the PR until checks green and use `--admin --squash` directly.
+- **The dit tool silently no-ops on malformed old_str** (whitespace mismatch from a here-string). Mitigation: always `rg "<<<<<<<"` after a programmatic conflict resolution before `git add`.
+- **Bumping $script:SchemaVersion is impossible without touching test literal assertions.** The "no test modification" rule cannot apply to literal version strings (`Should -Be '2.1'`); the mechanical sweep is the minimum-invasive interpretation. Document this explicitly in the PR body so reviewers don't bounce it.
+- **Frameworks was already declared in v2.1** as `[object[]]`. Kept the loose type to preserve back-compat for fixtures that pass mixed shapes; documented in the decision file that the *contract* is hashtable-shaped. `Merge-FrameworksUnion` works against either shape.
+- **No Copilot review comments** in the 8-min wait window — second confirmation (after #318) that on schema-only changes Copilot tends to skip. Squash-merge is permitted per the cloud-agent PR review contract when zero open threads.
