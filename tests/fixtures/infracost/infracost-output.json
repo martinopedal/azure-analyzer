@@ -1,6 +1,16 @@
 {
   "Source": "infracost",
+  "SchemaVersion": "1.0",
   "Status": "Success",
+  "ToolVersion": "Infracost v0.10.31",
+  "ToolSummary": {
+    "Currency": "USD",
+    "TotalMonthlyCost": 1453.25,
+    "TotalHourlyCost": 1.9908,
+    "ProjectName": "terraform-main",
+    "BaselineMonthlyCost": 1410.75,
+    "DiffMonthlyCost": 42.50
+  },
   "Message": "Parsed 3 resource cost estimate(s).",
   "Findings": [
     {
@@ -18,7 +28,27 @@
       "ProjectName": "terraform-main",
       "ProjectPath": "infra/terraform",
       "MonthlyCost": 1260.75,
-      "Currency": "USD"
+      "Currency": "USD",
+      "Pillar": "Cost",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://app.infracost.io/orgs/contoso/projects/terraform-main",
+      "RemediationSnippets": [
+        {
+          "language": "hcl",
+          "title": "AKS SKU right-size",
+          "code": "sku_tier = \"Standard\""
+        }
+      ],
+      "EvidenceUris": [
+        "file:///C:/repo/infra/terraform/infracost-breakdown.json"
+      ],
+      "EntityRefs": [
+        "infra/terraform"
+      ],
+      "ToolVersion": "Infracost v0.10.31",
+      "ProjectTotalMonthlyCost": 1453.25,
+      "BaselineMonthlyCost": 1410.75,
+      "DiffMonthlyCost": 42.50
     },
     {
       "Id": "22222222-2222-2222-2222-222222222222",
@@ -35,7 +65,27 @@
       "ProjectName": "terraform-main",
       "ProjectPath": "infra/terraform",
       "MonthlyCost": 180.20,
-      "Currency": "USD"
+      "Currency": "USD",
+      "Pillar": "Cost",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://app.infracost.io/orgs/contoso/projects/terraform-main",
+      "RemediationSnippets": [
+        {
+          "language": "hcl",
+          "title": "Storage redundancy right-size",
+          "code": "account_tier = \"Standard\""
+        }
+      ],
+      "EvidenceUris": [
+        "file:///C:/repo/infra/terraform/infracost-breakdown.json"
+      ],
+      "EntityRefs": [
+        "infra/terraform"
+      ],
+      "ToolVersion": "Infracost v0.10.31",
+      "ProjectTotalMonthlyCost": 1453.25,
+      "BaselineMonthlyCost": 1410.75,
+      "DiffMonthlyCost": 42.50
     },
     {
       "Id": "33333333-3333-3333-3333-333333333333",
@@ -52,7 +102,21 @@
       "ProjectName": "terraform-main",
       "ProjectPath": "infra/terraform",
       "MonthlyCost": 12.30,
-      "Currency": "USD"
+      "Currency": "USD",
+      "Pillar": "Cost",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://app.infracost.io/orgs/contoso/projects/terraform-main",
+      "RemediationSnippets": [],
+      "EvidenceUris": [
+        "file:///C:/repo/infra/terraform/infracost-breakdown.json"
+      ],
+      "EntityRefs": [
+        "infra/terraform"
+      ],
+      "ToolVersion": "Infracost v0.10.31",
+      "ProjectTotalMonthlyCost": 1453.25,
+      "BaselineMonthlyCost": 1410.75,
+      "DiffMonthlyCost": 42.50
     }
   ]
 }

@@ -53,6 +53,30 @@ Describe 'Normalize-Infracost' {
         }
     }
 
+    It 'maps schema 2.2 cost metadata fields' {
+        $rows = @(Normalize-Infracost -ToolResult $fixture)
+        $aks = $rows | Where-Object { $_.Title -match 'kubernetes_cluster' } | Select-Object -First 1
+        $storage = $rows | Where-Object { $_.Title -match 'storage_account' } | Select-Object -First 1
+        $rg = $rows | Where-Object { $_.Title -match 'resource_group' } | Select-Object -First 1
+
+        $aks.Pillar | Should -Be 'Cost'
+        $aks.Impact | Should -Be 'High'
+        $storage.Impact | Should -Be 'Medium'
+        $rg.Impact | Should -Be 'Low'
+        $aks.Effort | Should -Be 'Medium'
+        $storage.Effort | Should -Be 'Low'
+        $aks.ScoreDelta | Should -Be 42.5
+        $aks.ToolVersion | Should -Be 'Infracost v0.10.31'
+        $aks.DeepLinkUrl | Should -Match '^https://app.infracost.io/'
+        $aks.Frameworks.Count | Should -Be 1
+        $aks.Frameworks[0].kind | Should -Be 'WAF'
+        $aks.Frameworks[0].controlId | Should -Be 'Cost'
+        $aks.BaselineTags | Should -Contain 'infracost:baseline'
+        $aks.RemediationSnippets.Count | Should -BeGreaterThan 0
+        $aks.EvidenceUris.Count | Should -BeGreaterThan 0
+        $aks.EntityRefs | Should -Contain 'infra/terraform'
+    }
+
     It 'returns empty array for failed wrapper output' {
         $rows = @(Normalize-Infracost -ToolResult $failedFixture)
         $rows.Count | Should -Be 0

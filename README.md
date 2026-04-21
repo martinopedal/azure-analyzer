@@ -78,6 +78,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 - **Trivy now emits full Schema 2.2 ETL metadata** for CVEs and misconfigurations, including `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `Frameworks` (`CVE`/`GHSA`/`CWE` + IaC check IDs), `RemediationSnippets` (before/after version bumps), `EvidenceUris`, `BaselineTags` (`CIS-DI-*` when Dockerfile checks provide them), `ScoreDelta` (CVSS), `EntityRefs`, and `ToolVersion`.
 - **Sentinel incidents now emit Schema 2.2 security context** (`Pillar`, `ToolVersion`, `MitreTactics`, `MitreTechniques`, `Frameworks`, `DeepLinkUrl`, `EvidenceUris`, `EntityRefs`) so incident rows carry MITRE and entity-link evidence end to end.
 - **kube-bench now emits Schema 2.2 AKS hardening context** (`Frameworks`, `Pillar`, `Impact`, `DeepLinkUrl`, `RemediationSnippets`, `BaselineTags`, `EntityRefs`, `ToolVersion`) so CIS control findings preserve benchmark/profile metadata end to end.
+- **Infracost now emits Schema 2.2 cost ETL metadata** (`Pillar=Cost`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) and adds a v1 `ToolSummary` block (`currency`, total and baseline monthly cost, hourly cost, diff monthly cost, project name).
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 

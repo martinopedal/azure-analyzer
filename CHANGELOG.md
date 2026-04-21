@@ -103,6 +103,7 @@ All notable changes to azure-analyzer will be documented here.
 - feat(reports): per-category severity totals strip in Findings with click-to-filter and sticky visibility; includes Critical, High, Medium, Low, Info, and Total (closes #226)
 - feat: Infracost wrapper for Bicep/Terraform pre-deploy cost (closes #233)
 - feat: Azure Load Testing wrapper for failed and regressed test runs (closes #238)
+- feat(infracost): completed Schema 2.2 ETL for `Invoke-Infracost.ps1` + `Normalize-Infracost.ps1`. Wrapper now emits v1 `ToolSummary` (`Currency`, `TotalMonthlyCost`, `TotalHourlyCost`, `ProjectName`, `BaselineMonthlyCost`, `DiffMonthlyCost`) and per-finding cost metadata (`Pillar=Cost`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `EntityRefs`, `ToolVersion`, baseline/diff totals). Normalizer maps `Impact`, `ScoreDelta`, `Frameworks`, and `BaselineTags` through `New-FindingRow` with updated fixture and wrapper/normalizer tests (closes #312).
   - Added `modules/Invoke-AzureLoadTesting.ps1` with 30-day default lookback, failed and cancelled run detection (High), regression detection across response time p95, error rate, and requests per second (Medium, default threshold 10%), and optional healthy-run info findings.
   - Added `modules/normalizers/Normalize-AzureLoadTesting.ps1` to convert wrapper output into v2 FindingRow records via `New-FindingRow` with `EntityType=AzureResource`.
   - Registered new `loadtesting` tool in `tools/tool-manifest.json` (`provider=azure`, `scope=subscription`) with manifest-driven install metadata.

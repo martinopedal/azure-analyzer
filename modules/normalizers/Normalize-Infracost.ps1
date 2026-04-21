@@ -37,6 +37,75 @@ function Resolve-InfracostSeverity {
     return 'Low'
 }
 
+function ConvertTo-InfracostDouble {
+    param(
+        [AllowNull()][object]$Value,
+        [Nullable[double]]$Default = $null
+    )
+    if ($null -eq $Value) { return $Default }
+    $parsed = 0.0
+    if ([double]::TryParse([string]$Value, [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+        return [double]$parsed
+    }
+    return $Default
+}
+
+function Resolve-InfracostImpact {
+    param(
+        [double]$MonthlyCost,
+        [double]$ProjectTotalMonthlyCost
+    )
+    if ($ProjectTotalMonthlyCost -le 0) { return 'Low' }
+    $percentage = ($MonthlyCost / $ProjectTotalMonthlyCost) * 100
+    if ($percentage -ge 30) { return 'High' }
+    if ($percentage -ge 10) { return 'Medium' }
+    return 'Low'
+}
+
+function Resolve-InfracostEffort {
+    param([string]$ResourceType)
+    $normalized = if ($ResourceType) { $ResourceType.ToLowerInvariant() } else { '' }
+    if ($normalized -match 'resource_group|tag|diagnostic') { return 'Low' }
+    if ($normalized -match 'storage|app_service_plan|public_ip|disk|redis|servicebus') { return 'Low' }
+    if ($normalized -match 'kubernetes|aks|sql|postgres|cosmos|firewall|application_gateway|frontdoor') { return 'Medium' }
+    return 'Low'
+}
+
+function Convert-ToHashtableArray {
+    param([object[]]$Items)
+    $result = [System.Collections.Generic.List[hashtable]]::new()
+    foreach ($item in @($Items)) {
+        if (-not $item) { continue }
+        if ($item -is [hashtable]) {
+            $result.Add($item) | Out-Null
+            continue
+        }
+        if ($item -is [System.Collections.IDictionary]) {
+            $table = @{}
+            foreach ($key in $item.Keys) { $table[[string]$key] = $item[$key] }
+            $result.Add($table) | Out-Null
+            continue
+        }
+        $props = $item.PSObject.Properties
+        if ($props) {
+            $table = @{}
+            foreach ($prop in $props) { $table[[string]$prop.Name] = $prop.Value }
+            $result.Add($table) | Out-Null
+        }
+    }
+    return @($result)
+}
+
+function Convert-ToStringArray {
+    param([object[]]$Items)
+    $result = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in @($Items)) {
+        if ([string]::IsNullOrWhiteSpace([string]$item)) { continue }
+        $result.Add([string]$item) | Out-Null
+    }
+    return @($result)
+}
+
 function Normalize-Infracost {
     [CmdletBinding()]
     param (
@@ -90,6 +159,61 @@ function Normalize-Infracost {
         } else {
             'USD'
         }
+        $projectTotalMonthlyCost = if ($finding.PSObject.Properties['ProjectTotalMonthlyCost']) {
+            ConvertTo-InfracostDouble -Value $finding.ProjectTotalMonthlyCost -Default $monthlyCost
+        } elseif ($ToolResult.PSObject.Properties['ToolSummary'] -and $ToolResult.ToolSummary -and $ToolResult.ToolSummary.PSObject.Properties['TotalMonthlyCost']) {
+            ConvertTo-InfracostDouble -Value $ToolResult.ToolSummary.TotalMonthlyCost -Default $monthlyCost
+        } else {
+            $monthlyCost
+        }
+        $baselineMonthlyCost = if ($finding.PSObject.Properties['BaselineMonthlyCost']) {
+            ConvertTo-InfracostDouble -Value $finding.BaselineMonthlyCost -Default 0
+        } elseif ($ToolResult.PSObject.Properties['ToolSummary'] -and $ToolResult.ToolSummary -and $ToolResult.ToolSummary.PSObject.Properties['BaselineMonthlyCost']) {
+            ConvertTo-InfracostDouble -Value $ToolResult.ToolSummary.BaselineMonthlyCost -Default 0
+        } else {
+            0
+        }
+        $scoreDelta = if ($finding.PSObject.Properties['DiffMonthlyCost']) {
+            ConvertTo-InfracostDouble -Value $finding.DiffMonthlyCost -Default $null
+        } elseif ($ToolResult.PSObject.Properties['ToolSummary'] -and $ToolResult.ToolSummary -and $ToolResult.ToolSummary.PSObject.Properties['DiffMonthlyCost']) {
+            ConvertTo-InfracostDouble -Value $ToolResult.ToolSummary.DiffMonthlyCost -Default $null
+        } elseif ($baselineMonthlyCost -gt 0) {
+            [double]$monthlyCost - [double]$baselineMonthlyCost
+        } else {
+            $null
+        }
+        $impact = if ($finding.PSObject.Properties['Impact'] -and $finding.Impact) {
+            [string]$finding.Impact
+        } else {
+            Resolve-InfracostImpact -MonthlyCost $monthlyCost -ProjectTotalMonthlyCost $projectTotalMonthlyCost
+        }
+        $effort = if ($finding.PSObject.Properties['Effort'] -and $finding.Effort) {
+            [string]$finding.Effort
+        } else {
+            Resolve-InfracostEffort -ResourceType $resourceType
+        }
+        $pillar = if ($finding.PSObject.Properties['Pillar'] -and $finding.Pillar) { [string]$finding.Pillar } else { 'Cost' }
+        $deepLinkUrl = if ($finding.PSObject.Properties['DeepLinkUrl'] -and $finding.DeepLinkUrl) { [string]$finding.DeepLinkUrl } else { '' }
+        $remediationSnippets = if ($finding.PSObject.Properties['RemediationSnippets'] -and $finding.RemediationSnippets) { Convert-ToHashtableArray -Items @($finding.RemediationSnippets) } else { @() }
+        $evidenceUris = if ($finding.PSObject.Properties['EvidenceUris'] -and $finding.EvidenceUris) { Convert-ToStringArray -Items @($finding.EvidenceUris) } else { @() }
+        $entityRefs = if ($finding.PSObject.Properties['EntityRefs'] -and $finding.EntityRefs) { Convert-ToStringArray -Items @($finding.EntityRefs) } else { @() }
+        $toolVersion = if ($finding.PSObject.Properties['ToolVersion'] -and $finding.ToolVersion) {
+            [string]$finding.ToolVersion
+        } elseif ($ToolResult.PSObject.Properties['ToolVersion'] -and $ToolResult.ToolVersion) {
+            [string]$ToolResult.ToolVersion
+        } else {
+            ''
+        }
+        $frameworks = @(
+            @{
+                kind      = 'WAF'
+                controlId = 'Cost'
+            }
+        )
+        $baselineTags = @()
+        if ($baselineMonthlyCost -gt 0) {
+            $baselineTags = @('infracost:baseline')
+        }
 
         $resourceSlug = ConvertTo-InfracostSlug -Value "$projectName-$resourceType-$resourceName"
         $syntheticArmId = "/subscriptions/$syntheticSub/resourceGroups/infracost-iac/providers/Microsoft.Infracost/iacResources/$resourceSlug"
@@ -117,7 +241,11 @@ function Normalize-Infracost {
             -LearnMoreUrl 'https://www.infracost.io/docs/' `
             -ResourceId $syntheticArmId `
             -SubscriptionId $syntheticSub `
-            -ResourceGroup 'infracost-iac'
+            -ResourceGroup 'infracost-iac' `
+            -Pillar $pillar -Impact $impact -Effort $effort -DeepLinkUrl $deepLinkUrl `
+            -Frameworks $frameworks -RemediationSnippets $remediationSnippets `
+            -EvidenceUris $evidenceUris -BaselineTags $baselineTags -ScoreDelta $scoreDelta `
+            -EntityRefs $entityRefs -ToolVersion $toolVersion
         if ($null -eq $row) { continue }
 
         $row | Add-Member -NotePropertyName MonthlyCost -NotePropertyValue ([math]::Round($monthlyCost, 2)) -Force

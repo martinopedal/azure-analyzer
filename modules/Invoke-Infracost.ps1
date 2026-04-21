@@ -83,6 +83,103 @@ function Get-FirstJsonObjectText {
     return $Text.Substring($start, ($end - $start) + 1)
 }
 
+function ConvertTo-InfracostDouble {
+    param(
+        [AllowNull()][object]$Value,
+        [double]$Default = 0.0
+    )
+    if ($null -eq $Value) { return $Default }
+    $parsed = 0.0
+    if ([double]::TryParse([string]$Value, [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+        return $parsed
+    }
+    return $Default
+}
+
+function Get-InfracostToolVersion {
+    $versionExec = Invoke-WithRetry -MaxAttempts 2 -InitialDelaySeconds 1 -MaxDelaySeconds 5 -ScriptBlock {
+        Invoke-WithTimeout -Command 'infracost' -Arguments @('--version') -TimeoutSec 60
+    }
+    if (-not $versionExec -or $versionExec.ExitCode -ne 0) { return '' }
+    $raw = Remove-Credentials ([string]$versionExec.Output)
+    if ([string]::IsNullOrWhiteSpace($raw)) { return '' }
+    return ($raw -split "(\r?\n)" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1).Trim()
+}
+
+function Resolve-InfracostEffort {
+    param([string]$ResourceType)
+    $normalized = if ($ResourceType) { $ResourceType.ToLowerInvariant() } else { '' }
+    if ($normalized -match 'resource_group|tag|diagnostic') { return 'Low' }
+    if ($normalized -match 'storage|app_service_plan|public_ip|disk|redis|servicebus') { return 'Low' }
+    if ($normalized -match 'kubernetes|aks|sql|postgres|cosmos|firewall|application_gateway|frontdoor') { return 'Medium' }
+    return 'Low'
+}
+
+function Get-InfracostPropertyValue {
+    param(
+        [AllowNull()][object]$Object,
+        [string]$PropertyName
+    )
+    if (-not $Object -or [string]::IsNullOrWhiteSpace($PropertyName)) { return $null }
+    $property = $Object.PSObject.Properties[$PropertyName]
+    if ($property) { return $property.Value }
+    return $null
+}
+
+function Get-InfracostCloudUrl {
+    param(
+        [AllowNull()]$Project,
+        [AllowNull()]$Resource
+    )
+    $resourceMetadata = Get-InfracostPropertyValue -Object $Resource -PropertyName 'metadata'
+    $projectMetadata = Get-InfracostPropertyValue -Object $Project -PropertyName 'metadata'
+    foreach ($candidate in @(
+            (Get-InfracostPropertyValue -Object $Resource -PropertyName 'cloudUrl'),
+            (Get-InfracostPropertyValue -Object $Resource -PropertyName 'CloudUrl'),
+            (Get-InfracostPropertyValue -Object $Resource -PropertyName 'url'),
+            (Get-InfracostPropertyValue -Object $Resource -PropertyName 'Url'),
+            (Get-InfracostPropertyValue -Object $resourceMetadata -PropertyName 'url'),
+            (Get-InfracostPropertyValue -Object $resourceMetadata -PropertyName 'cloudUrl'),
+            (Get-InfracostPropertyValue -Object $Project -PropertyName 'cloudUrl'),
+            (Get-InfracostPropertyValue -Object $Project -PropertyName 'CloudUrl'),
+            (Get-InfracostPropertyValue -Object $Project -PropertyName 'url'),
+            (Get-InfracostPropertyValue -Object $Project -PropertyName 'Url'),
+            (Get-InfracostPropertyValue -Object $projectMetadata -PropertyName 'url'),
+            (Get-InfracostPropertyValue -Object $projectMetadata -PropertyName 'cloudUrl')
+        )) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$candidate)) { return [string]$candidate }
+    }
+    return ''
+}
+
+function Get-InfracostRemediationSnippets {
+    param(
+        [string]$ResourceType,
+        [double]$MonthlyCost
+    )
+    if ($MonthlyCost -le 0) { return @() }
+    $normalized = if ($ResourceType) { $ResourceType.ToLowerInvariant() } else { '' }
+    if ($normalized -match 'kubernetes|aks') {
+        return @(
+            @{
+                language = 'hcl'
+                title    = 'AKS SKU right-size'
+                code     = "sku_tier = `"Standard`"`n# consider downgrading node VM size for non-prod"
+            }
+        )
+    }
+    if ($normalized -match 'storage_account') {
+        return @(
+            @{
+                language = 'hcl'
+                title    = 'Storage redundancy right-size'
+                code     = "account_tier             = `"Standard`"`naccount_replication_type = `"LRS`""
+            }
+        )
+    }
+    return @()
+}
+
 if (-not (Test-InfracostInstalled)) {
     Write-Warning "infracost CLI is not installed. Skipping Infracost scan."
     return [PSCustomObject]@{
@@ -184,16 +281,69 @@ try {
         }
     }
 
+    $toolVersion = ''
+    try {
+        $toolVersion = Get-InfracostToolVersion
+    } catch {
+        $toolVersion = ''
+    }
+
+    $breakdownPath = Join-Path $Path 'infracost-breakdown.json'
+    $breakdownUri = ''
+    try {
+        Set-Content -LiteralPath $breakdownPath -Value $jsonText -Encoding utf8NoBOM -Force
+        $resolvedBreakdownPath = (Resolve-Path -LiteralPath $breakdownPath -ErrorAction Stop).Path
+        $breakdownUri = "file:///$($resolvedBreakdownPath -replace '\\','/')"
+    } catch {
+        $breakdownUri = ''
+    }
+
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $aggregateTotalMonthlyCost = 0.0
+    $aggregateBaselineMonthlyCost = 0.0
+    $aggregateTotalHourlyCost = 0.0
+    $summaryCurrency = ''
+    $summaryProjectNames = [System.Collections.Generic.List[string]]::new()
     foreach ($project in @($parsed.projects)) {
         if (-not $project) { continue }
         $projectName = if ($project.PSObject.Properties['name'] -and $project.name) { [string]$project.name } else { 'project' }
         $projectPath = if ($project.PSObject.Properties['path'] -and $project.path) { [string]$project.path } else { [string]$Path }
+        if (-not [string]::IsNullOrWhiteSpace($projectName)) {
+            $summaryProjectNames.Add($projectName) | Out-Null
+        }
         $resources = @()
         if ($project.PSObject.Properties['breakdown'] -and $project.breakdown -and
             $project.breakdown.PSObject.Properties['resources']) {
             $resources = @($project.breakdown.resources)
         }
+
+        $projectTotalMonthlyCost = if ($project.PSObject.Properties['breakdown'] -and $project.breakdown) {
+            ConvertTo-InfracostDouble -Value $project.breakdown.totalMonthlyCost
+        } else {
+            0.0
+        }
+        if ($projectTotalMonthlyCost -le 0 -and $resources.Count -gt 0) {
+            $projectTotalMonthlyCost = (@($resources | ForEach-Object { ConvertTo-InfracostDouble -Value $_.monthlyCost }) | Measure-Object -Sum).Sum
+        }
+        $projectBaselineMonthlyCost = if ($project.PSObject.Properties['pastBreakdown'] -and $project.pastBreakdown) {
+            ConvertTo-InfracostDouble -Value $project.pastBreakdown.totalMonthlyCost
+        } else {
+            0.0
+        }
+        $projectDiffMonthlyCost = if ($project.PSObject.Properties['diff'] -and $project.diff) {
+            ConvertTo-InfracostDouble -Value $project.diff.totalMonthlyCost -Default ($projectTotalMonthlyCost - $projectBaselineMonthlyCost)
+        } else {
+            $projectTotalMonthlyCost - $projectBaselineMonthlyCost
+        }
+        $projectTotalHourlyCost = if ($project.PSObject.Properties['breakdown'] -and $project.breakdown) {
+            ConvertTo-InfracostDouble -Value $project.breakdown.totalHourlyCost -Default ($projectTotalMonthlyCost / 730.0)
+        } else {
+            $projectTotalMonthlyCost / 730.0
+        }
+
+        $aggregateTotalMonthlyCost += $projectTotalMonthlyCost
+        $aggregateBaselineMonthlyCost += $projectBaselineMonthlyCost
+        $aggregateTotalHourlyCost += $projectTotalHourlyCost
 
         foreach ($resource in $resources) {
             if (-not $resource) { continue }
@@ -202,6 +352,13 @@ try {
             $monthlyRaw = if ($resource.PSObject.Properties['monthlyCost']) { [string]$resource.monthlyCost } else { '0' }
             $monthlyCost = 0.0
             [void][double]::TryParse($monthlyRaw, [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$monthlyCost)
+            $currency = if ($resource.PSObject.Properties['currency'] -and $resource.currency) { [string]$resource.currency } else { 'USD' }
+            if ([string]::IsNullOrWhiteSpace($summaryCurrency) -and -not [string]::IsNullOrWhiteSpace($currency)) {
+                $summaryCurrency = $currency
+            }
+            $deepLinkUrl = Get-InfracostCloudUrl -Project $project -Resource $resource
+            $entityRefs = @($projectPath)
+            $remediationSnippets = Get-InfracostRemediationSnippets -ResourceType $resourceType -MonthlyCost $monthlyCost
 
             $findings.Add([PSCustomObject]@{
                     Id            = [guid]::NewGuid().ToString()
@@ -218,16 +375,45 @@ try {
                     ProjectName   = $projectName
                     ProjectPath   = $projectPath
                     MonthlyCost   = [math]::Round($monthlyCost, 2)
-                    Currency      = if ($resource.PSObject.Properties['currency'] -and $resource.currency) { [string]$resource.currency } else { 'USD' }
+                    Currency      = $currency
+                    Pillar        = 'Cost'
+                    Impact        = ''
+                    Effort        = Resolve-InfracostEffort -ResourceType $resourceType
+                    DeepLinkUrl   = $deepLinkUrl
+                    RemediationSnippets = @($remediationSnippets)
+                    EvidenceUris  = if ($breakdownUri) { @($breakdownUri) } else { @() }
+                    EntityRefs    = $entityRefs
+                    ToolVersion   = $toolVersion
+                    ProjectTotalMonthlyCost = [math]::Round($projectTotalMonthlyCost, 2)
+                    BaselineMonthlyCost = [math]::Round($projectBaselineMonthlyCost, 2)
+                    DiffMonthlyCost = [math]::Round($projectDiffMonthlyCost, 2)
                 })
         }
     }
+
+    $summaryProjectName = if ($summaryProjectNames.Count -eq 1) {
+        $summaryProjectNames[0]
+    } elseif ($summaryProjectNames.Count -gt 1) {
+        'multiple'
+    } else {
+        ''
+    }
+    $summaryDiffMonthlyCost = $aggregateTotalMonthlyCost - $aggregateBaselineMonthlyCost
 
     return [PSCustomObject]@{
         Source        = 'infracost'
         SchemaVersion = '1.0'
         Status        = 'Success'
         Message       = "Parsed $($findings.Count) resource cost estimate(s)."
+        ToolVersion   = $toolVersion
+        ToolSummary   = [PSCustomObject]@{
+            Currency            = if ([string]::IsNullOrWhiteSpace($summaryCurrency)) { 'USD' } else { $summaryCurrency }
+            TotalMonthlyCost    = [math]::Round($aggregateTotalMonthlyCost, 2)
+            TotalHourlyCost     = [math]::Round($aggregateTotalHourlyCost, 4)
+            ProjectName         = $summaryProjectName
+            BaselineMonthlyCost = [math]::Round($aggregateBaselineMonthlyCost, 2)
+            DiffMonthlyCost     = [math]::Round($summaryDiffMonthlyCost, 2)
+        }
         Findings      = @($findings)
     }
 } catch {
