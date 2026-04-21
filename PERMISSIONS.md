@@ -40,6 +40,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | **Kubescape (AKS runtime posture)** | Subscription | [`kubescape.md`](docs/consumer/permissions/kubescape.md) |
 | **Azure Load Testing (Failed and Regressed Runs)** | Subscription | [`loadtesting.md`](docs/consumer/permissions/loadtesting.md) |
 | **Powerpipe Compliance Benchmarks** | Subscription | [`powerpipe.md`](docs/consumer/permissions/powerpipe.md) |
+| **Prowler (Azure security posture)** | Subscription | [`prowler.md`](docs/consumer/permissions/prowler.md) |
 | **PSRule for Azure** | Subscription | [`psrule.md`](docs/consumer/permissions/psrule.md) |
 | **Microsoft Sentinel (Coverage / Posture)** | Workspace | [`sentinel-coverage.md`](docs/consumer/permissions/sentinel-coverage.md) |
 | **Microsoft Sentinel (Active Incidents)** | Workspace | [`sentinel-incidents.md`](docs/consumer/permissions/sentinel-incidents.md) |

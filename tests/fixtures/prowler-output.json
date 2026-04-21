@@ -1,0 +1,121 @@
+{
+  "Source": "prowler",
+  "Status": "Success",
+  "Message": "",
+  "ToolVersion": "4.8.1",
+  "SchemaVersion": "1.0",
+  "Findings": [
+    {
+      "Id": "azure_storage_secure_transfer_required",
+      "RuleId": "azure_storage_secure_transfer_required",
+      "Source": "prowler",
+      "Category": "Storage",
+      "Title": "Ensure secure transfer is required for Storage Account",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Storage account does not require secure transfer.",
+      "Remediation": "Set supportsHttpsTrafficOnly to true.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer",
+      "DeepLinkUrl": "https://docs.prowler.com/checks/azure_storage_secure_transfer_required",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/stprod01",
+      "ResourceArn": "arn:azure:storage:stprod01",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "CIS",
+          "Controls": [
+            "azure_storage_secure_transfer_required"
+          ]
+        },
+        {
+          "Name": "NIST",
+          "Controls": [
+            "azure_storage_secure_transfer_required"
+          ]
+        },
+        {
+          "Name": "PCI-DSS",
+          "Controls": [
+            "azure_storage_secure_transfer_required"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "baseline:cis",
+        "baseline:nist",
+        "baseline:pci-dss"
+      ],
+      "MitreTactics": [
+        "Defense Evasion"
+      ],
+      "MitreTechniques": [
+        "T1562"
+      ],
+      "RemediationSnippets": [
+        {
+          "Type": "CLI",
+          "Code": "az storage account update --name stprod01 --resource-group rg-prod --https-only true"
+        },
+        {
+          "Type": "Terraform",
+          "Code": "resource \"azurerm_storage_account\" \"this\" { enable_https_traffic_only = true }"
+        }
+      ],
+      "ToolVersion": "4.8.1"
+    },
+    {
+      "Id": "azure_storage_public_access_disabled",
+      "RuleId": "azure_storage_public_access_disabled",
+      "Source": "prowler",
+      "Category": "Storage",
+      "Title": "Ensure blob public access is disabled",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Storage account allows public blob access.",
+      "Remediation": "Disable AllowBlobPublicAccess.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent",
+      "DeepLinkUrl": "https://docs.prowler.com/checks/azure_storage_public_access_disabled",
+      "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/stprod01",
+      "ResourceArn": "arn:azure:storage:stprod01",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "CIS",
+          "Controls": [
+            "azure_storage_public_access_disabled"
+          ]
+        },
+        {
+          "Name": "NIST",
+          "Controls": [
+            "azure_storage_public_access_disabled"
+          ]
+        },
+        {
+          "Name": "PCI-DSS",
+          "Controls": [
+            "azure_storage_public_access_disabled"
+          ]
+        }
+      ],
+      "BaselineTags": [
+        "baseline:cis",
+        "baseline:nist",
+        "baseline:pci-dss"
+      ],
+      "MitreTactics": [
+        "Collection"
+      ],
+      "MitreTechniques": [
+        "T1530"
+      ],
+      "RemediationSnippets": [
+        {
+          "Type": "CLI",
+          "Code": "az storage account update --name stprod01 --resource-group rg-prod --allow-blob-public-access false"
+        }
+      ],
+      "ToolVersion": "4.8.1"
+    }
+  ]
+}

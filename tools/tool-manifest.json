@@ -195,6 +195,68 @@
       ]
     },
     {
+      "name": "prowler",
+      "displayName": "Prowler (Azure security posture)",
+      "source": "prowler",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Prowler",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-Prowler.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#1f2937",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "prowler",
+        "preferredManagers": [
+          "brew",
+          "pipx"
+        ],
+        "windows": {
+          "pipx": "prowler"
+        },
+        "macos": {
+          "brew": "prowler"
+        },
+        "linux": {
+          "pipx": "prowler"
+        }
+      },
+      "upstream": {
+        "repo": "prowler-cloud/prowler",
+        "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "ISO27001",
+        "PCI-DSS",
+        "HIPAA",
+        "SOC2",
+        "MITRE",
+        "GDPR",
+        "FedRAMP"
+      ]
+    },
+    {
       "name": "falco",
       "displayName": "Falco (AKS runtime anomaly detection)",
       "source": "falco",
