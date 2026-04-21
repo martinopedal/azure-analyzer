@@ -117,7 +117,7 @@ Describe 'Normalize-WARA' {
 
         It 'preserves Category values' {
             $results[0].Category | Should -Be 'Reliability'
-            $results[1].Category | Should -Be 'Resiliency'
+            $results[1].Category | Should -Be 'Security'
         }
 
         It 'preserves Title' {
@@ -126,6 +126,51 @@ Describe 'Normalize-WARA' {
 
         It 'preserves Detail' {
             $results[0].Detail | Should -Not -BeNullOrEmpty
+        }
+
+        It 'maps WAF framework metadata to Schema 2.2 fields' {
+            @($results[0].Frameworks).Count | Should -Be 1
+            $results[0].Frameworks[0].Name | Should -Be 'WAF'
+            $results[0].Frameworks[0].Pillars | Should -Contain 'Reliability'
+            $results[0].Frameworks[0].Controls | Should -Contain 'rec-reliability-vm'
+            $results[0].Pillar | Should -Be 'Reliability'
+            $results[0].Impact | Should -Be 'High'
+            $results[0].Effort | Should -Be 'Medium'
+            $results[0].DeepLinkUrl | Should -Be 'https://learn.microsoft.com/azure/well-architected/reliability/design-redundancy'
+            $results[0].ToolVersion | Should -Be '2.4.0'
+        }
+
+        It 'emits remediation snippets and baseline tags' {
+            @($results[0].RemediationSnippets).Count | Should -Be 2
+            $results[0].RemediationSnippets[0].language | Should -Be 'text'
+            $results[0].BaselineTags | Should -Contain 'service-category:compute'
+        }
+
+        It 'emits canonical EntityRefs' {
+            @($results[0].EntityRefs).Count | Should -Be 2
+            $results[0].EntityRefs[0] | Should -Match '^/subscriptions/'
+            $results[0].EntityRefs[0] | Should -BeExactly $results[0].EntityRefs[0].ToLowerInvariant()
+        }
+    }
+
+    Context 'pillar enumeration coverage' {
+        It 'normalizes all 5 WAF pillars' {
+            $allPillarsInput = [PSCustomObject]@{
+                Source      = 'wara'
+                Status      = 'Success'
+                ToolVersion = '2.4.0'
+                Findings    = @(
+                    [PSCustomObject]@{ Id = 'p1'; RecommendationId = 'c1'; ResourceId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm1'; Category = 'Reliability'; Pillar = 'Reliability'; Title = 'R'; Compliant = $false; Severity = 'High'; Detail = 'd' },
+                    [PSCustomObject]@{ Id = 'p2'; RecommendationId = 'c2'; ResourceId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/sa1'; Category = 'Security'; Pillar = 'Security'; Title = 'S'; Compliant = $false; Severity = 'High'; Detail = 'd' },
+                    [PSCustomObject]@{ Id = 'p3'; RecommendationId = 'c3'; ResourceId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg/providers/Microsoft.Sql/servers/sql1'; Category = 'Cost'; Pillar = 'Cost Optimization'; Title = 'C'; Compliant = $false; Severity = 'Medium'; Detail = 'd' },
+                    [PSCustomObject]@{ Id = 'p4'; RecommendationId = 'c4'; ResourceId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet1'; Category = 'Performance'; Pillar = 'Performance Efficiency'; Title = 'P'; Compliant = $false; Severity = 'Medium'; Detail = 'd' },
+                    [PSCustomObject]@{ Id = 'p5'; RecommendationId = 'c5'; ResourceId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg/providers/Microsoft.KeyVault/vaults/kv1'; Category = 'Operational'; Pillar = 'Operational Excellence'; Title = 'O'; Compliant = $false; Severity = 'Low'; Detail = 'd' }
+                )
+            }
+
+            $results = Normalize-WARA -ToolResult $allPillarsInput
+            $pillars = @($results.Pillar | Select-Object -Unique | Sort-Object)
+            $pillars | Should -Be @('Cost', 'Operational', 'Performance', 'Reliability', 'Security')
         }
     }
 

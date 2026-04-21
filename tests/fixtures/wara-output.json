@@ -5,26 +5,57 @@
   "Findings": [
     {
       "Source": "wara",
+      "Id": "rec-reliability-vm::/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01",
+      "RecommendationId": "rec-reliability-vm",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01",
       "Category": "Reliability",
+      "Pillar": "Reliability",
       "Title": "VM is not part of an availability set or availability zone",
       "Compliant": false,
       "Severity": "High",
+      "Impact": "High",
+      "Effort": "Medium",
       "Detail": "Virtual machine vm-web-01 is deployed without an availability set or availability zone. Single-instance VMs do not qualify for the 99.9% SLA.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/reliability/reliability-virtual-machines",
+      "DeepLinkUrl": "https://learn.microsoft.com/azure/well-architected/reliability/design-redundancy",
       "Remediation": "Redeploy the VM into an availability zone or availability set to improve resiliency.",
+      "RemediationSteps": [
+        "Use Availability Zones for production workloads.",
+        "Place VM in an Availability Set when zones are unavailable."
+      ],
+      "BaselineTags": [
+        "service-category:compute"
+      ],
+      "EntityRefs": [
+        "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01",
+        "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Network/loadBalancers/lb-prod-01"
+      ],
+      "ToolVersion": "2.4.0",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "wara",
+      "Id": "rec-security-sql::/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Sql/servers/sql-prod-01",
+      "RecommendationId": "rec-security-sql",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Sql/servers/sql-prod-01",
-      "Category": "Resiliency",
-      "Title": "SQL Server does not have geo-replication configured",
+      "Category": "Security",
+      "Pillar": "Security",
+      "Title": "SQL Server does not enforce Entra-only authentication",
       "Compliant": false,
       "Severity": "High",
-      "Detail": "SQL Server sql-prod-01 does not have active geo-replication or auto-failover groups configured. A regional outage could result in data loss.",
-      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview",
-      "Remediation": "Configure active geo-replication or auto-failover groups for business-critical databases.",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "Detail": "SQL Server sql-prod-01 currently permits SQL authentication. Centralized identity controls should be enforced through Entra-only authentication.",
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/azure-sql/database/authentication-azure-ad-only-authentication",
+      "DeepLinkUrl": "https://learn.microsoft.com/azure/well-architected/security/design-identity-access",
+      "Remediation": "Enable Entra-only authentication and remove SQL logins.",
+      "BaselineTags": [
+        "service-category:data"
+      ],
+      "EntityRefs": [
+        "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Sql/servers/sql-prod-01"
+      ],
+      "ToolVersion": "2.4.0",
       "SchemaVersion": "1.0"
     }
   ]

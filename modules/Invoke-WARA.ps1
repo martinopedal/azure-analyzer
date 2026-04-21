@@ -32,11 +32,91 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+function Get-WaraPropertyValue {
+    param(
+        [Parameter(Mandatory)][object] $Object,
+        [Parameter(Mandatory)][string[]] $Names
+    )
+    foreach ($name in $Names) {
+        if ($Object -and $Object.PSObject.Properties[$name]) {
+            $value = $Object.$name
+            if ($null -ne $value -and -not [string]::IsNullOrWhiteSpace([string]$value)) {
+                return $value
+            }
+        }
+    }
+    return $null
+}
+
+function Normalize-WaraPillar {
+    param([string] $Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
+    $normalized = $Value.Trim().ToLowerInvariant()
+    if ($normalized -match 'reliab') { return 'Reliability' }
+    if ($normalized -match 'secur') { return 'Security' }
+    if ($normalized -match 'cost') { return 'Cost' }
+    if ($normalized -match 'perform') { return 'Performance' }
+    if ($normalized -match 'operat') { return 'Operational' }
+    return ''
+}
+
+function New-WaraKey {
+    param([object] $Value)
+    if ($null -eq $Value) { return '' }
+    $key = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($key)) { return '' }
+    return $key.Trim().ToLowerInvariant()
+}
+
+function Get-WaraWorkbookMetadata {
+    param([string] $WorkbookPath)
+    $metadata = @{}
+    if ([string]::IsNullOrWhiteSpace($WorkbookPath)) { return $metadata }
+    if (-not (Test-Path $WorkbookPath)) { return $metadata }
+    if (-not (Get-Command Import-Excel -ErrorAction SilentlyContinue)) { return $metadata }
+
+    try {
+        $sheets = @('Action Plan', 'ActionPlan', 'Recommendations')
+        foreach ($sheet in $sheets) {
+            try {
+                $rows = @(Import-Excel -Path $WorkbookPath -WorksheetName $sheet -ErrorAction Stop)
+            } catch {
+                continue
+            }
+            foreach ($row in $rows) {
+                $recId = Get-WaraPropertyValue -Object $row -Names @('Recommendation Id', 'RecommendationId', 'GUID', 'Recommendation GUID')
+                $title = Get-WaraPropertyValue -Object $row -Names @('Recommendation', 'Title')
+                $pillar = Normalize-WaraPillar ([string](Get-WaraPropertyValue -Object $row -Names @('Pillar', 'Recommendation Control', 'RecommendationControl')))
+                $entry = [PSCustomObject]@{
+                    Pillar           = $pillar
+                    PotentialBenefit = [string](Get-WaraPropertyValue -Object $row -Names @('Potential Benefit', 'PotentialBenefit'))
+                    Status           = [string](Get-WaraPropertyValue -Object $row -Names @('Status', 'Recommendation Status'))
+                    Impact           = [string](Get-WaraPropertyValue -Object $row -Names @('Impact'))
+                    Effort           = [string](Get-WaraPropertyValue -Object $row -Names @('Effort'))
+                    ServiceCategory  = [string](Get-WaraPropertyValue -Object $row -Names @('Service Category', 'ServiceCategory', 'Service'))
+                    DeepLinkUrl      = [string](Get-WaraPropertyValue -Object $row -Names @('Learn More', 'LearnMoreLink', 'DeepLinkUrl', 'Link'))
+                    RemediationSteps = @((Get-WaraPropertyValue -Object $row -Names @('Remediation Steps', 'Remediation', 'Action Plan')) -split "(`r`n|`n|;)" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                }
+                foreach ($key in @((New-WaraKey $recId), (New-WaraKey $title))) {
+                    if (-not [string]::IsNullOrWhiteSpace($key) -and -not $metadata.ContainsKey($key)) {
+                        $metadata[$key] = $entry
+                    }
+                }
+            }
+        }
+    } catch {
+        Write-Warning "Failed to parse WARA workbook metadata: $(Remove-Credentials -Text ([string]$_))"
+    }
+    return $metadata
+}
+
 # Check WARA module is available (centralized Install-Prerequisites handles installation)
-if (-not (Get-Module -ListAvailable -Name WARA)) {
+$waraModule = @(Get-Module -ListAvailable -Name WARA | Sort-Object Version -Descending | Select-Object -First 1)
+if (-not $waraModule) {
     Write-Warning "WARA module not found. Install with: Install-Module WARA -Scope CurrentUser"
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @() }
 }
+$toolVersion = [string]$waraModule[0].Version
 
 Import-Module WARA -ErrorAction SilentlyContinue
 if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
@@ -64,6 +144,9 @@ $subArg = "/subscriptions/$SubscriptionId"
 try {
     Push-Location $OutputPath
     Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Stop
+    if (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue) {
+        Start-WARAAnalyzer -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Stop
+    }
     Pop-Location
 } catch {
     Pop-Location
@@ -89,29 +172,135 @@ try {
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @() }
 }
 
-# Map to flat finding objects — WARA JSON has a 'ImpactedResources' or 'Recommendations' array
-# Handle both known WARA output shapes gracefully
+$xlsxFile = Get-ChildItem -Path $OutputPath -Filter "Expert-Analysis-*.xlsx" |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+$workbookMetadata = if ($xlsxFile) { Get-WaraWorkbookMetadata -WorkbookPath $xlsxFile.FullName } else { @{} }
+
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 $recommendations = $raw.Recommendations ?? ($raw.PSObject.Properties.Value | Where-Object { $_ -is [array] } | Select-Object -First 1)
 foreach ($rec in $recommendations) {
-    # Extract resource ID from ImpactedResources or ResourceId fields
-    $resId = $rec.ResourceId ?? ''
-    if (-not $resId -and $rec.PSObject.Properties['ImpactedResources']) {
-        $first = @($rec.ImpactedResources) | Select-Object -First 1
-        if ($first) { $resId = $first.ResourceId ?? $first.Id ?? $first ?? '' }
+    $recommendationId = [string](Get-WaraPropertyValue -Object $rec -Names @('RecommendationId', 'GUID', 'Id'))
+    if ([string]::IsNullOrWhiteSpace($recommendationId)) { $recommendationId = [guid]::NewGuid().ToString() }
+    $title = [string](Get-WaraPropertyValue -Object $rec -Names @('Recommendation', 'Title'))
+    if ([string]::IsNullOrWhiteSpace($title)) { $title = 'Unknown' }
+
+    $metadata = $null
+    foreach ($key in @((New-WaraKey $recommendationId), (New-WaraKey $title))) {
+        if (-not [string]::IsNullOrWhiteSpace($key) -and $workbookMetadata.ContainsKey($key)) {
+            $metadata = $workbookMetadata[$key]
+            break
+        }
     }
-    $findings.Add([PSCustomObject]@{
-        Id           = $rec.GUID ?? [guid]::NewGuid().ToString()
-        Category     = $rec.Category ?? $rec.Service ?? 'Reliability'
-        Title        = $rec.Recommendation ?? $rec.Title ?? 'Unknown'
-        Severity     = $rec.Impact ?? $rec.Severity ?? 'Medium'
-        Compliant    = $false  # WARA only emits non-compliant findings
-        Detail       = $rec.Description ?? $rec.LongDescription ?? ''
-        Remediation  = $rec.LearnMoreLink ?? $rec.Link ?? ''
-        ResourceId   = [string]$resId
-        LearnMoreUrl = $rec.LearnMoreLink ?? $rec.Link ?? ''
-    })
+
+    $impactedResources = @($rec.ImpactedResources)
+    if (-not $impactedResources -or $impactedResources.Count -eq 0) {
+        $fallbackResourceId = [string](Get-WaraPropertyValue -Object $rec -Names @('ResourceId', 'Id'))
+        if (-not [string]::IsNullOrWhiteSpace($fallbackResourceId)) {
+            $impactedResources = @([PSCustomObject]@{ ResourceId = $fallbackResourceId })
+        } else {
+            $impactedResources = @([PSCustomObject]@{ ResourceId = '' })
+        }
+    }
+
+    $entityRefs = [System.Collections.Generic.List[string]]::new()
+    foreach ($resource in $impactedResources) {
+        $candidate = if ($resource -is [string]) {
+            $resource
+        } else {
+            [string](Get-WaraPropertyValue -Object $resource -Names @('ResourceId', 'Id'))
+        }
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            $entityRefs.Add($candidate)
+        }
+    }
+    $entityRefArray = @($entityRefs | Select-Object -Unique)
+
+    $pillar = Normalize-WaraPillar ([string](Get-WaraPropertyValue -Object $rec -Names @('Pillar', 'RecommendationControl', 'Category')))
+    if ([string]::IsNullOrWhiteSpace($pillar) -and $metadata) { $pillar = Normalize-WaraPillar ([string]$metadata.Pillar) }
+
+    $impact = [string](Get-WaraPropertyValue -Object $rec -Names @('Impact', 'RecommendationImpact'))
+    if ([string]::IsNullOrWhiteSpace($impact) -and $metadata) { $impact = [string]$metadata.Impact }
+    $effort = [string](Get-WaraPropertyValue -Object $rec -Names @('Effort'))
+    if ([string]::IsNullOrWhiteSpace($effort) -and $metadata) { $effort = [string]$metadata.Effort }
+
+    $serviceCategory = [string](Get-WaraPropertyValue -Object $rec -Names @('ServiceCategory', 'Service'))
+    if ([string]::IsNullOrWhiteSpace($serviceCategory) -and $metadata) { $serviceCategory = [string]$metadata.ServiceCategory }
+    $baselineTags = @()
+    if (-not [string]::IsNullOrWhiteSpace($serviceCategory)) { $baselineTags += "service-category:$serviceCategory" }
+
+    $deepLink = if ($metadata) { [string]$metadata.DeepLinkUrl } else { '' }
+    if ([string]::IsNullOrWhiteSpace($deepLink)) {
+        $deepLink = [string](Get-WaraPropertyValue -Object $rec -Names @('LearnMoreLink', 'Link', 'DeepLinkUrl'))
+    }
+
+    $remediation = [string](Get-WaraPropertyValue -Object $rec -Names @('Remediation', 'RecommendationAction'))
+    $remediationSteps = @()
+    if ($rec.PSObject.Properties['Description'] -and $rec.Description -and $rec.Description.PSObject.Properties['Steps']) {
+        $remediationSteps = @($rec.Description.Steps | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    if (($remediationSteps.Count -eq 0) -and $metadata) {
+        $remediationSteps = @($metadata.RemediationSteps | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+    if ([string]::IsNullOrWhiteSpace($remediation) -and $remediationSteps.Count -gt 0) {
+        $remediation = ($remediationSteps -join ' ')
+    }
+
+    $status = [string](Get-WaraPropertyValue -Object $rec -Names @('Status'))
+    if ([string]::IsNullOrWhiteSpace($status) -and $metadata) { $status = [string]$metadata.Status }
+    $potentialBenefit = [string](Get-WaraPropertyValue -Object $rec -Names @('PotentialBenefit', 'Potential Benefit'))
+    if ([string]::IsNullOrWhiteSpace($potentialBenefit) -and $metadata) { $potentialBenefit = [string]$metadata.PotentialBenefit }
+    $frameworks = @(@{
+            Name     = 'WAF'
+            Pillars  = if ($pillar) { @($pillar) } else { @() }
+            Controls = @($recommendationId)
+        })
+    $category = [string](Get-WaraPropertyValue -Object $rec -Names @('Category', 'Service', 'RecommendationControl'))
+    if ([string]::IsNullOrWhiteSpace($category)) { $category = 'Reliability' }
+    $severity = [string](Get-WaraPropertyValue -Object $rec -Names @('Severity', 'Impact'))
+    if ([string]::IsNullOrWhiteSpace($severity)) { $severity = 'Medium' }
+    $detail = [string](Get-WaraPropertyValue -Object $rec -Names @('LongDescription', 'Description'))
+    if ([string]::IsNullOrWhiteSpace($detail) -and $remediationSteps.Count -gt 0) {
+        $detail = $remediationSteps -join ' '
+    }
+    if ([string]::IsNullOrWhiteSpace($detail)) { $detail = '' }
+
+    foreach ($resource in $impactedResources) {
+        $resourceId = if ($resource -is [string]) {
+            $resource
+        } else {
+            [string](Get-WaraPropertyValue -Object $resource -Names @('ResourceId', 'Id'))
+        }
+        $resourceId = if ($resourceId) { $resourceId } else { '' }
+        $findingId = "$recommendationId::$resourceId"
+        if ([string]::IsNullOrWhiteSpace($resourceId)) { $findingId = $recommendationId }
+
+        $findings.Add([PSCustomObject]@{
+            Id               = $findingId
+            RecommendationId = $recommendationId
+            Category         = $category
+            Pillar           = $pillar
+            Title            = $title
+            Severity         = $severity
+            Impact           = $impact
+            Effort           = $effort
+            Compliant        = $false
+            Detail           = $detail
+            Remediation      = $remediation
+            RemediationSteps = @($remediationSteps)
+            ResourceId       = [string]$resourceId
+            LearnMoreUrl     = $deepLink
+            DeepLinkUrl      = $deepLink
+            Frameworks       = @($frameworks)
+            BaselineTags     = @($baselineTags)
+            ServiceCategory  = $serviceCategory
+            EntityRefs       = @($entityRefArray)
+            Status           = $status
+            PotentialBenefit = $potentialBenefit
+            ToolVersion      = $toolVersion
+        })
+    }
 }
 
-return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Success'; Message = ''; Findings = $findings }
+return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; ToolVersion = $toolVersion; Status = 'Success'; Message = ''; Findings = $findings }
