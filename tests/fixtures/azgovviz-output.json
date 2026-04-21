@@ -68,11 +68,27 @@
         }
       ],
       "BaselineTags": [
-        "initiative:baseline-security-initiative"
+        "initiative:baseline-security-initiative",
+        "initiative:category-policy"
       ],
       "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance",
       "EvidenceUris": [
         "file:///C:/reports/azgovviz.html#policy"
+      ],
+      "Impact": "High",
+      "Effort": "Medium",
+      "RemediationSnippets": [
+        {
+          "language": "text",
+          "code": "Review and remove orphaned custom policy definitions that are no longer in use."
+        }
+      ],
+      "ScoreDelta": -1.5,
+      "MitreTactics": [
+        "Defense Evasion"
+      ],
+      "MitreTechniques": [
+        "T1562"
       ],
       "ToolVersion": "9.9.9",
       "ManagementGroupId": "mg-platform",
@@ -156,7 +172,8 @@
         }
       ],
       "BaselineTags": [
-        "initiative:baseline-network-initiative"
+        "initiative:baseline-network-initiative",
+        "initiative:category-policy"
       ],
       "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance?scope=%2Fsubscriptions%2F00000000-0000-0000-0000-000000000001",
       "EvidenceUris": [

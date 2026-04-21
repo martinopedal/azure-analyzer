@@ -151,6 +151,20 @@ Describe 'Normalize-AzGovViz' {
             $policyFinding.ToolVersion | Should -Be '9.9.9'
         }
 
+        It 'maps schema 2.2 impact, effort, remediation snippets and MITRE context' {
+            $policyFinding = $results | Where-Object { $_.Title -eq 'Management group has orphaned custom policy definitions' } | Select-Object -First 1
+            $policyFinding | Should -Not -BeNullOrEmpty
+            $policyFinding.Impact | Should -Be 'High'
+            $policyFinding.Effort | Should -Be 'Medium'
+            @($policyFinding.RemediationSnippets).Count | Should -BeGreaterThan 0
+            $policyFinding.RemediationSnippets[0].language | Should -Be 'text'
+            $policyFinding.ScoreDelta | Should -Be (-1.5)
+            @($policyFinding.MitreTactics) | Should -Contain 'Defense Evasion'
+            @($policyFinding.MitreTechniques) | Should -Contain 'T1562'
+            @($policyFinding.EntityRefs).Count | Should -BeGreaterThan 0
+            @($policyFinding.BaselineTags) | Should -Contain 'initiative:category-policy'
+        }
+
         It 'derives pillar values across azgovviz categories' {
             ($results | Where-Object { $_.Category -eq 'Governance' } | Select-Object -First 1).Pillar | Should -Be 'Operational Excellence'
             ($results | Where-Object { $_.Category -eq 'Policy' } | Select-Object -First 1).Pillar | Should -Be 'Security'

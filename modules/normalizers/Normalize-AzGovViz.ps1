@@ -34,6 +34,56 @@ function Get-StringArrayValue {
     return @([string]$value)
 }
 
+function Get-HashtableArrayValue {
+    param ([object]$Obj, [string]$Name)
+    $value = Get-PropertyValue -Obj $Obj -Name $Name -Default @()
+    if ($null -eq $value) { return @() }
+    $items = [System.Collections.Generic.List[hashtable]]::new()
+    foreach ($entry in @($value)) {
+        if ($null -eq $entry) { continue }
+        if ($entry -is [System.Collections.IDictionary]) {
+            $map = @{}
+            foreach ($key in $entry.Keys) {
+                $map[[string]$key] = $entry[$key]
+            }
+            $items.Add($map) | Out-Null
+            continue
+        }
+
+        if ($entry.PSObject) {
+            $map = @{}
+            foreach ($prop in @($entry.PSObject.Properties)) {
+                $map[$prop.Name] = $prop.Value
+            }
+            if ($map.Count -gt 0) {
+                $items.Add($map) | Out-Null
+                continue
+            }
+        }
+
+        $text = [string]$entry
+        if (-not [string]::IsNullOrWhiteSpace($text)) {
+            $items.Add(@{
+                    language = 'text'
+                    code     = $text.Trim()
+                }) | Out-Null
+        }
+    }
+    return @($items)
+}
+
+function Convert-ToRemediationSnippets {
+    param ([string]$Remediation)
+
+    if ([string]::IsNullOrWhiteSpace($Remediation)) { return @() }
+    return @(
+        @{
+            language = 'text'
+            code     = $Remediation.Trim()
+        }
+    )
+}
+
 function Get-AzGovVizPillar {
     param ([string]$Category, [string]$Title)
 
@@ -43,6 +93,35 @@ function Get-AzGovVizPillar {
     if ($normalizedCategory -match '^(cost|costoptimization|finops)$') { return 'Cost' }
     if ($normalizedTitle -match 'orphaned') { return 'Cost' }
     return 'Operational Excellence'
+}
+
+function Get-AzGovVizImpact {
+    param (
+        [string]$Severity,
+        [string]$Category
+    )
+
+    switch -Regex (($Severity ?? '').Trim().ToLowerInvariant()) {
+        'critical|high' { return 'High' }
+        'medium' { return 'Medium' }
+        'low|info' { return 'Low' }
+    }
+
+    switch -Regex (($Category ?? '').Trim().ToLowerInvariant()) {
+        '^(policy|identity)$' { return 'High' }
+        '^(cost|costoptimization|finops)$' { return 'Medium' }
+        default { return 'Medium' }
+    }
+}
+
+function Get-AzGovVizEffort {
+    param ([string]$Category)
+
+    switch -Regex (($Category ?? '').Trim().ToLowerInvariant()) {
+        '^identity$' { return 'High' }
+        '^(policy|operations)$' { return 'Medium' }
+        default { return 'Low' }
+    }
 }
 
 function Resolve-AzGovVizEntity {
@@ -227,6 +306,39 @@ function Normalize-AzGovViz {
         $frameworks = Get-PropertyValue $finding 'Frameworks' @()
         $baselineTags = Get-StringArrayValue -Obj $finding -Name 'BaselineTags'
         $evidenceUris = Get-StringArrayValue -Obj $finding -Name 'EvidenceUris'
+        $impact = [string](Get-PropertyValue $finding 'Impact' '')
+        if (-not $impact) {
+            $impact = Get-AzGovVizImpact -Severity $severity -Category $category
+        }
+        $effort = [string](Get-PropertyValue $finding 'Effort' '')
+        if (-not $effort) {
+            $effort = Get-AzGovVizEffort -Category $category
+        }
+        $remediationSnippets = @(Get-HashtableArrayValue -Obj $finding -Name 'RemediationSnippets')
+        if (@($remediationSnippets).Count -eq 0) {
+            $remediationSnippets = @(Convert-ToRemediationSnippets -Remediation $remediation)
+        }
+        $scoreDelta = $null
+        $rawScoreDelta = Get-PropertyValue $finding 'ScoreDelta' $null
+        if ($null -ne $rawScoreDelta -and -not [string]::IsNullOrWhiteSpace([string]$rawScoreDelta)) {
+            $parsedScore = 0.0
+            if ([double]::TryParse(
+                    [string]$rawScoreDelta,
+                    [System.Globalization.NumberStyles]::Any,
+                    [System.Globalization.CultureInfo]::InvariantCulture,
+                    [ref]$parsedScore
+                )) {
+                $scoreDelta = $parsedScore
+            }
+        }
+        $mitreTactics = Get-StringArrayValue -Obj $finding -Name 'MitreTactics'
+        if (@($mitreTactics).Count -eq 0) {
+            $mitreTactics = Get-StringArrayValue -Obj $finding -Name 'Tactics'
+        }
+        $mitreTechniques = Get-StringArrayValue -Obj $finding -Name 'MitreTechniques'
+        if (@($mitreTechniques).Count -eq 0) {
+            $mitreTechniques = Get-StringArrayValue -Obj $finding -Name 'Techniques'
+        }
         $entityRefs = Get-AzGovVizEntityRefs -Finding $finding -EntityResolution $entityResolution
         $toolVersion = Get-PropertyValue $finding 'ToolVersion' ''
         $deepLinkUrl = Get-PropertyValue $finding 'DeepLinkUrl' ''
@@ -249,13 +361,19 @@ function Normalize-AzGovViz {
             SubscriptionId  = $entityResolution.SubscriptionId
             ResourceGroup   = $entityResolution.ResourceGroup
             ManagementGroupPath = $mgPath
-            Frameworks      = $frameworks
-            Pillar          = $pillar
-            DeepLinkUrl     = $deepLinkUrl
-            EvidenceUris    = $evidenceUris
-            BaselineTags    = $baselineTags
-            EntityRefs      = $entityRefs
-            ToolVersion     = $toolVersion
+             Frameworks      = $frameworks
+             Pillar          = $pillar
+             Impact          = $impact
+             Effort          = $effort
+             DeepLinkUrl     = $deepLinkUrl
+             RemediationSnippets = $remediationSnippets
+             EvidenceUris    = $evidenceUris
+             BaselineTags    = $baselineTags
+             ScoreDelta      = $scoreDelta
+             MitreTactics    = $mitreTactics
+             MitreTechniques = $mitreTechniques
+             EntityRefs      = $entityRefs
+             ToolVersion     = $toolVersion
         }
         if ($entityResolution.PlatformOverride) {
             $newFindingParams.Platform = $entityResolution.PlatformOverride

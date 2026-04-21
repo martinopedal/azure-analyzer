@@ -106,7 +106,7 @@ The three quickstart scenarios above are the common path. The consumer index in 
 - Azure DevOps Services and Azure DevOps Server pipeline, service-connection, repo-secret, and pipeline-consumption posture
 - GitHub Actions billing and runner-minute cost telemetry with Schema 2.2 cost ETL metadata (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `ScoreDelta`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`)
 - Sentinel coverage and active incidents
-- AzGovViz governance findings with Schema 2.2 enrichments (pillar, framework controls, baseline tags, portal deep links, evidence URIs)
+- AzGovViz governance findings with Schema 2.2 enrichments (`Pillar`, `Frameworks` for ALZ and CAF controls, `Impact`, `Effort`, `DeepLinkUrl` to source policy context, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`)
 - Application Insights performance signals (slow requests, dependency failures, exception clusters)
 - Azure Load Testing failed and regressed runs
 - AKS rightsizing via Container Insights utilization signals
