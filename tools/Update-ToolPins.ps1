@@ -20,6 +20,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+. (Join-Path $RepoRoot 'modules' 'shared' 'Retry.ps1')
 
 $BreakingPatterns = @(
     'BREAKING',
@@ -67,6 +69,68 @@ function Test-BreakingChange {
     return $false
 }
 
+function Invoke-GitCommand {
+    param(
+        [Parameter(Mandatory)][string[]]$Arguments,
+        [int]$MaxAttempts = 3
+    )
+
+    return Invoke-WithRetry -MaxAttempts $MaxAttempts -InitialDelaySeconds 1 -MaxDelaySeconds 5 -ScriptBlock {
+        $output = & git @Arguments 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $joined = ($output -join [Environment]::NewLine).Trim()
+            throw [System.Exception]::new("git $($Arguments -join ' ') failed: $joined")
+        }
+        return $output
+    }
+}
+
+function Test-LocalBranchExists {
+    param([Parameter(Mandatory)][string]$Branch)
+    $null = & git show-ref --verify --quiet ("refs/heads/$Branch") 2>&1
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Test-RemoteBranchExists {
+    param([Parameter(Mandatory)][string]$Branch)
+    $remoteHeads = Invoke-GitCommand -Arguments @('ls-remote', '--heads', 'origin', $Branch)
+    return -not [string]::IsNullOrWhiteSpace(($remoteHeads -join '').Trim())
+}
+
+function Initialize-ToolUpdateBranch {
+    param([Parameter(Mandatory)][string]$Branch)
+
+    Invoke-GitCommand -Arguments @('fetch', 'origin', 'main') | Out-Null
+    $remoteBranchExists = Test-RemoteBranchExists -Branch $Branch
+    $localBranchExists = Test-LocalBranchExists -Branch $Branch
+
+    if ($remoteBranchExists -or $localBranchExists) {
+        if ($remoteBranchExists -and -not $localBranchExists) {
+            Invoke-GitCommand -Arguments @('checkout', '-B', $Branch, "origin/$Branch") | Out-Null
+        } else {
+            Invoke-GitCommand -Arguments @('checkout', $Branch) | Out-Null
+        }
+        Invoke-GitCommand -Arguments @('reset', '--hard', 'origin/main') | Out-Null
+    } else {
+        Invoke-GitCommand -Arguments @('checkout', '-b', $Branch) | Out-Null
+    }
+
+    return [pscustomobject]@{
+        RemoteBranchExists = $remoteBranchExists
+    }
+}
+
+function Get-OpenPullRequestForBranch {
+    param([Parameter(Mandatory)][string]$Branch)
+
+    $prNumberRaw = & gh pr list --head $Branch --base main --state open --json number --jq '.[0].number' 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$prNumberRaw)) {
+        return $null
+    }
+
+    return "$prNumberRaw".Trim()
+}
+
 $manifestJson = Get-Content $ManifestPath -Raw
 $manifest = $manifestJson | ConvertFrom-Json -AsHashtable
 
@@ -97,7 +161,7 @@ foreach ($tool in $manifest.tools) {
     if ($DryRun) { continue }
 
     $branch = "chore/bump-$name-$($latest.Version -replace '[^a-zA-Z0-9._-]','-')"
-    git checkout -b $branch 2>&1 | Out-Null
+    $branchState = Initialize-ToolUpdateBranch -Branch $branch
 
     # Update currentPin in the manifest using the same JSON ordering.
     $manifestRaw = Get-Content $ManifestPath -Raw
@@ -107,12 +171,19 @@ foreach ($tool in $manifest.tools) {
     }
     ($manifestObj | ConvertTo-Json -Depth 20) | Set-Content $ManifestPath -Encoding utf8
 
-    git add $ManifestPath
-    git commit -m "chore($name): bump upstream pin to $($latest.Version)" `
-               -m "Previous pin: $current`nNew pin: $($latest.Version)`nRelease: $($latest.Url)" `
-               -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>" | Out-Null
+    Invoke-GitCommand -Arguments @('add', $ManifestPath) | Out-Null
+    Invoke-GitCommand -Arguments @(
+        'commit',
+        '-m', "chore($name): bump upstream pin to $($latest.Version)",
+        '-m', "Previous pin: $current`nNew pin: $($latest.Version)`nRelease: $($latest.Url)",
+        '-m', 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'
+    ) | Out-Null
 
-    git push -u origin $branch 2>&1 | Out-Null
+    if ($branchState.RemoteBranchExists) {
+        Invoke-GitCommand -Arguments @('push', '--force-with-lease', '-u', 'origin', $branch) | Out-Null
+    } else {
+        Invoke-GitCommand -Arguments @('push', '-u', 'origin', $branch) | Out-Null
+    }
 
     $breaking = Test-BreakingChange -Notes $latest.Notes
     $notesExcerpt = if ($latest.Notes) { ($latest.Notes -split "`n" | Select-Object -First 20) -join "`n" } else { '(no release notes)' }
@@ -150,15 +221,26 @@ $notesExcerpt
 
     $tmp = New-TemporaryFile
     Set-Content -Path $tmp -Value $body -Encoding utf8
-    gh pr create `
-        --title "chore($name): bump upstream pin to $($latest.Version)" `
-        --body-file $tmp `
-        --label ($labels -join ',') `
-        --head $branch `
-        --base main | Out-Null
+    $prTitle = "chore($name): bump upstream pin to $($latest.Version)"
+    $existingPr = Get-OpenPullRequestForBranch -Branch $branch
+    if ($existingPr) {
+        gh pr edit $existingPr `
+            --title $prTitle `
+            --body-file $tmp | Out-Null
+        foreach ($label in $labels) {
+            gh pr edit $existingPr --add-label $label | Out-Null
+        }
+    } else {
+        gh pr create `
+            --title $prTitle `
+            --body-file $tmp `
+            --label ($labels -join ',') `
+            --head $branch `
+            --base main | Out-Null
+    }
     Remove-Item $tmp
 
-    git checkout main 2>&1 | Out-Null
+    Invoke-GitCommand -Arguments @('checkout', 'main') | Out-Null
 }
 
 Write-Host "Done."
