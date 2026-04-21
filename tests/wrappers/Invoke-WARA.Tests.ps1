@@ -68,19 +68,21 @@ Describe 'Invoke-WARA: success paths' {
         New-Item -ItemType File -Path $xlsxPath -Force | Out-Null
 
         function global:Get-Module {
+            [CmdletBinding()]
             param([switch] $ListAvailable, [string] $Name)
             if ($ListAvailable -and $Name -eq 'WARA') {
                 return [PSCustomObject]@{ Name = 'WARA'; Version = [version]'2.4.0' }
             }
-            return $null
+            return Microsoft.PowerShell.Core\Get-Module @PSBoundParameters
         }
         function global:Import-Module { }
         function global:Get-Command {
+            [CmdletBinding()]
             param([string] $Name)
             if ($Name -in @('Start-WARACollector', 'Start-WARAAnalyzer', 'Import-Excel')) {
                 return [PSCustomObject]@{ Name = $Name }
             }
-            return $null
+            return Microsoft.PowerShell.Core\Get-Command @PSBoundParameters
         }
         function global:Get-AzContext { [PSCustomObject]@{ Tenant = [PSCustomObject]@{ Id = '11111111-1111-1111-1111-111111111111' } } }
         function global:Start-WARACollector { }
