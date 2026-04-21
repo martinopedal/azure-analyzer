@@ -417,7 +417,7 @@
         "Name": "SOC2"
       }
     ],
-    "DeepLinkUrl": "https://github.com/organizations/contoso/settings/billing/actions",
+    "DeepLinkUrl": "https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions",
     "EvidenceUris": [
       "https://github.com/contoso/payments-api/actions",
       "https://github.com/contoso/payments-api/settings/actions"
@@ -509,3 +509,4 @@
     "ToolVersion": "2.7.0"
   }
 ]
+

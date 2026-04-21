@@ -171,7 +171,7 @@ Top 30 findings from this run. The [interactive HTML report](sample-report.html)
 | 7 | Application Insights Performance Signals | Performance Efficiency | Medium | Medium | WAF | - | [Open](https://portal.azure.com/#view/AppInsightsExtension/BladeRedirect/BladeName/searchV1/ComponentId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Frg-payments-app%2Fproviders%2Fmicrosoft.insights%2Fcomponents%2Fpayments-api-ai) |
 | 8 | finops-signals | Cost Optimization | Medium | Low | WAF | - | [Open](https://portal.azure.com/#view/Microsoft_Azure_CostManagement/Menu/~/costanalysis) |
 | 9 | Microsoft Sentinel (Coverage / Posture) | Security | Medium | Medium | MITRE ATT&CK · NIST 800-53 | Initial Access, T1190 | [Open](https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/analytics/resourceId/%2Fsubscriptions%2F22222222-2222-2222-2222-222222222222%2FresourceGroups%2Frg-sec%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Flaw-sec-01) |
-| 10 | GitHub Actions Billing | Cost Optimization | Medium | Low | SOC2 | - | [Open](https://github.com/organizations/contoso/settings/billing/actions) |
+| 10 | GitHub Actions Billing | Cost Optimization | Medium | Low | SOC2 | - | [Open](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions) |
 
 ### Evidence and remediation snippets
 
