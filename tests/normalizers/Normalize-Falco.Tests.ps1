@@ -1,7 +1,7 @@
 Describe 'Normalize-Falco' {
     BeforeAll {
         . (Join-Path $PSScriptRoot '..' '..' 'modules' 'normalizers' 'Normalize-Falco.ps1')
-        $script:Fixture = Get-Content (Join-Path $PSScriptRoot '..' 'fixtures' 'falco-output.json') -Raw | ConvertFrom-Json
+        $script:Fixture = Get-Content (Join-Path $PSScriptRoot '..' 'fixtures' 'falco' 'falco-output.json') -Raw | ConvertFrom-Json
     }
 
     It 'returns empty array when Status is not Success' {
@@ -43,5 +43,28 @@ Describe 'Normalize-Falco' {
         $rules | Should -Contain 'Terminal shell in container'
         $pods  | Should -Contain 'payment-api-7bb4f4'
         $procs | Should -Contain 'bash'
+    }
+
+    It 'maps Schema 2.2 security metadata for runtime threat findings' {
+        $rows = @(Normalize-Falco -ToolResult $script:Fixture)
+        foreach ($r in $rows) {
+            $r.SchemaVersion | Should -Be '2.2'
+            $r.RuleId | Should -Match '^falco:'
+            $r.Pillar | Should -Be 'Security'
+            $r.Impact | Should -BeIn @('High', 'Medium', 'Low')
+            $r.Effort | Should -BeIn @('Medium', 'Low')
+            $r.DeepLinkUrl | Should -Match '^https://'
+            @($r.RemediationSnippets).Count | Should -BeGreaterThan 0
+            @($r.EvidenceUris).Count | Should -BeGreaterThan 0
+            @($r.BaselineTags).Count | Should -BeGreaterThan 2
+            @($r.Frameworks).Count | Should -BeGreaterThan 0
+            @($r.MitreTactics).Count | Should -BeGreaterThan 0
+            @($r.MitreTechniques).Count | Should -BeGreaterThan 0
+            $r.EntityRefs | Should -Contain $r.EntityId
+            $r.ToolVersion | Should -Not -BeNullOrEmpty
+        }
+        $shellFinding = $rows | Where-Object { $_.RuleName -eq 'Terminal shell in container' } | Select-Object -First 1
+        $shellFinding.Frameworks[0].Name | Should -Be 'CIS Kubernetes Benchmark'
+        $shellFinding.MitreTechniques | Should -Contain 'T1059'
     }
 }
