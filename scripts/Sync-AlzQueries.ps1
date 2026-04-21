@@ -1,11 +1,11 @@
 #Requires -Version 7.4
 <#
 .SYNOPSIS
-    Sync canonical ALZ query JSON from upstream into local queries/.
+    Sync canonical ALZ query JSON from upstream into local queries/alz/.
 .DESCRIPTION
     Reads tools/tool-manifest.json to resolve the alz-queries upstream repo,
     clones upstream via modules/shared/RemoteClone.ps1, and syncs
-    queries/alz_additional_queries.json in an idempotent way.
+    queries/alz/alz_additional_queries.json in an idempotent way.
 #>
 [CmdletBinding()]
 param(
@@ -13,7 +13,7 @@ param(
     [string]$ManifestPath,
     [string]$ToolName = 'alz-queries',
     [string]$SourceRelativePath = 'queries\alz_additional_queries.json',
-    [string]$DestinationRelativePath = 'queries\alz_additional_queries.json',
+    [string]$DestinationRelativePath = 'queries\alz\alz_additional_queries.json',
     [switch]$DryRun
 )
 

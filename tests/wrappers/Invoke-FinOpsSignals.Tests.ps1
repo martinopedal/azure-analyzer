@@ -6,7 +6,7 @@ BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-FinOpsSignals.ps1'
-    $script:QueryFile = Join-Path $script:RepoRoot 'queries' 'finops-unattached-managed-disks.json'
+    $script:QueryFile = Join-Path $script:RepoRoot 'queries' 'finops' 'finops-unattached-managed-disks.json'
 }
 
 Describe 'Invoke-FinOpsSignals: wrapper behavior' {
@@ -83,7 +83,7 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
 
     Context 'with snapshot query and custom threshold' {
         BeforeAll {
-            $script:SnapshotQuery = Join-Path $script:RepoRoot 'queries' 'finops-ungoverned-snapshots.json'
+            $script:SnapshotQuery = Join-Path $script:RepoRoot 'queries' 'finops' 'finops-ungoverned-snapshots.json'
             Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Mock' } }
             Mock Import-Module {}
             Mock Get-AzContext { [PSCustomObject]@{ Account = 'test@contoso.com' } }
