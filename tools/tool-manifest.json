@@ -228,7 +228,8 @@
         "kind": "psmodule",
         "modules": [
           "Az.ResourceGraph"
-        ]
+        ],
+        "comment": "Query mode uses Az.ResourceGraph; -InstallFalco opt-in mode also requires helm and kubectl on PATH."
       },
       "upstream": {
         "repo": "falcosecurity/falco",
@@ -276,6 +277,53 @@
         ]
       },
       "frameworks": [
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "azure-quota",
+      "displayName": "Azure Quota Reports",
+      "source": "azure-quota",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AzureQuotaReports",
+      "invokeMethod": "script",
+      "comment": "Manifest registration only; wrapper + normalizer will land in #322-#325.",
+      "type": "collector",
+      "script": "modules/Invoke-AzureQuotaReports.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "source": "azure-quota",
+        "label": "Azure Quota",
+        "color": "#455a64",
+        "phase": 4,
+        "pillar": "Reliability",
+        "category": "Capacity"
+      },
+      "install": {
+        "kind": "cli",
+        "command": "az",
+        "commands": [
+          "az"
+        ]
+      },
+      "upstream": {
+        "repo": "martinopedal/azure-quota-reports"
+      },
+      "frameworks": [
+        "Azure WAF",
         "Azure CAF"
       ]
     },
@@ -635,8 +683,8 @@
         ]
       },
       "upstream": {
-        "repo": "Azure/Azure-Landing-Zones-Library",
-        "releaseApi": "https://api.github.com/repos/Azure/Azure-Landing-Zones-Library/commits/main",
+        "repo": "martinopedal/alz-graph-queries",
+        "releaseApi": "https://api.github.com/repos/martinopedal/alz-graph-queries/commits/main",
         "pinType": "sha",
         "currentPin": "HEAD"
       },

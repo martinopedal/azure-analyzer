@@ -32,6 +32,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | **AzGovViz** | Management Group | [`azgovviz.md`](docs/consumer/permissions/azgovviz.md) |
 | **Azure Quick Review** | Subscription | [`azqr.md`](docs/consumer/permissions/azqr.md) |
 | **Azure Cost (Consumption API)** | Subscription | [`azure-cost.md`](docs/consumer/permissions/azure-cost.md) |
+| **Azure Quota Reports** | Subscription | [`azure-quota.md`](docs/consumer/permissions/azure-quota.md) |
 | **Microsoft Defender for Cloud** | Subscription | [`defender-for-cloud.md`](docs/consumer/permissions/defender-for-cloud.md) |
 | **Falco (AKS runtime anomaly detection)** | Subscription | [`falco.md`](docs/consumer/permissions/falco.md) |
 | **FinOps Signals (Idle Resource Detection)** | Subscription | [`finops.md`](docs/consumer/permissions/finops.md) |

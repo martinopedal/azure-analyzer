@@ -4,7 +4,14 @@
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**One PowerShell command, 32 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
+**One PowerShell command, 33 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
+
+## What does the output look like?
+
+Two sample reports built from the same illustrative scan (tenant `contoso-prod`, 17 tools, 222 findings):
+
+- **[samples/sample-report.html](samples/sample-report.html)** - interactive single-file HTML with a sortable findings table, control-domain heat map, tool coverage grid, top-risks panel, and a dark mode toggle. Open it locally in any browser; no server, no CDN, no JavaScript dependencies.
+- **[samples/sample-report.md](samples/sample-report.md)** - the same scan rendered as GitHub-Flavored Markdown for pasting into PRs, issues, and email digests.
 
 ## Install
 
@@ -34,7 +41,7 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`.
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`.
 
 ### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
 
@@ -63,7 +70,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 
 ## What you get
 
-- **32 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
+- **33 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
 - **Unified v2 schema** with 5 severity levels (Critical, High, Medium, Low, Info) and 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, top impact recommendations, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
@@ -95,7 +102,7 @@ All tools run **read-only**. Most common scopes:
 
 | Scope | Used by |
 |-------|---------|
-| Azure **Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA, Azure Cost, FinOps Signals, App Insights, Defender for Cloud |
+| Azure **Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, App Insights, Defender for Cloud |
 | **Cost Management Reader** (recommended) | FinOps Signals, Azure Cost |
 | Microsoft **Graph** (read) | Maester (Entra ID) |
 | **GitHub PAT** (optional) | Scorecard, GitHub Actions Billing, remote repo scans |

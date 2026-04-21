@@ -1,264 +1,222 @@
-# Azure Analyzer Report - 2026-04-18 18:24 UTC
+# Azure Analyzer - Posture Report
 
-## Summary
+**Tenant:** `contoso-prod` &nbsp;|&nbsp; **Scanned:** 22 Apr 2026 09:14 UTC &nbsp;|&nbsp; **Run ID:** `aa-20260422-091413`
 
-| Metric | Count |
-|---|---|
-| Total findings | 33 |
-| Non-compliant | 32 |
-| Compliant | 1 |
-| Critical severity | 3 |
-| High severity | 15 |
-| Medium severity | 13 |
-| Low severity | 1 |
-| Info | 1 |
+![Critical](https://img.shields.io/badge/Critical-7-7f1d1d)
+![High](https://img.shields.io/badge/High-34-b91c1c)
+![Medium](https://img.shields.io/badge/Medium-81-b45309)
+![Low](https://img.shields.io/badge/Low-62-a16207)
+![Info](https://img.shields.io/badge/Info-38-475569)
+![Posture](https://img.shields.io/badge/Posture-B%20(78%2F100)-2563eb)
+![Compliance](https://img.shields.io/badge/Compliance-81%25-16a34a)
 
-### By source
+> Sample report for documentation purposes. Numbers are illustrative; the matching [interactive HTML report](sample-report.html) renders the same scan with sortable findings, a heat map, a coverage grid, and dark mode.
 
-| Source | Status | Findings | Non-compliant |
-|---|---|---|---|
-| Azure Quick Review | Success | 2 | 2 |
-| Kubescape (AKS runtime posture) | Success | 2 | 2 |
-| kube-bench (AKS node-level CIS compliance) | Success | 2 | 2 |
-| Microsoft Defender for Cloud | Success | 2 | 2 |
-| Falco (AKS runtime anomaly detection) | Success | 2 | 2 |
-| Azure Cost (Consumption API) | Success | 2 | 1 |
-| PSRule for Azure | Success | 2 | 2 |
-| AzGovViz | Success | 2 | 2 |
-| ALZ Resource Graph Queries | Success | 2 | 2 |
-| Well-Architected Reliability Assessment | Success | 2 | 2 |
-| Maester | Success | 2 | 2 |
-| OpenSSF Scorecard | Success | 2 | 2 |
-| ADO Service Connections | Success | 2 | 2 |
-| Identity Correlator | Success | 2 | 2 |
-| zizmor (Actions YAML Scanner) | Success | 2 | 2 |
-| gitleaks (Secrets Scanner) | Success | 1 | 1 |
-| Trivy Vulnerability Scanner | Success | 2 | 2 |
+## Contents
 
-## Compliance coverage
+1. [Executive summary](#executive-summary)
+2. [Tool coverage](#tool-coverage)
+3. [Heat map](#heat-map)
+4. [Top 10 risks](#top-10-risks)
+5. [Findings (top 30)](#findings-top-30)
+6. [Entity inventory](#entity-inventory)
+7. [Run details](#run-details)
 
-| Framework | Version | Controls hit | Total controls | Coverage | Status |
-|---|---|---:|---:|---:|---|
-| CIS Azure Foundations | 2.1 | 0 | 22 | 0% | 🔴 |
-| NIST 800-53 | Rev 5 | 0 | 27 | 0% | 🔴 |
-| PCI-DSS | 4.0 | 0 | 22 | 0% | 🔴 |
+## Executive summary
 
-## Findings by category
+Tenant `contoso-prod` was scanned across 17 tools covering 412 entities in 3 subscriptions (`prod-payments`, `prod-identity`, `dev-shared`). 81% of evaluated controls passed, up 2.3 points versus the previous run on 8 Apr. Posture grade is **B (78/100)**.
 
-### CI/CD Security
+Seven Critical issues require attention this week, mostly clustered in `prod-identity` (5 of 7). Two new high-severity workflow-injection findings landed in `contoso/payments-api` from the latest `zizmor` sweep. Net delta from the previous run: Critical down 2, High down 5, Medium up 6, Low flat, Info up 1.
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| template-injection: Workflow uses ${{ github.event.issue.title }} in run step | Critical | zizmor | No | File .github/workflows/triage.yml injects untrusted issue title directly into a shell command. | .github/workflows/triage.yml | [https://woodruffw.github.io/zizmor/audits/#template-injection](https://woodruffw.github.io/zizmor/audits/#template-injection) |
-| unpinned-uses: action pinned by tag, not SHA | Medium | zizmor | No | File .github/workflows/release.yml references actions/upload-artifact@v4 instead of a 40-char SHA. | .github/workflows/release.yml | [https://woodruffw.github.io/zizmor/audits/#unpinned-uses](https://woodruffw.github.io/zizmor/audits/#unpinned-uses) |
+**Top recommendations**
 
-### Container Security
+1. Enable PIM activation for the 4 standing Owner role assignments in `prod-identity` (Critical, identity).
+2. Resolve the 2 hard-coded secrets in `contoso/payments-api` flagged by `gitleaks` (Critical, secrets).
+3. Pin the 8 unpinned third-party actions in `contoso/payments-api` and `contoso/identity-edge` (High, supply chain).
+4. Right-size the 3 over-provisioned AKS node pools in `prod-payments` (Medium, cost; ~ $1.4k/mo).
+5. Enable Defender for Containers on the remaining 2 AKS clusters in `dev-shared` (High, runtime).
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| CIS 4.2.1: Kubelet anonymous authentication is enabled | High | kube-bench | No | Kubelet on node 'aks-nodepool1-12345678-vmss000000' allows anonymous authentication. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/agentpools/nodepool1 | [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes) |
-| K8s pod runs with privileged escalation enabled | High | kubescape | No | Pod 'prod-api-7d8f9c4b-xkz2p' in namespace 'default' has allowPrivilegeEscalation=true. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://hub.armosec.io/docs/c-0016](https://hub.armosec.io/docs/c-0016) |
-| Suspicious shell spawned in container | High | falco | No | Container 'api' in pod 'prod-api-7d8f9c4b-xkz2p' spawned an interactive shell (bash) at 2026-04-16 22:15:42 UTC. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://falco.org/docs/rules/default-macros/#shell_procs](https://falco.org/docs/rules/default-macros/#shell_procs) |
-| CIS 4.2.6: RotateKubeletServerCertificate not enabled | Medium | kube-bench | No | Kubelet certificate auto-rotation is disabled on node 'aks-nodepool1-12345678-vmss000000'. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/agentpools/nodepool1 | [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes) |
-| Container running as root user | Medium | kubescape | No | Container 'api' in pod 'prod-api-7d8f9c4b-xkz2p' runs as UID 0 (root). | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://hub.armosec.io/docs/c-0013](https://hub.armosec.io/docs/c-0013) |
-| File opened in /etc directory by container process | Medium | falco | No | Container 'worker' in pod 'prod-worker-5c9a8b1d-qwer' opened /etc/passwd for write at 2026-04-16 22:18:14 UTC. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-worker-5c9a8b1d-qwer | [https://falco.org/docs/rules/default-macros/#write_etc_common](https://falco.org/docs/rules/default-macros/#write_etc_common) |
+## Tool coverage
 
-### Cost Optimization
+17 active tools across 6 providers. One tool (`copilot-triage`) is registered but disabled in this scan.
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| Top cost contributor: AKS cluster 'aks-prod-apps' ($4,231/month) | Info | azure-cost | Yes | AKS cluster 'aks-prod-apps' consumed $4,231 in the last 30 days, representing 38% of subscription spend. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps | [https://learn.microsoft.com/azure/aks/cost-analysis](https://learn.microsoft.com/azure/aks/cost-analysis) |
-| Unattached Premium SSD disk incurring cost ($127/month) | Medium | azure-cost | No | Managed disk 'disk-orphaned-data' is unattached and has been billed $127 over the last 30 days. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.compute/disks/disk-orphaned-data | [https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
+### Azure (subscription / management group / tenant)
 
-### Governance
+| Tool | Scope | Findings | Pass % | Status |
+| --- | --- | ---: | ---: | --- |
+| azqr | subscription | 38 | 79% | OK |
+| psrule | subscription | 47 | 74% | OK |
+| defender-for-cloud | subscription | 22 | 81% | OK |
+| azgovviz | tenant | 11 | 90% | OK |
+| alz-queries | managementGroup | 18 | 86% | OK |
+| wara | subscription | 9 | 88% | OK |
+| azure-cost | subscription | 6 | 92% | OK |
+| finops | subscription | 4 | 95% | OK |
+| aks-rightsize | subscription | 7 | 84% | OK |
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| Resource missing required tag 'owner' | Low | alz-queries | No | 12 resources in subscription 'prod-01' are missing the required 'owner' tag. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
-| Built-in policy 'Audit VMs without Azure Monitor agent' not assigned | Medium | azgovviz | No | Recommended built-in policy is not assigned at the management group scope. | /providers/microsoft.management/managementgroups/contoso-root | [https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) |
+### Microsoft 365 / Graph
 
-### Identity
+| Tool | Scope | Findings | Pass % | Status |
+| --- | --- | ---: | ---: | --- |
+| maester | tenant | 14 | 82% | OK |
+| identity-correlator | tenant | 8 | 89% | OK |
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| MT.1010: Breakglass accounts without MFA | Critical | maester | No | 2 of 2 breakglass accounts have no MFA registered. | tenant:11111111-2222-3333-4444-555555555555 | [https://maester.dev/docs/tests/MT.1010](https://maester.dev/docs/tests/MT.1010) |
-| Classic (password-based) service connection in use | High | ado-connections | No | Service connection 'prod-deploy' authenticates with a client secret instead of workload identity federation. | ado://contoso/platform/serviceendpoint/prod-deploy | [https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity](https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity) |
-| EIDSCA.AG01: Security defaults disabled, no Conditional Access | High | maester | No | Tenant has security defaults off and fewer than 2 baseline CA policies. | tenant:11111111-2222-3333-4444-555555555555 | [https://maester.dev/docs/tests/EIDSCA.AG01](https://maester.dev/docs/tests/EIDSCA.AG01) |
-| Owner role assigned to non-PIM eligible user | High | azgovviz | No | User 'alice@contoso.com' holds a permanent Owner assignment on subscription 'prod-01'. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure](https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure) |
-| Service principal with Owner role is also an ADO service connection | High | identity-correlator | No | SPN 'sp-prod-deploy' has Owner on subscription prod-01 AND is used by ADO service connection 'prod-deploy'. A compromised ADO pipeline would gain subscription-scoped Owner privileges. | appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee |  |
-| Orphaned service principal with active role assignment | Medium | identity-correlator | No | SPN 'sp-legacy-etl' still holds Contributor on rg-prod-data but the corresponding App Registration was deleted 47 days ago. | appId:ffffffff-0000-1111-2222-333333333333 |  |
-| Service connection grants Contributor at subscription scope | Medium | ado-connections | No | 'prod-deploy' has Contributor on the entire prod subscription. | ado://contoso/platform/serviceendpoint/prod-deploy | [https://learn.microsoft.com/azure/role-based-access-control/best-practices](https://learn.microsoft.com/azure/role-based-access-control/best-practices) |
+### GitHub
 
-### Networking
+| Tool | Scope | Findings | Pass % | Status |
+| --- | --- | ---: | ---: | --- |
+| scorecard | repository | 9 | 78% | OK |
+| gh-actions-billing | repository | 3 | 96% | OK |
+| gitleaks | repository | 4 | 91% | OK |
+| trivy | repository | 11 | 80% | OK |
+| zizmor | repository | 6 | 85% | OK |
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| NSG allows SSH from any source | High | azqr | No | Network Security Group allows SSH (port 22) from any source address. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-net/providers/microsoft.network/networksecuritygroups/nsg-frontend | [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview) |
-| Public IP without NSG association | High | alz-queries | No | Public IP 'pip-prod-lb' is attached to a NIC that has no associated NSG. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-net/providers/microsoft.network/publicipaddresses/pip-prod-lb | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
+### Azure DevOps
 
-### Reliability
+| Tool | Scope | Findings | Pass % | Status |
+| --- | --- | ---: | ---: | --- |
+| ado-pipelines | ado | 5 | 89% | OK |
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| SQL Database has no active geo-replication | High | wara | No | SQL database 'sqldb-prod-orders' has no secondary replica configured. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.sql/servers/sql-prod/databases/sqldb-prod-orders | [https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview](https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview) |
-| AKS cluster has no SLA tier enabled | Medium | wara | No | AKS cluster 'aks-prod-apps' is running on the Free tier without uptime SLA. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps | [https://learn.microsoft.com/azure/aks/uptime-sla](https://learn.microsoft.com/azure/aks/uptime-sla) |
-| Azure.VM.AvailabilityZone: VM not deployed to availability zone | Medium | psrule | No | Virtual machine 'vm-prod-web-01' has no availability zone assigned. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-web/providers/microsoft.compute/virtualmachines/vm-prod-web-01 | [https://azure.github.io/PSRule.Rules.Azure/](https://azure.github.io/PSRule.Rules.Azure/) |
+## Heat map
 
-### Secret Detection
+Findings by control domain (rows) and subscription (columns). Cell glyph indicates the highest severity present; the number is the finding count for that intersection.
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| AWS access key found in commit history | High | gitleaks | No | Rule 'aws-access-token' matched in file scripts/legacy-migrate.sh at line 14. Commit: 8a1f3c2. | scripts/legacy-migrate.sh | [https://github.com/gitleaks/gitleaks](https://github.com/gitleaks/gitleaks) |
+| Control domain | prod-payments | prod-identity | dev-shared | Total |
+| --- | :---: | :---: | :---: | ---: |
+| Identity & access | 🟡 12 | 🔴 28 | 🟢 4 | 44 |
+| Network security | 🟠 14 | 🟡 9 | 🟡 7 | 30 |
+| Data protection | 🟠 11 | 🟠 8 | 🟢 3 | 22 |
+| Logging & monitoring | 🟡 9 | 🟡 6 | 🟡 5 | 20 |
+| Cost & efficiency | 🟡 7 | 🟢 2 | 🟡 6 | 15 |
+| Supply chain (CI/CD) | 🟠 18 | 🟠 9 | 🟡 4 | 31 |
+| Secrets hygiene | 🔴 3 | 🟠 2 | ⚪ 1 | 6 |
+| Workload runtime | 🟠 13 | 🟡 7 | 🟡 4 | 24 |
+| Resilience & DR | 🟡 10 | 🟢 4 | 🟢 2 | 16 |
+| Governance | 🟡 6 | 🟡 5 | 🟢 3 | 14 |
 
-### Security
+Legend: 🔴 Critical &nbsp; 🟠 High &nbsp; 🟡 Medium &nbsp; 🟢 Low &nbsp; ⚪ Info
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| Azure.Storage.SecureTransfer: Storage account requires HTTPS | High | psrule | No | Storage account 'stprodlogs' allows unencrypted HTTP traffic. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.storage/storageaccounts/stprodlogs | [https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/](https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/) |
-| Defender for Storage not enabled | High | defender-for-cloud | No | Subscription 'prod-01' does not have Defender for Storage enabled. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://learn.microsoft.com/azure/defender-for-cloud/defender-for-storage-introduction](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-storage-introduction) |
-| Key Vault soft delete is disabled | High | azqr | No | Key Vault 'kv-prod-secrets' does not have soft delete enabled. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-sec/providers/microsoft.keyvault/vaults/kv-prod-secrets | [https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview](https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview) |
-| Vulnerability assessment not configured on SQL servers | Medium | defender-for-cloud | No | SQL server 'sql-prod' has no vulnerability assessment configured. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.sql/servers/sql-prod | [https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview](https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview) |
+## Top 10 risks
 
-### Supply Chain
+| # | Severity | Rule | Domain | Tool | Findings |
+| ---: | --- | --- | --- | --- | ---: |
+| 1 | 🔴 Critical | Owner role assigned without PIM | Identity & access | psrule | 4 |
+| 2 | 🔴 Critical | Hard-coded secret in source | Secrets hygiene | gitleaks | 2 |
+| 3 | 🔴 Critical | Storage account public network access enabled | Data protection | azqr | 1 |
+| 4 | 🟠 High | Workflow-injection in pull_request_target handler | Supply chain (CI/CD) | zizmor | 2 |
+| 5 | 🟠 High | Unpinned third-party GitHub Action | Supply chain (CI/CD) | scorecard | 8 |
+| 6 | 🟠 High | Defender for Containers not enabled | Workload runtime | defender-for-cloud | 2 |
+| 7 | 🟠 High | NSG allows 0.0.0.0/0 on management ports | Network security | azqr | 5 |
+| 8 | 🟠 High | Key Vault soft-delete disabled | Data protection | psrule | 3 |
+| 9 | 🟠 High | Guest user in privileged role group | Identity & access | maester | 4 |
+| 10 | 🟠 High | Container image with critical CVE in deployed digest | Workload runtime | trivy | 6 |
 
-| Title | Severity | Source | Compliant | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|---|
-| CVE-2024-24790 (golang.org/x/net) | Critical | trivy | No | Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0. | go.mod | [https://nvd.nist.gov/vuln/detail/CVE-2024-24790](https://nvd.nist.gov/vuln/detail/CVE-2024-24790) |
-| Branch-Protection score 3/10 | High | scorecard | No | Default branch 'main' allows force-push and does not require code review. | github.com/contoso/azure-landing-zone | [https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection](https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection) |
-| CVE-2024-28849 (follow-redirects) | Medium | trivy | No | follow-redirects leaks Proxy-Authorization header across hosts. File: package-lock.json. Installed: 1.15.5. Fixed: 1.15.6. | package-lock.json | [https://nvd.nist.gov/vuln/detail/CVE-2024-28849](https://nvd.nist.gov/vuln/detail/CVE-2024-28849) |
-| Pinned-Dependencies score 5/10 | Medium | scorecard | No | 3 GitHub Actions in .github/workflows are pinned by tag rather than SHA. | github.com/contoso/azure-landing-zone | [https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies](https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies) |
+## Findings (top 30)
 
-## Action plan
+Top 30 of 222 findings, sorted by severity then domain. The [interactive HTML report](sample-report.html) renders the full set with search, severity pills, tool/subscription filters, sortable columns, and click-to-expand evidence and remediation.
 
-### Fix now (Critical/High, non-compliant)
+### How to read a row
 
-| Title | Source | Detail | Remediation | Resource ID | Fix it |
-|---|---|---|---|---|---|
-| CVE-2024-24790 (golang.org/x/net) | trivy | Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0. | Upgrade golang.org/x/net to 0.23.0 or later. | go.mod | [https://nvd.nist.gov/vuln/detail/CVE-2024-24790](https://nvd.nist.gov/vuln/detail/CVE-2024-24790) |
-| MT.1010: Breakglass accounts without MFA | maester | 2 of 2 breakglass accounts have no MFA registered. | Register MFA methods for all breakglass accounts. | tenant:11111111-2222-3333-4444-555555555555 | [https://maester.dev/docs/tests/MT.1010](https://maester.dev/docs/tests/MT.1010) |
-| template-injection: Workflow uses ${{ github.event.issue.title }} in run step | zizmor | File .github/workflows/triage.yml injects untrusted issue title directly into a shell command. | Pass untrusted input via environment variables, not directly in run blocks. | .github/workflows/triage.yml | [https://woodruffw.github.io/zizmor/audits/#template-injection](https://woodruffw.github.io/zizmor/audits/#template-injection) |
-| AWS access key found in commit history | gitleaks | Rule 'aws-access-token' matched in file scripts/legacy-migrate.sh at line 14. Commit: 8a1f3c2. | Rotate the exposed credential immediately and purge it from git history with git-filter-repo. | scripts/legacy-migrate.sh | [https://github.com/gitleaks/gitleaks](https://github.com/gitleaks/gitleaks) |
-| Azure.Storage.SecureTransfer: Storage account requires HTTPS | psrule | Storage account 'stprodlogs' allows unencrypted HTTP traffic. | Set supportsHttpsTrafficOnly=true on the storage account. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.storage/storageaccounts/stprodlogs | [https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/](https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/) |
-| Branch-Protection score 3/10 | scorecard | Default branch 'main' allows force-push and does not require code review. | Enable required reviews, linear history, and prohibit force-push on protected branches. | github.com/contoso/azure-landing-zone | [https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection](https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection) |
-| CIS 4.2.1: Kubelet anonymous authentication is enabled | kube-bench | Kubelet on node 'aks-nodepool1-12345678-vmss000000' allows anonymous authentication. | Set --anonymous-auth=false in kubelet configuration. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/agentpools/nodepool1 | [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes) |
-| Classic (password-based) service connection in use | ado-connections | Service connection 'prod-deploy' authenticates with a client secret instead of workload identity federation. | Migrate the service connection to Workload Identity Federation (OIDC). | ado://contoso/platform/serviceendpoint/prod-deploy | [https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity](https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity) |
-| Defender for Storage not enabled | defender-for-cloud | Subscription 'prod-01' does not have Defender for Storage enabled. | Enable Defender for Storage to detect anomalous storage activity and malware uploads. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://learn.microsoft.com/azure/defender-for-cloud/defender-for-storage-introduction](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-storage-introduction) |
-| EIDSCA.AG01: Security defaults disabled, no Conditional Access | maester | Tenant has security defaults off and fewer than 2 baseline CA policies. | Deploy baseline Conditional Access policies covering MFA, legacy auth block, and risky sign-ins. | tenant:11111111-2222-3333-4444-555555555555 | [https://maester.dev/docs/tests/EIDSCA.AG01](https://maester.dev/docs/tests/EIDSCA.AG01) |
-| K8s pod runs with privileged escalation enabled | kubescape | Pod 'prod-api-7d8f9c4b-xkz2p' in namespace 'default' has allowPrivilegeEscalation=true. | Set allowPrivilegeEscalation=false in the pod security context. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://hub.armosec.io/docs/c-0016](https://hub.armosec.io/docs/c-0016) |
-| Key Vault soft delete is disabled | azqr | Key Vault 'kv-prod-secrets' does not have soft delete enabled. | Enable soft delete on the Key Vault with a minimum retention of 7 days. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-sec/providers/microsoft.keyvault/vaults/kv-prod-secrets | [https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview](https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview) |
-| NSG allows SSH from any source | azqr | Network Security Group allows SSH (port 22) from any source address. | Restrict SSH access to specific IP ranges or use Azure Bastion. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-net/providers/microsoft.network/networksecuritygroups/nsg-frontend | [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview) |
-| Owner role assigned to non-PIM eligible user | azgovviz | User 'alice@contoso.com' holds a permanent Owner assignment on subscription 'prod-01'. | Convert the permanent assignment to PIM-eligible with JIT activation. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure](https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure) |
-| Public IP without NSG association | alz-queries | Public IP 'pip-prod-lb' is attached to a NIC that has no associated NSG. | Attach an NSG to the NIC or subnet; deny inbound by default. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-net/providers/microsoft.network/publicipaddresses/pip-prod-lb | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
-| Service principal with Owner role is also an ADO service connection | identity-correlator | SPN 'sp-prod-deploy' has Owner on subscription prod-01 AND is used by ADO service connection 'prod-deploy'. A compromised ADO pipeline would gain subscription-scoped Owner privileges. | Split responsibilities: use one SPN for role management (User Access Administrator) and a separate, scoped SPN for deployments. | appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee |  |
-| SQL Database has no active geo-replication | wara | SQL database 'sqldb-prod-orders' has no secondary replica configured. | Enable active geo-replication or failover groups for critical databases. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.sql/servers/sql-prod/databases/sqldb-prod-orders | [https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview](https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview) |
-| Suspicious shell spawned in container | falco | Container 'api' in pod 'prod-api-7d8f9c4b-xkz2p' spawned an interactive shell (bash) at 2026-04-16 22:15:42 UTC. | Review container logs and investigate unauthorized shell access. Consider using read-only root filesystems. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://falco.org/docs/rules/default-macros/#shell_procs](https://falco.org/docs/rules/default-macros/#shell_procs) |
+Each finding carries a tool-native rule ID and a colored badge for every compliance framework it satisfies, so an auditor can scan for the framework they care about without reading every row:
 
-### Plan to fix (Medium, non-compliant)
+![CIS](https://img.shields.io/badge/CIS-amber?color=d97706)
+![NIST](https://img.shields.io/badge/NIST-slate?color=374151)
+![MITRE](https://img.shields.io/badge/MITRE-red?color=b91c1c)
+![EIDSCA](https://img.shields.io/badge/EIDSCA-blue?color=1f6feb)
+![eIDAS2](https://img.shields.io/badge/eIDAS2-violet?color=7c3aed)
+![SOC 2](https://img.shields.io/badge/SOC%202-teal?color=0e7490)
+![ISO 27001](https://img.shields.io/badge/ISO%2027001-teal?color=0f766e)
+![MCSB](https://img.shields.io/badge/MCSB-azure-color=005a9e)
+![CAF](https://img.shields.io/badge/CAF-navy?color=1e3a8a)
+![WAF](https://img.shields.io/badge/WAF-green?color=3a7d0a)
 
-| Title | Source | Detail | Resource ID | Fix it |
-|---|---|---|---|---|
-| AKS cluster has no SLA tier enabled | wara | AKS cluster 'aks-prod-apps' is running on the Free tier without uptime SLA. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps | [https://learn.microsoft.com/azure/aks/uptime-sla](https://learn.microsoft.com/azure/aks/uptime-sla) |
-| Azure.VM.AvailabilityZone: VM not deployed to availability zone | psrule | Virtual machine 'vm-prod-web-01' has no availability zone assigned. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-web/providers/microsoft.compute/virtualmachines/vm-prod-web-01 | [https://azure.github.io/PSRule.Rules.Azure/](https://azure.github.io/PSRule.Rules.Azure/) |
-| Built-in policy 'Audit VMs without Azure Monitor agent' not assigned | azgovviz | Recommended built-in policy is not assigned at the management group scope. | /providers/microsoft.management/managementgroups/contoso-root | [https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting](https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting) |
-| CIS 4.2.6: RotateKubeletServerCertificate not enabled | kube-bench | Kubelet certificate auto-rotation is disabled on node 'aks-nodepool1-12345678-vmss000000'. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/agentpools/nodepool1 | [https://www.cisecurity.org/benchmark/kubernetes](https://www.cisecurity.org/benchmark/kubernetes) |
-| Container running as root user | kubescape | Container 'api' in pod 'prod-api-7d8f9c4b-xkz2p' runs as UID 0 (root). | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-api-7d8f9c4b-xkz2p | [https://hub.armosec.io/docs/c-0013](https://hub.armosec.io/docs/c-0013) |
-| CVE-2024-28849 (follow-redirects) | trivy | follow-redirects leaks Proxy-Authorization header across hosts. File: package-lock.json. Installed: 1.15.5. Fixed: 1.15.6. | package-lock.json | [https://nvd.nist.gov/vuln/detail/CVE-2024-28849](https://nvd.nist.gov/vuln/detail/CVE-2024-28849) |
-| File opened in /etc directory by container process | falco | Container 'worker' in pod 'prod-worker-5c9a8b1d-qwer' opened /etc/passwd for write at 2026-04-16 22:18:14 UTC. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-aks/providers/microsoft.containerservice/managedclusters/aks-prod-apps/namespaces/default/pods/prod-worker-5c9a8b1d-qwer | [https://falco.org/docs/rules/default-macros/#write_etc_common](https://falco.org/docs/rules/default-macros/#write_etc_common) |
-| Orphaned service principal with active role assignment | identity-correlator | SPN 'sp-legacy-etl' still holds Contributor on rg-prod-data but the corresponding App Registration was deleted 47 days ago. | appId:ffffffff-0000-1111-2222-333333333333 |  |
-| Pinned-Dependencies score 5/10 | scorecard | 3 GitHub Actions in .github/workflows are pinned by tag rather than SHA. | github.com/contoso/azure-landing-zone | [https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies](https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies) |
-| Service connection grants Contributor at subscription scope | ado-connections | 'prod-deploy' has Contributor on the entire prod subscription. | ado://contoso/platform/serviceendpoint/prod-deploy | [https://learn.microsoft.com/azure/role-based-access-control/best-practices](https://learn.microsoft.com/azure/role-based-access-control/best-practices) |
-| Unattached Premium SSD disk incurring cost ($127/month) | azure-cost | Managed disk 'disk-orphaned-data' is unattached and has been billed $127 over the last 30 days. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.compute/disks/disk-orphaned-data | [https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
-| unpinned-uses: action pinned by tag, not SHA | zizmor | File .github/workflows/release.yml references actions/upload-artifact@v4 instead of a 40-char SHA. | .github/workflows/release.yml | [https://woodruffw.github.io/zizmor/audits/#unpinned-uses](https://woodruffw.github.io/zizmor/audits/#unpinned-uses) |
-| Vulnerability assessment not configured on SQL servers | defender-for-cloud | SQL server 'sql-prod' has no vulnerability assessment configured. | /subscriptions/00000000-1111-2222-3333-444444444444/resourcegroups/rg-prod-data/providers/microsoft.sql/servers/sql-prod | [https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview](https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview) |
+The rule-ID column below uses each tool's native identifier (`AZQR.NET.001`, `EIDSCA.AF01`, `OSSF.001`, etc.) so you can paste it directly into the upstream tool's docs.
 
-### Track (Low/Info, non-compliant)
+| # | Sev | Rule ID | Rule | Frameworks | Entity | Sub | Tool | Status |
+| ---: | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 🔴 | `EIDSCA.AF01` | Legacy authentication not blocked tenant-wide | CIS · MCSB | `tenant/contoso` | (tenant) | maester | Open |
+| 2 | 🔴 | `MCSB.IM-1` | Owner role assigned without PIM | CIS · MCSB | `user/alice@contoso.com` | prod-identity | psrule | Open |
+| 3 | 🔴 | `MCSB.IM-1` | Owner role assigned without PIM | CIS · MCSB | `sp/payments-deploy` | prod-identity | psrule | Open |
+| 4 | 🔴 | `MCSB.IM-1` | Owner role assigned without PIM | CIS · MCSB | `user/bob@contoso.com` | prod-identity | psrule | Open |
+| 5 | 🔴 | `GLK.AWS-001` | Hard-coded AWS key in repo | CIS · SOC 2 | `repo/contoso/payments-api` | prod-payments | gitleaks | Open |
+| 6 | 🔴 | `GLK.AZ-002` | Hard-coded SAS token in repo | CIS · SOC 2 | `repo/contoso/payments-api` | prod-payments | gitleaks | Open |
+| 7 | 🔴 | `AZQR.STG.001` | Storage account public network access enabled | CAF · WAF · MCSB | `sa/contosoprodlogs01` | prod-payments | azqr | Open |
+| 8 | 🟠 | `ZZM.PR-INJ` | Workflow-injection in pull_request_target handler | SOC 2 | `wf/contoso/payments-api/.github/workflows/pr-bot.yml` | prod-payments | zizmor | Open |
+| 9 | 🟠 | `ZZM.PR-INJ` | Workflow-injection in pull_request_target handler | SOC 2 | `wf/contoso/identity-edge/.github/workflows/triage.yml` | prod-identity | zizmor | Open |
+| 10 | 🟠 | `OSSF.PIN` | Unpinned third-party GitHub Action | SOC 2 | `wf/contoso/payments-api/.github/workflows/release.yml` | prod-payments | scorecard | Open |
+| 11 | 🟠 | `OSSF.PIN` | Unpinned third-party GitHub Action | SOC 2 | `wf/contoso/payments-api/.github/workflows/build.yml` | prod-payments | scorecard | Open |
+| 12 | 🟠 | `OSSF.PIN` | Unpinned third-party GitHub Action | SOC 2 | `wf/contoso/identity-edge/.github/workflows/build.yml` | prod-identity | scorecard | Open |
+| 13 | 🟠 | `MCSB.PV-1` | Defender for Containers not enabled | MCSB · NIST 800-53 | `aks/dev-aks-east` | dev-shared | defender-for-cloud | Open |
+| 14 | 🟠 | `MCSB.PV-1` | Defender for Containers not enabled | MCSB · NIST 800-53 | `aks/dev-aks-west` | dev-shared | defender-for-cloud | Open |
+| 15 | 🟠 | `AZQR.NET.012` | NSG allows 0.0.0.0/0 on RDP (3389) | CIS · MCSB | `nsg/rg-payments-api/edge-nsg` | prod-payments | azqr | Open |
+| 16 | 🟠 | `AZQR.NET.012` | NSG allows 0.0.0.0/0 on SSH (22) | CIS · MCSB | `nsg/rg-payments-data/jump-nsg` | prod-payments | azqr | Open |
+| 17 | 🟠 | `AZQR.NET.012` | NSG allows 0.0.0.0/0 on RDP (3389) | CIS · MCSB | `nsg/rg-identity-core/dc-nsg` | prod-identity | azqr | Open |
+| 18 | 🟠 | `Azure.KV.SoftDelete` | Key Vault soft-delete disabled | CIS · MCSB | `kv/kv-payments-prod` | prod-payments | psrule | Open |
+| 19 | 🟠 | `Azure.KV.SoftDelete` | Key Vault soft-delete disabled | CIS · MCSB | `kv/kv-identity-core` | prod-identity | psrule | Open |
+| 20 | 🟠 | `EIDSCA.PRA01` | Guest user in Privileged Role Administrators | CIS · EIDSCA · MITRE.T1078 | `user/contractor1@partner.com` | (tenant) | maester | Open |
+| 21 | 🟠 | `TRV.CVE` | Container image with critical CVE | MCSB · NIST 800-53 | `acr/contosoprod/payments-api:1.42.0` | prod-payments | trivy | Open |
+| 22 | 🟠 | `TRV.CVE` | Container image with critical CVE | MCSB · NIST 800-53 | `acr/contosoprod/identity-edge:2.7.1` | prod-identity | trivy | Open |
+| 23 | 🟠 | `AZQR.APP.005` | App Service TLS minimum below 1.2 | CIS · MCSB | `app/payments-api-prod` | prod-payments | azqr | Open |
+| 24 | 🟠 | `AZQR.SQL.003` | SQL DB no transparent data encryption | CIS · ISO 27001 · SOC 2 | `sqldb/identity-store` | prod-identity | azqr | Open |
+| 25 | 🟡 | `AZQR.KV.LOG` | Diagnostic settings missing on Key Vault | MCSB · CIS | `kv/kv-payments-prod` | prod-payments | azqr | Open |
+| 26 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned (CPU < 12%) | WAF | `aks/prod-aks-payments/sysnp` | prod-payments | aks-rightsize | Open |
+| 27 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned (CPU < 18%) | WAF | `aks/prod-aks-payments/usernp` | prod-payments | aks-rightsize | Open |
+| 28 | 🟡 | `Azure.Storage.SharedKey` | Storage account allows shared key access | CIS · MCSB | `sa/contosoprodassets` | prod-payments | psrule | Open |
+| 29 | 🟡 | `COST.AI.SAMPLE` | App Insights sampling above target | WAF | `ai/payments-api-ai` | prod-payments | azure-cost | Open |
+| 30 | 🟡 | `ADO.PAR.001` | Pipeline parallel-job ratio above budget | SOC 2 | `ado/contoso-eng/payments-ci` | (ado) | ado-pipelines | Open |
 
-| Title | Severity | Source | Detail | Resource ID | Fix it |
-|---|---|---|---|---|---|
-| Resource missing required tag 'owner' | Low | alz-queries | 12 resources in subscription 'prod-01' are missing the required 'owner' tag. | /subscriptions/00000000-1111-2222-3333-444444444444 | [https://github.com/martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) |
+## Entity inventory
 
+412 entities discovered across all scopes.
 
-## Cross-Entity Correlation
+| Entity type | Count |
+| --- | ---: |
+| AzureResource | 246 |
+| Subscription | 3 |
+| Tenant | 1 |
+| User | 58 |
+| ServicePrincipal | 31 |
+| Repository | 14 |
+| Workflow | 39 |
+| AdoProject | 4 |
+| Other | 16 |
 
-The identity-correlator tool performs cross-platform correlation to surface high-risk combinations of permissions and access paths. Below is a worked example from this scan:
+<details>
+<summary>Identity blast-radius highlights</summary>
 
-### Example: SPN with Owner role also used as ADO service connection
+- 3 guest accounts hold Owner on at least one production resource group.
+- 4 service principals have standing Owner without PIM activation.
+- 2 user accounts in `prod-identity` have not signed in for 90+ days but retain Contributor.
 
-**Finding ID**: identity-correlator-001
+The HTML report renders these as an interactive blast-radius graph.
 
-**Entity**: Service Principal `sp-prod-deploy` (appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)
+</details>
 
-**Correlation chain**:
-1. **Entra ID**: SPN `sp-prod-deploy` exists in tenant `11111111-2222-3333-4444-555555555555`
-2. **Azure RBAC**: Same SPN holds **Owner** role on subscription `prod-01` (/subscriptions/00000000-1111-2222-3333-444444444444)
-3. **ADO Service Connection**: Same SPN is configured as the identity for ADO service connection `prod-deploy` in project `Platform`
+## Run details
 
-**Risk amplification**: A single compromised ADO pipeline job gains:
-- Full subscription Owner privileges (create/delete/modify any resource within the subscription)
-- Ability to assign roles to other identities within the subscription (privilege escalation path)
-- Access to Key Vaults, storage accounts, and all data in the subscription
+<details>
+<summary>Tool versions</summary>
 
-**Remediation**: Split the SPN into two:
-- **Deployment SPN**: Scoped to resource group level with Contributor role (no role assignment capability)
-- **IAM SPN**: Separate identity with User Access Administrator role, used only for role management workflows
+| Tool | Version | Provider |
+| --- | --- | --- |
+| azqr | 2.6.1 | azure |
+| psrule | 1.39.4 | azure |
+| defender-for-cloud | api 2024-08-01 | azure |
+| azgovviz | 6.5.7 | azure |
+| alz-queries | 2026.04 | azure |
+| wara | 1.4.0 | azure |
+| azure-cost | api 2024-09-01 | azure |
+| finops | 0.6.2 | azure |
+| aks-rightsize | 0.4.1 | azure |
+| maester | 1.1.0 | microsoft365 |
+| identity-correlator | 0.3.0 | graph |
+| scorecard | 4.13.1 | github |
+| gh-actions-billing | api 2024-10-01 | github |
+| gitleaks | 8.18.4 | github |
+| trivy | 0.50.1 | github |
+| zizmor | 0.6.0 | github |
+| ado-pipelines | api 7.1 | ado |
 
-**Evidence sources**:
-- ado-connections-001: Flags the service connection as password-based
-- identity-correlator-001: Correlates SPN identity across Entra + Azure RBAC + ADO platforms
-- azgovviz-002: Flags the Owner assignment as permanent (non-PIM)
+</details>
 
-This correlation pattern is invisible to single-tool scans. Only cross-platform analysis surfaces the blast radius.
-
-## Risk Scoring and Prioritization
-
-Azure-analyzer does not currently implement a numeric risk score per finding. Prioritization is driven by:
-
-1. **Severity** (Critical > High > Medium > Low > Info) - assigned by each tool's normalizer based on impact
-2. **Compliant flag** - non-compliant findings are surfaced in the Action Plan section
-3. **Cross-entity correlation** - findings that span multiple platforms (e.g., identity-correlator results) are flagged for higher attention
-
-**Future enhancement (planned)**: A risk score factoring in:
-- Attack surface exposure (public IP + no NSG = higher risk than internal-only resource)
-- Blast radius (Owner role on subscription > Contributor on single RG)
-- Correlation multiplier (finding linked to other findings via entity ID)
-- Time-to-exploit (CVE with public PoC > configuration drift)
-
-For now, use the **Fix now** section (Critical/High severity, non-compliant) as your prioritization queue.
-
-## Interactive Filters (HTML Report Only)
-
-The HTML report (`New-HtmlReport.ps1`) includes interactive filtering powered by client-side JavaScript. These filters are not available in the Markdown report but are described here for reference:
-
-### Current implementation
-
-| Feature | Description |
-|---|---|
-| **Severity filter cards** | Four clickable stat cards (Total, High, Medium, Low, Compliant%) act as single-select severity filters. Clicking a card shows only matching findings; clicking again clears the filter. |
-| **Filter banner** | When a severity filter is active, a banner appears at the top with "Showing [severity] severity findings only" and a "Clear filter" button. |
-| **Text search** | A search box filters the findings table by free-text match across all visible columns (Title, Detail, Resource ID, Remediation). |
-| **Sortable columns** | Click any column header to sort the findings table alphabetically (ascending/descending toggle). |
-
-### Filter behavior
-
-- **Severity cards**: Single-select toggle (not multi-select). Clicking "High" shows only High non-compliant findings. Clicking the same card again clears the filter.
-- **Compliant card**: Shows only compliant findings (all severities).
-- **Text search**: Case-insensitive substring match. Works independently of severity filter.
-- **No persistence**: Filter state is NOT saved to URL or localStorage - refreshing the page resets all filters.
-
-### Planned enhancements
-
-The following filter features are **not yet implemented** but are planned for future releases:
-
-- Multi-select filter chips for Source Tool (with tool manifest color coding)
-- Multi-select Category chips
-- Dedicated Compliant/Non-compliant toggle (independent of severity)
-- URL hash persistence so filter state survives page refresh
-- Combined OR/AND logic across filter categories
-
-To see the current interactive filters in action, generate the HTML report with:
-
-```powershell
-.\New-HtmlReport.ps1 -InputPath .\output\results.json -OutputPath .\output\report.html
-```
-
-Then open `report.html` in a web browser.
+Generated by **azure-analyzer** v3.0 (mockup) · Schema 2.2 · Report v3. See the [interactive HTML version](sample-report.html), the [tool catalog](../docs/consumer/tool-catalog.md), and [PERMISSIONS.md](../PERMISSIONS.md).

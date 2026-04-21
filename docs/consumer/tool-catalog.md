@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 33. **Disabled / opt-in:** 1.
+**Total enabled:** 34. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -26,6 +26,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `azgovviz` | AzGovViz | managementGroup | azure | Azure WAF, Azure CAF | Azure Governance Visualizer: management-group / subscription / RBAC / policy posture. | - |
 | `azqr` | Azure Quick Review | subscription | azure | Azure WAF, Azure CAF | Azure best-practice review across reliability, security, cost, performance and operational excellence. | - |
 | `azure-cost` | Azure Cost (Consumption API) | subscription | azure | Azure CAF | Per-subscription monthly Azure spend pulled from the Consumption API. | - |
+| `azure-quota` | Azure Quota Reports | subscription | azure | Azure WAF, Azure CAF | Azure Quota Reports | - |
 | `bicep-iac` | Bicep IaC Validation | repository | cli | CIS Azure, NIST 800-53, Azure WAF, Azure CAF | Bicep IaC validation: lint, build, and best-practice checks. | - |
 | `defender-for-cloud` | Microsoft Defender for Cloud | subscription | azure | CIS Azure, NIST 800-53, Azure WAF, Azure CAF, SOC2, PCI-DSS | Pulls Microsoft Defender for Cloud Secure Score and active recommendations per subscription. | - |
 | `falco` | Falco (AKS runtime anomaly detection) | subscription | azure | CIS Azure, NIST 800-53 | AKS runtime anomaly detection (syscall-level threat detection). | - |
