@@ -12,7 +12,15 @@ param ()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$script:SchemaVersion = '2.1'
+$script:SchemaVersion = '2.2'
+# FindingRow v2.2 (additive, back-compat with v2.1):
+#   * Adds 13 optional fields populated by the per-tool ETL closures
+#     (#300-#313): Frameworks (now first-class with hashtable shape),
+#     Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets,
+#     EvidenceUris, BaselineTags, ScoreDelta, MitreTactics,
+#     MitreTechniques, EntityRefs, ToolVersion. All zero-value defaults.
+#     No enum tightening, no rename, no behaviour change for existing
+#     callers.
 # FindingRow v2.1 (additive, back-compat with v2.0):
 #   * Adds optional RuleId field (default '') for stable rule identification
 #     used by the HTML collapsible-tree level-3 grouping, framework mapping
@@ -232,6 +240,23 @@ function New-FindingRow {
         [string] $ProvenanceSource,
         [string] $ProvenanceRawRecordRef,
         [datetime] $ProvenanceTimestamp,
+
+        # --- Schema 2.2 additive fields (#299) ---
+        # All optional with zero-value defaults; populated by per-tool ETL
+        # closures (#300-#313). No behaviour change for callers that omit them.
+        [string] $Pillar = '',
+        [string] $Impact = '',
+        [string] $Effort = '',
+        [string] $DeepLinkUrl = '',
+        [hashtable[]] $RemediationSnippets = @(),
+        [string[]] $EvidenceUris = @(),
+        [string[]] $BaselineTags = @(),
+        [Nullable[double]] $ScoreDelta = $null,
+        [string[]] $MitreTactics = @(),
+        [string[]] $MitreTechniques = @(),
+        [string[]] $EntityRefs = @(),
+        [string] $ToolVersion = '',
+
         [string] $SchemaVersion = $script:SchemaVersion
     )
 
@@ -318,6 +343,18 @@ function New-FindingRow {
         Confidence       = $Confidence
         EvidenceCount    = $EvidenceCount
         MissingDimensions = $MissingDimensions
+        Pillar           = $Pillar
+        Impact           = $Impact
+        Effort           = $Effort
+        DeepLinkUrl      = $DeepLinkUrl
+        RemediationSnippets = $RemediationSnippets
+        EvidenceUris     = $EvidenceUris
+        BaselineTags     = $BaselineTags
+        ScoreDelta       = $ScoreDelta
+        MitreTactics     = $MitreTactics
+        MitreTechniques  = $MitreTechniques
+        EntityRefs       = $EntityRefs
+        ToolVersion      = $ToolVersion
         SchemaVersion    = $SchemaVersion
     }
 
