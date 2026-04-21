@@ -179,13 +179,59 @@ function ConvertTo-ConnectionFinding {
         }
     }
 
-    # Determine auth mechanism from scheme
-    $authMechanism = switch ($authScheme) {
-        'ServicePrincipal'              { 'SPN' }
-        'ManagedServiceIdentity'        { 'ManagedIdentity' }
-        'WorkloadIdentityFederation'    { 'Federation' }
-        default                         { $authScheme }
+    $normalizedAuthScheme = switch ($authScheme) {
+        'Token'                  { 'PAT' }
+        'ManagedServiceIdentity' { 'ManagedIdentity' }
+        default                  { $authScheme }
     }
+
+    function Get-ConnectionAuthMechanism {
+        param (
+            [string] $Scheme,
+            [PSCustomObject] $ConnectionObject
+        )
+
+        switch ($Scheme) {
+            'Token' { return 'PAT' }
+            'WorkloadIdentityFederation' { return 'WorkloadIdentityFederation' }
+            'ManagedServiceIdentity' { return 'ManagedIdentity' }
+            'ManagedIdentity' { return 'ManagedIdentity' }
+            'ServicePrincipal' {
+                $parameters = $null
+                if ($ConnectionObject -and
+                    $ConnectionObject.PSObject.Properties['authorization'] -and
+                    $ConnectionObject.authorization -and
+                    $ConnectionObject.authorization.PSObject.Properties['parameters']) {
+                    $parameters = $ConnectionObject.authorization.parameters
+                }
+
+                if ($parameters) {
+                    $parameterMap = @{}
+                    foreach ($p in $parameters.PSObject.Properties) {
+                        $parameterMap[$p.Name.ToLowerInvariant()] = [string]$p.Value
+                    }
+
+                    if ($parameterMap.ContainsKey('authenticationtype') -and
+                        $parameterMap['authenticationtype'].ToLowerInvariant().Contains('certificate')) {
+                        return 'Certificate'
+                    }
+                    if ($parameterMap.ContainsKey('serviceprincipalcertificate') -or
+                        $parameterMap.ContainsKey('clientcertificate')) {
+                        return 'Certificate'
+                    }
+                    if ($parameterMap.ContainsKey('serviceprincipalkey') -or
+                        $parameterMap.ContainsKey('clientsecret')) {
+                        return 'ClientSecret'
+                    }
+                }
+
+                return 'ClientSecret'
+            }
+            default { return $Scheme }
+        }
+    }
+
+    $authMechanism = Get-ConnectionAuthMechanism -Scheme $authScheme -ConnectionObject $Connection
 
     # isShared flag
     $isShared = $false
@@ -198,6 +244,48 @@ function ConvertTo-ConnectionFinding {
     } else { '' }
 
     $resourceId = "ado://$($Org.ToLowerInvariant())/$($Project.ToLowerInvariant())/serviceconnection/$($connName.ToLowerInvariant())"
+    $orgEnc = [uri]::EscapeDataString($Org)
+    $projectEnc = [uri]::EscapeDataString($Project)
+    $connIdEnc = [uri]::EscapeDataString($connId)
+    $deepLinkUrl = "https://dev.azure.com/$orgEnc/$projectEnc/_settings/adminservices?resourceId=$connIdEnc"
+    $connectionApiUri = "https://dev.azure.com/$orgEnc/$projectEnc/_apis/serviceendpoint/endpoints/${connIdEnc}?api-version=7.1"
+    $auditLogUri = "https://dev.azure.com/$orgEnc/_settings/audit"
+
+    $impact = 'Medium'
+    $authSchemeForImpact = $normalizedAuthScheme.ToLowerInvariant()
+    $authMechanismForImpact = $authMechanism.ToLowerInvariant()
+    if ($isShared -and (($authSchemeForImpact -eq 'pat') -or ($authMechanismForImpact -eq 'clientsecret'))) {
+        $impact = 'High'
+    } elseif ((-not $isShared -and $authMechanismForImpact -eq 'clientsecret') -or
+        ($isShared -and $authSchemeForImpact -eq 'managedidentity')) {
+        $impact = 'Medium'
+    } elseif ((@('workloadidentityfederation', 'managedidentity') -contains $authMechanismForImpact) -and (-not $isShared)) {
+        $impact = 'Low'
+    }
+
+    $effort = if ($isShared) { 'Medium' } else { 'Low' }
+    $sharingTag = if ($isShared) { 'Connection-Shared' } else { 'Connection-Scoped' }
+    $baselineTags = @(
+        "AuthScheme-$normalizedAuthScheme",
+        "Auth-$authMechanism",
+        $sharingTag
+    )
+    $entityRefs = @(
+        "ado-org:$Org",
+        "ado-project:$Org/$Project",
+        "ado-service-connection:$Org/$Project/$connId"
+    )
+    $remediationText = if ($isShared) {
+        'Migrate the shared service connection to workload identity federation and coordinate with dependent teams.'
+    } else {
+        'Migrate this service connection to workload identity federation and remove long-lived credentials.'
+    }
+    $remediationSnippets = @(
+        @{
+            language = 'bash'
+            content  = "az devops service-endpoint update --id `"$connId`" --organization `"https://dev.azure.com/$Org`" --project `"$Project`""
+        }
+    )
 
     [PSCustomObject]@{
         Source        = 'ado-connections'
@@ -206,15 +294,24 @@ function ConvertTo-ConnectionFinding {
         Title         = "$connType connection: $connName"
         Compliant     = $true
         Severity      = 'Info'
-        Detail        = "Type=$connType; AuthScheme=$authScheme; AuthMechanism=$authMechanism; IsShared=$isShared"
-        Remediation   = ''
+        Detail        = "Type=$connType; AuthScheme=$normalizedAuthScheme; AuthMechanism=$authMechanism; IsShared=$isShared"
+        Remediation   = $remediationText
         LearnMoreUrl  = 'https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints'
         SchemaVersion = '1.0'
+        Pillar        = 'Security'
+        Impact        = $impact
+        Effort        = $effort
+        DeepLinkUrl   = $deepLinkUrl
+        RemediationSnippets = $remediationSnippets
+        EvidenceUris  = @($connectionApiUri, $auditLogUri)
+        BaselineTags  = $baselineTags
+        EntityRefs    = $entityRefs
+        ToolVersion   = 'ado-rest-api-7.1'
         AdoOrg        = $Org
         AdoProject    = $Project
         ConnectionId  = $connId
         ConnectionType = $connType
-        AuthScheme    = $authScheme
+        AuthScheme    = $normalizedAuthScheme
         AuthMechanism = $authMechanism
         IsShared      = $isShared
     }

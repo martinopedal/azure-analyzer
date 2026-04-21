@@ -44,4 +44,6 @@ $env:ADO_PAT_TOKEN = "<your-ado-pat>"
 
 **Important:** The ADO scanner does **NOT** modify service connections or project settings. All API calls are read-only (`GET`).
 
+Schema 2.2 metadata emitted by this tool (for example `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, and auth-derived `BaselineTags`) is derived from the same read-only service-endpoint and project APIs listed above. No additional PAT scopes are needed.
+
 This inventory surface pairs well with [`ado-pipelines`](ado-pipelines.md), which answers where those identities are consumed.

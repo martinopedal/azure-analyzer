@@ -10,16 +10,41 @@
       "Title": "AzureRM connection: azure-dev",
       "Compliant": true,
       "Severity": "Info",
-      "Detail": "Type=AzureRM; AuthScheme=ServicePrincipal; AuthMechanism=SPN; IsShared=False",
-      "Remediation": "",
+      "Detail": "Type=AzureRM; AuthScheme=ServicePrincipal; AuthMechanism=ClientSecret; IsShared=False",
+      "Remediation": "Migrate this service connection to workload identity federation and remove long-lived credentials.",
       "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
       "SchemaVersion": "1.0",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/open-project/_settings/adminservices?resourceId=d4e5f6a7-3333-4444-5555-666677778888",
+      "RemediationSnippets": [
+        {
+          "language": "bash",
+          "content": "az devops service-endpoint update --id \"d4e5f6a7-3333-4444-5555-666677778888\" --organization \"https://dev.azure.com/contoso\" --project \"open-project\""
+        }
+      ],
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/open-project/_apis/serviceendpoint/endpoints/d4e5f6a7-3333-4444-5555-666677778888?api-version=7.1",
+        "https://dev.azure.com/contoso/_settings/audit"
+      ],
+      "BaselineTags": [
+        "AuthScheme-ServicePrincipal",
+        "Auth-ClientSecret",
+        "Connection-Scoped"
+      ],
+      "EntityRefs": [
+        "ado-org:contoso",
+        "ado-project:contoso/open-project",
+        "ado-service-connection:contoso/open-project/d4e5f6a7-3333-4444-5555-666677778888"
+      ],
+      "ToolVersion": "ado-rest-api-7.1",
       "AdoOrg": "contoso",
       "AdoProject": "open-project",
       "ConnectionId": "d4e5f6a7-3333-4444-5555-666677778888",
       "ConnectionType": "AzureRM",
       "AuthScheme": "ServicePrincipal",
-      "AuthMechanism": "SPN",
+      "AuthMechanism": "ClientSecret",
       "IsShared": false
     }
   ]

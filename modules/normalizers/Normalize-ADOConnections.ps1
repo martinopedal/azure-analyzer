@@ -5,7 +5,7 @@
 .DESCRIPTION
     Converts raw ADO service connection wrapper output to v3 FindingRow objects.
     Platform=ADO, EntityType=ServiceConnection.
-    CanonicalId = ado://{org}/{project}/serviceconnection/{name} (lowercased).
+    CanonicalId = ado://{org}/{project}/serviceconnection/{connectionId} (lowercased).
 #>
 [CmdletBinding()]
 param ()
@@ -53,13 +53,18 @@ function Normalize-ADOConnections {
             [bool]$finding.IsShared
         } else { $false }
 
-        # Build canonical ID via the existing canonicalizer
+        # Build canonical ID keyed by org/project/connectionId for entity dedupe stability.
         $rawResourceId = if ($finding.PSObject.Properties['ResourceId'] -and $finding.ResourceId) {
             [string]$finding.ResourceId
         } else { '' }
+        $connectionId = if ($finding.PSObject.Properties['ConnectionId'] -and $finding.ConnectionId) {
+            [string]$finding.ConnectionId
+        } else { '' }
 
         $canonicalId = ''
-        if ($rawResourceId) {
+        if ($connectionId) {
+            $canonicalId = "ado://$($org.ToLowerInvariant())/$($project.ToLowerInvariant())/serviceconnection/$($connectionId.ToLowerInvariant())"
+        } elseif ($rawResourceId) {
             try {
                 $canonicalId = ConvertTo-CanonicalAdoId -AdoId $rawResourceId
             } catch {
@@ -99,12 +104,54 @@ function Normalize-ADOConnections {
             $finding.LearnMoreUrl
         } else { '' }
 
+        $ruleId = if ($finding.PSObject.Properties['ConnectionType'] -and $finding.ConnectionType) {
+            "ado.connection.$($finding.ConnectionType)"
+        } else {
+            'ado.connection'
+        }
+        $pillar = if ($finding.PSObject.Properties['Pillar'] -and $finding.Pillar) { [string]$finding.Pillar } else { 'Security' }
+        $impact = if ($finding.PSObject.Properties['Impact'] -and $finding.Impact) { [string]$finding.Impact } else { '' }
+        $effort = if ($finding.PSObject.Properties['Effort'] -and $finding.Effort) { [string]$finding.Effort } else { '' }
+        $deepLinkUrl = if ($finding.PSObject.Properties['DeepLinkUrl'] -and $finding.DeepLinkUrl) { [string]$finding.DeepLinkUrl } else { '' }
+        $remediationSnippets = @()
+        if ($finding.PSObject.Properties['RemediationSnippets'] -and $finding.RemediationSnippets) {
+            $snippetList = [System.Collections.Generic.List[hashtable]]::new()
+            foreach ($snippet in @($finding.RemediationSnippets)) {
+                if ($null -eq $snippet) { continue }
+                $language = ''
+                $content = ''
+                if ($snippet -is [hashtable]) {
+                    $language = [string]($snippet.language ?? $snippet.Language ?? '')
+                    $content = [string]($snippet.content ?? $snippet.code ?? '')
+                } else {
+                    if ($snippet.PSObject.Properties['language']) { $language = [string]$snippet.language }
+                    elseif ($snippet.PSObject.Properties['Language']) { $language = [string]$snippet.Language }
+                    if ($snippet.PSObject.Properties['content']) { $content = [string]$snippet.content }
+                    elseif ($snippet.PSObject.Properties['code']) { $content = [string]$snippet.code }
+                }
+                if ([string]::IsNullOrWhiteSpace($language)) { $language = 'text' }
+                if ([string]::IsNullOrWhiteSpace($content)) { continue }
+                $snippetList.Add(@{
+                        language = $language
+                        content  = $content
+                    }) | Out-Null
+            }
+            $remediationSnippets = @($snippetList)
+        }
+        $evidenceUris = if ($finding.PSObject.Properties['EvidenceUris'] -and $finding.EvidenceUris) { @($finding.EvidenceUris) } else { @() }
+        $baselineTags = if ($finding.PSObject.Properties['BaselineTags'] -and $finding.BaselineTags) { @($finding.BaselineTags) } else { @() }
+        $entityRefs = if ($finding.PSObject.Properties['EntityRefs'] -and $finding.EntityRefs) { @($finding.EntityRefs) } else { @() }
+        $toolVersion = if ($finding.PSObject.Properties['ToolVersion'] -and $finding.ToolVersion) { [string]$finding.ToolVersion } else { '' }
+
         $row = New-FindingRow -Id $findingId `
             -Source 'ado-connections' -EntityId $canonicalId -EntityType 'ServiceConnection' `
-            -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
+            -Title $title -RuleId $ruleId -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
             -Platform 'ADO' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
-            -LearnMoreUrl $learnMore -ResourceId ($rawResourceId)
+            -LearnMoreUrl $learnMore -ResourceId ($rawResourceId) `
+            -Pillar $pillar -Impact $impact -Effort $effort -DeepLinkUrl $deepLinkUrl `
+            -RemediationSnippets $remediationSnippets -EvidenceUris $evidenceUris `
+            -BaselineTags $baselineTags -EntityRefs $entityRefs -ToolVersion $toolVersion
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)
