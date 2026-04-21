@@ -1,0 +1,78 @@
+[
+  {
+    "CheckID": "azure_storage_secure_transfer_required",
+    "CheckTitle": "Ensure secure transfer is required for Storage Account",
+    "ServiceName": "Storage",
+    "Status": "FAIL",
+    "StatusExtended": "Storage account does not require secure transfer.",
+    "Severity": "high",
+    "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/stprod01",
+    "ResourceArn": "arn:azure:storage:stprod01",
+    "MitreTactics": [
+      "Defense Evasion"
+    ],
+    "MitreTechniques": [
+      "T1562"
+    ],
+    "Compliance": {
+      "CIS_1.4": [
+        "3.1"
+      ],
+      "NIST_800-53_r5": [
+        "SC-8"
+      ],
+      "PCI_DSS_4.0": [
+        "4.2.1"
+      ],
+      "ISO27001": [
+        "A.8.24"
+      ]
+    },
+    "Remediation": {
+      "Recommendation": {
+        "Text": "Set supportsHttpsTrafficOnly to true.",
+        "Url": "https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer"
+      },
+      "Code": {
+        "CLI": "az storage account update --name stprod01 --resource-group rg-prod --https-only true",
+        "Terraform": "resource \"azurerm_storage_account\" \"this\" { enable_https_traffic_only = true }"
+      }
+    }
+  },
+  {
+    "CheckID": "azure_storage_public_access_disabled",
+    "CheckTitle": "Ensure blob public access is disabled",
+    "ServiceName": "Storage",
+    "Status": "FAIL",
+    "StatusExtended": "Storage account allows public blob access.",
+    "Severity": "medium",
+    "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/stprod01",
+    "ResourceArn": "arn:azure:storage:stprod01",
+    "MitreTactics": [
+      "Collection"
+    ],
+    "MitreTechniques": [
+      "T1530"
+    ],
+    "Compliance": {
+      "CIS_1.4": [
+        "3.10"
+      ],
+      "NIST_800-53_r5": [
+        "AC-3"
+      ],
+      "PCI_DSS_4.0": [
+        "7.2.1"
+      ]
+    },
+    "Remediation": {
+      "Recommendation": {
+        "Text": "Disable AllowBlobPublicAccess.",
+        "Url": "https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent"
+      },
+      "Code": {
+        "CLI": "az storage account update --name stprod01 --resource-group rg-prod --allow-blob-public-access false"
+      }
+    }
+  }
+]
