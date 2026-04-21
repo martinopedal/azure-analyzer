@@ -6,7 +6,8 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 
-- test(azure-quota): expanded `Invoke-AzureQuotaReports` wrapper coverage with realistic Azure CLI fixtures for subscription/region fanout, retry/error/sanitization paths, scope filters, threshold passthrough, and strict v1 envelope assertions (closes #324).
+- docs(azure-quota): expanded `docs/consumer/permissions/azure-quota.md` with the exact `az vm list-usage` / `az network list-usages` fanout, all wrapper parameters (`Subscriptions`, `Locations`, `Threshold`, `OutputPath`), a sample normalized `FindingRow`, and the locked severity ladder (>=99 Critical, >=95 High, >=Threshold Medium, <Threshold Info) (closes #325).
+- test(azure-quota):expanded `Invoke-AzureQuotaReports` wrapper coverage with realistic Azure CLI fixtures for subscription/region fanout, retry/error/sanitization paths, scope filters, threshold passthrough, and strict v1 envelope assertions (closes #324).
 - ci: weekly ALZ query drift-check workflow (`alz-queries-drift-check.yml`) that runs `scripts/Sync-AlzQueries.ps1 -DryRun` and fails when upstream `martinopedal/alz-graph-queries` diverges from local `queries/` cache (closes #316).
 - feat: Azure Quota Reports wrapper (modules/Invoke-AzureQuotaReports.ps1) adds subscription+region fanout over az vm list-usage and az network list-usages with configurable compliance threshold (Threshold default 80), emitting v1 envelope findings for quota capacity risk (closes #322).
 - feat: Azure Quota Reports normalizer (modules/normalizers/Normalize-AzureQuotaReports.ps1) converts wrapper v1 findings into v2 FindingRows with canonical subscription entity IDs, locked compliance rule (`UsagePercent < Threshold`), and reliability/capacity metadata (closes #323).
