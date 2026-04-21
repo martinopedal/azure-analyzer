@@ -96,7 +96,7 @@ The three quickstart scenarios above are the common path. The consumer index in 
 - Azure plus Entra identity (Maester) and cross-tenant identity-graph expansion
 - GitHub Enterprise (GHEC-DR / GHES) targeting
 - Azure DevOps Services and Azure DevOps Server pipeline, service-connection, repo-secret, and pipeline-consumption posture
-- GitHub Actions billing and runner-minute cost telemetry
+- GitHub Actions billing and runner-minute cost telemetry with Schema 2.2 cost ETL metadata (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `ScoreDelta`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`)
 - Sentinel coverage and active incidents
 - AzGovViz governance findings with Schema 2.2 enrichments (pillar, framework controls, baseline tags, portal deep links, evidence URIs)
 - Application Insights performance signals (slow requests, dependency failures, exception clusters)

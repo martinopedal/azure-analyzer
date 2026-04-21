@@ -26,4 +26,17 @@ Describe 'Normalize-GhActionsBilling' {
         $rows = @(Normalize-GhActionsBilling -ToolResult $script:Fixture)
         @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.RuleId) }).Count | Should -Be 0
     }
+
+    It 'maps Schema 2.2 ETL fields' {
+        $rows = @(Normalize-GhActionsBilling -ToolResult $script:Fixture)
+        @($rows | Where-Object { $_.Pillar -ne 'Cost Optimization' }).Count | Should -Be 0
+        @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.Impact) }).Count | Should -Be 0
+        @($rows | Where-Object { $_.Effort -ne 'Low' }).Count | Should -Be 0
+        @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.DeepLinkUrl) }).Count | Should -Be 0
+        @($rows | Where-Object { $null -eq $_.ScoreDelta }).Count | Should -Be 0
+        @($rows | Where-Object { [string]::IsNullOrWhiteSpace($_.ToolVersion) }).Count | Should -Be 0
+        @($rows | Where-Object { @($_.EvidenceUris).Count -eq 0 }).Count | Should -Be 0
+        @($rows | Where-Object { @($_.BaselineTags).Count -lt 2 }).Count | Should -Be 0
+        @($rows | Where-Object { @($_.EntityRefs).Count -eq 0 }).Count | Should -Be 0
+    }
 }
