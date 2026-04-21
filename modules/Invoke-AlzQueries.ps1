@@ -78,6 +78,12 @@ if (-not (Test-Path $QueriesFile)) {
 
 $data = Get-Content $QueriesFile -Raw | ConvertFrom-Json -ErrorAction Stop
 $queryable = $data.queries | Where-Object { $_.queryable -eq $true -and $_.graph }
+$toolVersion = if ($data.PSObject.Properties['metadata'] -and $data.metadata -and $data.metadata.PSObject.Properties['version']) {
+    [string]$data.metadata.version
+} else {
+    ''
+}
+$upstreamQueryFile = 'https://github.com/martinopedal/alz-graph-queries/blob/main/alz_additional_queries.json'
 
 if ($queryable.Count -eq 0) {
     Write-Warning "No queryable items found in $QueriesFile"
@@ -124,18 +130,23 @@ foreach ($item in $queryable) {
         }
 
         $findings.Add([PSCustomObject]@{
-            Id          = $item.guid
-            Title       = $item.text
-            Category    = $item.category
-            Severity    = $item.severity
-            Compliant   = $compliant
-            Detail      = if ($compliant) {
-                              if ($rows.Count -eq 0) { 'No resources in scope' } else { "All $($rows.Count) resource(s) compliant" }
-                          } else {
-                              "$($nonCompliantRows.Count) of $($rows.Count) resource(s) non-compliant"
-                          }
+            Id           = $item.guid
+            Title        = $item.text
+            Category     = $item.category
+            Subcategory  = $item.subcategory
+            Severity     = $item.severity
+            Compliant    = $compliant
+            Detail       = if ($compliant) {
+                               if ($rows.Count -eq 0) { 'No resources in scope' } else { "All $($rows.Count) resource(s) compliant" }
+                           } else {
+                               "$($nonCompliantRows.Count) of $($rows.Count) resource(s) non-compliant"
+                           }
             ResourceId   = $firstId
             LearnMoreUrl = ''
+            QueryIntent  = if ($item.PSObject.Properties['queryIntent']) { [string]$item.queryIntent } else { '' }
+            Description  = if ($item.PSObject.Properties['description']) { [string]$item.description } else { '' }
+            QuerySource  = $upstreamQueryFile
+            ToolVersion  = $toolVersion
         })
     } catch {
         Write-Warning "ALZ query failed for $($item.guid): $(Remove-Credentials -Text ([string]$_))"
@@ -143,11 +154,16 @@ foreach ($item in $queryable) {
             Id           = $item.guid
             Title        = $item.text
             Category     = $item.category
+            Subcategory  = $item.subcategory
             Severity     = $item.severity
             Compliant    = $false
             Detail       = (Remove-Credentials -Text "Query error: $([string]$_)")
             ResourceId   = ''
             LearnMoreUrl = ''
+            QueryIntent  = if ($item.PSObject.Properties['queryIntent']) { [string]$item.queryIntent } else { '' }
+            Description  = if ($item.PSObject.Properties['description']) { [string]$item.description } else { '' }
+            QuerySource  = $upstreamQueryFile
+            ToolVersion  = $toolVersion
         })
     }
 }
@@ -155,6 +171,7 @@ foreach ($item in $queryable) {
 return [PSCustomObject]@{
     Source   = 'alz-queries'
     SchemaVersion = '1.0'
+    ToolVersion = $toolVersion
     Status   = 'Success'
     Message  = ''
     Findings = $findings.ToArray()

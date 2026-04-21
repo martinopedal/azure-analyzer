@@ -118,6 +118,60 @@ Describe 'Normalize-AlzQueries' {
         It 'preserves Detail' {
             $results[0].Detail | Should -Not -BeNullOrEmpty
         }
+
+        It 'emits Schema 2.2 value fields' {
+            $results[0].Impact | Should -Be 'High'
+            $results[0].Effort | Should -Be 'High'
+            $results[1].Impact | Should -Be 'Medium'
+            $results[2].Impact | Should -Be 'Low'
+            $results[0].ToolVersion | Should -Be '1.0.0'
+        }
+
+        It 'emits framework and pillar metadata for ALZ governance' {
+            $results[0].Pillar | Should -Be 'Security'
+            $results[0].Frameworks | Should -Not -BeNullOrEmpty
+            $results[0].Frameworks[0].kind | Should -Be 'ALZ'
+            $results[0].Frameworks[0].controlId | Should -Be 'e8aa1e41-870d-4968-94c6-77be14f510ac'
+        }
+
+        It 'maps non-security categories to OperationalExcellence' {
+            $input = [PSCustomObject]@{
+                Source = 'alz-queries'
+                Status = 'Success'
+                Findings = @(
+                    [PSCustomObject]@{
+                        Id         = '11111111-1111-1111-1111-111111111111'
+                        Category   = 'Resource Organization'
+                        Subcategory = 'Subscriptions'
+                        Title      = 'Sandbox management group exists'
+                        Severity   = 'Low'
+                        Compliant  = $false
+                        Detail     = '1 non-compliant resource'
+                    }
+                )
+            }
+            $mapped = Normalize-AlzQueries -ToolResult $input
+            @($mapped).Count | Should -Be 1
+            $mapped[0].Pillar | Should -Be 'OperationalExcellence'
+        }
+
+        It 'emits source deep links and evidence URIs' {
+            $results[0].DeepLinkUrl | Should -Match '^https://github\.com/martinopedal/alz-graph-queries/search\?q='
+            $results[0].EvidenceUris | Should -Contain 'https://learn.microsoft.com/azure/ddos-protection/ddos-protection-overview'
+            $results[0].EvidenceUris | Should -Contain $results[0].DeepLinkUrl
+        }
+
+        It 'emits baseline tags from category and entity refs' {
+            $results[0].BaselineTags | Should -Contain 'alz-category:networking'
+            $results[0].BaselineTags | Should -Contain 'alz-subcategory:perimeter'
+            $results[0].EntityRefs | Should -Contain $results[0].EntityId
+        }
+
+        It 'emits remediation snippets when text is available' {
+            $results[0].RemediationSnippets | Should -Not -BeNullOrEmpty
+            $results[0].RemediationSnippets[0]['language'] | Should -Be 'text'
+            $results[0].RemediationSnippets[0]['code'] | Should -Match 'DDoS Protection Plan'
+        }
     }
 
     Context 'error handling' {

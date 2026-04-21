@@ -37,3 +37,54 @@ Describe 'Invoke-AlzQueries: error paths' {
     }
 }
 
+Describe 'Invoke-AlzQueries: success path metadata' {
+    BeforeAll {
+        $queriesFile = Join-Path $TestDrive 'alz_additional_queries.json'
+        @'
+{
+  "metadata": { "version": "1.2.3" },
+  "queries": [
+    {
+      "guid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "category": "Identity and Access Management",
+      "subcategory": "Identity",
+      "severity": "High",
+      "text": "Sample ALZ query",
+      "queryable": true,
+      "queryIntent": "findViolations",
+      "description": "Sample query description",
+      "graph": "Resources | project id, compliant=0"
+    }
+  ]
+}
+'@ | Set-Content -Path $queriesFile -Encoding utf8
+
+        Mock Get-Module {
+            [PSCustomObject]@{ Name = 'Az.ResourceGraph' }
+        }
+        Mock Import-Module { }
+        Mock Search-AzGraph {
+            @([PSCustomObject]@{
+                    id = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-test'
+                    compliant = 0
+                })
+        }
+
+        $result = & $script:Wrapper -ManagementGroupId 'mg-test' -QueriesFile $queriesFile
+    }
+
+    It 'returns success with metadata-derived tool version' {
+        $result.Status | Should -Be 'Success'
+        $result.ToolVersion | Should -Be '1.2.3'
+    }
+
+    It 'emits query metadata fields on findings' {
+        @($result.Findings).Count | Should -Be 1
+        $result.Findings[0].Subcategory | Should -Be 'Identity'
+        $result.Findings[0].QueryIntent | Should -Be 'findViolations'
+        $result.Findings[0].Description | Should -Be 'Sample query description'
+        $result.Findings[0].ToolVersion | Should -Be '1.2.3'
+        $result.Findings[0].QuerySource | Should -Match 'alz-graph-queries'
+    }
+}
+
