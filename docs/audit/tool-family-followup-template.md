@@ -45,8 +45,9 @@ above. It is one of eight parallel family audits spawned from #432a.
 - Audit doc skeleton: `docs/tool-output-audit.md` (rows for this family).
 - Sidecar template: `docs/tool-output-audit.template.json`.
 - Methodology: see "Methodology" section in the audit doc.
-- Foundation schema additions: PR #435 (read-only reference; do not depend on
-  it landing for the audit itself, only for the downstream #432c adoption).
+- Foundation hooks: PR #435 lands schema HOOKS only (no FindingRow field
+  names). The audit runs in parallel with #435 and does not depend on it
+  merging. Field names produced here feed #432b, which lands post-#435.
 
 ### Acceptance criteria for this family
 
@@ -64,14 +65,17 @@ above. It is one of eight parallel family audits spawned from #432a.
 
 ### Out of scope
 
-- Schema additions to `New-FindingRow` (covered by #432b after audit results
-  are in).
-- Normalizer code changes (covered by per-family adoption PRs in #432c-*).
+- Schema hooks (covered by #435; lands in parallel, no field names).
+- Named FindingRow field additions (covered by #432b, post-#435 merge, named
+  by the audit results this PR produces).
+- Normalizer code changes (covered by per-family adoption PRs in #432c-*,
+  post-#432b merge).
 - Renderer changes (covered by Track F #434).
 
 ### Cross-references
 
 - Parent track: #432
-- Audit scaffold: #432a
-- Schema extension (audit-driven): #432b
+- Audit scaffold: #432a (parallel with #435)
+- Foundation hooks: #435
+- Schema field-name additions (audit-driven): #432b
 - Renderer surfacing: #434

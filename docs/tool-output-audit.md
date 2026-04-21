@@ -3,8 +3,19 @@
 > Status: SKELETON (#432a). Per-tool rows are placeholders. Real fixture-based
 > audits land per tool family in follow-up issues (see
 > [`docs/audit/tool-family-followup-template.md`](audit/tool-family-followup-template.md)).
-> Foundation schema additions (the optional FindingRow fields) land separately
-> in PR #435 and are out of scope for this document.
+>
+> Sequencing (Round 3 reconciliation, authoritative on #432):
+>
+> - **#432a (this audit doc)** runs in parallel with **#435 (Phase 0 foundation)**.
+>   The audit does not block on #435 merging.
+> - **#435 lands schema HOOKS only** (additive optional-field acceptance plus
+>   the 16 EdgeRelations). No specific FindingRow field names land in #435.
+> - **#432b** lands the actual FindingRow field additions, named by the
+>   proven-dropped-field list this audit produces, post-#435 merge.
+> - **#432c-*** = per-tool-family normalizer adoption PRs, parallel after
+>   #432b merges.
+>
+> Earlier "audit BEFORE schema additions land" framing is SUPERSEDED.
 
 ## Why this audit exists
 
@@ -12,8 +23,15 @@ azure-analyzer invokes 36 underlying tools. Each tool emits richer raw output
 than what currently survives the wrapper plus normalizer plus FindingRow
 pipeline. This audit catalogues, per tool, exactly which fields the tool emits,
 which ones we preserve at each stage, and which ones we drop. The output of the
-audit is the evidence that drives the (audit-proven, not pre-speculated) schema
-extensions in #432b and the per-family normalizer adoption work in #432c.
+audit is the proven-dropped-field list that **names** the FindingRow additions
+landed by #432b, which in turn unblocks the per-family normalizer adoption work
+in #432c-*.
+
+This audit runs in parallel with the #435 foundation PR. #435 lands the schema
+hooks (additive optional-field acceptance plus the 16 EdgeRelations) without
+naming any new FindingRow fields, so the two efforts do not serialize. #432b
+takes the names produced here and lands them on top of the hooks once #435 has
+merged.
 
 The audit is read-only. No tool runs against any real tenant as part of #432a.
 Sample captures are produced family-by-family in the follow-up issues using
@@ -35,7 +53,9 @@ For each tool the audit performs the following steps in order:
    against the v1 envelope to enumerate fields the normalizer drops.
 4. Map every surviving v1 field to its target field on the current FindingRow
    schema (`modules/shared/Schema.ps1` `New-FindingRow`). Any field that has no
-   target slot is recorded as a candidate for the #432b schema extension.
+   target slot is recorded as a candidate field name for the #432b schema
+   extension. The #435 hook landing does not change this mapping step: until
+   #432b runs, candidate names live in this doc and the JSON sidecar only.
 5. Record the result in two places: a row in the field-coverage table below,
    and a structured entry in `docs/tool-output-audit.template.json` (copied to
    `docs/tool-output-audit.json` once the family audit is done).
@@ -143,9 +163,11 @@ above is the human-friendly view.
 
 ## Cross-references
 
-- Issue #432 : parent track (audit + extension + adoption + render).
-- Issue #432a : this scaffold.
-- Issue #432b : schema extension, gated on audit results.
-- Issue #432c-* : per-family normalizer adoption PRs.
-- PR #435 : foundation FindingRow schema additions (out of scope here).
-- Track F #434 : renderer surfacing of new fields.
+- Issue #432: parent track (audit + extension + adoption + render).
+- Issue #432a: this scaffold (runs in parallel with #435).
+- PR #435: Phase 0 foundation; lands schema HOOKS only (additive optional-field
+  acceptance + 16 EdgeRelations). Does not name new FindingRow fields.
+- Issue #432b: lands the actual FindingRow field additions named by this
+  audit, post-#435 merge.
+- Issue #432c-*: per-family normalizer adoption PRs, parallel after #432b.
+- Track F #434: renderer surfacing of new fields.
