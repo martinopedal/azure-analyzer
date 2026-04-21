@@ -104,8 +104,20 @@ function Merge-FrameworksUnion {
         param ($item)
         $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'kind'
         $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'controlId'
-        if ($null -eq $kind -and $item -is [System.Collections.IDictionary]) { $kind = $item['kind'] }
-        if ($null -eq $controlId -and $item -is [System.Collections.IDictionary]) { $controlId = $item['controlId'] }
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Kind' }
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'name' }
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Name' }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'ControlId' }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'id' }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'Id' }
+        if ($item -is [System.Collections.IDictionary]) {
+            if ([string]::IsNullOrWhiteSpace([string]$kind)) {
+                $kind = $item['kind'] ?? $item['Kind'] ?? $item['name'] ?? $item['Name']
+            }
+            if ([string]::IsNullOrWhiteSpace([string]$controlId)) {
+                $controlId = $item['controlId'] ?? $item['ControlId'] ?? $item['id'] ?? $item['Id']
+            }
+        }
         if ([string]::IsNullOrWhiteSpace([string]$kind) -or [string]::IsNullOrWhiteSpace([string]$controlId)) { return $null }
         return "$kind|$controlId"
     }
@@ -194,6 +206,7 @@ function New-StoreEntity {
     $currency = $null
     $costTrend = $null
     $frameworks = $null
+    $baselineTags = $null
     $controls = $null
     $policies = $null
     $correlations = $null
@@ -218,6 +231,7 @@ function New-StoreEntity {
         $currency = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Currency'
         $costTrend = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'CostTrend'
         $frameworks = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Frameworks'
+        $baselineTags = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'BaselineTags'
         $controls = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Controls'
         $policies = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Policies'
         $correlations = Get-ObjectPropertyValue -Object $EntityStub -PropertyName 'Correlations'
@@ -244,6 +258,7 @@ function New-StoreEntity {
         Currency         = $currency
         CostTrend        = $costTrend
         Frameworks       = $frameworks
+        BaselineTags     = $baselineTags
         Controls         = $controls
         Policies         = $policies
         Correlations     = $correlations
@@ -316,6 +331,18 @@ class EntityStore {
 
         if (-not $Target.LearnMoreUrl -and $Incoming.LearnMoreUrl) {
             $Target.LearnMoreUrl = $Incoming.LearnMoreUrl
+        }
+
+        if ($Incoming.PSObject.Properties['Frameworks']) {
+            $Target.Frameworks = Merge-FrameworksUnion -Existing $Target.Frameworks -Incoming $Incoming.Frameworks
+        }
+        if ($Incoming.PSObject.Properties['BaselineTags']) {
+            $Target.BaselineTags = Merge-BaselineTagsUnion -Existing $Target.BaselineTags -Incoming $Incoming.BaselineTags
+        }
+        if ($Incoming.PSObject.Properties['EvidenceUris']) {
+            $Target.EvidenceUris = Merge-UniqueByKey -Existing $Target.EvidenceUris -Incoming $Incoming.EvidenceUris -KeySelector {
+                param ($item) [string]$item
+            }
         }
 
         if ($Incoming.Provenance) {
@@ -392,6 +419,7 @@ class EntityStore {
                     ResourceGroup       = $(if ($Finding.PSObject.Properties['ResourceGroup']) { $Finding.ResourceGroup } else { $null })
                     ManagementGroupPath = $(if ($Finding.PSObject.Properties['ManagementGroupPath']) { $Finding.ManagementGroupPath } else { $null })
                     Frameworks          = $(if ($Finding.PSObject.Properties['Frameworks']) { $Finding.Frameworks } else { $null })
+                    BaselineTags        = $(if ($Finding.PSObject.Properties['BaselineTags']) { $Finding.BaselineTags } else { $null })
                     Controls            = $(if ($Finding.PSObject.Properties['Controls']) { $Finding.Controls } else { $null })
                     Confidence          = $(if ($Finding.PSObject.Properties['Confidence']) { $Finding.Confidence } else { $null })
                     MissingDimensions   = $(if ($Finding.PSObject.Properties['MissingDimensions']) { $Finding.MissingDimensions } else { $null })
@@ -450,9 +478,8 @@ class EntityStore {
         $entity.ExternalIds = Merge-UniqueByKey -Existing $entity.ExternalIds -Incoming $EntityStub.ExternalIds -KeySelector {
             param ($item) "$($item.Platform)|$($item.Id)"
         }
-        $entity.Frameworks = Merge-UniqueByKey -Existing $entity.Frameworks -Incoming $EntityStub.Frameworks -KeySelector {
-            param ($item) "$($item.Name)|$($item.ControlId)"
-        }
+        $entity.Frameworks = Merge-FrameworksUnion -Existing $entity.Frameworks -Incoming $EntityStub.Frameworks
+        $entity.BaselineTags = Merge-BaselineTagsUnion -Existing $entity.BaselineTags -Incoming $EntityStub.BaselineTags
         $entity.Policies = Merge-UniqueByKey -Existing $entity.Policies -Incoming $EntityStub.Policies -KeySelector {
             param ($item) "$($item.PolicyName)|$($item.AssignmentScope)"
         }

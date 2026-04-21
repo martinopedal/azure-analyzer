@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**One PowerShell command, 33 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
+**One PowerShell command, 34 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
 ## What does the output look like?
 
@@ -41,7 +41,7 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-Runs every tool whose prerequisites are present (azqr, PSRule for Azure, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`. Defender findings now flow Schema 2.2 metadata end-to-end, including Frameworks, Pillar, DeepLinkUrl, EvidenceUris, ToolVersion, and MITRE tactics and techniques when present in Defender alert payloads.
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, Powerpipe, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud) and writes findings to `output\` plus `report.html` and `report.md`. Defender findings now flow Schema 2.2 metadata end-to-end, including Frameworks, Pillar, DeepLinkUrl, EvidenceUris, ToolVersion, and MITRE tactics and techniques when present in Defender alert payloads.
 
 ### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
 
@@ -71,7 +71,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 
 ## What you get
 
-- **33 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
+- **34 tools** across Azure resources, Entra ID, GitHub, and Azure DevOps.
 - **Unified v2.2 schema** with 5 severity levels (Critical, High, Medium, Low, Info), 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO), and additive metadata fields (`Frameworks`, `Pillar`, `MitreTactics`, `MitreTechniques`, `EvidenceUris`, `BaselineTags`, `ToolVersion`).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, top impact recommendations, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
@@ -105,7 +105,7 @@ All tools run **read-only**. Most common scopes:
 
 | Scope | Used by |
 |-------|---------|
-| Azure **Reader** | azqr, PSRule, AzGovViz, ALZ Queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, App Insights, Defender for Cloud |
+| Azure **Reader** | azqr, PSRule, Powerpipe, AzGovViz, ALZ Queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, App Insights, Defender for Cloud |
 | **Cost Management Reader** (recommended) | FinOps Signals, Azure Cost |
 | Microsoft **Graph** (read) | Maester (Entra ID) |
 | **GitHub PAT** (optional) | Scorecard, GitHub Actions Billing, remote repo scans |

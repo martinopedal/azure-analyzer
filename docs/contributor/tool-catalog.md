@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 35.
+**Total tools registered:** 36.
 
 ## Registration matrix
 
@@ -41,6 +41,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `kubescape` | Kubescape (AKS runtime posture) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53 |
 | `loadtesting` | Azure Load Testing (Failed and Regressed Runs) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF |
 | `maester` | Maester | collector | microsoft365 | tenant | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `powerpipe` | Powerpipe Compliance Benchmarks | collector | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, PCI-DSS, SOC2 |
 | `psrule` | PSRule for Azure | collector | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
 | `scorecard` | OpenSSF Scorecard | collector | github | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
 | `sentinel-coverage` | Microsoft Sentinel (Coverage / Posture) | collector | azure | workspace | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS, Azure WAF |
@@ -81,6 +82,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `kubescape` | `Normalize-Kubescape` | script | `modules/Invoke-Kubescape.ps1` | SubscriptionId |
 | `loadtesting` | `Normalize-AzureLoadTesting` | script | `modules/Invoke-AzureLoadTesting.ps1` | SubscriptionId |
 | `maester` | `Normalize-Maester` | script | `modules/Invoke-Maester.ps1` | - |
+| `powerpipe` | `Normalize-Powerpipe` | script | `modules/Invoke-Powerpipe.ps1` | SubscriptionId |
 | `psrule` | `Normalize-PSRule` | script | `modules/Invoke-PSRule.ps1` | SubscriptionId |
 | `scorecard` | `Normalize-Scorecard` | script | `modules/Invoke-Scorecard.ps1` | Repository |
 | `sentinel-coverage` | `Normalize-SentinelCoverage` | script | `modules/Invoke-SentinelCoverage.ps1` | WorkspaceResourceId |
@@ -121,6 +123,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `kubescape` | cli ("kubescape") | kubescape/kubescape @ v3 | `#7b1fa2` | 6 |
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
 | `maester` | psmodule | maester365/maester @ latest | `#7b1fa2` | 1 |
+| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ latest | `#455a64` | 1 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ latest | `#6a1b9a` | 1 |
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |

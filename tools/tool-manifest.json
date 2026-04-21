@@ -604,6 +604,65 @@
       ]
     },
     {
+      "name": "powerpipe",
+      "displayName": "Powerpipe Compliance Benchmarks",
+      "source": "powerpipe",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Powerpipe",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Powerpipe.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "Benchmark"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#455a64",
+        "phase": 1
+      },
+      "install": {
+        "kind": "cli",
+        "command": "powerpipe",
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "manager": "winget",
+          "package": "Turbot.Powerpipe"
+        },
+        "macos": {
+          "manager": "brew",
+          "package": "turbot/tap/powerpipe"
+        },
+        "linux": {
+          "url": "https://powerpipe.io/downloads"
+        }
+      },
+      "upstream": {
+        "repo": "turbot/powerpipe",
+        "releaseApi": "https://api.github.com/repos/turbot/powerpipe/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "PCI-DSS",
+        "SOC2"
+      ]
+    },
+    {
       "name": "azgovviz",
       "displayName": "AzGovViz",
       "source": "azgovviz",

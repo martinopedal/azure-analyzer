@@ -132,3 +132,56 @@ Describe 'Merge-BaselineTagsUnion (Schema 2.2)' {
         @($merged).Count | Should -Be 0
     }
 }
+
+Describe 'EntityStore Schema 2.2 merge integration' {
+    It 'merges Frameworks and BaselineTags when duplicate findings collapse' {
+        $storeOutput = Join-Path $PSScriptRoot '..\..\output-test\entitystore-schema22-merge'
+        if (-not (Test-Path $storeOutput)) { $null = New-Item -ItemType Directory -Path $storeOutput -Force }
+        try {
+            $store = [EntityStore]::new(50000, $storeOutput)
+            $base = [pscustomobject]@{
+                Source      = 'powerpipe'
+                EntityId    = '/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg/providers/microsoft.storage/storageaccounts/st01'
+                EntityType  = 'AzureResource'
+                Platform    = 'Azure'
+                Title       = 'Control A'
+                Compliant   = $false
+                Severity    = 'High'
+                Detail      = 'detail-a'
+                Remediation = 'fix-a'
+                LearnMoreUrl = ''
+                Provenance  = $null
+                Frameworks  = @(@{ kind = 'CIS'; controlId = '1.1.1' })
+                BaselineTags = @('release:preview')
+            }
+            $incoming = [pscustomobject]@{
+                Source      = 'powerpipe'
+                EntityId    = $base.EntityId
+                EntityType  = 'AzureResource'
+                Platform    = 'Azure'
+                Title       = 'Control A'
+                Compliant   = $false
+                Severity    = 'Medium'
+                Detail      = 'detail-b'
+                Remediation = 'fix-b'
+                LearnMoreUrl = ''
+                Provenance  = $null
+                Frameworks  = @(@{ kind = 'NIST'; controlId = 'CA-7' }, @{ kind = 'CIS'; controlId = '1.1.1' })
+                BaselineTags = @('release:GA')
+            }
+
+            $store.AddFinding($base)
+            $store.AddFinding($incoming)
+            $findings = @($store.GetFindings())
+
+            $findings.Count | Should -Be 1
+            @($findings[0].Frameworks).Count | Should -Be 2
+            $findings[0].BaselineTags | Should -Contain 'release:preview'
+            $findings[0].BaselineTags | Should -Contain 'release:GA'
+        } finally {
+            if (Test-Path $storeOutput) {
+                Remove-Item -Path $storeOutput -Recurse -Force
+            }
+        }
+    }
+}
