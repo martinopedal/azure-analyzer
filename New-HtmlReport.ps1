@@ -963,3 +963,4 @@ renderHeatmap();
 $sanitizedHtml = Remove-Credentials $html
 Set-Content -Path $OutputPath -Value $sanitizedHtml -Encoding UTF8
 Write-Host "HTML report written to: $OutputPath"
+
