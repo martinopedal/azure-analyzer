@@ -117,6 +117,23 @@ function ConvertTo-DelimitedList {
     )
 }
 
+function ConvertTo-UniqueStringArray {
+    param ([object[]]$Items)
+
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $values = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in @($Items)) {
+        if ($null -eq $item) { continue }
+        $text = [string]$item
+        if ([string]::IsNullOrWhiteSpace($text)) { continue }
+        $trimmed = $text.Trim()
+        if ($seen.Add($trimmed)) {
+            $values.Add($trimmed) | Out-Null
+        }
+    }
+    return @($values)
+}
+
 function Get-AzGovVizPillar {
     param (
         [string]$Category,
@@ -145,7 +162,30 @@ function Get-AzGovVizFrameworks {
     param ([psobject]$FindingLike)
 
     if ($FindingLike.PSObject.Properties['Frameworks'] -and @($FindingLike.Frameworks).Count -gt 0) {
-        return @($FindingLike.Frameworks)
+        $normalized = [System.Collections.Generic.List[hashtable]]::new()
+        foreach ($framework in @($FindingLike.Frameworks)) {
+            if ($null -eq $framework) { continue }
+            $name = ''
+            $controls = @()
+            if ($framework -is [System.Collections.IDictionary]) {
+                $name = [string]($framework['Name'] ?? $framework['name'] ?? '')
+                $controls = @($framework['Controls'] ?? $framework['controls'] ?? @())
+            } else {
+                $nameProp = $framework.PSObject.Properties['Name']
+                if ($null -eq $nameProp) { $nameProp = $framework.PSObject.Properties['name'] }
+                $controlsProp = $framework.PSObject.Properties['Controls']
+                if ($null -eq $controlsProp) { $controlsProp = $framework.PSObject.Properties['controls'] }
+                $name = if ($null -ne $nameProp) { [string]$nameProp.Value } else { '' }
+                $controls = if ($null -ne $controlsProp) { @($controlsProp.Value) } else { @() }
+            }
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            if ($name -ieq 'MCSB') { $name = 'CAF' }
+            $normalized.Add(@{
+                    Name     = $name
+                    Controls = @(ConvertTo-UniqueStringArray -Items $controls)
+                }) | Out-Null
+        }
+        return @($normalized)
     }
 
     $policySetId = Get-RowValue -Row $FindingLike -Names @('PolicySetDefinitionId', 'PolicySetId', 'policySetId', 'policySetDefinitionId')
@@ -161,7 +201,7 @@ function Get-AzGovVizFrameworks {
     }
     if (@($mcsbControls).Count -gt 0) {
         $frameworks.Add(@{
-                Name     = 'MCSB'
+                Name     = 'CAF'
                 Controls = @($mcsbControls)
             })
     }
@@ -172,8 +212,14 @@ function Get-AzGovVizFrameworks {
 function Get-AzGovVizBaselineTags {
     param ([psobject]$FindingLike)
 
+    $tags = [System.Collections.Generic.List[string]]::new()
+
     if ($FindingLike.PSObject.Properties['BaselineTags'] -and @($FindingLike.BaselineTags).Count -gt 0) {
-        return @($FindingLike.BaselineTags)
+        foreach ($existingTag in @($FindingLike.BaselineTags)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$existingTag)) {
+                $tags.Add(([string]$existingTag).Trim()) | Out-Null
+            }
+        }
     }
 
     $initiativeName = Get-RowValue -Row $FindingLike -Names @(
@@ -183,12 +229,75 @@ function Get-AzGovVizBaselineTags {
         'InitiativeName'
     )
 
-    $tags = [System.Collections.Generic.List[string]]::new()
     foreach ($name in (ConvertTo-DelimitedList -Value $initiativeName)) {
         $tag = ConvertTo-BaselineTag -Name $name
         if ($tag) { $tags.Add($tag) }
     }
-    return @($tags)
+
+    $category = Get-RowValue -Row $FindingLike -Names @('Category', 'category')
+    if (-not [string]::IsNullOrWhiteSpace($category)) {
+        $categoryTag = ConvertTo-BaselineTag -Name "category-$category"
+        if ($categoryTag) { $tags.Add($categoryTag) | Out-Null }
+    }
+
+    return @(ConvertTo-UniqueStringArray -Items @($tags))
+}
+
+function Get-AzGovVizImpact {
+    param (
+        [string]$Severity,
+        [string]$Category
+    )
+
+    $severityKey = ($Severity ?? '').Trim().ToLowerInvariant()
+    switch ($severityKey) {
+        'critical' { return 'High' }
+        'high' { return 'High' }
+        'medium' { return 'Medium' }
+        'low' { return 'Low' }
+        'info' { return 'Low' }
+    }
+
+    $categoryKey = ($Category ?? '').Trim().ToLowerInvariant()
+    if ($categoryKey -match '^(policy|identity)$') { return 'High' }
+    if ($categoryKey -match '^(cost|costoptimization|finops)$') { return 'Medium' }
+    return 'Medium'
+}
+
+function Get-AzGovVizEffort {
+    param ([string]$Category)
+
+    $categoryKey = ($Category ?? '').Trim().ToLowerInvariant()
+    if ($categoryKey -eq 'operations') { return 'Medium' }
+    if ($categoryKey -eq 'identity') { return 'High' }
+    if ($categoryKey -eq 'policy') { return 'Medium' }
+    if ($categoryKey -match '^(cost|costoptimization|finops)$') { return 'Low' }
+    return 'Low'
+}
+
+function Get-AzGovVizRemediationSnippets {
+    param (
+        [string]$Remediation,
+        [string]$Category
+    )
+
+    $content = $Remediation
+    if ([string]::IsNullOrWhiteSpace($content)) {
+        $content = switch -Regex (($Category ?? '').Trim().ToLowerInvariant()) {
+            '^policy$' { 'Review policy assignment, initiative scope, and non-compliant resources in AzGovViz output and apply corrective policy actions.' }
+            '^identity$' { 'Review privileged role assignments and reduce standing access using least privilege.' }
+            '^operations$' { 'Enable required diagnostics settings and route telemetry to an approved destination.' }
+            '^cost|costoptimization|finops$' { 'Review cost optimization opportunities and remove or right-size orphaned assets.' }
+            default { 'Review the finding in AzGovViz output and apply the recommended governance control.' }
+        }
+    }
+
+    return @(
+        @{
+            language = 'text'
+            code     = $content.Trim()
+        }
+    )
 }
 
 function Get-AzGovVizDeepLink {
@@ -197,16 +306,25 @@ function Get-AzGovVizDeepLink {
         [string]$ResourceId,
         [string]$Scope,
         [string]$ManagementGroupId,
-        [string]$ManagementGroupResourceId
+        [string]$ManagementGroupResourceId,
+        [string]$PolicySetId,
+        [string]$ReportUri
     )
 
     $normalizedCategory = ($Category ?? '').Trim().ToLowerInvariant()
     if ($normalizedCategory -eq 'policy') {
+        if (-not [string]::IsNullOrWhiteSpace($PolicySetId) -and $PolicySetId -match '/policySetDefinitions/([^/\?]+)') {
+            $initiativeName = $Matches[1]
+            return "https://www.azadvertizer.net/azpolicyinitiativesadvertizer/$initiativeName.html"
+        }
+        if (-not [string]::IsNullOrWhiteSpace($ReportUri)) {
+            return "$ReportUri#policy"
+        }
         $effectiveScope = if ($Scope) { $Scope } elseif ($ResourceId) { $ResourceId } elseif ($ManagementGroupResourceId) { $ManagementGroupResourceId } elseif ($ManagementGroupId) { "/providers/Microsoft.Management/managementGroups/$ManagementGroupId" } else { '' }
         if ($effectiveScope) {
             return "https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance?scope=$([uri]::EscapeDataString($effectiveScope))"
         }
-        return 'https://portal.azure.com/#view/Microsoft_Azure_Policy/PolicyMenuBlade/~/Compliance'
+        return 'https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting'
     }
 
     if ($ResourceId) {
@@ -217,6 +335,10 @@ function Get-AzGovVizDeepLink {
     }
     if ($ManagementGroupId) {
         return "https://portal.azure.com/#@/resource/providers/Microsoft.Management/managementGroups/$ManagementGroupId/overview"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ReportUri)) {
+        return "$ReportUri#governance"
     }
 
     return ''
@@ -288,6 +410,7 @@ function New-AzGovVizFinding {
     $title = if ($props.ContainsKey('Title')) { [string]$props['Title'] } else { '' }
     $resourceId = if ($props.ContainsKey('ResourceId')) { [string]$props['ResourceId'] } else { '' }
     $scope = if ($props.ContainsKey('Scope')) { [string]$props['Scope'] } else { '' }
+    $policySetId = if ($props.ContainsKey('PolicySetId')) { [string]$props['PolicySetId'] } elseif ($props.ContainsKey('PolicySetDefinitionId')) { [string]$props['PolicySetDefinitionId'] } else { '' }
     $managementGroupResourceId = if ($props.ContainsKey('ManagementGroupResourceId')) {
         [string]$props['ManagementGroupResourceId']
     } elseif ($ManagementGroupId) {
@@ -330,10 +453,19 @@ function New-AzGovVizFinding {
         $props['ManagementGroupResourceId'] = $managementGroupResourceId
     }
     if (-not $props.ContainsKey('DeepLinkUrl') -or [string]::IsNullOrWhiteSpace([string]$props['DeepLinkUrl'])) {
-        $props['DeepLinkUrl'] = Get-AzGovVizDeepLink -Category $category -ResourceId $resourceId -Scope $scope -ManagementGroupId $ManagementGroupId -ManagementGroupResourceId $managementGroupResourceId
+        $props['DeepLinkUrl'] = Get-AzGovVizDeepLink -Category $category -ResourceId $resourceId -Scope $scope -ManagementGroupId $ManagementGroupId -ManagementGroupResourceId $managementGroupResourceId -PolicySetId $policySetId -ReportUri $ReportUri
     }
     if (-not $props.ContainsKey('EvidenceUris') -or @($props['EvidenceUris']).Count -eq 0) {
         $props['EvidenceUris'] = @(Get-AzGovVizEvidenceUris -ReportUri $ReportUri -Category $category)
+    }
+    if (-not $props.ContainsKey('Impact') -or [string]::IsNullOrWhiteSpace([string]$props['Impact'])) {
+        $props['Impact'] = Get-AzGovVizImpact -Severity ([string]$props['Severity']) -Category $category
+    }
+    if (-not $props.ContainsKey('Effort') -or [string]::IsNullOrWhiteSpace([string]$props['Effort'])) {
+        $props['Effort'] = Get-AzGovVizEffort -Category $category
+    }
+    if (-not $props.ContainsKey('RemediationSnippets') -or @($props['RemediationSnippets']).Count -eq 0) {
+        $props['RemediationSnippets'] = @(Get-AzGovVizRemediationSnippets -Remediation ([string]($props['Remediation'] ?? '')) -Category $category)
     }
 
     return [pscustomobject]$props

@@ -143,12 +143,16 @@ Write-Output "ok"
             $policy.Pillar | Should -Be 'Security'
             @($policy.Frameworks).Count | Should -Be 2
             ($policy.Frameworks | Where-Object { $_.Name -eq 'ALZ' }).Count | Should -BeGreaterThan 0
-            ($policy.Frameworks | Where-Object { $_.Name -eq 'MCSB' }).Count | Should -BeGreaterThan 0
+            ($policy.Frameworks | Where-Object { $_.Name -eq 'CAF' }).Count | Should -BeGreaterThan 0
             $policy.BaselineTags | Should -Contain 'initiative:baseline-security-initiative'
+            $policy.BaselineTags | Should -Contain 'initiative:category-policy'
             $policy.ToolVersion | Should -Be '9.9.9'
-            $policy.DeepLinkUrl | Should -Match '^https://portal\.azure\.com/'
+            $policy.DeepLinkUrl | Should -Match '^(https://www\.azadvertizer\.net/|https://portal\.azure\.com/)'
             @($policy.EvidenceUris).Count | Should -BeGreaterThan 0
             $policy.EvidenceUris[0] | Should -Match '#policy$'
+            $policy.Impact | Should -Be 'High'
+            $policy.Effort | Should -Be 'Medium'
+            @($policy.RemediationSnippets).Count | Should -BeGreaterThan 0
         }
 
         It 'derives pillar values for governance, identity, operations and cost categories' {
