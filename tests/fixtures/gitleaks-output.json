@@ -2,41 +2,123 @@
   "Source": "gitleaks",
   "Status": "Success",
   "Message": "",
+  "RepositoryId": "github.com/test-org/test-repo",
+  "RepositoryEntityId": "github.com/test-org/test-repo",
+  "RepositoryUrl": "https://github.com/test-org/test-repo",
+  "ToolVersion": "8.24.2",
   "Findings": [
     {
       "Id": "abc123def456:src/config.js:generic-api-key:15",
+      "RuleId": "generic-api-key",
       "Category": "Secret Detection",
       "Title": "Generic API Key found in src/config.js",
-      "Severity": "High",
+      "Severity": "Medium",
       "Compliant": false,
       "Detail": "Rule 'generic-api-key' matched in file src/config.js at line 15. Commit: abc1234.",
-      "Remediation": "Rotate the exposed credential and remove it from git history using git-filter-repo or BFG Repo-Cleaner.",
-      "ResourceId": "github.com/test-org/test-repo",
+      "Remediation": "Rotate and remove secret from history.",
+      "ResourceId": "src/config.js",
       "LearnMoreUrl": "https://github.com/gitleaks/gitleaks",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml#rule-generic-api-key",
+      "Frameworks": [
+        { "kind": "NIST 800-53", "controlId": "IA" },
+        { "kind": "ISO 27001", "controlId": "A.9" }
+      ],
+      "RemediationSnippets": [
+        { "language": "text", "code": "Rotate credential now." }
+      ],
+      "EvidenceUris": [
+        "https://github.com/test-org/test-repo/commit/abc123def456",
+        "https://github.com/test-org/test-repo/blob/abc123def456/src/config.js#L15"
+      ],
+      "BaselineTags": [
+        "gitleaks:rule:generic-api-key",
+        "gitleaks:tag:secret"
+      ],
+      "EntityRefs": [
+        "github.com/test-org/test-repo",
+        "commit:test-org/test-repo/abc123def456"
+      ],
+      "ToolVersion": "8.24.2",
       "SchemaVersion": "1.0"
     },
     {
       "Id": "def789ghi012:deploy/secrets.env:aws-access-key-id:3",
+      "RuleId": "aws-access-key-id",
       "Category": "Secret Detection",
       "Title": "AWS Access Key ID found in deploy/secrets.env",
-      "Severity": "High",
+      "Severity": "Critical",
       "Compliant": false,
       "Detail": "Rule 'aws-access-key-id' matched in file deploy/secrets.env at line 3. Commit: def5678.",
-      "Remediation": "Rotate the exposed credential and remove it from git history using git-filter-repo or BFG Repo-Cleaner.",
-      "ResourceId": "github.com/test-org/test-repo",
+      "Remediation": "Rotate and remove secret from history.",
+      "ResourceId": "deploy/secrets.env",
       "LearnMoreUrl": "https://github.com/gitleaks/gitleaks",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml#rule-aws-access-key-id",
+      "Frameworks": [
+        { "kind": "NIST 800-53", "controlId": "IA" },
+        { "kind": "NIST 800-53", "controlId": "AC" },
+        { "kind": "ISO 27001", "controlId": "A.9" }
+      ],
+      "RemediationSnippets": [
+        { "language": "bash", "code": "gh api -X PATCH repos/test-org/test-repo ..." }
+      ],
+      "EvidenceUris": [
+        "https://github.com/test-org/test-repo/commit/def789ghi012",
+        "https://github.com/test-org/test-repo/blob/def789ghi012/deploy/secrets.env#L3"
+      ],
+      "BaselineTags": [
+        "gitleaks:rule:aws-access-key-id",
+        "gitleaks:tag:secret",
+        "gitleaks:tag:aws"
+      ],
+      "EntityRefs": [
+        "github.com/test-org/test-repo",
+        "commit:test-org/test-repo/def789ghi012"
+      ],
+      "ToolVersion": "8.24.2",
       "SchemaVersion": "1.0"
     },
     {
-      "Id": "ghi345jkl678:.env:private-key:8",
+      "Id": "ghi345jkl678:.github/workflows/deploy.yml:private-key:8",
+      "RuleId": "private-key",
       "Category": "Secret Detection",
-      "Title": "Private Key found in .env",
+      "Title": "Private Key found in workflow",
       "Severity": "Medium",
       "Compliant": false,
-      "Detail": "Rule 'private-key' matched in file .env at line 8. Commit: ghi9012.",
-      "Remediation": "Rotate the exposed credential and remove it from git history using git-filter-repo or BFG Repo-Cleaner.",
-      "ResourceId": "github.com/test-org/test-repo",
+      "Detail": "Rule 'private-key' matched in file .github/workflows/deploy.yml at line 8. Commit: ghi9012.",
+      "Remediation": "Rotate and remove secret from history.",
+      "ResourceId": ".github/workflows/deploy.yml",
       "LearnMoreUrl": "https://github.com/gitleaks/gitleaks",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml#rule-private-key",
+      "Frameworks": [
+        { "kind": "NIST 800-53", "controlId": "IA" },
+        { "kind": "ISO 27001", "controlId": "A.9" }
+      ],
+      "RemediationSnippets": [
+        { "language": "text", "code": "Enable push protection and secret scanning." }
+      ],
+      "EvidenceUris": [
+        "https://github.com/test-org/test-repo/commit/ghi345jkl678",
+        "https://github.com/test-org/test-repo/blob/ghi345jkl678/.github/workflows/deploy.yml#L8"
+      ],
+      "BaselineTags": [
+        "gitleaks:rule:private-key",
+        "gitleaks:tag:secret"
+      ],
+      "EntityRefs": [
+        "github.com/test-org/test-repo",
+        "commit:test-org/test-repo/ghi345jkl678",
+        "workflow:test-org/test-repo/.github/workflows/deploy.yml"
+      ],
+      "ToolVersion": "8.24.2",
       "SchemaVersion": "1.0"
     }
   ]

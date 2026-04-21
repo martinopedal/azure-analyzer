@@ -54,6 +54,233 @@ function Test-GitleaksInstalled {
     $null -ne (Get-Command gitleaks -ErrorAction SilentlyContinue)
 }
 
+function Get-GitleaksToolVersion {
+    try {
+        $rawVersion = gitleaks version 2>&1
+        if ($LASTEXITCODE -ne 0) { return '' }
+        $versionText = if ($rawVersion -is [array]) { ($rawVersion -join ' ') } else { [string]$rawVersion }
+        $match = [regex]::Match($versionText, '(\d+\.\d+\.\d+(?:[-+][A-Za-z0-9\.-]+)?)')
+        if ($match.Success) { return $match.Groups[1].Value }
+        return $versionText.Trim()
+    } catch {
+        return ''
+    }
+}
+
+function Get-GitRemoteUrl {
+    param (
+        [Parameter(Mandatory)]
+        [string] $RepositoryPath
+    )
+
+    try {
+        $raw = git -C $RepositoryPath config --get remote.origin.url 2>$null
+        if ($LASTEXITCODE -ne 0) { return '' }
+        $value = if ($raw -is [array]) { ($raw | Select-Object -First 1) } else { [string]$raw }
+        return [string]$value
+    } catch {
+        return ''
+    }
+}
+
+function Resolve-RepositoryMetadata {
+    param (
+        [string] $RemoteCandidate
+    )
+
+    $candidate = [string]$RemoteCandidate
+    if ([string]::IsNullOrWhiteSpace($candidate)) {
+        return [PSCustomObject]@{
+            Host         = 'github.com'
+            Owner        = 'local'
+            Name         = 'local'
+            EntityId     = 'github.com/local/local'
+            RepositoryId = 'github.com/local/local'
+            RepositoryUrl = 'https://github.com/local/local'
+        }
+    }
+
+    $normalized = $candidate.Trim() -replace '\.git$', ''
+    $repoHost = ''
+    $owner = ''
+    $name = ''
+
+    if ($normalized -match '^https?://([^/]+)/([^/]+)/([^/?#]+)$') {
+        $repoHost = $matches[1]
+        $owner = $matches[2]
+        $name = $matches[3]
+    } elseif ($normalized -match '^git@([^:]+):([^/]+)/([^/?#]+)$') {
+        $repoHost = $matches[1]
+        $owner = $matches[2]
+        $name = $matches[3]
+    } elseif ($normalized -match '^([^/]+)/([^/]+)/([^/]+)$') {
+        $repoHost = $matches[1]
+        $owner = $matches[2]
+        $name = $matches[3]
+    }
+
+    if ([string]::IsNullOrWhiteSpace($repoHost) -or [string]::IsNullOrWhiteSpace($owner) -or [string]::IsNullOrWhiteSpace($name)) {
+        return [PSCustomObject]@{
+            Host         = 'github.com'
+            Owner        = 'local'
+            Name         = 'local'
+            EntityId     = 'github.com/local/local'
+            RepositoryId = 'github.com/local/local'
+            RepositoryUrl = 'https://github.com/local/local'
+        }
+    }
+
+    $repoHost = $repoHost.ToLowerInvariant()
+    $owner = $owner.ToLowerInvariant()
+    $name = $name.ToLowerInvariant()
+    [PSCustomObject]@{
+        Host          = $repoHost
+        Owner         = $owner
+        Name          = $name
+        EntityId      = "$repoHost/$owner/$name"
+        RepositoryId  = "$repoHost/$owner/$name"
+        RepositoryUrl = "https://$repoHost/$owner/$name"
+    }
+}
+
+function Get-GitleaksSeverity {
+    param (
+        [string] $RuleId,
+        [string] $Description,
+        [string[]] $Tags
+    )
+
+    $material = @($RuleId, $Description, (@($Tags) -join ' ')) -join ' '
+    if ($material -match '(?i)aws|azure|gcp|google|cloud|access[-_\s]?key|secret[-_\s]?access[-_\s]?key|service[-_\s]?account|connection[-_\s]?string|storage[-_\s]?key') {
+        return 'Critical'
+    }
+    return 'Medium'
+}
+
+function Get-GitleaksFrameworks {
+    param (
+        [string] $RuleId,
+        [string] $Description,
+        [string[]] $Tags
+    )
+
+    $frameworks = [System.Collections.Generic.List[hashtable]]::new()
+    $material = @($RuleId, $Description, (@($Tags) -join ' ')) -join ' '
+
+    if ($material -match '(?i)access|auth|credential|token|key|password|secret') {
+        $frameworks.Add(@{ kind = 'NIST 800-53'; controlId = 'IA' }) | Out-Null
+        $frameworks.Add(@{ kind = 'ISO 27001'; controlId = 'A.9' }) | Out-Null
+    }
+    if ($material -match '(?i)access|permission|privilege|rbac') {
+        $frameworks.Add(@{ kind = 'NIST 800-53'; controlId = 'AC' }) | Out-Null
+    }
+    if ($material -match '(?i)audit|log|trace') {
+        $frameworks.Add(@{ kind = 'NIST 800-53'; controlId = 'AU' }) | Out-Null
+    }
+
+    return @($frameworks)
+}
+
+function Get-BaselineTags {
+    param (
+        [string] $RuleId,
+        [string[]] $Tags
+    )
+
+    $output = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+
+    if (-not [string]::IsNullOrWhiteSpace($RuleId)) {
+        $ruleTag = "gitleaks:rule:$($RuleId.ToLowerInvariant())"
+        if ($seen.Add($ruleTag)) { $output.Add($ruleTag) | Out-Null }
+    }
+
+    $hasSecretTag = $false
+    foreach ($tag in @($Tags)) {
+        if ([string]::IsNullOrWhiteSpace([string]$tag)) { continue }
+        $normalizedTag = [string]$tag
+        if ($normalizedTag -match '(?i)secret') { $hasSecretTag = $true }
+        $tagValue = "gitleaks:tag:$($normalizedTag.Trim().ToLowerInvariant())"
+        if ($seen.Add($tagValue)) { $output.Add($tagValue) | Out-Null }
+    }
+
+    if (-not $hasSecretTag) {
+        $secretTag = 'gitleaks:tag:secret'
+        if ($seen.Add($secretTag)) { $output.Add($secretTag) | Out-Null }
+    }
+
+    return @($output)
+}
+
+function Get-EvidenceUris {
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject] $RepositoryMeta,
+        [string] $FilePath,
+        [int] $StartLine,
+        [string] $Commit
+    )
+
+    $uris = [System.Collections.Generic.List[string]]::new()
+    if ([string]::IsNullOrWhiteSpace($RepositoryMeta.RepositoryUrl)) { return @() }
+
+    if (-not [string]::IsNullOrWhiteSpace($Commit)) {
+        $uris.Add("$($RepositoryMeta.RepositoryUrl)/commit/$Commit") | Out-Null
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($FilePath) -and -not [string]::IsNullOrWhiteSpace($Commit)) {
+        $normalizedFile = $FilePath.Trim() -replace '\\', '/'
+        $lineFragment = if ($StartLine -gt 0) { "#L$StartLine" } else { '' }
+        $uris.Add("$($RepositoryMeta.RepositoryUrl)/blob/$Commit/$normalizedFile$lineFragment") | Out-Null
+    }
+
+    return @($uris)
+}
+
+function Get-EntityRefs {
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject] $RepositoryMeta,
+        [string] $Commit,
+        [string] $FilePath
+    )
+
+    $refs = [System.Collections.Generic.List[string]]::new()
+    $refs.Add($RepositoryMeta.EntityId) | Out-Null
+
+    if (-not [string]::IsNullOrWhiteSpace($Commit)) {
+        $refs.Add("commit:$($RepositoryMeta.Owner)/$($RepositoryMeta.Name)/$Commit") | Out-Null
+    }
+
+    $normalizedFile = [string]$FilePath
+    if (-not [string]::IsNullOrWhiteSpace($normalizedFile)) {
+        $normalizedFile = $normalizedFile -replace '\\', '/'
+        if ($normalizedFile -match '(?i)^\.github/workflows/[^/]+\.ya?ml$') {
+            $refs.Add("workflow:$($RepositoryMeta.Owner)/$($RepositoryMeta.Name)/$normalizedFile") | Out-Null
+        }
+    }
+
+    return @($refs)
+}
+
+function Get-GitleaksRemediationSnippets {
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject] $RepositoryMeta
+    )
+
+    return @(
+        @{
+            language = 'text'
+            code = "1) Revoke or rotate the exposed credential immediately. 2) Replace the secret with a secure reference (GitHub Actions secret, Azure Key Vault, or managed identity). 3) Remove the secret from Git history and force rotate any dependent systems."
+        },
+        @{
+            language = 'bash'
+            code = "gh api -X PATCH repos/$($RepositoryMeta.Owner)/$($RepositoryMeta.Name) --raw-field security_and_analysis[secret_scanning][status]=enabled --raw-field security_and_analysis[secret_scanning_push_protection][status]=enabled"
+        }
+    )
+}
+
 function Test-GitleaksConfigDisablesDefaults {
     param (
         [Parameter(Mandatory)]
@@ -123,6 +350,7 @@ if (-not [string]::IsNullOrWhiteSpace($GitleaksConfigPath)) {
 
 $cloneInfo = $null
 $cleanupClone = $null
+$toolVersion = Get-GitleaksToolVersion
 try {
     if ($RemoteUrl) {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
@@ -148,6 +376,9 @@ try {
 
     $resolvedPath = Resolve-Path $RepoPath -ErrorAction Stop | Select-Object -ExpandProperty Path
     Write-Verbose "Running gitleaks for path $resolvedPath"
+
+    $remoteCandidate = if ($RemoteUrl) { $RemoteUrl } elseif ($cloneInfo -and $cloneInfo.Url) { [string]$cloneInfo.Url } else { Get-GitRemoteUrl -RepositoryPath $resolvedPath }
+    $repositoryMeta = Resolve-RepositoryMetadata -RemoteCandidate $remoteCandidate
 
     # Write report to system temp dir — never inside the scanned repo
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "gitleaks-report-$([guid]::NewGuid().ToString('N')).json"
@@ -223,6 +454,7 @@ try {
         if ($resolvedConfig.DisablesDefaultsWithoutCustomRules) {
             $findings.Add([PSCustomObject]@{
                 Id           = [guid]::NewGuid().ToString()
+                RuleId       = 'gitleaks.config.disable-defaults'
                 Category     = 'Configuration'
                 Title        = 'Gitleaks pattern override disables all built-in rules'
                 Severity     = 'High'
@@ -231,11 +463,21 @@ try {
                 Remediation  = 'Set useDefault = true or add at least one vetted custom [[rules]] entry before scanning.'
                 ResourceId   = $sanitizedConfigPath
                 LearnMoreUrl = 'https://github.com/gitleaks/gitleaks'
+                Pillar       = 'Security'
+                Impact       = 'High'
+                Effort       = 'Low'
+                DeepLinkUrl  = 'https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml'
+                RemediationSnippets = @(Get-GitleaksRemediationSnippets -RepositoryMeta $repositoryMeta)
+                BaselineTags = @('gitleaks:config:custom','gitleaks:tag:secret')
+                Frameworks   = @(@{ kind = 'NIST 800-53'; controlId = 'IA' }, @{ kind = 'ISO 27001'; controlId = 'A.9' })
+                EntityRefs   = @($repositoryMeta.EntityId)
+                ToolVersion  = $toolVersion
             })
         }
 
         $findings.Add([PSCustomObject]@{
             Id           = [guid]::NewGuid().ToString()
+            RuleId       = 'gitleaks.config.custom-applied'
             Category     = 'Configuration'
             Title        = 'Custom gitleaks config applied'
             Severity     = 'Info'
@@ -244,6 +486,15 @@ try {
             Remediation  = 'Review custom allowlist and rule overrides regularly to keep secret detection coverage strong.'
             ResourceId   = $sanitizedConfigPath
             LearnMoreUrl = 'https://github.com/gitleaks/gitleaks'
+            Pillar       = 'Security'
+            Impact       = 'Low'
+            Effort       = 'Low'
+            DeepLinkUrl  = 'https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml'
+            RemediationSnippets = @(Get-GitleaksRemediationSnippets -RepositoryMeta $repositoryMeta)
+            BaselineTags = @('gitleaks:config:custom','gitleaks:tag:secret')
+            Frameworks   = @(@{ kind = 'NIST 800-53'; controlId = 'IA' }, @{ kind = 'ISO 27001'; controlId = 'A.9' })
+            EntityRefs   = @($repositoryMeta.EntityId)
+            ToolVersion  = $toolVersion
         })
     }
 
@@ -289,14 +540,15 @@ try {
         # Strip Secret/Match fields — defense-in-depth; --redact already replaces values in the report
 
         # Severity: Secret-type findings → High, everything else → Medium
-        $severity = 'High'
-        if ($item.PSObject.Properties['Tags'] -and $item.Tags) {
-            $tags = @($item.Tags)
-            $hasSecret = $tags | Where-Object { $_ -match '(?i)secret' }
-            if (-not $hasSecret) {
-                $severity = 'Medium'
-            }
-        }
+        $tags = @()
+        if ($item.PSObject.Properties['Tags'] -and $item.Tags) { $tags = @($item.Tags | ForEach-Object { [string]$_ }) }
+        $severity = Get-GitleaksSeverity -RuleId $ruleId -Description $description -Tags $tags
+        $frameworks = @(Get-GitleaksFrameworks -RuleId $ruleId -Description $description -Tags $tags)
+        $baselineTags = @(Get-BaselineTags -RuleId $ruleId -Tags $tags)
+        $evidenceUris = @(Get-EvidenceUris -RepositoryMeta $repositoryMeta -FilePath $filePath -StartLine $startLine -Commit $commit)
+        $entityRefs = @(Get-EntityRefs -RepositoryMeta $repositoryMeta -Commit $commit -FilePath $filePath)
+        $ruleAnchor = if ($ruleId) { "#rule-$([uri]::EscapeDataString($ruleId.ToLowerInvariant()))" } else { '' }
+        $deepLinkUrl = "https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml$ruleAnchor"
 
         $title = if ($description -and $filePath) {
             "$description found in $filePath"
@@ -317,6 +569,7 @@ try {
 
         $findings.Add([PSCustomObject]@{
             Id           = if ($fingerprint) { $fingerprint } else { [guid]::NewGuid().ToString() }
+            RuleId       = $ruleId
             Category     = 'Secret Detection'
             Title        = $title
             Severity     = $severity
@@ -325,6 +578,16 @@ try {
             Remediation  = 'Rotate the exposed credential and remove it from git history using git-filter-repo or BFG Repo-Cleaner.'
             ResourceId   = $filePath
             LearnMoreUrl = 'https://github.com/gitleaks/gitleaks'
+            Pillar       = 'Security'
+            Impact       = if ($severity -eq 'Critical') { 'High' } else { 'Medium' }
+            Effort       = 'Low'
+            DeepLinkUrl  = $deepLinkUrl
+            RemediationSnippets = @(Get-GitleaksRemediationSnippets -RepositoryMeta $repositoryMeta)
+            EvidenceUris = $evidenceUris
+            BaselineTags = $baselineTags
+            Frameworks   = $frameworks
+            EntityRefs   = $entityRefs
+            ToolVersion  = $toolVersion
         })
     }
 
@@ -333,6 +596,10 @@ try {
         SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
+        RepositoryId = $repositoryMeta.RepositoryId
+        RepositoryEntityId = $repositoryMeta.EntityId
+        RepositoryUrl = $repositoryMeta.RepositoryUrl
+        ToolVersion = $toolVersion
         Findings = $findings
     }
 } catch {
