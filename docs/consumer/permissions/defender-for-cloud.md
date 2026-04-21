@@ -4,13 +4,13 @@
 
 **Scope:** subscription | **Provider:** azure
 
-The Defender for Cloud wrapper reads two endpoints under `Microsoft.Security/*`: the subscription Secure Score (`secureScores/ascScore`) and non-healthy assessments (`assessments`, paged). The Secure Score lands on the Subscription entity; each non-healthy assessment lands on its target AzureResource so Defender recommendations fold next to existing azqr / PSRule findings on the same resource.
+The Defender for Cloud wrapper reads three endpoints under `Microsoft.Security/*`: the subscription Secure Score (`secureScores/ascScore`), non-healthy assessments (`assessments`, paged), and active alerts (`alerts`, paged). The Secure Score lands on the Subscription entity; each non-healthy assessment and alert lands on its target AzureResource so Defender recommendations and threat alerts fold next to existing azqr / PSRule findings on the same resource.
 
 ## Required roles
 
 | Token / scope | Why |
 |---------------|-----|
-| **Security Reader** at subscription scope | Required to read `Microsoft.Security/secureScores` and `Microsoft.Security/assessments` |
+| **Security Reader** at subscription scope | Required to read `Microsoft.Security/secureScores`, `Microsoft.Security/assessments`, and `Microsoft.Security/alerts` |
 | (Alternative) **Reader** at subscription scope | Sufficient in tenants where Reader is permitted to read `Microsoft.Security/*`; Security Reader is the documented least-privilege role |
 
 **API namespace used:** `Microsoft.Security/*` (read).
@@ -34,8 +34,9 @@ The Defender for Cloud wrapper reads two endpoints under `Microsoft.Security/*`:
 
 - Secure Score (current, max, percentage) for the subscription.
 - Non-healthy assessments only (status `Unhealthy`); paged across up to 20 pages.
+- Active Defender alerts (skips resolved and dismissed alerts), including MITRE tactics and techniques when present in the alert record.
 - Per-assessment metadata: display name, severity, description, remediation guidance, target resource ID.
-- Regulatory compliance posture (surfaced indirectly via the assessment recommendations that map to compliance controls).
+- Schema 2.2 metadata capture: Pillar (`Security`), Framework tags (for example MCSB and PCI when present), Defender portal deep links, evidence URIs, and wrapper tool version.
 
 ## What it does NOT do
 

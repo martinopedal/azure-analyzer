@@ -71,29 +71,69 @@ function Normalize-DefenderForCloud {
         $findingId = if ($f.PSObject.Properties['Id'] -and $f.Id) { [string]$f.Id } else { [guid]::NewGuid().ToString() }
 
         $remediation = if ($f.PSObject.Properties['Remediation']) { [string]$f.Remediation } else { '' }
+        $ruleId = ''
+        if ($f.PSObject.Properties['RuleId'] -and $f.RuleId) {
+            $ruleId = [string]$f.RuleId
+        } elseif ($f.PSObject.Properties['AssessmentId'] -and $f.AssessmentId) {
+            $ruleId = [string]$f.AssessmentId
+        } elseif ($f.PSObject.Properties['AlertId'] -and $f.AlertId) {
+            $ruleId = [string]$f.AlertId
+        }
+
+        $frameworks = @()
+        if ($f.PSObject.Properties['Frameworks'] -and $f.Frameworks) {
+            $frameworks = @($f.Frameworks)
+        }
+
+        $pillar = if ($f.PSObject.Properties['Pillar']) { [string]$f.Pillar } else { '' }
+        $impact = if ($f.PSObject.Properties['Impact']) { [string]$f.Impact } else { '' }
+        $effort = if ($f.PSObject.Properties['Effort']) { [string]$f.Effort } else { '' }
+        $deepLinkUrl = if ($f.PSObject.Properties['DeepLinkUrl']) { [string]$f.DeepLinkUrl } else { '' }
+        $toolVersion = if ($f.PSObject.Properties['ToolVersion']) { [string]$f.ToolVersion } else { '' }
+
+        $scoreDelta = $null
+        if ($f.PSObject.Properties['ScoreDelta'] -and $null -ne $f.ScoreDelta) {
+            try { $scoreDelta = [double]$f.ScoreDelta } catch {}
+        }
+
+        $evidenceUris = @()
+        if ($f.PSObject.Properties['EvidenceUris'] -and $f.EvidenceUris) {
+            $evidenceUris = @($f.EvidenceUris | ForEach-Object { [string]$_ } | Where-Object { $_ })
+        }
+
+        $mitreTactics = @()
+        if ($f.PSObject.Properties['MitreTactics'] -and $f.MitreTactics) {
+            $mitreTactics = @($f.MitreTactics | ForEach-Object { [string]$_ } | Where-Object { $_ })
+        }
+
+        $mitreTechniques = @()
+        if ($f.PSObject.Properties['MitreTechniques'] -and $f.MitreTechniques) {
+            $mitreTechniques = @($f.MitreTechniques | ForEach-Object { [string]$_ } | Where-Object { $_ })
+        }
+
+        $category = if ($f.PSObject.Properties['Category'] -and $f.Category) { [string]$f.Category } else { 'SecurityPosture' }
 
         $row = New-FindingRow -Id $findingId `
             -Source 'defender-for-cloud' -EntityId $canonicalId -EntityType $entityType `
-            -Title ([string]$f.Title) -Compliant $compliant -ProvenanceRunId $runId `
-            -Platform 'Azure' -Category 'SecurityPosture' -Severity $sev `
+            -Title ([string]$f.Title) -RuleId $ruleId -Compliant $compliant -ProvenanceRunId $runId `
+            -Platform 'Azure' -Category $category -Severity $sev `
             -Detail ([string]$f.Detail) `
             -Remediation $remediation `
             -LearnMoreUrl ([string]$f.LearnMoreUrl) -ResourceId $rawId `
-            -SubscriptionId $subId -ResourceGroup $rg
-
-        # Surface Secure Score numbers on the Subscription finding (out-of-schema extras).
-        foreach ($extra in 'ScoreCurrent', 'ScoreMax', 'ScorePercent', 'AssessmentId') {
-            if ($f.PSObject.Properties[$extra] -and $null -ne $f.$extra) {
-                $row | Add-Member -NotePropertyName $extra -NotePropertyValue $f.$extra -Force
-            }
-        }
-
-        # Skip null rows (validation failed)
+            -SubscriptionId $subId -ResourceGroup $rg `
+            -Frameworks $frameworks `
+            -Pillar $pillar `
+            -Impact $impact `
+            -Effort $effort `
+            -DeepLinkUrl $deepLinkUrl `
+            -EvidenceUris $evidenceUris `
+            -ScoreDelta $scoreDelta `
+            -MitreTactics $mitreTactics `
+            -MitreTechniques $mitreTechniques `
+            -ToolVersion $toolVersion
 
         if ($null -ne $row) {
-
             $normalized.Add($row)
-
         }
     }
 
