@@ -37,3 +37,49 @@ Describe 'Invoke-Trivy: error paths' {
     }
 }
 
+Describe 'Invoke-Trivy: Schema 2.2 enrichment' {
+    BeforeAll {
+        $fixturePath = Join-Path $script:RepoRoot 'tests' 'fixtures' 'trivy-cli-report.json'
+        $fixtureJson = Get-Content -Path $fixturePath -Raw
+
+        function global:trivy {
+            param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Args)
+            if ($Args.Count -gt 0 -and $Args[0] -eq '--version') {
+                "Version: 0.56.2"
+                return
+            }
+
+            $outputIndex = [array]::IndexOf($Args, '--output')
+            if ($outputIndex -lt 0 -or $outputIndex + 1 -ge $Args.Count) {
+                throw "Expected --output argument in trivy invocation. Args: $($Args -join ' ')"
+            }
+            $outputPath = $Args[$outputIndex + 1]
+            Set-Content -Path $outputPath -Value $fixtureJson -Encoding UTF8
+            $global:LASTEXITCODE = 0
+        }
+    }
+
+    AfterAll {
+        Remove-Item Function:\global:trivy -ErrorAction SilentlyContinue
+    }
+
+    It 'emits one finding per CVE and misconfiguration with 2.2 fields present' {
+        $result = & $script:Wrapper -ScanPath '.'
+        $result.Status | Should -Be 'Success'
+        @($result.Findings).Count | Should -Be 2
+
+        $vuln = @($result.Findings | Where-Object { $_.Title -match 'CVE-2023-12345' })[0]
+        $vuln.Pillar | Should -Be 'Security'
+        $vuln.Impact | Should -Be 'High'
+        $vuln.Effort | Should -Be 'Low'
+        $vuln.ScoreDelta | Should -Be 9.8
+        $vuln.ToolVersion | Should -Match '0.56.2'
+        @($vuln.Frameworks).Count | Should -BeGreaterThan 0
+        @($vuln.EvidenceUris).Count | Should -BeGreaterThan 0
+        @($vuln.RemediationSnippets).Count | Should -Be 1
+        $vuln.RemediationSnippets[0].before | Should -Be 'openssl:1.1.1k'
+        $vuln.RemediationSnippets[0].after | Should -Be 'openssl:1.1.1w'
+        $vuln.BaselineTags | Should -Contain 'CIS-DI-5.1'
+    }
+}
+

@@ -7,12 +7,45 @@
       "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "Category": "Supply Chain",
       "Title": "CVE-2021-44228 (log4j-core)",
+      "RuleId": "CVE-2021-44228",
       "Severity": "Critical",
       "Compliant": false,
       "Detail": "Remote code execution via JNDI injection. File: pom.xml. Installed: 2.14.1. Fixed: 2.17.1",
       "Remediation": "Upgrade log4j-core to 2.17.1 or later.",
-      "ResourceId": "github.com/test-org/test-repo",
-      "LearnMoreUrl": "https://avd.aquasec.com/nvd/cve-2021-44228"
+      "ResourceId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "LearnMoreUrl": "https://avd.aquasec.com/nvd/cve-2021-44228",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://aquasecurity.github.io/trivy/latest/docs/scanner/vulnerability/#cve-2021-44228",
+      "RemediationSnippets": [
+        {
+          "language": "dockerfile",
+          "before": "log4j-core:2.14.1",
+          "after": "log4j-core:2.17.1"
+        }
+      ],
+      "EvidenceUris": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+      ],
+      "BaselineTags": [
+        "CIS-DI-5.4"
+      ],
+      "ScoreDelta": 10.0,
+      "Frameworks": [
+        {
+          "kind": "CVE",
+          "controlId": "CVE-2021-44228"
+        },
+        {
+          "kind": "CWE",
+          "controlId": "CWE-502"
+        }
+      ],
+      "EntityRefs": [
+        "ghcr.io/test-org/test-repo@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "ToolVersion": "Version: 0.56.2"
     },
     {
       "Id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",

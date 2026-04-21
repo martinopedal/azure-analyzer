@@ -1,0 +1,52 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "ghcr.io/test-org/demo@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "Results": [
+    {
+      "Target": "Dockerfile",
+      "Class": "lang-pkgs",
+      "Type": "dockerfile",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2023-12345",
+          "PkgName": "openssl",
+          "InstalledVersion": "1.1.1k",
+          "FixedVersion": "1.1.1w",
+          "Title": "OpenSSL vulnerability",
+          "Description": "Example vulnerability description with CIS-DI-5.1 reference.",
+          "Severity": "CRITICAL",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2023-12345",
+          "References": [
+            "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz"
+          ],
+          "CweIDs": [
+            "CWE-79"
+          ],
+          "CVSS": {
+            "nvd": {
+              "V3Score": 9.8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "Target": "k8s/deployment.yaml",
+      "Class": "config",
+      "Type": "kubernetes",
+      "Misconfigurations": [
+        {
+          "ID": "AVD-KSV-0012",
+          "Title": "Container should not run as root",
+          "Description": "Kubernetes pod security context is missing runAsNonRoot.",
+          "Resolution": "Set securityContext.runAsNonRoot: true",
+          "Severity": "HIGH",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/ksv012",
+          "References": [
+            "https://kubernetes.io/docs/concepts/security/pod-security-standards/"
+          ]
+        }
+      ]
+    }
+  ]
+}
