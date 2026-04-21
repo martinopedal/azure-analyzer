@@ -179,6 +179,95 @@ if (-not $kubeconfigModeRequested -and -not (Get-Command az -ErrorAction Silentl
     return [pscustomobject]$result
 }
 
+function ConvertTo-KubescapeStringArray {
+    param(
+        [Parameter(ValueFromPipeline)]
+        [object] $Value
+    )
+
+    $values = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in @($Value)) {
+        if ($null -eq $item) { continue }
+        if ($item -is [string]) {
+            if (-not [string]::IsNullOrWhiteSpace($item)) { $values.Add($item.Trim()) }
+            continue
+        }
+        if ($item -is [System.Collections.IEnumerable] -and $item -isnot [string]) {
+            foreach ($nested in @($item)) {
+                if ($nested -is [string] -and -not [string]::IsNullOrWhiteSpace($nested)) {
+                    $values.Add($nested.Trim())
+                }
+            }
+            continue
+        }
+        $asString = [string]$item
+        if (-not [string]::IsNullOrWhiteSpace($asString)) { $values.Add($asString.Trim()) }
+    }
+
+    return @($values | Select-Object -Unique)
+}
+
+function Get-KubescapeField {
+    param(
+        [Parameter(Mandatory)]
+        [object] $Object,
+        [Parameter(Mandatory)]
+        [string[]] $Candidates
+    )
+
+    foreach ($candidate in $Candidates) {
+        $prop = $Object.PSObject.Properties[$candidate]
+        if ($prop -and $null -ne $prop.Value) { return $prop.Value }
+    }
+    return $null
+}
+
+function Get-KubescapeFrameworks {
+    param(
+        [Parameter(Mandatory)]
+        [object] $Control,
+        [Parameter(Mandatory)]
+        [string] $ControlId
+    )
+
+    $rawFrameworks = Get-KubescapeField -Object $Control -Candidates @('frameworks', 'Frameworks', 'frameworkNames', 'FrameworkNames', 'framework', 'Framework')
+    $entries = [System.Collections.Generic.List[hashtable]]::new()
+
+    foreach ($framework in @($rawFrameworks)) {
+        if ($null -eq $framework) { continue }
+        $name = ''
+        $controls = @($ControlId)
+        if ($framework -is [string]) {
+            $name = $framework.Trim()
+        } else {
+            $name = [string](Get-KubescapeField -Object $framework -Candidates @('name', 'Name', 'framework', 'Framework', 'kind', 'Kind'))
+            $rawControls = Get-KubescapeField -Object $framework -Candidates @('controls', 'Controls', 'controlIds', 'ControlIds', 'controlId', 'ControlId')
+            $normalizedControls = ConvertTo-KubescapeStringArray -Value $rawControls
+            if (@($normalizedControls).Count -gt 0) { $controls = @($normalizedControls) }
+        }
+
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        $entries.Add(@{
+                Name      = $name
+                Controls  = @($controls)
+                ControlId = $ControlId
+            })
+    }
+
+    return @($entries | Group-Object Name | ForEach-Object { $_.Group[0] })
+}
+
+function Get-KubescapeToolVersion {
+    try {
+        $versionOutput = & kubescape --version 2>&1
+        $line = @($versionOutput | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)
+        if (@($line).Count -gt 0) { return $line[0].Trim() }
+    } catch {}
+    return ''
+}
+
+$toolVersion = Get-KubescapeToolVersion
+
 # --- Discover AKS clusters via ARG (unless explicit list provided, or kubeconfig mode) ---
 $clusters = @()
 if ($kubeconfigModeRequested) {
@@ -313,6 +402,22 @@ foreach ($cluster in $clusters) {
                     $ctrlId = $ctrlProp.Name
                     $ctrlName = ''
                     try { $ctrlName = [string]$c.name } catch {}
+                    $frameworks = Get-KubescapeFrameworks -Control $c -ControlId $ctrlId
+                    $baselineTags = @($frameworks | ForEach-Object {
+                            $tag = ([string]$_.Name).ToLowerInvariant() -replace '[^a-z0-9]+', ''
+                            if (-not [string]::IsNullOrWhiteSpace($tag)) { $tag }
+                        } | Select-Object -Unique)
+                    $mitreTactics = ConvertTo-KubescapeStringArray -Value (Get-KubescapeField -Object $c -Candidates @('mitreTactics', 'MitreTactics', 'tactics', 'Tactics'))
+                    $mitreTechniques = ConvertTo-KubescapeStringArray -Value (Get-KubescapeField -Object $c -Candidates @('mitreTechniques', 'MitreTechniques', 'techniques', 'Techniques'))
+                    $mitre = Get-KubescapeField -Object $c -Candidates @('mitre', 'Mitre')
+                    if (@($mitreTactics).Count -eq 0 -and $mitre) {
+                        $mitreTactics = ConvertTo-KubescapeStringArray -Value (Get-KubescapeField -Object $mitre -Candidates @('tactics', 'Tactics', 'mitreTactics', 'MitreTactics'))
+                    }
+                    if (@($mitreTechniques).Count -eq 0 -and $mitre) {
+                        $mitreTechniques = ConvertTo-KubescapeStringArray -Value (Get-KubescapeField -Object $mitre -Candidates @('techniques', 'Techniques', 'mitreTechniques', 'MitreTechniques'))
+                    }
+                    $learnMore = [string](Get-KubescapeField -Object $c -Candidates @('controlDocUrl', 'ControlDocUrl', 'docUrl', 'DocUrl', 'learnMoreUrl', 'LearnMoreUrl'))
+                    if ([string]::IsNullOrWhiteSpace($learnMore)) { $learnMore = "https://hub.armosec.io/docs/$($ctrlId.ToLowerInvariant())" }
                     $findings.Add([pscustomobject]@{
                         Id           = "kubescape/$($cluster.id)/$ctrlId"
                         Source       = 'kubescape'
@@ -324,7 +429,13 @@ foreach ($cluster in $clusters) {
                         Remediation  = "Review kubescape raw output for control $ctrlId and follow CIS K8s Benchmark guidance."
                         ResourceId   = $cluster.id
                         ControlId    = $ctrlId
-                        LearnMoreUrl = "https://hub.armosec.io/docs/$($ctrlId.ToLower())"
+                        LearnMoreUrl = $learnMore
+                        Pillar       = 'Security'
+                        Frameworks   = @($frameworks)
+                        MitreTactics = @($mitreTactics)
+                        MitreTechniques = @($mitreTechniques)
+                        BaselineTags = @($baselineTags)
+                        ToolVersion  = $toolVersion
                     }) | Out-Null
                 }
             }

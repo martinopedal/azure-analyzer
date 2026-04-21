@@ -1,0 +1,61 @@
+{
+  "summaryDetails": {
+    "controls": {
+      "C-0017": {
+        "name": "Immutable container filesystem",
+        "scoreFactor": 8,
+        "status": {
+          "status": "failed"
+        },
+        "frameworks": [
+          "NSA",
+          "CIS",
+          "MITRE ATT&CK"
+        ],
+        "mitreTactics": [
+          "TA0001",
+          "TA0004"
+        ],
+        "mitreTechniques": [
+          "T1611"
+        ],
+        "controlDocUrl": "https://hub.armosec.io/docs/c-0017"
+      },
+      "C-0038": {
+        "name": "Host PID/IPC privileges",
+        "scoreFactor": 5,
+        "status": {
+          "status": "failed"
+        },
+        "frameworks": [
+          {
+            "name": "NSA",
+            "controls": [
+              "C-0038"
+            ]
+          },
+          {
+            "name": "CIS",
+            "controls": [
+              "5.2.8"
+            ]
+          },
+          {
+            "name": "DevOpsBest"
+          },
+          {
+            "name": "ArmoBest"
+          }
+        ],
+        "mitre": {
+          "tactics": [
+            "TA0003"
+          ],
+          "techniques": [
+            "T1610"
+          ]
+        }
+      }
+    }
+  }
+}

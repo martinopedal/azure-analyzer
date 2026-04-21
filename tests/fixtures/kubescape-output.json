@@ -16,7 +16,29 @@
       "Remediation": "Review kubescape raw output for control C-0017 and follow CIS K8s Benchmark guidance.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks",
       "ControlId": "C-0017",
-      "LearnMoreUrl": "https://hub.armosec.io/docs/c-0017"
+      "LearnMoreUrl": "https://hub.armosec.io/docs/c-0017",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "NSA",
+          "Controls": ["C-0017"],
+          "ControlId": "C-0017"
+        },
+        {
+          "Name": "CIS",
+          "Controls": ["5.2.5"],
+          "ControlId": "C-0017"
+        },
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": ["T1611"],
+          "ControlId": "C-0017"
+        }
+      ],
+      "MitreTactics": ["TA0001", "TA0004"],
+      "MitreTechniques": ["T1611"],
+      "BaselineTags": ["nsa", "cis", "mitreattck"],
+      "ToolVersion": "kubescape version v3.1.0"
     },
     {
       "Id": "kubescape/cluster1/C-0038",
@@ -29,7 +51,29 @@
       "Remediation": "Review kubescape raw output for control C-0038 and follow CIS K8s Benchmark guidance.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/prod/providers/Microsoft.ContainerService/managedClusters/prod-aks",
       "ControlId": "C-0038",
-      "LearnMoreUrl": "https://hub.armosec.io/docs/c-0038"
+      "LearnMoreUrl": "https://hub.armosec.io/docs/c-0038",
+      "Pillar": "Security",
+      "Frameworks": [
+        {
+          "Name": "NSA",
+          "Controls": ["C-0038"],
+          "ControlId": "C-0038"
+        },
+        {
+          "Name": "CIS",
+          "Controls": ["5.2.8"],
+          "ControlId": "C-0038"
+        },
+        {
+          "Name": "DevOpsBest",
+          "Controls": ["C-0038"],
+          "ControlId": "C-0038"
+        }
+      ],
+      "MitreTactics": ["TA0003"],
+      "MitreTechniques": ["T1610"],
+      "BaselineTags": ["nsa", "cis", "devopsbest"],
+      "ToolVersion": "kubescape version v3.1.0"
     }
   ]
 }
