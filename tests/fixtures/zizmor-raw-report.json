@@ -1,0 +1,27 @@
+[
+  {
+    "id": "template-injection",
+    "desc": "Untrusted expression in run step can execute attacker-controlled shell input.",
+    "severity": "high",
+    "locations": [
+      {
+        "symbolic": {
+          "key": ".github/workflows/ci.yml"
+        },
+        "line": 17,
+        "end_line": 22
+      }
+    ]
+  },
+  {
+    "id": "unpinned-uses",
+    "desc": "Action reference uses mutable tag.",
+    "severity": "medium",
+    "locations": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "line": 7
+      }
+    ]
+  }
+]

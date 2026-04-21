@@ -1,5 +1,5 @@
 BeforeAll {
-    $repoRoot = git rev-parse --show-toplevel
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     $hookScript = Join-Path $repoRoot 'hooks' 'pre-commit.ps1'
     $installerScript = Join-Path $repoRoot 'tools' 'Install-PreCommitHook.ps1'
     
@@ -18,7 +18,7 @@ BeforeAll {
 
 Describe 'Pre-commit Hook' {
     BeforeAll {
-        $repoRoot = git rev-parse --show-toplevel
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $hookScript = Join-Path $repoRoot 'hooks' 'pre-commit.ps1'
     }
     
@@ -75,7 +75,7 @@ Describe 'Pre-commit Hook' {
 
 Describe 'Install-PreCommitHook Script' {
     BeforeAll {
-        $repoRoot = git rev-parse --show-toplevel
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $installerScript = Join-Path $repoRoot 'tools' 'Install-PreCommitHook.ps1'
     }
     
