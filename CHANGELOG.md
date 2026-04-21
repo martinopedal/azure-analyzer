@@ -9,6 +9,7 @@ All notable changes to azure-analyzer will be documented here.
 - Schema: `RuleId` field on `New-FindingRow` (FindingRow v2.1) for stable rule identification (foundational for #227, #229).
 - Schema: `AdoProject` and `KarpenterProvisioner` added to the `EntityType` enum (foundational for #232, #234).
 - Docs: opt-in elevated RBAC tier for Karpenter inspection scaffolded in `PERMISSIONS.md` (foundational for #234; opt-in mechanism TBD, lands with #234 in Stage 2).
+- feat(scripts): added `scripts/Sync-AlzQueries.ps1` for manifest-driven ALZ query sync from `martinopedal/alz-graph-queries` with dry-run, retry/timeout wrapping, idempotent updates, and sanitized installer-style failures (closes #315).
 - feat(reports): top recommendations by impact panel using v2.1 RuleId (closes #227)
 - feat: GitHub Actions billing wrapper (org budget, top repo consumers, run anomaly) (closes #232)
 - feat: ADO pipeline consumption wrapper (parallel-job ratio, duration regression, failed pipeline rate) (closes #232)

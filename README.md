@@ -139,6 +139,7 @@ Manifest pin: `tools/tool-manifest.json` -> `alz-queries.upstream.repo` points a
 - [docs/contributor/README.md](docs/contributor/README.md): architecture, adding a new tool, AI governance, and forward-looking proposals.
 - [docs/contributor/ARCHITECTURE.md](docs/contributor/ARCHITECTURE.md): module layout, normalizer contract, EntityStore design.
 - [docs/contributor/adding-a-tool.md](docs/contributor/adding-a-tool.md): end-to-end guide for registering a new analyzer tool in `tools/tool-manifest.json`.
+- `scripts/Sync-AlzQueries.ps1`: manifest-driven sync of canonical `queries/alz_additional_queries.json` from the `alz-queries` upstream repo (`-DryRun` supported).
 - Docs Check note: stacked PR titles formatted as `(PR-x of y)` skip docs enforcement until the final part, while missing docs errors now emit explicit `error:` lines for CI triage.
 - Redirect stub deadlines are enforced by `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` (CI workflow: `stub-deadline-check.yml`).
 
