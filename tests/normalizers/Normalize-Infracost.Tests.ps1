@@ -22,7 +22,7 @@ Describe 'Normalize-Infracost' {
     It 'uses v2 schema rows with AzureResource entity type' {
         $rows = @(Normalize-Infracost -ToolResult $fixture)
         foreach ($r in $rows) {
-            $r.SchemaVersion | Should -Be '2.1'
+            $r.SchemaVersion | Should -Be '2.2'
             $r.Source | Should -Be 'infracost'
             $r.EntityType | Should -Be 'AzureResource'
             $r.Platform | Should -Be 'Azure'

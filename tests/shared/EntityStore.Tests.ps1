@@ -63,3 +63,72 @@ Describe 'EntityStore spill merge' {
         }
     }
 }
+
+
+Describe 'Merge-FrameworksUnion (Schema 2.2)' {
+    It 'deduplicates framework hashtables by (kind, controlId) tuple' {
+        $existing = @(
+            @{ kind = 'CIS';   controlId = '1.1.1'; version = '1.4.0' },
+            @{ kind = 'NIST';  controlId = 'CA-7' }
+        )
+        $incoming = @(
+            @{ kind = 'CIS';   controlId = '1.1.1'; version = '2.0.0' },  # dup
+            @{ kind = 'CIS';   controlId = '1.1.2' },
+            @{ kind = 'MITRE'; controlId = 'TA0001' }
+        )
+
+        $merged = Merge-FrameworksUnion -Existing $existing -Incoming $incoming
+        @($merged).Count | Should -Be 4
+
+        $cis111 = @($merged | Where-Object { $_.kind -eq 'CIS' -and $_.controlId -eq '1.1.1' })
+        $cis111.Count | Should -Be 1
+        # First-occurrence wins: existing version preserved
+        $cis111[0].version | Should -Be '1.4.0'
+    }
+
+    It 'accepts PSCustomObject entries with kind/controlId properties' {
+        $existing = @([pscustomobject]@{ kind = 'CIS'; controlId = '1.1.1' })
+        $incoming = @([pscustomobject]@{ kind = 'CIS'; controlId = '1.1.1' })
+        $merged = Merge-FrameworksUnion -Existing $existing -Incoming $incoming
+        @($merged).Count | Should -Be 1
+    }
+
+    It 'skips entries missing kind or controlId rather than crashing' {
+        $existing = @(@{ kind = 'CIS'; controlId = '1.1.1' })
+        $incoming = @(@{ kind = 'CIS' }, @{ controlId = '1.1.2' }, $null)
+        $merged = Merge-FrameworksUnion -Existing $existing -Incoming $incoming
+        @($merged).Count | Should -Be 1
+    }
+
+    It 'returns empty array when both inputs are empty' {
+        $merged = Merge-FrameworksUnion -Existing @() -Incoming @()
+        @($merged).Count | Should -Be 0
+    }
+}
+
+Describe 'Merge-BaselineTagsUnion (Schema 2.2)' {
+    It 'deduplicates string tags case-sensitively, preserving order' {
+        $merged = Merge-BaselineTagsUnion -Existing @('release:GA','baseline:cis-1.4') -Incoming @('release:GA','release:preview')
+        @($merged).Count | Should -Be 3
+        $merged[0] | Should -Be 'release:GA'
+        $merged[1] | Should -Be 'baseline:cis-1.4'
+        $merged[2] | Should -Be 'release:preview'
+    }
+
+    It 'treats different-cased tags as distinct (preview != PREVIEW)' {
+        $merged = Merge-BaselineTagsUnion -Existing @('release:preview') -Incoming @('release:PREVIEW')
+        @($merged).Count | Should -Be 2
+    }
+
+    It 'skips null/whitespace tags' {
+        $merged = Merge-BaselineTagsUnion -Existing @('a','') -Incoming @($null,'  ','b')
+        @($merged).Count | Should -Be 2
+        $merged | Should -Contain 'a'
+        $merged | Should -Contain 'b'
+    }
+
+    It 'returns empty array when both inputs are empty' {
+        $merged = Merge-BaselineTagsUnion -Existing @() -Incoming @()
+        @($merged).Count | Should -Be 0
+    }
+}

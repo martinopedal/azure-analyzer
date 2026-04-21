@@ -81,6 +81,60 @@ function Merge-UniqueByKey {
     return $result.ToArray()
 }
 
+function Merge-FrameworksUnion {
+    <#
+    .SYNOPSIS
+        Deduplicate a list of Schema 2.2 framework hashtables by (kind, controlId) tuple.
+    .DESCRIPTION
+        Frameworks is the Schema 2.2 first-class field carrying compliance-framework
+        membership. Each entry is a hashtable / PSCustomObject with at minimum
+        `kind` (e.g. 'CIS', 'NIST', 'MITRE', 'EIDSCA') and `controlId` (e.g. '1.1.1',
+        'CA-7', 'TA0001'). When two wrappers tag the same finding with overlapping
+        framework metadata (e.g. PSRule + Maester both report CIS 1.1.1), the union
+        is collapsed to a single entry per `(kind, controlId)` tuple. The first
+        occurrence wins so callers can prefer existing/local data over incoming.
+        Comparison of both `kind` and `controlId` is case-sensitive.
+    #>
+    param (
+        [object[]] $Existing,
+        [object[]] $Incoming
+    )
+
+    return Merge-UniqueByKey -Existing $Existing -Incoming $Incoming -KeySelector {
+        param ($item)
+        $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'kind'
+        $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'controlId'
+        if ($null -eq $kind -and $item -is [System.Collections.IDictionary]) { $kind = $item['kind'] }
+        if ($null -eq $controlId -and $item -is [System.Collections.IDictionary]) { $controlId = $item['controlId'] }
+        if ([string]::IsNullOrWhiteSpace([string]$kind) -or [string]::IsNullOrWhiteSpace([string]$controlId)) { return $null }
+        return "$kind|$controlId"
+    }
+}
+
+function Merge-BaselineTagsUnion {
+    <#
+    .SYNOPSIS
+        Deduplicate a list of Schema 2.2 baseline tag strings, case-sensitive.
+    .DESCRIPTION
+        BaselineTags carry release-channel / lifecycle annotations such as
+        'release:GA', 'release:preview', 'release:deprecated', 'baseline:cis-1.4'.
+        Tags are case-sensitive (preview != PREVIEW) so two wrappers that disagree
+        on case will round-trip as distinct tags rather than being silently merged.
+    #>
+    param (
+        [string[]] $Existing,
+        [string[]] $Incoming
+    )
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    foreach ($tag in @($Existing) + @($Incoming)) {
+        if ([string]::IsNullOrWhiteSpace($tag)) { continue }
+        if ($seen.Add($tag)) { $result.Add($tag) }
+    }
+    return $result.ToArray()
+}
+
 function Merge-MissingDimensions {
     param (
         [string[]] $Existing,
