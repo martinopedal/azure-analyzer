@@ -91,3 +91,80 @@
 ### 2026-04-22 — ETL Sprint Schema 2.2 Launch Complete
 
 **Sprint Summary:** 30 PRs merged (zero open). Schema 2.2 locked across 20+ normalizers. Pester 1495+ tests (1369 baseline → +126 extensions). HTML report null-crash regression fix #416 shipped launch-eve. All squad briefs merged to decisions.md. 15 follow-up ETL issues filed (#300–#313). Launch GO for 08:00 CET 2026-04-22.
+
+### 2026-04-22 — Report UI v2 Redesign Research
+
+**Assignment:** Martin's ask: "make a pass on a cooler UI, research good looking reports for these kinds of tool while maintaining accessibility". Deliverable: research brief + design principles + accessibility checklist + mockup + gap analysis + follow-up PR scope.
+
+**Research arc (8 production reports audited):**
+- Microsoft Defender for Cloud: Secure Score conic-gradient gauge (80px radius, 24px stroke), split-bar compliance cells (140x32px 3-segment green/red/grey), pillar pivot tiles. Gold standard for executive summary KPIs.
+- AWS Security Hub: Finding aggregation by severity + standard (CIS/PCI/AWS Foundational), resource-centric pivot (account/region/type), CVSS integration. Table-heavy, no heatmap.
+- Prowler HTML: Framework-first nav (CIS 1.5/2.0/WAF), severity pills with icons, collapsible findings, one-liner remediation commands. Excellent copy-paste UX, color-blind friendly (shape + color).
+- Wiz dashboards: Risk graph (criticality × exploitability 2D scatter), entity relationship map (identity → workload → data), toxic combination detection. SaaS-only, not offline-applicable.
+- Kubescape HTML: MITRE ATT&CK matrix heatmap (12×9 grid, tactic columns × technique rows, color intensity = control coverage), framework score breakdown (NSA/MITRE/CIS side-by-side), YAML remediation snippets. Best-in-class ATT&CK visualization.
+- SonarQube: Quality gate badge, radar chart (5 dimensions: reliability/security/maintainability/coverage/duplication), hotspot prioritization, technical debt time estimate. Code-centric, not infrastructure.
+- GitHub Advanced Security: Code scanning alerts table (severity + CWE + tool + branch filter), secret scanning with validity check, dependency graph with Dependabot alerts. Developer-first UX, PR-inline comments.
+- Tenable Nessus HTML export: Plugin family grouping, CVSS v3 base score + vector, affected hosts list, remediation effort estimate. Audit-ready, but dated UI (table-only, no charts).
+
+**Pattern synthesis:**
+- **Table stakes** (everyone does): Severity pills with contrasting colors, framework badge mapping (CIS/NIST/PCI/ISO/MITRE), filterable findings table, collapsible detail with evidence + remediation, exportable/print-friendly.
+- **Differentiation** (leaders only): MITRE ATT&CK matrix heatmap (not just badges), entity relationship graph (identity blast-radius, service dependencies), risk aggregation (likelihood × impact × exploitability), remediation snippets with copy-to-clipboard (Bicep/ARM/CLI code blocks), trend over time (delta from last scan, posture trajectory).
+
+**Design principles locked:**
+- **Typography:** System font stack (Segoe UI Variable fallback chain), 14px body optimized for table density, 12px meta/badges, 16-18px headers, 24-36px KPI numbers. Weights: 400 normal, 500 nav/buttons, 600 headings, 700 emphasis.
+- **Color system:** WCAG AA at 14px both light and dark modes. Severity palette: Critical `#7f1d1d`, High `#b91c1c`, Medium `#b45309`, Low `#a16207`, Info `#475569` (light), adjusted for dark (`#f87171`, `#fb923c`, `#fbbf24`, `#facc15`, `#94a3b8`). Framework badges match decisions.md #103 palette (CIS amber, NIST grey, MITRE red, etc.). Dark mode via `prefers-color-scheme` + manual toggle.
+- **Layout:** Single-scroll with sticky anchors (decision #89, no tabs). Section order: Executive summary → Pillar heatmap → MITRE ATT&CK matrix → Top risks → Tool coverage → Findings table → Entity inventory → Run metadata footer.
+- **Accessibility:** WCAG 2.1 AA checklist: contrast ratios 4.5:1 text / 3:1 UI, keyboard nav (tab order + arrow keys + Enter/Space/Escape), screen reader support (semantic HTML + ARIA labels/expanded/live), color-blind safety (never color-only — severity pills use text label, heatmap cells use count + color, MITRE matrix uses technique count + intensity), reduced motion (@media prefers-reduced-motion), print stylesheet (hide nav/filters, auto-expand findings, print URLs).
+
+**Mockup scope decision:**
+- Full HTML mockup deferred to implementation phase. Current sample-report.html (95.8KB) already demonstrates Schema 2.2 field rendering (MitreTactics, RemediationSnippets, Impact, Effort, DeepLinkUrl, etc. wired at lines 229-240 in New-HtmlReport.ps1). The v2 redesign focuses on presentation polish, not data availability.
+- Created focused v2 Markdown mockup at `samples/sample-report-v2-mockup.md` (17KB) showing new sections: MITRE ATT&CK coverage summary (tactic → technique count table), Impact × Effort matrix (3×3 grid with finding counts), framework cross-reference legend, tool version column, posture score delta indicator, enhanced collapsible findings with evidence URIs + remediation snippets + entity refs + deep links.
+- HTML interactivity (MITRE matrix filtering, split-bar hover states, copy-to-clipboard feedback, dark mode toggle) best validated in-browser during PR review, not static mockup.
+
+**Gap analysis — New-HtmlReport.ps1 (500 lines):**
+10 missing sections identified:
+1. **MITRE ATT&CK matrix heatmap** — Data extraction from MitreTactics/MitreTechniques arrays, 12-column grid builder, tactic-to-finding-ID mapping for filter interaction. New function `Build-MitreMatrixHtml` (~80 lines).
+2. **Split-bar heatmap cells** — Current uses single-color cells (lines 298-327). Need 3-segment split-bar (green pass / red fail / grey skipped) per cell, Defender-style. Refactor `$hmMatrices` cell value from scalar count to hashtable `{Pass, Fail, Skipped}`. Impact: ~40 lines.
+3. **Remediation snippets syntax highlighting** — Current renders as plain `<pre>` blocks (lines 394-426). Need inline regex highlighter for Bicep/PowerShell/Bash/YAML (no external lib — offline requirement). New function `Add-SyntaxHighlight` (~60 lines).
+4. **Evidence URI auto-linking** — Schema 2.2 `EvidenceUris` read at line 234, rendering stubbed (line 390 joins as text). Need `<a>` tag generation with http/https validation + external-link icon. Impact: ~15 lines.
+5. **Impact/Effort 2D matrix** — Schema 2.2 fields read at lines 230-231, rendered as text in collapsible (lines 444-447). No top-risks Impact × Effort grid visualization. New section in executive summary, ~50 lines.
+6. **Deep link CTA button** — `DeepLinkUrl` read at line 232, rendered as link in expandable row (lines 456-458). Should be promoted to primary button in collapsed row (Azure portal icon + "Open" label). Impact: ~10 lines.
+7. **Baseline tags chips** — `BaselineTags` read at line 237, rendered as comma-separated text (lines 434-436). Need pill/chip component matching framework badges. Impact: ~20 lines.
+8. **Entity refs collapsible** — `EntityRefs` read at line 238, rendered as `<pre>` block (lines 438-441). Should be `<details>` with copy-to-clipboard per-ref. Impact: ~25 lines.
+9. **Score delta indicator** — `ScoreDelta` read at line 239, rendered as text (line 445). Need arrow icon (▲ red for regression, ▼ green for improvement), positioned next to posture score in header. Impact: ~30 lines.
+10. **Tool version footer** — `ToolVersion` read at line 240, not rendered anywhere. Should be in run metadata footer table. Impact: ~15 lines.
+
+**Follow-up PR scope (3-PR sequence):**
+- **PR 1: MITRE matrix + split-bar heatmap** — Foundation. New `Get-MitreTacticsFromFindings`, `New-MitreMatrixSectionHtml`, refactor heatmap cells to 3-segment split-bar, insert MITRE section between heatmap and top risks, update Markdown to add MITRE coverage summary table. Tests: matrix presence check, cell count validation, fixture with MitreTactics on 3+ findings.
+- **PR 2: Remediation UX + evidence linking** — Developer experience. Inline syntax highlighter `Add-SyntaxHighlight` (Bicep/PowerShell/Bash/YAML), refactor remediation snippet rendering with copy-to-clipboard, evidence URI auto-linking (validate http/https, render as chips), promote DeepLinkUrl to CTA button in collapsed row, render BaselineTags as chips, render EntityRefs as collapsible with per-ref copy. Tests: snippet rendering, URI validation, deep link button presence, fixture with RemediationSnippets + EvidenceUris + BaselineTags.
+- **PR 3: Executive summary + metadata polish** — CISO experience. Impact × Effort 2D matrix in executive summary `New-ImpactEffortMatrixHtml`, score delta indicator (arrow icon + color) next to posture score, ToolVersion column in footer tool table, manual dark mode toggle button (moon icon, toggles `data-theme`), update Markdown Impact × Effort table + tool version column. Tests: matrix presence, score delta arrow, tool version rendering, fixture with Impact/Effort on all findings + ScoreDelta + ToolVersion.
+
+**Deliverables:**
+- `.squad/decisions/inbox/sage-report-ui-v2-redesign.md` (31KB) — Full research brief with 8 audited reports, design principles, WCAG AA checklist, gap analysis, 3-PR roadmap, 5 open questions for Lead.
+- `samples/sample-report-v2-mockup.md` (17KB) — Markdown mockup showing MITRE coverage, Impact × Effort matrix, framework cross-reference, tool versions, enhanced collapsible findings.
+- `samples/sample-report-v2-mockup.html` (42KB) — **Working HTML mockup** with realistic Schema 2.2 data (11 findings from existing sample-report.html), full interactive features: MITRE ATT&CK 12-column matrix (clickable cells filter findings), split-bar heatmap cells (Defender-style 3-segment), Impact × Effort prioritization matrix (3×3 grid), severity/pillar/tool filters (chip toggles), search box, dark mode toggle (localStorage + prefers-color-scheme), URL hash deep-link (`#finding-{id}`), copy-to-clipboard on remediation snippets, collapsible finding details, keyboard-accessible (tab order + focus rings + aria labels), print stylesheet, responsive (360px+ mobile), self-contained (inline CSS + JS, no CDN, 42KB total under 80KB target).
+
+**Design decisions captured:**
+- MITRE ATT&CK matrix always-on vs optional — Recommendation: always show with empty-state message ("No MITRE ATT&CK mappings in current findings").
+- Split-bar heatmap 3-segment vs gradient — Recommendation: 3-segment (Defender-style) for clarity, easier to spot "mostly fail with some skipped" vs continuous gradient.
+- Syntax highlighter regex vs external lib — Recommendation: inline regex (~60 lines), keeps offline requirement, covers 95% of remediation snippets, avoids 120KB highlight.js bundle.
+- Impact/Effort matrix in exec summary vs separate section — Recommendation: exec summary (CISO needs it immediately, separate section buries it below fold).
+- Dark mode default vs light default — Recommendation: light default (CISOs print reports, light prints better, dark mode users have OS-level preference).
+
+**Key learnings:**
+- Industry standard for ATT&CK visualization is the 12-column tactic matrix (Kubescape gold standard), not inline badges. Our MitreTactics/MitreTechniques arrays in Schema 2.2 are sufficient to render this — no new data needed.
+- Defender for Cloud split-bar cells (green/red/grey 3-segment) are more readable than continuous gradient for compliance heatmaps. Execs can instantly spot "partial compliance with gaps" vs "pure fail".
+- Prowler's one-liner remediation commands with copy-to-clipboard is the UX gold standard — far more actionable than "Learn more" URLs. Our Schema 2.2 RemediationSnippets array already supports this, just needs presentation.
+- Wiz's entity relationship graph (identity blast-radius) is powerful but requires v3 entity-centric store edges. Current identity graph (issue #298) is a static SVG teaser — full interactive graph needs EntityStore.Edges (tracked in v3.2 roadmap).
+- GitHub Advanced Security's PR-inline comments are developer-first but not applicable to offline HTML reports. Our deep link strategy (Schema 2.2 DeepLinkUrl to Azure portal / ADO build / GitHub repo) is the right hybrid — report points to online detail view.
+- WCAG AA compliance is table stakes, not differentiation. Color-blind safety requires shape + text + color (never color alone). Keyboard nav and screen reader support must be design-time decisions, not post-hoc retrofits.
+- Dark mode is now expected (every modern tool has it), but light mode must be the default for print-friendly reports. Manual toggle respects user override beyond OS-level preference.
+
+**Cross-refs:**
+- Schema 2.2 contract: modules/shared/Schema.ps1 lines 250-264, decisions.md #95
+- Framework badge palette: decisions.md #103
+- Severity color tokens: decisions.md #108
+- Report architecture (single-scroll): decisions.md #89
+- Heat-map default (Control Domain × Subscription): decisions.md #112
+- Identity graph (existing): issue #298, decisions.md Sage history 2026-04-22
+- ETL gap tracking: issues #300-#313

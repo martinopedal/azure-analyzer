@@ -15,13 +15,9 @@ Describe 'New-HtmlReport' {
 
         $html = Get-Content $out -Raw
         $html | Should -Match '<!DOCTYPE html>'
-        $html | Should -Match '<header class=''app'''
-        $html | Should -Match '<section class=''section'' id=''overview''>'
-        $html | Should -Match '<section class=''section'' id=''coverage''>'
-        $html | Should -Match '<section class=''section'' id=''heatmap''>'
-        $html | Should -Match '<section class=''section'' id=''risks''>'
-        $html | Should -Match '<section class=''section'' id=''findings''>'
-        $html | Should -Match '<section class=''section'' id=''entities''>'
+        $html | Should -Match '<header role=''banner'''
+        $html | Should -Match '<main id=''main''>'
+        $html | Should -Match '<a href=''#main'' class=''skip'''
         $html | Should -Match "localStorage\.setItem\('aa-theme'"
     }
 

@@ -100,3 +100,31 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Upgraded `modules/normalizers/Normalize-Azqr.ps1` to pass Schema 2.2 optional fields through `New-FindingRow` without dropping legacy fields.
 - Added fixture coverage for `RecommendationId`, `Impact`, `Effort`, `DeepLinkUrl`, `Frameworks`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTactics`, `MitreTechniques`, `EntityRefs`, and `ToolVersion`.
 - Extended wrapper and normalizer Pester tests to assert the new ETL contract end-to-end.
+
+### 2026-04-23: Docs Architecture Audit (forge-docs-restructure) — Refined with Progressive Disclosure
+
+**Initial findings**: 68 docs files, 7 orphaned stubs, no root index, README oversized (130 lines mixes marketing, quickstart, reference). Tool catalog scattered, ETL and field mapping hidden. Parameter reference missing.
+
+**Martin's refinement principles applied**:
+1. **Progressive disclosure**: Visible layer (first 10 seconds) shows "what is this, how do I run it, what do I get". Expanded layers (collapsed `<details>`) hold advanced params, full ETL mapping, gotchas, maintainer notes.
+2. **README contract** (new shape): One-sentence pitch (1 line), three-bullet outputs (3 lines), single command example (5 lines), link to getting-started. Everything else in collapsed details blocks. Target visible section: ~50 lines max.
+3. **Tool page contract** (new): Purpose (1 line), scan target (1 line), min permissions (1 line), min invocation (code block). Collapsed sections for: full params, ETL field mapping, known gotchas, maintainer notes.
+4. **New reference pages**: `docs/reference/orchestrator-params.md` (every Invoke-AzureAnalyzer.ps1 param; common visible, advanced collapsed). `docs/reference/etl-pipeline.md` (v1 envelope to v3 entity flow with per-normalizer field mapping in collapsibles, Schema 2.2 spec in collapsibles).
+5. **Dual-audience pages**: Where consumer and maintainer guidance diverges, use side-by-side collapsibles ("For consumers: run the tool" / "For maintainers: extend or debug"). No flat mixing.
+6. **Accessibility**: GitHub's `<details><summary>` is native, keyboard-navigable, screen-reader friendly. Nesting rule: max 2 levels (readability cliff beyond). Summary text always a complete phrase, not fragment. Default state: `<details open>` for critical (quickstart, common params), `<details>` (closed) for advanced.
+
+**Refined proposal outcome** (written to `.squad/decisions/inbox/forge-docs-restructure-proposal.md`, 23 KB):
+- Visibility policy per page type (README, orchestrator params, tool pages, guides, reference, architecture).
+- Concrete examples of collapsed sections with markdown.
+- Structure tree with new pages: orchestrator-params.md, etl-pipeline.md, entity-model.md.
+- Migration checklist (Phase 1-6): generators, directory creation, file moves, deletions, validation.
+- No file moves yet, still proposal-only.
+
+**Key learnings for future doc work**:
+- Progressive disclosure must be consistent: same visual patterns across all pages. Users learn the structure once, apply everywhere.
+- Tool pages need "at-a-glance" contracts (purpose, scan target, min permissions, min invocation) above all else. Gotchas and deep ETL mapping belong in collapsed sections.
+- Root-level paths (README, PERMISSIONS, CHANGELOG) are stable anchors; they're referenced externally (tool-manifest.json report metadata, GitHub links, etc.). Changes require link audits.
+- Generators with hardcoded defaults breed confusion. New structure makes defaults explicit in script documentation and maintainer checklists.
+- Orphaned stubs with redirect deadlines create maintenance overhead. Delete or consolidate, not redirect with deadline tracking.
+- ETL and field mapping deserve their own reference page (not scattered across CHANGELOG, README, ARCHITECTURE, tool pages). One stop for "what raw field -> what v2 slot" questions.
+- Parameter reference page (orchestrator-params.md) should group params by scenario (subscription scan, repo scan, multi-tenant, CI/CD, etc.) and collapse advanced params. Consumers find their scenario, maintainers find exhaustive reference.

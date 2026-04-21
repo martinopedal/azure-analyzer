@@ -29,10 +29,10 @@
     Path to tools/tool-manifest.json. Defaults to the repo-relative location.
 
 .PARAMETER ConsumerOutPath
-    Path for the consumer-facing catalog. Defaults to docs/consumer/tool-catalog.md.
+    Path for the consumer-facing catalog. Defaults to docs/reference/tool-catalog.md.
 
 .PARAMETER ContributorOutPath
-    Path for the contributor-facing catalog. Defaults to docs/contributor/tool-catalog.md.
+    Path for the contributor-facing catalog. Defaults to docs/reference/tool-catalog-contributor.md.
 
 .PARAMETER CheckOnly
     Do not write files. Compare the generated content with what is on disk.
@@ -65,8 +65,8 @@ function Get-RepoRoot {
 
 $repoRoot = Get-RepoRoot
 if (-not $ManifestPath)        { $ManifestPath        = Join-Path $repoRoot 'tools/tool-manifest.json' }
-if (-not $ConsumerOutPath)     { $ConsumerOutPath     = Join-Path $repoRoot 'docs/consumer/tool-catalog.md' }
-if (-not $ContributorOutPath)  { $ContributorOutPath  = Join-Path $repoRoot 'docs/contributor/tool-catalog.md' }
+if (-not $ConsumerOutPath)     { $ConsumerOutPath     = Join-Path $repoRoot 'docs/reference/tool-catalog.md' }
+if (-not $ContributorOutPath)  { $ContributorOutPath  = Join-Path $repoRoot 'docs/reference/tool-catalog-contributor.md' }
 
 if (-not (Test-Path -LiteralPath $ManifestPath)) {
     throw "Manifest not found at: $ManifestPath"

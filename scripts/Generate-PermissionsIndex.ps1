@@ -25,7 +25,7 @@
 
 .PARAMETER PagesDir
     Directory containing per-tool permission detail pages.
-    Defaults to docs/consumer/permissions.
+    Defaults to docs/reference/permissions.
 
 .PARAMETER CheckOnly
     Do not write files. Compare the generated content with what is on disk
@@ -60,7 +60,7 @@ function Get-RepoRoot {
 $repoRoot = Get-RepoRoot
 if (-not $ManifestPath)    { $ManifestPath    = Join-Path $repoRoot 'tools/tool-manifest.json' }
 if (-not $PermissionsPath) { $PermissionsPath = Join-Path $repoRoot 'PERMISSIONS.md' }
-if (-not $PagesDir)        { $PagesDir        = Join-Path $repoRoot 'docs/consumer/permissions' }
+if (-not $PagesDir)        { $PagesDir        = Join-Path $repoRoot 'docs/reference/permissions' }
 
 if (-not (Test-Path -LiteralPath $ManifestPath))    { throw "Manifest not found at: $ManifestPath" }
 if (-not (Test-Path -LiteralPath $PermissionsPath)) { throw "PERMISSIONS.md not found at: $PermissionsPath" }

@@ -151,4 +151,87 @@ Describe 'New HTML report redesign contract (#295)' {
         $html | Should -Match 'Before:'
         $html | Should -Match 'After:'
     }
+
+    # v2 Design System Tests (PR1)
+    It 'renders v2 skip-to-content link with proper semantics' {
+        $tmp = Join-Path $TestDrive 'report-v2-skip-link'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match '<a href=''#main'' class=''skip''>Skip to main content</a>'
+        $html | Should -Match '<main id=''main''>'
+    }
+
+    It 'includes dark mode toggle button with localStorage persistence' {
+        $tmp = Join-Path $TestDrive 'report-v2-dark-mode'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match 'id=''themeBtn'''
+        $html | Should -Match 'data-theme=''light'''
+        $html | Should -Match 'localStorage\.getItem'
+        $html | Should -Match 'aa-theme'
+    }
+
+    It 'renders severity count strip with icon decorators for color-blind safety' {
+        $tmp = Join-Path $TestDrive 'report-v2-severity-icons'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        @([pscustomobject]@{ Id='F-1'; Source='psrule'; Severity='Critical'; Compliant=$false; Title='test'; RuleId='R1'; Detail='d'; Remediation='r'; EntityId='e1' }) | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match 'sev-cnt::before'
+        $html | Should -Match 'content:''●'''
+    }
+
+    It 'includes print stylesheet with filter hiding and collapsible expansion' {
+        $tmp = Join-Path $TestDrive 'report-v2-print'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match '@media print'
+        $html | Should -Match 'fnd-toolbar.*display:none'
+        $html | Should -Match 'fnd-table tr\.expand.*display:table-row'
+    }
+
+    It 'includes prefers-reduced-motion support for accessibility' {
+        $tmp = Join-Path $TestDrive 'report-v2-reduced-motion'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match '@media\(prefers-reduced-motion:reduce\)'
+        $html | Should -Match 'animation-duration:\.01ms'
+    }
+
+    It 'renders with responsive grid layout and mobile support' {
+        $tmp = Join-Path $TestDrive 'report-v2-responsive'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match '<meta name=''viewport'' content=''width=device-width,initial-scale=1''>'
+        $html | Should -Match '@media\(max-width:1024px\)'
+        $html | Should -Match 'grid2.*grid-template-columns:1fr'
+    }
+
+    It 'renders semantic landmarks with proper ARIA labels' {
+        $tmp = Join-Path $TestDrive 'report-v2-semantics'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match '<header role=''banner''>'
+        $html | Should -Match '<nav.*aria-label=''Section''>'
+        $html | Should -Match 'aria-label=''Findings by severity'''
+    }
 }

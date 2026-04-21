@@ -36,7 +36,7 @@ Both triggers share `Shared/Invoke-FunctionScan.ps1`, which:
 The Function App must run with a managed identity (system- or user-assigned)
 holding **Reader** at the target subscription / management group, plus
 **Monitoring Metrics Publisher** on the DCR if the sink is enabled. See
-[`docs/consumer/permissions/_continuous-control.md`](../docs/consumer/permissions/_continuous-control.md).
+[`docs/reference/permissions/_continuous-control.md`](../docs/reference/permissions/_continuous-control.md).
 
 ## Timeout caveat
 

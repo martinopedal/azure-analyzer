@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Azure Analyzer - Posture Report v2</title>
+<style>
+:root{--bg:#f7f8fa;--surf:#fff;--surf2:#f1f3f6;--bord:#e3e6eb;--bords:#cdd2da;--txt:#0f172a;--txtm:#475569;--txtf:#64748b;--brand:#0b5fff;--brandk:#003fb3;--crit:#7f1d1d;--high:#b91c1c;--med:#b45309;--low:#a16207;--info:#475569;--critbg:#fef2f2;--highbg:#fee2e2;--medbg:#fef3c7;--lowbg:#fefce8;--infobg:#f1f5f9;--pass:#15803d;--passbg:#dcfce7;--shadow:0 1px 2px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);--r:10px;--rsm:6px;--font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;--mono:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace}
+[data-theme=dark]{--bg:#0b1220;--surf:#111a2e;--surf2:#172238;--bord:#243049;--bords:#324264;--txt:#e8edf6;--txtm:#9aa7bf;--txtf:#7a8aa6;--brand:#3b82f6;--brandk:#60a5fa;--crit:#f87171;--high:#fb923c;--med:#fbbf24;--low:#facc15;--info:#94a3b8;--critbg:#3a1212;--highbg:#3a1f10;--medbg:#3a2a0a;--lowbg:#332a0a;--infobg:#1e293b;--pass:#4ade80;--passbg:#0f2a1a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
+a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
+button{font:inherit;cursor:pointer;background:0;border:0}
+h1,h2,h3{font-weight:600;letter-spacing:-.01em}h1{font-size:18px}h2{font-size:16px}h3{font-size:14px}
+code{font-family:var(--mono);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap}
+.pill.ghost{background:var(--surf2);color:var(--txtm);border:1px solid var(--bord)}
+.sev-crit{background:var(--crit);color:#fff}.sev-high{background:var(--high);color:#fff}.sev-med{background:var(--med);color:#fff}.sev-low{background:var(--low);color:#fff}.sev-info{background:var(--info);color:#fff}.sev-pass{background:var(--pass);color:#fff}
+.card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+.sec{padding:28px 32px;max-width:1440px;margin:0 auto}
+.sec h2{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec .badge{font-size:11px;font-weight:600;color:var(--txtf);background:var(--surf2);padding:2px 8px;border-radius:999px;border:1px solid var(--bord)}
+header{position:sticky;top:0;z-index:50;background:var(--surf);border-bottom:1px solid var(--bord);box-shadow:var(--shadow)}
+.hdr{display:flex;align-items:center;gap:18px;padding:12px 32px;max-width:1440px;margin:0 auto;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.kpis{display:flex;gap:8px;flex-wrap:wrap}.kpi{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;font-size:12.5px;color:var(--txtm)}.kpi strong{color:var(--txt);font-weight:600}
+.score{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--surf2);border:1px solid var(--bord);border-radius:999px}
+.score-text{display:flex;flex-direction:column;line-height:1.15}.score-text .num{font-weight:700;font-size:15px}.score-text .lbl{font-size:11px;color:var(--txtf);text-transform:uppercase;letter-spacing:.05em}
+.delta{margin-left:4px;font-size:11px;font-weight:600}.delta.up{color:var(--crit)}.delta.down{color:var(--pass)}
+.sev-strip{display:flex;gap:6px}.sev-cnt{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;padding:6px 10px;border-radius:8px;color:#fff;font-weight:600}
+.sev-cnt .n{font-size:16px;line-height:1}.sev-cnt .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;opacity:.95}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--bord);border-radius:8px;background:var(--surf2);color:var(--txtm)}
+nav.sub{position:sticky;top:62px;z-index:40;background:var(--surf);border-bottom:1px solid var(--bord)}.sub-row{display:flex;gap:4px;padding:6px 32px;max-width:1440px;margin:0 auto;overflow-x:auto}
+.sub-row a{padding:8px 12px;border-radius:6px;color:var(--txtm);font-weight:500;font-size:13px;white-space:nowrap}.sub-row a.active{background:var(--surf2);color:var(--txt)}
+.skip{position:absolute;left:-9999px;top:0}.skip:focus{left:10px;top:10px;padding:10px;background:var(--brand);color:#fff;z-index:999;border-radius:var(--rsm)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:1024px){.grid2{grid-template-columns:1fr}}
+.impact-matrix{display:grid;grid-template-columns:auto 1fr 1fr 1fr;grid-template-rows:auto 1fr 1fr 1fr;gap:1px;background:var(--bord);border:1px solid var(--bord);border-radius:var(--rsm);overflow:hidden;margin-top:10px}
+.impact-matrix .cell{background:var(--surf);padding:10px;text-align:center;font-size:12px;min-height:50px;display:flex;align-items:center;justify-content:center}
+.impact-matrix .head{background:var(--surf2);font-weight:600;font-size:11px;color:var(--txtf)}
+.impact-matrix .val{font-size:18px;font-weight:700;color:var(--txt)}
+.impact-matrix .val.hi{background:var(--critbg);color:var(--crit)}
+.mitre-matrix{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:10px}
+.mitre-cell{background:var(--surf2);border:1px solid var(--bord);border-radius:var(--rsm);padding:8px 6px;text-align:center;cursor:pointer;transition:all .15s}
+.mitre-cell:hover{background:var(--surf);border-color:var(--brand)}
+.mitre-cell .tactic{font-size:10px;font-weight:600;color:var(--txtf);margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em}
+.mitre-cell .count{font-size:16px;font-weight:700;color:var(--txt)}
+.mitre-cell.active{background:var(--medbg);border-color:var(--med)}
+.hm-wrap{padding:18px}.hm-toggle{display:inline-flex;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px}
+.hm-toggle button{padding:6px 12px;font-size:12.5px;border-radius:6px;color:var(--txtm);font-weight:500}.hm-toggle button.on{background:var(--surf);color:var(--txt);box-shadow:var(--shadow)}
+.hm-table{width:100%;border-collapse:separate;border-spacing:3px}.hm-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);padding:6px;text-align:left}
+.hm-table thead th{text-align:center}.hm-table td.rowh{font-size:12px;color:var(--txtm);padding:6px 10px 6px 6px}
+.hm-cell{position:relative;padding:6px;border-radius:6px;height:38px;text-align:center;font-size:12px;font-weight:600;color:#fff;border:1px solid transparent;display:flex;align-items:center;justify-content:center}
+.hm-cell.empty{background:var(--surf2);color:var(--txtf)}
+.hm-cell.split{padding:0;overflow:hidden;gap:0}.hm-cell.split .seg{flex:1;display:flex;align-items:center;justify-content:center;height:100%}
+.filt-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;border:1px solid var(--bord);border-radius:var(--rsm);background:var(--surf);margin-bottom:12px}
+.filt-bar input[type=search]{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--bord);border-radius:6px;background:var(--surf);color:var(--txt);flex:1;min-width:240px}
+.filt-bar select{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--bord);border-radius:6px;background:var(--surf);color:var(--txt);min-width:160px}
+.chip-group{display:flex;gap:4px;background:var(--surf2);padding:3px;border-radius:8px;border:1px solid var(--bord)}
+.chip-group button{padding:4px 9px;border-radius:5px;font-size:12px;font-weight:600;color:var(--txtm)}.chip-group button.on{background:var(--surf);color:var(--txt);box-shadow:var(--shadow)}
+.fnd-table{width:100%;border-collapse:collapse;background:var(--surf);border:1px solid var(--bord);border-radius:var(--rsm);overflow:hidden}
+.fnd-table th{background:var(--surf2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);padding:9px 12px;text-align:left;font-weight:600;border-bottom:1px solid var(--bord)}
+.fnd-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--bord);vertical-align:top}
+.fnd-table tr.row{cursor:pointer}.fnd-table tr.row:hover td{background:var(--surf2)}
+.fnd-table tr.row td:first-child{border-left:3px solid var(--bord)}
+.fnd-table tr.row.s-crit td:first-child{border-left-color:var(--crit)}
+.fnd-table tr.row.s-high td:first-child{border-left-color:var(--high)}
+.fnd-table tr.row.s-med td:first-child{border-left-color:var(--med)}
+.fnd-table tr.row.s-low td:first-child{border-left-color:var(--low)}
+.fnd-table tr.row.s-info td:first-child{border-left-color:var(--info)}
+.fnd-table tr.expand{display:none}.fnd-table tr.expand.show{display:table-row}
+.fnd-table tr.expand td{background:var(--surf2);padding:14px 18px}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ev h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);margin:10px 0 4px}
+.ev pre{margin:0;padding:10px;background:var(--surf);border:1px solid var(--bord);border-radius:6px;font-size:12px;overflow-x:auto;color:var(--txt)}
+.ev p{margin:0;color:var(--txt);font-size:13px}
+.ev .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ev .links a{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border:1px solid var(--bord);border-radius:4px;background:var(--surf);color:var(--brand)}
+.copy-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 8px;border:1px solid var(--bord);border-radius:4px;background:var(--surf2);color:var(--txtm);margin-top:4px;cursor:pointer}
+.copy-btn:hover{background:var(--surf);border-color:var(--brand);color:var(--brand)}
+.fw{display:inline-flex;padding:1px 6px;margin-right:4px;border-radius:4px;font-size:10.5px;font-weight:600;line-height:1.5;color:#fff;font-family:var(--mono)}
+.fw-cis{background:#d97706}.fw-nist{background:#374151}.fw-mitre{background:#b91c1c}.fw-mcsb{background:#005a9e}.fw-waf{background:#3a7d0a}.fw-soc{background:#0e7490}.fw-nsa{background:#0f766e}.fw-default{background:#475569}
+.rule-id{font-family:var(--mono);font-size:11px;color:var(--txtf);background:var(--surf2);padding:1px 5px;border-radius:3px;border:1px solid var(--bord);margin-right:6px}
+footer{padding:24px 32px;border-top:1px solid var(--bord);background:var(--surf);margin-top:24px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:var(--rsm)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media print{header,nav,.filt-bar,.theme-btn,.skip,.chip-group{display:none!important}body{background:#fff;color:#000}.fnd-table tr.expand{display:table-row!important}a::after{content:" (" attr(href) ")"}}
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Skip to main content</a>
+<header role="banner">
+<div class="hdr">
+<div class="brand"><span>Azure Analyzer</span><span class="pill ghost">v2 mockup</span></div>
+<div class="kpi"><strong>contoso-prod</strong> tenant</div>
+<div class="kpi"><strong>22 Apr 2026 08:00 UTC</strong></div>
+<div class="score"><div class="score-text"><span class="num">F<span style="font-size:11px;color:var(--txtf);font-weight:500"> (9/100)</span><span class="delta up" aria-label="Score regressed by 3 points">▲ +3</span></span><span class="lbl">Posture</span></div></div>
+<div class="sev-strip" role="group" aria-label="Findings by severity">
+<div class="sev-cnt sev-crit"><span class="n">1</span><span class="l">Crit</span></div>
+<div class="sev-cnt sev-high"><span class="n">4</span><span class="l">High</span></div>
+<div class="sev-cnt sev-med"><span class="n">5</span><span class="l">Med</span></div>
+<div class="sev-cnt sev-low"><span class="n">1</span><span class="l">Low</span></div>
+<div class="sev-cnt sev-info"><span class="n">0</span><span class="l">Info</span></div>
+</div>
+<div class="kpis"><span class="kpi"><strong>11</strong> findings</span><span class="kpi"><strong>3</strong> entities</span></div>
+<button class="theme-btn" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode">🌓</button>
+</div>
+</header>
+<nav class="sub" aria-label="Section navigation"><div class="sub-row">
+<a href="#overview" class="active">Overview</a>
+<a href="#mitre">MITRE ATT&CK</a>
+<a href="#heatmap">Heatmap</a>
+<a href="#findings">Findings</a>
+<a href="#entities">Entities</a>
+</div></nav>
+<main id="main">
+<section class="sec" id="overview">
+<h2>Overview <span class="badge">executive summary</span></h2>
+<div class="grid2">
+<div class="card">
+<p style="margin-bottom:10px"><strong>Run summary:</strong> scanned <strong>11 findings</strong> across <strong>36 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>9%</strong> (1 compliant, 10 non-compliant).</p>
+<h3 style="margin:14px 0 10px">Pillar breakdown (non-compliant)</h3>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px"><span style="font-size:12px;color:var(--txtm)">Security</span><div style="height:8px;border-radius:999px;background:var(--surf2);overflow:hidden;border:1px solid var(--bord)"><i style="display:block;height:100%;width:100%;background:var(--brand)"></i></div><span style="font-size:12px;text-align:right;font-weight:600">5</span></div>
+<div style="display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px"><span style="font-size:12px;color:var(--txtm)">Cost Optimization</span><div style="height:8px;border-radius:999px;background:var(--surf2);overflow:hidden;border:1px solid var(--bord)"><i style="display:block;height:100%;width:80%;background:var(--brand)"></i></div><span style="font-size:12px;text-align:right;font-weight:600">4</span></div>
+<div style="display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px"><span style="font-size:12px;color:var(--txtm)">Performance Efficiency</span><div style="height:8px;border-radius:999px;background:var(--surf2);overflow:hidden;border:1px solid var(--bord)"><i style="display:block;height:100%;width:20%;background:var(--brand)"></i></div><span style="font-size:12px;text-align:right;font-weight:600">1</span></div>
+</div>
+</div>
+<div class="card">
+<h3 style="margin-bottom:10px">Impact × Effort prioritization</h3>
+<div class="impact-matrix">
+<div class="cell head"></div><div class="cell head">Low Effort</div><div class="cell head">Med Effort</div><div class="cell head">High Effort</div>
+<div class="cell head">High Impact</div><div class="cell val hi">1</div><div class="cell val">3</div><div class="cell val">0</div>
+<div class="cell head">Med Impact</div><div class="cell val">3</div><div class="cell val">3</div><div class="cell val">0</div>
+<div class="cell head">Low Impact</div><div class="cell val">0</div><div class="cell val">0</div><div class="cell val">0</div>
+</div>
+<p style="margin-top:10px;font-size:12px;color:var(--txtm)"><strong>Quick wins</strong> (High Impact × Low Effort): 1 finding<br><strong>Strategic</strong> (High Impact × Med+ Effort): 3 findings</p>
+</div>
+</div>
+</section>
+<section class="sec" id="mitre">
+<h2>MITRE ATT&CK Coverage <span class="badge">2 tactics detected</span></h2>
+<div class="card">
+<p style="margin-bottom:10px;font-size:13px;color:var(--txtm)">Click any tactic cell to filter findings. Techniques are mapped from Kubescape and Sentinel findings.</p>
+<div class="mitre-matrix" role="region" aria-label="MITRE ATT&CK tactics heatmap">
+<div class="mitre-cell" data-tactic="TA0001" data-count="1"><div class="tactic">Initial Access</div><div class="count">1</div></div>
+<div class="mitre-cell" data-tactic="TA0002" data-count="0"><div class="tactic">Execution</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0003" data-count="0"><div class="tactic">Persistence</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0004" data-count="1"><div class="tactic">Priv Esc</div><div class="count">1</div></div>
+<div class="mitre-cell" data-tactic="TA0005" data-count="0"><div class="tactic">Def Evasion</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0006" data-count="0"><div class="tactic">Cred Access</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0007" data-count="0"><div class="tactic">Discovery</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0008" data-count="0"><div class="tactic">Lateral Mv</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0009" data-count="0"><div class="tactic">Collection</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0010" data-count="0"><div class="tactic">Exfil</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0011" data-count="0"><div class="tactic">C&C</div><div class="count">0</div></div>
+<div class="mitre-cell" data-tactic="TA0040" data-count="0"><div class="tactic">Impact</div><div class="count">0</div></div>
+</div>
+<table style="margin-top:14px;width:100%;font-size:12px">
+<tr style="background:var(--surf2)"><th style="padding:6px;text-align:left">Technique</th><th style="padding:6px;text-align:left">Name</th><th style="padding:6px;text-align:right">Findings</th></tr>
+<tr><td style="padding:6px;font-family:var(--mono)">T1190</td><td style="padding:6px">Exploit Public-Facing Application</td><td style="padding:6px;text-align:right">1</td></tr>
+<tr><td style="padding:6px;font-family:var(--mono)">T1611</td><td style="padding:6px">Escape to Host</td><td style="padding:6px;text-align:right">1</td></tr>
+</table>
+</div>
+</section>
+<section class="sec" id="heatmap">
+<h2>Heatmap <span class="badge">control density</span></h2>
+<div class="card hm-wrap">
+<div class="hm-toggle" role="tablist" aria-label="Heatmap view">
+<button class="on" data-hm="domain">Domain × Subscription</button>
+<button data-hm="severity">Severity × Tool</button>
+</div>
+<div id="hmRoot">
+<table class="hm-table" id="hmDomain">
+<thead><tr><th></th><th>prod-identity</th><th>prod-payments</th></tr></thead>
+<tbody>
+<tr><td class="rowh">Security</td><td class="hm-cell split"><span class="seg" style="background:var(--med)">1</span></td><td class="hm-cell split"><span class="seg" style="background:var(--crit);flex:1">1</span><span class="seg" style="background:var(--high);flex:3">3</span></td></tr>
+<tr><td class="rowh">Cost Optimization</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--high)">4</td></tr>
+<tr><td class="rowh">Performance Efficiency</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--med)">1</td></tr>
+<tr><td class="rowh">Operational Excellence</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td></tr>
+</tbody>
+</table>
+<table class="hm-table" id="hmSeverity" hidden>
+<thead><tr><th></th><th>Crit</th><th>High</th><th>Med</th><th>Low</th><th>Info</th></tr></thead>
+<tbody>
+<tr><td class="rowh">PSRule</td><td class="hm-cell" style="background:var(--crit)">1</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td></tr>
+<tr><td class="rowh">azqr</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--high)">1</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--low)">1</td><td class="hm-cell empty">0</td></tr>
+<tr><td class="rowh">kubescape</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--high)">1</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td></tr>
+<tr><td class="rowh">sentinel-coverage</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--med)">1</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td></tr>
+<tr><td class="rowh">ado-correlator</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--high)">1</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td></tr>
+<tr><td class="rowh">appinsights</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td><td class="hm-cell" style="background:var(--med)">1</td><td class="hm-cell empty">0</td><td class="hm-cell empty">0</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="sec" id="findings">
+<h2>Findings <span class="badge" id="fndCount">11 of 11</span></h2>
+<div class="filt-bar">
+<input type="search" id="fndSearch" placeholder="Search rule, entity, description" aria-label="Search findings">
+<div class="chip-group" role="group" aria-label="Severity filter">
+<button data-sev="all" class="on">All</button>
+<button data-sev="crit">Crit</button>
+<button data-sev="high">High</button>
+<button data-sev="med">Med</button>
+<button data-sev="low">Low</button>
+</div>
+<select id="fndPillar" aria-label="Pillar"><option value="">All pillars</option><option>Security</option><option>Cost Optimization</option><option>Performance Efficiency</option><option>Operational Excellence</option></select>
+<select id="fndTool" aria-label="Tool"><option value="">All tools</option><option>psrule</option><option>azqr</option><option>kubescape</option><option>sentinel-coverage</option></select>
+</div>
+<table class="fnd-table" id="fndTable">
+<thead><tr><th>Sev</th><th>Rule</th><th>Entity</th><th>Sub</th><th>Tool</th></tr></thead>
+<tbody id="fndBody">
+<tr class="row s-crit" data-id="f1" data-sev="crit" data-pillar="Security" data-tool="psrule" data-mitre="">
+<td><span class="pill sev-crit">●Critical</span></td>
+<td><div style="font-weight:600"><span class="rule-id">Azure.KeyVault.SoftDelete</span>Key Vault soft delete disabled</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-cis">CIS</span><span class="fw fw-mcsb">MCSB</span> <span style="color:var(--txtf);margin-left:6px">Security</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">/subscriptions/.../kv-payments-prod</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">PSRule</td>
+</tr>
+<tr class="expand" data-parent="f1">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</p>
+<h4>Evidence</h4>
+<pre>Property enableSoftDelete=false detected.
+Property enablePurgeProtection=false detected.</pre>
+<div class="links">
+<a href="https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview" target="_blank" rel="noopener">Learn more ↗</a>
+</div>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">release:ga</span> <span class="pill ghost">keyvault</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Enable soft delete and purge protection on production Key Vaults.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> High<br><strong>Effort:</strong> Low</p>
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-weight:600;margin-bottom:4px">Bicep snippet</summary>
+<pre>resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  properties: {
+    enableSoftDelete: true
+    enablePurgeProtection: true
+  }
+}</pre>
+<button class="copy-btn" onclick="copyText(this,'resource kv...')">📋 Copy</button>
+</details>
+<div class="links">
+<a href="https://portal.azure.com/#@contoso/resource/subscriptions/.../kv-payments-prod" target="_blank" rel="noopener">Open in Portal ↗</a>
+</div>
+</div>
+</div></td>
+</tr>
+<tr class="row s-high" data-id="f2" data-sev="high" data-pillar="Security" data-tool="azqr" data-mitre="">
+<td><span class="pill sev-high">●High</span></td>
+<td><div style="font-weight:600"><span class="rule-id">AZQR.NET.012</span>Internet-exposed management port on NSG</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-cis">CIS</span><span class="fw fw-nist">NIST 800-53</span> <span style="color:var(--txtf);margin-left:6px">Security</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">nsg-payments-edge</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">azqr</td>
+</tr>
+<tr class="expand" data-parent="f2">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">release:ga</span> <span class="pill ghost">internet-exposed</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Restrict inbound access to JIT or approved source ranges.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> High<br><strong>Effort:</strong> Medium</p>
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-weight:600;margin-bottom:4px">Azure CLI snippet</summary>
+<pre>az network nsg rule update \
+  --resource-group rg-payments-net \
+  --nsg-name nsg-payments-edge \
+  --name Allow-RDP \
+  --source-address-prefixes 10.0.0.0/24</pre>
+<button class="copy-btn" onclick="copyText(this,'az network nsg...')">📋 Copy</button>
+</details>
+</div>
+</div></td>
+</tr>
+<tr class="row s-high" data-id="f3" data-sev="high" data-pillar="Security" data-tool="kubescape" data-mitre="TA0004">
+<td><span class="pill sev-high">●High</span></td>
+<td><div style="font-weight:600"><span class="rule-id">C-0057</span>Privileged container in payments namespace</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-cis">CIS</span><span class="fw fw-nsa">NSA</span><span class="fw fw-mitre">MITRE</span> <span style="color:var(--txtf);margin-left:6px">Security</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">aks-prod-payments</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">kubescape</td>
+</tr>
+<tr class="expand" data-parent="f3">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>Deployment payments-api uses privileged=true in one container.</p>
+<h4>MITRE ATT&CK</h4>
+<p><strong>Tactics:</strong> Privilege Escalation<br><strong>Techniques:</strong> T1611 (Escape to Host)</p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Drop privileged mode and enforce Pod Security Standards.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> High<br><strong>Effort:</strong> Medium</p>
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-weight:600;margin-bottom:4px">Kubernetes YAML snippet</summary>
+<pre>securityContext:
+  privileged: false
+  allowPrivilegeEscalation: false</pre>
+<button class="copy-btn" onclick="copyText(this,'securityContext...')">📋 Copy</button>
+</details>
+</div>
+</div></td>
+</tr>
+<tr class="row s-med" data-id="f4" data-sev="med" data-pillar="Security" data-tool="sentinel-coverage" data-mitre="TA0001">
+<td><span class="pill sev-med">●Medium</span></td>
+<td><div style="font-weight:600"><span class="rule-id">SENT-COV-T1190</span>MITRE tactic coverage gap for Initial Access</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-mitre">MITRE</span><span class="fw fw-nist">NIST 800-53</span> <span style="color:var(--txtf);margin-left:6px">Security</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">law-sec-01</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-identity</td>
+<td style="font-size:12px;color:var(--txtm)">sentinel</td>
+</tr>
+<tr class="expand" data-parent="f4">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>No enabled analytics rules mapped to Initial Access in the last 14 days.</p>
+<h4>MITRE ATT&CK</h4>
+<p><strong>Tactics:</strong> Initial Access<br><strong>Techniques:</strong> T1190 (Exploit Public-Facing Application)</p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Enable analytics for external-facing service exploitation and suspicious sign-ins.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> Medium<br><strong>Effort:</strong> Medium</p>
+</div>
+</div></td>
+</tr>
+<tr class="row s-high" data-id="f5" data-sev="high" data-pillar="Security" data-tool="ado-pipeline-correlator" data-mitre="">
+<td><span class="pill sev-high">●High</span></td>
+<td><div style="font-weight:600"><span class="rule-id">ADO.CORR.SECRET</span>Secret-bearing commit executed in pipeline</div><div style="font-size:11.5px;margin-top:3px"><span style="color:var(--txtf);margin-left:6px">Security</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">pipeline:55</div><div style="font-size:11px;color:var(--txtf)">Pipeline</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">ado-correlator</td>
+</tr>
+<tr class="expand" data-parent="f5">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">correlated-direct</span> <span class="pill ghost">secret-category:github-pat</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Rotate affected secret, audit variable groups, and inspect downstream artifacts.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> High<br><strong>Effort:</strong> Medium</p>
+</div>
+</div></td>
+</tr>
+<tr class="row s-med" data-id="f6" data-sev="med" data-pillar="Performance Efficiency" data-tool="appinsights" data-mitre="">
+<td><span class="pill sev-med">●Medium</span></td>
+<td><div style="font-weight:600"><span class="rule-id">APPINSIGHTS.P95.REGRESSION</span>API p95 latency regressed by 38%</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-waf">WAF</span> <span style="color:var(--txtf);margin-left:6px">Performance Efficiency</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">payments-api-ai</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">appinsights</td>
+</tr>
+<tr class="expand" data-parent="f6">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">release:canary</span> <span class="pill ghost">latency-regression</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Profile hot endpoints and reduce dependency latency in checkout path.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> Medium<br><strong>Effort:</strong> Medium<br><strong>Score delta:</strong> 38</p>
+</div>
+</div></td>
+</tr>
+<tr class="row s-med" data-id="f7" data-sev="med" data-pillar="Cost Optimization" data-tool="finops" data-mitre="">
+<td><span class="pill sev-med">●Medium</span></td>
+<td><div style="font-weight:600"><span class="rule-id">FINOPS.APPSERVICE.IDLE</span>Idle App Service Plan spend exceeds threshold</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-waf">WAF</span> <span style="color:var(--txtf);margin-left:6px">Cost Optimization</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">asp-payments-prod</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">finops</td>
+</tr>
+<tr class="expand" data-parent="f7">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">cost-hotspot</span> <span class="pill ghost">release:ga</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Right-size to P1v3 or consolidate workloads into shared plan.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> Medium<br><strong>Effort:</strong> Low<br><strong>Score delta:</strong> 1420</p>
+</div>
+</div></td>
+</tr>
+<tr class="row s-high" data-id="f8" data-sev="high" data-pillar="Cost Optimization" data-tool="ado-consumption" data-mitre="">
+<td><span class="pill sev-high">●High</span></td>
+<td><div style="font-weight:600"><span class="rule-id">Consumption-DurationRegression</span>Pipeline duration regression exceeds budget</div><div style="font-size:11.5px;margin-top:3px"><span style="color:var(--txtf);margin-left:6px">Cost Optimization</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">pipeline:55</div><div style="font-size:11px;color:var(--txtf)">Pipeline</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">ado-consumption</td>
+</tr>
+<tr class="expand" data-parent="f8">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>payments-ci average duration increased by 44% week-over-week.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">duration-regression</span> <span class="pill ghost">minutes</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Parallelize tests and cache dependencies for build stages.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> High<br><strong>Effort:</strong> Medium<br><strong>Score delta:</strong> 44</p>
+</div>
+</div></td>
+</tr>
+<tr class="row s-med" data-id="f9" data-sev="med" data-pillar="Cost Optimization" data-tool="gh-actions" data-mitre="">
+<td><span class="pill sev-med">●Medium</span></td>
+<td><div style="font-weight:600"><span class="rule-id">GHA-BILLING-BUDGET</span>Runner minute spend trend exceeds weekly budget</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-soc">SOC2</span> <span style="color:var(--txtf);margin-left:6px">Cost Optimization</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">payments-api</div><div style="font-size:11px;color:var(--txtf)">Repository</div></td>
+<td>-</td>
+<td style="font-size:12px;color:var(--txtm)">gh-actions</td>
+</tr>
+<tr class="expand" data-parent="f9">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">runner-minutes</span> <span class="pill ghost">budget</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Enable path filters and reduce redundant workflow triggers.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> Medium<br><strong>Effort:</strong> Low<br><strong>Score delta:</strong> 32</p>
+</div>
+</div></td>
+</tr>
+<tr class="row s-med" data-id="f10" data-sev="med" data-pillar="Cost Optimization" data-tool="aks-rightsizing" data-mitre="">
+<td><span class="pill sev-med">●Medium</span></td>
+<td><div style="font-weight:600"><span class="rule-id">AKS.RIGHT.001</span>AKS node pool over-provisioned</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-waf">WAF</span> <span style="color:var(--txtf);margin-left:6px">Cost Optimization</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">aks-prod-payments</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">aks-rightsizing</td>
+</tr>
+<tr class="expand" data-parent="f10">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>Node pool usernp average CPU 11% and memory 18% over 7 days.</p>
+<h4>Baseline tags</h4>
+<p><span class="pill ghost">rightsizing</span> <span class="pill ghost">cluster-autoscaler</span></p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>Reduce min node count from 6 to 3 and enable cluster autoscaler profile.</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> Medium<br><strong>Effort:</strong> Medium<br><strong>Score delta:</strong> 1200</p>
+<details style="margin-top:8px">
+<summary style="cursor:pointer;font-weight:600;margin-bottom:4px">Bash snippet</summary>
+<pre>az aks nodepool update -g rg-aks-prod \
+  --cluster-name aks-prod-payments \
+  -n usernp --min-count 3 --max-count 10</pre>
+<button class="copy-btn" onclick="copyText(this,'az aks nodepool...')">📋 Copy</button>
+</details>
+</div>
+</div></td>
+</tr>
+<tr class="row s-low" data-id="f11" data-sev="low" data-pillar="Operational Excellence" data-tool="azqr" data-mitre="">
+<td><span class="pill sev-low">●Low</span></td>
+<td><div style="font-weight:600"><span class="rule-id">AZQR.KV.LOG</span>Diagnostic settings configured for Key Vault</div><div style="font-size:11.5px;margin-top:3px"><span class="fw fw-cis">CIS</span> <span style="color:var(--txtf);margin-left:6px">Operational Excellence</span></div></td>
+<td><div style="font-family:var(--mono);font-size:12px">kv-payments-prod</div><div style="font-size:11px;color:var(--txtf)">AzureResource</div></td>
+<td>prod-payments</td>
+<td style="font-size:12px;color:var(--txtm)">azqr</td>
+</tr>
+<tr class="expand" data-parent="f11">
+<td colspan="5"><div class="ev-grid">
+<div class="ev">
+<h4>Description</h4>
+<p>Key Vault kv-payments-prod streams audit logs to Log Analytics.</p>
+</div>
+<div class="ev">
+<h4>Remediation</h4>
+<p>No action required (compliant).</p>
+<h4>Impact and Effort</h4>
+<p><strong>Impact:</strong> Low<br><strong>Effort:</strong> Low</p>
+</div>
+</div></td>
+</tr>
+</tbody>
+</table>
+<p style="margin-top:10px;font-size:12px;color:var(--txtm)">Click any row to expand evidence and remediation details.</p>
+</section>
+<section class="sec" id="entities">
+<h2>Entities <span class="badge">3 discovered</span></h2>
+<div class="card">
+<p style="margin-bottom:10px;font-size:13px">Entities scanned: <strong>AzureResource</strong> (1), <strong>Pipeline</strong> (1), <strong>Repository</strong> (1)</p>
+<table style="width:100%;font-size:12px;margin-top:10px">
+<tr style="background:var(--surf2)"><th style="padding:6px;text-align:left">Entity type</th><th style="padding:6px;text-align:right">Count</th></tr>
+<tr><td style="padding:6px">AzureResource</td><td style="padding:6px;text-align:right">1</td></tr>
+<tr><td style="padding:6px">Pipeline</td><td style="padding:6px;text-align:right">1</td></tr>
+<tr><td style="padding:6px">Repository</td><td style="padding:6px;text-align:right">1</td></tr>
+</table>
+</div>
+</section>
+</main>
+<footer>
+<div style="max-width:1440px;margin:0 auto;font-size:12px;color:var(--txtm)">
+<p>Generated by <strong>azure-analyzer v1.2.0</strong> on 22 Apr 2026 08:00 UTC. Schema 2.2. Report includes MITRE ATT&CK coverage, Impact × Effort prioritization, and split-bar heatmaps.</p>
+</div>
+</footer>
+<script>
+const d=document,q=(s,p)=>(p||d).querySelector(s),qa=(s,p)=>(p||d).querySelectorAll(s);
+function updateTheme(){const t=localStorage.getItem('theme')||'light';d.documentElement.dataset.theme=t}
+q('#themeBtn').onclick=()=>{const t=d.documentElement.dataset.theme==='dark'?'light':'dark';d.documentElement.dataset.theme=t;localStorage.setItem('theme',t)};
+updateTheme();
+qa('.sub-row a').forEach(a=>a.onclick=e=>{e.preventDefault();qa('.sub-row a').forEach(x=>x.classList.remove('active'));a.classList.add('active');d.location.hash=a.getAttribute('href')});
+qa('.hm-toggle button').forEach(b=>b.onclick=()=>{qa('.hm-toggle button').forEach(x=>x.classList.remove('on'));b.classList.add('on');const m=b.dataset.hm;qa('.hm-table').forEach(t=>t.hidden=t.id!=='hm'+m.charAt(0).toUpperCase()+m.slice(1))});
+qa('.mitre-cell').forEach(c=>c.onclick=()=>{const t=c.dataset.tactic,cnt=parseInt(c.dataset.count);if(cnt===0)return;c.classList.toggle('active');const active=qa('.mitre-cell.active');filterFindings()});
+const sevBtns=qa('.chip-group[aria-label="Severity filter"] button');
+sevBtns.forEach(b=>b.onclick=()=>{const s=b.dataset.sev;if(s==='all'){sevBtns.forEach(x=>x.classList.remove('on'));b.classList.add('on')}else{q('.chip-group button[data-sev="all"]').classList.remove('on');b.classList.toggle('on')}filterFindings()});
+function filterFindings(){const search=q('#fndSearch').value.toLowerCase(),pillar=q('#fndPillar').value,tool=q('#fndTool').value;const activeSevs=[];qa('.chip-group button.on').forEach(b=>{if(b.dataset.sev==='all')activeSevs.push('all');else activeSevs.push(b.dataset.sev)});const activeMitre=Array.from(qa('.mitre-cell.active')).map(c=>c.dataset.tactic);let shown=0;qa('.fnd-table tr.row').forEach(r=>{const s=r.dataset.sev,p=r.dataset.pillar,t=r.dataset.tool,m=r.dataset.mitre,txt=r.textContent.toLowerCase();let vis=true;if(activeSevs.length&&!activeSevs.includes('all')&&!activeSevs.includes(s))vis=false;if(pillar&&p!==pillar)vis=false;if(tool&&t!==tool)vis=false;if(search&&!txt.includes(search))vis=false;if(activeMitre.length&&!activeMitre.includes(m))vis=false;r.style.display=vis?'':'none';if(vis)shown++});q('#fndCount').textContent=shown+' of 11'}
+q('#fndSearch').oninput=filterFindings;
+q('#fndPillar').onchange=filterFindings;
+q('#fndTool').onchange=filterFindings;
+qa('.fnd-table tr.row').forEach(r=>r.onclick=()=>{const id=r.dataset.id,exp=q(`.fnd-table tr.expand[data-parent="${id}"]`);exp.classList.toggle('show')});
+function copyText(btn,txt){navigator.clipboard.writeText(txt).then(()=>{const orig=btn.textContent;btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent=orig,2000)})}
+if(location.hash.startsWith('#finding-')){const id=location.hash.slice(9);setTimeout(()=>{const r=q(`.fnd-table tr.row[data-id="${id}"]`);if(r){r.scrollIntoView({behavior:'smooth'});r.style.background='var(--medbg)';setTimeout(()=>r.style.background='',3000)}},300)}
+</script>
+</body>
+</html>

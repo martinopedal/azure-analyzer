@@ -3,215 +3,198 @@
 <head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Azure Analyzer - Posture Report</title>
+<title>Azure Analyzer - Posture Report v2</title>
 <style>
+/* v2 Design System - Color tokens (WCAG AA validated) */
 :root{
-  --bg:#f7f8fa;--surface:#ffffff;--surface-2:#f1f3f6;--border:#e3e6eb;--border-strong:#cdd2da;
-  --text:#0f172a;--text-muted:#475569;--text-faint:#64748b;
-  --brand:#0b5fff;--brand-ink:#003fb3;--accent:#0ea5e9;
+  --bg:#f7f8fa;--surf:#fff;--surf2:#f1f3f6;--bord:#e3e6eb;--bords:#cdd2da;
+  --txt:#0f172a;--txtm:#475569;--txtf:#64748b;
+  --brand:#0b5fff;--brandk:#003fb3;
   --crit:#7f1d1d;--high:#b91c1c;--med:#b45309;--low:#a16207;--info:#475569;
-  --crit-bg:#fef2f2;--high-bg:#fee2e2;--med-bg:#fef3c7;--low-bg:#fefce8;--info-bg:#f1f5f9;
-  --pass:#15803d;--pass-bg:#dcfce7;
-  --shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);
-  --shadow:0 4px 12px rgba(15,23,42,.08),0 2px 4px rgba(15,23,42,.04);
-  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+  --critbg:#fef2f2;--highbg:#fee2e2;--medbg:#fef3c7;--lowbg:#fefce8;--infobg:#f1f5f9;
+  --pass:#15803d;--passbg:#dcfce7;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);
+  --r:10px;--rsm:6px;
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;
   --mono:ui-monospace,"Cascadia Code","JetBrains Mono",Consolas,monospace;
 }
-[data-theme='dark']{
-  --bg:#0b1220;--surface:#111a2e;--surface-2:#172238;--border:#243049;--border-strong:#324264;
-  --text:#e8edf6;--text-muted:#9aa7bf;--text-faint:#7a8aa6;
-  --brand:#3b82f6;--brand-ink:#60a5fa;--accent:#22d3ee;
+[data-theme=dark]{
+  --bg:#0b1220;--surf:#111a2e;--surf2:#172238;--bord:#243049;--bords:#324264;
+  --txt:#e8edf6;--txtm:#9aa7bf;--txtf:#7a8aa6;
+  --brand:#3b82f6;--brandk:#60a5fa;
   --crit:#f87171;--high:#fb923c;--med:#fbbf24;--low:#facc15;--info:#94a3b8;
-  --crit-bg:#3a1212;--high-bg:#3a1f10;--med-bg:#3a2a0a;--low-bg:#332a0a;--info-bg:#1e293b;
-  --pass:#4ade80;--pass-bg:#0f2a1a;
+  --critbg:#3a1212;--highbg:#3a1f10;--medbg:#3a2a0a;--lowbg:#332a0a;--infobg:#1e293b;
+  --pass:#4ade80;--passbg:#0f2a1a;
 }
-*,*::before,*::after{box-sizing:border-box} html,body{margin:0;padding:0}
-body{font-family:var(--font);font-size:14px;line-height:1.5;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 var(--font);color:var(--txt);background:var(--bg);-webkit-font-smoothing:antialiased}
 a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
-button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
-h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em} h1{font-size:18px}h2{font-size:16px}h3{font-size:14px}
-code,kbd{font-family:var(--mono);font-size:12.5px}
-.muted{color:var(--text-muted)}.faint{color:var(--text-faint)}.mono{font-family:var(--mono)}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.4;border:1px solid transparent;white-space:nowrap}
-.pill.ghost{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
+button{font:inherit;cursor:pointer;background:0;border:0}
+h1,h2,h3{font-weight:600;letter-spacing:-.01em}h1{font-size:18px}h2{font-size:16px}h3{font-size:14px}
+code{font-family:var(--mono);font-size:12.5px}
+/* Skip link - WCAG 2.1 AA */
+.skip{position:absolute;left:-9999px;top:0}.skip:focus{left:10px;top:10px;padding:10px;background:var(--brand);color:#fff;z-index:999;border-radius:var(--rsm)}
+/* Pills and severity badges */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap}
+.pill.ghost{background:var(--surf2);color:var(--txtm);border:1px solid var(--bord)}
 .sev-crit{background:var(--crit);color:#fff}.sev-high{background:var(--high);color:#fff}.sev-med{background:var(--med);color:#fff}.sev-low{background:var(--low);color:#fff}.sev-info{background:var(--info);color:#fff}.sev-pass{background:var(--pass);color:#fff}
-.sev-text-crit{color:var(--crit)}.sev-text-high{color:var(--high)}.sev-text-med{color:var(--med)}.sev-text-low{color:var(--low)}.sev-text-info{color:var(--info)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm)} .card-pad{padding:18px}
-.section{padding:28px 32px;max-width:1440px;margin:0 auto}.section h2{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.section h2 .badge{font-size:11px;font-weight:600;color:var(--text-faint);background:var(--surface-2);padding:2px 8px;border-radius:999px;border:1px solid var(--border)}
-header.app{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.hdr-row{display:flex;align-items:center;gap:18px;padding:12px 32px;max-width:1440px;margin:0 auto;flex-wrap:wrap}
+/* Card container */
+.card{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+/* Section spacing */
+.sec{padding:28px 32px;max-width:1440px;margin:0 auto}
+.sec h2{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec .badge{font-size:11px;font-weight:600;color:var(--txtf);background:var(--surf2);padding:2px 8px;border-radius:999px;border:1px solid var(--bord)}
+/* Header - sticky with shadow */
+header{position:sticky;top:0;z-index:50;background:var(--surf);border-bottom:1px solid var(--bord);box-shadow:var(--shadow)}
+.hdr{display:flex;align-items:center;gap:18px;padding:12px 32px;max-width:1440px;margin:0 auto;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
-.tenant{display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12.5px;color:var(--text-muted);background:var(--surface-2)} .tenant strong{color:var(--text)}
-.kpis{display:flex;gap:8px;flex-wrap:wrap}.kpi{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-size:12.5px;color:var(--text-muted)}.kpi strong{color:var(--text);font-weight:600}
-.score{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px}
-.score-text{display:flex;flex-direction:column;line-height:1.15}.score-text .num{font-weight:700;font-size:15px}.score-text .lbl{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}
+.kpis{display:flex;gap:8px;flex-wrap:wrap}.kpi{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;font-size:12.5px;color:var(--txtm)}.kpi strong{color:var(--txt);font-weight:600}
+.score{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;background:var(--surf2);border:1px solid var(--bord);border-radius:999px}
+.score-text{display:flex;flex-direction:column;line-height:1.15}.score-text .num{font-weight:700;font-size:15px}.score-text .lbl{font-size:11px;color:var(--txtf);text-transform:uppercase;letter-spacing:.05em}
+/* Severity count strip with icons */
 .sev-strip{display:flex;gap:6px}.sev-cnt{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;padding:6px 10px;border-radius:8px;color:#fff;font-weight:600}
 .sev-cnt .n{font-size:16px;line-height:1}.sev-cnt .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;opacity:.95}
-.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text-muted)}
-nav.sub{position:sticky;top:62px;z-index:40;background:var(--surface);border-bottom:1px solid var(--border)} .sub-row{display:flex;gap:4px;padding:6px 32px;max-width:1440px;margin:0 auto;overflow-x:auto}
-.sub-row a{padding:8px 12px;border-radius:6px;color:var(--text-muted);font-weight:500;font-size:13px;white-space:nowrap}.sub-row a.active{background:var(--surface-2);color:var(--text)}
-.over-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}@media(max-width:1024px){.over-grid{grid-template-columns:1fr}}
-.exec p{margin:0 0 10px;color:var(--text-muted);max-width:65ch}
-.trend-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.trend{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);position:relative;overflow:hidden}
-.trend .lab{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600}.trend .val{font-size:20px;font-weight:700;margin-top:2px}.trend .delta{font-size:11px;font-weight:600;margin-top:2px}.trend svg{width:100%;height:32px;margin-top:6px;display:block}
-.pillars{margin-top:14px;display:flex;flex-direction:column;gap:6px}.pill-row{display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px}.pill-name{font-size:12px;color:var(--text-muted)}.pill-track{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;border:1px solid var(--border)}.pill-track i{display:block;height:100%;background:var(--brand)}.pill-count{font-size:12px;text-align:right;color:var(--text);font-weight:600}
-.recs{display:flex;flex-direction:column;gap:8px}.rec{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
-.rec .ttl{font-weight:600;font-size:13.5px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rec .meta{font-size:12px;color:var(--text-faint);margin-top:2px}.rec .impact{font-size:11px;color:var(--text-faint);text-align:right}.rec .impact strong{display:block;font-size:14px;color:var(--text)}
-.cov-group{margin-bottom:18px}.cov-group-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none}
-.cov-group.collapsed .cov-grid{display:none}.cov-group-h .cnt{margin-left:auto;font-size:12px;color:var(--text-faint)}
+.sev-cnt::before{content:'●';font-size:8px;display:block;margin-bottom:2px;opacity:.9}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--bord);border-radius:8px;background:var(--surf2);color:var(--txtm)}
+/* Sub-navigation - sticky */
+nav.sub{position:sticky;top:62px;z-index:40;background:var(--surf);border-bottom:1px solid var(--bord)}.sub-row{display:flex;gap:4px;padding:6px 32px;max-width:1440px;margin:0 auto;overflow-x:auto}
+.sub-row a{padding:8px 12px;border-radius:6px;color:var(--txtm);font-weight:500;font-size:13px;white-space:nowrap}.sub-row a.active{background:var(--surf2);color:var(--txt)}
+/* Responsive grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:1024px){.grid2{grid-template-columns:1fr}}
+/* Pillar breakdown bars */
+.pill-row{display:grid;grid-template-columns:220px 1fr 44px;align-items:center;gap:8px}
+.pill-row .name{font-size:12px;color:var(--txtm)}
+.pill-row .bar{height:8px;border-radius:999px;background:var(--surf2);overflow:hidden;border:1px solid var(--bord)}
+.pill-row .bar i{display:block;height:100%;background:var(--brand)}
+.pill-row .cnt{font-size:12px;text-align:right;font-weight:600;color:var(--txt)}
+.cov-group{margin-bottom:18px}.cov-group-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf2);border:1px solid var(--bord);border-radius:var(--rsm);cursor:pointer;user-select:none}
+.cov-group.collapsed .cov-grid{display:none}.cov-group-h .cnt{margin-left:auto;font-size:12px;color:var(--txtf)}
 .cov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px}
-.tool{padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);display:flex;flex-direction:column;gap:8px}
-.tool .top{display:flex;align-items:center;gap:8px}.tool .ico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text-muted);flex-shrink:0}
-.tool .name{font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool .scope{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);background:var(--surface-2);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
-.tool .pass{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}.tool .bar{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}.tool .bar>i{display:block;height:100%;background:var(--pass);border-radius:3px}
-.tool .stack{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--surface-2)}.tool .stack>i{display:block;height:100%}.tool .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint)}.tool.disabled{opacity:.55}
-.hm-wrap{padding:18px}.hm-toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px}.hm-toggle button{padding:6px 12px;font-size:12.5px;border-radius:6px;color:var(--text-muted);font-weight:500}.hm-toggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
-.hm-table{width:100%;border-collapse:separate;border-spacing:3px}.hm-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);padding:6px;text-align:left;white-space:nowrap}.hm-table thead th{text-align:center}
-.hm-table td.row-h{font-size:12px;color:var(--text-muted);padding:6px 10px 6px 6px;white-space:nowrap}
-.hm-cell{position:relative;padding:0;border-radius:6px;height:38px;text-align:center;font-size:12px;font-weight:600;color:#fff;border:1px solid transparent}.hm-cell.empty{background:var(--surface-2);color:var(--text-faint)}
-.hm-legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--text-faint)}.hm-legend .grad{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--surface-2),var(--low),var(--med),var(--high),var(--crit))}
-.risks{display:flex;flex-direction:column;gap:6px}.risk{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
-.risk .ttl{font-weight:600;font-size:13.5px}.risk .meta{font-size:12px;color:var(--text-faint);margin-top:2px}.risk .count{text-align:right;font-size:11px;color:var(--text-faint)}.risk .count strong{display:block;font-size:15px;color:var(--text);font-weight:700}.risk .tool-tag{font-size:11px;color:var(--text-muted);font-family:var(--mono);padding:3px 7px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border)}
-.fnd-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:12px}
-.fnd-toolbar input[type=search],.fnd-toolbar select{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);min-width:160px}
+.tool{padding:12px;border:1px solid var(--bord);border-radius:var(--rsm);background:var(--surf);display:flex;flex-direction:column;gap:8px}
+.tool .top{display:flex;align-items:center;gap:8px}.tool .ico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:var(--surf2);color:var(--txtm);flex-shrink:0}
+.tool .name{font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool .scope{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);background:var(--surf2);padding:2px 6px;border-radius:4px;border:1px solid var(--bord)}
+.tool .pass{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txtm)}.tool .bar{flex:1;height:6px;background:var(--surf2);border-radius:3px;overflow:hidden}.tool .bar>i{display:block;height:100%;background:var(--pass);border-radius:3px}
+.tool .stack{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--surf2)}.tool .stack>i{display:block;height:100%}.tool .meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--txtf)}.tool.disabled{opacity:.55}
+.hm-wrap{padding:18px}.hm-toggle{display:inline-flex;background:var(--surf2);border:1px solid var(--bord);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px}.hm-toggle button{padding:6px 12px;font-size:12.5px;border-radius:6px;color:var(--txtm);font-weight:500}.hm-toggle button.on{background:var(--surf);color:var(--txt);box-shadow:var(--shadow)}
+.hm-table{width:100%;border-collapse:separate;border-spacing:3px}.hm-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);padding:6px;text-align:left;white-space:nowrap}.hm-table thead th{text-align:center}
+.hm-table td.row-h{font-size:12px;color:var(--txtm);padding:6px 10px 6px 6px;white-space:nowrap}
+.hm-cell{position:relative;padding:0;border-radius:6px;height:38px;text-align:center;font-size:12px;font-weight:600;color:#fff;border:1px solid transparent}.hm-cell.empty{background:var(--surf2);color:var(--txtf)}
+.hm-legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--txtf)}.hm-legend .grad{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--surf2),var(--low),var(--med),var(--high),var(--crit))}
+.risks{display:flex;flex-direction:column;gap:6px}.risk{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--bord);border-radius:var(--rsm);background:var(--surf)}
+.risk .ttl{font-weight:600;font-size:13.5px}.risk .meta{font-size:12px;color:var(--txtf);margin-top:2px}.risk .count{text-align:right;font-size:11px;color:var(--txtf)}.risk .count strong{display:block;font-size:15px;color:var(--txt);font-weight:700}.risk .tool-tag{font-size:11px;color:var(--txtm);font-family:var(--mono);padding:3px 7px;border-radius:4px;background:var(--surf2);border:1px solid var(--bord)}
+.fnd-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;border:1px solid var(--bord);border-radius:var(--rsm);background:var(--surf);margin-bottom:12px}
+.fnd-toolbar input[type=search],.fnd-toolbar select{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--bord);border-radius:6px;background:var(--surf);color:var(--txt);min-width:160px}
 .fnd-toolbar input[type=search]{flex:1;min-width:240px}
-.sev-filter{display:flex;gap:4px;background:var(--surface-2);padding:3px;border-radius:8px;border:1px solid var(--border)}
-.sev-filter button{padding:4px 9px;border-radius:5px;font-size:12px;font-weight:600;color:var(--text-muted)}.sev-filter button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
-.fnd-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
-.fnd-table th{background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);padding:9px 12px;text-align:left;cursor:pointer;user-select:none;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
-.fnd-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top}
-.fnd-table tr.row{cursor:pointer}.fnd-table tr.row:hover td{background:var(--surface-2)}
-.fnd-table tr.row td:first-child{border-left:3px solid var(--border-strong)}.fnd-table tr.row.s-crit td:first-child{border-left-color:var(--crit)}.fnd-table tr.row.s-high td:first-child{border-left-color:var(--high)}.fnd-table tr.row.s-med td:first-child{border-left-color:var(--med)}.fnd-table tr.row.s-low td:first-child{border-left-color:var(--low)}.fnd-table tr.row.s-info td:first-child{border-left-color:var(--info)}
-.fnd-table tr.expand td{background:var(--surface-2);padding:14px 18px}.fnd-table tr.expand .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.fnd-table tr.expand .ev h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin:0 0 4px}.fnd-table tr.expand .ev pre{margin:0;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:12px;overflow-x:auto;color:var(--text)}
-.fnd-table tr.expand .ev p{margin:0;color:var(--text);font-size:13px}.fnd-table tr.expand .ev .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.fnd-table tr.expand .ev .links a{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--brand)}
-.empty-row td{text-align:center;color:var(--text-faint);padding:32px;font-style:italic}
-.fnd-foot{margin-top:10px;font-size:12px;color:var(--text-faint);display:flex;justify-content:space-between}
+.sev-filter{display:flex;gap:4px;background:var(--surf2);padding:3px;border-radius:8px;border:1px solid var(--bord)}
+.sev-filter button{padding:4px 9px;border-radius:5px;font-size:12px;font-weight:600;color:var(--txtm)}.sev-filter button.on{background:var(--surf);color:var(--txt);box-shadow:var(--shadow)}
+.fnd-table{width:100%;border-collapse:collapse;background:var(--surf);border:1px solid var(--bord);border-radius:var(--rsm);overflow:hidden}
+.fnd-table th{background:var(--surf2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);padding:9px 12px;text-align:left;cursor:pointer;user-select:none;border-bottom:1px solid var(--bord);font-weight:600;white-space:nowrap}
+.fnd-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--bord);vertical-align:top}
+.fnd-table tr.row{cursor:pointer}.fnd-table tr.row:hover td{background:var(--surf2)}
+.fnd-table tr.row td:first-child{border-left:3px solid var(--bords)}.fnd-table tr.row.s-crit td:first-child{border-left-color:var(--crit)}.fnd-table tr.row.s-high td:first-child{border-left-color:var(--high)}.fnd-table tr.row.s-med td:first-child{border-left-color:var(--med)}.fnd-table tr.row.s-low td:first-child{border-left-color:var(--low)}.fnd-table tr.row.s-info td:first-child{border-left-color:var(--info)}
+.fnd-table tr.expand td{background:var(--surf2);padding:14px 18px}.fnd-table tr.expand .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.fnd-table tr.expand .ev h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--txtf);margin:0 0 4px}.fnd-table tr.expand .ev pre{margin:0;padding:10px;background:var(--surf);border:1px solid var(--bord);border-radius:6px;font-size:12px;overflow-x:auto;color:var(--txt)}
+.fnd-table tr.expand .ev p{margin:0;color:var(--txt);font-size:13px}.fnd-table tr.expand .ev .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.fnd-table tr.expand .ev .links a{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border:1px solid var(--bord);border-radius:4px;background:var(--surf);color:var(--brand)}
+.empty-row td{text-align:center;color:var(--txtf);padding:32px;font-style:italic}
+.fnd-foot{margin-top:10px;font-size:12px;color:var(--txtf);display:flex;justify-content:space-between}
 .ent-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:1024px){.ent-grid{grid-template-columns:1fr}}
-.ent-bars{display:flex;flex-direction:column;gap:8px}.ent-bar{display:grid;grid-template-columns:140px 1fr 50px;gap:10px;align-items:center;font-size:13px}.ent-bar .lab{color:var(--text-muted)}.ent-bar .track{height:18px;background:var(--surface-2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}.ent-bar .fill{height:100%;background:var(--brand);border-radius:3px}.ent-bar .n{text-align:right;font-weight:600;color:var(--text)}
-.graph-wrap svg{width:100%;height:280px;display:block;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border)}
-.graph-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text-muted)}.graph-legend span{display:inline-flex;align-items:center;gap:5px}.graph-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
-footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:var(--surface);margin-top:24px}.foot-row{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start}.versions{font-size:12px;color:var(--text-faint)}.versions table{border-collapse:collapse;margin-top:6px}.versions td{padding:2px 12px 2px 0;font-family:var(--mono);font-size:11.5px}
-.foot-actions{display:flex;gap:8px}.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--text-muted);font-size:12.5px;font-weight:500}
+.ent-bars{display:flex;flex-direction:column;gap:8px}.ent-bar{display:grid;grid-template-columns:140px 1fr 50px;gap:10px;align-items:center;font-size:13px}.ent-bar .lab{color:var(--txtm)}.ent-bar .track{height:18px;background:var(--surf2);border-radius:4px;overflow:hidden;border:1px solid var(--bord)}.ent-bar .fill{height:100%;background:var(--brand);border-radius:3px}.ent-bar .n{text-align:right;font-weight:600;color:var(--txt)}
+.graph-wrap svg{width:100%;height:280px;display:block;background:var(--surf2);border-radius:var(--rsm);border:1px solid var(--bord)}
+.graph-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--txtm)}.graph-legend span{display:inline-flex;align-items:center;gap:5px}.graph-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+footer{padding:24px 32px 40px;border-top:1px solid var(--bord);background:var(--surf);margin-top:24px}.foot-row{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start}.versions{font-size:12px;color:var(--txtf)}.versions table{border-collapse:collapse;margin-top:6px}.versions td{padding:2px 12px 2px 0;font-family:var(--mono);font-size:11.5px}
+.foot-actions{display:flex;gap:8px}.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--bord);border-radius:6px;background:var(--surf2);color:var(--txtm);font-size:12.5px;font-weight:500}
 .fw{display:inline-flex;align-items:center;padding:1px 6px;margin-right:4px;border-radius:4px;font-size:10.5px;font-weight:600;line-height:1.5;letter-spacing:.02em;color:#fff;font-family:var(--mono);white-space:nowrap}
 .fw-cis{background:#d97706}.fw-nist{background:#374151}.fw-mitre{background:#b91c1c}.fw-eidsca{background:#1f6feb}.fw-eidas{background:#7c3aed}.fw-soc{background:#0e7490}.fw-iso{background:#0f766e}.fw-mcsb{background:#005a9e}.fw-caf{background:#1e3a8a}.fw-waf{background:#3a7d0a}.fw-cisa{background:#0f766e}.fw-orca{background:#0891b2}.fw-default{background:#475569}
-.tool-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border)}
-.rule-id{font-family:var(--mono);font-size:11px;color:var(--text-faint);background:var(--surface-2);padding:1px 5px;border-radius:3px;border:1px solid var(--border);margin-right:6px}
+.tool-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--txtm);background:var(--surf2);border:1px solid var(--bord)}
+.rule-id{font-family:var(--mono);font-size:11px;color:var(--txtf);background:var(--surf2);padding:1px 5px;border-radius:3px;border:1px solid var(--bord);margin-right:6px}
+/* Focus rings - WCAG 2.1 AA */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:var(--rsm)}
+/* Reduced motion support */
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* Print stylesheet */
+@media print{header,nav,.theme-btn,.skip,.fnd-toolbar,.filt-bar{display:none!important}body{background:#fff;color:#000}.card{box-shadow:none;page-break-inside:avoid}.fnd-table tr.expand{display:table-row!important}a::after{content:" (" attr(href) ")"}}
 </style>
 </head>
 <body>
-<header class='app' role='banner'>
-  <div class='hdr-row'>
-    <div class='brand'><span>Azure Analyzer</span><span class='pill ghost'>report v3</span></div>
-    <div class='tenant'><strong>tenant</strong> · 2 subs</div>
-    <div class='kpi'><strong>2026-04-21 17:31 UTC</strong></div>
-    <div class='score'><div class='score-text'><span class='num'>D<span style='font-size:11px;color:var(--text-faint);font-weight:500'> (9/100)</span></span><span class='lbl'>Posture</span></div></div>
+<a href='#main' class='skip'>Skip to main content</a>
+<header role='banner'>
+  <div class='hdr'>
+    <div class='brand'><span>Azure Analyzer</span><span class='pill ghost'>v2</span></div>
+    <div class='kpi'><strong>2026-04-21 19:06 UTC</strong></div>
+    <div class='score'><div class='score-text'><span class='num'>D<span style='font-size:11px;color:var(--txtf);font-weight:500'> (20/100)</span></span><span class='lbl'>Posture</span></div></div>
     <div class='sev-strip' role='group' aria-label='Findings by severity'>
-      <div class='sev-cnt sev-crit'><span class='n'>1</span><span class='l'>Crit</span></div>
-      <div class='sev-cnt sev-high'><span class='n'>4</span><span class='l'>High</span></div>
-      <div class='sev-cnt sev-med'><span class='n'>5</span><span class='l'>Med</span></div>
-      <div class='sev-cnt sev-low'><span class='n'>0</span><span class='l'>Low</span></div>
+      <div class='sev-cnt sev-crit'><span class='n'>0</span><span class='l'>Crit</span></div>
+      <div class='sev-cnt sev-high'><span class='n'>2</span><span class='l'>High</span></div>
+      <div class='sev-cnt sev-med'><span class='n'>1</span><span class='l'>Med</span></div>
+      <div class='sev-cnt sev-low'><span class='n'>1</span><span class='l'>Low</span></div>
       <div class='sev-cnt sev-info'><span class='n'>0</span><span class='l'>Info</span></div>
     </div>
-    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>37</strong> tools</span><span class='kpi'><strong>3</strong> entities</span><span class='kpi'><strong>9%</strong> compliant</span></div>
+    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>37</strong> tools</span><span class='kpi'><strong>5</strong> entities</span><span class='kpi'><strong>20%</strong> compliant</span></div>
     <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
 <nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
-<main>
-<section class='section' id='overview'>
+<main id='main'>
+<section class='sec' id='overview'>
   <h2>Overview <span class='badge'>executive summary</span></h2>
-  <div class='over-grid'>
-    <div class='card card-pad exec'>
-      <p><strong>Run summary</strong>: scanned <strong>11 findings</strong> across <strong>37 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>9%</strong>.</p>
+  <div class='grid2'>
+    <div class='card'>
+      <p><strong>Run summary</strong>: scanned <strong>5 findings</strong> across <strong>37 tools</strong> and <strong>5 entities</strong>. Overall compliance is <strong>20%</strong>.</p>
       <p>Critical and High findings are prioritized in top risks. Schema 2.2 fields render when present and are skipped when absent.</p>
-      <div class='pillars' aria-label='Pillar breakdown'>
-        <h3 style='margin-bottom:4px'>Pillar breakdown (non-pass)</h3>
-        <div class='pill-row'><span class='pill-name'>Security</span><div class='pill-track'><i style='width:100%'></i></div><span class='pill-count'>5</span></div>
-<div class='pill-row'><span class='pill-name'>Cost Optimization</span><div class='pill-track'><i style='width:80%'></i></div><span class='pill-count'>4</span></div>
-<div class='pill-row'><span class='pill-name'>Performance Efficiency</span><div class='pill-track'><i style='width:20%'></i></div><span class='pill-count'>1</span></div>
-      </div>
-      <div class='trend-strip'><div class='trend' style='grid-column:1 / -1'><div class='lab'>Trend</div><div class='val'>n/a</div><div class='delta faint'>trend coming after 2nd run</div></div></div>
+      <h3 style='margin:14px 0 10px'>Pillar breakdown (non-pass)</h3>
+      <div style='display:flex;flex-direction:column;gap:6px'><div class='pill-row'><span class='name'>Compute</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>1</span></div>
+<div class='pill-row'><span class='name'>Data</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>1</span></div>
+<div class='pill-row'><span class='name'>Security</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>1</span></div>
+<div class='pill-row'><span class='name'>Storage</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>1</span></div></div>
     </div>
-    <div class='card card-pad'><h3 style='margin-bottom:10px'>Top recommendations</h3><div class='recs' id='topRecs'><div class='rec'>
-  <span class='pill sev-crit'>Critical</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Azure.KeyVault.SoftDelete");return false;'>Key Vault soft delete disabled</a></span><div class='meta'>1 findings · Security</div></div>
-  <div class='impact'><strong>10</strong>impact</div>
-</div>
-<div class='rec'>
+    <div class='card'><h3 style='margin-bottom:10px'>Top recommendations</h3><div id='topRecs'><div class='rec'>
   <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("ADO.CORR.SECRET");return false;'>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("1");return false;'>Storage account has public access</a></span><div class='meta'>1 findings · Storage</div></div>
   <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
   <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("AZQR.NET.012");return false;'>Internet-exposed management port on NSG</a></span><div class='meta'>1 findings · Security</div></div>
-  <div class='impact'><strong>5</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("C-0057");return false;'>Privileged container in payments namespace</a></span><div class='meta'>1 findings · Security</div></div>
-  <div class='impact'><strong>5</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Consumption-DurationRegression");return false;'>Pipeline duration regression exceeds budget</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("3");return false;'>VM uses unencrypted OS disk</a></span><div class='meta'>1 findings · Compute</div></div>
   <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
   <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("AKS.RIGHT.001");return false;'>AKS node pool over-provisioned</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("2");return false;'>Key Vault logging disabled</a></span><div class='meta'>1 findings · Security</div></div>
   <div class='impact'><strong>2</strong>impact</div>
 </div>
 <div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("APPINSIGHTS.P95.REGRESSION");return false;'>API p95 latency regressed by 38%</a></span><div class='meta'>1 findings · Performance Efficiency</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("FINOPS.APPSERVICE.IDLE");return false;'>Idle App Service Plan spend exceeds threshold</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("GHA-BILLING-BUDGET");return false;'>Runner minute spend trend exceeds weekly budget</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("SENT-COV-T1190");return false;'>MITRE tactic coverage gap for Initial Access</a></span><div class='meta'>1 findings · Security</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
+  <span class='pill sev-low'>Low</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("4");return false;'>SQL Database has no backup</a></span><div class='meta'>1 findings · Data</div></div>
+  <div class='impact'><strong>1</strong>impact</div>
 </div></div></div>
   </div>
 </section>
-<section class='section' id='coverage'><h2>Tool coverage <span class='badge'>37 registered</span></h2><div id='covRoot'><div class='cov-group'>
+<section class='sec' id='coverage'><h2>Tool coverage <span class='badge'>37 registered</span></h2><div id='covRoot'><div class='cov-group'>
   <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
     <span class='chev'>▾</span>
     <h3>Azure DevOps · ado</h3>
     <span class='cnt'>5 tools</span>
   </div>
   <div class='cov-grid'>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>ADO Pipeline Consumption</div>
     <span class='scope'>ado</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>ado-consumption</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-consumption</span></div>
 </div>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>ADO Pipeline Run Correlator</div>
     <span class='scope'>ado</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>ado-pipeline-correlator</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-pipeline-correlator</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -252,25 +235,25 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
     <span class='cnt'>2 tools</span>
   </div>
   <div class='cov-grid'>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>ALZ Resource Graph Queries</div>
     <span class='scope'>managementGroup</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>alz-queries</span></div>
+  <div class='stack'><i style='width:100%;background:var(--low)' title='1 Low'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>alz-queries</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>AzGovViz</div>
     <span class='scope'>managementGroup</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>azgovviz</span></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>azgovviz</span></div>
 </div>
   </div>
 </div>
@@ -291,25 +274,25 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>aks-karpenter-cost</span></div>
 </div>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>AKS Rightsizing (Container Insights utilization)</div>
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>aks-rightsizing</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>aks-rightsizing</span></div>
 </div>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Application Insights Performance Signals</div>
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>appinsights</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>appinsights</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -337,9 +320,9 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
     <div class='name'>Azure Quick Review</div>
     <span class='scope'>subscription</span>
   </div>
-  <div class='pass'><span>50% pass</span><div class='bar'><i style='width:50%'></i></div></div>
-  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>2 findings</span><span class='mono'>azqr</span></div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>azqr</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -381,15 +364,15 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>kube-bench</span></div>
 </div>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Kubescape (AKS runtime posture)</div>
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>kubescape</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>kubescape</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -428,18 +411,18 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--crit)' title='1 Critical'></i></div>
+  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
   <div class='meta'><span>1 findings</span><span class='mono'>psrule</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Well-Architected Reliability Assessment</div>
     <span class='scope'>subscription</span>
   </div>
-  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='pass'><span>100% pass</span><div class='bar'><i style='width:100%'></i></div></div>
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>wara</span></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>wara</span></div>
 </div>
   </div>
 </div>
@@ -460,15 +443,15 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>sentinel-incidents</span></div>
 </div>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Microsoft Sentinel (Coverage / Posture)</div>
     <span class='scope'>workspace</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>sentinel-coverage</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>sentinel-coverage</span></div>
 </div>
   </div>
 </div>
@@ -558,15 +541,15 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
     <span class='cnt'>2 tools</span>
   </div>
   <div class='cov-grid'>
-<div class='tool '>
+<div class='tool disabled'>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>GitHub Actions Billing</div>
     <span class='scope'>repository</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>gh-actions-billing</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>gh-actions-billing</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -628,7 +611,7 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
 </div>
   </div>
 </div></div></section>
-<section class='section' id='heatmap'>
+<section class='sec' id='heatmap'>
   <h2>Heatmap <span class='badge'>control density</span></h2>
   <div class='card hm-wrap'>
     <div class='hm-toggle' role='tablist' aria-label='Heatmap view'>
@@ -640,29 +623,11 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
     <div class='hm-legend'><span>Fewer findings</span><span class='grad' aria-hidden='true'></span><span>More findings</span></div>
   </div>
 </section>
-<section class='section' id='risks'><h2>Top risks <span class='badge'>ranked by impact</span></h2><div class='risks' id='risksRoot'><div class='risk'>
-  <span class='pill sev-crit'>Critical</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("Azure.KeyVault.SoftDelete");return false;'>Key Vault soft delete disabled</a></div>
-    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-mcsb' title='MCSB'>MCSB</span></div>
-  </div>
-  <span class='tool-tag'>PSRule for Azure</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
+<section class='sec' id='risks'><h2>Top risks <span class='badge'>ranked by impact</span></h2><div class='risks' id='risksRoot'><div class='risk'>
   <span class='pill sev-high'>High</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("ADO.CORR.SECRET");return false;'>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</a></div>
-    <div class='meta'>Security · <span class="faint" style="font-size:11px">no framework mapping</span></div>
-  </div>
-  <span class='tool-tag'>ADO Pipeline Run Correlator</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-high'>High</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("AZQR.NET.012");return false;'>Internet-exposed management port on NSG</a></div>
-    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span><span class='fw fw-default' title='PCI DSS'>PCI DSS</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("1");return false;'>Storage account has public access</a></div>
+    <div class='meta'>Storage · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
   <span class='tool-tag'>Azure Quick Review</span>
   <div class='count'><strong>1</strong>findings</div>
@@ -670,68 +635,32 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
 <div class='risk'>
   <span class='pill sev-high'>High</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("C-0057");return false;'>Privileged container in payments namespace</a></div>
-    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-default' title='NSA'>NSA</span><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("3");return false;'>VM uses unencrypted OS disk</a></div>
+    <div class='meta'>Compute · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>Kubescape (AKS runtime posture)</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-high'>High</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("Consumption-DurationRegression");return false;'>Pipeline duration regression exceeds budget</a></div>
-    <div class='meta'>Cost Optimization · <span class="faint" style="font-size:11px">no framework mapping</span></div>
-  </div>
-  <span class='tool-tag'>ADO Pipeline Consumption</span>
+  <span class='tool-tag'>AzGovViz</span>
   <div class='count'><strong>1</strong>findings</div>
 </div>
 <div class='risk'>
   <span class='pill sev-med'>Medium</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("AKS.RIGHT.001");return false;'>AKS node pool over-provisioned</a></div>
-    <div class='meta'>Cost Optimization · <span class='fw fw-waf' title='WAF'>WAF</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("2");return false;'>Key Vault logging disabled</a></div>
+    <div class='meta'>Security · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>AKS Rightsizing (Container Insights utilization)</span>
+  <span class='tool-tag'>PSRule for Azure</span>
   <div class='count'><strong>1</strong>findings</div>
 </div>
 <div class='risk'>
-  <span class='pill sev-med'>Medium</span>
+  <span class='pill sev-low'>Low</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("APPINSIGHTS.P95.REGRESSION");return false;'>API p95 latency regressed by 38%</a></div>
-    <div class='meta'>Performance Efficiency · <span class='fw fw-waf' title='WAF'>WAF</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("4");return false;'>SQL Database has no backup</a></div>
+    <div class='meta'>Data · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>Application Insights Performance Signals</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("FINOPS.APPSERVICE.IDLE");return false;'>Idle App Service Plan spend exceeds threshold</a></div>
-    <div class='meta'>Cost Optimization · <span class='fw fw-waf' title='WAF'>WAF</span></div>
-  </div>
-  <span class='tool-tag'>finops-signals</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("GHA-BILLING-BUDGET");return false;'>Runner minute spend trend exceeds weekly budget</a></div>
-    <div class='meta'>Cost Optimization · <span class='fw fw-soc' title='SOC2'>SOC2</span></div>
-  </div>
-  <span class='tool-tag'>GitHub Actions Billing</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("SENT-COV-T1190");return false;'>MITRE tactic coverage gap for Initial Access</a></div>
-    <div class='meta'>Security · <span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span></div>
-  </div>
-  <span class='tool-tag'>Microsoft Sentinel (Coverage / Posture)</span>
+  <span class='tool-tag'>ALZ Resource Graph Queries</span>
   <div class='count'><strong>1</strong>findings</div>
 </div></div></section>
-<section class='section' id='findings'>
-  <h2>Findings <span class='badge' id='fndCountBadge'>11 of 11</span></h2>
+<section class='sec' id='findings'>
+  <h2>Findings <span class='badge' id='fndCountBadge'>5 of 5</span></h2>
   <div class='fnd-toolbar'>
     <input type='search' id='fndSearch' placeholder='Search rule, entity, message' aria-label='Search findings'>
     <div class='sev-filter' role='group' aria-label='Severity filter'>
@@ -745,347 +674,145 @@ footer.app{padding:24px 32px 40px;border-top:1px solid var(--border);background:
   <table class='fnd-table' id='fndTable'>
     <thead><tr><th data-sort='severity' class='sorted'>Sev <span class='arr'>▾</span></th><th data-sort='rule'>Rule <span class='arr'>▾</span></th><th data-sort='entity'>Entity <span class='arr'>▾</span></th><th data-sort='sub'>Subscription <span class='arr'>▾</span></th><th data-sort='tool'>Tool <span class='arr'>▾</span></th><th data-sort='status'>Status <span class='arr'>▾</span></th></tr></thead>
     <tbody id='fndBody'>
-<tr class='row s-high' data-id='azqr-net-001' data-severity='high' data-rule='AZQR.NET.012' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge' data-sub='11111111-1111-1111-1111-111111111111' data-tool='azqr' data-status='Fail'>
+<tr class='row s-high' data-id='1' data-severity='high' data-rule='1' data-entity='/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/sa1' data-sub='sub1' data-tool='azqr' data-status='Fail'>
   <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>AZQR.NET.012</span>Internet-exposed management port on NSG</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span><span class='fw fw-default' title='PCI DSS'>PCI DSS</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-net</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><div style='font-weight:600'><span class='rule-id'>1</span>Storage account has public access</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Storage</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/sa1</div><div class='faint' style='font-size:11px'> · rg1</div></td>
+  <td>sub1</td>
   <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
   <td><span class='pill sev-high'>Fail</span></td>
 </tr>
-<tr class='expand' data-parent-id='azqr-net-001' hidden>
+<tr class='expand' data-parent-id='1' hidden>
   <td colspan='6'><div class='ev-grid'>
     <div class='ev'>
       <h4>Description</h4>
-      <p>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</p>
+      <p>Storage account allows public access without firewall rules</p>
       <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:ga, internet-exposed</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Restrict inbound access to JIT or approved source ranges.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
-      <h4 style='margin-top:10px'>azurecli</h4><pre>az network nsg rule update --resource-group rg-payments-net --nsg-name nsg-payments-edge --name Allow-RDP --source-address-prefixes 10.0.0.0/24</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>/subscriptions/11111111-1111-1111-1111-111111111111
-nsg:nsg-payments-edge</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-crit' data-id='psrule-kv-001' data-severity='crit' data-rule='Azure.KeyVault.SoftDelete' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='psrule' data-status='Fail'>
-  <td><span class='pill sev-crit'>Critical</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>Azure.KeyVault.SoftDelete</span>Key Vault soft delete disabled</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-mcsb' title='MCSB'>MCSB</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-sec</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#6a1b9a;border-color:#6a1b9a;color:#fff'>PSRule for Azure</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='psrule-kv-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:ga, keyvault</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Enable soft delete and purge protection on production Key Vaults.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Low</p>
-      <h4 style='margin-top:10px'>bicep</h4><pre>resource kv &#39;Microsoft.KeyVault/vaults@2023-07-01&#39; existing = { name: &#39;kv-payments-prod&#39; }
-resource kvPatch &#39;Microsoft.KeyVault/vaults@2023-07-01&#39; = {
-  name: kv.name
-  properties: {
-    enableSoftDelete: true
-    enablePurgeProtection: true
-  }
-}</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>/subscriptions/11111111-1111-1111-1111-111111111111
-kv:kv-payments-prod</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/key-vault/general/overview' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-high' data-id='kubescape-001' data-severity='high' data-rule='C-0057' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments' data-sub='11111111-1111-1111-1111-111111111111' data-tool='kubescape' data-status='Fail'>
-  <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>C-0057</span>Privileged container in payments namespace</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-default' title='NSA'>NSA</span><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments</div><div class='faint' style='font-size:11px'>AzureResource · rg-aks-prod</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#7b1fa2;border-color:#7b1fa2;color:#fff'>Kubescape (AKS runtime posture)</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='kubescape-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Deployment payments-api uses privileged=true in one container.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Deployment payments-api uses privileged=true in one container.</pre>
-      <div class='links'><a href='https://hub.armosec.io/docs/c-0057' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://attack.mitre.org/techniques/T1611/' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      <h4 style='margin-top:10px'>MITRE</h4><p>Tactics: Privilege Escalation<br>Techniques: T1611</p>
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>nsa, cis, mitreattck</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Drop privileged mode and enforce Pod Security Standards.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
-      <h4 style='margin-top:10px'>yaml</h4><pre>securityContext:
-  privileged: false
-  allowPrivilegeEscalation: false</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>cluster:aks-prod-payments
-namespace:payments
-workload:payments-api</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='sentinel-coverage-001' data-severity='med' data-rule='SENT-COV-T1190' data-entity='/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01' data-sub='22222222-2222-2222-2222-222222222222' data-tool='sentinel-coverage' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>SENT-COV-T1190</span>MITRE tactic coverage gap for Initial Access</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01</div><div class='faint' style='font-size:11px'>AzureResource · rg-sec</div></td>
-  <td>22222222-2222-2222-2222-222222222222</td>
-  <td><span class='tool-chip' style='background:#3949ab;border-color:#3949ab;color:#fff'>Microsoft Sentinel (Coverage / Posture)</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='sentinel-coverage-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>No enabled analytics rules mapped to Initial Access in the last 14 days.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>No enabled analytics rules mapped to Initial Access in the last 14 days.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/sentinel/detect-threats-custom' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://attack.mitre.org/tactics/TA0001/' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      <h4 style='margin-top:10px'>MITRE</h4><p>Tactics: Initial Access<br>Techniques: T1190</p>
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>correlation-gap, mitre</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Enable analytics for external-facing service exploitation and suspicious sign-ins.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium</p>
-      
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>workspace:law-sec-01
-mitre:TA0001
-mitre:T1190</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/sentinel/detect-threats-custom' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-high' data-id='ado-corr-001' data-severity='high' data-rule='ADO.CORR.SECRET' data-entity='ado://contoso/payments/pipeline/55' data-sub='' data-tool='ado-pipeline-correlator' data-status='Fail'>
-  <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>ADO.CORR.SECRET</span>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>ado://contoso/payments/pipeline/55</div><div class='faint' style='font-size:11px'>Pipeline · </div></td>
-  <td></td>
-  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>ADO Pipeline Run Correlator</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='ado-corr-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201&amp;view=logs' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>correlated-direct, secret-category:github-pat</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Rotate affected secret, audit variable groups, and inspect downstream artifacts.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
-      <h4 style='margin-top:10px'>text</h4><pre>1) Rotate leaked credentials.
-2) Inspect pipeline variable groups and service connections.
-3) Verify artifact consumers and deployment logs.</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>finding:secret-9
-pipeline:ado://contoso/payments/pipeline/55
-build:8201
-repository:ado://contoso/payments/repository/payments-api
-commit:abcdef1234567890</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201&amp;view=results' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='appi-001' data-severity='med' data-rule='APPINSIGHTS.P95.REGRESSION' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai' data-sub='11111111-1111-1111-1111-111111111111' data-tool='appinsights' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>APPINSIGHTS.P95.REGRESSION</span>API p95 latency regressed by 38%</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Performance Efficiency</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-app</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>Application Insights Performance Signals</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='appi-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/azure-monitor/app/app-map' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:canary, latency-regression</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Profile hot endpoints and reduce dependency latency in checkout path.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium<br>Score delta: 38</p>
-      <h4 style='margin-top:10px'>kusto</h4><pre>requests
-| where cloud_RoleName == &quot;payments-api&quot;
-| summarize p95=percentile(duration,95) by bin(timestamp, 1h)</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>appinsights:payments-api-ai
-service:checkout</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='finops-001' data-severity='med' data-rule='FINOPS.APPSERVICE.IDLE' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='finops-signals' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>FINOPS.APPSERVICE.IDLE</span>Idle App Service Plan spend exceeds threshold</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-app</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip'>finops-signals</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='finops-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/app-service/overview-hosting-plans' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>cost-hotspot, release:ga</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Right-size to P1v3 or consolidate workloads into shared plan.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Low<br>Score delta: 1420</p>
-      <h4 style='margin-top:10px'>text</h4><pre>Downsize to P1v3 and set autoscale max instances to 2.</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>plan:asp-payments-prod
-subscription:11111111-1111-1111-1111-111111111111</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-high' data-id='ado-consume-001' data-severity='high' data-rule='Consumption-DurationRegression' data-entity='ado://contoso/payments/pipeline/55' data-sub='' data-tool='ado-consumption' data-status='Fail'>
-  <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>Consumption-DurationRegression</span>Pipeline duration regression exceeds budget</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>ado://contoso/payments/pipeline/55</div><div class='faint' style='font-size:11px'>Pipeline · </div></td>
-  <td></td>
-  <td><span class='tool-chip' style='background:#5e35b1;border-color:#5e35b1;color:#fff'>ADO Pipeline Consumption</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='ado-consume-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>payments-ci average duration increased by 44% week-over-week.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>payments-ci average duration increased by 44% week-over-week.</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_analytics' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/devops/pipelines/process/phases' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>duration-regression, minutes</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Parallelize tests and cache dependencies for build stages.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium<br>Score delta: 44</p>
-      
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>pipeline:ado://contoso/payments/pipeline/55
-project:ado://contoso/payments/project/payments</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build?definitionId=55' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='gh-billing-001' data-severity='med' data-rule='GHA-BILLING-BUDGET' data-entity='github.com/contoso/payments-api' data-sub='' data-tool='gh-actions-billing' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>GHA-BILLING-BUDGET</span>Runner minute spend trend exceeds weekly budget</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-soc' title='SOC2'>SOC2</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>github.com/contoso/payments-api</div><div class='faint' style='font-size:11px'>Repository · </div></td>
-  <td></td>
-  <td><span class='tool-chip' style='background:#8e24aa;border-color:#8e24aa;color:#fff'>GitHub Actions Billing</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='gh-billing-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</pre>
-      <div class='links'><a href='https://github.com/contoso/payments-api/actions' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://github.com/contoso/payments-api/settings/actions' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>runner-minutes, budget</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Enable path filters and reduce redundant workflow triggers.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Low<br>Score delta: 32</p>
-      
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>repo:github.com/contoso/payments-api
-workflow:.github/workflows/ci.yml</pre>
-      <div class='links'><a href='https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='aks-right-001' data-severity='med' data-rule='AKS.RIGHT.001' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments' data-sub='11111111-1111-1111-1111-111111111111' data-tool='aks-rightsizing' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>AKS.RIGHT.001</span>AKS node pool over-provisioned</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments</div><div class='faint' style='font-size:11px'>AzureResource · rg-aks-prod</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#2e7d32;border-color:#2e7d32;color:#fff'>AKS Rightsizing (Container Insights utilization)</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='aks-right-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Node pool usernp average CPU 11% and memory 18% over 7 days.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Node pool usernp average CPU 11% and memory 18% over 7 days.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/aks/resize-node-pool' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/aks/cluster-autoscaler' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>rightsizing, cluster-autoscaler</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Reduce min node count from 6 to 3 and enable cluster autoscaler profile.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium<br>Score delta: 1200</p>
-      <h4 style='margin-top:10px'>bash</h4><pre>az aks nodepool update -g rg-aks-prod --cluster-name aks-prod-payments -n usernp --min-count 3 --max-count 10</pre>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>cluster:aks-prod-payments
-nodepool:usernp</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/aks/resize-node-pool' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-low' data-id='azqr-pass-001' data-severity='low' data-rule='AZQR.KV.LOG' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='azqr' data-status='Pass'>
-  <td><span class='pill sev-low'>Low</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>AZQR.KV.LOG</span>Diagnostic settings configured for Key Vault</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span> <span class='faint' style='margin-left:6px'>Operational Excellence</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-sec</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
-  <td><span class='pill sev-pass'>Pass</span></td>
-</tr>
-<tr class='expand' data-parent-id='azqr-pass-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Key Vault kv-payments-prod streams audit logs to Log Analytics.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Key Vault kv-payments-prod streams audit logs to Log Analytics.</pre>
+      <pre>Storage account allows public access without firewall rules</pre>
       <div class='links'></div>
       
       
     </div>
     <div class='ev'>
       <h4>Remediation</h4>
-      <p></p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Low<br>Effort: Low</p>
+      <p>Enable firewall and restrict access</p>
+      
+      
+      
+      <div class='links'><a href='https://docs.microsoft.com' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='2' data-severity='med' data-rule='2' data-entity='/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.KeyVault/vaults/kv1' data-sub='sub1' data-tool='psrule' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>2</span>Key Vault logging disabled</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.KeyVault/vaults/kv1</div><div class='faint' style='font-size:11px'> · rg1</div></td>
+  <td>sub1</td>
+  <td><span class='tool-chip' style='background:#6a1b9a;border-color:#6a1b9a;color:#fff'>PSRule for Azure</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='2' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Key Vault doesn&#39;t have logging enabled for access tracking</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Key Vault doesn&#39;t have logging enabled for access tracking</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable Key Vault logging</p>
+      
+      
+      
+      <div class='links'><span class='tool-chip'>No links provided</span></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='3' data-severity='high' data-rule='3' data-entity='/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1' data-sub='sub1' data-tool='azgovviz' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>3</span>VM uses unencrypted OS disk</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Compute</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1</div><div class='faint' style='font-size:11px'> · rg1</div></td>
+  <td>sub1</td>
+  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>AzGovViz</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='3' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Virtual machine uses standard unencrypted OS disk</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Virtual machine uses standard unencrypted OS disk</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable encryption at rest</p>
+      
+      
+      
+      <div class='links'><span class='tool-chip'>No links provided</span></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-low' data-id='4' data-severity='low' data-rule='4' data-entity='/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Sql/servers/sqlsrv1/databases/db1' data-sub='sub1' data-tool='alz-queries' data-status='Fail'>
+  <td><span class='pill sev-low'>Low</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>4</span>SQL Database has no backup</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Data</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Sql/servers/sqlsrv1/databases/db1</div><div class='faint' style='font-size:11px'> · rg1</div></td>
+  <td>sub1</td>
+  <td><span class='tool-chip' style='background:#e65100;border-color:#e65100;color:#fff'>ALZ Resource Graph Queries</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='4' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>SQL database has no backup policy configured</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>SQL database has no backup policy configured</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Configure backup retention</p>
+      
+      
+      
+      <div class='links'><span class='tool-chip'>No links provided</span></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-info' data-id='5' data-severity='info' data-rule='5' data-entity='/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Network/networkSecurityGroups/nsg1' data-sub='sub1' data-tool='wara' data-status='Pass'>
+  <td><span class='pill sev-info'>Info</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>5</span>Network security group is well-configured</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Networking</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/sub1/resourceGroups/rg1/providers/Microsoft.Network/networkSecurityGroups/nsg1</div><div class='faint' style='font-size:11px'> · rg1</div></td>
+  <td>sub1</td>
+  <td><span class='tool-chip' style='background:#2e7d32;border-color:#2e7d32;color:#fff'>Well-Architected Reliability Assessment</span></td>
+  <td><span class='pill sev-pass'>Pass</span></td>
+</tr>
+<tr class='expand' data-parent-id='5' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>NSG has appropriate rules and restrictions</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>NSG has appropriate rules and restrictions</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>No action needed</p>
+      
       
       
       <div class='links'><span class='tool-chip'>No links provided</span></div>
@@ -1094,34 +821,23 @@ nodepool:usernp</pre>
 </tr>
     </tbody>
   </table>
-  <div class='fnd-foot'><span id='fndShown'>11 shown</span><span>Click any row to expand evidence and remediation</span></div>
+  <div class='fnd-foot'><span id='fndShown'>5 shown</span><span>Click any row to expand evidence and remediation</span></div>
 </section>
-<section class='section' id='entities'>
-  <h2>Entities <span class='badge'>3 total</span></h2>
+<section class='sec' id='entities'>
+  <h2>Entities <span class='badge'>5 total</span></h2>
   <div class='ent-grid'>
-    <div class='card card-pad'><h3 style='margin-bottom:14px'>Inventory by type</h3><div class='ent-bars' id='entBars'><div class='ent-bar'><span class='lab'>Repository</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
-<div class='ent-bar'><span class='lab'>Pipeline</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
-<div class='ent-bar'><span class='lab'>AzureResource</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div></div></div>
-    <div class='card card-pad'><h3 style='margin-bottom:10px'>Blast radius: identity teaser</h3><p class='muted' style='margin:0 0 10px;font-size:12.5px'>Edges preview from entity graph.</p><div class='graph-wrap'><svg viewBox='0 0 600 280'><g stroke='var(--border-strong)' stroke-width='1' opacity='.7'><line x1='80' y1='140' x2='220' y2='100'/><line x1='220' y1='100' x2='380' y2='80'/><line x1='380' y1='80' x2='520' y2='70'/></g><g><circle cx='80' cy='140' r='14' fill='var(--high)'/><circle cx='220' cy='100' r='10' fill='var(--brand)'/><circle cx='380' cy='80' r='8' fill='var(--accent)'/><rect x='510' y='62' width='22' height='16' rx='3' fill='var(--med)'/></g></svg><div class='graph-legend'><span><i style='background:var(--high)'></i>Identity</span><span><i style='background:var(--brand)'></i>Group</span><span><i style='background:var(--accent)'></i>Service principal</span><span><i style='background:var(--med)'></i>Resource</span></div></div></div>
+    <div class='card'><h3 style='margin-bottom:14px'>Inventory by type</h3><div class='ent-bars' id='entBars'><div class='ent-bar'><span class='lab'>Unknown</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>5</span></div></div></div>
+    <div class='card'><h3 style='margin-bottom:10px'>Entity graph (preview)</h3><p style='margin:0 0 10px;font-size:12.5px;color:var(--txtm)'>Identity relationships from entity store.</p><div class='graph-wrap'><svg viewBox='0 0 600 280' role='img' aria-label='Entity relationship preview graph'><g stroke='var(--bords)' stroke-width='1' opacity='.7'><line x1='80' y1='140' x2='220' y2='100'/><line x1='220' y1='100' x2='380' y2='80'/><line x1='380' y1='80' x2='520' y2='70'/></g><g><circle cx='80' cy='140' r='14' fill='var(--high)'/><circle cx='220' cy='100' r='10' fill='var(--brand)'/><circle cx='380' cy='80' r='8' fill='var(--brand)'/><rect x='510' y='62' width='22' height='16' rx='3' fill='var(--med)'/></g></svg><div class='graph-legend'><span><i style='background:var(--high)'></i>Identity</span><span><i style='background:var(--brand)'></i>Group</span><span><i style='background:var(--med)'></i>Resource</span></div></div></div>
   </div>
 </section>
 </main>
-<footer class='app'>
+<footer>
   <div class='foot-row'>
-    <div class='versions'><strong style='color:var(--text)'>Tool versions used in this run</strong><table><tr><td>ADO Pipeline Consumption</td><td>azure-devops/1.0.1</td></tr>
-<tr><td>ADO Pipeline Run Correlator</td><td>azure-devops/1.0.1</td></tr>
-<tr><td>AKS Rightsizing (Container Insights utilization)</td><td>aks-rightsizing/0.5.0</td></tr>
-<tr><td>Application Insights Performance Signals</td><td>appinsights-api-2024-03-11</td></tr>
-<tr><td>Azure Quick Review</td><td>2.7.0</td></tr>
-<tr><td>finops-signals</td><td>finops-signals/0.7.0</td></tr>
-<tr><td>GitHub Actions Billing</td><td>gh-actions-billing-api-2024-10-01</td></tr>
-<tr><td>Kubescape (AKS runtime posture)</td><td>kubescape version v3.1.1</td></tr>
-<tr><td>PSRule for Azure</td><td>1.40.0</td></tr>
-<tr><td>Microsoft Sentinel (Coverage / Posture)</td><td>securityinsights-2024-09-01+loganalytics-2020-08-01</td></tr></table><div style='margin-top:10px'>Generated by <a href='https://github.com/martinopedal/azure-analyzer'>azure-analyzer</a> · Schema 2.2 · Report v3 · <a href='../README.md'>Docs</a></div></div>
+    <div class='versions'><strong style='color:var(--txt)'>Tool versions used in this run</strong><table><tr><td>n/a</td><td>No tool versions in this run</td></tr></table><div style='margin-top:10px'>Generated by <a href='https://github.com/martinopedal/azure-analyzer'>azure-analyzer</a> · Schema 2.2 · v2 report · <a href='../README.md'>Docs</a></div></div>
     <div class='foot-actions'><button class='btn' onclick='window.print()'>Print</button><a class='btn' href='#overview'>Top</a></div>
   </div>
 </footer>
-<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"domain":{"rowLabel":"Control domain","rows":["Cost Optimization","Operational Excellence","Performance Efficiency","Security"],"cols":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"cells":{"Cost Optimization||22222222-2222-2222-2222-222222222222":0,"Security||11111111-1111-1111-1111-111111111111":3,"Performance Efficiency||11111111-1111-1111-1111-111111111111":1,"Performance Efficiency||22222222-2222-2222-2222-222222222222":0,"Security||22222222-2222-2222-2222-222222222222":1,"Operational Excellence||11111111-1111-1111-1111-111111111111":0,"Cost Optimization||11111111-1111-1111-1111-111111111111":2,"Operational Excellence||22222222-2222-2222-2222-222222222222":0}},"fwsub":{"rowLabel":"Framework","rows":["CIS","MCSB","MITRE ATT&CK","NIST 800-53","NSA","PCI DSS","SOC2","WAF"],"cols":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"cells":{"SOC2||22222222-2222-2222-2222-222222222222":0,"NIST 800-53||22222222-2222-2222-2222-222222222222":1,"PCI DSS||11111111-1111-1111-1111-111111111111":1,"MCSB||11111111-1111-1111-1111-111111111111":1,"WAF||11111111-1111-1111-1111-111111111111":3,"PCI DSS||22222222-2222-2222-2222-222222222222":0,"SOC2||11111111-1111-1111-1111-111111111111":0,"CIS||11111111-1111-1111-1111-111111111111":3,"NSA||22222222-2222-2222-2222-222222222222":0,"MCSB||22222222-2222-2222-2222-222222222222":0,"MITRE ATT&CK||22222222-2222-2222-2222-222222222222":1,"CIS||22222222-2222-2222-2222-222222222222":0,"NIST 800-53||11111111-1111-1111-1111-111111111111":1,"WAF||22222222-2222-2222-2222-222222222222":0,"NSA||11111111-1111-1111-1111-111111111111":1,"MITRE ATT&CK||11111111-1111-1111-1111-111111111111":1}},"toolsev":{"rowLabel":"Tool","rows":["azqr","kubescape","kube-bench","defender-for-cloud","prowler","falco","azure-cost","azure-quota","finops","appinsights","loadtesting","aks-rightsizing","aks-karpenter-cost","psrule","powerpipe","azgovviz","alz-queries","wara","maester","scorecard","gh-actions-billing","ado-connections","ado-pipelines","ado-consumption","ado-repos-secrets","ado-pipeline-correlator","identity-correlator","identity-graph-expansion","zizmor","gitleaks","trivy","bicep-iac","infracost","terraform-iac","sentinel-incidents","sentinel-coverage","copilot-triage"],"cols":["crit","high","med","low","info"],"cells":{"identity-graph-expansion||crit":0,"appinsights||crit":0,"prowler||high":0,"alz-queries||med":0,"aks-karpenter-cost||med":0,"wara||crit":0,"kube-bench||high":0,"infracost||info":0,"azure-quota||low":0,"gitleaks||crit":0,"loadtesting||med":0,"appinsights||low":0,"aks-karpenter-cost||info":0,"copilot-triage||high":0,"kube-bench||info":0,"sentinel-incidents||low":0,"kubescape||high":1,"scorecard||info":0,"ado-pipeline-correlator||med":0,"azure-cost||low":0,"copilot-triage||crit":0,"kubescape||info":0,"gh-actions-billing||info":0,"azgovviz||crit":0,"sentinel-incidents||high":0,"maester||crit":0,"azure-quota||med":0,"scorecard||med":0,"loadtesting||low":0,"gh-actions-billing||med":1,"identity-graph-expansion||info":0,"alz-queries||low":0,"ado-connections||med":0,"loadtesting||info":0,"appinsights||info":0,"aks-karpenter-cost||low":0,"sentinel-coverage||crit":0,"finops||crit":0,"gitleaks||low":0,"aks-karpenter-cost||crit":0,"copilot-triage||med":0,"terraform-iac||info":0,"prowler||info":0,"maester||med":0,"zizmor||crit":0,"wara||med":0,"zizmor||med":0,"finops||info":0,"ado-repos-secrets||low":0,"falco||crit":0,"ado-pipelines||low":0,"ado-connections||high":0,"defender-for-cloud||med":0,"azqr||med":0,"bicep-iac||med":0,"azure-quota||crit":0,"terraform-iac||med":0,"psrule||high":0,"gitleaks||info":0,"aks-rightsizing||crit":0,"infracost||low":0,"copilot-triage||info":0,"sentinel-incidents||crit":0,"infracost||med":0,"terraform-iac||high":0,"ado-pipelines||info":0,"azgovviz||med":0,"finops||med":0,"ado-repos-secrets||med":0,"azqr||high":1,"ado-consumption||med":0,"azure-cost||high":0,"azqr||info":0,"sentinel-coverage||low":0,"aks-rightsizing||high":0,"ado-repos-secrets||high":0,"falco||med":0,"trivy||info":0,"ado-pipeline-correlator||low":0,"appinsights||high":0,"maester||info":0,"gh-actions-billing||crit":0,"falco||info":0,"sentinel-incidents||info":0,"azure-cost||info":0,"alz-queries||high":0,"sentinel-incidents||med":0,"prowler||crit":0,"zizmor||high":0,"ado-repos-secrets||crit":0,"identity-correlator||high":0,"ado-repos-secrets||info":0,"terraform-iac||crit":0,"azgovviz||low":0,"scorecard||high":0,"alz-queries||info":0,"sentinel-coverage||med":1,"wara||info":0,"defender-for-cloud||high":0,"azgovviz||high":0,"maester||high":0,"terraform-iac||low":0,"kubescape||crit":0,"defender-for-cloud||crit":0,"defender-for-cloud||low":0,"trivy||low":0,"maester||low":0,"psrule||info":0,"falco||high":0,"scorecard||low":0,"azure-quota||high":0,"powerpipe||high":0,"ado-consumption||crit":0,"ado-connections||info":0,"sentinel-coverage||high":0,"ado-pipelines||high":0,"gitleaks||med":0,"finops||high":0,"azqr||low":0,"wara||high":0,"ado-consumption||low":0,"infracost||high":0,"bicep-iac||info":0,"zizmor||low":0,"kube-bench||med":0,"zizmor||info":0,"ado-pipeline-correlator||info":0,"appinsights||med":1,"trivy||crit":0,"powerpipe||med":0,"aks-rightsizing||low":0,"defender-for-cloud||info":0,"ado-pipelines||med":0,"loadtesting||crit":0,"powerpipe||crit":0,"loadtesting||high":0,"identity-correlator||low":0,"identity-correlator||info":0,"azgovviz||info":0,"ado-pipeline-correlator||crit":0,"psrule||low":0,"bicep-iac||high":0,"aks-karpenter-cost||high":0,"bicep-iac||low":0,"copilot-triage||low":0,"prowler||low":0,"infracost||crit":0,"kubescape||med":0,"aks-rightsizing||med":1,"powerpipe||info":0,"powerpipe||low":0,"scorecard||crit":0,"gh-actions-billing||low":0,"psrule||med":0,"ado-pipeline-correlator||high":1,"prowler||med":0,"finops||low":0,"falco||low":0,"psrule||crit":1,"ado-consumption||high":1,"azqr||crit":0,"trivy||high":0,"identity-correlator||med":0,"identity-graph-expansion||med":0,"azure-cost||crit":0,"gitleaks||high":0,"kube-bench||crit":0,"alz-queries||crit":0,"identity-correlator||crit":0,"azure-quota||info":0,"aks-rightsizing||info":0,"ado-pipelines||crit":0,"kubescape||low":0,"wara||low":0,"azure-cost||med":0,"bicep-iac||crit":0,"identity-graph-expansion||low":0,"ado-connections||crit":0,"gh-actions-billing||high":0,"identity-graph-expansion||high":0,"sentinel-coverage||info":0,"ado-connections||low":0,"trivy||med":0,"ado-consumption||info":0,"kube-bench||low":0}}},"toolLabels":{"ado-repos-secrets":"ADO Repos Secret Scanning","azqr":"Azure Quick Review","sentinel-incidents":"Microsoft Sentinel (Active Incidents)","wara":"Well-Architected Reliability Assessment","alz-queries":"ALZ Resource Graph Queries","gitleaks":"gitleaks (Secrets Scanner)","zizmor":"zizmor (Actions YAML Scanner)","gh-actions-billing":"GitHub Actions Billing","powerpipe":"Powerpipe Compliance Benchmarks","finops":"FinOps Signals (Idle Resource Detection)","appinsights":"Application Insights Performance Signals","defender-for-cloud":"Microsoft Defender for Cloud","kube-bench":"kube-bench (AKS node-level CIS compliance)","ado-pipelines":"ADO Pipeline Security","scorecard":"OpenSSF Scorecard","identity-correlator":"Identity Correlator","prowler":"Prowler (Azure security posture)","azure-quota":"Azure Quota Reports","psrule":"PSRule for Azure","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","copilot-triage":"Copilot AI Triage","maester":"Maester","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","trivy":"Trivy Vulnerability Scanner","ado-pipeline-correlator":"ADO Pipeline Run Correlator","infracost":"Infracost IaC Cost Estimation","bicep-iac":"Bicep IaC Validation","kubescape":"Kubescape (AKS runtime posture)","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","terraform-iac":"Terraform IaC Validation","azgovviz":"AzGovViz","falco":"Falco (AKS runtime anomaly detection)","ado-consumption":"ADO Pipeline Consumption","azure-cost":"Azure Cost (Consumption API)","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)","ado-connections":"ADO Service Connections","identity-graph-expansion":"Identity Graph Expansion"},"severityLabels":{"med":"Medium","crit":"Critical","low":"Low","high":"High","info":"Info"}}</script>
+<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"domain":{"rowLabel":"Control domain","rows":["Compute","Data","Networking","Security","Storage"],"cols":["sub1"],"cells":{"Storage||sub1":1,"Compute||sub1":1,"Security||sub1":1,"Data||sub1":1,"Networking||sub1":0}},"fwsub":{"rowLabel":"Framework","rows":[],"cols":["sub1"],"cells":{}},"toolsev":{"rowLabel":"Tool","rows":["azqr","kubescape","kube-bench","defender-for-cloud","prowler","falco","azure-cost","azure-quota","finops","appinsights","loadtesting","aks-rightsizing","aks-karpenter-cost","psrule","powerpipe","azgovviz","alz-queries","wara","maester","scorecard","gh-actions-billing","ado-connections","ado-pipelines","ado-consumption","ado-repos-secrets","ado-pipeline-correlator","identity-correlator","identity-graph-expansion","zizmor","gitleaks","trivy","bicep-iac","infracost","terraform-iac","sentinel-incidents","sentinel-coverage","copilot-triage"],"cols":["crit","high","med","low","info"],"cells":{"identity-graph-expansion||med":0,"zizmor||info":0,"wara||low":0,"appinsights||med":0,"gh-actions-billing||med":0,"ado-repos-secrets||low":0,"ado-repos-secrets||med":0,"falco||high":0,"powerpipe||high":0,"ado-connections||info":0,"ado-pipeline-correlator||high":0,"finops||med":0,"appinsights||info":0,"azgovviz||info":0,"psrule||med":1,"powerpipe||crit":0,"azure-quota||low":0,"wara||crit":0,"aks-rightsizing||med":0,"sentinel-coverage||high":0,"gh-actions-billing||crit":0,"identity-correlator||high":0,"falco||med":0,"maester||crit":0,"trivy||med":0,"gitleaks||med":0,"gitleaks||low":0,"alz-queries||low":1,"kube-bench||med":0,"powerpipe||med":0,"loadtesting||med":0,"copilot-triage||low":0,"prowler||med":0,"aks-karpenter-cost||low":0,"loadtesting||crit":0,"azure-quota||high":0,"azqr||crit":0,"ado-pipeline-correlator||info":0,"ado-connections||crit":0,"kube-bench||high":0,"ado-pipeline-correlator||low":0,"identity-correlator||info":0,"copilot-triage||high":0,"terraform-iac||high":0,"sentinel-incidents||info":0,"ado-consumption||info":0,"zizmor||high":0,"defender-for-cloud||high":0,"infracost||low":0,"bicep-iac||high":0,"gh-actions-billing||high":0,"azure-cost||crit":0,"defender-for-cloud||crit":0,"powerpipe||info":0,"finops||low":0,"loadtesting||info":0,"azure-quota||info":0,"gitleaks||info":0,"kube-bench||info":0,"ado-pipeline-correlator||med":0,"psrule||low":0,"appinsights||low":0,"sentinel-coverage||med":0,"zizmor||med":0,"trivy||crit":0,"azure-quota||med":0,"defender-for-cloud||low":0,"kubescape||info":0,"ado-repos-secrets||crit":0,"ado-connections||med":0,"defender-for-cloud||info":0,"copilot-triage||med":0,"azure-cost||high":0,"gh-actions-billing||low":0,"alz-queries||high":0,"aks-karpenter-cost||med":0,"finops||high":0,"scorecard||crit":0,"bicep-iac||crit":0,"azgovviz||low":0,"bicep-iac||info":0,"ado-consumption||crit":0,"aks-karpenter-cost||crit":0,"infracost||crit":0,"kubescape||med":0,"maester||info":0,"kubescape||high":0,"trivy||info":0,"ado-consumption||low":0,"loadtesting||high":0,"identity-correlator||low":0,"gitleaks||high":0,"sentinel-coverage||low":0,"falco||info":0,"kubescape||low":0,"aks-rightsizing||high":0,"sentinel-incidents||low":0,"azqr||info":0,"sentinel-coverage||info":0,"azure-cost||med":0,"loadtesting||low":0,"sentinel-incidents||med":0,"sentinel-incidents||crit":0,"bicep-iac||low":0,"scorecard||high":0,"aks-karpenter-cost||info":0,"identity-graph-expansion||high":0,"ado-pipelines||low":0,"azqr||med":0,"identity-graph-expansion||info":0,"maester||low":0,"terraform-iac||crit":0,"scorecard||med":0,"ado-connections||high":0,"azure-quota||crit":0,"psrule||high":0,"appinsights||high":0,"aks-rightsizing||low":0,"azqr||low":0,"infracost||med":0,"azgovviz||high":1,"infracost||info":0,"psrule||info":0,"scorecard||low":0,"trivy||high":0,"defender-for-cloud||med":0,"identity-graph-expansion||crit":0,"falco||low":0,"zizmor||low":0,"azure-cost||info":0,"ado-connections||low":0,"gh-actions-billing||info":0,"kube-bench||crit":0,"identity-graph-expansion||low":0,"psrule||crit":0,"trivy||low":0,"ado-pipeline-correlator||crit":0,"terraform-iac||info":0,"alz-queries||med":0,"ado-consumption||med":0,"copilot-triage||info":0,"zizmor||crit":0,"kubescape||crit":0,"gitleaks||crit":0,"aks-rightsizing||info":0,"ado-pipelines||high":0,"ado-pipelines||crit":0,"aks-karpenter-cost||high":0,"finops||crit":0,"finops||info":0,"ado-pipelines||info":0,"powerpipe||low":0,"maester||med":0,"terraform-iac||med":0,"ado-pipelines||med":0,"azure-cost||low":0,"ado-repos-secrets||info":0,"infracost||high":0,"kube-bench||low":0,"ado-consumption||high":0,"prowler||crit":0,"prowler||low":0,"ado-repos-secrets||high":0,"azgovviz||med":0,"appinsights||crit":0,"azqr||high":1,"copilot-triage||crit":0,"wara||high":0,"prowler||info":0,"alz-queries||info":0,"falco||crit":0,"wara||med":0,"identity-correlator||med":0,"maester||high":0,"sentinel-incidents||high":0,"aks-rightsizing||crit":0,"wara||info":0,"prowler||high":0,"bicep-iac||med":0,"scorecard||info":0,"identity-correlator||crit":0,"sentinel-coverage||crit":0,"alz-queries||crit":0,"terraform-iac||low":0,"azgovviz||crit":0}}},"toolLabels":{"psrule":"PSRule for Azure","gitleaks":"gitleaks (Secrets Scanner)","finops":"FinOps Signals (Idle Resource Detection)","falco":"Falco (AKS runtime anomaly detection)","ado-connections":"ADO Service Connections","zizmor":"zizmor (Actions YAML Scanner)","sentinel-incidents":"Microsoft Sentinel (Active Incidents)","bicep-iac":"Bicep IaC Validation","azure-quota":"Azure Quota Reports","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)","gh-actions-billing":"GitHub Actions Billing","azgovviz":"AzGovViz","copilot-triage":"Copilot AI Triage","terraform-iac":"Terraform IaC Validation","kubescape":"Kubescape (AKS runtime posture)","wara":"Well-Architected Reliability Assessment","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","identity-correlator":"Identity Correlator","azure-cost":"Azure Cost (Consumption API)","appinsights":"Application Insights Performance Signals","ado-pipeline-correlator":"ADO Pipeline Run Correlator","trivy":"Trivy Vulnerability Scanner","ado-repos-secrets":"ADO Repos Secret Scanning","azqr":"Azure Quick Review","prowler":"Prowler (Azure security posture)","ado-consumption":"ADO Pipeline Consumption","defender-for-cloud":"Microsoft Defender for Cloud","kube-bench":"kube-bench (AKS node-level CIS compliance)","powerpipe":"Powerpipe Compliance Benchmarks","maester":"Maester","identity-graph-expansion":"Identity Graph Expansion","infracost":"Infracost IaC Cost Estimation","ado-pipelines":"ADO Pipeline Security","scorecard":"OpenSSF Scorecard","alz-queries":"ALZ Resource Graph Queries"},"severityLabels":{"crit":"Critical","high":"High","low":"Low","info":"Info","med":"Medium"}}</script>
 <script>
 (function(){
 'use strict';
