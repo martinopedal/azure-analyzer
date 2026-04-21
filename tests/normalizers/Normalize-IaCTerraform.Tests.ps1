@@ -27,11 +27,11 @@ Describe 'Normalize-IaCTerraform' {
         }
     }
 
-    It 'maps terraform IaC findings to Azure platform and IaCFile entities' {
+    It 'maps terraform IaC findings to GitHub platform and Repository entities' {
         foreach ($r in $results) {
-            $r.Platform | Should -Be 'Azure'
-            $r.EntityType | Should -Be 'IaCFile'
-            $r.EntityId | Should -Match '^iac:terraform:'
+            $r.Platform | Should -Be 'GitHub'
+            $r.EntityType | Should -Be 'Repository'
+            $r.EntityId | Should -Match '^iac\.local/terraform-iac/'
         }
     }
 
@@ -53,6 +53,23 @@ Describe 'Normalize-IaCTerraform' {
         @($security.BaselineTags).Count | Should -BeGreaterThan 0
         @($security.EntityRefs).Count | Should -BeGreaterThan 0
         $security.ToolVersion | Should -Not -BeNullOrEmpty
+    }
+
+    It 'normalizes terraform validate pillar naming to canonical WAF string' {
+        $validateFinding = $results | Where-Object RuleId -eq 'terraform-validate' | Select-Object -First 1
+        $validateFinding.Pillar | Should -Be 'OperationalExcellence'
+    }
+
+    It 'adds MITRE mapping for security findings' {
+        $security = $results | Where-Object RuleId -eq 'AVD-AZU-0001' | Select-Object -First 1
+        @($security.MitreTactics).Count | Should -BeGreaterThan 0
+        @($security.MitreTechniques).Count | Should -BeGreaterThan 0
+    }
+
+    It 'keeps MITRE mapping empty for non-security findings' {
+        $validateFinding = $results | Where-Object RuleId -eq 'terraform-validate' | Select-Object -First 1
+        @($validateFinding.MitreTactics).Count | Should -Be 0
+        @($validateFinding.MitreTechniques).Count | Should -Be 0
     }
 
     It 'keeps baseline tags and framework values deduplicated' {
