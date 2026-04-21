@@ -86,6 +86,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 - **ADO service connections now emit Schema 2.2 auth posture context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`) so connection inventory includes migration guidance and evidence links.
 - **ADO pipeline consumption now emits Schema 2.2 cost-governance context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) for minute-share, duration-regression, fail-rate, and budget-overrun findings.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
+- **ADO repo secret findings now emit full Schema 2.2 evidence context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`) with commit and blob links plus line-aware dedup-safe titles.
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 
 The full tool catalog, parameter reference, schema, scoped-run patterns, incremental-scan modes, and report internals all live in [docs/consumer/](docs/consumer/README.md). That index is the entry point for every advanced consumer page.

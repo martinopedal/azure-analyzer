@@ -94,6 +94,58 @@ Describe 'Invoke-ADORepoSecrets' {
         }
     }
 
+    Context 'when secrets are detected in a repo' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            Mock Get-Command {
+                param([string]$Name)
+                if ($Name -eq 'gitleaks') { return [PSCustomObject]@{ Name = 'gitleaks' } }
+                if ($Name -eq 'Invoke-WithTimeout') { return $null }
+                return $null
+            }
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+                if ($Uri -match '_apis/projects') {
+                    return [PSCustomObject]@{ Content = '{"value":[{"name":"payments","id":"proj-1"}]}'; Headers = @{} }
+                }
+                if ($Uri -match '_apis/git/repositories') {
+                    return [PSCustomObject]@{ Content = '{"value":[{"name":"payments-api","id":"repo-1"}]}'; Headers = @{} }
+                }
+                throw "Unexpected URI: $Uri"
+            }
+            Mock Invoke-RemoteRepoClone { [PSCustomObject]@{ Path = 'C:\repos\fake'; Cleanup = ({}) } }
+            function global:gitleaks {
+                param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
+                if ($Args.Count -gt 0 -and $Args[0] -eq 'version') {
+                    'gitleaks version 8.21.2'
+                    $global:LASTEXITCODE = 0
+                    return
+                }
+                $idx = [Array]::IndexOf($Args, '--report-path')
+                if ($idx -ge 0) {
+                    Set-Content -Path $Args[$idx + 1] -Value '[{"RuleID":"github-pat","Description":"GitHub PAT","File":"src/appsettings.json","Commit":"aaaaaaaa11111111","StartLine":8,"Fingerprint":"fp-1","Tags":["github"]}]' -Encoding UTF8
+                }
+                $global:LASTEXITCODE = 0
+            }
+            $result = & $script:Wrapper -AdoOrg 'contoso'
+        }
+
+        AfterAll {
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+            Remove-Item Function:\gitleaks -ErrorAction SilentlyContinue
+        }
+
+        It 'emits commit and blob links plus schema 2.2 helper metadata' {
+            $secret = @($result.Findings | Where-Object { $_.PSObject.Properties['SecretType'] -and $_.SecretType -eq 'github-pat' })[0]
+            $secret.LineNumber | Should -Be 8
+            $secret.CommitUrl | Should -Be 'https://dev.azure.com/contoso/payments/_git/payments-api/commit/aaaaaaaa11111111'
+            $secret.BlobUrl | Should -Match 'version=GCaaaaaaaa11111111'
+            $secret.DeepLinkUrl | Should -Match '&line=8'
+            $secret.ToolVersion | Should -Be 'gitleaks version 8.21.2'
+            $secret.RuleId | Should -Be 'github-pat'
+        }
+    }
+
     Context 'when custom gitleaks config is provided' {
         BeforeAll {
             $env:ADO_PAT_TOKEN = 'fake-token'

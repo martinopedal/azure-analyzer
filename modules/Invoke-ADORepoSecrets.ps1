@@ -250,6 +250,27 @@ function Get-HeadCommit {
     }
 }
 
+function Get-GitleaksVersion {
+    try {
+        if (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) {
+            $exec = Invoke-WithTimeout -Command 'gitleaks' -Arguments @('version') -TimeoutSec 300
+            if ($exec.ExitCode -eq 0 -and $exec.Output) {
+                return (Remove-Credentials ([string]$exec.Output).Trim())
+            }
+            return ''
+        }
+
+        $versionOutput = (& gitleaks version 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $versionOutput) {
+            return (Remove-Credentials ([string]($versionOutput | Select-Object -First 1)).Trim())
+        }
+    } catch {
+        Write-Verbose (Remove-Credentials "Failed to resolve gitleaks version: $($_.Exception.Message)")
+    }
+
+    return ''
+}
+
 function Resolve-SecretSeverity {
     param (
         [string]$RuleId,
@@ -379,7 +400,9 @@ function New-AdoInfoFinding {
         RepositoryName        = $RepositoryName
         RepositoryId          = $RepositoryId
         RepositoryCanonicalId = $RepositoryCanonicalId
+        RuleId                = ''
         Confidence            = 'N/A'
+        ToolVersion           = $script:GitleaksToolVersion
     }
 }
 
@@ -396,6 +419,7 @@ function Invoke-GitleaksForRepo {
 
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "ado-gitleaks-$([guid]::NewGuid().ToString('N')).json"
     $headCommit = Get-HeadCommit -RepoPath $RepoPath
+    $repoWebRoot = "https://dev.azure.com/$([uri]::EscapeDataString($AdoOrg))/$([uri]::EscapeDataString($AdoProject))/_git/$([uri]::EscapeDataString($RepoName))"
 
     try {
         $args = @('detect', '--source', $RepoPath, '--report-format', 'json', '--report-path', $reportFile, '--no-banner', '--redact', '--exit-code', '0')
@@ -433,6 +457,13 @@ function Invoke-GitleaksForRepo {
             $line = if ($item.PSObject.Properties['StartLine'] -and $item.StartLine) { [int]$item.StartLine } else { 0 }
             $fingerprint = if ($item.PSObject.Properties['Fingerprint'] -and $item.Fingerprint) { [string]$item.Fingerprint } else { [guid]::NewGuid().ToString() }
             $tags = if ($item.PSObject.Properties['Tags'] -and $item.Tags) { @($item.Tags | ForEach-Object { [string]$_ }) } else { @() }
+            $normalizedFilePath = ($filePath -replace '\\', '/')
+            $queryFilePath = if ($normalizedFilePath.StartsWith('/')) { $normalizedFilePath } else { "/$normalizedFilePath" }
+            $escapedPath = [uri]::EscapeDataString($queryFilePath)
+            $escapedCommit = [uri]::EscapeDataString($commit)
+            $blobUrl = if ($commit) { "${repoWebRoot}?path=$escapedPath&version=GC$escapedCommit" } else { '' }
+            $deepLinkUrl = if ($blobUrl -and $line -gt 0) { "$blobUrl&line=$line" } else { $blobUrl }
+            $commitUrl = if ($commit) { "$repoWebRoot/commit/$escapedCommit" } else { '' }
 
             $severity = Resolve-SecretSeverity -RuleId $ruleId -Description $description -Tags $tags -Commit $commit -HeadCommit $headCommit
             $confidence = if ($severity -eq 'Medium') { 'Likely' } else { 'Confirmed' }
@@ -457,9 +488,15 @@ function Invoke-GitleaksForRepo {
                     RepositoryId          = $RepoId
                     RepositoryCanonicalId = $RepoCanonicalId
                     CommitSha             = $commit
-                    FilePath              = ($filePath -replace '\\', '/')
+                    FilePath              = $normalizedFilePath
+                    LineNumber            = $line
                     SecretType            = $ruleId
+                    RuleId                = $ruleId
                     Confidence            = $confidence
+                    CommitUrl             = $commitUrl
+                    BlobUrl               = $blobUrl
+                    DeepLinkUrl           = $deepLinkUrl
+                    ToolVersion           = $script:GitleaksToolVersion
                 })
         }
 
@@ -489,6 +526,8 @@ if (-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
         Findings = @()
     }
 }
+
+$script:GitleaksToolVersion = Get-GitleaksVersion
 
 $pair = ":$pat"
 $bytes = [System.Text.Encoding]::UTF8.GetBytes($pair)
@@ -530,7 +569,9 @@ try {
                     CommitSha             = ''
                     FilePath              = ''
                     SecretType            = 'config-risk'
+                    RuleId                = 'config-risk'
                     Confidence            = 'Confirmed'
+                    ToolVersion           = $script:GitleaksToolVersion
                 })
         }
 
@@ -554,7 +595,9 @@ try {
                 CommitSha             = ''
                 FilePath              = ''
                 SecretType            = 'config-applied'
+                RuleId                = 'config-applied'
                 Confidence            = 'Confirmed'
+                ToolVersion           = $script:GitleaksToolVersion
             })
     }
 
@@ -602,7 +645,9 @@ try {
                             CommitSha             = ''
                             FilePath              = ''
                             SecretType            = 'scan-skipped-host-not-allow-listed'
+                            RuleId                = 'scan-skipped-host-not-allow-listed'
                             Confidence            = 'Unknown'
+                            ToolVersion           = $script:GitleaksToolVersion
                         })
                     $skippedRepos.Add([PSCustomObject]@{ Repo = "$projectName/$repoName"; Reason = 'host-not-allowlisted' })
                     continue
@@ -692,6 +737,10 @@ try {
     if ($OutputPath) {
         $outDir = Split-Path -Path $OutputPath -Parent
         if ($outDir -and -not (Test-Path $outDir)) { $null = New-Item -ItemType Directory -Path $outDir -Force }
+        $artifactPath = [System.IO.Path]::GetFullPath($OutputPath)
+        foreach ($finding in $findings) {
+            $finding | Add-Member -NotePropertyName ScannerArtifactPath -NotePropertyValue $artifactPath -Force
+        }
         $payload = Remove-Credentials ((@($findings) | ConvertTo-Json -Depth 30))
         Set-Content -Path $OutputPath -Value $payload -Encoding UTF8
     }

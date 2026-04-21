@@ -107,6 +107,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 - Scoped to subscriptions / tenants; not broader than necessary.
 - Graceful degradation: missing permissions skip the affected tool with a warning instead of failing the run.
 - Use `-IncludeTools` / `-ExcludeTools` to run only what you have access to.
+- ADO repo secrets Schema 2.2 ETL enrichment (commit and blob evidence links, baseline tags, remediation snippets) adds no new Azure DevOps scopes beyond existing read-only PAT requirements.
 
 Full discussion (matrix, tier model, scenarios, what we do NOT need) lives in [`docs/consumer/permissions/_summary.md`](docs/consumer/permissions/_summary.md).
 
