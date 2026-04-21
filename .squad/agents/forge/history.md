@@ -88,3 +88,9 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Added `.github/workflows/alz-queries-drift-check.yml` with weekly Monday 06:00 UTC schedule plus manual dispatch to run `scripts/Sync-AlzQueries.ps1 -DryRun` and fail when `.Changed` is true.
 - Kept permissions minimal (`contents: read`) and action pinning compliant (`actions/checkout@de0fac2e... # v6`) to satisfy repo security posture and Actions CodeQL scanning.
 - Updated `CHANGELOG.md` and validated baseline remained green at `Tests Passed: 1354, Failed: 0, Skipped: 5`.
+
+### 2026-04-21: Issue #341 — Update-ToolPins idempotency on existing bump branches
+- Root cause fixed in `tools/Update-ToolPins.ps1`: replaced unconditional `git checkout -b` with branch initialization that fetches `origin/main`, detects local/remote branch state, checks out existing bump branches, and resets them to `origin/main` before committing.
+- Added retry-wrapped git helper (`Invoke-GitCommand` via `Invoke-WithRetry`) for fetch/checkout/reset/add/commit/push paths and switched remote-existing branch pushes to `--force-with-lease` to keep one PR per tool bump.
+- Added open-PR reuse logic (`gh pr list` + `gh pr edit`) so reruns update the existing PR instead of failing on duplicate `gh pr create`.
+- Added `tests/scripts/Update-ToolPins.Tests.ps1` with mocked `git`/`gh` coverage of the previously failing remote-branch-exists path; asserts checkout/reset behavior and no `checkout -b` call.
