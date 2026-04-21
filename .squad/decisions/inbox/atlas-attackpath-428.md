@@ -50,8 +50,29 @@ PRs and the Foundation merge can land independently.
 
 ## Open items (deferred)
 
-- Schema enum additions and `-EdgeCollector` plumbing — Foundation #435.
+- Schema enum additions (16 EdgeRelations total) and `-EdgeCollector`
+  plumbing — Foundation #435.
 - Cytoscape / cytoscape-dagre vendor files — Foundation #435.
 - Pode `/api/graph/attack-paths` server endpoint — separate PR after Tier 1
   lands.
 - Per-normalizer edge emission — one PR per tool after Foundation merges.
+- **FindingRow field extensions** beyond current Schema 2.2 (richer per-edge
+  remediation, edge-level docs links, MITRE on edges, etc.) — deferred to
+  **#432b** per Round 3 reconciliation on epic #427. Renderer is contractually
+  required to degrade gracefully when those fields are absent (see design
+  doc § 3a).
+
+## Round 3 contract update (2026-04-21)
+
+After Round 3 reconciliation on epic #427:
+
+- Confirmed: #435 lands the 16 EdgeRelations in Phase 0 (not just the 6 Track A
+  consumes). Design doc updated to state this explicitly.
+- Added: § 3a "FindingRow field dependency (Round 3 contract)" calling out
+  graceful absence semantics for any `(depends on #432b)` field. Renderer must
+  never throw, never emit empty strings, never JOIN on a deferred column.
+- Added: Pester context "FindingRow field dependency (Round 3 contract)" with
+  two `-Skip` cases (current-schema render + deferred-field graceful absence).
+- CHANGELOG entry updated to reflect the 16/6 split and the #432b dependency.
+
+PR remains scaffold-only; no hot-file edits.

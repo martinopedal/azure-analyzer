@@ -1,9 +1,18 @@
 # Attack-path visualizer (Track A) — design
 
-Status: scaffold. Implementation paused until Foundation PR #435 lands the six new
-edge relations and the optional `-EdgeCollector` normalizer parameter contract.
+Status: scaffold. Implementation paused until Foundation PR #435 lands the new
+EdgeRelations (16 total, of which Track A consumes 6) and the optional
+`-EdgeCollector` normalizer parameter contract.
 
 Issue: #428. Epic: #427. Foundation: #435. Sibling tracks: #430 (resilience), #434 (policy).
+
+> **Round 3 reconciliation (epic #427) is AUTHORITATIVE.** Phase 0 (#435) lands
+> schema hooks + the 16 EdgeRelations only. Specific FindingRow field-name
+> extensions (e.g. additional remediation / docs / metadata fields beyond the
+> current Schema.ps1) are deferred to **#432b** (post-#432a audit) and **must
+> not** be assumed by this design. Anything in this doc that names a FindingRow
+> field outside the current schema is tagged **(depends on #432b)** and the
+> renderer is required to degrade gracefully when those fields are absent.
 
 ## 1. Goal
 
@@ -17,8 +26,10 @@ and IaC. Track A renders a navigable graph directly from the v3 entity store.
 
 ## 2. New edge relations
 
-Added to `modules/shared/Schema.ps1` `EdgeRelations` enum by Foundation #435.
-This track does not touch Schema.
+Foundation #435 adds **16 new EdgeRelations** to `modules/shared/Schema.ps1`
+`EdgeRelations` enum in Phase 0. Track A consumes the **6** listed below; the
+other 10 are claimed by Tracks B (#430), C (#434), and adjacent work. This
+track does not touch Schema.ps1 — that file is owned by #435 in Phase 0.
 
 | EdgeRelation             | Emitted by (primary normalizer)              | Raw data source                                           |
 |--------------------------|----------------------------------------------|-----------------------------------------------------------|
@@ -53,6 +64,32 @@ Per-normalizer adoption (independently mergeable PRs after Foundation):
 Edges from non-adopting normalizers continue to be inferred by
 `IdentityCorrelator.ps1` heuristics (existing v2 behaviour). Adoption PRs only
 upgrade precision; they never break the baseline.
+
+## 3a. FindingRow field dependency (Round 3 contract)
+
+Track A relies only on FindingRow fields that exist in the **current** Schema
+(`Entity`, `EntityType`, `Severity`, `RuleKey`, `Title`, `Tool`, `Subscription`,
+`Status`, `Remediation`, `LearnMoreUrl`, `DeepLinkUrl`, `EntityRefs`). These
+are stable in Schema 2.2 and do not depend on #432b.
+
+Any future enhancement — for example richer per-edge remediation snippets, an
+attack-path-specific `DocsUrl`, MITRE-tagged edge tooltips, or per-edge
+`Impact`/`Effort` — is **(depends on #432b)** and is not in scope for this PR.
+The renderer **must degrade gracefully** when those fields are absent:
+
+* Missing optional field on a node -> render the node, omit the corresponding
+  tooltip row. Never throw, never empty-string in the JSON.
+* Missing optional field on an edge -> render the edge with relation label only.
+* `New-AttackPathModel` reads with `?? $null` semantics and `ConvertTo-Json`
+  with `-Compress` so absent properties are simply not emitted into the data
+  island. The browser renderer treats `undefined` as "section not present".
+* No tier-2/3/4 SQL query joins on a deferred field. SQL projections list
+  current-schema columns only; deferred fields will be added in a #432b
+  follow-up PR alongside their SQL migration.
+
+This contract is enforced by the Pester scaffold: the
+`graceful absence of deferred FindingRow fields` case (added below to the
+`-Skip` set) will become live once #432b lands.
 
 ## 4. Renderer integration sketch
 
@@ -148,8 +185,14 @@ Pester baseline must remain green at 842/842 + new renderer tests.
 
 ## 8. Out of scope for this PR
 
-* Schema enum additions (Foundation #435).
+* Schema enum additions — all 16 new EdgeRelations land in Foundation #435.
 * `-EdgeCollector` plumbing in the orchestrator (Foundation #435).
 * Per-normalizer adoption PRs (one PR per tool, after Foundation merges).
 * Cytoscape / dagre vendor files (Foundation #435).
 * Server-side recursive CTE endpoint (separate Pode PR after Tier 1 lands).
+* **FindingRow field extensions** (e.g. richer remediation, edge-level docs
+  links, MITRE tagging on edges) — deferred to **#432b** per Round 3
+  reconciliation on epic #427. The design above lists the few hypothetical
+  enhancements that would benefit from those fields and tags each with
+  **(depends on #432b)**. Implementation here is restricted to the current
+  Schema 2.2 FindingRow surface.
