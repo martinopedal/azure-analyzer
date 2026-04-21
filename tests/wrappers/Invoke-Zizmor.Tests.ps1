@@ -6,6 +6,7 @@ BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Zizmor.ps1'
+    $script:RawFixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'zizmor-raw-report.json'
 }
 
 Describe 'Invoke-Zizmor: error paths' {
@@ -71,6 +72,63 @@ Describe 'Invoke-Zizmor: -Since hint (#94 R1)' {
         $result = & $script:Wrapper -Since $since
         $result.Status | Should -Be 'Skipped'
         $result.RunMode | Should -Be 'Incremental'
+    }
+}
+
+Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
+    BeforeAll {
+        $global:ZizmorRawFixture = $script:RawFixture
+        function global:zizmor {
+            param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Args)
+            if ($Args -contains '--version') {
+                $global:LASTEXITCODE = 0
+                return 'zizmor 1.8.0'
+            }
+            $outputIndex = [Array]::IndexOf($Args, '--output')
+            if ($outputIndex -ge 0 -and ($outputIndex + 1) -lt $Args.Count) {
+                Copy-Item -Path $global:ZizmorRawFixture -Destination ([string]$Args[$outputIndex + 1]) -Force
+            }
+            $global:LASTEXITCODE = 1
+            return $null
+        }
+    }
+
+    AfterAll {
+        Remove-Item Function:\global:zizmor -ErrorAction SilentlyContinue
+        Remove-Variable -Name ZizmorRawFixture -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'emits Pillar, tags, links, evidence, snippets, MITRE and version metadata' {
+        Mock Get-Command {
+            param($Name)
+            if ($Name -eq 'zizmor') { return [pscustomobject]@{ Name = 'zizmor' } }
+            if ($Name -eq 'git') { return [pscustomobject]@{ Name = 'git' } }
+            return $null
+        } -ParameterFilter { $Name -eq 'zizmor' -or $Name -eq 'git' }
+
+        $result = & $script:Wrapper -Repository $script:RepoRoot
+        $result.Status | Should -Be 'Success'
+        $result.ToolVersion | Should -Be 'zizmor 1.8.0'
+        @($result.Findings).Count | Should -Be 2
+
+        $template = $result.Findings | Where-Object { $_.RuleId -eq 'template-injection' } | Select-Object -First 1
+        $template.Pillar | Should -Be 'Security'
+        $template.Impact | Should -Be 'High'
+        $template.Effort | Should -Be 'Low'
+        $template.DeepLinkUrl | Should -Be 'https://docs.zizmor.sh/audits/#template-injection'
+        @($template.BaselineTags) | Should -Contain 'template-injection'
+        @($template.BaselineTags) | Should -Contain 'severity:high'
+        @($template.EvidenceUris).Count | Should -Be 1
+        $template.EvidenceUris[0] | Should -Match '/blob/[0-9a-f]{40}/\.github/workflows/ci\.yml#L17-L22$'
+        (@($template.EntityRefs) -join ',') | Should -Match '^.+/.+/.github/workflows/ci\.yml$'
+        @($template.RemediationSnippets).Count | Should -Be 1
+        $template.RemediationSnippets[0].language | Should -Be 'yaml'
+        $template.ToolVersion | Should -Be 'zizmor 1.8.0'
+        @($template.MitreTechniques) | Should -Contain 'T1059'
+
+        $unpinned = $result.Findings | Where-Object { $_.RuleId -eq 'unpinned-uses' } | Select-Object -First 1
+        $unpinned.Effort | Should -Be 'Medium'
+        @($unpinned.MitreTechniques) | Should -Contain 'T1195.001'
     }
 }
 

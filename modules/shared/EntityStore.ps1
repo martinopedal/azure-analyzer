@@ -338,6 +338,25 @@ class EntityStore {
         if (-not $Target.LearnMoreUrl -and $Incoming.LearnMoreUrl) {
             $Target.LearnMoreUrl = $Incoming.LearnMoreUrl
         }
+        if (-not $Target.DeepLinkUrl -and $Incoming.DeepLinkUrl) {
+            $Target.DeepLinkUrl = $Incoming.DeepLinkUrl
+        }
+        $incomingFrameworks = if ($Incoming.PSObject.Properties['Frameworks']) { @($Incoming.Frameworks) } else { @() }
+        if (@($incomingFrameworks).Count -gt 0) {
+            $existingFrameworks = if ($Target.PSObject.Properties['Frameworks']) { @($Target.Frameworks) } else { @() }
+            if (-not $Target.PSObject.Properties['Frameworks']) {
+                $Target | Add-Member -NotePropertyName 'Frameworks' -NotePropertyValue @() -Force
+            }
+            $Target.Frameworks = Merge-FrameworksUnion -Existing $existingFrameworks -Incoming $incomingFrameworks
+        }
+        $incomingBaselineTags = if ($Incoming.PSObject.Properties['BaselineTags']) { @($Incoming.BaselineTags) } else { @() }
+        if (@($incomingBaselineTags).Count -gt 0) {
+            $existingBaselineTags = if ($Target.PSObject.Properties['BaselineTags']) { @($Target.BaselineTags) } else { @() }
+            if (-not $Target.PSObject.Properties['BaselineTags']) {
+                $Target | Add-Member -NotePropertyName 'BaselineTags' -NotePropertyValue @() -Force
+            }
+            $Target.BaselineTags = Merge-BaselineTagsUnion -Existing $existingBaselineTags -Incoming $incomingBaselineTags
+        }
 
         foreach ($scalar in @('Pillar', 'Impact', 'Effort', 'DeepLinkUrl', 'ToolVersion')) {
             if ((-not $Target.PSObject.Properties[$scalar] -or [string]::IsNullOrWhiteSpace([string]$Target.$scalar)) -and

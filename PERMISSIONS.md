@@ -6,6 +6,7 @@ Azure-analyzer is **read-first**. Every collector targets the minimum scope it n
 Maester Schema 2.2 ETL enrichment adds finding metadata only (framework tags, evidence links, remediation snippets, MITRE references, entity refs, tool version) and does not add new Microsoft Graph scopes.
 The ado-connections Schema 2.2 auth posture enrichment adds metadata only and does not require any new Azure DevOps PAT scopes.
 The gitleaks Schema 2.2 ETL enrichment adds metadata only (framework mapping, evidence links, remediation snippets, baseline tags, and tool version) and does not introduce any new permissions.
+The zizmor Schema 2.2 ETL enrichment only adds metadata fields and does not introduce new GitHub or Azure permissions.
 
 ## Permission domains at a glance
 

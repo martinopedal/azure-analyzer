@@ -72,8 +72,8 @@ Describe 'Normalize-Zizmor' {
         }
 
         It 'canonicalizes workflow file paths' {
-            $results[0].EntityId | Should -BeExactly '.github/workflows/ci.yml'
-            $results[2].EntityId | Should -BeExactly '.github/workflows/auto-label.yml'
+            $results[0].EntityId | Should -BeExactly 'octo-org/octo-repo/.github/workflows/ci.yml'
+            $results[2].EntityId | Should -BeExactly 'octo-org/octo-repo/.github/workflows/auto-label.yml'
         }
     }
 
@@ -116,11 +116,48 @@ Describe 'Normalize-Zizmor' {
         }
 
         It 'preserves LearnMoreUrl' {
-            $results[0].LearnMoreUrl | Should -Match 'zizmor'
+            $results[0].LearnMoreUrl | Should -Match 'docs.zizmor.sh'
         }
 
         It 'preserves Remediation' {
             $results[0].Remediation | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'schema 2.2 security context' {
+        BeforeAll {
+            $results = Normalize-Zizmor -ToolResult $fixture
+        }
+
+        It 'sets RuleId and Pillar' {
+            $results[0].RuleId | Should -Be 'template-injection'
+            $results[0].Pillar | Should -Be 'Security'
+        }
+
+        It 'preserves DeepLinkUrl, EvidenceUris and ToolVersion' {
+            $results[0].DeepLinkUrl | Should -Be 'https://docs.zizmor.sh/audits/#template-injection'
+            @($results[0].EvidenceUris).Count | Should -Be 1
+            $results[0].EvidenceUris[0] | Should -Match 'github\.com/octo-org/octo-repo/blob/'
+            $results[0].ToolVersion | Should -Be 'zizmor 1.8.0'
+        }
+
+        It 'preserves baseline tags, mitigation snippets, and entity refs' {
+            @($results[0].BaselineTags) | Should -Contain 'template-injection'
+            @($results[0].BaselineTags) | Should -Contain 'severity:high'
+            @($results[0].RemediationSnippets).Count | Should -Be 1
+            $results[0].RemediationSnippets[0].language | Should -Be 'yaml'
+            @($results[0].EntityRefs) | Should -Contain 'octo-org/octo-repo/.github/workflows/ci.yml'
+        }
+
+        It 'preserves impact and effort' {
+            $results[0].Impact | Should -Be 'High'
+            $results[0].Effort | Should -Be 'Low'
+            $results[1].Effort | Should -Be 'Medium'
+        }
+
+        It 'preserves MITRE techniques' {
+            @($results[0].MitreTechniques) | Should -Contain 'T1059'
+            @($results[1].MitreTechniques) | Should -Contain 'T1195.001'
         }
     }
 
