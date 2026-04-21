@@ -1,8 +1,9 @@
 # ALZ MG-Hierarchy Fuzzy-Match Scoring Algorithm
 
-Status: DESIGN (locked Round 2, 2026-04-21).
+Status: DESIGN (locked Round 2, reconfirmed by Round 3 reconciliation on epic #427, 2026-04-21).
 Issue: #431
 Companion: `policy-enforcement.md`
+Authoritative source: "Round 3 reconciliation" appendix on epic #427 (3-of-3 rubberduck consensus: rd-opus47 + rd-gpt53codex + rd-goldeneye, APPROVE_WITH_FIXES). The weights, thresholds, manifest audit shape, and `-AlzReferenceMode` flag below are locked by that appendix.
 
 ## Purpose
 

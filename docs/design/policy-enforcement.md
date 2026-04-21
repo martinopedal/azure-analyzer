@@ -1,10 +1,11 @@
 # Policy Enforcement Visualization + AzAdvertizer + ALZ (Track C)
 
-Status: DESIGN (scaffold). Implementation held until Phase 1 MVP ships and the validation gate from epic #427 passes.
+Status: DESIGN (scaffold). Implementation held until Phase 1 MVP ships and the Phase 2 validation gate from epic #427 passes (2 auditor walkthroughs + 2 architect workflows + 1 real high-volume tenant dataset run, evidence posted on epic #427).
 
 Issue: #431
 Foundation dependency: #435 (4 new edge relations land there, not here)
-Epic: #427
+Epic: #427 (see "Round 3 reconciliation" appendix — AUTHORITATIVE)
+Phase: 2 (gated on the validation evidence above; this PR stays DRAFT until the gate passes)
 
 ## Goals
 
