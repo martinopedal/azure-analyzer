@@ -23,10 +23,11 @@ Describe 'ResilienceMapRenderer (scaffold #429)' {
         It 'reduces to mgmt-group heatmap cells only at Tier 3' -Skip {}
     }
 
-    Context 'Recovery objective overlay (graceful absence)' {
-        It 'renders RTO/RPO badge when fields present' -Skip {}
-        It 'returns $null and renders nothing when fields absent' -Skip {}
-        It 'never throws on missing recovery fields' -Skip {}
+    Context 'Recovery objective overlay (graceful absence, depends on #432b)' {
+        It 'renders RTO/RPO badge when canonical FindingRow fields present (post-#432b)' -Skip {}
+        It 'falls back to Entity.RawProperties when canonical field absent (pre-#432b)' -Skip {}
+        It 'returns $null and renders nothing when both canonical and raw fields absent' -Skip {}
+        It 'never throws on missing recovery fields in any state' -Skip {}
     }
 
     Context 'Shared canvas budget (parity with #428, #434)' {

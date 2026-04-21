@@ -1,8 +1,14 @@
 # ResilienceMapRenderer.ps1
 #
-# Track B (#429) scaffold. Implementation held until Foundation #435 lands the
-# 6 new EdgeRelations (DependsOn, RegionPinned, ZonePinned, BackedUpBy,
-# FailsOverTo, ReplicatedTo).
+# Track B (#429) scaffold. Implementation held until Foundation #435 lands.
+# Per Round 3 reconciliation on #427 (AUTHORITATIVE):
+#   - #435 lands 16 EdgeRelations total; this renderer consumes 6:
+#     DependsOn, RegionPinned, ZonePinned, BackedUpBy, FailsOverTo, ReplicatedTo.
+#   - #435 does NOT add named FindingRow fields. RTO/RPO/Remediation/DocsUrl are
+#     deferred to #432b. This renderer must degrade gracefully when those fields
+#     are absent (silent skip, no throw, no layout shift).
+#   - Hot files (Schema.ps1, Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1,
+#     tool-manifest.json) are owned by #435 in Phase 0; do not edit here.
 #
 # See docs/design/resilience-map.md for the full design.
 #
@@ -80,6 +86,12 @@ function Get-RecoveryObjectiveOverlay {
     .SYNOPSIS
         Build RTO/RPO tooltip overlay for a resource entity. Returns $null when
         recovery objectives are absent (graceful absence per design 3.3).
+    .DESCRIPTION
+        Depends on #432b for any canonical FindingRow field carrying RTO/RPO.
+        Until #432b lands, this function reads opportunistically from
+        Entity.RawProperties and returns $null on absence. When #432b adds
+        canonical fields, prefer the canonical field, then RawProperties, then
+        silent absence. Never throws on missing fields.
     .PARAMETER Entity
         Single v3 entity object.
     .OUTPUTS

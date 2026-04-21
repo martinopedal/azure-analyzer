@@ -3,9 +3,11 @@
 Status: DRAFT (scaffold only). Implementation held until Foundation #435 lands.
 
 Tracks:
-- Epic: #427 (large-scale tenant support, Phase 1)
-- Foundation: #435 (Schema + EdgeRelations enum)
-- Parallel: #428 (Track A, attack-path), #430 (Track V, viewer/canvas), #434 (Track F, parity)
+- Epic: #427 (large-scale tenant support, Phase 1). Per the Round 3 reconciliation appendix on #427 (AUTHORITATIVE), Phase 1 (#426 + #428 + #429 + #430) opens in parallel only after #435 merges alone.
+- Foundation: #435 (Schema HOOKS + EdgeRelations enum: 16 relations total land there, of which this track consumes 6).
+- FindingRow fields: #432b (post-#432a audit). #435 does NOT add named FindingRow fields. Anything this design needs beyond the v2 baseline (e.g. RTO/RPO, Remediation, DocsUrl) must degrade gracefully when absent and is gated on #432b.
+- Parallel: #428 (Track A, attack-path), #430 (Track V, viewer/canvas), #434 (Track F, parity).
+- Hot-file ownership in Phase 0 belongs entirely to #435 (Schema.ps1, Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1, tools/tool-manifest.json). This track does not edit them.
 
 ## 1. Goal
 
@@ -20,7 +22,10 @@ on the same canvas budget as attack-path (#428) and policy-map (#434).
 
 ## 2. EdgeRelations (foundation #435)
 
-The 6 relations introduced by Foundation, consumed by this track:
+Foundation #435 lands 16 new EdgeRelations enum values total. This track consumes 6 of
+them (the resilience subset); the remaining 10 are consumed by Tracks A / V / F per
+their own designs. This track does not add or modify the enum; it only emits and
+renders the 6 relations below.
 
 | Relation | Direction | Primary source | Secondary source | Notes |
 |---|---|---|---|---|
@@ -64,6 +69,13 @@ emits and renders them.
   a tooltip badge on the resource node.
 - ABSENCE IS GRACEFUL: no badge, no warning, no broken layout. The map MUST render
   identically when RTO/RPO fields are missing.
+- **Depends on #432b** for any named FindingRow field carrying RTO/RPO/Remediation/
+  DocsUrl. #435 (Phase 0) ships schema HOOKS only and does NOT add these field names.
+  Until #432b lands, the renderer reads RTO/RPO opportunistically from raw tool output
+  via the entity `RawProperties` bag, treats every absence as the empty case, and never
+  hard-codes a field name from the v2 envelope. When #432b adds canonical fields, the
+  renderer prefers the canonical field, then falls back to `RawProperties`, then to
+  silent absence. No throw, no warn, no layout shift in any of the three states.
 
 ### 3.4 Tier-aware rendering (parity with #428, #430)
 
@@ -105,6 +117,8 @@ renderer skeleton only.
 ## 6. Out of scope (this PR)
 
 - Normalizer `-EdgeCollector` adoption (per-tool PRs after Foundation).
-- Schema enum additions (Foundation #435).
-- HTML report wiring (after renderer ships).
+- Schema enum additions (Foundation #435; 16 relations land there, this track consumes 6).
+- Named FindingRow field additions for RTO/RPO/Remediation/DocsUrl (deferred to #432b
+  post-#432a audit; this track reads opportunistically with graceful absence).
+- HTML report wiring (after renderer ships; New-HtmlReport.ps1 owned by #435 in Phase 0).
 - Cross-tenant resilience comparison (later phase).
