@@ -35,7 +35,9 @@ Describe 'Sync-AlzQueries' {
 
         '{ "queries": [ { "guid": "a", "queryable": true, "graph": "resources | take 1", "compliant": true } ] }' |
             Set-Content -LiteralPath (Join-Path $upstreamQueries 'alz_additional_queries.json') -NoNewline
-        'old-content' | Set-Content -LiteralPath (Join-Path $queriesDir 'alz_additional_queries.json') -NoNewline
+        $alzDir = Join-Path $queriesDir 'alz'
+        New-Item -ItemType Directory -Path $alzDir -Force | Out-Null
+        'old-content' | Set-Content -LiteralPath (Join-Path $alzDir 'alz_additional_queries.json') -NoNewline
 
         Mock Invoke-RemoteRepoClone { return [PSCustomObject]@{ Path = $upstream; Cleanup = { } } }
         Mock Invoke-WithTimeout { return [PSCustomObject]@{ ExitCode = 0; Output = 'ok' } }
@@ -45,11 +47,11 @@ Describe 'Sync-AlzQueries' {
             -ManifestFilePath (Join-Path $toolsDir 'tool-manifest.json') `
             -SelectedToolName 'alz-queries' `
             -SourceRelativeFilePath 'queries\alz_additional_queries.json' `
-            -DestinationPathRelative 'queries\alz_additional_queries.json' `
+            -DestinationPathRelative 'queries\alz\alz_additional_queries.json' `
             -WhatIfDryRun
 
         $result.Action | Should -Be 'WouldUpdate'
-        (Get-Content -LiteralPath (Join-Path $queriesDir 'alz_additional_queries.json') -Raw) | Should -Be 'old-content'
+        (Get-Content -LiteralPath (Join-Path $alzDir 'alz_additional_queries.json') -Raw) | Should -Be 'old-content'
     }
 
     It 'is idempotent on re-run with unchanged upstream content' {
@@ -84,14 +86,14 @@ Describe 'Sync-AlzQueries' {
             -ManifestFilePath (Join-Path $toolsDir 'tool-manifest.json') `
             -SelectedToolName 'alz-queries' `
             -SourceRelativeFilePath 'queries\alz_additional_queries.json' `
-            -DestinationPathRelative 'queries\alz_additional_queries.json'
+            -DestinationPathRelative 'queries\alz\alz_additional_queries.json'
 
         $second = Invoke-SyncAlzQueries `
             -RepoRootPath $repo `
             -ManifestFilePath (Join-Path $toolsDir 'tool-manifest.json') `
             -SelectedToolName 'alz-queries' `
             -SourceRelativeFilePath 'queries\alz_additional_queries.json' `
-            -DestinationPathRelative 'queries\alz_additional_queries.json'
+            -DestinationPathRelative 'queries\alz\alz_additional_queries.json'
 
         $first.Action | Should -Be 'Created'
         $second.Action | Should -Be 'NoChange'
@@ -136,7 +138,7 @@ Describe 'Sync-AlzQueries' {
             -ManifestFilePath (Join-Path $toolsDir 'tool-manifest.json') `
             -SelectedToolName 'alz-queries' `
             -SourceRelativeFilePath 'queries\alz_additional_queries.json' `
-            -DestinationPathRelative 'queries\alz_additional_queries.json'
+            -DestinationPathRelative 'queries\alz\alz_additional_queries.json'
 
         $script:cloneAttempts | Should -Be 2
         $result.Action | Should -Be 'Created'

@@ -11,7 +11,7 @@
     Source of truth for the query set is the canonical upstream repo
     https://github.com/martinopedal/alz-graph-queries. That repo owns the query
     schema (every query MUST emit a boolean `compliant` column) and the
-    validation tooling. The local queries/alz_additional_queries.json file in
+    validation tooling. The local queries/alz/alz_additional_queries.json file in
     this repo is a cached snapshot of that upstream JSON; refresh it with
     scripts/Sync-AlzQueries.ps1 (issue #315, in flight) or by copying
     alz_additional_queries.json from a fresh clone of alz-graph-queries.
@@ -23,7 +23,7 @@
 .PARAMETER QueriesFile
     Path to alz_additional_queries.json (cached snapshot of the canonical
     martinopedal/alz-graph-queries upstream).
-    Defaults to .\queries\alz_additional_queries.json relative to this script.
+    Defaults to .\queries\alz\alz_additional_queries.json relative to this script.
 #>
 [CmdletBinding(DefaultParameterSetName = 'Subscription')]
 param (
@@ -35,7 +35,7 @@ param (
     [ValidateNotNullOrEmpty()]
     [string] $ManagementGroupId,
 
-    [string] $QueriesFile = (Join-Path $PSScriptRoot '..' 'queries' 'alz_additional_queries.json')
+    [string] $QueriesFile = (Join-Path $PSScriptRoot '..' 'queries' 'alz' 'alz_additional_queries.json')
 )
 
 Set-StrictMode -Version Latest

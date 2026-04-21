@@ -127,7 +127,7 @@ Run azure-analyzer on a schedule and stream findings to Log Analytics or open is
 The `alz-queries` tool runs a curated set of Azure Resource Graph (ARG) queries that check landing-zone compliance and drift against CIS Azure, NIST 800-53, Azure WAF, and Azure CAF.
 
 - **Canonical source of truth:** [martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries). That repo owns the query schema, the query set, and the validation tooling (`Validate-Queries.ps1`, `Validate-KqlSyntax.ps1`, Pester suite).
-- **Local cache:** the `queries/` folder in this repo (`queries/alz_additional_queries.json`) is a snapshot of the upstream JSON. `modules/Invoke-AlzQueries.ps1` reads it directly via `Search-AzGraph`. Each query MUST return a boolean `compliant` column; see the upstream repo for the full schema.
+- **Local cache:** the `queries/alz/` folder in this repo (`queries/alz/alz_additional_queries.json`) is a snapshot of the upstream JSON. `modules/Invoke-AlzQueries.ps1` reads it directly via `Search-AzGraph`. Each query MUST return a boolean `compliant` column; see the upstream repo for the full schema.
 - **Provenance:** queries derive from [Azure/review-checklists](https://github.com/Azure/review-checklists). The full chain is documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - **Sync workflow (in flight):** `scripts/Sync-AlzQueries.ps1` (see issue #315) will pull the latest queries from upstream into `queries/`, replacing the manual copy step. Until that lands, refresh by cloning [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) and copying `alz_additional_queries.json` into `queries/`.
 
@@ -139,7 +139,7 @@ Manifest pin: `tools/tool-manifest.json` -> `alz-queries.upstream.repo` points a
 - [docs/contributor/README.md](docs/contributor/README.md): architecture, adding a new tool, AI governance, and forward-looking proposals.
 - [docs/contributor/ARCHITECTURE.md](docs/contributor/ARCHITECTURE.md): module layout, normalizer contract, EntityStore design.
 - [docs/contributor/adding-a-tool.md](docs/contributor/adding-a-tool.md): end-to-end guide for registering a new analyzer tool in `tools/tool-manifest.json`.
-- `scripts/Sync-AlzQueries.ps1`: manifest-driven sync of canonical `queries/alz_additional_queries.json` from the `alz-queries` upstream repo (`-DryRun` supported).
+- `scripts/Sync-AlzQueries.ps1`: manifest-driven sync of canonical `queries/alz/alz_additional_queries.json` from the `alz-queries` upstream repo (`-DryRun` supported).
 - Docs Check note: stacked PR titles formatted as `(PR-x of y)` skip docs enforcement until the final part, while missing docs errors now emit explicit `error:` lines for CI triage.
 - Redirect stub deadlines are enforced by `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` (CI workflow: `stub-deadline-check.yml`).
 

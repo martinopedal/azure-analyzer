@@ -4,7 +4,7 @@
     FinOps signals wrapper - detect likely idle or unused Azure resources.
 
 .DESCRIPTION
-    Correlates Azure Resource Graph signals from queries/finops-*.json with monthly
+    Correlates Azure Resource Graph signals from queries/finops/finops-*.json with monthly
     resource-level cost data from the Cost Management query API. Emits a standard v1
     wrapper envelope consumed by Normalize-FinOpsSignals.
 #>
@@ -220,12 +220,12 @@ try {
 }
 
 if (-not $QueryFiles -or $QueryFiles.Count -eq 0) {
-    $queryRoot = Join-Path $PSScriptRoot '..' 'queries'
+    $queryRoot = Join-Path $PSScriptRoot '..' 'queries' 'finops'
     $QueryFiles = @(Get-ChildItem -Path $queryRoot -Filter 'finops-*.json' -File | Select-Object -ExpandProperty FullName)
 }
 if ($QueryFiles.Count -eq 0) {
     $result.Status = 'Skipped'
-    $result.Message = 'No FinOps query files found (queries/finops-*.json).'
+    $result.Message = 'No FinOps query files found (queries/finops/finops-*.json).'
     return [PSCustomObject]$result
 }
 

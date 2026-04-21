@@ -4,7 +4,7 @@
 
 **Scope:** subscription | **Provider:** azure
 
-The FinOps wrapper runs `queries/finops-*.json` against Azure Resource Graph and joins findings with monthly waste estimates from the Cost Management query API. This surfaces likely idle spend areas such as unattached disks, deallocated VMs, unused public IPs, idle App Service Plans, empty resource groups, and idle network controls.
+The FinOps wrapper runs `queries/finops/finops-*.json` against Azure Resource Graph and joins findings with monthly waste estimates from the Cost Management query API. This surfaces likely idle spend areas such as unattached disks, deallocated VMs, unused public IPs, idle App Service Plans, empty resource groups, and idle network controls.
 
 ## Required roles
 
