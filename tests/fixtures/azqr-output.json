@@ -5,38 +5,63 @@
   "Findings": [
     {
       "Source": "azqr",
+      "Id": "azqr-net-001",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01",
       "Category": "Security",
+      "RecommendationId": "AZQR.SEC.001",
       "Title": "VM does not have Azure Disk Encryption enabled",
       "Compliant": false,
       "Severity": "High",
       "Detail": "Virtual machine vm-web-01 does not have Azure Disk Encryption (ADE) enabled. OS and data disks should be encrypted at rest using platform-managed or customer-managed keys.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview",
       "Remediation": "Enable Azure Disk Encryption on the VM through the Azure Portal or by running Set-AzVMDiskEncryptionExtension.",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://portal.azure.com/#@/resource/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Compute/virtualMachines/vm-web-01/overview",
+      "Frameworks": [
+        { "kind": "WAF", "controlId": "Security" }
+      ],
+      "MitreTactics": ["TA0001"],
+      "MitreTechniques": ["T1078"],
+      "RemediationSnippets": [
+        { "language": "AzureCLI", "code": "az vm encryption enable --name vm-web-01 --resource-group rg-prod-eastus" }
+      ],
+      "EvidenceUris": ["https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"],
+      "BaselineTags": ["release:ga"],
+      "EntityRefs": ["vm-web-01"],
+      "ToolVersion": "2.6.1",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "azqr",
+      "Id": "azqr-rel-010",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.Storage/storageAccounts/stproddata01",
       "Category": "HighAvailability",
+      "RecommendationId": "AZQR.REL.010",
       "Title": "Storage account is not using zone-redundant storage",
       "Compliant": false,
       "Severity": "Medium",
       "Detail": "Storage account stproddata01 is configured with LRS replication. Zone-redundant storage (ZRS) is recommended for high availability workloads.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/storage/common/storage-redundancy",
       "Remediation": "Migrate the storage account to ZRS or GZRS replication by creating a support request or using the Azure Portal migration option.",
+      "Impact": "Medium",
+      "Effort": "High",
+      "ToolVersion": "2.6.1",
       "SchemaVersion": "1.0"
     },
     {
       "Source": "azqr",
+      "Id": "azqr-ops-020",
       "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod-eastus/providers/Microsoft.KeyVault/vaults/kv-prod-01",
       "Category": "MonitoringAndAlerting",
+      "RecommendationId": "AZQR.OPE.020",
       "Title": "Key Vault has diagnostic settings configured",
       "Compliant": true,
       "Severity": "Info",
       "Detail": "Key Vault kv-prod-01 has diagnostic settings configured with audit and metric logs sent to a Log Analytics workspace.",
       "LearnMoreUrl": "https://learn.microsoft.com/azure/key-vault/general/logging",
       "Remediation": "",
+      "ToolVersion": "2.6.1",
       "SchemaVersion": "1.0"
     }
   ]
