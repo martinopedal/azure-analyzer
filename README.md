@@ -83,6 +83,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 - **Maester now emits Schema 2.2 identity security context** (`Frameworks`, `Pillar`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTactics`, `MitreTechniques`, `EntityRefs`, `ToolVersion`) so Entra test findings preserve framework tags, MITRE mapping, remediation snippets, and scoped entity references.
 - **Application Insights now emits Schema 2.2 reliability and performance context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) so telemetry regressions include portal evidence links and triage metadata.
 - **ADO service connections now emit Schema 2.2 auth posture context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`) so connection inventory includes migration guidance and evidence links.
+- **ADO pipeline consumption now emits Schema 2.2 cost-governance context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) for minute-share, duration-regression, fail-rate, and budget-overrun findings.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 

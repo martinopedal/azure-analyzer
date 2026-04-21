@@ -78,15 +78,30 @@ Describe 'Invoke-AdoConsumption' {
         }
 
         It 'flags high share project' {
-            @($result.Findings | Where-Object { $_.RuleId -eq 'ado.parallel-job-ratio' }).Count | Should -BeGreaterThan 0
+            @($result.Findings | Where-Object { $_.RuleId -eq 'Consumption-MinuteShareHigh' }).Count | Should -BeGreaterThan 0
         }
 
         It 'flags duration regression' {
-            @($result.Findings | Where-Object { $_.RuleId -eq 'ado.duration-regression' }).Count | Should -BeGreaterThan 0
+            @($result.Findings | Where-Object { $_.RuleId -eq 'Consumption-DurationRegression' }).Count | Should -BeGreaterThan 0
         }
 
         It 'flags failed pipeline rate above threshold' {
-            @($result.Findings | Where-Object { $_.RuleId -eq 'ado.failed-pipeline-rate' }).Count | Should -BeGreaterThan 0
+            @($result.Findings | Where-Object { $_.RuleId -eq 'Consumption-FailRateHigh' }).Count | Should -BeGreaterThan 0
+        }
+
+        It 'emits schema 2.2 metadata on findings' {
+            $share = $result.Findings | Where-Object RuleId -eq 'Consumption-MinuteShareHigh' | Select-Object -First 1
+            $fail = $result.Findings | Where-Object RuleId -eq 'Consumption-FailRateHigh' | Select-Object -First 1
+
+            $share.Pillar | Should -Be 'Cost Optimization'
+            $share.Impact | Should -Not -BeNullOrEmpty
+            $share.Effort | Should -Be 'Low'
+            $share.DeepLinkUrl | Should -Match '_a=analytics'
+            @($share.EvidenceUris).Count | Should -BeGreaterThan 0
+            $share.BaselineTags | Should -Contain 'Consumption-MinuteShareHigh'
+            @($share.EntityRefs | Where-Object { $_ -like 'AdoProject/*' }).Count | Should -Be 1
+            $share.PSObject.Properties.Name | Should -Contain 'ToolVersion'
+            $fail.Pillar | Should -Be 'Operational Excellence'
         }
     }
 

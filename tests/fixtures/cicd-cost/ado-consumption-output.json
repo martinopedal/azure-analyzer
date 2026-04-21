@@ -2,10 +2,11 @@
   "Source": "ado-consumption",
   "Status": "Success",
   "Message": "fixture",
+  "ToolVersion": "1.0.0",
   "Findings": [
     {
       "Id": "44444444-4444-4444-4444-444444444444",
-      "RuleId": "ado.parallel-job-ratio",
+      "RuleId": "Consumption-MinuteShareHigh",
       "Category": "Cost",
       "Title": "High share",
       "Compliant": false,
@@ -13,11 +14,29 @@
       "Detail": "Project consumes high share.",
       "Remediation": "Tune pools.",
       "ResourceId": "ado://contoso/payments",
-      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build"
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build",
+      "Pillar": "Cost Optimization",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build?view=results&_a=analytics",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_build",
+        "https://dev.azure.com/contoso/payments/_build?definitionId=12&view=results&_a=analytics"
+      ],
+      "BaselineTags": [
+        "Consumption-MinuteShareHigh",
+        "ProjectTier:Tier1"
+      ],
+      "EntityRefs": [
+        "AdoOrg/contoso",
+        "AdoProject/contoso/payments",
+        "AdoPipeline/contoso/payments/12"
+      ],
+      "ToolVersion": "2.58.0"
     },
     {
       "Id": "55555555-5555-5555-5555-555555555555",
-      "RuleId": "ado.duration-regression",
+      "RuleId": "Consumption-DurationRegression",
       "Category": "Cost",
       "Title": "Duration regression",
       "Compliant": false,
@@ -25,11 +44,29 @@
       "Detail": "Duration increased.",
       "Remediation": "Investigate slowdown.",
       "ResourceId": "ado://contoso/payments",
-      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build"
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build",
+      "Pillar": "Cost Optimization",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "ScoreDelta": 47.5,
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build?view=results&_a=analytics",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_build",
+        "https://dev.azure.com/contoso/payments/_build?definitionId=12&view=results&_a=analytics"
+      ],
+      "BaselineTags": [
+        "Consumption-DurationRegression",
+        "ProjectTier:Tier1"
+      ],
+      "EntityRefs": [
+        "AdoOrg/contoso",
+        "AdoProject/contoso/payments",
+        "AdoPipeline/contoso/payments/12"
+      ]
     },
     {
       "Id": "66666666-6666-6666-6666-666666666666",
-      "RuleId": "ado.failed-pipeline-rate",
+      "RuleId": "Consumption-FailRateHigh",
       "Category": "Cost",
       "Title": "Failure rate high",
       "Compliant": false,
@@ -37,7 +74,24 @@
       "Detail": "Failure rate over threshold.",
       "Remediation": "Fix flaky jobs.",
       "ResourceId": "ado://contoso/payments",
-      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build"
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build",
+      "Pillar": "Operational Excellence",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build?view=results&_a=analytics",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_build",
+        "https://dev.azure.com/contoso/payments/_build?definitionId=12&view=results&_a=analytics"
+      ],
+      "BaselineTags": [
+        "Consumption-FailRateHigh",
+        "ProjectTier:Tier1"
+      ],
+      "EntityRefs": [
+        "AdoOrg/contoso",
+        "AdoProject/contoso/payments",
+        "AdoPipeline/contoso/payments/12"
+      ]
     }
   ]
 }
