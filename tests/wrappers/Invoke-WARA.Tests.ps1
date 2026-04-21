@@ -67,44 +67,36 @@ Describe 'Invoke-WARA: success paths' {
 '@ | Set-Content -Path $jsonPath -Encoding UTF8
         New-Item -ItemType File -Path $xlsxPath -Force | Out-Null
 
-        function global:Get-Module {
-            [CmdletBinding()]
-            param([switch] $ListAvailable, [string] $Name)
-            if ($ListAvailable -and $Name -eq 'WARA') {
-                return [PSCustomObject]@{ Name = 'WARA'; Version = [version]'2.4.0' }
-            }
-            return Microsoft.PowerShell.Core\Get-Module @PSBoundParameters
+        $moduleRoot = Join-Path $TestDrive 'WARA'
+        New-Item -ItemType Directory -Path $moduleRoot -Force | Out-Null
+        @'
+function Start-WARACollector { param([string]$TenantID,[string]$SubscriptionIds) }
+function Start-WARAAnalyzer { param([string]$TenantID,[string]$SubscriptionIds) }
+function Import-Excel {
+    param([string]$Path,[string]$WorksheetName)
+    return @(
+        [PSCustomObject]@{
+            RecommendationId = 'rec-001'
+            Pillar = 'Reliability'
+            PotentialBenefit = 'Improves recovery posture'
+            Status = 'Pending'
+            Impact = 'High'
+            Effort = 'Low'
+            ServiceCategory = 'compute'
+            DeepLinkUrl = 'https://learn.microsoft.com/azure/well-architected/reliability/design-redundancy'
+            'Remediation Steps' = 'Enable zone redundancy;Validate failover paths'
         }
-        function global:Import-Module { }
-        function global:Get-Command {
-            [CmdletBinding()]
-            param([string] $Name)
-            if ($Name -in @('Start-WARACollector', 'Start-WARAAnalyzer', 'Import-Excel')) {
-                return [PSCustomObject]@{ Name = $Name }
-            }
-            return Microsoft.PowerShell.Core\Get-Command @PSBoundParameters
-        }
-        function global:Get-AzContext { [PSCustomObject]@{ Tenant = [PSCustomObject]@{ Id = '11111111-1111-1111-1111-111111111111' } } }
-        function global:Start-WARACollector { }
-        function global:Start-WARAAnalyzer { }
-        function global:Import-Excel {
-            @(
-                [PSCustomObject]@{
-                    RecommendationId = 'rec-001'
-                    Pillar = 'Reliability'
-                    PotentialBenefit = 'Improves recovery posture'
-                    Status = 'Pending'
-                    Impact = 'High'
-                    Effort = 'Low'
-                    ServiceCategory = 'compute'
-                    DeepLinkUrl = 'https://learn.microsoft.com/azure/well-architected/reliability/design-redundancy'
-                    'Remediation Steps' = 'Enable zone redundancy;Validate failover paths'
-                }
-            )
-        }
+    )
+}
+Export-ModuleMember -Function Start-WARACollector, Start-WARAAnalyzer, Import-Excel
+'@ | Set-Content -Path (Join-Path $moduleRoot 'WARA.psm1') -Encoding UTF8
+        New-ModuleManifest -Path (Join-Path $moduleRoot 'WARA.psd1') -RootModule 'WARA.psm1' -ModuleVersion '2.4.0' -Guid '96f1db7a-1888-4c3a-826f-db98f4e8af09' | Out-Null
+
+        $originalModulePath = $env:PSModulePath
+        $env:PSModulePath = "$TestDrive$([IO.Path]::PathSeparator)$env:PSModulePath"
 
         try {
-            $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000001' -OutputPath $outputDir
+            $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000001' -TenantId '11111111-1111-1111-1111-111111111111' -OutputPath $outputDir
 
             $result.Status | Should -Be 'Success'
             $result.ToolVersion | Should -Be '2.4.0'
@@ -121,9 +113,8 @@ Describe 'Invoke-WARA: success paths' {
             @($result.Findings[0].EntityRefs).Count | Should -Be 2
         }
         finally {
-            foreach ($fn in @('Get-Module', 'Import-Module', 'Get-Command', 'Get-AzContext', 'Start-WARACollector', 'Start-WARAAnalyzer', 'Import-Excel')) {
-                if (Test-Path "Function:global:$fn") { Remove-Item "Function:global:$fn" -ErrorAction SilentlyContinue }
-            }
+            Remove-Module WARA -ErrorAction SilentlyContinue
+            $env:PSModulePath = $originalModulePath
         }
     }
 }
