@@ -5,7 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [1.2.0 - Unreleased]
 
 ### Added
-
+- feat(reports): interactive identity blast-radius graph in HTML report and `samples/sample-report.html`. Renders User / ServicePrincipal / Group / Application / AzureResource nodes from the v3.1 entity envelope with a self-contained vanilla-JS Verlet force layout (no D3, no CDN). Click a node to filter the findings table by that entity; empty-state shown when fewer than 5 identity-relevant entities exist. Total inlined payload < 6 KB (closes #298).
 - docs(azure-quota): expanded `docs/consumer/permissions/azure-quota.md` with the exact `az vm list-usage` / `az network list-usages` fanout, all wrapper parameters (`Subscriptions`, `Locations`, `Threshold`, `OutputPath`), a sample normalized `FindingRow`, and the locked severity ladder (>=99 Critical, >=95 High, >=Threshold Medium, <Threshold Info) (closes #325).
 - test(azure-quota):expanded `Invoke-AzureQuotaReports` wrapper coverage with realistic Azure CLI fixtures for subscription/region fanout, retry/error/sanitization paths, scope filters, threshold passthrough, and strict v1 envelope assertions (closes #324).
 - ci: weekly ALZ query drift-check workflow (`alz-queries-drift-check.yml`) that runs `scripts/Sync-AlzQueries.ps1 -DryRun` and fails when upstream `martinopedal/alz-graph-queries` diverges from local `queries/` cache (closes #316).
