@@ -61,6 +61,13 @@ jobs:
             const docPathPatterns = [
               /^docs\/consumer\//,
               /^docs\/contributor\//,
+              /^docs\/getting-started\//,
+              /^docs\/guides\//,
+              /^docs\/reference\//,
+              /^docs\/operators\//,
+              /^docs\/contributing\//,
+              /^docs\/architecture\//,
+              /^docs\/decisions\//,
             ];
             const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
 
@@ -83,7 +90,7 @@ jobs:
             if (docFiles.length === 0) {
               core.error(`error: Missing documentation updates for code changes in PR #${context.issue.number}.`);
               core.error(`error: Code files changed: ${codeFiles.join(', ')}`);
-              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/consumer/ or docs/contributor/.');
+              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/ (getting-started, guides, reference, operators, contributing, architecture).');
               core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
               core.setFailed(
                 'error: This PR changes code files but no documentation was updated.\n' +
@@ -105,9 +112,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             Write-Host "::group::Tool catalog manifest projection diff"
             pwsh -File scripts/Generate-ToolCatalog.ps1
-            git --no-pager diff -- docs/consumer/tool-catalog.md docs/contributor/tool-catalog.md
+            git --no-pager diff -- docs/reference/tool-catalog.md docs/reference/tool-catalog-contributor.md
             Write-Host "::endgroup::"
-            Write-Host "::error::docs/consumer/tool-catalog.md or docs/contributor/tool-catalog.md is stale."
+            Write-Host "::error::docs/reference/tool-catalog.md or docs/reference/tool-catalog-contributor.md is stale."
             Write-Host "::error::Run 'pwsh -File scripts/Generate-ToolCatalog.ps1' and commit the result."
             exit 1
           }
@@ -123,7 +130,7 @@ jobs:
         run: |
           pwsh -File scripts/Generate-PermissionsIndex.ps1 -CheckOnly
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "::error::PERMISSIONS.md INDEX section is stale or a per-tool page is missing under docs/consumer/permissions/."
+            Write-Host "::error::PERMISSIONS.md INDEX section is stale or a per-tool page is missing under docs/reference/permissions/."
             Write-Host "::error::Run 'pwsh -File scripts/Generate-PermissionsIndex.ps1' and commit the result."
             exit 1
           }
