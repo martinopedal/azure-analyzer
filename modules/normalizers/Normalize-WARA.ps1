@@ -27,6 +27,31 @@ function Normalize-WARA {
     $runId = [guid]::NewGuid().ToString()
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+    function Get-Text {
+        param([object] $Object, [string[]] $Names)
+        foreach ($name in $Names) {
+            if ($Object.PSObject.Properties[$name]) {
+                $value = $Object.$name
+                if ($null -ne $value -and -not [string]::IsNullOrWhiteSpace([string]$value)) {
+                    return [string]$value
+                }
+            }
+        }
+        return ''
+    }
+
+    function Normalize-Pillar {
+        param([string] $Value)
+        if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
+        $input = $Value.Trim().ToLowerInvariant()
+        if ($input -match 'reliab') { return 'Reliability' }
+        if ($input -match 'secur') { return 'Security' }
+        if ($input -match 'cost') { return 'Cost' }
+        if ($input -match 'perform') { return 'Performance' }
+        if ($input -match 'operat') { return 'Operational' }
+        return ''
+    }
+
     foreach ($finding in $ToolResult.Findings) {
         $rawId = ''
         if ($finding.PSObject.Properties['ResourceId'] -and $finding.ResourceId) {
@@ -56,10 +81,13 @@ function Normalize-WARA {
             $canonicalId = "wara/$findingId"
         }
 
-        $title = if ($finding.PSObject.Properties['Title'] -and $finding.Title) { $finding.Title } else { 'Unknown' }
-        $category = if ($finding.PSObject.Properties['Category'] -and $finding.Category) { $finding.Category } else { 'Reliability' }
+        $title = Get-Text -Object $finding -Names @('Title')
+        if ([string]::IsNullOrWhiteSpace($title)) { $title = 'Unknown' }
+        $category = Get-Text -Object $finding -Names @('Category')
+        if ([string]::IsNullOrWhiteSpace($category)) { $category = 'Reliability' }
 
-        $rawSev = if ($finding.PSObject.Properties['Severity'] -and $finding.Severity) { $finding.Severity } else { 'Medium' }
+        $rawSev = Get-Text -Object $finding -Names @('Severity')
+        if ([string]::IsNullOrWhiteSpace($rawSev)) { $rawSev = 'Medium' }
         $severity = switch -Regex ($rawSev.ToString().ToLowerInvariant()) {
             'critical'         { 'Critical' }
             'high'             { 'High' }
@@ -69,9 +97,68 @@ function Normalize-WARA {
             default            { 'Medium' }
         }
 
-        $detail = if ($finding.PSObject.Properties['Detail'] -and $finding.Detail) { $finding.Detail } else { '' }
-        $remediation = if ($finding.PSObject.Properties['Remediation'] -and $finding.Remediation) { $finding.Remediation } else { '' }
-        $learnMore = if ($finding.PSObject.Properties['LearnMoreUrl'] -and $finding.LearnMoreUrl) { $finding.LearnMoreUrl } else { '' }
+        $detail = Get-Text -Object $finding -Names @('Detail')
+        $remediation = Get-Text -Object $finding -Names @('Remediation')
+        $learnMore = Get-Text -Object $finding -Names @('LearnMoreUrl')
+        $deepLink = Get-Text -Object $finding -Names @('DeepLinkUrl', 'LearnMoreUrl')
+        $pillar = Normalize-Pillar (Get-Text -Object $finding -Names @('Pillar', 'Category'))
+        $impact = Get-Text -Object $finding -Names @('Impact')
+        $effort = Get-Text -Object $finding -Names @('Effort')
+        $recommendationId = Get-Text -Object $finding -Names @('RecommendationId', 'Id')
+        $controls = @()
+        if (-not [string]::IsNullOrWhiteSpace($recommendationId)) { $controls = @($recommendationId) }
+
+        $frameworks = @()
+        if (-not [string]::IsNullOrWhiteSpace($pillar) -or $controls.Count -gt 0) {
+            $frameworks = @(@{
+                    Name     = 'WAF'
+                    Pillars  = if ($pillar) { @($pillar) } else { @() }
+                    Controls = $controls
+                })
+        }
+
+        $baselineTags = @()
+        if ($finding.PSObject.Properties['BaselineTags'] -and $finding.BaselineTags) {
+            $baselineTags = @($finding.BaselineTags | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        if ($baselineTags.Count -eq 0 -and $finding.PSObject.Properties['ServiceCategory'] -and $finding.ServiceCategory) {
+            $baselineTags = @("service-category:$([string]$finding.ServiceCategory)")
+        }
+
+        $entityRefs = @()
+        if ($finding.PSObject.Properties['EntityRefs'] -and $finding.EntityRefs) {
+            foreach ($entityRef in @($finding.EntityRefs)) {
+                $value = [string]$entityRef
+                if ([string]::IsNullOrWhiteSpace($value)) { continue }
+                if ($value -match '^/subscriptions/') {
+                    try {
+                        $entityRefs += (ConvertTo-CanonicalEntityId -RawId $value -EntityType 'AzureResource').CanonicalId
+                    } catch {
+                        $entityRefs += $value.ToLowerInvariant()
+                    }
+                } else {
+                    $entityRefs += $value
+                }
+            }
+            $entityRefs = @($entityRefs | Select-Object -Unique)
+        }
+
+        $remediationSnippets = @()
+        if ($finding.PSObject.Properties['RemediationSteps'] -and $finding.RemediationSteps) {
+            foreach ($step in @($finding.RemediationSteps)) {
+                $text = [string]$step
+                if ([string]::IsNullOrWhiteSpace($text)) { continue }
+                $remediationSnippets += @{
+                    language = 'text'
+                    code     = $text.Trim()
+                }
+            }
+        }
+
+        $toolVersion = Get-Text -Object $finding -Names @('ToolVersion')
+        if ([string]::IsNullOrWhiteSpace($toolVersion) -and $ToolResult.PSObject.Properties['ToolVersion']) {
+            $toolVersion = [string]$ToolResult.ToolVersion
+        }
 
         $row = New-FindingRow -Id $findingId `
             -Source 'wara' -EntityId $canonicalId -EntityType 'AzureResource' `
@@ -79,7 +166,12 @@ function Normalize-WARA {
             -Platform 'Azure' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `
             -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '') `
-            -SubscriptionId $subId -ResourceGroup $rg
+            -SubscriptionId $subId -ResourceGroup $rg `
+            -Pillar $pillar -Impact $impact -Effort $effort `
+            -DeepLinkUrl $deepLink -RemediationSnippets $remediationSnippets `
+            -Frameworks $frameworks -Controls $controls `
+            -BaselineTags $baselineTags -EntityRefs $entityRefs `
+            -ToolVersion $toolVersion
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)

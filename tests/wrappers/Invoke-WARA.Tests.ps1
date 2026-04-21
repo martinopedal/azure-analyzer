@@ -37,3 +37,85 @@ Describe 'Invoke-WARA: error paths' {
     }
 }
 
+Describe 'Invoke-WARA: success paths' {
+    It 'emits one finding per impacted resource and captures Schema 2.2 inputs' {
+        $outputDir = Join-Path $TestDrive 'wara'
+        New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+        $jsonPath = Join-Path $outputDir 'WARA_File_20260422.json'
+        $xlsxPath = Join-Path $outputDir 'Expert-Analysis-20260422.xlsx'
+
+        @'
+{
+  "Recommendations": [
+    {
+      "GUID": "rec-001",
+      "Recommendation": "Use zone-redundant services",
+      "Category": "Reliability",
+      "Severity": "High",
+      "Impact": "High",
+      "Effort": "Low",
+      "Service": "compute",
+      "Description": { "Steps": [ "Enable zone redundancy", "Validate failover paths" ] },
+      "ImpactedResources": [
+        { "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-a" },
+        { "ResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-b" }
+      ],
+      "LearnMoreLink": "https://learn.microsoft.com/azure/well-architected/reliability"
+    }
+  ]
+}
+'@ | Set-Content -Path $jsonPath -Encoding UTF8
+        New-Item -ItemType File -Path $xlsxPath -Force | Out-Null
+
+        $moduleRoot = Join-Path $TestDrive 'WARA'
+        New-Item -ItemType Directory -Path $moduleRoot -Force | Out-Null
+        @'
+function Start-WARACollector { param([string]$TenantID,[string]$SubscriptionIds) }
+function Start-WARAAnalyzer { param([string]$TenantID,[string]$SubscriptionIds) }
+function Import-Excel {
+    param([string]$Path,[string]$WorksheetName)
+    return @(
+        [PSCustomObject]@{
+            RecommendationId = 'rec-001'
+            Pillar = 'Reliability'
+            PotentialBenefit = 'Improves recovery posture'
+            Status = 'Pending'
+            Impact = 'High'
+            Effort = 'Low'
+            ServiceCategory = 'compute'
+            DeepLinkUrl = 'https://learn.microsoft.com/azure/well-architected/reliability/design-redundancy'
+            'Remediation Steps' = 'Enable zone redundancy;Validate failover paths'
+        }
+    )
+}
+Export-ModuleMember -Function Start-WARACollector, Start-WARAAnalyzer, Import-Excel
+'@ | Set-Content -Path (Join-Path $moduleRoot 'WARA.psm1') -Encoding UTF8
+        New-ModuleManifest -Path (Join-Path $moduleRoot 'WARA.psd1') -RootModule 'WARA.psm1' -ModuleVersion '2.4.0' -Guid '96f1db7a-1888-4c3a-826f-db98f4e8af09' | Out-Null
+
+        $originalModulePath = $env:PSModulePath
+        $env:PSModulePath = "$TestDrive$([IO.Path]::PathSeparator)$env:PSModulePath"
+
+        try {
+            $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000001' -TenantId '11111111-1111-1111-1111-111111111111' -OutputPath $outputDir
+
+            $result.Status | Should -Be 'Success'
+            $result.ToolVersion | Should -Be '2.4.0'
+            @($result.Findings).Count | Should -Be 2
+            @($result.Findings | ForEach-Object { $_.ResourceId.ToLowerInvariant() } | Sort-Object) | Should -Be @(
+                '/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-a',
+                '/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-b'
+            )
+            $result.Findings[0].Pillar | Should -Be 'Reliability'
+            $result.Findings[0].Impact | Should -Be 'High'
+            $result.Findings[0].Effort | Should -Be 'Low'
+            $result.Findings[0].DeepLinkUrl | Should -Be 'https://learn.microsoft.com/azure/well-architected/reliability/design-redundancy'
+            $result.Findings[0].BaselineTags | Should -Contain 'service-category:compute'
+            @($result.Findings[0].EntityRefs).Count | Should -Be 2
+        }
+        finally {
+            Remove-Module WARA -ErrorAction SilentlyContinue
+            $env:PSModulePath = $originalModulePath
+        }
+    }
+}
+
