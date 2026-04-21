@@ -196,3 +196,99 @@ Describe 'EntityStore metadata Schema 2.2 unions' {
         }
     }
 }
+
+Describe 'EntityStore IaCFile dedup contract' {
+    It 'deduplicates IaCFile entities by Platform|EntityType|EntityId composite key' {
+        $outputPath = Join-Path $PSScriptRoot '..\..\output-test\entitystore-iacfile-dedup'
+        if (-not (Test-Path $outputPath)) {
+            $null = New-Item -Path $outputPath -ItemType Directory -Force
+        }
+        $store = $null
+        try {
+            $store = [EntityStore]::new(50000, $outputPath)
+            
+            # First tool reports finding on terraform/main.tf
+            $store.AddFinding([pscustomobject]@{
+                Id          = 'f-1'
+                Source      = 'terraform-iac'
+                EntityId    = 'iacfile:github.com/org/repo:terraform/main.tf'
+                EntityType  = 'IaCFile'
+                Platform    = 'IaC'
+                Title       = 'Tool 1 finding'
+                Severity    = 'High'
+                Compliant   = $false
+            })
+            
+            # Second tool reports finding on same file
+            $store.AddFinding([pscustomobject]@{
+                Id          = 'f-2'
+                Source      = 'trivy'
+                EntityId    = 'iacfile:github.com/org/repo:terraform/main.tf'
+                EntityType  = 'IaCFile'
+                Platform    = 'IaC'
+                Title       = 'Tool 2 finding'
+                Severity    = 'Medium'
+                Compliant   = $false
+            })
+
+            $entities = $store.GetEntities()
+            $iacFileEntities = @($entities | Where-Object { $_.EntityType -eq 'IaCFile' })
+            
+            # Should be exactly one entity despite two findings from two tools
+            $iacFileEntities.Count | Should -Be 1
+            $iacFileEntities[0].EntityId | Should -Be 'iacfile:github.com/org/repo:terraform/main.tf'
+            $iacFileEntities[0].Platform | Should -Be 'IaC'
+            $iacFileEntities[0].Sources | Should -Contain 'terraform-iac'
+            $iacFileEntities[0].Sources | Should -Contain 'trivy'
+            $iacFileEntities[0].NonCompliantCount | Should -Be 2
+        } finally {
+            if ($null -ne $store) { $store.CleanupSpillFiles() }
+            if (Test-Path $outputPath) { Remove-Item -Path $outputPath -Recurse -Force }
+        }
+    }
+
+    It 'keeps IaCFile entities separate when file paths differ' {
+        $outputPath = Join-Path $PSScriptRoot '..\..\output-test\entitystore-iacfile-separate'
+        if (-not (Test-Path $outputPath)) {
+            $null = New-Item -Path $outputPath -ItemType Directory -Force
+        }
+        $store = $null
+        try {
+            $store = [EntityStore]::new(50000, $outputPath)
+            
+            $store.AddFinding([pscustomobject]@{
+                Id          = 'f-1'
+                Source      = 'terraform-iac'
+                EntityId    = 'iacfile:github.com/org/repo:terraform/main.tf'
+                EntityType  = 'IaCFile'
+                Platform    = 'IaC'
+                Title       = 'Finding on main.tf'
+                Severity    = 'High'
+                Compliant   = $false
+            })
+            
+            $store.AddFinding([pscustomobject]@{
+                Id          = 'f-2'
+                Source      = 'terraform-iac'
+                EntityId    = 'iacfile:github.com/org/repo:terraform/variables.tf'
+                EntityType  = 'IaCFile'
+                Platform    = 'IaC'
+                Title       = 'Finding on variables.tf'
+                Severity    = 'Medium'
+                Compliant   = $false
+            })
+
+            $entities = $store.GetEntities()
+            $iacFileEntities = @($entities | Where-Object { $_.EntityType -eq 'IaCFile' })
+            
+            # Should be two distinct entities
+            $iacFileEntities.Count | Should -Be 2
+            $entityIds = $iacFileEntities | ForEach-Object { $_.EntityId }
+            $entityIds | Should -Contain 'iacfile:github.com/org/repo:terraform/main.tf'
+            $entityIds | Should -Contain 'iacfile:github.com/org/repo:terraform/variables.tf'
+        } finally {
+            if ($null -ne $store) { $store.CleanupSpillFiles() }
+            if (Test-Path $outputPath) { Remove-Item -Path $outputPath -Recurse -Force }
+        }
+    }
+}

@@ -217,6 +217,7 @@ function ConvertTo-CanonicalEntityId {
             'ManagedIdentity',
             'Application',
             'Repository',
+            'IaCFile',
             'Pipeline',
             'VariableGroup',
             'Environment',
@@ -238,6 +239,25 @@ function ConvertTo-CanonicalEntityId {
         'AzureResource' { ConvertTo-CanonicalArmId -ArmId $RawId }
         'ManagedIdentity' { ConvertTo-CanonicalArmId -ArmId $RawId }
         'Repository' { ConvertTo-CanonicalRepoId -RepoId $RawId }
+        'IaCFile' {
+            # IaC file entity: canonical form iacfile:{repo-slug}:{relative-path}
+            # Accepts raw format "iacfile:owner/repo:path/to/file.tf" or "owner/repo:path/to/file.tf"
+            # Normalizes to lowercase with forward slashes
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:iacfile):(.+)$') {
+                $raw = $matches[1]
+            }
+            # Expect format "owner/repo:path/to/file" or "host/owner/repo:path/to/file"
+            if ($raw -notmatch '^([^:]+):(.+)$') {
+                throw "IaCFile IDs must be in format 'repo-slug:relative-path' or 'iacfile:repo-slug:relative-path'. Provided: '$RawId'."
+            }
+            $repoSlug = $matches[1].Trim().ToLowerInvariant() -replace '\\', '/'
+            $filePath = $matches[2].Trim().ToLowerInvariant() -replace '\\', '/'
+            if ([string]::IsNullOrWhiteSpace($repoSlug) -or [string]::IsNullOrWhiteSpace($filePath)) {
+                throw "IaCFile IDs must have non-empty repo-slug and file-path components. Provided: '$RawId'."
+            }
+            "iacfile:$repoSlug`:$filePath"
+        }
         'Workflow' { $RawId.Trim().ToLowerInvariant() -replace '\\', '/' }
         'ServicePrincipal' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
         'Application' { ConvertTo-CanonicalSpnId -SpnId $RawId -ObjectIdToAppId $ObjectIdToAppId }
@@ -307,6 +327,7 @@ function ConvertTo-CanonicalEntityId {
         'Repository' {
             if ($canonicalId -match '^ado://') { 'ADO' } else { 'GitHub' }
         }
+        'IaCFile' { 'IaC' }
         'Pipeline' { 'ADO' }
         'VariableGroup' { 'ADO' }
         'Environment' { 'ADO' }
