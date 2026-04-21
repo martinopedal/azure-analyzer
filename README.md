@@ -41,7 +41,7 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
 
-Runs every tool whose prerequisites are present (azqr, PSRule for Azure, Powerpipe, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud, Prowler) and writes findings to `output\` plus `report.html` and `report.md`. Defender, Azure Quota Reports, FinOps, and Azure Load Testing findings now flow Schema 2.2 metadata end to end, including Pillar, Impact, Effort, DeepLinkUrl, EvidenceUris, BaselineTags, ScoreDelta, EntityRefs, and ToolVersion where available.
+Runs every tool whose prerequisites are present (azqr, PSRule for Azure, Powerpipe, AzGovViz, ALZ Resource Graph queries, WARA, Azure Cost, Azure Quota Reports, FinOps Signals, Application Insights, Azure Load Testing, AKS rightsizing, Defender for Cloud, Prowler) and writes findings to `output\` plus `report.html` and `report.md`. Azure Cost, Defender, Azure Quota Reports, FinOps, and Azure Load Testing findings now flow Schema 2.2 metadata end to end, including Pillar, Impact, Effort, DeepLinkUrl, EvidenceUris, BaselineTags, ScoreDelta, EntityRefs, and ToolVersion where available.
 
 ### 2. Scan a remote GitHub repository for CI/CD and secret hygiene
 
@@ -93,6 +93,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 - **zizmor now emits Schema 2.2 workflow security context** (`RuleId`, `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTechniques`, `EntityRefs`, `ToolVersion`) for GitHub workflow findings.
 - **Bicep IaC validation now emits Schema 2.2 ETL metadata** (`Frameworks`, `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) with rule-aware baseline tags and file-anchor evidence URIs.
 - **Falco now emits Schema 2.2 runtime threat context** (`Frameworks`, `Pillar=Security`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTactics`, `MitreTechniques`, `EntityRefs`, `ToolVersion`) with CIS Kubernetes benchmark mapping and ATT&CK technique tags for runtime alerts.
+- **Azure Cost now emits Schema 2.2 FinOps context** (`Frameworks=FinOps Foundation`, `Pillar=CostOptimization`, `Impact`, `Effort`, Cost Management `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) for subscription and top-resource spend findings.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **ADO repo secret findings now emit full Schema 2.2 evidence context** (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion`) with commit and blob links plus line-aware dedup-safe titles.
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.

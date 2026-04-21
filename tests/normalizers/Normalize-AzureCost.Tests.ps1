@@ -27,6 +27,26 @@ Describe 'Normalize-AzureCost' {
         }
     }
 
+    It 'emits Schema 2.2 cost metadata fields for each finding' {
+        $rows = @(Normalize-AzureCost -ToolResult $script:Fixture)
+        foreach ($r in $rows) {
+            $r.Pillar | Should -Be 'CostOptimization'
+            @($r.Frameworks).Count | Should -BeGreaterThan 0
+            @($r.Frameworks | Where-Object { $_.kind -eq 'FinOps Foundation' }).Count | Should -BeGreaterThan 0
+            $r.Impact | Should -Not -BeNullOrEmpty
+            $r.Effort | Should -Not -BeNullOrEmpty
+            $r.DeepLinkUrl | Should -Match 'portal\.azure\.com'
+            $r.DeepLinkUrl | Should -Match 'subscriptionId='
+            @($r.RemediationSnippets).Count | Should -BeGreaterThan 0
+            @($r.EvidenceUris).Count | Should -BeGreaterThan 0
+            @($r.BaselineTags).Count | Should -BeGreaterThan 1
+            $r.BaselineTags | Should -Contain 'cost'
+            $r.ScoreDelta | Should -BeGreaterThan 0
+            @($r.EntityRefs).Count | Should -BeGreaterThan 0
+            $r.ToolVersion | Should -Be 'Microsoft.Consumption/usageDetails@2021-10-01'
+        }
+    }
+
     It 'attaches MonthlyCost and Currency to each finding' {
         $rows = @(Normalize-AzureCost -ToolResult $script:Fixture)
         foreach ($r in $rows) {
@@ -37,6 +57,16 @@ Describe 'Normalize-AzureCost' {
         }
         $sub = $rows | Where-Object { $_.EntityType -eq 'Subscription' }
         $sub.MonthlyCost | Should -Be 1234.56
+    }
+
+    It 'builds Cost Management deep links with subscription and resource-group query string' {
+        $rows = @(Normalize-AzureCost -ToolResult $script:Fixture)
+        $sub = $rows | Where-Object { $_.EntityType -eq 'Subscription' } | Select-Object -First 1
+        $sub.DeepLinkUrl | Should -Match 'subscriptionId=11111111-1111-1111-1111-111111111111'
+
+        $res = $rows | Where-Object { $_.EntityType -eq 'AzureResource' } | Select-Object -First 1
+        $res.DeepLinkUrl | Should -Match 'resourceGroup=prod'
+        $res.DeepLinkUrl | Should -Match 'resourceId='
     }
 
     It 'canonicalizes resource IDs and pulls SubscriptionId / ResourceGroup from them' {

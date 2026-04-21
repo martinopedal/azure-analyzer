@@ -48,6 +48,7 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'azure-cost'
+    ToolVersion   = 'Microsoft.Consumption/usageDetails@2021-10-01'
     Status        = 'Success'
     Message       = ''
     Findings      = @()
@@ -73,11 +74,12 @@ try {
 }
 
 # --- Build REST URL for Consumption API (list usageDetails) ---
+$consumptionApiVersion = '2021-10-01'
 $toDate   = (Get-Date).ToUniversalTime().Date
 $fromDate = $toDate.AddDays(-30)
 $filter   = "properties/usageStart ge '$($fromDate.ToString('yyyy-MM-dd'))' and properties/usageEnd le '$($toDate.ToString('yyyy-MM-dd'))'"
 
-$uri = "https://management.azure.com/subscriptions/$SubscriptionId/providers/Microsoft.Consumption/usageDetails?api-version=2021-10-01&`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=5000"
+$uri = "https://management.azure.com/subscriptions/$SubscriptionId/providers/Microsoft.Consumption/usageDetails?api-version=$consumptionApiVersion&`$filter=$([System.Uri]::EscapeDataString($filter))&`$top=5000"
 
 $allRecords = [System.Collections.Generic.List[object]]::new()
 $currency   = ''
@@ -148,42 +150,50 @@ $top = @($byResource.Values | Sort-Object -Property TotalCost -Descending | Sele
 $findings = [System.Collections.Generic.List[object]]::new()
 
 # Subscription-entity roll-up
-$findings.Add([pscustomobject]@{
-    Id           = "azure-cost/subscription/$SubscriptionId"
-    Source       = 'azure-cost'
-    Category     = 'Cost'
-    Severity     = 'Info'
-    Compliant    = $true
-    Title        = "30-day subscription spend: $([math]::Round($subTotal,2)) $currency"
-    Detail       = "Aggregated from $($allRecords.Count) usageDetails records for window $($fromDate.ToString('yyyy-MM-dd'))..$($toDate.ToString('yyyy-MM-dd')). Top-$TopN resources follow."
-    ResourceId   = "/subscriptions/$SubscriptionId"
-    ResourceType = 'Microsoft.Resources/subscriptions'
-    MonthlyCost  = [math]::Round($subTotal, 2)
-    Currency     = $currency
-    CostTrend    = ''
-    Remediation  = ''
-    LearnMoreUrl = 'https://learn.microsoft.com/azure/cost-management-billing/'
-}) | Out-Null
+        $findings.Add([pscustomobject]@{
+            Id           = "azure-cost/subscription/$SubscriptionId"
+            Source       = 'azure-cost'
+            RuleId       = 'azure-cost-subscription-spend'
+            Category     = 'Cost'
+            Severity     = 'Info'
+            Compliant    = $true
+            Title        = "30-day subscription spend: $([math]::Round($subTotal,2)) $currency"
+            Detail       = "Aggregated from $($allRecords.Count) usageDetails records for window $($fromDate.ToString('yyyy-MM-dd'))..$($toDate.ToString('yyyy-MM-dd')). Top-$TopN resources follow."
+            ResourceId   = "/subscriptions/$SubscriptionId"
+            ResourceType = 'Microsoft.Resources/subscriptions'
+            CostCategory = 'SubscriptionSpend'
+            MonthlyCost  = [math]::Round($subTotal, 2)
+            Currency     = $currency
+            CostTrend    = ''
+            Recommendation = 'Review Cost Analysis for high-spend services and enforce subscription budgets with alerts.'
+            Remediation  = 'Review Cost Analysis for high-spend services and enforce subscription budgets with alerts.'
+            LearnMoreUrl = 'https://learn.microsoft.com/azure/cost-management-billing/'
+            ToolVersion  = "Microsoft.Consumption/usageDetails@$consumptionApiVersion"
+        }) | Out-Null
 
 foreach ($item in $top) {
-    $findings.Add([pscustomobject]@{
-        Id           = "azure-cost/resource/$($item.ResourceId)"
-        Source       = 'azure-cost'
-        Category     = 'Cost'
-        Severity     = 'Info'
-        Compliant    = $true
-        Title        = "Top costly resource: $([math]::Round($item.TotalCost,2)) $currency"
-        Detail       = "$($item.ResourceType) in $($item.Location). 30-day total $([math]::Round($item.TotalCost,2)) $currency."
-        ResourceId   = $item.ResourceId
-        ResourceType = $item.ResourceType
-        ResourceName = $item.ResourceName
-        Location     = $item.Location
-        MonthlyCost  = [math]::Round($item.TotalCost, 2)
-        Currency     = $currency
-        CostTrend    = ''
-        Remediation  = ''
-        LearnMoreUrl = 'https://learn.microsoft.com/azure/advisor/advisor-cost-recommendations'
-    }) | Out-Null
+        $findings.Add([pscustomobject]@{
+            Id           = "azure-cost/resource/$($item.ResourceId)"
+            Source       = 'azure-cost'
+            RuleId       = 'azure-cost-top-resource-spend'
+            Category     = 'Cost'
+            Severity     = 'Info'
+            Compliant    = $true
+            Title        = "Top costly resource: $([math]::Round($item.TotalCost,2)) $currency"
+            Detail       = "$($item.ResourceType) in $($item.Location). 30-day total $([math]::Round($item.TotalCost,2)) $currency."
+            ResourceId   = $item.ResourceId
+            ResourceType = $item.ResourceType
+            ResourceName = $item.ResourceName
+            Location     = $item.Location
+            CostCategory = 'TopResourceSpend'
+            MonthlyCost  = [math]::Round($item.TotalCost, 2)
+            Currency     = $currency
+            CostTrend    = ''
+            Recommendation = 'Use Cost Analysis and Advisor to rightsize this resource or apply autoscale and schedule controls.'
+            Remediation  = 'Use Cost Analysis and Advisor to rightsize this resource or apply autoscale and schedule controls.'
+            LearnMoreUrl = 'https://learn.microsoft.com/azure/advisor/advisor-cost-recommendations'
+            ToolVersion  = "Microsoft.Consumption/usageDetails@$consumptionApiVersion"
+        }) | Out-Null
 }
 
 $result.Findings = @($findings)
