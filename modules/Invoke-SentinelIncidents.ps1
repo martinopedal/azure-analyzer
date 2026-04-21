@@ -89,17 +89,188 @@ if ($WorkspaceResourceId -notmatch '^/subscriptions/[^/]+/resourceGroups/[^/]+/p
 }
 
 $findings = [System.Collections.Generic.List[object]]::new()
+$workspaceApiVersion = '2022-10-01'
+
+function ConvertTo-ObjectArray {
+    param ([object] $Value)
+
+    if ($null -eq $Value) { return @() }
+    if ($Value -is [string]) {
+        $trimmed = $Value.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed)) { return @() }
+        if ($trimmed.StartsWith('[') -or $trimmed.StartsWith('{')) {
+            try {
+                $parsed = $trimmed | ConvertFrom-Json -Depth 30
+                return @($parsed)
+            } catch {
+                return @($trimmed)
+            }
+        }
+        return @($trimmed)
+    }
+
+    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) {
+        return @($Value)
+    }
+
+    return @($Value)
+}
+
+function ConvertTo-StringArray {
+    param ([object] $Value)
+
+    $items = ConvertTo-ObjectArray -Value $Value
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $result = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($item in $items) {
+        if ($null -eq $item) { continue }
+        $text = [string]$item
+        if ([string]::IsNullOrWhiteSpace($text)) { continue }
+        $trimmed = $text.Trim()
+        if ($seen.Add($trimmed)) {
+            $result.Add($trimmed)
+        }
+    }
+
+    return $result.ToArray()
+}
+
+function Get-ObjectPropertyValueSafe {
+    param (
+        [object] $Object,
+        [string[]] $PropertyNames
+    )
+
+    foreach ($name in @($PropertyNames)) {
+        if ([string]::IsNullOrWhiteSpace($name)) { continue }
+        if ($Object -is [System.Collections.IDictionary] -and $Object.Contains($name)) {
+            $value = $Object[$name]
+            if (-not [string]::IsNullOrWhiteSpace([string]$value)) { return [string]$value }
+        }
+        if ($Object.PSObject -and $Object.PSObject.Properties[$name]) {
+            $value = $Object.$name
+            if (-not [string]::IsNullOrWhiteSpace([string]$value)) { return [string]$value }
+        }
+    }
+
+    return ''
+}
+
+function Get-SentinelEntityRefs {
+    param ([object] $Value)
+
+    $items = ConvertTo-ObjectArray -Value $Value
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $refs = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($item in $items) {
+        if ($null -eq $item) { continue }
+        if ($item -is [string]) {
+            $raw = $item.Trim().ToLowerInvariant()
+            if ($raw -match '^(account|host|ip|filehash):' -and $seen.Add($raw)) {
+                $refs.Add($raw)
+            }
+            continue
+        }
+
+        $entityType = (Get-ObjectPropertyValueSafe -Object $item -PropertyNames @('Type', 'EntityType', 'type')).ToLowerInvariant()
+        if (-not $entityType) { continue }
+
+        $ref = ''
+        switch -Regex ($entityType) {
+            '^account$' {
+                $accountId = Get-ObjectPropertyValueSafe -Object $item -PropertyNames @('AadUserId', 'AccountAadUserId', 'UserPrincipalName', 'UPN', 'Name', 'Sid', 'ObjectGuid')
+                if ($accountId) { $ref = "account:$($accountId.ToLowerInvariant())" }
+            }
+            '^host$' {
+                $hostName = Get-ObjectPropertyValueSafe -Object $item -PropertyNames @('HostName', 'DnsDomain', 'MachineName', 'NtHostName', 'Name')
+                if ($hostName) { $ref = "host:$($hostName.ToLowerInvariant())" }
+            }
+            '^ip$' {
+                $ip = Get-ObjectPropertyValueSafe -Object $item -PropertyNames @('Address', 'IpAddress', 'AddressV4', 'AddressV6', 'Name')
+                if ($ip) { $ref = "ip:$($ip.ToLowerInvariant())" }
+            }
+            '^filehash$' {
+                $hash = Get-ObjectPropertyValueSafe -Object $item -PropertyNames @('Value', 'HashValue', 'Sha256', 'Sha1', 'Md5', 'FileHash')
+                if ($hash) { $ref = "filehash:$($hash.ToLowerInvariant())" }
+            }
+        }
+
+        if ($ref -and $seen.Add($ref)) {
+            $refs.Add($ref)
+        }
+    }
+
+    return $refs.ToArray()
+}
+
+function Get-EvidenceUris {
+    param (
+        [object] $Comments,
+        [object] $RelatedEntities,
+        [string] $IncidentDeepLink
+    )
+
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $uris = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($raw in @($Comments, $RelatedEntities)) {
+        foreach ($item in (ConvertTo-ObjectArray -Value $raw)) {
+            if ($null -eq $item) { continue }
+            if ($item -is [string]) {
+                $candidate = $item.Trim()
+                if ($candidate -match '^https://') {
+                    if ($seen.Add($candidate)) { $uris.Add($candidate) }
+                }
+                continue
+            }
+
+            $uri = Get-ObjectPropertyValueSafe -Object $item -PropertyNames @('Url', 'Uri', 'Link')
+            if ($uri -and $uri -match '^https://') {
+                if ($seen.Add($uri)) { $uris.Add($uri) }
+            }
+        }
+    }
+
+    if ($IncidentDeepLink) {
+        foreach ($suffix in @('comments', 'entities')) {
+            $uri = "$($IncidentDeepLink.TrimEnd('/'))/$suffix"
+            if ($seen.Add($uri)) { $uris.Add($uri) }
+        }
+    }
+
+    return $uris.ToArray()
+}
+
+function Get-ColumnValue {
+    param (
+        [object[]] $Row,
+        [hashtable] $ColumnIndex,
+        [string] $Name
+    )
+
+    if (-not $ColumnIndex.ContainsKey($Name)) { return $null }
+    $idx = [int]$ColumnIndex[$Name]
+    if ($idx -lt 0 -or $idx -ge $Row.Count) { return $null }
+    return $Row[$idx]
+}
 
 # --- 1. Query SecurityIncident table ---
 # SecurityIncident is append-only: every update writes a new row.
 # Dedup to the latest row per IncidentNumber, then filter to active.
-$queryUri = "https://management.azure.com${WorkspaceResourceId}/api/query?api-version=2022-10-01"
+$queryUri = "https://management.azure.com${WorkspaceResourceId}/api/query?api-version=$workspaceApiVersion"
 $incidentKql = @"
 SecurityIncident
 | where TimeGenerated > ago(${LookbackDays}d)
 | summarize arg_max(TimeGenerated, *) by IncidentNumber
 | where Status in ('New', 'Active')
 | extend AlertCount = array_length(AlertIds)
+| extend IncidentAdditionalData = todynamic(column_ifexists('AdditionalData', dynamic({})))
+| extend Tactics = todynamic(IncidentAdditionalData.Tactics)
+| extend Techniques = todynamic(IncidentAdditionalData.Techniques)
+| extend Comments = todynamic(column_ifexists('Comments', dynamic([])))
+| extend RelatedEntities = todynamic(column_ifexists('RelatedEntities', dynamic([])))
 | project
     IncidentNumber,
     Title,
@@ -112,7 +283,11 @@ SecurityIncident
     CreatedTime,
     LastModifiedTime,
     Description,
-    AlertCount
+    AlertCount,
+    Tactics,
+    Techniques,
+    Comments,
+    RelatedEntities
 | order by case(Severity, "High", 1, "Medium", 2, "Low", 3, "Informational", 4, 5), CreatedTime desc
 "@
 
@@ -170,44 +345,82 @@ try {
     }
 
     foreach ($row in $rows) {
-        $incNumber    = [string]$row[$colIdx['IncidentNumber']]
-        $title        = [string]$row[$colIdx['Title']]
-        $severity     = [string]$row[$colIdx['Severity']]
-        $status       = [string]$row[$colIdx['Status']]
-        $classification = [string]$row[$colIdx['Classification']]
-        $owner        = [string]$row[$colIdx['Owner']]
-        $incUrl       = [string]$row[$colIdx['IncidentUrl']]
-        $provider     = [string]$row[$colIdx['ProviderName']]
-        $createdTime  = [string]$row[$colIdx['CreatedTime']]
-        $modifiedTime = [string]$row[$colIdx['LastModifiedTime']]
-        $description  = [string]$row[$colIdx['Description']]
-        $alertCount   = [int]$row[$colIdx['AlertCount']]
+        $incNumber      = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'IncidentNumber')
+        $title          = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Title')
+        $severity       = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Severity')
+        $status         = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Status')
+        $classification = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Classification')
+        $owner          = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Owner')
+        $incUrl         = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'IncidentUrl')
+        $provider       = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'ProviderName')
+        $createdTime    = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'CreatedTime')
+        $modifiedTime   = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'LastModifiedTime')
+        $description    = [string](Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Description')
+        $alertCountRaw  = Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'AlertCount'
+        $tacticsRaw     = Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Tactics'
+        $techniquesRaw  = Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Techniques'
+        $commentsRaw    = Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'Comments'
+        $entitiesRaw    = Get-ColumnValue -Row $row -ColumnIndex $colIdx -Name 'RelatedEntities'
+
+        $alertCount = 0
+        if ($null -ne $alertCountRaw -and "$alertCountRaw" -ne '') {
+            $alertCount = [int]$alertCountRaw
+        }
 
         if (-not $severity) { $severity = 'Medium' }
 
-        $detail = "Status: $status | Provider: $provider | Alerts: $alertCount | Owner: $owner"
-        if ($classification) { $detail += " | Classification: $classification" }
-        if ($description) { $detail += " | $description" }
+        $mitreTactics = ConvertTo-StringArray -Value $tacticsRaw
+        $mitreTechniques = ConvertTo-StringArray -Value $techniquesRaw
+        $entityRefs = Get-SentinelEntityRefs -Value $entitiesRaw
+
+        $frameworks = [System.Collections.Generic.List[hashtable]]::new()
+        foreach ($techniqueId in $mitreTechniques) {
+            $frameworks.Add(@{
+                Name      = 'MITRE ATT&CK'
+                Controls  = @($techniqueId)
+                ControlId = $techniqueId
+                kind      = 'MITRE ATT&CK'
+            }) | Out-Null
+        }
+
+        $deepLink = $incUrl
+        if (-not $deepLink -and $incNumber) {
+            $escapedWorkspaceId = [System.Uri]::EscapeDataString($WorkspaceResourceId)
+            $deepLink = "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/$escapedWorkspaceId/incidentNumber/$incNumber"
+        }
+
+        $evidenceUris = Get-EvidenceUris -Comments $commentsRaw -RelatedEntities $entitiesRaw -IncidentDeepLink $deepLink
+        $detail = if ($description) { $description } else { "Sentinel incident #$incNumber requires triage." }
 
         $findings.Add([pscustomobject]@{
-            Id              = "sentinel/incident/$incNumber"
-            Source          = 'sentinel-incidents'
-            Category        = 'ThreatDetection'
-            Severity        = $severity
-            Compliant       = $false
-            Title           = $title
-            Detail          = $detail
-            Remediation     = "Investigate incident #$incNumber in the Sentinel portal and triage or resolve."
-            ResourceId      = $WorkspaceResourceId
-            IncidentNumber  = $incNumber
-            IncidentStatus  = $status
-            Classification  = $classification
-            AlertCount      = $alertCount
-            IncidentUrl     = $incUrl
-            ProviderName    = $provider
-            CreatedTime     = $createdTime
+            Id               = "sentinel/incident/$incNumber"
+            Source           = 'sentinel-incidents'
+            Category         = 'ThreatDetection'
+            Severity         = $severity
+            Compliant        = $false
+            Title            = $title
+            Detail           = $detail
+            Remediation      = "Investigate incident #$incNumber in the Sentinel portal and triage or resolve."
+            ResourceId       = $WorkspaceResourceId
+            IncidentNumber   = $incNumber
+            IncidentStatus   = $status
+            Classification   = $classification
+            AlertCount       = $alertCount
+            IncidentUrl      = $deepLink
+            DeepLinkUrl      = $deepLink
+            ProviderName     = $provider
+            Owner            = $owner
+            Description      = $description
+            CreatedTime      = $createdTime
             LastModifiedTime = $modifiedTime
-            LearnMoreUrl    = 'https://learn.microsoft.com/azure/sentinel/investigate-incidents'
+            LearnMoreUrl     = 'https://learn.microsoft.com/azure/sentinel/investigate-incidents'
+            ToolVersion      = $workspaceApiVersion
+            Pillar           = 'Security'
+            MitreTactics     = @($mitreTactics)
+            MitreTechniques  = @($mitreTechniques)
+            Frameworks       = @($frameworks)
+            EntityRefs       = @($entityRefs)
+            EvidenceUris     = @($evidenceUris)
         }) | Out-Null
     }
 } catch {

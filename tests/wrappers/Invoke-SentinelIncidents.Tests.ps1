@@ -174,39 +174,14 @@ Describe 'Invoke-SentinelIncidents: error paths' {
         }
     }
 
-    Context 'happy path: parses deduped tabular response with active incidents only' {
+    Context 'happy path: parses realistic tabular response with schema 2.2 fields' {
         BeforeAll {
             Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Accounts' } }
             Mock Get-AzContext { [PSCustomObject]@{ Account = 'user@test.com' } }
-            # Simulate post-KQL-dedup response: incident 42 is Active (latest row),
-            # incident 45 was Closed in the latest row so KQL filtered it out.
-            # Only active incidents appear in the tabular response.
+            $fixturePath = Join-Path $script:RepoRoot 'tests' 'fixtures' 'sentinel' 'incidents-query-response.json'
+            $fixtureContent = Get-Content -Path $fixturePath -Raw
             Mock Invoke-AzRestMethod {
-                $tabular = @{
-                    tables = @(
-                        @{
-                            columns = @(
-                                @{ name = 'IncidentNumber'; type = 'int' }
-                                @{ name = 'Title'; type = 'string' }
-                                @{ name = 'Severity'; type = 'string' }
-                                @{ name = 'Status'; type = 'string' }
-                                @{ name = 'Classification'; type = 'string' }
-                                @{ name = 'Owner'; type = 'string' }
-                                @{ name = 'IncidentUrl'; type = 'string' }
-                                @{ name = 'ProviderName'; type = 'string' }
-                                @{ name = 'CreatedTime'; type = 'datetime' }
-                                @{ name = 'LastModifiedTime'; type = 'datetime' }
-                                @{ name = 'Description'; type = 'string' }
-                                @{ name = 'AlertCount'; type = 'int' }
-                            )
-                            rows = @(
-                                @(42, 'Brute force attack', 'High', 'Active', 'TruePositive', 'analyst@test.com', 'https://portal.azure.com', 'Azure Sentinel', '2024-12-01T08:00:00Z', '2024-12-02T10:00:00Z', 'Brute force on RDP', 5),
-                                @(43, 'Suspicious login', 'Medium', 'New', '', '', 'https://portal.azure.com', 'M365 Defender', '2024-12-03T14:00:00Z', '2024-12-03T14:00:00Z', 'Login from unusual location', 1)
-                            )
-                        }
-                    )
-                } | ConvertTo-Json -Depth 10
-                [PSCustomObject]@{ StatusCode = 200; Content = $tabular }
+                [PSCustomObject]@{ StatusCode = 200; Content = $fixtureContent }
             }
             $result = & $script:Wrapper -WorkspaceResourceId '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.OperationalInsights/workspaces/ws'
         }
@@ -219,16 +194,39 @@ Describe 'Invoke-SentinelIncidents: error paths' {
             @($result.Findings).Count | Should -Be 2
         }
 
-        It 'parses incident fields correctly' {
+        It 'parses incident fields and keeps typed detail fields' {
             $inc42 = $result.Findings | Where-Object { $_.IncidentNumber -eq '42' }
             $inc42.Title      | Should -Be 'Brute force attack'
             $inc42.Severity   | Should -Be 'High'
             $inc42.AlertCount | Should -Be 5
             $inc42.IncidentStatus | Should -Be 'Active'
+            $inc42.Detail | Should -Be 'Brute force on RDP'
         }
 
         It 'message reports correct count' {
             $result.Message | Should -Match '2 active Sentinel incident'
+        }
+
+        It 'emits schema 2.2 wrapper fields for MITRE, frameworks, and metadata' {
+            $inc42 = $result.Findings | Where-Object { $_.IncidentNumber -eq '42' }
+            $inc42.Pillar | Should -Be 'Security'
+            $inc42.ToolVersion | Should -Be '2022-10-01'
+            @($inc42.MitreTactics) | Should -Contain 'InitialAccess'
+            @($inc42.MitreTechniques) | Should -Contain 'T1110'
+            @($inc42.Frameworks).Count | Should -BeGreaterThan 0
+            $mitre = @($inc42.Frameworks | Where-Object { $_.Name -eq 'MITRE ATT&CK' -and $_.ControlId -eq 'T1110' })
+            $mitre.Count | Should -Be 1
+        }
+
+        It 'builds deep links, evidence URIs, and related entity references' {
+            $inc42 = $result.Findings | Where-Object { $_.IncidentNumber -eq '42' }
+            $inc42.DeepLinkUrl | Should -Match 'IncidentDetailsBlade'
+            @($inc42.EvidenceUris | Where-Object { $_ -match '/comments' }).Count | Should -BeGreaterThan 0
+            @($inc42.EvidenceUris | Where-Object { $_ -match '/entities' }).Count | Should -BeGreaterThan 0
+            @($inc42.EntityRefs) | Should -Contain 'account:admin@contoso.com'
+            @($inc42.EntityRefs) | Should -Contain 'host:dc01.contoso.com'
+            @($inc42.EntityRefs) | Should -Contain 'ip:185.220.101.1'
+            @($inc42.EntityRefs) | Should -Contain 'filehash:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
         }
     }
 

@@ -12,18 +12,44 @@
       "Severity": "High",
       "Compliant": false,
       "Title": "Suspicious sign-in activity from anonymous IP address",
-      "Detail": "Status: Active | Provider: Azure Sentinel | Alerts: 3 | Owner: soc-analyst@contoso.com | Classification: TruePositive | Multiple sign-in attempts from TOR exit nodes targeting admin accounts.",
+      "Detail": "Multiple sign-in attempts from TOR exit nodes targeting admin accounts.",
       "Remediation": "Investigate incident #42 in the Sentinel portal and triage or resolve.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/sentinel-rg/providers/Microsoft.OperationalInsights/workspaces/sentinel-workspace",
       "IncidentNumber": "42",
       "IncidentStatus": "Active",
       "Classification": "TruePositive",
       "AlertCount": 3,
-      "IncidentUrl": "https://portal.azure.com/#/entity/sentinel/incident/42",
+      "IncidentUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/42",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/42",
       "ProviderName": "Azure Sentinel",
+      "Owner": "soc-analyst@contoso.com",
+      "Description": "Multiple sign-in attempts from TOR exit nodes targeting admin accounts.",
       "CreatedTime": "2024-12-01T08:15:00Z",
       "LastModifiedTime": "2024-12-02T10:30:00Z",
-      "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/investigate-incidents"
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/investigate-incidents",
+      "ToolVersion": "2022-10-01",
+      "Pillar": "Security",
+      "MitreTactics": ["InitialAccess", "CredentialAccess"],
+      "MitreTechniques": ["T1078", "T1110"],
+      "Frameworks": [
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": ["T1078"],
+          "ControlId": "T1078",
+          "kind": "MITRE ATT&CK"
+        },
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": ["T1110"],
+          "ControlId": "T1110",
+          "kind": "MITRE ATT&CK"
+        }
+      ],
+      "EntityRefs": ["account:admin@contoso.com", "ip:185.220.101.1", "host:dc01.contoso.com"],
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/42/comments",
+        "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/42/entities"
+      ]
     },
     {
       "Id": "sentinel/incident/43",
@@ -31,19 +57,45 @@
       "Category": "ThreatDetection",
       "Severity": "Medium",
       "Compliant": false,
-      "Title": "Unusual resource deployment detected",
-      "Detail": "Status: New | Provider: Microsoft 365 Defender | Alerts: 1 | Owner:  | Deployment of 15 VMs in non-standard region detected.",
+      "Title": "Credential replay activity against cloud resources",
+      "Detail": "Suspicious replay pattern against cloud control-plane APIs.",
       "Remediation": "Investigate incident #43 in the Sentinel portal and triage or resolve.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/sentinel-rg/providers/Microsoft.OperationalInsights/workspaces/sentinel-workspace",
       "IncidentNumber": "43",
       "IncidentStatus": "New",
       "Classification": "",
-      "AlertCount": 1,
-      "IncidentUrl": "https://portal.azure.com/#/entity/sentinel/incident/43",
+      "AlertCount": 2,
+      "IncidentUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/43",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/43",
       "ProviderName": "Microsoft 365 Defender",
+      "Owner": "tier2@contoso.com",
+      "Description": "Suspicious replay pattern against cloud control-plane APIs.",
       "CreatedTime": "2024-12-03T14:20:00Z",
       "LastModifiedTime": "2024-12-03T14:20:00Z",
-      "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/investigate-incidents"
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/investigate-incidents",
+      "ToolVersion": "2022-10-01",
+      "Pillar": "Security",
+      "MitreTactics": ["CredentialAccess", "Discovery"],
+      "MitreTechniques": ["T1110", "T1087"],
+      "Frameworks": [
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": ["T1110"],
+          "ControlId": "T1110",
+          "kind": "MITRE ATT&CK"
+        },
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": ["T1087"],
+          "ControlId": "T1087",
+          "kind": "MITRE ATT&CK"
+        }
+      ],
+      "EntityRefs": ["account:admin@contoso.com", "ip:185.220.101.1", "filehash:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"],
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/43/comments",
+        "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/43/entities"
+      ]
     },
     {
       "Id": "sentinel/incident/44",
@@ -52,18 +104,38 @@
       "Severity": "Informational",
       "Compliant": false,
       "Title": "Azure AD Identity Protection risk event",
-      "Detail": "Status: New | Provider: Azure Sentinel | Alerts: 1 | Owner:  | Low-confidence leaked credentials alert from dark web monitoring.",
+      "Detail": "Low-confidence leaked credentials alert from dark web monitoring.",
       "Remediation": "Investigate incident #44 in the Sentinel portal and triage or resolve.",
       "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/sentinel-rg/providers/Microsoft.OperationalInsights/workspaces/sentinel-workspace",
       "IncidentNumber": "44",
       "IncidentStatus": "New",
       "Classification": "",
       "AlertCount": 1,
-      "IncidentUrl": "https://portal.azure.com/#/entity/sentinel/incident/44",
+      "IncidentUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/44",
+      "DeepLinkUrl": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/44",
       "ProviderName": "Azure Sentinel",
+      "Owner": "",
+      "Description": "Low-confidence leaked credentials alert from dark web monitoring.",
       "CreatedTime": "2024-12-04T09:00:00Z",
       "LastModifiedTime": "2024-12-04T09:00:00Z",
-      "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/investigate-incidents"
+      "LearnMoreUrl": "https://learn.microsoft.com/azure/sentinel/investigate-incidents",
+      "ToolVersion": "2022-10-01",
+      "Pillar": "Security",
+      "MitreTactics": ["InitialAccess"],
+      "MitreTechniques": ["T1078"],
+      "Frameworks": [
+        {
+          "Name": "MITRE ATT&CK",
+          "Controls": ["T1078"],
+          "ControlId": "T1078",
+          "kind": "MITRE ATT&CK"
+        }
+      ],
+      "EntityRefs": ["account:helpdesk@contoso.com", "ip:20.42.90.10"],
+      "EvidenceUris": [
+        "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/44/comments",
+        "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F11111111-1111-1111-1111-111111111111%2FresourceGroups%2Fsentinel-rg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fsentinel-workspace/incidentNumber/44/entities"
+      ]
     }
   ]
 }

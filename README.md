@@ -74,6 +74,7 @@ The HTML report includes an executive Summary tab, a Top recommendations by impa
 - **Unified v2.2 schema** with 5 severity levels (Critical, High, Medium, Low, Info), 14 entity types across 4 platforms (Azure, Entra, GitHub, ADO), and additive metadata fields (`Frameworks`, `Pillar`, `MitreTactics`, `MitreTechniques`, `EvidenceUris`, `BaselineTags`, `ToolVersion`).
 - **Read-only everywhere.** No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML + Markdown reports** with executive summary, top impact recommendations, heatmap, framework coverage matrix, filtering, control-framework chips, and CSV export.
+- **Sentinel incidents now emit Schema 2.2 security context** (`Pillar`, `ToolVersion`, `MitreTactics`, `MitreTechniques`, `Frameworks`, `DeepLinkUrl`, `EvidenceUris`, `EntityRefs`) so incident rows carry MITRE and entity-link evidence end to end.
 - **Manifest-driven installer.** Run with `-InstallMissingModules` to auto-install prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Markdown link CI checks** on PRs that change `.md` files, plus a weekly scheduled link-rot sweep.
 
