@@ -122,6 +122,17 @@ Run azure-analyzer on a schedule and stream findings to Log Analytics or open is
 
 `-EnableAiTriage` adds AI-assisted finding summaries when a Copilot or Azure OpenAI endpoint is configured. Fully optional, off by default. See [docs/consumer/ai-triage.md](docs/consumer/ai-triage.md).
 
+## ALZ queries
+
+The `alz-queries` tool runs a curated set of Azure Resource Graph (ARG) queries that check landing-zone compliance and drift against CIS Azure, NIST 800-53, Azure WAF, and Azure CAF.
+
+- **Canonical source of truth:** [martinopedal/alz-graph-queries](https://github.com/martinopedal/alz-graph-queries). That repo owns the query schema, the query set, and the validation tooling (`Validate-Queries.ps1`, `Validate-KqlSyntax.ps1`, Pester suite).
+- **Local cache:** the `queries/` folder in this repo (`queries/alz_additional_queries.json`) is a snapshot of the upstream JSON. `modules/Invoke-AlzQueries.ps1` reads it directly via `Search-AzGraph`. Each query MUST return a boolean `compliant` column; see the upstream repo for the full schema.
+- **Provenance:** queries derive from [Azure/review-checklists](https://github.com/Azure/review-checklists). The full chain is documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **Sync workflow (in flight):** `scripts/Sync-AlzQueries.ps1` (see issue #315) will pull the latest queries from upstream into `queries/`, replacing the manual copy step. Until that lands, refresh by cloning [alz-graph-queries](https://github.com/martinopedal/alz-graph-queries) and copying `alz_additional_queries.json` into `queries/`.
+
+Manifest pin: `tools/tool-manifest.json` -> `alz-queries.upstream.repo` points at `martinopedal/alz-graph-queries`.
+
 ## Contributing
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): fork / branch / PR workflow, docs-update rule, signed-commit policy.
