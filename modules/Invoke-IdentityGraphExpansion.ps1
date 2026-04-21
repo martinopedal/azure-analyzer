@@ -113,6 +113,54 @@ function ConvertTo-CanonicalTenantToken {
     }
 }
 
+function Get-IdentityGraphFrameworks {
+    [CmdletBinding()]
+    param ()
+    return @(
+        @{ Name = 'NIST 800-53'; Controls = @('AC-2', 'AC-6', 'IA-2', 'IA-5'); Pillars = @('Security') },
+        @{ Name = 'CIS Controls v8'; Controls = @('5.4', '6.1', '6.8'); Pillars = @('Security') }
+    )
+}
+
+function Get-IdentityGraphMitre {
+    [CmdletBinding()]
+    param ()
+    return @{
+        Tactics    = @('TA0008', 'TA0004')
+        Techniques = @('T1078', 'T1098')
+    }
+}
+
+function Get-EntraPortalDeepLink {
+    [CmdletBinding()]
+    param (
+        [string] $EntityId,
+        [string] $EntityType
+    )
+
+    if ([string]::IsNullOrWhiteSpace($EntityId)) {
+        return 'https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview'
+    }
+
+    switch ($EntityType) {
+        'User' {
+            if ($EntityId -match '^objectId:([0-9a-f-]{36})$') {
+                return "https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/$($matches[1])"
+            }
+        }
+        'ServicePrincipal' {
+            if ($EntityId -match '^appId:([0-9a-f-]{36})$') {
+                return "https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ManagedAppMenuBlade/~/Overview/objectId/$($matches[1])"
+            }
+        }
+        'Tenant' {
+            return 'https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview'
+        }
+    }
+
+    return 'https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview'
+}
+
 function Invoke-IdentityGraphExpansion {
     [CmdletBinding()]
     param (
@@ -137,6 +185,9 @@ function Invoke-IdentityGraphExpansion {
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
     $edges = [System.Collections.Generic.List[PSCustomObject]]::new()
     $homeTenantCanonical = ConvertTo-CanonicalTenantToken -TenantIdOrDomain $TenantId
+    $frameworks = Get-IdentityGraphFrameworks
+    $mitre = Get-IdentityGraphMitre
+    $wrapperToolVersion = 'identity-graph-expansion@1.0'
 
     # ------------------------------------------------------------------
     # Data acquisition. Pre-fetched data wins; otherwise opt-in Graph calls.
@@ -162,7 +213,19 @@ function Invoke-IdentityGraphExpansion {
             -Severity 'Info' `
             -Confidence 'Confirmed' `
             -Detail "Live collector enumeration was limited to $MaxPrincipals principals from the EntityStore. Remaining principals were not expanded. Re-run with a higher -MaxPrincipals value for full coverage." `
-            -Remediation 'Increase -MaxPrincipals or scope the EntityStore to fewer subscriptions/tenants.'
+            -Remediation 'Increase -MaxPrincipals or scope the EntityStore to fewer subscriptions/tenants.' `
+            -Frameworks $frameworks `
+            -Pillar 'Security' `
+            -Impact 'Low' `
+            -Effort 'Low' `
+            -DeepLinkUrl (Get-EntraPortalDeepLink -EntityId $homeTenantCanonical -EntityType 'Tenant') `
+            -RemediationSnippets @(@{ language = 'powershell'; code = "Invoke-AzureAnalyzer -IncludeTools 'identity-graph-expansion' -TenantId '$TenantId' -IncludeGraphLookup -MaxPrincipals 5000" }) `
+            -EvidenceUris @('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview') `
+            -BaselineTags @('identity-graph-expansion', 'collector-cap') `
+            -MitreTactics @($mitre.Tactics) `
+            -MitreTechniques @($mitre.Techniques) `
+            -EntityRefs @($homeTenantCanonical) `
+            -ToolVersion $wrapperToolVersion
         if ($capFinding) { $findings.Add($capFinding) }
     }
 
@@ -183,7 +246,19 @@ function Invoke-IdentityGraphExpansion {
                 -Severity 'Info' `
                 -Confidence 'Confirmed' `
                 -Detail "The '$collectorName' collector received 3 consecutive 429 responses from Microsoft Graph and was halted to avoid prolonged blocking. Partial data is included. Retry after the throttling window expires (typically 10-60 minutes)." `
-                -Remediation 'Wait for the Graph throttling window to expire and re-run with -IncludeGraphLookup. Consider reducing -MaxPrincipals to lower request volume.'
+                -Remediation 'Wait for the Graph throttling window to expire and re-run with -IncludeGraphLookup. Consider reducing -MaxPrincipals to lower request volume.' `
+                -Frameworks $frameworks `
+                -Pillar 'Security' `
+                -Impact 'Low' `
+                -Effort 'Low' `
+                -DeepLinkUrl (Get-EntraPortalDeepLink -EntityId $homeTenantCanonical -EntityType 'Tenant') `
+                -RemediationSnippets @(@{ language = 'text'; code = "Retry collector '$collectorName' after Graph throttling clears." }) `
+                -EvidenceUris @('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview') `
+                -BaselineTags @('identity-graph-expansion', 'throttle-skip', "collector:$collectorName") `
+                -MitreTactics @($mitre.Tactics) `
+                -MitreTechniques @($mitre.Techniques) `
+                -EntityRefs @($homeTenantCanonical) `
+                -ToolVersion $wrapperToolVersion
             if ($throttleFinding) { $findings.Add($throttleFinding) }
         }
     }
@@ -245,7 +320,19 @@ function Invoke-IdentityGraphExpansion {
                 -Severity 'Low' `
                 -Confidence 'Confirmed' `
                 -Detail "Guest user has not accepted invitation. Home domain: $($homeDomain ?? 'unknown'). Stale invitations should be reviewed and revoked." `
-                -Remediation 'Audit pending B2B invitations regularly; revoke unused invitations via Entra > External Identities.'
+                -Remediation 'Audit pending B2B invitations regularly; revoke unused invitations via Entra > External Identities.' `
+                -Frameworks $frameworks `
+                -Pillar 'Security' `
+                -Impact 'Medium' `
+                -Effort 'Low' `
+                -DeepLinkUrl (Get-EntraPortalDeepLink -EntityId $userCanonical -EntityType 'User') `
+                -RemediationSnippets @(@{ language = 'text'; code = 'Review guest accounts in Entra External Identities and remove stale pending invitations.' }) `
+                -EvidenceUris @('https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserManagementMenuBlade/~/AllUsers') `
+                -BaselineTags @('identity-graph-expansion', 'guest', "external-state:$state") `
+                -MitreTactics @($mitre.Tactics) `
+                -MitreTechniques @($mitre.Techniques) `
+                -EntityRefs @($userCanonical, $tenantToken, $homeTenantCanonical | Where-Object { $_ } | Select-Object -Unique) `
+                -ToolVersion $wrapperToolVersion
             if ($finding) { $findings.Add($finding) }
         }
     }
@@ -338,7 +425,19 @@ function Invoke-IdentityGraphExpansion {
                 -Severity $severity `
                 -Confidence 'Confirmed' `
                 -Detail "Principal $principalId has role '$roleName' assigned at scope '$scope'. High-privilege roles at subscription or management-group scope grant broad access and should be replaced with least-privilege custom roles or PIM-eligible assignments." `
-                -Remediation 'Replace standing assignment with PIM-eligible role activation, or scope role to a single resource group.'
+                -Remediation 'Replace standing assignment with PIM-eligible role activation, or scope role to a single resource group.' `
+                -Frameworks $frameworks `
+                -Pillar 'Security' `
+                -Impact 'High' `
+                -Effort 'Medium' `
+                -DeepLinkUrl (Get-EntraPortalDeepLink -EntityId $srcCanonical -EntityType $entityType) `
+                -RemediationSnippets @(@{ language = 'text'; code = "Move role '$roleName' to PIM eligibility and reduce scope from '$scope' where possible." }) `
+                -EvidenceUris @("https://portal.azure.com/#@$TenantId/resource$scope", 'https://entra.microsoft.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/Overview') `
+                -BaselineTags @('identity-graph-expansion', 'rbac', "role:$($roleName.ToLowerInvariant())") `
+                -MitreTactics @($mitre.Tactics) `
+                -MitreTechniques @($mitre.Techniques) `
+                -EntityRefs @($srcCanonical, $tgtCanonical, $homeTenantCanonical | Where-Object { $_ } | Select-Object -Unique) `
+                -ToolVersion $wrapperToolVersion
             if ($finding) { $findings.Add($finding) }
         }
     }
@@ -416,7 +515,19 @@ function Invoke-IdentityGraphExpansion {
                 -Severity 'High' `
                 -Confidence 'Confirmed' `
                 -Detail "Application $clientId holds tenant-wide admin consent to high-impact scopes ($($risky -join ', ')) on resource $resourceId. Tenant-wide admin consent should be reserved for first-party Microsoft apps and explicitly approved third parties." `
-                -Remediation 'Review the consent grant in Entra > Enterprise Applications > Permissions and revoke if not justified.'
+                -Remediation 'Review the consent grant in Entra > Enterprise Applications > Permissions and revoke if not justified.' `
+                -Frameworks $frameworks `
+                -Pillar 'Security' `
+                -Impact 'High' `
+                -Effort 'Medium' `
+                -DeepLinkUrl (Get-EntraPortalDeepLink -EntityId $srcCanonical -EntityType 'ServicePrincipal') `
+                -RemediationSnippets @(@{ language = 'text'; code = "Review and revoke risky scopes ($($risky -join ', ')) in Entra Enterprise Applications permissions." }) `
+                -EvidenceUris @('https://entra.microsoft.com/#view/Microsoft_AAD_IAM/StartboardApplicationsMenuBlade/~/AppAppsPreview') `
+                -BaselineTags @('identity-graph-expansion', 'consent', 'tenant-wide-admin-consent') `
+                -MitreTactics @($mitre.Tactics) `
+                -MitreTechniques @($mitre.Techniques) `
+                -EntityRefs @($srcCanonical, $tgtCanonical, $homeTenantCanonical | Where-Object { $_ } | Select-Object -Unique) `
+                -ToolVersion $wrapperToolVersion
             if ($finding) { $findings.Add($finding) }
         }
     }
@@ -444,6 +555,7 @@ function Invoke-IdentityGraphExpansion {
     return [PSCustomObject]@{
         Status           = 'Success'
         RunId            = $runId
+        ToolVersion      = $wrapperToolVersion
         Findings         = @($findings)
         Edges            = @($edges)
         ExpansionSummary = $expansionSummary
