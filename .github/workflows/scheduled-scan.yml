@@ -46,12 +46,18 @@ jobs:
           $sub = '${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}'
           $tenant = '${{ vars.AZURE_TENANT_ID }}'
           $client = '${{ vars.AZURE_CLIENT_ID }}'
-          foreach ($pair in @(@('AZURE_SUBSCRIPTION_ID', $sub), @('AZURE_TENANT_ID', $tenant), @('AZURE_CLIENT_ID', $client))) {
-            if ([string]::IsNullOrWhiteSpace($pair[1])) {
-              throw "Repository variable $($pair[0]) is not set; configure OIDC federation before scheduling."
+          $scopeVars = @(
+            [pscustomobject]@{ Name = 'AZURE_SUBSCRIPTION_ID'; Value = $sub }
+            [pscustomobject]@{ Name = 'AZURE_TENANT_ID'; Value = $tenant }
+            [pscustomobject]@{ Name = 'AZURE_CLIENT_ID'; Value = $client }
+          )
+          $guidPattern = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          foreach ($scopeVar in $scopeVars) {
+            if ([string]::IsNullOrWhiteSpace($scopeVar.Value)) {
+              throw "Missing/invalid: $($scopeVar.Name) (empty value). Configure OIDC federation before scheduling."
             }
-            if ($pair[1] -notmatch '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
-              throw "Repository variable $($pair[0]) is not a valid GUID."
+            if ($scopeVar.Value -notmatch $guidPattern) {
+              throw "Missing/invalid: $($scopeVar.Name) (expected GUID)."
             }
           }
 

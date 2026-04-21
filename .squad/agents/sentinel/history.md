@@ -99,3 +99,10 @@ No code changes in this phase. Pester baseline unchanged at 1349 passed / 5 skip
 - Schema 2.2 contract is the canonical reference: 13 new optional fields, all backward-compatible.
 - 15 issues filed (#299 umbrella + #295-#298 generators + #300-#313 per-tool ETL fixes).
 - Renderer graceful-degradation contract locked: render when present, omit when absent, never fabricate, never parse from string blobs.
+
+### 2026-04-21 - Issue #340 scheduled-scan scope validation hardening
+
+- Fixed `.github/workflows/scheduled-scan.yml` step **Validate scope variables** to use `[pscustomobject]` entries (`Name`, `Value`) rather than nested arrays that PowerShell flattens.
+- Empty repo variable values now fail with explicit `Missing/invalid: <NAME>` errors instead of string index exceptions.
+- GUID validation now runs against `.Value` with clear `Missing/invalid: <NAME> (expected GUID)` messaging for malformed values.
+- Validation run: `Invoke-Pester -Path .\tests -CI` passed at baseline `1369 passed / 0 failed / 5 skipped`.

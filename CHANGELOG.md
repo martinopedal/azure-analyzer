@@ -61,6 +61,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 
+- fix(ci): scheduled scan scope validation now uses named PowerShell objects instead of nested arrays, preventing index exceptions when any scope variable is empty and raising explicit `Missing/invalid: <NAME>` errors instead (closes #340).
 - fix(azure-quota): make Azure CLI non-zero exits retryable by raising failures inside `Invoke-WithRetry` script blocks before emitting sanitized installer-style failures.
 - docs: update README tool count to 27 to match current manifest (closes #235)
 - fix(manifest): corrected `alz-queries` upstream pointer to `martinopedal/alz-graph-queries` (repo + release API endpoint) to align with ARG query source of truth.
