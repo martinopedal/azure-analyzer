@@ -45,6 +45,8 @@ $script:EntityTypes = @(
     'ManagedIdentity',
     'Application',
     'Repository',
+    'BuildDefinition',
+    'ReleaseDefinition',
     'Pipeline',
     'VariableGroup',
     'Environment',
@@ -57,7 +59,7 @@ $script:EntityTypes = @(
     'AdoProject',
     'KarpenterProvisioner'
 )
-$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO')
+$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
 $script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -93,6 +95,8 @@ function Get-PlatformForEntityType {
             'ManagedIdentity',
             'Application',
             'Repository',
+            'BuildDefinition',
+            'ReleaseDefinition',
             'Pipeline',
             'VariableGroup',
             'Environment',
@@ -119,6 +123,8 @@ function Get-PlatformForEntityType {
         'User' { 'Entra' }
         'Tenant' { 'Entra' }
         'Repository' { 'GitHub' }
+        'BuildDefinition' { 'AzureDevOps' }
+        'ReleaseDefinition' { 'AzureDevOps' }
         'Workflow' { 'GitHub' }
         'Pipeline' { 'ADO' }
         'VariableGroup' { 'ADO' }
@@ -413,6 +419,8 @@ function New-EntityStub {
             'ManagedIdentity',
             'Application',
             'Repository',
+            'BuildDefinition',
+            'ReleaseDefinition',
             'Pipeline',
             'ServiceConnection',
             'User',
@@ -425,7 +433,7 @@ function New-EntityStub {
         )]
         [string] $EntityType,
 
-        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO')]
+        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps')]
         [string] $Platform,
 
         [string] $DisplayName,
@@ -558,6 +566,7 @@ function Test-FindingRow {
     # EntityId canonicalization check (when possible)
     if ($Finding.PSObject.Properties['EntityId'] -and $Finding.EntityId -and 
         $Finding.PSObject.Properties['EntityType'] -and $Finding.EntityType -and
+        (-not ($Finding.PSObject.Properties['Platform'] -and $Finding.Platform -eq 'AzureDevOps')) -and
         (Get-Command ConvertTo-CanonicalEntityId -ErrorAction SilentlyContinue)) {
         try {
             $result = ConvertTo-CanonicalEntityId -RawId $Finding.EntityId -EntityType $Finding.EntityType
@@ -787,7 +796,7 @@ function Test-EntityRecord {
     }
 
     $canonicalizer = Get-Command -Name ConvertTo-CanonicalEntityId -ErrorAction SilentlyContinue
-    if ($canonicalizer -and $Entity.EntityId -and $Entity.EntityType) {
+    if ($canonicalizer -and $Entity.EntityId -and $Entity.EntityType -and $Entity.Platform -ne 'AzureDevOps') {
         try {
             $canonical = ConvertTo-CanonicalEntityId -RawId $Entity.EntityId -EntityType $Entity.EntityType
             if ($canonical.CanonicalId -cne $Entity.EntityId) {

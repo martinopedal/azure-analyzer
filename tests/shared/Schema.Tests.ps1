@@ -85,6 +85,22 @@ Describe 'New-FindingRow' {
         $finding.EntityType | Should -Be 'KarpenterProvisioner'
         $finding.Platform | Should -Be 'Azure'
     }
+
+    It 'accepts BuildDefinition with AzureDevOps platform' {
+        $finding = New-FindingRow `
+            -Id 'f-build-def' `
+            -Source 'ado-pipelines' `
+            -EntityId 'contoso/payments/BuildDefinition/101' `
+            -EntityType 'BuildDefinition' `
+            -Title 'Build definition branch filter missing' `
+            -Compliant $false `
+            -ProvenanceRunId 'ado-run-2' `
+            -Platform 'AzureDevOps'
+
+        $finding | Should -Not -BeNullOrEmpty
+        $finding.EntityType | Should -Be 'BuildDefinition'
+        $finding.Platform | Should -Be 'AzureDevOps'
+    }
 }
 
 Describe 'Get-PlatformForEntityType (v2.1 additions)' {
@@ -93,6 +109,12 @@ Describe 'Get-PlatformForEntityType (v2.1 additions)' {
     }
     It 'maps KarpenterProvisioner to Azure' {
         Get-PlatformForEntityType -EntityType 'KarpenterProvisioner' | Should -Be 'Azure'
+    }
+    It 'maps BuildDefinition to AzureDevOps' {
+        Get-PlatformForEntityType -EntityType 'BuildDefinition' | Should -Be 'AzureDevOps'
+    }
+    It 'maps ReleaseDefinition to AzureDevOps' {
+        Get-PlatformForEntityType -EntityType 'ReleaseDefinition' | Should -Be 'AzureDevOps'
     }
 }
 
