@@ -159,3 +159,27 @@ Smallest change, matches reality the wrapper already encodes. Two PRs proposed: 
 - #325 — docs: add azure-quota-reports to README + PERMISSIONS.md + CHANGELOG.md + tool catalog regen — https://github.com/martinopedal/azure-analyzer/issues/325  *(depends on #324)*
 
 **Decision ratified:** `compliant = (UsagePercent < 80%)`, `EntityType=Subscription`, `Pillar='Reliability'`, `Category='Capacity'`. Schema 2.2 ready (no new fields required). Full schema mapping locked in research brief + issue descriptions.
+
+## 2026-04-21 - Issue #317 queries/ reorg into per-tool subfolders (PR #335)
+
+Reorganized `queries/` runtime catalogs into per-tool subfolders matching their owning wrapper. Goal: kill the flat-folder layout that mixed alz + finops + library at the top, and make wrapper ownership self-evident in the file tree.
+
+### Layout call
+
+- `queries/alz/alz_additional_queries.json` (sole reader: `Invoke-AlzQueries.ps1`; sole writer: `scripts/Sync-AlzQueries.ps1`).
+- `queries/finops/finops-*.json` (7 files, sole reader: `Invoke-FinOpsSignals.ps1` via `Get-ChildItem -Filter 'finops-*.json'`).
+- `queries/library/` unchanged - 8 reference-only files mirroring inline-wrapper KQL, no wrapper reads them. Subdivision deferred (too small to justify nesting).
+- New `queries/README.md` codifies the convention so future tools (e.g. azure-quota) know where to drop their catalog.
+
+### Process notes
+
+- 3-of-3 rubber-duck APPROVE before implementation (Opus 4.6 + GPT-5.3-codex + Goldeneye); Goldeneye and GPT both flagged downstream doc references I'd missed (`README.md`, `docs/consumer/permissions/finops.md`, `queries/library/README.md`) - fixed in same commit.
+- All 8 moves via `git mv` so blame survives. `git status -R` confirms rename detection.
+- Pester baseline preserved: **1354 passed / 0 failed / 5 skipped** (same as pre-PR).
+- Test fix subtlety: `Sync-AlzQueries.Tests.ps1` DryRun test seeded an `old-content` file at the destination to force a `WouldUpdate` action - moving the destination to `queries\alz\` meant the seed had to move too, otherwise the test would have flipped to `WouldCreate` and silently passed for the wrong reason.
+- `markdown-link-check` failed once on a flaky TLS handshake to `https://keda.sh/` (unrelated external link). Per resilience contract: re-ran failed job, second run green.
+- No Copilot review comments came back; merged at `b8aa059` with squash + `--delete-branch --admin`.
+
+### Wrapper-glob ownership stays invisible to grep
+
+Reinforced the lesson from the orphan-query audit: `Invoke-FinOpsSignals.ps1` reads its catalogs via a directory glob (`Get-ChildItem -Filter 'finops-*.json'`), so a literal-filename grep returns zero hits. Per-tool subfolders make this ownership visible in the tree, which is the durable fix.
