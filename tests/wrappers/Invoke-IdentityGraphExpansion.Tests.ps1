@@ -90,6 +90,24 @@ Describe 'Invoke-IdentityGraphExpansion (fixture-driven)' {
         $risky[0].Severity | Should -Be 'High'
     }
 
+    It 'emits Schema 2.2 identity ETL context on findings' {
+        $script:result.ToolVersion | Should -Not -BeNullOrEmpty
+        foreach ($f in @($script:result.Findings)) {
+            $f.Frameworks.Count | Should -BeGreaterThan 0
+            $f.Pillar | Should -Be 'Security'
+            $f.Impact | Should -Not -BeNullOrEmpty
+            $f.Effort | Should -Not -BeNullOrEmpty
+            $f.DeepLinkUrl | Should -Match '^https://entra\.microsoft\.com/'
+            $f.RemediationSnippets.Count | Should -BeGreaterThan 0
+            $f.EvidenceUris.Count | Should -BeGreaterThan 0
+            $f.BaselineTags.Count | Should -BeGreaterThan 0
+            $f.MitreTactics | Should -Contain 'TA0008'
+            $f.MitreTechniques.Count | Should -BeGreaterThan 0
+            $f.EntityRefs.Count | Should -BeGreaterThan 0
+            $f.ToolVersion | Should -Not -BeNullOrEmpty
+        }
+    }
+
     It 'emits OwnsAppRegistration edges' {
         $owns = @($script:result.Edges | Where-Object { $_.Relation -eq 'OwnsAppRegistration' })
         $owns.Count | Should -Be 1
