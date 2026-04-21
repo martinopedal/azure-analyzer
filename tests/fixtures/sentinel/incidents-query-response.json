@@ -1,0 +1,74 @@
+{
+  "tables": [
+    {
+      "columns": [
+        { "name": "IncidentNumber", "type": "int" },
+        { "name": "Title", "type": "string" },
+        { "name": "Severity", "type": "string" },
+        { "name": "Status", "type": "string" },
+        { "name": "Classification", "type": "string" },
+        { "name": "Owner", "type": "string" },
+        { "name": "IncidentUrl", "type": "string" },
+        { "name": "ProviderName", "type": "string" },
+        { "name": "CreatedTime", "type": "datetime" },
+        { "name": "LastModifiedTime", "type": "datetime" },
+        { "name": "Description", "type": "string" },
+        { "name": "AlertCount", "type": "int" },
+        { "name": "Tactics", "type": "dynamic" },
+        { "name": "Techniques", "type": "dynamic" },
+        { "name": "Comments", "type": "dynamic" },
+        { "name": "RelatedEntities", "type": "dynamic" }
+      ],
+      "rows": [
+        [
+          42,
+          "Brute force attack",
+          "High",
+          "Active",
+          "TruePositive",
+          "soc-analyst@contoso.com",
+          "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F00000000-0000-0000-0000-000000000000%2FresourceGroups%2Frg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fws/incidentNumber/42",
+          "Azure Sentinel",
+          "2024-12-01T08:00:00Z",
+          "2024-12-02T10:00:00Z",
+          "Brute force on RDP",
+          5,
+          [ "InitialAccess", "CredentialAccess" ],
+          [ "T1078", "T1110" ],
+          [
+            {
+              "Url": "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F00000000-0000-0000-0000-000000000000%2FresourceGroups%2Frg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fws/incidentNumber/42/comments/comment-1"
+            }
+          ],
+          [
+            { "Type": "Account", "UserPrincipalName": "admin@contoso.com" },
+            { "Type": "Host", "HostName": "dc01.contoso.com" },
+            { "Type": "IP", "Address": "185.220.101.1" },
+            { "Type": "FileHash", "Value": "2CF24DBA5FB0A30E26E83B2AC5B9E29E1B161E5C1FA7425E73043362938B9824" }
+          ]
+        ],
+        [
+          43,
+          "Credential replay",
+          "Medium",
+          "New",
+          "",
+          "tier2@contoso.com",
+          "https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/IncidentDetailsBlade/workspaceResourceId/%2Fsubscriptions%2F00000000-0000-0000-0000-000000000000%2FresourceGroups%2Frg%2Fproviders%2FMicrosoft.OperationalInsights%2Fworkspaces%2Fws/incidentNumber/43",
+          "Microsoft 365 Defender",
+          "2024-12-03T14:00:00Z",
+          "2024-12-03T14:00:00Z",
+          "Replay from suspicious source",
+          2,
+          [ "CredentialAccess", "Discovery" ],
+          [ "T1110", "T1087" ],
+          [],
+          [
+            { "Type": "Account", "UserPrincipalName": "admin@contoso.com" },
+            { "Type": "IP", "Address": "185.220.101.1" }
+          ]
+        ]
+      ]
+    }
+  ]
+}

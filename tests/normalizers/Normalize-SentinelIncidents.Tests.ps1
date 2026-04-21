@@ -36,7 +36,7 @@ Describe 'Normalize-SentinelIncidents' {
 
     It 'Medium incident maps correctly' {
         $rows = @(Normalize-SentinelIncidents -ToolResult $script:Fixture)
-        $med = $rows | Where-Object { $_.Title -like '*resource deployment*' }
+        $med = $rows | Where-Object { $_.Title -like '*Credential replay*' }
         $med.Severity | Should -Be 'Medium'
         $med.Compliant | Should -BeFalse
     }
@@ -63,14 +63,17 @@ Describe 'Normalize-SentinelIncidents' {
         }
     }
 
-    It 'extra Sentinel fields are attached via Add-Member' {
+    It 'emits schema 2.2 fields for Sentinel incidents' {
         $rows = @(Normalize-SentinelIncidents -ToolResult $script:Fixture)
         $high = $rows | Where-Object { $_.Title -like '*anonymous IP*' }
-        $high.IncidentNumber  | Should -Be '42'
-        $high.IncidentStatus  | Should -Be 'Active'
-        $high.AlertCount      | Should -Be 3
-        $high.Classification  | Should -Be 'TruePositive'
-        $high.ProviderName    | Should -Be 'Azure Sentinel'
+        $high.Pillar | Should -Be 'Security'
+        $high.ToolVersion | Should -Be '2022-10-01'
+        $high.DeepLinkUrl | Should -Match 'IncidentDetailsBlade'
+        @($high.MitreTactics) | Should -Contain 'InitialAccess'
+        @($high.MitreTechniques) | Should -Contain 'T1110'
+        @($high.EntityRefs) | Should -Contain 'account:admin@contoso.com'
+        @($high.EvidenceUris | Where-Object { $_ -match '/comments' }).Count | Should -BeGreaterThan 0
+        @($high.Frameworks | Where-Object { $_.Name -eq 'MITRE ATT&CK' -and $_.ControlId -eq 'T1110' }).Count | Should -Be 1
     }
 
     It 'every row has Source=sentinel-incidents and Platform=Azure' {
@@ -79,5 +82,24 @@ Describe 'Normalize-SentinelIncidents' {
             $r.Source   | Should -Be 'sentinel-incidents'
             $r.Platform | Should -Be 'Azure'
         }
+    }
+
+    It 'merges MITRE frameworks union across incidents touching same entity' {
+        . (Join-Path $PSScriptRoot '..' '..' 'modules' 'shared' 'EntityStore.ps1')
+        $rows = @(Normalize-SentinelIncidents -ToolResult $script:Fixture)
+        $incident42 = $rows | Where-Object { $_.Id -eq 'sentinel/incident/42' }
+        $incident43 = $rows | Where-Object { $_.Id -eq 'sentinel/incident/43' }
+
+        $fw42 = @($incident42.Frameworks | ForEach-Object {
+            @{ kind = [string]$_.kind; controlId = [string]$_.ControlId }
+        })
+        $fw43 = @($incident43.Frameworks | ForEach-Object {
+            @{ kind = [string]$_.kind; controlId = [string]$_.ControlId }
+        })
+
+        $merged = Merge-FrameworksUnion -Existing $fw42 -Incoming $fw43
+        @($merged | Where-Object { $_.controlId -eq 'T1110' }).Count | Should -Be 1
+        @($merged | Where-Object { $_.controlId -eq 'T1078' }).Count | Should -Be 1
+        @($merged | Where-Object { $_.controlId -eq 'T1087' }).Count | Should -Be 1
     }
 }
