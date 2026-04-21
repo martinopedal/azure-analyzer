@@ -18,6 +18,7 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 ## Learnings
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+- 2026-04-21 — IaCFile EntityType (schema + EntityStore dedup contract) now available for IaC normalizers to use. Canonical ID: `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). Enables cross-tool file-level dedup when terraform-iac, Trivy, Checkov, and tfsec report findings on the same IaC file. Migration of terraform-iac normalizer from EntityType=Repository to IaCFile deferred to follow-up. PR #423 (SHA 5577bd77).
 - CI failure dedup key uses hash format `sha256("{workflow}|{first-error-line}")` truncated to 12 chars for stable issue-title matching.
 - Self-skip pattern for `workflow_run` watchers should include workflow-name exclusion to avoid recursive self-processing.
 - Repeated CI failures should comment `still failing - {run_url}` on the open hash-matched issue instead of creating duplicates.
