@@ -66,6 +66,78 @@ function Invoke-GhApi {
     }
 }
 
+function Get-GhToolVersion {
+    try {
+        $versionResult = Invoke-WithTimeout -Command 'gh' -Arguments @('--version') -TimeoutSec 300
+        if ($versionResult.ExitCode -ne 0) { return 'unknown' }
+        $versionText = if ($versionResult.Output -is [array]) { ($versionResult.Output -join ' ') } else { [string]$versionResult.Output }
+        $match = [regex]::Match($versionText, 'gh version\s+([0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9\.-]+)?)')
+        if ($match.Success) { return $match.Groups[1].Value }
+        $trimmed = $versionText.Trim()
+        if (-not [string]::IsNullOrWhiteSpace($trimmed)) { return $trimmed }
+        return 'unknown'
+    } catch {
+        return 'unknown'
+    }
+}
+
+function Convert-ToRunnerTag {
+    param (
+        [object] $Run,
+        [string] $Fallback = 'ubuntu'
+    )
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    $labels = if ($Run -and $Run.PSObject.Properties['labels']) { @($Run.labels) } else { @() }
+    foreach ($label in $labels) { if ($label) { $candidates.Add(([string]$label).ToLowerInvariant()) | Out-Null } }
+    foreach ($propertyName in @('name', 'display_title', 'path', 'runner_name', 'runner_group_name')) {
+        if ($Run -and $Run.PSObject.Properties[$propertyName] -and $Run.$propertyName) {
+            $candidates.Add(([string]$Run.$propertyName).ToLowerInvariant()) | Out-Null
+        }
+    }
+
+    foreach ($candidate in $candidates) {
+        if ($candidate -match 'macos|mac') { return 'runner:macos' }
+        if ($candidate -match 'windows|win') { return 'runner:windows' }
+        if ($candidate -match 'ubuntu|linux') { return 'runner:ubuntu' }
+    }
+
+    switch -Regex ($Fallback.ToLowerInvariant()) {
+        'mac' { return 'runner:macos' }
+        'win' { return 'runner:windows' }
+        default { return 'runner:ubuntu' }
+    }
+}
+
+function Get-OrgRunnerTag {
+    param ([object]$Billing)
+
+    $breakdown = if ($Billing -and $Billing.PSObject.Properties['minutes_used_breakdown']) { $Billing.minutes_used_breakdown } else { $null }
+    if (-not $breakdown -and $Billing -and $Billing.PSObject.Properties['included_minutes_used_breakdown']) {
+        $breakdown = $Billing.included_minutes_used_breakdown
+    }
+    if (-not $breakdown) { return 'runner:ubuntu' }
+
+    $ubuntu = [double]($breakdown.UBUNTU ?? $breakdown.ubuntu ?? 0)
+    $windows = [double]($breakdown.WINDOWS ?? $breakdown.windows ?? 0)
+    $macos = [double]($breakdown.MACOS ?? $breakdown.macos ?? 0)
+    if ($windows -ge $ubuntu -and $windows -ge $macos) { return 'runner:windows' }
+    if ($macos -ge $ubuntu -and $macos -ge $windows) { return 'runner:macos' }
+    return 'runner:ubuntu'
+}
+
+function Resolve-ImpactLevel {
+    param (
+        [double] $PaidQuotaRatio = 0.0,
+        [double] $BudgetOverrunUsd = 0.0,
+        [double] $MinuteDelta = 0.0
+    )
+
+    if ($PaidQuotaRatio -gt 0.5 -or $BudgetOverrunUsd -gt 500 -or $MinuteDelta -gt 180) { return 'High' }
+    if ($PaidQuotaRatio -gt 0.2 -or $BudgetOverrunUsd -gt 100 -or $MinuteDelta -gt 60) { return 'Medium' }
+    return 'Low'
+}
+
 function Get-RepoRunMinutes {
     param (
         [Parameter(Mandatory)]
@@ -124,6 +196,7 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 try {
     $sinceUtc = (Get-Date).ToUniversalTime().AddDays(-1 * $DaysBack)
     $billing = Invoke-GhApi -Endpoint "orgs/$Org/settings/billing/actions"
+    $toolVersion = Get-GhToolVersion
 
     $repos = @()
     if ($Repo) {
@@ -135,7 +208,7 @@ try {
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
     $repoUsage = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $billingUrl = "https://github.com/organizations/$Org/settings/billing/actions"
+    $billingUrl = "https://github.com/organizations/$Org/billing"
 
     $includedMinutes = 0.0
     if ($billing.PSObject.Properties['included_minutes']) { $includedMinutes = [double]$billing.included_minutes }
@@ -144,12 +217,21 @@ try {
     elseif ($billing.PSObject.Properties['total_minutes_used']) { $includedUsed = [double]$billing.total_minutes_used }
     $paidMinutes = 0.0
     if ($billing.PSObject.Properties['total_paid_minutes_used']) { $paidMinutes = [double]$billing.total_paid_minutes_used }
+    $paidQuotaRatio = 0.0
+    $totalMinutesUsed = [math]::Max(($includedUsed + $paidMinutes), 0.0)
+    if ($totalMinutesUsed -gt 0) {
+        $paidQuotaRatio = [math]::Round(($paidMinutes / $totalMinutesUsed), 4)
+    } elseif ($includedMinutes -gt 0) {
+        $paidQuotaRatio = [math]::Round(($paidMinutes / $includedMinutes), 4)
+    }
+    $orgRunnerTag = Get-OrgRunnerTag -Billing $billing
 
     if ($includedMinutes -gt 0 -and $includedUsed -gt $includedMinutes) {
+        $scoreDelta = [math]::Round(($includedUsed - $includedMinutes), 2)
         $findings.Add([PSCustomObject]@{
                 Id           = [guid]::NewGuid().ToString()
                 Source       = 'gh-actions-billing'
-                RuleId       = 'gh-actions.org-over-budget'
+                RuleId       = 'GHA-PaidMinutesExceeded'
                 Category     = 'Cost'
                 Title        = "Org '$Org' exceeded included GitHub Actions minutes"
                 Compliant    = $false
@@ -158,6 +240,22 @@ try {
                 Remediation  = 'Review high-minute repositories, optimize workflow runtime, and move heavy workloads to self-hosted runners where appropriate.'
                 ResourceId   = "github.com/$($Org.ToLowerInvariant())/_org-billing"
                 LearnMoreUrl = $billingUrl
+                Pillar       = 'Cost Optimization'
+                ScoreDelta   = $scoreDelta
+                Impact       = Resolve-ImpactLevel -PaidQuotaRatio $paidQuotaRatio -MinuteDelta $scoreDelta
+                Effort       = 'Low'
+                DeepLinkUrl  = $billingUrl
+                EvidenceUris = @($billingUrl)
+                BaselineTags = @('GHA-PaidMinutesExceeded', $orgRunnerTag)
+                EntityRefs   = @("org:$Org")
+                RemediationSnippets = @(
+                    @{
+                        language = 'yaml'
+                        before   = "runs-on: windows-latest`nstrategy:`n  matrix:`n    os: [ubuntu-latest, windows-latest]"
+                        after    = "runs-on: ubuntu-latest`nstrategy:`n  matrix:`n    os: [ubuntu-latest]"
+                    }
+                )
+                ToolVersion  = $toolVersion
                 SchemaVersion = '1.0'
             })
     }
@@ -202,10 +300,16 @@ try {
 
             $runId = if ($run.PSObject.Properties['id']) { [string]$run.id } else { 'unknown' }
             $runUrl = if ($run.PSObject.Properties['html_url'] -and $run.html_url) { [string]$run.html_url } else { "https://github.com/$ownerName/$repoName/actions" }
+            $workflowPath = if ($run.PSObject.Properties['path'] -and $run.path) { [string]$run.path } else { ".github/workflows/ci.yml" }
+            $workflowRef = if ($run.PSObject.Properties['head_branch'] -and $run.head_branch) { [string]$run.head_branch } else { 'HEAD' }
+            $workflowUrl = "https://github.com/$ownerName/$repoName/blob/$workflowRef/$workflowPath"
+            $runScoreDelta = [math]::Round([math]::Max(($runMinutes - $baseline), 0.0), 2)
+            $runnerTag = Convert-ToRunnerTag -Run $run
+            $workflowId = if ($run.PSObject.Properties['workflow_id'] -and $run.workflow_id) { [string]$run.workflow_id } else { '' }
             $findings.Add([PSCustomObject]@{
                     Id           = [guid]::NewGuid().ToString()
                     Source       = 'gh-actions-billing'
-                    RuleId       = 'gh-actions.run-duration-anomaly'
+                    RuleId       = 'GHA-RunAnomaly'
                     Category     = 'Cost'
                     Title        = "Workflow run anomaly in $ownerName/$repoName"
                     Compliant    = $false
@@ -214,6 +318,22 @@ try {
                     Remediation  = 'Inspect the workflow run logs and optimize slow jobs, cache misses, and redundant test matrices.'
                     ResourceId   = "github.com/$($ownerName.ToLowerInvariant())/$($repoName.ToLowerInvariant())"
                     LearnMoreUrl = $runUrl
+                    Pillar       = 'Cost Optimization'
+                    ScoreDelta   = $runScoreDelta
+                    Impact       = Resolve-ImpactLevel -PaidQuotaRatio $paidQuotaRatio -MinuteDelta $runScoreDelta
+                    Effort       = 'Low'
+                    DeepLinkUrl  = $runUrl
+                    EvidenceUris = @($billingUrl, $runUrl, $workflowUrl)
+                    BaselineTags = @('GHA-RunAnomaly', $runnerTag)
+                    EntityRefs   = @("org:$ownerName", "repo:$ownerName/$repoName") + $(if ($workflowId) { @("workflow:$workflowId") } else { @() })
+                    RemediationSnippets = @(
+                        @{
+                            language = 'yaml'
+                            before   = "runs-on: windows-latest`nstrategy:`n  matrix:`n    shard: [1,2,3,4,5,6]"
+                            after    = "runs-on: ubuntu-latest`nstrategy:`n  matrix:`n    shard: [1,2,3]"
+                        }
+                    )
+                    ToolVersion  = $toolVersion
                     SchemaVersion = '1.0'
                 })
         }
@@ -222,10 +342,12 @@ try {
     $topConsumers = @($repoUsage | Sort-Object Total -Descending | Select-Object -First 5)
     foreach ($consumer in $topConsumers) {
         if ($consumer.Total -le 0) { continue }
+        $repoUsageUrl = "https://github.com/$($consumer.Org)/$($consumer.Repo)/actions"
+        $repoShareRatio = if ($totalMinutesUsed -gt 0) { [math]::Round(($consumer.Total / $totalMinutesUsed), 4) } else { 0.0 }
         $findings.Add([PSCustomObject]@{
                 Id           = [guid]::NewGuid().ToString()
                 Source       = 'gh-actions-billing'
-                RuleId       = 'gh-actions.top-consumer'
+                RuleId       = 'GHA-TopConsumer'
                 Category     = 'Cost'
                 Title        = "Top GitHub Actions minute consumer: $($consumer.Org)/$($consumer.Repo)"
                 Compliant    = $false
@@ -233,7 +355,23 @@ try {
                 Detail       = "Repository used $($consumer.Total) runner minutes in the last $DaysBack day(s)."
                 Remediation  = 'Review matrix size, unnecessary workflow triggers, and long-running jobs.'
                 ResourceId   = "github.com/$($consumer.Org.ToLowerInvariant())/$($consumer.Repo.ToLowerInvariant())"
-                LearnMoreUrl = "https://github.com/$($consumer.Org)/$($consumer.Repo)/actions"
+                LearnMoreUrl = $repoUsageUrl
+                Pillar       = 'Cost Optimization'
+                ScoreDelta   = [math]::Round([double]$consumer.Total, 2)
+                Impact       = Resolve-ImpactLevel -PaidQuotaRatio ([math]::Max($paidQuotaRatio, $repoShareRatio)) -MinuteDelta $consumer.Total
+                Effort       = 'Low'
+                DeepLinkUrl  = $repoUsageUrl
+                EvidenceUris = @($billingUrl, $repoUsageUrl)
+                BaselineTags = @('GHA-TopConsumer', 'runner:ubuntu')
+                EntityRefs   = @("org:$($consumer.Org)", "repo:$($consumer.Org)/$($consumer.Repo)")
+                RemediationSnippets = @(
+                    @{
+                        language = 'yaml'
+                        before   = "runs-on: ubuntu-latest`non:`n  schedule:`n    - cron: '*/5 * * * *'"
+                        after    = "runs-on: ubuntu-latest`non:`n  schedule:`n    - cron: '0 */2 * * *'"
+                    }
+                )
+                ToolVersion  = $toolVersion
                 SchemaVersion = '1.0'
             })
     }
@@ -241,10 +379,11 @@ try {
     if ($PSBoundParameters.ContainsKey('MonthlyBudgetUsd') -and $MonthlyBudgetUsd -gt 0) {
         $estimatedSpend = [math]::Round(($paidMinutes * 0.008), 2)
         if ($estimatedSpend -gt $MonthlyBudgetUsd) {
+            $scoreDelta = [math]::Round(($estimatedSpend - $MonthlyBudgetUsd), 2)
             $findings.Add([PSCustomObject]@{
                     Id           = [guid]::NewGuid().ToString()
                     Source       = 'gh-actions-billing'
-                    RuleId       = 'gh-actions.monthly-budget-exceeded'
+                    RuleId       = 'GHA-BudgetOverage'
                     Category     = 'Cost'
                     Title        = "Org '$Org' estimated Actions spend exceeded monthly budget"
                     Compliant    = $false
@@ -253,6 +392,22 @@ try {
                     Remediation  = 'Set stricter workflow concurrency limits, reduce paid runner use, and enforce workflow ownership review.'
                     ResourceId   = "github.com/$($Org.ToLowerInvariant())/_org-billing"
                     LearnMoreUrl = $billingUrl
+                    Pillar       = 'Cost Optimization'
+                    ScoreDelta   = $scoreDelta
+                    Impact       = Resolve-ImpactLevel -PaidQuotaRatio $paidQuotaRatio -BudgetOverrunUsd $scoreDelta
+                    Effort       = 'Low'
+                    DeepLinkUrl  = $billingUrl
+                    EvidenceUris = @($billingUrl)
+                    BaselineTags = @('GHA-BudgetOverage', $orgRunnerTag)
+                    EntityRefs   = @("org:$Org")
+                    RemediationSnippets = @(
+                        @{
+                            language = 'yaml'
+                            before   = "strategy:`n  matrix:`n    node: [18,20,22]"
+                            after    = "strategy:`n  matrix:`n    node: [20]"
+                        }
+                    )
+                    ToolVersion  = $toolVersion
                     SchemaVersion = '1.0'
                 })
         }

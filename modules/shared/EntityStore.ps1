@@ -103,23 +103,26 @@ function Merge-FrameworksUnion {
     return Merge-UniqueByKey -Existing $Existing -Incoming $Incoming -KeySelector {
         param ($item)
         $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'kind'
-        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Kind' }
-        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Name' }
-        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'framework' }
-        if ($null -eq $kind -and $item -is [System.Collections.IDictionary]) {
-            $kind = ($item['kind'] ?? $item['Kind'] ?? $item['Name'] ?? $item['framework'])
-        }
-
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Kind' }
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'Name' }
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'name' }
+        if ([string]::IsNullOrWhiteSpace([string]$kind)) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'framework' }
         $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'controlId'
-        if ($null -eq $kind) { $kind = Get-ObjectPropertyValue -Object $item -PropertyName 'name' }
-        if ($null -eq $controlId) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'ControlId' }
-        if ($null -eq $controlId) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'id' }
-        if ($null -eq $controlId) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'Id' }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'ControlId' }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'id' }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) { $controlId = Get-ObjectPropertyValue -Object $item -PropertyName 'Id' }
         if ($null -eq $kind -and $item -is [System.Collections.IDictionary]) {
-            $kind = ($item['kind'] ?? $item['Kind'] ?? $item['name'] ?? $item['Name'] ?? $item['framework'])
+            $kind = ($item['kind'] ?? $item['Kind'] ?? $item['Name'] ?? $item['name'] ?? $item['framework'])
         }
         if ($null -eq $controlId -and $item -is [System.Collections.IDictionary]) {
             $controlId = ($item['controlId'] ?? $item['ControlId'] ?? $item['id'] ?? $item['Id'])
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$controlId)) {
+            $controls = Get-ObjectPropertyValue -Object $item -PropertyName 'Controls'
+            if ($controls) {
+                $firstControl = @($controls | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -First 1)
+                if ($firstControl.Count -gt 0) { $controlId = [string]$firstControl[0] }
+            }
         }
         if ([string]::IsNullOrWhiteSpace([string]$kind) -or [string]::IsNullOrWhiteSpace([string]$controlId)) { return $null }
         return "$kind|$controlId"
@@ -407,6 +410,7 @@ class EntityStore {
                 }
             }
         }
+
     }
 
     [void] UpdateEntityAggregates([pscustomobject] $Entity, [pscustomobject] $Finding) {
