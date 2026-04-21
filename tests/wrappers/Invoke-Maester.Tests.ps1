@@ -81,6 +81,12 @@ New-MgIdentityConditionalAccessPolicy -DisplayName ''Require MFA for admins''
             return $global:MaesterContainer
         }
 
+        function global:Get-MgContext {
+            [CmdletBinding()]
+            param()
+            return [pscustomobject]@{ TenantId = '11111111-1111-1111-1111-111111111111' }
+        }
+
         Mock Get-Module {
             param([string]$Name, [switch]$ListAvailable)
             if ($Name -eq 'Maester') {
@@ -95,14 +101,15 @@ New-MgIdentityConditionalAccessPolicy -DisplayName ''Require MFA for admins''
             if ($Name -eq 'Get-MgContext') { return [pscustomobject]@{ Name = 'Get-MgContext' } }
             return $null
         }
-        Mock Get-MgContext { return [pscustomobject]@{ TenantId = '11111111-1111-1111-1111-111111111111' } }
-
         $script:Result = & $script:Wrapper
     }
 
     AfterAll {
         if (Test-Path Function:\global:Invoke-Maester) {
             Remove-Item Function:\global:Invoke-Maester -ErrorAction SilentlyContinue
+        }
+        if (Test-Path Function:\global:Get-MgContext) {
+            Remove-Item Function:\global:Get-MgContext -ErrorAction SilentlyContinue
         }
         Remove-Variable -Name MaesterContainer -Scope Global -ErrorAction SilentlyContinue
     }
