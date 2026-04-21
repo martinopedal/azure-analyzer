@@ -192,6 +192,129 @@ function Get-ClusterInsightsUrl {
     return "https://portal.azure.com/#@/resource$ClusterId/insights"
 }
 
+function Get-AksClusterPortalDeepLink {
+    param(
+        [string]$ClusterId,
+        [string]$ProvisionerName = ''
+    )
+    if (-not $ClusterId) { return '' }
+    $encodedCluster = [System.Uri]::EscapeDataString($ClusterId)
+    if (-not [string]::IsNullOrWhiteSpace($ProvisionerName)) {
+        $encodedProvisioner = [System.Uri]::EscapeDataString($ProvisionerName)
+        return "https://portal.azure.com/#view/Microsoft_Azure_ContainerService/ManagedClusterMenuBlade/~/karpenter/resourceId/$encodedCluster/provisioner/$encodedProvisioner"
+    }
+    return "https://portal.azure.com/#view/Microsoft_Azure_ContainerService/ManagedClusterMenuBlade/~/nodes/resourceId/$encodedCluster"
+}
+
+function Get-LogsQueryEvidenceUrl {
+    param(
+        [string]$WorkspaceId,
+        [string]$Query
+    )
+    if ([string]::IsNullOrWhiteSpace($WorkspaceId) -or [string]::IsNullOrWhiteSpace($Query)) { return '' }
+    $encodedWs = [System.Uri]::EscapeDataString($WorkspaceId)
+    $encodedQ = [System.Uri]::EscapeDataString($Query)
+    return "https://portal.azure.com/#blade/Microsoft_Azure_Monitoring_Logs/LogsBlade/resourceId/$encodedWs/source/LogsBlade.AnalyticsShareLinkToQuery/q/$encodedQ"
+}
+
+function Get-KarpenterManifestEvidenceUrl {
+    param(
+        [string]$ProvisionerName,
+        [string]$ApiVersion = ''
+    )
+    if ([string]::IsNullOrWhiteSpace($ProvisionerName)) { return '' }
+    $safeName = [System.Uri]::EscapeDataString($ProvisionerName)
+    $resolvedApiVersion = if ([string]::IsNullOrWhiteSpace($ApiVersion)) { 'v1beta1' } else { $ApiVersion }
+    return "https://kubernetes.default.svc/apis/karpenter.sh/$resolvedApiVersion/provisioners/$safeName"
+}
+
+function Resolve-KarpenterPillar {
+    param([string]$RuleId)
+    if ($RuleId -eq 'karpenter.consolidation-disabled') { return 'Cost Optimization; Reliability' }
+    return 'Cost Optimization'
+}
+
+function Resolve-KarpenterImpact {
+    param(
+        [string]$RuleId,
+        [Nullable[double]]$NodeHours = $null,
+        [Nullable[double]]$ObservedPercent = $null
+    )
+    if ($RuleId -eq 'karpenter.no-node-limit') { return 'High' }
+    if ($RuleId -eq 'karpenter.consolidation-disabled') { return 'Medium' }
+    if ($NodeHours -ne $null) {
+        if ($NodeHours -ge 500.0) { return 'High' }
+        if ($NodeHours -ge 150.0) { return 'Medium' }
+        return 'Low'
+    }
+    if ($ObservedPercent -ne $null) {
+        if ($ObservedPercent -le 10.0) { return 'High' }
+        if ($ObservedPercent -le 35.0) { return 'Medium' }
+        return 'Low'
+    }
+    return 'Low'
+}
+
+function Resolve-KarpenterEffort {
+    param([string]$RuleId)
+    if ($RuleId -like 'karpenter.*') { return 'Medium' }
+    return 'Low'
+}
+
+function Get-KarpenterBaselineTags {
+    param(
+        [string]$RuleId,
+        [string]$RbacTier
+    )
+    $ruleTag = switch ($RuleId) {
+        'aks.idle-node' { 'Karpenter-IdleNodes' }
+        'karpenter.consolidation-disabled' { 'Karpenter-Consolidation' }
+        'karpenter.no-node-limit' { 'Karpenter-ProvisionerLimits' }
+        'karpenter.over-provisioned' { 'Karpenter-IdleNodes' }
+        default { 'Karpenter-NodeHours' }
+    }
+    $rbacTag = if ($RbacTier -eq 'Reader') { 'RBAC-Reader' } else { 'RBAC-ClusterAdmin' }
+    return @($ruleTag, $rbacTag)
+}
+
+function Get-KarpenterRemediationSnippets {
+    param(
+        [string]$RuleId,
+        [string]$ProvisionerName
+    )
+    $target = if ([string]::IsNullOrWhiteSpace($ProvisionerName)) { '<provisioner>' } else { $ProvisionerName }
+    switch ($RuleId) {
+        'karpenter.no-node-limit' {
+            return @(@{
+                    language = 'yaml'
+                    before   = "apiVersion: karpenter.sh/v1beta1`nkind: NodePool`nmetadata:`n  name: $target`nspec:`n  limits: null"
+                    after    = "apiVersion: karpenter.sh/v1beta1`nkind: NodePool`nmetadata:`n  name: $target`nspec:`n  limits:`n    cpu: '200'`n    memory: 400Gi"
+                })
+        }
+        'karpenter.consolidation-disabled' {
+            return @(@{
+                    language = 'yaml'
+                    before   = "apiVersion: karpenter.sh/v1beta1`nkind: NodePool`nmetadata:`n  name: $target`nspec:`n  disruption:`n    consolidationPolicy: WhenEmpty"
+                    after    = "apiVersion: karpenter.sh/v1beta1`nkind: NodePool`nmetadata:`n  name: $target`nspec:`n  disruption:`n    consolidationPolicy: WhenUnderutilized"
+                })
+        }
+        default { return @() }
+    }
+}
+
+function Get-KubectlClientVersion {
+    try {
+        $proc = Invoke-WithTimeout -Command 'kubectl' -Arguments @('version', '--client', '--output=yaml') -TimeoutSec 300
+        if ($proc.ExitCode -ne 0) { return 'unknown' }
+        $text = [string]$proc.Output
+        $match = [regex]::Match($text, '(?im)^\s*gitVersion:\s*v?([0-9]+\.[0-9]+\.[0-9]+[^\s]*)')
+        if ($match.Success) { return "v$($match.Groups[1].Value)" }
+        return 'unknown'
+    } catch {
+        return 'unknown'
+    }
+}
+
 function Get-KarpenterDocsUrl {
     param([string]$RuleId)
     switch ($RuleId) {
@@ -225,6 +348,9 @@ function Add-Finding {
         [string] $EntityType,
         [string] $ProvisionerName = '',
         [string] $LearnMoreUrl    = '',
+        [string] $WorkspaceId     = '',
+        [string] $EvidenceQuery   = '',
+        [string] $KarpenterApiVersion = '',
         [hashtable] $Extra        = @{}
     )
 
@@ -243,6 +369,27 @@ function Add-Finding {
         }
     }
 
+    $nodeHours = $null
+    if ($Extra.ContainsKey('NodeHours') -and $null -ne $Extra['NodeHours']) {
+        $nodeHours = [double]$Extra['NodeHours']
+    }
+    $observedPercent = $null
+    if ($Extra.ContainsKey('ObservedPercent') -and $null -ne $Extra['ObservedPercent']) {
+        $observedPercent = [double]$Extra['ObservedPercent']
+    }
+    $scoreDelta = if ($nodeHours -ne $null) { $nodeHours } elseif ($observedPercent -ne $null) { $observedPercent } else { $null }
+    $evidenceUris = [System.Collections.Generic.List[string]]::new()
+    $logEvidence = Get-LogsQueryEvidenceUrl -WorkspaceId $WorkspaceId -Query $EvidenceQuery
+    if ($logEvidence) { $evidenceUris.Add($logEvidence) | Out-Null }
+    if ($EntityType -eq 'KarpenterProvisioner' -and -not [string]::IsNullOrWhiteSpace($ProvisionerName)) {
+        $manifestUri = Get-KarpenterManifestEvidenceUrl -ProvisionerName $ProvisionerName -ApiVersion $KarpenterApiVersion
+        if ($manifestUri) { $evidenceUris.Add($manifestUri) | Out-Null }
+    }
+
+    $entityRefs = [System.Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($clusterId)) { $entityRefs.Add($clusterId) | Out-Null }
+    if (-not [string]::IsNullOrWhiteSpace($ProvisionerName)) { $entityRefs.Add($ProvisionerName) | Out-Null }
+
     $findingId = "aks-karpenter-cost/$RuleId/$($Cluster.name)/$([guid]::NewGuid().ToString('N'))"
     $row = [ordered]@{
         Id                   = $findingId
@@ -258,10 +405,19 @@ function Add-Finding {
         EntityRawId          = $entityRawId
         EntityType           = $EntityType
         LearnMoreUrl         = $LearnMoreUrl
+        DeepLinkUrl          = Get-AksClusterPortalDeepLink -ClusterId $clusterId -ProvisionerName $ProvisionerName
         ClusterName          = [string]$Cluster.name
         ClusterResourceGroup = [string]$Cluster.resourceGroup
         ProvisionerName      = $ProvisionerName
         RbacTier             = $result.RbacTier
+        Pillar               = Resolve-KarpenterPillar -RuleId $RuleId
+        Impact               = Resolve-KarpenterImpact -RuleId $RuleId -NodeHours $nodeHours -ObservedPercent $observedPercent
+        Effort               = Resolve-KarpenterEffort -RuleId $RuleId
+        BaselineTags         = @(Get-KarpenterBaselineTags -RuleId $RuleId -RbacTier $result.RbacTier)
+        EvidenceUris         = @($evidenceUris)
+        ScoreDelta           = $scoreDelta
+        EntityRefs           = @($entityRefs)
+        RemediationSnippets  = @(Get-KarpenterRemediationSnippets -RuleId $RuleId -ProvisionerName $ProvisionerName)
     }
     foreach ($k in $Extra.Keys) {
         $row[$k] = $Extra[$k]
@@ -309,6 +465,8 @@ function Invoke-KarpenterKubectl {
 # ---------------------------------------------------------------------------
 $findings = [System.Collections.Generic.List[object]]::new()
 $workspaceErrors = [System.Collections.Generic.List[string]]::new()
+$kubectlVersion = if ($EnableElevatedRbac.IsPresent) { 'unknown' } else { 'not-run' }
+$karpenterVersion = if ($EnableElevatedRbac.IsPresent) { 'unknown' } else { 'not-run' }
 
 try {
     try {
@@ -370,6 +528,7 @@ Perf
                         -Title "AKS node cost rollup for $($cluster.name): $nodes node(s), $([math]::Round($hours,1)) node-hours over ${LookbackDays}d" `
                         -Detail  "Container Insights observed $nodes distinct node(s) totalling $([math]::Round($hours,1)) node-hour(s) in cluster '$($cluster.name)' over the last ${LookbackDays} day(s). Multiply by your VM SKU rate to obtain a cost estimate." `
                         -Remediation 'Review node hours in Cost Management; consider Karpenter consolidation or smaller VM SKUs if utilization is low.' `
+                        -WorkspaceId $workspaceId -EvidenceQuery $nodeCostQuery `
                         -Extra @{ NodeCount = $nodes; NodeHours = [math]::Round($hours, 2) }
                 }
             } catch {
@@ -389,6 +548,7 @@ Perf
                         -Title "Idle node $($row.Computer) in $($cluster.name): avg CPU $([math]::Round($pct,1))% over ${LookbackDays}d" `
                         -Detail  "Node '$($row.Computer)' averaged $([math]::Round($pct,2))% CPU utilization over the last ${LookbackDays} day(s)." `
                         -Remediation 'Cordon and drain the node, or enable Karpenter consolidation / cluster autoscaler scale-down to remove idle capacity.' `
+                        -WorkspaceId $workspaceId -EvidenceQuery $idleNodeQuery `
                         -Extra @{ NodeName = [string]$row.Computer; ObservedPercent = [math]::Round($pct, 2) }
                 }
             } catch {
@@ -408,6 +568,7 @@ Perf
         }
 
         if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+            $kubectlVersion = 'missing'
             $workspaceErrors.Add("Cluster $($cluster.name): kubectl not on PATH; install via 'az aks install-cli'.") | Out-Null
             continue
         }
@@ -415,6 +576,9 @@ Perf
         if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
             $workspaceErrors.Add("Cluster $($cluster.name): -KubeconfigPath required when -EnableElevatedRbac is set.") | Out-Null
             continue
+        }
+        if ($kubectlVersion -eq 'unknown') {
+            $kubectlVersion = Get-KubectlClientVersion
         }
 
         $kubeAuth = $null
@@ -451,6 +615,10 @@ Perf
                 if (-not $prov) { continue }
                 $name = if ($prov.PSObject.Properties['metadata'] -and $prov.metadata.name) { [string]$prov.metadata.name } else { 'unknown' }
                 $spec = if ($prov.PSObject.Properties['spec'])     { $prov.spec }     else { $null }
+                $provApiVersion = if ($prov.PSObject.Properties['apiVersion']) { [string]$prov.apiVersion } else { '' }
+                if ($karpenterVersion -eq 'unknown' -and $provApiVersion -match '/(v[0-9a-zA-Z]+)$') {
+                    $karpenterVersion = $Matches[1]
+                }
 
                 # consolidation-disabled
                 $consolidationEnabled = $false
@@ -464,7 +632,8 @@ Perf
                         -EntityType 'KarpenterProvisioner' -ProvisionerName $name `
                         -Title "Karpenter Provisioner '$name' has consolidation disabled" `
                         -Detail  "Provisioner '$name' in cluster '$($cluster.name)' is not configured for consolidation. Karpenter will not bin-pack workloads onto fewer nodes." `
-                        -Remediation 'Set spec.consolidation.enabled=true (or spec.disruption.consolidationPolicy=WhenUnderutilized) on the Provisioner / NodePool.'
+                        -Remediation 'Set spec.consolidation.enabled=true (or spec.disruption.consolidationPolicy=WhenUnderutilized) on the Provisioner / NodePool.' `
+                        -WorkspaceId $workspaceId -KarpenterApiVersion $provApiVersion
                 }
 
                 # no-node-limit
@@ -477,7 +646,8 @@ Perf
                         -EntityType 'KarpenterProvisioner' -ProvisionerName $name `
                         -Title "Karpenter Provisioner '$name' has no spec.limits set" `
                         -Detail  "Provisioner '$name' in cluster '$($cluster.name)' has no resource limits configured. A pod scheduling burst can scale node count without bound, creating runaway cost risk." `
-                        -Remediation 'Add spec.limits.resources (e.g. cpu, memory) to cap how much capacity Karpenter may provision for this NodePool.'
+                        -Remediation 'Add spec.limits.resources (e.g. cpu, memory) to cap how much capacity Karpenter may provision for this NodePool.' `
+                        -WorkspaceId $workspaceId -KarpenterApiVersion $provApiVersion
                 }
 
                 # over-provisioned (Container Insights)
@@ -515,6 +685,7 @@ KubeNodeInventory
                                 -Title "Karpenter Provisioner '$name' over-provisioned: avg $([math]::Round($pct,1))% CPU across $nc node(s)" `
                                 -Detail  "Average node CPU utilization for nodes managed by Provisioner '$name' was $([math]::Round($pct,2))% over ${LookbackDays}d (threshold 50%)." `
                                 -Remediation 'Lower spec.limits, enable consolidation, or pick a smaller default instance type.' `
+                                -WorkspaceId $workspaceId -EvidenceQuery $overQuery -KarpenterApiVersion $provApiVersion `
                                 -Extra @{ ObservedPercent = [math]::Round($pct, 2); NodeCount = $nc }
                         }
                     } catch {
@@ -542,6 +713,15 @@ KubeNodeInventory
 finally {
     if ($EnableElevatedRbac.IsPresent -and (Get-Command Reset-RbacTier -ErrorAction SilentlyContinue)) {
         Reset-RbacTier
+    }
+}
+
+$result.ToolVersion = "kubectl=$kubectlVersion; karpenter=$karpenterVersion"
+foreach ($finding in $findings) {
+    if ($finding.PSObject.Properties['ToolVersion']) {
+        $finding.ToolVersion = $result.ToolVersion
+    } else {
+        $finding | Add-Member -NotePropertyName ToolVersion -NotePropertyValue $result.ToolVersion -Force
     }
 }
 

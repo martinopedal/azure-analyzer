@@ -158,6 +158,8 @@ The Pester baseline must stay green: `Invoke-Pester -Path .\tests -CI`. Wrapper 
 
 Read-only by design, with a defense-in-depth posture across the codebase: HTTPS-only outbound, host allow-lists, package-manager allow-lists, 300s external-process timeouts, credential scrubbing on all written output, SHA-256-pinned tool binaries, and a CycloneDX 1.5 SBOM per release. Report vulnerabilities via [SECURITY.md](SECURITY.md).
 
+AKS Karpenter cost findings now carry Schema 2.2 cost context (`Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `ScoreDelta`, `EntityRefs`, `ToolVersion`) from wrapper to normalizer.
+
 ## License
 
 MIT. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the full set of upstream-tool licenses and attributions.

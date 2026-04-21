@@ -133,55 +133,66 @@ Describe 'Merge-BaselineTagsUnion (Schema 2.2)' {
     }
 }
 
-Describe 'EntityStore Schema 2.2 merge integration' {
-    It 'merges Frameworks and BaselineTags when duplicate findings collapse' {
-        $storeOutput = Join-Path $PSScriptRoot '..\..\output-test\entitystore-schema22-merge'
-        if (-not (Test-Path $storeOutput)) { $null = New-Item -ItemType Directory -Path $storeOutput -Force }
+Describe 'EntityStore metadata Schema 2.2 unions' {
+    It 'merges Frameworks and BaselineTags on duplicate entity metadata' {
+        $outputPath = Join-Path $PSScriptRoot '..\..\output-test\entitystore-schema22-union'
+        if (-not (Test-Path $outputPath)) {
+            $null = New-Item -Path $outputPath -ItemType Directory -Force
+        }
+        $store = $null
         try {
-            $store = [EntityStore]::new(50000, $storeOutput)
-            $base = [pscustomobject]@{
-                Source      = 'powerpipe'
-                EntityId    = '/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg/providers/microsoft.storage/storageaccounts/st01'
-                EntityType  = 'AzureResource'
-                Platform    = 'Azure'
-                Title       = 'Control A'
-                Compliant   = $false
-                Severity    = 'High'
-                Detail      = 'detail-a'
-                Remediation = 'fix-a'
-                LearnMoreUrl = ''
-                Provenance  = $null
-                Frameworks  = @(@{ kind = 'CIS'; controlId = '1.1.1' })
-                BaselineTags = @('release:preview')
-            }
-            $incoming = [pscustomobject]@{
-                Source      = 'powerpipe'
-                EntityId    = $base.EntityId
-                EntityType  = 'AzureResource'
-                Platform    = 'Azure'
-                Title       = 'Control A'
-                Compliant   = $false
-                Severity    = 'Medium'
-                Detail      = 'detail-b'
-                Remediation = 'fix-b'
-                LearnMoreUrl = ''
-                Provenance  = $null
-                Frameworks  = @(@{ kind = 'NIST'; controlId = 'CA-7' }, @{ kind = 'CIS'; controlId = '1.1.1' })
-                BaselineTags = @('release:GA')
-            }
+            $store = [EntityStore]::new(50000, $outputPath)
+            $store.MergeEntityMetadata([pscustomobject]@{
+                EntityId     = 'entity-1'
+                EntityType   = 'AzureResource'
+                Platform     = 'Azure'
+                DisplayName  = ''
+                SubscriptionName = ''
+                ManagementGroupPath = @()
+                SubscriptionId = ''
+                ResourceGroup = ''
+                ExternalIds = @()
+                Policies = @()
+                MonthlyCost = $null
+                Currency = ''
+                CostTrend = ''
+                MissingDimensions = @()
+                Confidence = ''
+                Controls = @()
+                Observations = @()
+                Frameworks   = @(@{ kind = 'CIS'; controlId = '1.1.1' })
+                BaselineTags = @('release:GA', 'baseline:a')
+            })
+            $store.MergeEntityMetadata([pscustomobject]@{
+                EntityId     = 'entity-1'
+                EntityType   = 'AzureResource'
+                Platform     = 'Azure'
+                DisplayName  = ''
+                SubscriptionName = ''
+                ManagementGroupPath = @()
+                SubscriptionId = ''
+                ResourceGroup = ''
+                ExternalIds = @()
+                Policies = @()
+                MonthlyCost = $null
+                Currency = ''
+                CostTrend = ''
+                MissingDimensions = @()
+                Confidence = ''
+                Controls = @()
+                Observations = @()
+                Frameworks   = @(@{ kind = 'CIS'; controlId = '1.1.1' }, @{ kind = 'NIST'; controlId = 'CA-7' })
+                BaselineTags = @('release:GA', 'release:preview')
+            })
 
-            $store.AddFinding($base)
-            $store.AddFinding($incoming)
-            $findings = @($store.GetFindings())
-
-            $findings.Count | Should -Be 1
-            @($findings[0].Frameworks).Count | Should -Be 2
-            $findings[0].BaselineTags | Should -Contain 'release:preview'
-            $findings[0].BaselineTags | Should -Contain 'release:GA'
+            $entity = @($store.GetEntities() | Where-Object { $_.EntityId -eq 'entity-1' })[0]
+            @($entity.Frameworks).Count | Should -Be 2
+            @($entity.BaselineTags).Count | Should -Be 3
+            @($entity.BaselineTags) | Should -Contain 'release:GA'
+            @($entity.BaselineTags) | Should -Contain 'release:preview'
         } finally {
-            if (Test-Path $storeOutput) {
-                Remove-Item -Path $storeOutput -Recurse -Force
-            }
+            if ($null -ne $store) { $store.CleanupSpillFiles() }
+            if (Test-Path $outputPath) { Remove-Item -Path $outputPath -Recurse -Force }
         }
     }
 }

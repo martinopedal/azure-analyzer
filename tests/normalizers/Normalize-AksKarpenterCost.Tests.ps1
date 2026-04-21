@@ -71,4 +71,24 @@ Describe 'Normalize-AksKarpenterCost' {
         $idle.NodeName        | Should -Be 'aks-node-1'
         $idle.ObservedPercent | Should -Be 4.5
     }
+
+    It 'maps Schema 2.2 cost ETL fields to New-FindingRow' {
+        $rows = @(Normalize-AksKarpenterCost -ToolResult $script:Fixture)
+        $cost = $rows | Where-Object { $_.RuleId -eq 'aks.node-cost-rollup' } | Select-Object -First 1
+        $cost.Pillar | Should -Be 'Cost Optimization'
+        $cost.Impact | Should -Be 'High'
+        $cost.Effort | Should -Be 'Low'
+        $cost.ScoreDelta | Should -Be 840.0
+        $cost.ToolVersion | Should -Be 'kubectl=v1.31.0; karpenter=v1beta1'
+        @($cost.BaselineTags) | Should -Contain 'Karpenter-NodeHours'
+        @($cost.BaselineTags) | Should -Contain 'RBAC-ClusterAdmin'
+        @($cost.EntityRefs) | Should -Contain '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/aks-prod'
+
+        $consolidation = $rows | Where-Object { $_.RuleId -eq 'karpenter.consolidation-disabled' } | Select-Object -First 1
+        $consolidation.Pillar | Should -Be 'Cost Optimization; Reliability'
+        $consolidation.Effort | Should -Be 'Medium'
+        $consolidation.DeepLinkUrl | Should -Match 'Microsoft_Azure_ContainerService'
+        @($consolidation.RemediationSnippets).Count | Should -BeGreaterThan 0
+        @($consolidation.EvidenceUris) | Should -Contain 'https://kubernetes.default.svc/apis/karpenter.sh/v1beta1/provisioners/default'
+    }
 }
