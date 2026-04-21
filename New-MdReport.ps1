@@ -11,6 +11,7 @@ param (
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$htmlSiblingReport = ([System.IO.Path]::GetFileNameWithoutExtension($OutputPath) + '.html')
 
 $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
@@ -261,7 +262,7 @@ $lines.Add("![Posture](https://img.shields.io/badge/Posture-$postureBadge-2563eb
 $lines.Add("![Tools](https://img.shields.io/badge/Tools-$toolCountBadge-0369a1)")
 $lines.Add("![Run](https://img.shields.io/badge/Run-$runBadge-334155)")
 $lines.Add('')
-$lines.Add('> Generated report. For full interactive exploration, open [report.html](report.html).')
+$lines.Add('> Generated report. For full interactive exploration, open [' + (MdCell $htmlSiblingReport) + '](' + (MdCell $htmlSiblingReport) + ').')
 $lines.Add('')
 $lines.Add('## Contents')
 $lines.Add('')
@@ -433,7 +434,7 @@ if ($nonCompliant.Count -eq 0) {
 
 $lines.Add('## Findings (top 30)')
 $lines.Add('')
-$lines.Add("Top 30 findings from this run. The [interactive HTML report](report.html) renders the full set.")
+$lines.Add("Top 30 findings from this run. The [interactive HTML report]($htmlSiblingReport) renders the full set.")
 $lines.Add('')
 
 $frameworkSet = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)

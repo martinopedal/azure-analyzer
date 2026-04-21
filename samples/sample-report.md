@@ -11,7 +11,7 @@
 ![Tools](https://img.shields.io/badge/Tools-36-0369a1)
 ![Run](https://img.shields.io/badge/Run-22%20Apr%202026%2007%3A52%20UTC-334155)
 
-> Generated report. For full interactive exploration, open [report.html](report.html).
+> Generated report. For full interactive exploration, open [sample-report.html](sample-report.html).
 
 ## Contents
 
@@ -130,7 +130,7 @@ Legend: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low, ⚪ Info
 
 ## Findings (top 30)
 
-Top 30 findings from this run. The [interactive HTML report](report.html) renders the full set.
+Top 30 findings from this run. The [interactive HTML report](sample-report.html) renders the full set.
 
 ### Framework reference
 
