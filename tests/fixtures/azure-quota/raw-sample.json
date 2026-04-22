@@ -1,0 +1,16 @@
+{
+  "subscriptionId": "11111111-1111-1111-1111-111111111111",
+  "location": "westeurope",
+  "threshold": 80,
+  "network": [
+    {
+    "name": {
+      "localizedValue": "Public IP Addresses",
+      "value": "PublicIPAddresses"
+    },
+    "currentValue": 92,
+    "limit": 100,
+    "unit": "Count"
+    }
+  ]
+}

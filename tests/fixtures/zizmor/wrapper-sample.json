@@ -1,0 +1,113 @@
+{
+  "Source": "zizmor",
+  "SchemaVersion": "1.0",
+  "Status": "Success",
+  "ToolVersion": "zizmor 1.8.0",
+  "Message": "",
+  "Findings": [
+    {
+      "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "Category": "CI/CD Security",
+      "RuleId": "template-injection",
+      "Title": "expression-injection: Untrusted input in run step",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Expression '${{ github.event.pull_request.title }}' in run step is vulnerable to injection (file: .github/workflows/ci.yml)",
+      "Remediation": "Use an environment variable instead of directly interpolating the expression in the run step.",
+      "ResourceId": ".github/workflows/ci.yml",
+      "LearnMoreUrl": "https://docs.zizmor.sh/audits/#template-injection",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://docs.zizmor.sh/audits/#template-injection",
+      "RemediationSnippets": [
+        {
+          "language": "yaml",
+          "before": "steps:\n  - run: echo \"${{ github.event.pull_request.title }}\"",
+          "after": "steps:\n  - env:\n      PR_TITLE: ${{ github.event.pull_request.title }}\n    run: echo \"$PR_TITLE\""
+        }
+      ],
+      "EvidenceUris": [
+        "https://github.com/octo-org/octo-repo/blob/0123456789abcdef0123456789abcdef01234567/.github/workflows/ci.yml#L17-L22"
+      ],
+      "BaselineTags": [
+        "template-injection",
+        "severity:high"
+      ],
+      "MitreTechniques": [
+        "T1059"
+      ],
+      "EntityRefs": [
+        "octo-org/octo-repo/.github/workflows/ci.yml"
+      ],
+      "ToolVersion": "zizmor 1.8.0",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "Category": "CI/CD Security",
+      "RuleId": "unpinned-uses",
+      "Title": "unpinned-uses: Action reference is not pinned to a SHA",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Detail": "Action 'actions/checkout@v4' is not pinned to a full SHA hash (file: .github/workflows/ci.yml)",
+      "Remediation": "Pin the action to a full commit SHA instead of a mutable tag.",
+      "ResourceId": ".github/workflows/ci.yml",
+      "LearnMoreUrl": "https://docs.zizmor.sh/audits/#unpinned-uses",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://docs.zizmor.sh/audits/#unpinned-uses",
+      "RemediationSnippets": [
+        {
+          "language": "yaml",
+          "before": "uses: actions/checkout@v4",
+          "after": "uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6"
+        }
+      ],
+      "EvidenceUris": [
+        "https://github.com/octo-org/octo-repo/blob/0123456789abcdef0123456789abcdef01234567/.github/workflows/ci.yml#L7-L7"
+      ],
+      "BaselineTags": [
+        "unpinned-uses",
+        "severity:medium"
+      ],
+      "MitreTechniques": [
+        "T1195.001"
+      ],
+      "EntityRefs": [
+        "octo-org/octo-repo/.github/workflows/ci.yml"
+      ],
+      "ToolVersion": "zizmor 1.8.0",
+      "SchemaVersion": "1.0"
+    },
+    {
+      "Id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "Category": "CI/CD Security",
+      "RuleId": "dangerous-triggers",
+      "Title": "dangerous-triggers: Workflow uses dangerous trigger",
+      "Severity": "High",
+      "Compliant": false,
+      "Detail": "Workflow uses pull_request_target trigger which runs with write permissions in the context of the base branch (file: .github/workflows/auto-label.yml)",
+      "Remediation": "Avoid pull_request_target unless strictly necessary. If needed, ensure no untrusted code is checked out or executed.",
+      "ResourceId": ".github/workflows/auto-label.yml",
+      "LearnMoreUrl": "https://docs.zizmor.sh/audits/#dangerous-triggers",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://docs.zizmor.sh/audits/#dangerous-triggers",
+      "EvidenceUris": [
+        "https://github.com/octo-org/octo-repo/blob/0123456789abcdef0123456789abcdef01234567/.github/workflows/auto-label.yml#L3-L4"
+      ],
+      "BaselineTags": [
+        "dangerous-triggers",
+        "severity:high"
+      ],
+      "EntityRefs": [
+        "octo-org/octo-repo/.github/workflows/auto-label.yml"
+      ],
+      "ToolVersion": "zizmor 1.8.0",
+      "SchemaVersion": "1.0"
+    }
+  ]
+}

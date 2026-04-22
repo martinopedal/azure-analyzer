@@ -1,0 +1,182 @@
+[
+  {
+    "Id": "fb8e2712-e202-4ff2-bdcb-d92147936fe2",
+    "Source": "ado-connections",
+    "Category": "Service Connection",
+    "Title": "AzureRM connection: azure-prod",
+    "RuleId": "ado.connection.AzureRM",
+    "Severity": "Info",
+    "Compliant": true,
+    "Detail": "Type=AzureRM; AuthScheme=WorkloadIdentityFederation; AuthMechanism=WorkloadIdentityFederation; IsShared=False",
+    "Remediation": "Migrate this service connection to workload identity federation and remove long-lived credentials.",
+    "ResourceId": "ado://contoso/my-project/serviceconnection/azure-prod",
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+    "EntityId": "ado://contoso/my-project/serviceconnection/a1b2c3d4-0000-1111-2222-333344445555",
+    "EntityType": "ServiceConnection",
+    "Platform": "ADO",
+    "Provenance": {
+      "RunId": "8fd85b00-06ce-43cf-b022-e6c5392c29b9",
+      "Source": "ado-connections",
+      "RawRecordRef": "",
+      "Timestamp": "2026-04-22T10:31:40.0625589Z"
+    },
+    "SubscriptionId": "",
+    "SubscriptionName": "",
+    "ResourceGroup": "",
+    "ManagementGroupPath": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Confidence": "",
+    "EvidenceCount": 0,
+    "MissingDimensions": null,
+    "Pillar": "Security",
+    "Impact": "Low",
+    "Effort": "Low",
+    "DeepLinkUrl": "https://dev.azure.com/contoso/my-project/_settings/adminservices?resourceId=a1b2c3d4-0000-1111-2222-333344445555",
+    "RemediationSnippets": [
+      {
+        "content": "az devops service-endpoint update --id \"a1b2c3d4-0000-1111-2222-333344445555\" --organization \"https://dev.azure.com/contoso\" --project \"my-project\"",
+        "language": "bash"
+      }
+    ],
+    "EvidenceUris": [
+      "https://dev.azure.com/contoso/my-project/_apis/serviceendpoint/endpoints/a1b2c3d4-0000-1111-2222-333344445555?api-version=7.1",
+      "https://dev.azure.com/contoso/_settings/audit"
+    ],
+    "BaselineTags": [
+      "AuthScheme-WorkloadIdentityFederation",
+      "Auth-WorkloadIdentityFederation",
+      "Connection-Scoped"
+    ],
+    "ScoreDelta": null,
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "EntityRefs": [
+      "ado-org:contoso",
+      "ado-project:contoso/my-project",
+      "ado-service-connection:contoso/my-project/a1b2c3d4-0000-1111-2222-333344445555"
+    ],
+    "ToolVersion": "ado-rest-api-7.1",
+    "SchemaVersion": "2.2"
+  },
+  {
+    "Id": "e257c1b1-5701-45a7-bdcb-c42a9fcfd322",
+    "Source": "ado-connections",
+    "Category": "Service Connection",
+    "Title": "GitHub connection: github-org",
+    "RuleId": "ado.connection.GitHub",
+    "Severity": "Info",
+    "Compliant": true,
+    "Detail": "Type=GitHub; AuthScheme=PAT; AuthMechanism=PAT; IsShared=True",
+    "Remediation": "Migrate the shared service connection to workload identity federation and coordinate with dependent teams.",
+    "ResourceId": "ado://contoso/my-project/serviceconnection/github-org",
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+    "EntityId": "ado://contoso/my-project/serviceconnection/b2c3d4e5-1111-2222-3333-444455556666",
+    "EntityType": "ServiceConnection",
+    "Platform": "ADO",
+    "Provenance": {
+      "RunId": "8fd85b00-06ce-43cf-b022-e6c5392c29b9",
+      "Source": "ado-connections",
+      "RawRecordRef": "",
+      "Timestamp": "2026-04-22T10:31:40.0722230Z"
+    },
+    "SubscriptionId": "",
+    "SubscriptionName": "",
+    "ResourceGroup": "",
+    "ManagementGroupPath": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Confidence": "",
+    "EvidenceCount": 0,
+    "MissingDimensions": null,
+    "Pillar": "Security",
+    "Impact": "High",
+    "Effort": "Medium",
+    "DeepLinkUrl": "https://dev.azure.com/contoso/my-project/_settings/adminservices?resourceId=b2c3d4e5-1111-2222-3333-444455556666",
+    "RemediationSnippets": [
+      {
+        "content": "az devops service-endpoint update --id \"b2c3d4e5-1111-2222-3333-444455556666\" --organization \"https://dev.azure.com/contoso\" --project \"my-project\"",
+        "language": "bash"
+      }
+    ],
+    "EvidenceUris": [
+      "https://dev.azure.com/contoso/my-project/_apis/serviceendpoint/endpoints/b2c3d4e5-1111-2222-3333-444455556666?api-version=7.1",
+      "https://dev.azure.com/contoso/_settings/audit"
+    ],
+    "BaselineTags": [
+      "AuthScheme-PAT",
+      "Auth-PAT",
+      "Connection-Shared"
+    ],
+    "ScoreDelta": null,
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "EntityRefs": [
+      "ado-org:contoso",
+      "ado-project:contoso/my-project",
+      "ado-service-connection:contoso/my-project/b2c3d4e5-1111-2222-3333-444455556666"
+    ],
+    "ToolVersion": "ado-rest-api-7.1",
+    "SchemaVersion": "2.2"
+  },
+  {
+    "Id": "6c2a6a74-0b62-452e-8b2c-4010e692bfb1",
+    "Source": "ado-connections",
+    "Category": "Service Connection",
+    "Title": "Generic connection: generic-webhook",
+    "RuleId": "ado.connection.Generic",
+    "Severity": "Info",
+    "Compliant": true,
+    "Detail": "Type=Generic; AuthScheme=ServicePrincipal; AuthMechanism=ClientSecret; IsShared=False",
+    "Remediation": "Migrate this service connection to workload identity federation and remove long-lived credentials.",
+    "ResourceId": "ado://contoso/my-project/serviceconnection/generic-webhook",
+    "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+    "EntityId": "ado://contoso/my-project/serviceconnection/c3d4e5f6-2222-3333-4444-555566667777",
+    "EntityType": "ServiceConnection",
+    "Platform": "ADO",
+    "Provenance": {
+      "RunId": "8fd85b00-06ce-43cf-b022-e6c5392c29b9",
+      "Source": "ado-connections",
+      "RawRecordRef": "",
+      "Timestamp": "2026-04-22T10:31:40.0739492Z"
+    },
+    "SubscriptionId": "",
+    "SubscriptionName": "",
+    "ResourceGroup": "",
+    "ManagementGroupPath": null,
+    "Frameworks": null,
+    "Controls": null,
+    "Confidence": "",
+    "EvidenceCount": 0,
+    "MissingDimensions": null,
+    "Pillar": "Security",
+    "Impact": "Medium",
+    "Effort": "Low",
+    "DeepLinkUrl": "https://dev.azure.com/contoso/my-project/_settings/adminservices?resourceId=c3d4e5f6-2222-3333-4444-555566667777",
+    "RemediationSnippets": [
+      {
+        "content": "az devops service-endpoint update --id \"c3d4e5f6-2222-3333-4444-555566667777\" --organization \"https://dev.azure.com/contoso\" --project \"my-project\"",
+        "language": "bash"
+      }
+    ],
+    "EvidenceUris": [
+      "https://dev.azure.com/contoso/my-project/_apis/serviceendpoint/endpoints/c3d4e5f6-2222-3333-4444-555566667777?api-version=7.1",
+      "https://dev.azure.com/contoso/_settings/audit"
+    ],
+    "BaselineTags": [
+      "AuthScheme-ServicePrincipal",
+      "Auth-ClientSecret",
+      "Connection-Scoped"
+    ],
+    "ScoreDelta": null,
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "EntityRefs": [
+      "ado-org:contoso",
+      "ado-project:contoso/my-project",
+      "ado-service-connection:contoso/my-project/c3d4e5f6-2222-3333-4444-555566667777"
+    ],
+    "ToolVersion": "ado-rest-api-7.1",
+    "SchemaVersion": "2.2"
+  }
+]

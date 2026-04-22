@@ -1,0 +1,45 @@
+{
+  "organization": "contoso",
+  "project": "my-project",
+  "apiVersion": "7.1",
+  "value": [
+    {
+      "id": "a1b2c3d4-0000-1111-2222-333344445555",
+      "name": "azure-prod",
+      "type": "AzureRM",
+      "isShared": false,
+      "authorization": {
+        "scheme": "WorkloadIdentityFederation",
+        "parameters": {
+          "authenticationType": "WorkloadIdentityFederation"
+        }
+      }
+    },
+    {
+      "id": "b2c3d4e5-1111-2222-3333-444455556666",
+      "name": "github-org",
+      "type": "GitHub",
+      "isShared": true,
+      "authorization": {
+        "scheme": "Token",
+        "parameters": {
+          "apitoken": "<redacted>",
+          "authenticationType": "PAT"
+        }
+      }
+    },
+    {
+      "id": "c3d4e5f6-2222-3333-4444-555566667777",
+      "name": "generic-webhook",
+      "type": "Generic",
+      "isShared": false,
+      "authorization": {
+        "scheme": "ServicePrincipal",
+        "parameters": {
+          "servicePrincipalKey": "<redacted>",
+          "authenticationType": "ClientSecret"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "azure-quota",
+  "Status": "Success",
+  "ToolVersion": "2.77.0",
+  "Message": "fixture",
+  "Timestamp": "2026-04-22T00:00:00Z",
+  "Findings": [
+    {
+      "Id": "azure-quota/11111111-1111-1111-1111-111111111111/westeurope/network/publicipaddresses",
+      "Source": "azure-quota",
+      "Category": "Capacity",
+      "Pillar": "Reliability",
+      "EntityType": "Subscription",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Title": "network quota usage for 'PublicIPAddresses' in westeurope",
+      "Detail": "Usage=92, Limit=100, UsagePercent=92%, Threshold=80%.",
+      "SubscriptionId": "11111111-1111-1111-1111-111111111111",
+      "Location": "westeurope",
+      "Service": "network",
+      "Sku": "PublicIPAddresses",
+      "SkuName": "PublicIPAddresses",
+      "MetricName": "PublicIPAddresses",
+      "Unit": "Count",
+      "CurrentValue": 92,
+      "Limit": 100,
+      "UsagePercent": 92,
+      "Threshold": 80,
+      "ToolVersion": "2.77.0"
+    }
+  ]
+}

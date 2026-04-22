@@ -48,6 +48,12 @@ See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md).
 
 </details>
 
+<details><summary><b>Tool output audit (Track D)</b></summary>
+
+See [docs/tool-output-audit.md](docs/tool-output-audit.md) and [docs/tool-output-audit.template.json](docs/tool-output-audit.template.json) for per-tool raw/wrapper/normalized field-coverage entries.
+
+</details>
+
 <details><summary><b>All parameters and advanced usage</b></summary>
 
 See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.md) for every Invoke-AzureAnalyzer.ps1 parameter, plus scenario-specific grouping (subscription scan, repo scan, multi-tenant, CI/CD, Kubernetes).
