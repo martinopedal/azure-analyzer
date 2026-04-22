@@ -1,0 +1,118 @@
+name: Closes Link Required
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  closes-link:
+    name: Closes/Fixes link required
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR body has Closes/Fixes link or N/A justification
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info('No pull_request payload; skipping.');
+              return;
+            }
+
+            const labels = (pr.labels || []).map(l => l.name);
+            if (labels.includes('skip-closes-check')) {
+              core.info("Skipping closes check - 'skip-closes-check' label found.");
+              return;
+            }
+
+            const author = pr.user && pr.user.login ? pr.user.login : '';
+            const skipAuthors = new Set(['dependabot[bot]', 'copilot-swe-agent[bot]']);
+            if (skipAuthors.has(author)) {
+              core.info(`Skipping closes check - author '${author}' is exempt.`);
+              return;
+            }
+
+            // Pure-docs PR detection (mirrors docs-check.yml ignored/doc patterns).
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              { owner: context.repo.owner, repo: context.repo.repo, pull_number: context.issue.number }
+            );
+            const changed = files.map(f => f.filename);
+
+            const ignoredPatterns = [
+              /^\.squad\//,
+              /^\.copilot\//,
+              /^\.github\/workflows\//,
+              /^\.github\/ISSUE_TEMPLATE\//,
+              /^\.github\/pull_request_template/i,
+              /^\.github\/copilot-instructions\.md$/,
+              /^\.github\/dependabot\.yml$/,
+              /^\.github\/agents\//,
+              /^tests\//,
+              /^samples\//,
+              /^LICENSE$/,
+              /^\.gitignore$/,
+              /^\.gitattributes$/,
+              /^\.lychee\.toml$/,
+              /^\.markdownlint(-cli2)?\.(json|yaml|yml|jsonc)$/,
+              /^pester\.log$/,
+              /^retry\.log$/,
+              /^testResults\.xml$/,
+            ];
+            const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
+
+            const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AI_GOVERNANCE.md', 'THIRD_PARTY_NOTICES.md'];
+            const docPathPatterns = [
+              /^docs\/consumer\//,
+              /^docs\/contributor\//,
+              /^docs\/getting-started\//,
+              /^docs\/guides\//,
+              /^docs\/reference\//,
+              /^docs\/operators\//,
+              /^docs\/contributing\//,
+              /^docs\/architecture\//,
+              /^docs\/decisions\//,
+              /^docs\/design\//,
+            ];
+            const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
+
+            const nonIgnored = changed.filter(f => !isIgnored(f));
+            const allDocs = nonIgnored.length > 0 && nonIgnored.every(isDoc);
+            if (allDocs) {
+              core.info('Pure-docs PR detected; skipping Closes link requirement.');
+              core.info(`Changed files: ${changed.join(', ')}`);
+              return;
+            }
+
+            const body = pr.body || '';
+
+            // Match GitHub's auto-close keywords: Close/Closes/Closed, Fix/Fixes/Fixed, Resolve/Resolves/Resolved
+            // followed by '#N' or full issues URL. Case-insensitive.
+            const closesRe = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b\s*:?\s+(#\d+|https:\/\/github\.com\/[^\s)]+\/issues\/\d+)/i;
+            const naRe = /\bN\/?A\b/i;
+
+            if (closesRe.test(body)) {
+              core.info('Found Closes/Fixes/Resolves link in PR body.');
+              return;
+            }
+
+            if (naRe.test(body)) {
+              core.info("Found 'N/A' justification in PR body; accepted.");
+              return;
+            }
+
+            core.error('error: PR body is missing a required Closes/Fixes/Resolves #N link or an N/A justification.');
+            core.error('error: Add a top-level section:');
+            core.error('error:   ## Closes');
+            core.error('error:   Closes #<issue-number>');
+            core.error("error: If no tracked issue applies, write 'N/A (no tracked issue, type=<docs|chore|refactor|ci>)'.");
+            core.error("error: To bypass intentionally, add the 'skip-closes-check' label.");
+            core.setFailed(
+              "PR body must contain a 'Closes #N' (or Fixes/Resolves) link, or an explicit 'N/A' justification. " +
+              "See .github/pull_request_template.md."
+            );
