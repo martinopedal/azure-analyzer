@@ -62,6 +62,11 @@ jobs:
       - if: steps.gate.outputs.skip == 'false'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # no-retry: orchestrates a multi-step gh-API dance (run lookup, dedup
+      # lookup, label create, issue create OR comment, post-create dedup sweep)
+      # with hash-based idempotency built in. A blind whole-step retry on a
+      # partial failure could open a duplicate ci-failure issue or close a wrong
+      # duplicate. Each gh call already trails `|| true` to ride out transients.
       - name: Triage failed workflow run
         if: steps.gate.outputs.skip == 'false'
         env:
@@ -75,20 +80,23 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Hawkeye-C6: use a here-string instead of `printf | sed` to avoid
+          # SIGPIPE propagating under `set -euo pipefail` when sed closes its
+          # stdin early. Here-strings have no pipe, so no broken-pipe exit.
           sanitize_text() {
             local input="$1"
-            printf '%s' "$input" \
-              | sed -E \
-                -e 's/ghp_[A-Za-z0-9]{36}/[GITHUB-PAT-REDACTED]/g' \
-                -e 's/gho_[A-Za-z0-9]{36}/[GITHUB-OAUTH-REDACTED]/g' \
-                -e 's/ghs_[A-Za-z0-9]{36}/[GITHUB-TOKEN-REDACTED]/g' \
-                -e 's/ghr_[A-Za-z0-9]{36}/[GITHUB-REFRESH-REDACTED]/g' \
-                -e 's/github_pat_[A-Za-z0-9_]{82}/[GITHUB-PAT-REDACTED]/g' \
-                -e 's/(Bearer|Basic)[[:space:]]+[^[:space:]]+/\1 [REDACTED]/Ig' \
-                -e 's/(AccountKey|SharedAccessKey|Password)=[^;[:space:]]+/\1=[REDACTED]/Ig' \
-                -e 's/sig=[A-Za-z0-9%+/=]{10,}/sig=[REDACTED]/Ig' \
-                -e 's/client_secret=[^&[:space:]]+/client_secret=[REDACTED]/Ig' \
-                -e 's/SharedAccessSignature=[^;[:space:]]+/SharedAccessSignature=[REDACTED]/Ig'
+            sed -E \
+              -e 's/ghp_[A-Za-z0-9]{36}/[GITHUB-PAT-REDACTED]/g' \
+              -e 's/gho_[A-Za-z0-9]{36}/[GITHUB-OAUTH-REDACTED]/g' \
+              -e 's/ghs_[A-Za-z0-9]{36}/[GITHUB-TOKEN-REDACTED]/g' \
+              -e 's/ghr_[A-Za-z0-9]{36}/[GITHUB-REFRESH-REDACTED]/g' \
+              -e 's/github_pat_[A-Za-z0-9_]{82}/[GITHUB-PAT-REDACTED]/g' \
+              -e 's/(Bearer|Basic)[[:space:]]+[^[:space:]]+/\1 [REDACTED]/Ig' \
+              -e 's/(AccountKey|SharedAccessKey|Password)=[^;[:space:]]+/\1=[REDACTED]/Ig' \
+              -e 's/sig=[A-Za-z0-9%+/=]{10,}/sig=[REDACTED]/Ig' \
+              -e 's/client_secret=[^&[:space:]]+/client_secret=[REDACTED]/Ig' \
+              -e 's/SharedAccessSignature=[^;[:space:]]+/SharedAccessSignature=[REDACTED]/Ig' \
+              <<<"$input"
           }
 
           failed_log_raw="$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 || true)"
@@ -185,6 +193,10 @@ jobs:
       actions: read
       contents: read
     steps:
+      # no-retry: sticky-issue maintenance (create / comment / close) keyed off a
+      # daily-bounded gh api query. A blind retry could open duplicate stickies
+      # if the first attempt succeeded after the runner timed out. Daily schedule
+      # provides natural retry; `|| true` rides out transients within the step.
       - name: Detect 0-job watchdog runs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

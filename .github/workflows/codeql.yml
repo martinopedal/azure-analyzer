@@ -22,6 +22,10 @@ jobs:
       fail-fast: false
       matrix:
         language: [actions]
+    # no-retry: this workflow only composes vetted official actions
+    # (actions/checkout + github/codeql-action/{init,autobuild,analyze}) which
+    # ship their own retry/backoff for upstream registry + database fetches.
+    # No `run:` blocks perform external network I/O.
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
