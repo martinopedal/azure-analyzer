@@ -1,0 +1,1377 @@
+{
+  "SchemaVersion": "3.1",
+  "Entities": [
+    {
+      "EntityId": "synthetic:Repository/0",
+      "EntityType": "Repository",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-Repository-0",
+      "Properties": {
+        "index": 0
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/1",
+      "EntityType": "AzureResource",
+      "Platform": "IaC",
+      "DisplayName": "synthetic-AzureResource-1",
+      "Properties": {
+        "index": 1
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/2",
+      "EntityType": "AzureResource",
+      "Platform": "Entra",
+      "DisplayName": "synthetic-AzureResource-2",
+      "Properties": {
+        "index": 2
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Repository/3",
+      "EntityType": "Repository",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-Repository-3",
+      "Properties": {
+        "index": 3
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:ServicePrincipal/4",
+      "EntityType": "ServicePrincipal",
+      "Platform": "Azure",
+      "DisplayName": "synthetic-ServicePrincipal-4",
+      "Properties": {
+        "index": 4
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Repository/5",
+      "EntityType": "Repository",
+      "Platform": "Azure",
+      "DisplayName": "synthetic-Repository-5",
+      "Properties": {
+        "index": 5
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/6",
+      "EntityType": "AzureResource",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-AzureResource-6",
+      "Properties": {
+        "index": 6
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Subscription/7",
+      "EntityType": "Subscription",
+      "Platform": "Entra",
+      "DisplayName": "synthetic-Subscription-7",
+      "Properties": {
+        "index": 7
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Repository/8",
+      "EntityType": "Repository",
+      "Platform": "Entra",
+      "DisplayName": "synthetic-Repository-8",
+      "Properties": {
+        "index": 8
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Repository/9",
+      "EntityType": "Repository",
+      "Platform": "Azure",
+      "DisplayName": "synthetic-Repository-9",
+      "Properties": {
+        "index": 9
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/10",
+      "EntityType": "AzureResource",
+      "Platform": "Entra",
+      "DisplayName": "synthetic-AzureResource-10",
+      "Properties": {
+        "index": 10
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:ServicePrincipal/11",
+      "EntityType": "ServicePrincipal",
+      "Platform": "ADO",
+      "DisplayName": "synthetic-ServicePrincipal-11",
+      "Properties": {
+        "index": 11
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Workflow/12",
+      "EntityType": "Workflow",
+      "Platform": "IaC",
+      "DisplayName": "synthetic-Workflow-12",
+      "Properties": {
+        "index": 12
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Tenant/13",
+      "EntityType": "Tenant",
+      "Platform": "IaC",
+      "DisplayName": "synthetic-Tenant-13",
+      "Properties": {
+        "index": 13
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/14",
+      "EntityType": "AzureResource",
+      "Platform": "ADO",
+      "DisplayName": "synthetic-AzureResource-14",
+      "Properties": {
+        "index": 14
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Workflow/15",
+      "EntityType": "Workflow",
+      "Platform": "IaC",
+      "DisplayName": "synthetic-Workflow-15",
+      "Properties": {
+        "index": 15
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/16",
+      "EntityType": "AzureResource",
+      "Platform": "Azure",
+      "DisplayName": "synthetic-AzureResource-16",
+      "Properties": {
+        "index": 16
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Subscription/17",
+      "EntityType": "Subscription",
+      "Platform": "IaC",
+      "DisplayName": "synthetic-Subscription-17",
+      "Properties": {
+        "index": 17
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Repository/18",
+      "EntityType": "Repository",
+      "Platform": "ADO",
+      "DisplayName": "synthetic-Repository-18",
+      "Properties": {
+        "index": 18
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Repository/19",
+      "EntityType": "Repository",
+      "Platform": "Azure",
+      "DisplayName": "synthetic-Repository-19",
+      "Properties": {
+        "index": 19
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/20",
+      "EntityType": "AzureResource",
+      "Platform": "Entra",
+      "DisplayName": "synthetic-AzureResource-20",
+      "Properties": {
+        "index": 20
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:ServicePrincipal/21",
+      "EntityType": "ServicePrincipal",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-ServicePrincipal-21",
+      "Properties": {
+        "index": 21
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Workflow/22",
+      "EntityType": "Workflow",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-Workflow-22",
+      "Properties": {
+        "index": 22
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:AzureResource/23",
+      "EntityType": "AzureResource",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-AzureResource-23",
+      "Properties": {
+        "index": 23
+      },
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EntityId": "synthetic:Subscription/24",
+      "EntityType": "Subscription",
+      "Platform": "GitHub",
+      "DisplayName": "synthetic-Subscription-24",
+      "Properties": {
+        "index": 24
+      },
+      "SchemaVersion": "3.1"
+    }
+  ],
+  "Edges": [
+    {
+      "EdgeId": "edge:synthetic:azureresource/16|GuestOf|synthetic:workflow/15",
+      "Source": "synthetic:azureresource/16",
+      "Target": "synthetic:workflow/15",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/10|DependsOn|synthetic:azureresource/1",
+      "Source": "synthetic:azureresource/10",
+      "Target": "synthetic:azureresource/1",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/16|HasRoleOn|synthetic:serviceprincipal/21",
+      "Source": "synthetic:azureresource/16",
+      "Target": "synthetic:serviceprincipal/21",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/19|UsesSecret|synthetic:azureresource/23",
+      "Source": "synthetic:repository/19",
+      "Target": "synthetic:azureresource/23",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/14|RegionPinned|synthetic:azureresource/23",
+      "Source": "synthetic:azureresource/14",
+      "Target": "synthetic:azureresource/23",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/20|TriggeredBy|synthetic:azureresource/1",
+      "Source": "synthetic:azureresource/20",
+      "Target": "synthetic:azureresource/1",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/19|RegionPinned|synthetic:serviceprincipal/4",
+      "Source": "synthetic:repository/19",
+      "Target": "synthetic:serviceprincipal/4",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/7|MemberOf|synthetic:workflow/22",
+      "Source": "synthetic:subscription/7",
+      "Target": "synthetic:workflow/22",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/19|PolicyAssignedTo|synthetic:azureresource/6",
+      "Source": "synthetic:repository/19",
+      "Target": "synthetic:azureresource/6",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|PolicyAssignedTo|synthetic:azureresource/23",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:azureresource/23",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/15|HasRoleOn|synthetic:azureresource/1",
+      "Source": "synthetic:workflow/15",
+      "Target": "synthetic:azureresource/1",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/17|DependsOn|synthetic:azureresource/1",
+      "Source": "synthetic:subscription/17",
+      "Target": "synthetic:azureresource/1",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/8|PolicyAssignedTo|synthetic:azureresource/6",
+      "Source": "synthetic:repository/8",
+      "Target": "synthetic:azureresource/6",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/12|PolicyAssignedTo|synthetic:subscription/7",
+      "Source": "synthetic:workflow/12",
+      "Target": "synthetic:subscription/7",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/21|RegionPinned|synthetic:repository/18",
+      "Source": "synthetic:serviceprincipal/21",
+      "Target": "synthetic:repository/18",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/8|MemberOf|synthetic:subscription/7",
+      "Source": "synthetic:repository/8",
+      "Target": "synthetic:subscription/7",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/22|DependsOn|synthetic:repository/8",
+      "Source": "synthetic:workflow/22",
+      "Target": "synthetic:repository/8",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/18|TriggeredBy|synthetic:serviceprincipal/21",
+      "Source": "synthetic:repository/18",
+      "Target": "synthetic:serviceprincipal/21",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/5|HasRoleOn|synthetic:serviceprincipal/11",
+      "Source": "synthetic:repository/5",
+      "Target": "synthetic:serviceprincipal/11",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:tenant/13|UsesSecret|synthetic:azureresource/14",
+      "Source": "synthetic:tenant/13",
+      "Target": "synthetic:azureresource/14",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/21|MemberOf|synthetic:serviceprincipal/4",
+      "Source": "synthetic:serviceprincipal/21",
+      "Target": "synthetic:serviceprincipal/4",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/22|GuestOf|synthetic:tenant/13",
+      "Source": "synthetic:workflow/22",
+      "Target": "synthetic:tenant/13",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/9|MemberOf|synthetic:workflow/22",
+      "Source": "synthetic:repository/9",
+      "Target": "synthetic:workflow/22",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/0|GuestOf|synthetic:azureresource/20",
+      "Source": "synthetic:repository/0",
+      "Target": "synthetic:azureresource/20",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/16|GuestOf|synthetic:workflow/12",
+      "Source": "synthetic:azureresource/16",
+      "Target": "synthetic:workflow/12",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/10|TriggeredBy|synthetic:repository/9",
+      "Source": "synthetic:azureresource/10",
+      "Target": "synthetic:repository/9",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/18|HasRoleOn|synthetic:repository/9",
+      "Source": "synthetic:repository/18",
+      "Target": "synthetic:repository/9",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/17|TriggeredBy|synthetic:azureresource/2",
+      "Source": "synthetic:subscription/17",
+      "Target": "synthetic:azureresource/2",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/5|PolicyAssignedTo|synthetic:repository/19",
+      "Source": "synthetic:repository/5",
+      "Target": "synthetic:repository/19",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/8|DependsOn|synthetic:repository/5",
+      "Source": "synthetic:repository/8",
+      "Target": "synthetic:repository/5",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/17|TriggeredBy|synthetic:workflow/12",
+      "Source": "synthetic:subscription/17",
+      "Target": "synthetic:workflow/12",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/8|MemberOf|synthetic:serviceprincipal/4",
+      "Source": "synthetic:repository/8",
+      "Target": "synthetic:serviceprincipal/4",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:tenant/13|HasRoleOn|synthetic:azureresource/16",
+      "Source": "synthetic:tenant/13",
+      "Target": "synthetic:azureresource/16",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/24|UsesSecret|synthetic:workflow/15",
+      "Source": "synthetic:subscription/24",
+      "Target": "synthetic:workflow/15",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/22|TriggeredBy|synthetic:azureresource/1",
+      "Source": "synthetic:workflow/22",
+      "Target": "synthetic:azureresource/1",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/21|TriggeredBy|synthetic:repository/19",
+      "Source": "synthetic:serviceprincipal/21",
+      "Target": "synthetic:repository/19",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|GuestOf|synthetic:subscription/24",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:subscription/24",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/5|MemberOf|synthetic:tenant/13",
+      "Source": "synthetic:repository/5",
+      "Target": "synthetic:tenant/13",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/12|PolicyAssignedTo|synthetic:subscription/24",
+      "Source": "synthetic:workflow/12",
+      "Target": "synthetic:subscription/24",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/14|UsesSecret|synthetic:azureresource/10",
+      "Source": "synthetic:azureresource/14",
+      "Target": "synthetic:azureresource/10",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/17|DependsOn|synthetic:azureresource/6",
+      "Source": "synthetic:subscription/17",
+      "Target": "synthetic:azureresource/6",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/16|PolicyAssignedTo|synthetic:repository/18",
+      "Source": "synthetic:azureresource/16",
+      "Target": "synthetic:repository/18",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/14|UsesSecret|synthetic:repository/8",
+      "Source": "synthetic:azureresource/14",
+      "Target": "synthetic:repository/8",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/14|MemberOf|synthetic:tenant/13",
+      "Source": "synthetic:azureresource/14",
+      "Target": "synthetic:tenant/13",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/11|GuestOf|synthetic:workflow/12",
+      "Source": "synthetic:serviceprincipal/11",
+      "Target": "synthetic:workflow/12",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/23|HasRoleOn|synthetic:repository/8",
+      "Source": "synthetic:azureresource/23",
+      "Target": "synthetic:repository/8",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/10|DependsOn|synthetic:workflow/22",
+      "Source": "synthetic:azureresource/10",
+      "Target": "synthetic:workflow/22",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/23|RegionPinned|synthetic:tenant/13",
+      "Source": "synthetic:azureresource/23",
+      "Target": "synthetic:tenant/13",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:workflow/12|RegionPinned|synthetic:workflow/22",
+      "Source": "synthetic:workflow/12",
+      "Target": "synthetic:workflow/22",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|TriggeredBy|synthetic:subscription/24",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:subscription/24",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/0|RegionPinned|synthetic:azureresource/6",
+      "Source": "synthetic:repository/0",
+      "Target": "synthetic:azureresource/6",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|MemberOf|synthetic:repository/5",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:repository/5",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/7|PolicyAssignedTo|synthetic:repository/9",
+      "Source": "synthetic:subscription/7",
+      "Target": "synthetic:repository/9",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/16|TriggeredBy|synthetic:serviceprincipal/21",
+      "Source": "synthetic:azureresource/16",
+      "Target": "synthetic:serviceprincipal/21",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/1|PolicyAssignedTo|synthetic:subscription/24",
+      "Source": "synthetic:azureresource/1",
+      "Target": "synthetic:subscription/24",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:tenant/13|RegionPinned|synthetic:azureresource/23",
+      "Source": "synthetic:tenant/13",
+      "Target": "synthetic:azureresource/23",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/24|PolicyAssignedTo|synthetic:tenant/13",
+      "Source": "synthetic:subscription/24",
+      "Target": "synthetic:tenant/13",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|PolicyAssignedTo|synthetic:subscription/7",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:subscription/7",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/18|PolicyAssignedTo|synthetic:repository/9",
+      "Source": "synthetic:repository/18",
+      "Target": "synthetic:repository/9",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/3|UsesSecret|synthetic:repository/5",
+      "Source": "synthetic:repository/3",
+      "Target": "synthetic:repository/5",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/8|DependsOn|synthetic:azureresource/2",
+      "Source": "synthetic:repository/8",
+      "Target": "synthetic:azureresource/2",
+      "Relation": "DependsOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/0|MemberOf|synthetic:workflow/15",
+      "Source": "synthetic:repository/0",
+      "Target": "synthetic:workflow/15",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/5|UsesSecret|synthetic:workflow/15",
+      "Source": "synthetic:repository/5",
+      "Target": "synthetic:workflow/15",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Likely",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/19|HasRoleOn|synthetic:subscription/17",
+      "Source": "synthetic:repository/19",
+      "Target": "synthetic:subscription/17",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/8|HasRoleOn|synthetic:serviceprincipal/4",
+      "Source": "synthetic:repository/8",
+      "Target": "synthetic:serviceprincipal/4",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/16|TriggeredBy|synthetic:subscription/7",
+      "Source": "synthetic:azureresource/16",
+      "Target": "synthetic:subscription/7",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/7|GuestOf|synthetic:azureresource/1",
+      "Source": "synthetic:subscription/7",
+      "Target": "synthetic:azureresource/1",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/21|TriggeredBy|synthetic:repository/0",
+      "Source": "synthetic:serviceprincipal/21",
+      "Target": "synthetic:repository/0",
+      "Relation": "TriggeredBy",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:tenant/13|UsesSecret|synthetic:repository/3",
+      "Source": "synthetic:tenant/13",
+      "Target": "synthetic:repository/3",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/2|HasRoleOn|synthetic:serviceprincipal/11",
+      "Source": "synthetic:azureresource/2",
+      "Target": "synthetic:serviceprincipal/11",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/11|MemberOf|synthetic:serviceprincipal/21",
+      "Source": "synthetic:serviceprincipal/11",
+      "Target": "synthetic:serviceprincipal/21",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/3|RegionPinned|synthetic:repository/19",
+      "Source": "synthetic:repository/3",
+      "Target": "synthetic:repository/19",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:subscription/17|HasRoleOn|synthetic:azureresource/20",
+      "Source": "synthetic:subscription/17",
+      "Target": "synthetic:azureresource/20",
+      "Relation": "HasRoleOn",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "ADO",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|GuestOf|synthetic:workflow/12",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:workflow/12",
+      "Relation": "GuestOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/18|PolicyAssignedTo|synthetic:workflow/22",
+      "Source": "synthetic:repository/18",
+      "Target": "synthetic:workflow/22",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/5|PolicyAssignedTo|synthetic:azureresource/6",
+      "Source": "synthetic:repository/5",
+      "Target": "synthetic:azureresource/6",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:serviceprincipal/4|PolicyAssignedTo|synthetic:subscription/24",
+      "Source": "synthetic:serviceprincipal/4",
+      "Target": "synthetic:subscription/24",
+      "Relation": "PolicyAssignedTo",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Confirmed",
+      "Platform": "GitHub",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/10|RegionPinned|synthetic:serviceprincipal/21",
+      "Source": "synthetic:azureresource/10",
+      "Target": "synthetic:serviceprincipal/21",
+      "Relation": "RegionPinned",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Azure",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:azureresource/1|UsesSecret|synthetic:tenant/13",
+      "Source": "synthetic:azureresource/1",
+      "Target": "synthetic:tenant/13",
+      "Relation": "UsesSecret",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unconfirmed",
+      "Platform": "Entra",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    },
+    {
+      "EdgeId": "edge:synthetic:repository/18|MemberOf|synthetic:workflow/22",
+      "Source": "synthetic:repository/18",
+      "Target": "synthetic:workflow/22",
+      "Relation": "MemberOf",
+      "Properties": {
+        "synthetic": true
+      },
+      "Confidence": "Unknown",
+      "Platform": "IaC",
+      "DiscoveredBy": "synthetic-fixture-generator",
+      "DiscoveredAt": "2026-01-01T00:00:00.0000000Z",
+      "SchemaVersion": "3.1"
+    }
+  ]
+}
