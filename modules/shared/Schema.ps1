@@ -32,12 +32,34 @@ $script:SchemaVersion = '2.2'
 $script:EntitiesFileSchemaVersion = '3.1'
 $script:SeverityLevels = @('Critical', 'High', 'Medium', 'Low', 'Info')
 # Edge.Relation enum. Add new values as discovery surfaces grow.
+# Phase 0 (#435) adds 16 additive relations consumed by Tracks A/B/C graph
+# renderers (attack-path, resilience, policy). All existing relations are
+# preserved; readers must accept any string in this set.
 $script:EdgeRelations = @(
-    'GuestOf',            # User -> Tenant (B2B home tenant)
-    'MemberOf',           # User|ServicePrincipal -> Group/role
-    'HasRoleOn',          # ServicePrincipal|User -> AzureResource (RBAC)
-    'OwnsAppRegistration',# User|ServicePrincipal -> Application
-    'ConsentedTo'         # User|ServicePrincipal -> Application (delegated/admin consent)
+    'GuestOf',                  # User -> Tenant (B2B home tenant)
+    'MemberOf',                 # User|ServicePrincipal -> Group/role
+    'HasRoleOn',                # ServicePrincipal|User -> AzureResource (RBAC)
+    'OwnsAppRegistration',      # User|ServicePrincipal -> Application
+    'ConsentedTo',              # User|ServicePrincipal -> Application (delegated/admin consent)
+    # --- Track A: attack-path / pipeline trust (Phase 0 #435) ---
+    'TriggeredBy',              # Workflow|Pipeline -> Event/Trigger
+    'AuthenticatesAs',          # Workflow|Pipeline -> ServicePrincipal|ManagedIdentity
+    'DeploysTo',                # Workflow|Pipeline -> AzureResource|Subscription
+    'UsesSecret',               # Workflow|Pipeline -> Secret/VariableGroup
+    'HasFederatedCredential',   # Application|ServicePrincipal -> Repository|Workflow
+    'Declares',                 # IaCFile -> AzureResource
+    # --- Track B: resilience / topology (Phase 0 #435) ---
+    'DependsOn',                # AzureResource -> AzureResource (runtime dependency)
+    'RegionPinned',             # AzureResource -> Region
+    'ZonePinned',               # AzureResource -> AvailabilityZone
+    'BackedUpBy',               # AzureResource -> BackupVault/Policy
+    'FailsOverTo',              # AzureResource -> AzureResource (paired DR target)
+    'ReplicatedTo',             # AzureResource -> AzureResource (geo-replica)
+    # --- Track C: policy / governance (Phase 0 #435) ---
+    'PolicyAssignedTo',         # PolicyAssignment -> Subscription|MG|ResourceGroup|Resource
+    'PolicyEnforces',           # PolicyAssignment -> PolicyDefinition
+    'ExemptedFrom',             # AzureResource -> PolicyAssignment
+    'InheritsFrom'              # ManagementGroup|Subscription -> ManagementGroup
 )
 $script:EntityTypes = @(
     'AzureResource',
@@ -266,6 +288,14 @@ function New-FindingRow {
         [string[]] $EntityRefs = @(),
         [string] $ToolVersion = '',
 
+        # Phase 0 (#435) schema-hook contract per Round 3 reconciliation.
+        # Accepts arbitrary additional optional fields (additive, dual-read,
+        # ignored if unknown). Track-specific FindingRow extensions (#432b)
+        # populate this until they graduate to first-class params. Keys that
+        # collide with already-declared row fields are silently dropped to
+        # protect schema invariants.
+        [hashtable] $AdditionalFields = @{},
+
         [string] $SchemaVersion = $script:SchemaVersion
     )
 
@@ -365,6 +395,19 @@ function New-FindingRow {
         EntityRefs       = $EntityRefs
         ToolVersion      = $ToolVersion
         SchemaVersion    = $SchemaVersion
+    }
+
+    # Phase 0 (#435) schema-hook: merge AdditionalFields into the row,
+    # skipping any key that would overwrite a first-class field. This is the
+    # only sanctioned path for Track-specific extensions until #432b promotes
+    # them. Unknown-key dropouts are silent (intentional dual-read posture).
+    if ($AdditionalFields -and $AdditionalFields.Count -gt 0) {
+        $existingNames = @($row.PSObject.Properties.Name)
+        foreach ($key in @($AdditionalFields.Keys)) {
+            if ([string]::IsNullOrWhiteSpace([string]$key)) { continue }
+            if ($existingNames -contains [string]$key) { continue }
+            $row | Add-Member -MemberType NoteProperty -Name ([string]$key) -Value $AdditionalFields[$key] -Force
+        }
     }
 
     # Validate the row before returning it
