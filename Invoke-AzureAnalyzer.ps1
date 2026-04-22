@@ -160,7 +160,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -288,6 +288,39 @@ $script:PriorOrchestratedFlag    = $env:AZURE_ANALYZER_ORCHESTRATED
 $script:PriorExplicitToolsFlag   = $env:AZURE_ANALYZER_EXPLICIT_TOOLS
 $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
 $env:AZURE_ANALYZER_EXPLICIT_TOOLS = if ($IncludeTools) { ($IncludeTools -join ',') } else { '' }
+
+# ---------------------------------------------------------------------------
+# Mandatory scanner-param prompts (#426): for the headline params common to
+# all scanners (subscription, tenant, GitHub org/repo, ADO org), prompt the
+# user when interactive, fall back to env vars otherwise. Per-tool, deeper
+# requirements are still resolved by Get-RequiredInputs below.
+# ---------------------------------------------------------------------------
+if ((Get-Command Read-MandatoryScannerParam -ErrorAction SilentlyContinue) -and -not $NonInteractive) {
+    $selectedToolsForPrompt = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
+    $providers = @($selectedToolsForPrompt | ForEach-Object { $_.provider } | Where-Object { $_ } | Sort-Object -Unique)
+    $scopes    = @($selectedToolsForPrompt | ForEach-Object { $_.scope    } | Where-Object { $_ } | Sort-Object -Unique)
+
+    if (('azure' -in $providers) -and -not $SubscriptionId -and -not $ManagementGroupId) {
+        $v = Read-MandatoryScannerParam -ScannerName 'azure-scanners' -ParamName 'SubscriptionId' -EnvVarFallback 'AZURE_SUBSCRIPTION_ID' -Example '00000000-0000-0000-0000-000000000000'
+        if ($v) { $SubscriptionId = $v; $PSBoundParameters['SubscriptionId'] = $v }
+    }
+    if (('azure' -in $providers) -and -not $TenantId) {
+        $v = Read-MandatoryScannerParam -ScannerName 'azure-scanners' -ParamName 'TenantId' -EnvVarFallback 'AZURE_TENANT_ID' -Example '00000000-0000-0000-0000-000000000000'
+        if ($v) { $TenantId = $v; $PSBoundParameters['TenantId'] = $v }
+    }
+    if (('ado' -in $providers) -and -not $AdoOrg) {
+        $v = Read-MandatoryScannerParam -ScannerName 'ado-scanners' -ParamName 'AdoOrg' -EnvVarFallback 'ADO_ORG' -Example 'contoso'
+        if ($v) { $AdoOrg = $v; $PSBoundParameters['AdoOrg'] = $v }
+    }
+    if (('github' -in $providers) -and -not $Repository) {
+        $v = Read-MandatoryScannerParam -ScannerName 'github-scanners' -ParamName 'Repository' -EnvVarFallback 'GITHUB_REPOSITORY' -Example 'github.com/org/repo'
+        if ($v) { $Repository = $v; $PSBoundParameters['Repository'] = $v }
+    }
+    if (('repository' -in $scopes) -and -not $RepoPath -and -not $Repository) {
+        $v = Read-MandatoryScannerParam -ScannerName 'repo-scanners' -ParamName 'RepoPath' -EnvVarFallback 'AZUREANALYZER_REPO_PATH' -Example 'C:\repos\my-app'
+        if ($v) { $RepoPath = $v; $PSBoundParameters['RepoPath'] = $v }
+    }
+}
 
 if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
     $selectedTools = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
