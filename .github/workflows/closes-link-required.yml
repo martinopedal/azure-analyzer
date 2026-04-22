@@ -49,7 +49,7 @@ jobs:
               /^\.copilot\//,
               /^\.github\/workflows\//,
               /^\.github\/ISSUE_TEMPLATE\//,
-              /^\.github\/PULL_REQUEST_TEMPLATE/i,
+              /^\.github\/pull_request_template/i,
               /^\.github\/copilot-instructions\.md$/,
               /^\.github\/dependabot\.yml$/,
               /^\.github\/agents\//,
