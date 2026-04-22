@@ -1,0 +1,20 @@
+{
+  "_header": {
+    "schemaVersion": "1.0",
+    "lastReviewed": "2026-04-21",
+    "sha256": "PENDING-COMPUTED-AT-COMMIT",
+    "reviewCadence": "quarterly",
+    "notes": "Capability ranking for end-user LLM triage trio composition."
+  },
+  "schemaVersion": "1.0",
+  "lastReviewed": "2026-04-21",
+  "rankings": [
+    { "model": "claude-opus-4.6", "tier": "premium", "rank": 100, "provider": "anthropic", "notes": "Best reasoning, slowest" },
+    { "model": "gpt-5.2-codex", "tier": "standard-code", "rank": 90, "provider": "openai", "notes": "Best for code-heavy triage" },
+    { "model": "gemini-3-pro-preview", "tier": "standard-analytical", "rank": 85, "provider": "google", "notes": "Strong analytical diversity" },
+    { "model": "claude-sonnet-4.6", "tier": "standard", "rank": 80, "provider": "anthropic", "notes": "" },
+    { "model": "gpt-5.2", "tier": "standard", "rank": 75, "provider": "openai", "notes": "" },
+    { "model": "claude-haiku-4.5", "tier": "fast", "rank": 50, "provider": "anthropic", "notes": "Fallback only" },
+    { "model": "gpt-4.1", "tier": "fast", "rank": 40, "provider": "openai", "notes": "Fallback only" }
+  ]
+}
