@@ -1,4 +1,4 @@
-﻿#Requires -Version 7.4
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure Analyzer — unified Azure assessment orchestrator (v3 manifest-driven).
@@ -73,6 +73,10 @@
 .PARAMETER CompareToPrevious
     Auto-discovers the latest prior sibling run directory under the current output root
     and uses it as the drift baseline for entities.json comparison.
+.PARAMETER NoBanner
+    Suppresses the ASCII startup banner. The banner is also suppressed when
+    the AZUREANALYZER_NO_BANNER environment variable is set. Color codes in
+    the banner are skipped when NO_COLOR is set (per https://no-color.org/).
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -150,7 +154,8 @@ param (
     [string[]] $Tenants,
     [switch] $Show,
     [ValidateRange(1, 65535)]
-    [int] $ViewerPort = 4280
+    [int] $ViewerPort = 4280,
+    [switch] $NoBanner
 )
 
 Set-StrictMode -Version Latest
@@ -160,7 +165,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'Errors', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'Errors', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams', 'Banner')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -171,6 +176,13 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 }
 if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
+}
+
+# Startup banner (cosmetic). Suppressed by -NoBanner or
+# $env:AZUREANALYZER_NO_BANNER, and respects $env:NO_COLOR. Must run before
+# any other Write-Host output so it appears at the top of the console run.
+if (Get-Command Write-AzureAnalyzerBanner -ErrorAction SilentlyContinue) {
+    Write-AzureAnalyzerBanner -NoBanner:$NoBanner
 }
 
 # ---------------------------------------------------------------------------
