@@ -17,6 +17,10 @@ on:
       - "CI"                            # tests, install manifest, SBOM
       - "CodeQL"                        # required status check on main
       - "Docs Check"                    # docs-vs-code drift gate
+      - "Markdown Link Check"           # docs link-rot gate (PR #483 + follow-up)
+      - "ALZ queries drift check"       # ARG query drift vs upstream
+      - "Bicep Build"                   # infra/Bicep lint + build
+      - "Stub deadline check"           # stale-stub deadline enforcement
       - "PR Review Gate"                # blocking rubber-duck gate (#108)
       - "PR Advisory Gate"              # advisory rubber-duck gate (#109)
       - "PR Auto-Resolve Review Threads" # comment-triage automation
