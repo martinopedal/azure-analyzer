@@ -24,11 +24,18 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install PowerShell
-        run: |
-          if ! command -v pwsh >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y powershell
-          fi
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: bash
+          command: |
+            if ! command -v pwsh >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y powershell
+            fi
 
       - name: Run PR review gate
         env:
