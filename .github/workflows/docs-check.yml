@@ -95,7 +95,7 @@ jobs:
               core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
               core.setFailed(
                 'error: This PR changes code files but no documentation was updated.\n' +
-                'Please update README.md, CHANGELOG.md, or a page under docs/consumer/ or docs/contributor/.\n' +
+                'Please update README.md, CHANGELOG.md, PERMISSIONS.md, or a page under docs/ (getting-started, guides, reference, operators, contributing, architecture, design).\n' +
                 'See CONTRIBUTING.md for documentation requirements.'
               );
             }
