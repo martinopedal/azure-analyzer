@@ -68,6 +68,7 @@ jobs:
               /^docs\/contributing\//,
               /^docs\/architecture\//,
               /^docs\/decisions\//,
+              /^docs\/design\//,
             ];
             const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
 
@@ -90,7 +91,7 @@ jobs:
             if (docFiles.length === 0) {
               core.error(`error: Missing documentation updates for code changes in PR #${context.issue.number}.`);
               core.error(`error: Code files changed: ${codeFiles.join(', ')}`);
-              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/ (getting-started, guides, reference, operators, contributing, architecture).');
+              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/ (getting-started, guides, reference, operators, contributing, architecture, design).');
               core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
               core.setFailed(
                 'error: This PR changes code files but no documentation was updated.\n' +
