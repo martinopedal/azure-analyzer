@@ -63,10 +63,18 @@ gh: <single-line gh CLI call>
 expect: <optional regex matched against stdout>
 ```
 
-The runner executes the `gh` CLI call (the leading `gh ` is added if you
-omit it). PASS requires exit code 0 AND, if `expect:` is present, the
-regex matching anywhere in stdout. Use this for bugs that manifest in the
-GitHub API surface (workflow definitions, label states, branch protection).
+The runner executes the `gh` CLI call via direct argv invocation (no shell).
+The leading `gh ` is added if you omit it. PASS requires exit code 0 AND,
+if `expect:` is present, the regex matching anywhere in stdout. Use this
+for bugs that manifest in the GitHub API surface (workflow definitions,
+label states, branch protection).
+
+> [!IMPORTANT]
+> The `gh:` runner is bounded to the `gh` CLI only. Commands are tokenized
+> and executed with `Start-Process gh -ArgumentList ...`; any of
+> `;`, `|`, `&`, `` ` ``, `$(`, `${`, newlines, `>`, `<`, or quoted-string
+> tricks cause the repro to FAIL with exit code 2. If you need shell
+> composition, use `shell:` instead - that is the explicit escape hatch.
 
 ### `manual:`
 

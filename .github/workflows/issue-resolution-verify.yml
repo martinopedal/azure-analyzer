@@ -16,7 +16,6 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
-  actions: read
 
 concurrency:
   group: issue-resolution-verify-${{ github.event.pull_request.number }}
@@ -67,20 +66,24 @@ jobs:
             set -euo pipefail
             owner="${REPO%/*}"
             repo="${REPO#*/}"
+            # NOTE: `first: 50` is an intentional cap - azure-analyzer PRs rarely close
+            # more than a handful of issues. If a future mega-PR needs more, add cursor
+            # pagination here. The `select(.repository.nameWithOwner==$full)` filter
+            # drops cross-repo closing references so we never target the wrong issue.
             gh api graphql -f query='
               query($owner:String!, $repo:String!, $pr:Int!) {
                 repository(owner:$owner, name:$repo) {
                   pullRequest(number:$pr) {
                     closingIssuesReferences(first: 50) {
-                      nodes { number }
+                      nodes { number repository { nameWithOwner } }
                     }
                   }
                 }
               }' -F owner="$owner" -F repo="$repo" -F pr="$PR_NUMBER" \
-              --jq '.data.repository.pullRequest.closingIssuesReferences.nodes | map(.number) | join(",")' \
+              --jq ".data.repository.pullRequest.closingIssuesReferences.nodes | map(select(.repository.nameWithOwner == \"$REPO\")) | map(.number) | join(\",\")" \
               > closing-issues.txt
             echo "issues=$(cat closing-issues.txt)" >> "$GITHUB_OUTPUT"
-            echo "Closing issues: $(cat closing-issues.txt)"
+            echo "Closing issues (same-repo only): $(cat closing-issues.txt)"
 
       - name: Verify each closed issue's repro
         if: steps.closing.outputs.issues != ''
@@ -96,6 +99,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           . "$PWD/.github/scripts/Verify-IssueRepro.ps1"
+
+          function Invoke-GhChecked {
+              param([Parameter(Mandatory)][string] $Label, [Parameter(Mandatory)][string[]] $Args)
+              & gh @Args 2>&1 | Out-Host
+              if ($LASTEXITCODE -ne 0) {
+                  Write-Host "::warning::gh $Label failed (exit $LASTEXITCODE) args=$($Args -join ' ')"
+              }
+          }
 
           $issueNumbers = $env:ISSUES -split ',' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
           if (-not $issueNumbers) { Write-Host 'No closing issues, exiting.'; exit 0 }
@@ -117,7 +128,7 @@ jobs:
                 if ($labels -contains 'bug') {
                   Write-Host "Issue #$n is a bug with no ## Repro - fail-soft reopen."
                   $msg = "issue-resolution-verify: missing ``## Repro`` block on bug issue. Reopening for manual verification. See ``docs/contributing/issue-verification.md`` for the contract. (run: $env:RUN_URL)"
-                  gh issue reopen $n --repo $env:REPO --comment $msg | Out-Host
+                  Invoke-GhChecked -Label 'reopen(no-repro)' -Args @('issue','reopen',"$n",'--repo',$env:REPO,'--comment',$msg)
                 } else {
                   Write-Host "Issue #$n has no ## Repro and is not labelled bug - skipping silently."
                 }
@@ -127,9 +138,9 @@ jobs:
 
               if ($repro.Type -eq 'manual') {
                 Write-Host "Issue #$n is manual - posting info comment + label."
-                gh issue edit $n --repo $env:REPO --add-label 'verify-manual' | Out-Host
+                Invoke-GhChecked -Label 'label(verify-manual)'  -Args @('issue','edit',"$n",'--repo',$env:REPO,'--add-label','verify-manual')
                 $msg = "Praxis: manual verification required for #$n (per ``## Repro`` block). PR #$($env:PR_NUMBER) merged at $env:MERGE_SHA. (run: $env:RUN_URL)"
-                gh issue comment $n --repo $env:REPO --body $msg | Out-Host
+                Invoke-GhChecked -Label 'comment(manual)'       -Args @('issue','comment',"$n",'--repo',$env:REPO,'--body',$msg)
                 Write-Host '::endgroup::'
                 continue
               }
@@ -137,15 +148,15 @@ jobs:
               Write-Host "Executing repro: type=$($repro.Type) command='$($repro.Command)' expect='$($repro.Expect)'"
               $result = Invoke-IssueRepro -Repro $repro -TimeoutSeconds 300
               $tail   = Format-SanitizedTail -Output $result.Output -Lines 50
+              $fence  = Get-SafeCodeFence  -Text   $tail
 
               if ($result.Status -eq 'PASS') {
                 $msg = ":white_check_mark: Praxis: repro confirmed resolved at $env:MERGE_SHA by $env:RUN_URL. Closing as verified."
-                gh issue comment $n --repo $env:REPO --body $msg | Out-Host
+                Invoke-GhChecked -Label 'comment(pass)' -Args @('issue','comment',"$n",'--repo',$env:REPO,'--body',$msg)
                 if ($issue.state -ne 'CLOSED') {
-                  gh issue close $n --repo $env:REPO --reason completed | Out-Host
+                  Invoke-GhChecked -Label 'close(pass)' -Args @('issue','close',"$n",'--repo',$env:REPO,'--reason','completed')
                 }
               } else {
-                $fence = [string][char]0x60 * 3
                 $bodyLines = @(
                   ":x: Praxis: repro still fails after PR #$($env:PR_NUMBER) merge at $env:MERGE_SHA. Output (last 50 lines, sanitized):",
                   '',
@@ -156,8 +167,8 @@ jobs:
                   "Run: $env:RUN_URL"
                 )
                 $body = $bodyLines -join "`n"
-                gh issue reopen $n --repo $env:REPO --comment $body | Out-Host
-                gh issue edit   $n --repo $env:REPO --add-label 'verification-failed' | Out-Host
+                Invoke-GhChecked -Label 'reopen(fail)'            -Args @('issue','reopen',"$n",'--repo',$env:REPO,'--comment',$body)
+                Invoke-GhChecked -Label 'label(verification-failed)' -Args @('issue','edit',"$n",'--repo',$env:REPO,'--add-label','verification-failed')
 
                 $trackerTitle = "verification-failed: PR #$($env:PR_NUMBER) did not resolve #$n"
                 $trackerLines = @(
@@ -178,11 +189,13 @@ jobs:
                   "Action: investigate the regression, push a follow-up, and re-link with ``Closes #$n``."
                 )
                 $trackerBody = $trackerLines -join "`n"
-                gh issue create --repo $env:REPO `
-                  --title $trackerTitle `
-                  --body  $trackerBody `
-                  --label 'squad,bug,verification,verification-failed' `
-                  --assignee $env:PR_AUTHOR | Out-Host
+                Invoke-GhChecked -Label 'create(tracker)' -Args @(
+                  'issue','create','--repo',$env:REPO,
+                  '--title',$trackerTitle,
+                  '--body', $trackerBody,
+                  '--label','squad,bug,verification,verification-failed',
+                  '--assignee',$env:PR_AUTHOR
+                )
               }
             } catch {
               Write-Host "::warning::Praxis verification threw on issue #$n - $($_.Exception.Message)"

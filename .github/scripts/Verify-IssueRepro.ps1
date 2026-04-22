@@ -27,19 +27,31 @@ $ErrorActionPreference = 'Stop'
 
 # Inlined sanitization rules - kept in lockstep with modules/shared/Sanitize.ps1.
 # If you update the rules there, mirror them here AND in the test fixture.
+# Order matters: more specific patterns (Authorization: Basic) fire before generic ones.
 $script:PraxisSanitizeRules = @(
-    @{ Pattern = 'ghp_[A-Za-z0-9]{36}';                                 Replacement = '[GITHUB-PAT-REDACTED]' },
-    @{ Pattern = 'gho_[A-Za-z0-9]{36}';                                 Replacement = '[GITHUB-OAUTH-REDACTED]' },
-    @{ Pattern = 'ghs_[A-Za-z0-9]{36}';                                 Replacement = '[GITHUB-TOKEN-REDACTED]' },
-    @{ Pattern = 'ghr_[A-Za-z0-9]{36}';                                 Replacement = '[GITHUB-REFRESH-REDACTED]' },
-    @{ Pattern = 'github_pat_[A-Za-z0-9_]{82}';                         Replacement = '[GITHUB-PAT-REDACTED]' },
-    @{ Pattern = '(?im)Authorization:\s*(Bearer|Basic)\s+\S+';          Replacement = 'Authorization: [REDACTED]' },
-    @{ Pattern = '(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*';                Replacement = 'Bearer [REDACTED]' },
-    @{ Pattern = '(?i)\b(AccountKey|SharedAccessKey|Password)=[^;]+';   Replacement = '$1=[REDACTED]' },
-    @{ Pattern = '(?i)\bsig=[A-Za-z0-9%+/=]{10,}';                      Replacement = 'sig=[REDACTED]' },
-    @{ Pattern = '(?i)\bclient_secret=[^&\s]+';                         Replacement = 'client_secret=[REDACTED]' },
-    @{ Pattern = '(?i)\bSharedAccessSignature=[^;]+';                   Replacement = 'SharedAccessSignature=[REDACTED]' }
+    @{ Pattern = 'ghp_[A-Za-z0-9]{36}';                                                Replacement = '[GITHUB-PAT-REDACTED]' },
+    @{ Pattern = 'gho_[A-Za-z0-9]{36}';                                                Replacement = '[GITHUB-OAUTH-REDACTED]' },
+    @{ Pattern = 'ghs_[A-Za-z0-9]{36}';                                                Replacement = '[GITHUB-TOKEN-REDACTED]' },
+    @{ Pattern = 'ghr_[A-Za-z0-9]{36}';                                                Replacement = '[GITHUB-REFRESH-REDACTED]' },
+    @{ Pattern = 'github_pat_[A-Za-z0-9_]{82}';                                        Replacement = '[GITHUB-PAT-REDACTED]' },
+    @{ Pattern = '(?im)Authorization:\s*Basic\s+[A-Za-z0-9+/=]{16,}';                  Replacement = 'Authorization: [ADO-PAT-REDACTED]' },
+    @{ Pattern = '(?im)Authorization:\s*(Bearer|Basic)\s+\S+';                         Replacement = 'Authorization: [REDACTED]' },
+    @{ Pattern = '(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*';                               Replacement = 'Bearer [REDACTED]' },
+    @{ Pattern = '\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\b'; Replacement = '[JWT-REDACTED]' },
+    @{ Pattern = '\bsk-(?:proj-)?[A-Za-z0-9_\-]{20,}';                                 Replacement = '[OPENAI-KEY-REDACTED]' },
+    @{ Pattern = '\bxox[baprs]-[A-Za-z0-9-]{10,}';                                     Replacement = '[SLACK-TOKEN-REDACTED]' },
+    @{ Pattern = '(?i)\bAZURE_OPENAI_API_KEY\s*=\s*[^\s;,&"'']+';                      Replacement = 'AZURE_OPENAI_API_KEY=[REDACTED]' },
+    @{ Pattern = '(?i)\b(AccountKey|SharedAccessKey|Password)=[^;]+';                  Replacement = '$1=[REDACTED]' },
+    @{ Pattern = '(?i)([?&])sig=[A-Za-z0-9%+/=]{10,}';                                 Replacement = '$1sig=[REDACTED]' },
+    @{ Pattern = '(?i)([?&])sv=[0-9]{4}-[0-9]{2}-[0-9]{2}';                            Replacement = '$1sv=[REDACTED]' },
+    @{ Pattern = '(?i)\bsig=[A-Za-z0-9%+/=]{10,}';                                     Replacement = 'sig=[REDACTED]' },
+    @{ Pattern = '(?i)\bclient_secret=[^&\s]+';                                        Replacement = 'client_secret=[REDACTED]' },
+    @{ Pattern = '(?i)\bSharedAccessSignature=[^;]+';                                  Replacement = 'SharedAccessSignature=[REDACTED]' }
 )
+
+# Characters that would let an issue author escape `gh` into arbitrary shell/pwsh.
+# Applied after prepending `gh ` so we only have to scan one string.
+$script:PraxisGhCommandBlocklist = @(';', '|', '&', '`', '$(', '${', "`n", "`r", '<(', '>(', '&&', '||', '>', '<', "'")
 
 function Remove-PraxisCredentials {
     [CmdletBinding()]
@@ -157,19 +169,38 @@ function Invoke-IssueRepro {
         }
 
         'gh' {
+            # Strip optional `gh ` prefix, then check for shell metacharacters BEFORE any
+            # further processing. The `gh` repro type is a hard contract: it may only
+            # invoke the `gh` CLI. No pipelines, no substitutions, no escaping into pwsh.
+            $raw = $Repro.Command
+            $trimmed = $raw -replace '^\s*gh\b\s*', ''
+            foreach ($meta in $script:PraxisGhCommandBlocklist) {
+                if ($trimmed.Contains($meta)) {
+                    return @{ Status = 'FAIL'; Output = "refusing to execute gh repro: disallowed character '$meta' in command"; ExitCode = 2 }
+                }
+            }
+            # Tokenize on whitespace. Issue authors should quote with double quotes if they
+            # need spaces in an argument; we split those out and strip the quotes.
+            $ghArgs = @()
+            $matchList = [regex]::Matches($trimmed, '"([^"]*)"|(\S+)')
+            foreach ($m in $matchList) {
+                if ($m.Groups[1].Success) { $ghArgs += $m.Groups[1].Value }
+                else                      { $ghArgs += $m.Groups[2].Value }
+            }
+            if ($ghArgs.Count -eq 0) {
+                return @{ Status = 'FAIL'; Output = 'empty gh command after sanitization'; ExitCode = 1 }
+            }
             $stdoutPath = [System.IO.Path]::GetTempFileName()
             $stderrPath = [System.IO.Path]::GetTempFileName()
             try {
-                $cmd = $Repro.Command
-                if ($cmd -notmatch '^\s*gh\b') { $cmd = 'gh ' + $cmd }
-                $proc = Start-Process pwsh `
-                    -ArgumentList @('-NoProfile', '-NonInteractive', '-Command', $cmd) `
+                $proc = Start-Process gh `
+                    -ArgumentList $ghArgs `
                     -RedirectStandardOutput $stdoutPath `
                     -RedirectStandardError  $stderrPath `
                     -PassThru -NoNewWindow
                 if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
                     $proc.Kill($true)
-                    return @{ Status = 'FAIL'; Output = "TIMEOUT after ${TimeoutSeconds}s: $cmd"; ExitCode = 124 }
+                    return @{ Status = 'FAIL'; Output = "TIMEOUT after ${TimeoutSeconds}s: gh $($ghArgs -join ' ')"; ExitCode = 124 }
                 }
                 $exitCode = $proc.ExitCode
                 $stdout = (Get-Content $stdoutPath -Raw -ErrorAction SilentlyContinue) ?? ''
@@ -207,4 +238,20 @@ function Format-SanitizedTail {
     $split = $sanitized -split "`r?`n"
     $tail = if ($split.Count -le $Lines) { $split } else { $split[-$Lines..-1] }
     return ($tail -join "`n")
+}
+
+function Get-SafeCodeFence {
+    # Return a backtick fence guaranteed longer than the longest run of
+    # backticks in $Text, so markdown rendering can't be escaped by output.
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([AllowNull()][string] $Text)
+    $longest = 0
+    if (-not [string]::IsNullOrEmpty($Text)) {
+        foreach ($m in [regex]::Matches($Text, '`+')) {
+            if ($m.Length -gt $longest) { $longest = $m.Length }
+        }
+    }
+    $fenceLen = [Math]::Max(3, $longest + 1)
+    return ([string][char]0x60) * $fenceLen
 }
