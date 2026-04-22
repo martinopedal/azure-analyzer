@@ -57,4 +57,6 @@ See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.m
 
 See [docs/contributing/](docs/contributing/CONTRIBUTING.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood, and design proposals belong under [docs/design/](docs/design/).
 
+Shared GraphQL wrappers now defensively reset `LASTEXITCODE` before `gh` invocation so Pester function-mocks are deterministic across Ubuntu/macOS/Windows.
+
 </details>

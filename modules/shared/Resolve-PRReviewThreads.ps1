@@ -69,6 +69,11 @@ function Invoke-GhGraphQl {
     }
 
     $text = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+        # `gh` can be mocked as a PowerShell function in tests. In that case,
+        # LASTEXITCODE is not updated and may retain a stale non-zero value
+        # from an earlier native command (observed on ubuntu-latest). Reset
+        # before invocation so exit handling reflects this call only.
+        $global:LASTEXITCODE = 0
         $stdout = & gh @ghArgs 2>&1
         $exitCode = 0
         $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
