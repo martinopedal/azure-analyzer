@@ -111,6 +111,40 @@ function Normalize-PSRule {
         $toolVersion = if ($finding.PSObject.Properties['ToolVersion'] -and $finding.ToolVersion) { [string]$finding.ToolVersion } else { '' }
         $remediationSnippets = Get-RemediationSnippets -Recommendation $remediation
 
+        # Track D enrichment (#432b): derive Impact/Effort, surface evidence URIs,
+        # pass through MITRE + ScoreDelta, and seed EntityRefs with subscription scope.
+        $impact = if ($finding.PSObject.Properties['Impact'] -and $finding.Impact) { [string]$finding.Impact } else {
+            switch ($severity) { 'Critical' { 'High' } 'High' { 'High' } 'Medium' { 'Medium' } default { 'Low' } }
+        }
+        $effort = if ($finding.PSObject.Properties['Effort'] -and $finding.Effort) { [string]$finding.Effort } else {
+            switch ($severity) { 'Critical' { 'High' } 'High' { 'Medium' } 'Medium' { 'Medium' } default { 'Low' } }
+        }
+        $evidenceUris = [System.Collections.Generic.List[string]]::new()
+        if ($finding.PSObject.Properties['EvidenceUris'] -and $finding.EvidenceUris) {
+            foreach ($u in @($finding.EvidenceUris)) { if (-not [string]::IsNullOrWhiteSpace([string]$u)) { $evidenceUris.Add([string]$u) | Out-Null } }
+        }
+        foreach ($u in @($learnMore, $deepLinkUrl)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$u) -and ($evidenceUris -notcontains [string]$u)) {
+                $evidenceUris.Add([string]$u) | Out-Null
+            }
+        }
+        $mitreTactics = if ($finding.PSObject.Properties['MitreTactics'] -and $finding.MitreTactics) { @([string[]]$finding.MitreTactics) } else { @() }
+        $mitreTechniques = if ($finding.PSObject.Properties['MitreTechniques'] -and $finding.MitreTechniques) { @([string[]]$finding.MitreTechniques) } else { @() }
+        $scoreDelta = $null
+        if ($finding.PSObject.Properties['ScoreDelta'] -and $null -ne $finding.ScoreDelta) {
+            try { $scoreDelta = [double]$finding.ScoreDelta } catch { $scoreDelta = $null }
+        }
+        $entityRefs = [System.Collections.Generic.List[string]]::new()
+        if ($finding.PSObject.Properties['EntityRefs'] -and $finding.EntityRefs) {
+            foreach ($r in @($finding.EntityRefs)) { if (-not [string]::IsNullOrWhiteSpace([string]$r)) { $entityRefs.Add([string]$r) | Out-Null } }
+        }
+        if ($subId) {
+            try {
+                $subRef = (ConvertTo-CanonicalEntityId -RawId $subId -EntityType 'Subscription').CanonicalId
+                if ($subRef -and $entityRefs -notcontains $subRef) { $entityRefs.Add($subRef) | Out-Null }
+            } catch { }
+        }
+
         $row = New-FindingRow -Id $findingId `
             -Source 'psrule' -EntityId $canonicalId -EntityType 'AzureResource' `
             -Title $title -RuleId $ruleId -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
@@ -120,6 +154,9 @@ function Normalize-PSRule {
             -SubscriptionId $subId -ResourceGroup $rg `
             -Frameworks $frameworks -Pillar $pillar -DeepLinkUrl $deepLinkUrl `
             -RemediationSnippets $remediationSnippets -BaselineTags $baselineTags `
+            -Impact $impact -Effort $effort -EvidenceUris @($evidenceUris) `
+            -MitreTactics @($mitreTactics) -MitreTechniques @($mitreTechniques) `
+            -ScoreDelta $scoreDelta -EntityRefs @($entityRefs) `
             -ToolVersion $toolVersion
         # Skip null rows (validation failed)
         if ($null -ne $row) {

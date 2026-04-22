@@ -212,6 +212,32 @@ function Normalize-Scorecard {
         $checkDetails = if ($finding.PSObject.Properties['CheckDetails']) { $finding.CheckDetails } else { $null }
         $evidenceUris = Get-ScorecardEvidenceUris -CheckDetails $checkDetails -ResourceId $rawId
 
+        # Track D enrichment (#432b): derive Impact/Effort, surface ScoreDelta from
+        # the OpenSSF score (10 - score), pass through MITRE, and seed EntityRefs
+        # with the parent organisation derived from the canonical repo id.
+        $impact = if ($finding.PSObject.Properties['Impact'] -and $finding.Impact) { [string]$finding.Impact } else {
+            switch ($severity) { 'Critical' { 'High' } 'High' { 'High' } 'Medium' { 'Medium' } default { 'Low' } }
+        }
+        $effort = if ($finding.PSObject.Properties['Effort'] -and $finding.Effort) { [string]$finding.Effort } else {
+            switch ($severity) { 'Critical' { 'Medium' } 'High' { 'Medium' } 'Medium' { 'Medium' } default { 'Low' } }
+        }
+        $scoreDelta = $null
+        if ($finding.PSObject.Properties['ScoreDelta'] -and $null -ne $finding.ScoreDelta) {
+            try { $scoreDelta = [double]$finding.ScoreDelta } catch { $scoreDelta = $null }
+        } elseif ($null -ne $score -and $score -ge 0) {
+            $scoreDelta = [double](10 - [int]$score)
+        }
+        $mitreTactics = if ($finding.PSObject.Properties['MitreTactics'] -and $finding.MitreTactics) { @([string[]]$finding.MitreTactics) } else { @() }
+        $mitreTechniques = if ($finding.PSObject.Properties['MitreTechniques'] -and $finding.MitreTechniques) { @([string[]]$finding.MitreTechniques) } else { @() }
+        $entityRefs = [System.Collections.Generic.List[string]]::new()
+        if ($finding.PSObject.Properties['EntityRefs'] -and $finding.EntityRefs) {
+            foreach ($r in @($finding.EntityRefs)) { if (-not [string]::IsNullOrWhiteSpace([string]$r)) { $entityRefs.Add([string]$r) | Out-Null } }
+        }
+        if ($canonicalId -match '^([^/]+)/([^/]+)/[^/]+$') {
+            $orgRef = "$($Matches[1])/$($Matches[2])".ToLowerInvariant()
+            if ($entityRefs -notcontains $orgRef) { $entityRefs.Add($orgRef) | Out-Null }
+        }
+
         $row = New-FindingRow -Id $findingId `
             -Source 'scorecard' -EntityId $canonicalId -EntityType 'Repository' `
             -Title $title -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
@@ -220,7 +246,11 @@ function Normalize-Scorecard {
             -LearnMoreUrl $learnMore -ResourceId ($rawId ?? '') `
             -Frameworks $frameworks -Pillar $pillar -DeepLinkUrl $deepLinkUrl `
             -RemediationSnippets $remediationSnippets -EvidenceUris $evidenceUris `
-            -BaselineTags $baselineTags -ToolVersion $toolVersion
+            -BaselineTags $baselineTags `
+            -Impact $impact -Effort $effort -ScoreDelta $scoreDelta `
+            -MitreTactics @($mitreTactics) -MitreTechniques @($mitreTechniques) `
+            -EntityRefs @($entityRefs) `
+            -ToolVersion $toolVersion
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)

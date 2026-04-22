@@ -70,7 +70,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `azure-cost` | `Normalize-AzureCost` | script | `modules/Invoke-AzureCost.ps1` | SubscriptionId |
 | `azure-quota` | `Normalize-AzureQuotaReports` | script | `modules/Invoke-AzureQuotaReports.ps1` | SubscriptionId |
 | `bicep-iac` | `Normalize-IaCBicep` | script | `modules/Invoke-IaCBicep.ps1` | - |
-| `copilot-triage` | `` | script | `modules/Invoke-CopilotTriage.ps1` | - |
+| `copilot-triage` | `` | script | `modules/shared/Triage/Invoke-CopilotTriage.ps1` | - |
 | `defender-for-cloud` | `Normalize-DefenderForCloud` | script | `modules/Invoke-DefenderForCloud.ps1` | SubscriptionId |
 | `falco` | `Normalize-Falco` | script | `modules/Invoke-Falco.ps1` | SubscriptionId |
 | `finops` | `Normalize-FinOpsSignals` | script | `modules/Invoke-FinOpsSignals.ps1` | SubscriptionId |

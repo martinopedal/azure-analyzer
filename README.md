@@ -42,6 +42,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.
 - **Mandatory scanner-param prompts (#426)**: when a scanner is selected but its mandatory parameter is missing, `Read-MandatoryScannerParam` resolves it via env var (`AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `ADO_ORG`, `GITHUB_REPOSITORY`, `AZUREANALYZER_REPO_PATH`) or interactive prompt. CI / `-NonInteractive` runs skip the scanner with a sanitized warning instead of failing late inside the underlying tool.
+- **Opt-in LLM triage** scaffold: defaults to 3-model rubberduck consensus, supports explicit `-SingleModel` opt-out, and applies credential sanitization on prompt + response paths.
 
 </details>
 
