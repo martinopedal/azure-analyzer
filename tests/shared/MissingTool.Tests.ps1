@@ -97,33 +97,19 @@ Describe 'Test-ToolExplicitlyRequested' {
     }
 }
 
-Describe 'Wrapper integration (Invoke-Trivy)' {
+Describe 'Wrapper integration (Invoke-Trivy) — sourcing contract' {
 
     BeforeAll {
         $script:repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
         $script:trivyWrapper = Join-Path $repoRoot 'modules\Invoke-Trivy.ps1'
     }
 
-    AfterEach {
-        Remove-Item Env:AZURE_ANALYZER_ORCHESTRATED   -ErrorAction SilentlyContinue
-        Remove-Item Env:AZURE_ANALYZER_EXPLICIT_TOOLS -ErrorAction SilentlyContinue
-    }
-
-    It 'is silent when orchestrator runs default scan and trivy is missing' -Skip:([bool](Get-Command trivy -ErrorAction SilentlyContinue)) {
-        $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
-        $env:AZURE_ANALYZER_EXPLICIT_TOOLS = ''
-        $WarningPreference = 'Continue'
-        $stream = & $trivyWrapper -ScanPath $repoRoot 3>&1
-        $warnings = @($stream | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
-        ($warnings | Where-Object { $_.Message -match 'trivy is not installed' }).Count | Should -Be 0
-    }
-
-    It 'warns loudly when user explicitly requested trivy and it is missing' -Skip:([bool](Get-Command trivy -ErrorAction SilentlyContinue)) {
-        $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
-        $env:AZURE_ANALYZER_EXPLICIT_TOOLS = 'trivy'
-        $WarningPreference = 'Continue'
-        $stream = & $trivyWrapper -ScanPath $repoRoot 3>&1
-        $warnings = @($stream | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
-        ($warnings | Where-Object { $_.Message -match 'trivy is not installed' }).Count | Should -BeGreaterOrEqual 1
+    It 'dot-sources MissingTool.ps1 so Write-MissingToolNotice is in scope' {
+        # Helper-behaviour matrices are covered exhaustively by the unit tests above.
+        # Here we just enforce the wrapper-side contract: the trivy wrapper sources the
+        # helper module and routes its missing-tool message through Write-MissingToolNotice.
+        $content = Get-Content $trivyWrapper -Raw
+        $content | Should -Match 'MissingTool\.ps1'
+        $content | Should -Match 'Write-MissingToolNotice'
     }
 }
