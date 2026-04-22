@@ -14,6 +14,20 @@
       "requiredParams": [
         "SubscriptionId"
       ],
+      "required_inputs": [
+        {
+          "name": "SubscriptionId",
+          "type": "guid",
+          "prompt": "Enter the Azure subscription ID to scan with azqr",
+          "envVar": "AZURE_SUBSCRIPTION_ID",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
+        }
+      ],
       "optionalParams": [
         "OutputPath"
       ],
@@ -68,6 +82,20 @@
       "script": "modules/Invoke-Kubescape.ps1",
       "requiredParams": [
         "SubscriptionId"
+      ],
+      "required_inputs": [
+        {
+          "name": "SubscriptionId",
+          "type": "guid",
+          "prompt": "Enter the Azure subscription ID to scan with kubescape",
+          "envVar": "AZURE_SUBSCRIPTION_ID",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
+        }
       ],
       "optionalParams": [
         "ClusterArmIds",
@@ -206,6 +234,20 @@
       "script": "modules/Invoke-Prowler.ps1",
       "requiredParams": [
         "SubscriptionId"
+      ],
+      "required_inputs": [
+        {
+          "name": "SubscriptionId",
+          "type": "guid",
+          "prompt": "Enter the Azure subscription ID to scan with prowler",
+          "envVar": "AZURE_SUBSCRIPTION_ID",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
+        }
       ],
       "optionalParams": [
         "OutputPath"
@@ -1292,6 +1334,7 @@
       "type": "collector",
       "script": "modules/Invoke-Zizmor.ps1",
       "requiredParams": [],
+      "required_inputs": [],
       "optionalParams": [
         "Repository",
         "WorkflowPath"
@@ -1346,6 +1389,7 @@
       "type": "collector",
       "script": "modules/Invoke-Gitleaks.ps1",
       "requiredParams": [],
+      "required_inputs": [],
       "optionalParams": [
         "RepoPath",
         "NoGit"

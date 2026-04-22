@@ -5,6 +5,10 @@ All notable changes to azure-analyzer will be documented here.
 ## [1.2.0 - Unreleased]
 
 ### Added
+- feat(preflight): added `modules/shared/Preflight/Get-RequiredInputs.ps1` and orchestrator wiring to resolve manifest-declared mandatory inputs before any tool dispatch using deterministic precedence `CLI > env > prompt > fail-fast`. Non-interactive unresolved inputs now abort with exit code 2 and a sanitized aggregate error message. Added `required_inputs` manifest metadata for azqr, prowler, kubescape, zizmor, and gitleaks plus focused Pester coverage for resolution order and non-interactive detection.
+
+### Fixed
+- fix(preflight): conditional required-input gates now consult env-resolved values, not only CLI values. Two-pass resolution: pre-build a merged CLI+env known-values map across every candidate input across every tool, then evaluate `conditional` against that map. Closes the gap where `SubscriptionId` was still flagged required after `ManagementGroupId` was satisfied via `AZURE_MANAGEMENT_GROUP_ID`. Added Pester case `does not require SubscriptionId when conditional dependency is satisfied via env var` to lock the contract.
 - feat(schema): added `IaCFile` as a first-class EntityType to the schema v2 enum with Platform=IaC. Canonical ID format is `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). EntityStore deduplicates IaCFile entities by Platform|EntityType|EntityId composite key, enabling cross-tool correlation when multiple IaC scanners (Terraform, Trivy, Checkov, tfsec) report findings on the same file. Canonical ID logic added to `modules/shared/Canonicalize.ps1`, dedup contract validated in EntityStore tests, and documentation updated in `docs/reference/entity-model.md`.
 
 ### Fixed

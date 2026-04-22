@@ -90,6 +90,7 @@ param (
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
     [string[]] $IncludeTools,
     [string[]] $ExcludeTools,
+    [switch] $NonInteractive,
     [switch] $SkipPrereqCheck,
     [switch] $InstallMissingModules,
     [string] $InstallConfigPath,
@@ -160,6 +161,8 @@ foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'Entit
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
+$preflightPath = Join-Path $sharedDir 'Preflight' 'Get-RequiredInputs.ps1'
+if (Test-Path $preflightPath) { . $preflightPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -272,6 +275,29 @@ function ShouldRunTool { param ([string]$ToolName)
     if ($IncludeTools) { return $ToolName -in $IncludeTools }
     if ($ExcludeTools) { return $ToolName -notin $ExcludeTools }
     return $true
+}
+
+if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
+    $selectedTools = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
+    $declaredParamNames = @($MyInvocation.MyCommand.Parameters.Keys)
+    $cliValues = @{}
+    foreach ($name in $PSBoundParameters.Keys) {
+        $cliValues[$name] = $PSBoundParameters[$name]
+    }
+    try {
+        $resolvedRequiredInputs = Get-RequiredInputs -Tools $selectedTools -CliValues $cliValues -NonInteractive:$NonInteractive
+        foreach ($name in $resolvedRequiredInputs.Keys) {
+            if ($name -notin $declaredParamNames) { continue }
+            # Keep both variable state and bound-parameter state in sync:
+            # - script vars are read directly throughout orchestration flow
+            # - PSBoundParameters is used by ContainsKey guards for optional forwarding
+            Set-Variable -Name $name -Value $resolvedRequiredInputs[$name] -Scope Script
+            $PSBoundParameters[$name] = $resolvedRequiredInputs[$name]
+        }
+    } catch {
+        [Console]::Error.WriteLine((Remove-Credentials -Text $_.Exception.Message))
+        exit 2
+    }
 }
 
 # PSRule can run in path-mode without Azure scope; workspace-scoped tools
@@ -1556,4 +1582,3 @@ if ($toolErrors.Count -gt 0) {
         Write-Host (Remove-Credentials "  - $($te.Tool): $($te.Error)") -ForegroundColor Red
     }
 }
-
