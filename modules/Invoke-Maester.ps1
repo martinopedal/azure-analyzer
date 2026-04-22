@@ -19,8 +19,13 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
+}
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
 }
 
 function ConvertTo-MaesterStringArray {
@@ -166,19 +171,19 @@ function Get-MaesterRemediationSnippets {
 
 # Check Maester module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name Maester)) {
-    Write-Warning "Maester module not found. Install with: Install-Module Maester -Scope CurrentUser"
+    Write-MissingToolNotice -Tool 'maester' -Message "Maester module not found. Install with: Install-Module Maester -Scope CurrentUser"
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Maester module not installed. Run: Install-Module Maester -Scope CurrentUser'; Findings = @() }
 }
 
 Import-Module Maester -ErrorAction SilentlyContinue
 if (-not (Get-Command Invoke-Maester -ErrorAction SilentlyContinue)) {
-    Write-Warning "Maester module loaded but Invoke-Maester not found. Returning empty result."
+    Write-MissingToolNotice -Tool 'maester' -Message "Maester module loaded but Invoke-Maester not found. Returning empty result."
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Invoke-Maester command not available'; Findings = @() }
 }
 
 # Verify Microsoft Graph connection
 if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue)) {
-    Write-Warning "Microsoft Graph SDK command Get-MgContext not found. Install Microsoft.Graph and connect before using Maester."
+    Write-MissingToolNotice -Tool 'maester' -Message "Microsoft Graph SDK command Get-MgContext not found. Install Microsoft.Graph and connect before using Maester."
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Get-MgContext command not available. Install Microsoft.Graph and run Connect-MgGraph.'; Findings = @() }
 }
 

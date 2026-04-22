@@ -42,6 +42,11 @@ $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
+$missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
+}
 
 $adapterPath = Join-Path $PSScriptRoot 'iac' 'IaCAdapters.ps1'
 if (Test-Path $adapterPath) { . $adapterPath }
@@ -55,7 +60,7 @@ $hasTerraform = $null -ne (Get-Command terraform -ErrorAction SilentlyContinue)
 $hasTrivy = $null -ne (Get-Command trivy -ErrorAction SilentlyContinue)
 
 if (-not $hasTerraform -and -not $hasTrivy) {
-    Write-Warning "Neither terraform nor trivy CLI is installed. Skipping Terraform IaC validation."
+    Write-MissingToolNotice -Tool 'terraform-iac' -Message "Neither terraform nor trivy CLI is installed. Skipping Terraform IaC validation."
     return [PSCustomObject]@{
         Source   = 'terraform-iac'
         SchemaVersion = '1.0'

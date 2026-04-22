@@ -4,6 +4,16 @@ Set-StrictMode -Version Latest
 BeforeAll {
     $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
     . (Join-Path $repoRoot 'modules\shared\MissingTool.ps1')
+    # Snapshot the suppress-flag set by tests/_helpers/setup.ps1 so Describe
+    # blocks below can safely clear it to assert baseline warn/silent behaviour
+    # without leaking a cleared state to the rest of the Pester run.
+    $script:OriginalSuppressFlag = $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS
+}
+
+AfterAll {
+    if ($null -ne $script:OriginalSuppressFlag) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $script:OriginalSuppressFlag
+    }
 }
 
 Describe 'Write-MissingToolNotice' {

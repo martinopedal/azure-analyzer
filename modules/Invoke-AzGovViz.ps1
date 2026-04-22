@@ -29,6 +29,11 @@ $retryPath = Join-Path $PSScriptRoot 'shared' 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
 if (Test-Path $installerPath) { . $installerPath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -632,7 +637,7 @@ function Import-AzGovVizCsvFindings {
 $azGovVizScript = Find-AzGovViz
 
 if (-not $azGovVizScript) {
-    Write-Warning "AzGovViz (AzGovVizParallel.ps1) not found. Skipping. Clone from https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting"
+    Write-MissingToolNotice -Tool 'azgovviz' -Message "AzGovViz (AzGovVizParallel.ps1) not found. Skipping. Clone from https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting"
     return [PSCustomObject]@{
         Source   = 'azgovviz'
         Status   = 'Skipped'
