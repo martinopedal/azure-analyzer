@@ -201,6 +201,9 @@ Describe 'LLM triage model selection (#433, frontier-only)' {
                 $result = Invoke-CopilotTriage -Findings @($finding) -CopilotTier Pro -SingleModel
                 $result.Prompt | Should -Match '\[TRUNCATED\]'
                 $result.Prompt.Length | Should -BeLessThan 5000
+                # Per-field cap must be respected exactly: no individual field
+                # may exceed MaxPromptFieldChars (2000) including the suffix.
+                $result.Prompt | Should -Not -Match 'A{2001,}'
             } finally {
                 Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
             }

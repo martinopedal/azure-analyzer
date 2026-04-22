@@ -1494,7 +1494,18 @@ if ($EnableAiTriage) {
                     -Remediation 'Reinstall azure-analyzer or restore modules/shared/Triage/Invoke-CopilotTriage.ps1 from source control.' `
                     -Details "Expected: $triageModulePath")
             }
-            throw "Triage module not found at expected path: $triageModulePath"
+            # Defensive last-resort: Schema.ps1 unavailable. Throw a structured
+            # PSCustomObject (same shape) so callers still get the rich-error
+            # contract instead of a raw string.
+            throw ([PSCustomObject]@{
+                PSTypeName   = 'AzureAnalyzer.FindingError'
+                Source       = 'triage'
+                Category     = 'TriageModuleMissing'
+                Reason       = 'AI triage module not found at expected path.'
+                Remediation  = 'Reinstall azure-analyzer or restore modules/shared/Triage/Invoke-CopilotTriage.ps1 from source control.'
+                Details      = "Expected: $triageModulePath"
+                TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
+            })
         }
         . $triageModulePath
         $triageFindings = @()

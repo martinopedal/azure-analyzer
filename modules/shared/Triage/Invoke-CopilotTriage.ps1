@@ -86,7 +86,11 @@ function ConvertTo-SafeFindingProjection {
             if ($null -ne $val) {
                 $s = [string]$val
                 if ($s.Length -gt $script:MaxPromptFieldChars) {
-                    $s = $s.Substring(0, $script:MaxPromptFieldChars) + '...[TRUNCATED]'
+                    # Subtract suffix length so the total post-truncation
+                    # string respects MaxPromptFieldChars exactly.
+                    $suffix     = '...[TRUNCATED]'
+                    $sliceLen   = [Math]::Max(0, $script:MaxPromptFieldChars - $suffix.Length)
+                    $s = $s.Substring(0, $sliceLen) + $suffix
                 }
                 $row[$field] = $s
             }
