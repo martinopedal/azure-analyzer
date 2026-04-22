@@ -152,6 +152,9 @@ Escalation to a human maintainer is permitted **only after at least 3 distinct s
 ### Hard rule
 **A PR is "done" only when it is green AND merged.** "Tests are green locally", "Copilot has no further comments", "I think CI will pass" are not done. Replies of the form "blocked, needs maintainer to look" without the 3-strategy analysis above are a contract violation and the agent must resume the loop.
 
+### Workflow-layer auto-retry (engages BEFORE this loop)
+As of repo directive 2026-04-22T23:26:00Z, the `.github/workflows/pr-auto-rerun-on-push.yml` workflow auto-reruns failed/cancelled checks on every push to a PR branch matching `squad/*`, `copilot/*`, `fix/*`, `ci/*`, or `feat/*`. It waits 30 seconds after the push for checks to register, then calls `gh run rerun <id> --failed` (only failed jobs, cost-optimized) on each red check and posts a single summary comment. This means **the iterate-until-green loop above only engages on the SECOND failure**: one transient-flake retry has already happened at the workflow layer, free of charge. If a check is still red after the auto-rerun, that is a real signal and the agent enters the loop above starting at step 1 (read the failing logs). Do not manually rerun checks on these branches; the workflow has already done it. Do not rely on the auto-retry to mask a real bug; if the same check fails twice on the same SHA, the bug is real.
+
 ### Cross-references
 - "Rate-Limit Retry + Frontier Fallback Chain" (above) — the model-side resilience policy this section composes with.
 - "Comment Triage Loop (every Copilot finding)" (above) — the structured loop for the Copilot-rejection failure mode.

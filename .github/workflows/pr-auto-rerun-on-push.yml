@@ -1,0 +1,111 @@
+name: PR Auto-Rerun On Push
+
+# Per repo directive 2026-04-22T23:26:00Z: after the iterate-until-green loop
+# pushes a fix, failed PR checks MUST be auto-rerun without manual intervention.
+# This workflow watches for new pushes to agent-owned PR branches (squad/*,
+# copilot/*, fix/*, ci/*, feat/*) and re-runs only the failed jobs of any
+# check that finished as `failure` or `cancelled` against the freshly-pushed
+# commit. Cost-optimized via `gh run rerun --failed` (only failed jobs, not
+# the full workflow). The iterate-until-green loop now engages on the SECOND
+# failure: one auto-retry has already happened at the workflow layer.
+
+on:
+  pull_request:
+    types: [synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to rerun failed checks on
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  pull-requests: write
+  contents: read
+  checks: read
+
+concurrency:
+  group: auto-rerun-pr-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  rerun-failed-checks:
+    runs-on: ubuntu-latest
+    # Branch filter: only fire on agent-pushed branches. Manual dispatch
+    # bypasses the filter so a maintainer can recover any PR.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.pull_request.head.ref, 'squad/') ||
+      startsWith(github.event.pull_request.head.ref, 'copilot/') ||
+      startsWith(github.event.pull_request.head.ref, 'fix/') ||
+      startsWith(github.event.pull_request.head.ref, 'ci/') ||
+      startsWith(github.event.pull_request.head.ref, 'feat/')
+    steps:
+      - name: Wait for initial check runs to register
+        run: sleep 30
+
+      - name: Re-run failed checks
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          checks_json="$(gh pr checks "$PR_NUMBER" --repo "$REPO" --json name,state,link 2>/dev/null || echo '[]')"
+          failed_checks="$(printf '%s' "$checks_json" | jq -c '[.[] | select(.state == "failure" or .state == "cancelled")]')"
+          failed_count="$(printf '%s' "$failed_checks" | jq 'length')"
+
+          echo "Found ${failed_count} failed/cancelled check(s) on PR #${PR_NUMBER}."
+
+          if [ "$failed_count" -eq 0 ]; then
+            echo "Nothing to rerun. Exiting cleanly."
+            exit 0
+          fi
+
+          # Track unique run IDs (a workflow can have multiple check entries
+          # but we only need one rerun per workflow run).
+          declare -A seen_runs=()
+          summary_lines=""
+          rerun_count=0
+
+          while IFS= read -r row; do
+            name="$(printf '%s' "$row" | jq -r '.name')"
+            link="$(printf '%s' "$row" | jq -r '.link // ""')"
+
+            # Extract numeric run ID from a link like
+            # https://github.com/<owner>/<repo>/actions/runs/<run-id>/...
+            run_id="$(printf '%s' "$link" | grep -oE 'runs/[0-9]+' | head -n1 | cut -d/ -f2 || true)"
+            if [ -z "$run_id" ]; then
+              echo "Skipping '${name}' -- no run ID in link '${link}'."
+              continue
+            fi
+
+            if [ -n "${seen_runs[$run_id]:-}" ]; then
+              summary_lines+="- ${name} -> already triggered (run ${run_id})"$'\n'
+              continue
+            fi
+            seen_runs[$run_id]=1
+
+            if gh run rerun "$run_id" --failed --repo "$REPO" 2>&1; then
+              echo "Re-running failed jobs for run ${run_id} (${name})."
+              summary_lines+="- ${name} -> re-running"$'\n'
+              rerun_count=$((rerun_count + 1))
+            else
+              echo "Failed to trigger rerun for run ${run_id} (${name}); continuing."
+              summary_lines+="- ${name} -> rerun dispatch failed"$'\n'
+            fi
+          done < <(printf '%s' "$failed_checks" | jq -c '.[]')
+
+          if [ "$rerun_count" -eq 0 ]; then
+            echo "No reruns dispatched. Skipping summary comment."
+            exit 0
+          fi
+
+          comment_body="🔄 Auto-rerun triggered for ${rerun_count} failed check(s) on commit ${HEAD_SHA}:"$'\n'
+          comment_body+="${summary_lines}"$'\n'
+          comment_body+="If a check fails again after rerun, the iterate-until-green loop will engage."
+
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$comment_body" || true

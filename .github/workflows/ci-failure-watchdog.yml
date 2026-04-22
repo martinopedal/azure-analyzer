@@ -28,6 +28,7 @@ on:
       - "Auto-label issues for squad"   # squad-label invariant on new issues
       - "Tool auto-update"              # weekly tool-manifest refresh
       - "Release"                       # tag/release automation
+      - "PR Auto-Rerun On Push"         # auto-retry agent-branch failed checks
     types: [completed]
 
 permissions:
