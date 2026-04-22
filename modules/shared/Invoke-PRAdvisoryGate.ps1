@@ -830,18 +830,27 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
         -DryRun:$DryRun
 
     if ($advisory.Outcome -in 'ChainExhausted', 'SwapLimitExceeded') {
+        # Frontier model chain exhaustion / swap-budget exhaustion is an
+        # infrastructure failure (provider outage, rate-limit, timeout), not
+        # a verdict. The workflow's contract (see pr-advisory-gate.yml near
+        # the rubberduck-gate status step) is explicit: treat infra failures
+        # as non-blocking and surface the underlying error via the workflow
+        # run. Emit gate-state=success + skip-reason so the commit status is
+        # green, the sticky advisory comment still posts for human context,
+        # and exit 0 so the advisory-gate check does not red-mark the PR.
         $stickyBody = Format-ChainExhaustedComment `
             -PRNumber $PRNumber `
             -HeadSha $HeadSha `
             -Swaps $advisory.Swaps
         Publish-AdvisoryComment -PRNumber $PRNumber -Repo $Repo -Body $stickyBody -DryRun:$DryRun | Out-Null
-        Write-Host "rubberduck-gate state: failure (chain $($advisory.Outcome) after $($advisory.Swaps) swap(s))"
+        Write-Host "rubberduck-gate state: success (non-blocking infra: chain $($advisory.Outcome) after $($advisory.Swaps) swap(s))"
         if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
-            Add-Content -Path $env:GITHUB_OUTPUT -Value 'gate-state=failure'
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'gate-state=success'
             Add-Content -Path $env:GITHUB_OUTPUT -Value "head-sha=$HeadSha"
             Add-Content -Path $env:GITHUB_OUTPUT -Value "chain-outcome=$($advisory.Outcome)"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "skip-reason=infra: frontier chain $($advisory.Outcome) after $($advisory.Swaps) swap(s)"
         }
-        exit 1
+        exit 0
     }
 
     $resolution = Resolve-RubberDuckVerdict `
