@@ -277,6 +277,20 @@ Describe 'issue-resolution-verify.yml - workflow contract' {
         $content = Get-Content -Raw $script:WorkflowPath
         $content | Should -Match 'function Invoke-GhChecked'
         $content | Should -Match '\$LASTEXITCODE'
+        $content | Should -Match '\$PSNativeCommandUseErrorActionPreference\s*=\s*\$false'
+    }
+
+    It 'contains no ambiguous scope-qualified variable refs in the inline script' {
+        # $n: / $foo: would be parsed as scope-qualified variable refs and crash the step.
+        # $env:X is allowed because env is a well-known PS drive/scope.
+        $content = Get-Content -Raw $script:WorkflowPath
+        $matchList = [regex]::Matches($content, '\$(?!env:)[A-Za-z_][A-Za-z0-9_]*:')
+        $bad = @($matchList | Where-Object {
+            $line = $_.Value
+            # Skip GraphQL variable declarations: $owner:String!, $repo:String!, $pr:Int!
+            $line -notmatch '^\$(owner|repo|pr):$'
+        })
+        $bad.Count | Should -Be 0 -Because "PowerShell parses these as drive-qualified refs: $(( $bad | ForEach-Object Value) -join ', ')"
     }
 
     It 'gates the verify job on merged == true' {

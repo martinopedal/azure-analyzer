@@ -121,7 +121,7 @@ jobs:
             try {
               $issueJson = gh issue view $n --repo $env:REPO --json number,body,labels,state 2>&1 | Out-String
               if ($LASTEXITCODE -ne 0) {
-                Write-Host "::warning::Failed to fetch issue #$n: $issueJson"
+                Write-Host "::warning::Failed to fetch issue #${n}: $issueJson"
                 Write-Host '::endgroup::'
                 continue
               }
