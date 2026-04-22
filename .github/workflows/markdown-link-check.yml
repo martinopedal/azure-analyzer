@@ -20,28 +20,35 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Install lychee CLI (pinned)
-        env:
-          LYCHEE_VERSION: v0.23.0
-        run: |
-          set -euo pipefail
-          curl --retry 3 --retry-delay 5 -fsSL \
-            "https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz" \
-            -o /tmp/lychee.tgz
-          mkdir -p /tmp/lychee && tar -xzf /tmp/lychee.tgz -C /tmp/lychee
-          sudo install -m 0755 /tmp/lychee/lychee /usr/local/bin/lychee
-          mkdir -p lychee
-          lychee --version
-
-      - name: Check markdown links (with retry on transient errors)
+      # Install + checksum-verify + run lychee inside a single retry block so
+      # transient GitHub release CDN hiccups and lychee network errors are
+      # handled by the same backoff policy (per Copilot review on PR #493).
+      # LYCHEE_SHA256 pins the exact artifact bytes for lychee v0.23.0
+      # (upstream does not publish a .sha256 sidecar). Bump both version and
+      # hash together when Dependabot/maintainers update lychee.
+      - name: Install and run lychee (checksum-verified, with retry)
         id: lychee
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          LYCHEE_VERSION: v0.23.0
+          LYCHEE_SHA256: 1fcb6ccf10d04c22b8c5873c5b9cb7be32ee7423e12169d6f1a79a6f1962ef81
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
           retry_on: error
           command: |
+            set -euo pipefail
+            if ! command -v lychee >/dev/null 2>&1; then
+              curl --retry 3 --retry-delay 5 -fsSL \
+                "https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz" \
+                -o /tmp/lychee.tgz
+              echo "${LYCHEE_SHA256}  /tmp/lychee.tgz" | sha256sum -c -
+              mkdir -p /tmp/lychee && tar -xzf /tmp/lychee.tgz -C /tmp/lychee
+              sudo install -m 0755 /tmp/lychee/lychee /usr/local/bin/lychee
+            fi
+            mkdir -p lychee
+            lychee --version
             lychee --config .lychee.toml --format markdown --output lychee/out.md './**/*.md'
 
       - name: Append lychee report to job summary
