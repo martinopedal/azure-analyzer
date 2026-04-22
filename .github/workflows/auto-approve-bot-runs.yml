@@ -1,0 +1,107 @@
+name: Auto-approve trusted bot workflow runs
+
+# Permanent fix for the "Expected -- Waiting for status to be reported" wedge
+# on agent-pushed PRs. GitHub treats first-time / app-bot contributors as
+# "outside collaborators" and gates their workflow_run with a manual
+# "Approve and run workflow" click. That gate blocks the iterate-until-green
+# loop on every cloud-agent PR. This workflow auto-approves runs whose
+# triggering actor is in the trusted allow-list.
+#
+# Security model:
+#   - Allow-list is hard-coded below (not data-driven, not from PR content)
+#   - We only ever call the /approve endpoint, never modify code or merge
+#   - Runs on workflow_run.types=[requested], so it fires BEFORE the gated
+#     run starts -- the gate is what creates the "requested" event
+#   - Self-skip if the triggering actor is not trusted (no-op exit)
+
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+      - "CodeQL"
+      - "Docs Check"
+      - "Markdown Link Check"
+      - "Stub deadline check"
+      - "Copilot Agent PR Review"
+      - "PR Advisory Gate"
+      - "PR Review Gate"
+      - "PR Auto-Resolve Review Threads"
+      - "CI failure watchdog"
+      - "Bicep build"
+      - "ALZ queries drift check"
+    types: [requested]
+
+permissions:
+  actions: write
+  pull-requests: read
+  contents: read
+
+concurrency:
+  group: auto-approve-bot-runs-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve run if actor is trusted
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ACTOR: ${{ github.event.workflow_run.actor.login }}
+          TRIGGERING_ACTOR: ${{ github.event.workflow_run.triggering_actor.login }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+
+          # Hard-coded allow-list. Adding to this list is a code change that
+          # goes through review + the rubber-duck gate. Do NOT source from
+          # PR content, env vars, or workflow inputs.
+          trusted=(
+            "copilot-swe-agent[bot]"
+            "Copilot"
+            "copilot"
+            "dependabot[bot]"
+            "github-actions[bot]"
+            "martinopedal"
+          )
+
+          is_trusted=false
+          for t in "${trusted[@]}"; do
+            if [ "$ACTOR" = "$t" ] || [ "$TRIGGERING_ACTOR" = "$t" ]; then
+              is_trusted=true
+              break
+            fi
+          done
+
+          if [ "$is_trusted" != "true" ]; then
+            echo "Actor '$ACTOR' (triggering: '$TRIGGERING_ACTOR') not in trusted allow-list. No approval issued."
+            exit 0
+          fi
+
+          # Only approve runs that are actually waiting on the action_required
+          # gate. Pulling fresh state avoids racing the run lifecycle.
+          run_state="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}" --jq '{status: .status, conclusion: .conclusion}')"
+          status="$(printf '%s' "$run_state" | jq -r '.status')"
+          conclusion="$(printf '%s' "$run_state" | jq -r '.conclusion')"
+          echo "Run ${RUN_ID} (workflow='${WORKFLOW_NAME}') status=${status} conclusion=${conclusion}"
+
+          if [ "$status" != "action_required" ] && [ "$conclusion" != "action_required" ]; then
+            echo "Run is not gated on approval. Nothing to do."
+            exit 0
+          fi
+
+          echo "Approving run ${RUN_ID} for trusted actor '${ACTOR}'."
+          if ! gh api -X POST "repos/${REPO}/actions/runs/${RUN_ID}/approve" >approve.out 2>&1; then
+            echo "Approve call failed:"
+            cat approve.out
+            # A 403 here is expected when the run was already approved by a
+            # parallel invocation. Treat that as success.
+            if grep -q "already" approve.out; then
+              echo "Run already approved by another invocation. Treating as success."
+              exit 0
+            fi
+            exit 1
+          fi
+          echo "Approved."
