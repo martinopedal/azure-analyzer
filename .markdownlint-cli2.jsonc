@@ -58,6 +58,10 @@
     // Table column compact/padded style: cosmetic, zero functional impact.
     "MD060": false,
 
+    // Spaces inside code spans: legacy docs have `gh ` / ` command` patterns;
+    // re-enable after a cleanup pass.
+    "MD038": false,
+
     // Code-block language: too many undeclared-language fences in legacy
     // sample output blocks. Disabled for now; tightened in a follow-up.
     "MD040": false,
