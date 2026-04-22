@@ -20,10 +20,6 @@ permissions:
   pull-requests: write
   contents: read
 
-concurrency:
-  group: copilot-agent-pr-review-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   request-copilot-review:
     # Skip drafts (Copilot review is requested when PR is marked ready) and fork PRs
