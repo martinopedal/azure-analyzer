@@ -68,6 +68,13 @@ jobs:
 
       - name: Run advisory gate
         id: gate
+        # Belt-and-braces: even with the script's internal try/catch + infra
+        # fallback, any uncaught non-zero exit would otherwise red-check the
+        # advisory-gate job on the PR. The gate is non-blocking by design, so
+        # we never want this step to fail the PR. Step 6 still posts the
+        # rubberduck-gate commit status and defaults to success on empty
+        # gate-state.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}

@@ -815,7 +815,7 @@ Describe 'Frontier fallback chain (retry + swap, #157 follow-up)' {
             $sticky = Format-ChainExhaustedComment -PRNumber 99 -HeadSha 'deadbeef0000' -Swaps $result.Swaps
             $sticky | Should -Match 'Gate could not reach any frontier model'
             $sticky | Should -Match 'Manual review required'
-            $sticky | Should -Match 'fail-closed'
+            $sticky | Should -Match 'Fail-open \(infra non-blocking\)'
             $sticky | Should -Match '<!-- squad-advisory -->'
         }
 
