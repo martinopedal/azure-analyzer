@@ -51,14 +51,28 @@ jobs:
           if (-not $runsJson) { $runsJson = '{"workflow_runs":[]}' }
           $runs = ($runsJson | ConvertFrom-Json).workflow_runs
 
-          # 2. Pull all open ci-failure issues and harvest their RUN URLs.
-          $openIssuesJson = gh issue list --repo $repo --label ci-failure --state open --limit 200 --json number,title,body 2>$null
-          if (-not $openIssuesJson) { $openIssuesJson = '[]' }
-          $openIssues = $openIssuesJson | ConvertFrom-Json
+          # 2. Pull all ci-failure issues (open + closed) and harvest run URLs
+          # from both issue bodies and comments. Watchdog appends repeated run
+          # links as comments ("still failing -- <run-url>"), so body-only
+          # matching creates false untriaged noise.
+          $issuesJson = gh issue list --repo $repo --label ci-failure --state all --limit 200 --json number,body 2>$null
+          if (-not $issuesJson) { $issuesJson = '[]' }
+          $issues = $issuesJson | ConvertFrom-Json
           $triagedRunUrls = @{}
-          foreach ($i in $openIssues) {
+          foreach ($i in $issues) {
               if ($i.body) {
                   foreach ($m in [regex]::Matches($i.body, 'https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+')) {
+                      $triagedRunUrls[$m.Value] = $i.number
+                  }
+              }
+
+              if (-not $i.number) { continue }
+              $issueWithCommentsJson = gh issue view $i.number --repo $repo --comments --json comments 2>$null
+              if (-not $issueWithCommentsJson) { continue }
+              $issueWithComments = $issueWithCommentsJson | ConvertFrom-Json
+              foreach ($comment in @($issueWithComments.comments)) {
+                  if (-not $comment.body) { continue }
+                  foreach ($m in [regex]::Matches($comment.body, 'https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+')) {
                       $triagedRunUrls[$m.Value] = $i.number
                   }
               }
