@@ -1482,6 +1482,18 @@ if ($EnableAiTriage) {
         # and is no longer supported (round-2 triage bottom-fix).
         $triageModulePath = Join-Path $modulesPath 'shared' 'Triage' 'Invoke-CopilotTriage.ps1'
         if (-not (Test-Path -LiteralPath $triageModulePath)) {
+            # Dot-source Schema.ps1 to access New-FindingError if it has not
+            # been loaded yet by the orchestrator's earlier setup.
+            $schemaPath = Join-Path $modulesPath 'shared' 'Schema.ps1'
+            if ((Test-Path -LiteralPath $schemaPath) -and -not (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue)) {
+                . $schemaPath
+            }
+            if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+                throw (New-FindingError -Source 'triage' -Category 'TriageModuleMissing' `
+                    -Reason 'AI triage module not found at expected path.' `
+                    -Remediation 'Reinstall azure-analyzer or restore modules/shared/Triage/Invoke-CopilotTriage.ps1 from source control.' `
+                    -Details "Expected: $triageModulePath")
+            }
             throw "Triage module not found at expected path: $triageModulePath"
         }
         . $triageModulePath
