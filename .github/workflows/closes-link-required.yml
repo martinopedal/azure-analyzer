@@ -49,7 +49,7 @@ jobs:
               /^\.copilot\//,
               /^\.github\/workflows\//,
               /^\.github\/ISSUE_TEMPLATE\//,
-              /^\.github\/PULL_REQUEST_TEMPLATE/,
+              /^\.github\/PULL_REQUEST_TEMPLATE/i,
               /^\.github\/copilot-instructions\.md$/,
               /^\.github\/dependabot\.yml$/,
               /^\.github\/agents\//,
@@ -93,7 +93,7 @@ jobs:
 
             // Match GitHub's auto-close keywords: Close/Closes/Closed, Fix/Fixes/Fixed, Resolve/Resolves/Resolved
             // followed by '#N' or full issues URL. Case-insensitive.
-            const closesRe = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b\s*:?\s+(#\d+|https?:\/\/github\.com\/[^\s)]+\/issues\/\d+)/i;
+            const closesRe = /\b(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b\s*:?\s+(#\d+|https:\/\/github\.com\/[^\s)]+\/issues\/\d+)/i;
             const naRe = /\bN\/?A\b/i;
 
             if (closesRe.test(body)) {
@@ -114,5 +114,5 @@ jobs:
             core.error("error: To bypass intentionally, add the 'skip-closes-check' label.");
             core.setFailed(
               "PR body must contain a 'Closes #N' (or Fixes/Resolves) link, or an explicit 'N/A' justification. " +
-              "See .github/PULL_REQUEST_TEMPLATE.md."
+              "See .github/pull_request_template.md."
             );
