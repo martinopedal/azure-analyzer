@@ -45,6 +45,8 @@ if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
 }
 $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
@@ -223,7 +225,7 @@ function Get-ZizmorRemediationSnippets {
 }
 
 if (-not (Test-ZizmorInstalled)) {
-    Write-Warning "zizmor is not installed. Skipping zizmor scan. Install from https://github.com/woodruffw/zizmor/releases or: pip install zizmor"
+    Write-MissingToolNotice -Tool 'zizmor' -Message "zizmor is not installed. Skipping zizmor scan. Install from https://github.com/woodruffw/zizmor/releases or: pip install zizmor"
     return [PSCustomObject]@{
         Source   = 'zizmor'
         SchemaVersion = '1.0'

@@ -33,6 +33,8 @@ if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
 }
 $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
@@ -83,7 +85,7 @@ function ConvertTo-RepositoryWebUrl {
 }
 
 if (-not (Get-Command bicep -ErrorAction SilentlyContinue)) {
-    Write-Warning "bicep CLI is not installed. Skipping Bicep IaC validation. Install from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install"
+    Write-MissingToolNotice -Tool 'iac-bicep' -Message "bicep CLI is not installed. Skipping Bicep IaC validation. Install from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install"
     return [PSCustomObject]@{
         Source   = 'bicep-iac'
         SchemaVersion = '1.0'

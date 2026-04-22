@@ -41,6 +41,8 @@ if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
 }
 $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
@@ -333,7 +335,7 @@ function Resolve-GitleaksConfig {
 }
 
 if (-not (Test-GitleaksInstalled)) {
-    Write-Warning "gitleaks is not installed. Skipping gitleaks scan. Install from https://github.com/gitleaks/gitleaks/releases"
+    Write-MissingToolNotice -Tool 'gitleaks' -Message "gitleaks is not installed. Skipping gitleaks scan. Install from https://github.com/gitleaks/gitleaks/releases"
     return [PSCustomObject]@{
         Source   = 'gitleaks'
         SchemaVersion = '1.0'

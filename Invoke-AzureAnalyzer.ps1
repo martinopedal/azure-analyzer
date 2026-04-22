@@ -160,7 +160,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -279,6 +279,15 @@ function ShouldRunTool { param ([string]$ToolName)
     if ($ExcludeTools) { return $ToolName -notin $ExcludeTools }
     return $true
 }
+
+# Signal to wrappers that they were launched via the orchestrator. Used by
+# Write-MissingToolNotice (modules\shared\MissingTool.ps1) to decide whether
+# a missing-tool message should be a loud warning (explicitly requested) or
+# a quiet verbose note (default scan, tool not asked for). Issue #472.
+$script:PriorOrchestratedFlag    = $env:AZURE_ANALYZER_ORCHESTRATED
+$script:PriorExplicitToolsFlag   = $env:AZURE_ANALYZER_EXPLICIT_TOOLS
+$env:AZURE_ANALYZER_ORCHESTRATED   = '1'
+$env:AZURE_ANALYZER_EXPLICIT_TOOLS = if ($IncludeTools) { ($IncludeTools -join ',') } else { '' }
 
 if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
     $selectedTools = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
@@ -626,7 +635,9 @@ function Get-SeverityRank ([string]$Sev) {
 # ---------------------------------------------------------------------------
 # Build ToolSpecs from manifest
 # ---------------------------------------------------------------------------
-Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
+if (-not $env:AZURE_ANALYZER_NO_BANNER -and -not ($env:CI -eq 'true' -or $env:GITHUB_ACTIONS -eq 'true')) {
+    Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
+}
 
 # ScriptBlock used by every ToolSpec — self-contained, runs in parallel runspace
 $runnerBlock = {
@@ -1647,12 +1658,37 @@ if ($Show) {
         }
         if (Get-Command Start-AzureAnalyzerViewer -ErrorAction SilentlyContinue) {
             $viewer = Start-AzureAnalyzerViewer -OutputPath $OutputPath -Port $ViewerPort
-            Write-Host "  Viewer: $($viewer.Url)" -ForegroundColor Green
+            $authUrl = if ($viewer.PSObject.Properties['AuthUrl']) { [string]$viewer.AuthUrl } else { [string]$viewer.Url }
+            Write-Host "  Viewer (open in browser): $authUrl" -ForegroundColor Green
             Write-Host "  Viewer Health: $($viewer.HealthUrl)" -ForegroundColor Green
             try {
-                $viewerTokenFile = Join-Path $OutputPath 'viewer-session-token.txt'
-                Set-Content -Path $viewerTokenFile -Value ([string]$viewer.Token) -Encoding UTF8
+                # Harden parent dir BEFORE writing the token file so the file inherits a
+                # locked-down permission set rather than briefly existing world-readable.
+                $tokenDir = Join-Path $OutputPath 'viewer'
+                if (-not (Test-Path -LiteralPath $tokenDir)) {
+                    New-Item -ItemType Directory -Path $tokenDir -Force | Out-Null
+                    if (-not $IsWindows) {
+                        & chmod 700 $tokenDir 2>$null
+                    }
+                }
+                $viewerTokenFile = Join-Path $tokenDir 'session-token.txt'
+                $previousUmask = $null
                 if (-not $IsWindows) {
+                    try { $previousUmask = (& sh -c 'umask 077 && umask') } catch { $previousUmask = $null }
+                }
+                Set-Content -Path $viewerTokenFile -Value ([string]$viewer.Token) -Encoding UTF8
+                if ($IsWindows) {
+                    try {
+                        $acl = New-Object System.Security.AccessControl.FileSecurity
+                        $acl.SetAccessRuleProtection($true, $false)
+                        $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+                        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, [System.Security.AccessControl.FileSystemRights]::FullControl, [System.Security.AccessControl.AccessControlType]::Allow)
+                        $acl.AddAccessRule($rule)
+                        Set-Acl -LiteralPath $viewerTokenFile -AclObject $acl
+                    } catch {
+                        Write-Warning "Unable to restrict ACL on viewer session token file: $viewerTokenFile"
+                    }
+                } else {
                     & chmod 600 $viewerTokenFile 2>$null
                     if ($LASTEXITCODE -ne 0) {
                         Write-Warning "Unable to set restrictive permissions on viewer session token file: $viewerTokenFile"
@@ -1687,3 +1723,7 @@ if ($toolErrors.Count -gt 0) {
         Write-Host (Remove-Credentials "  - $($te.Tool): $($te.Error)") -ForegroundColor Red
     }
 }
+
+# Restore env-vars touched for missing-tool messaging (issue #472)
+if ($null -eq $script:PriorOrchestratedFlag) { Remove-Item Env:AZURE_ANALYZER_ORCHESTRATED -ErrorAction SilentlyContinue } else { $env:AZURE_ANALYZER_ORCHESTRATED = $script:PriorOrchestratedFlag }
+if ($null -eq $script:PriorExplicitToolsFlag) { Remove-Item Env:AZURE_ANALYZER_EXPLICIT_TOOLS -ErrorAction SilentlyContinue } else { $env:AZURE_ANALYZER_EXPLICIT_TOOLS = $script:PriorExplicitToolsFlag }

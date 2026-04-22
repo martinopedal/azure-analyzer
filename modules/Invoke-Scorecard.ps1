@@ -33,6 +33,8 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -198,7 +200,7 @@ function Get-ScorecardRemediationSnippets {
 }
 
 if (-not (Test-ScorecardInstalled)) {
-    Write-Warning "scorecard is not installed. Skipping Scorecard scan. Install from https://github.com/ossf/scorecard/releases"
+    Write-MissingToolNotice -Tool 'scorecard' -Message "scorecard is not installed. Skipping Scorecard scan. Install from https://github.com/ossf/scorecard/releases"
     return [PSCustomObject]@{
         Source   = 'scorecard'
         SchemaVersion = '1.0'
