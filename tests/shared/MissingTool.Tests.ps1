@@ -112,16 +112,18 @@ Describe 'Wrapper integration (Invoke-Trivy)' {
     It 'is silent when orchestrator runs default scan and trivy is missing' -Skip:([bool](Get-Command trivy -ErrorAction SilentlyContinue)) {
         $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
         $env:AZURE_ANALYZER_EXPLICIT_TOOLS = ''
-        $warnings = $null
-        $null = & $trivyWrapper -ScanPath $repoRoot -WarningVariable warnings -WarningAction SilentlyContinue
+        $WarningPreference = 'Continue'
+        $stream = & $trivyWrapper -ScanPath $repoRoot 3>&1
+        $warnings = @($stream | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
         ($warnings | Where-Object { $_.Message -match 'trivy is not installed' }).Count | Should -Be 0
     }
 
     It 'warns loudly when user explicitly requested trivy and it is missing' -Skip:([bool](Get-Command trivy -ErrorAction SilentlyContinue)) {
         $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
         $env:AZURE_ANALYZER_EXPLICIT_TOOLS = 'trivy'
-        $warnings = $null
-        $null = & $trivyWrapper -ScanPath $repoRoot -WarningVariable warnings -WarningAction SilentlyContinue
+        $WarningPreference = 'Continue'
+        $stream = & $trivyWrapper -ScanPath $repoRoot 3>&1
+        $warnings = @($stream | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
         ($warnings | Where-Object { $_.Message -match 'trivy is not installed' }).Count | Should -BeGreaterOrEqual 1
     }
 }
