@@ -7,33 +7,36 @@ BeforeAll {
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Gitleaks.ps1'
 }
-$script:GitleaksInstalled = $null -ne (Microsoft.PowerShell.Core\Get-Command gitleaks -ErrorAction SilentlyContinue)
-
 Describe 'Invoke-Gitleaks' {
+    # Contract tests for the "missing tool" path. Previously gated by
+    # -Skip:$script:GitleaksInstalled, which silently skipped 5 assertions on
+    # any developer machine where gitleaks was on PATH. Mock Get-Command so
+    # the wrapper always follows the Test-GitleaksInstalled -> $false branch,
+    # making the contract environment-invariant (no silent skips when the
+    # real binary happens to be installed locally).
     Context 'when gitleaks CLI is missing' {
         BeforeAll {
-            if (-not $script:GitleaksInstalled) {
-                $result = & $script:Wrapper
-            }
+            Mock Get-Command { return $null } -ParameterFilter { $Name -eq 'gitleaks' }
+            $result = & $script:Wrapper
         }
 
-        It 'returns Status = Skipped' -Skip:$script:GitleaksInstalled {
+        It 'returns Status = Skipped' {
             $result.Status | Should -Be 'Skipped'
         }
 
-        It 'returns empty Findings' -Skip:$script:GitleaksInstalled {
+        It 'returns empty Findings' {
             @($result.Findings).Count | Should -Be 0
         }
 
-        It 'includes message about gitleaks not installed' -Skip:$script:GitleaksInstalled {
+        It 'includes message about gitleaks not installed' {
             $result.Message | Should -Match 'not installed'
         }
 
-        It 'sets Source to gitleaks' -Skip:$script:GitleaksInstalled {
+        It 'sets Source to gitleaks' {
             $result.Source | Should -Be 'gitleaks'
         }
 
-        It 'includes SchemaVersion 1.0 in the v1 envelope' -Skip:$script:GitleaksInstalled {
+        It 'includes SchemaVersion 1.0 in the v1 envelope' {
             $result.SchemaVersion | Should -Be '1.0'
         }
     }
