@@ -226,6 +226,32 @@ The squad coordinator (or the PR author agent, after self-review) marks the PR r
 - Docs are rubber-ducked against actual code before merge
 - No em dashes in any documentation
 
+## Issue Verification Contract
+
+Every closed issue must survive a re-run of its own repro. The
+`issue-resolution-verify.yml` workflow (Praxis, #510) triggers on every
+`pull_request` `closed` event with `merged == true`, walks the PR's
+`closingIssuesReferences`, and re-executes the `## Repro` block from each
+closed issue body on a clean runner.
+
+- Block formats supported: `pester:`, `shell:`, `gh:` (with optional
+  `expect:` regex), `manual:`. Full spec in
+  `docs/contributing/issue-verification.md`.
+- Bug issues without a `## Repro` block are fail-soft reopened by Praxis.
+  Other label sets (enhancement, docs, chore, epic, defer-post-window)
+  are skipped silently.
+- On verified PASS: Praxis posts a confirmation comment and leaves the
+  issue closed.
+- On FAIL: Praxis reopens the issue, labels it `verification-failed`,
+  posts the sanitized last 50 lines of output, and opens a tracker issue
+  assigned to the PR author.
+- Vigil routes `verification-failed` labels to the right specialist:
+  Hunter for code regressions, Helix for test regressions, Orca for
+  OS-specific regressions.
+- The `bug.yml` issue template enforces a `## Repro` block at issue
+  creation time. Manual-only checks are flagged with the `verify-manual`
+  label so the next maintainer review pass picks them up.
+
 ## Squad Pre-PR Self-Review (mandatory)
 
 Every squad agent MUST produce a `## Self-review` section in the PR body **before** calling `gh pr create`. This is a policy gate (CI enforcement deferred to follow-up): PRs without it should be amended immediately. Enforced manually by the Squad coordinator and PR reviewers until the CI check (#future) is built. The section compresses what changed, what could break, and what was tested so the reviewer (human or Copilot) does not start from zero.

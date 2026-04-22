@@ -1,0 +1,101 @@
+name: Bug report
+description: Report a defect that the Praxis repro-verification gate can re-run automatically.
+title: "fix: <short summary>"
+labels: ["bug", "squad"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. **Every bug must include a `## Repro` block** so that the
+        `issue-resolution-verify.yml` workflow (Praxis) can confirm the fix actually works
+        when the closing PR merges.
+
+        See `docs/contributing/issue-verification.md` for the full contract.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One paragraph describing what is broken and the impact.
+      placeholder: New-HtmlReport.ps1 throws when a wrapper emits zero findings.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happens. Include error text (sanitize secrets first).
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro (executable)
+      description: |
+        **Required.** Markdown section starting with `## Repro` containing exactly one fenced
+        code block whose first line is one of `pester:`, `shell:`, `gh:`, or `manual:`.
+        Praxis re-runs this block when the closing PR merges.
+
+        Supported formats (paste exactly one):
+
+        - `pester: <Pester FullNameFilter pattern>` - PASS if Failed==0 and Passed>=1
+        - `shell: <single-line pwsh command>` - PASS if exit code 0 (300s timeout)
+        - `gh: <single-line gh CLI call>` plus optional second line `expect: <regex>` - PASS on exit 0 + regex match on stdout
+        - `manual: <free text>` - no automated check; issue is labelled `verify-manual` and a comment is posted
+      value: |
+        ## Repro
+
+        ```
+        pester: New-HtmlReport.* zero findings
+        ```
+
+        <!--
+        Other examples:
+
+        ```
+        shell: pwsh -NoProfile -File .\Invoke-AzureAnalyzer.ps1 -DryRun
+        ```
+
+        ```
+        gh: gh workflow view ci.yml --repo martinopedal/azure-analyzer
+        expect: Analyze \(actions\)
+        ```
+
+        ```
+        manual: Open the rendered HTML report in a browser, verify the dark-mode toggle persists.
+        ```
+        -->
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: repro-confirm
+    attributes:
+      label: Repro contract
+      options:
+        - label: I have provided an automatable `## Repro` block (or explicitly chose `manual:` with justification).
+          required: true
+        - label: The repro contains no secrets, tokens, or PII.
+          required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, PowerShell version, module version, Azure region (if relevant).
+      placeholder: |
+        - OS: Windows 11 / Ubuntu 24.04 / macOS 14
+        - PowerShell: 7.4.6
+        - azure-analyzer: 1.2.0
+    validations:
+      required: false
