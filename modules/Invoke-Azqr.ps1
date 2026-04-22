@@ -25,6 +25,8 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -124,7 +126,7 @@ function Resolve-AzqrFrameworks {
 }
 
 if (-not (Test-AzqrInstalled)) {
-    Write-Warning "azqr is not installed. Skipping Azqr scan. Install from https://azure.github.io/azqr"
+    Write-MissingToolNotice -Tool 'azqr' -Message "azqr is not installed. Skipping Azqr scan. Install from https://azure.github.io/azqr"
     return [PSCustomObject]@{
         Source   = 'azqr'
         SchemaVersion = '1.0'

@@ -40,6 +40,8 @@ if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
 
 $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
@@ -181,7 +183,7 @@ function Get-InfracostRemediationSnippets {
 }
 
 if (-not (Test-InfracostInstalled)) {
-    Write-Warning "infracost CLI is not installed. Skipping Infracost scan."
+    Write-MissingToolNotice -Tool 'infracost' -Message "infracost CLI is not installed. Skipping Infracost scan."
     return [PSCustomObject]@{
         Source        = 'infracost'
         SchemaVersion = '1.0'

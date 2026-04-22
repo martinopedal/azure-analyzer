@@ -21,6 +21,8 @@ All notable changes to azure-analyzer will be documented here.
 - fix(ci): CI Health Digest now correlates triaged workflow runs from both `ci-failure` issue bodies and issue comments (open and closed), eliminating false "untriaged" duplicates when watchdog updates existing issues with `still failing` run links.
 
 ### Changed
+- ux(launch): missing-tool warnings are now downgraded to verbose output when the tool was not explicitly requested via `-IncludeTools`, eliminating noisy "<tool> is not installed. Skipping..." messages from default scans (#472).
+- ux(launch): the `=== Azure Analyzer ===` launch banner is now suppressed when `AZURE_ANALYZER_NO_BANNER` is set or when running under CI (`CI=true` or `GITHUB_ACTIONS=true`) (#472).
 - docs: surface sample reports in README quick-reference
 - docs(audit): added `docs/tool-output-audit.md` with completed wave-1 entries for Azure (`azure-quota`), Azure DevOps (`ado-connections`), and GitHub (`zizmor`) including per-tool counts and dropped-field lists.
 

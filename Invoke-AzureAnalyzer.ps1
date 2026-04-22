@@ -160,7 +160,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -279,6 +279,15 @@ function ShouldRunTool { param ([string]$ToolName)
     if ($ExcludeTools) { return $ToolName -notin $ExcludeTools }
     return $true
 }
+
+# Signal to wrappers that they were launched via the orchestrator. Used by
+# Write-MissingToolNotice (modules\shared\MissingTool.ps1) to decide whether
+# a missing-tool message should be a loud warning (explicitly requested) or
+# a quiet verbose note (default scan, tool not asked for). Issue #472.
+$script:PriorOrchestratedFlag    = $env:AZURE_ANALYZER_ORCHESTRATED
+$script:PriorExplicitToolsFlag   = $env:AZURE_ANALYZER_EXPLICIT_TOOLS
+$env:AZURE_ANALYZER_ORCHESTRATED   = '1'
+$env:AZURE_ANALYZER_EXPLICIT_TOOLS = if ($IncludeTools) { ($IncludeTools -join ',') } else { '' }
 
 if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
     $selectedTools = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
@@ -626,7 +635,9 @@ function Get-SeverityRank ([string]$Sev) {
 # ---------------------------------------------------------------------------
 # Build ToolSpecs from manifest
 # ---------------------------------------------------------------------------
-Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
+if (-not $env:AZURE_ANALYZER_NO_BANNER -and -not ($env:CI -eq 'true' -or $env:GITHUB_ACTIONS -eq 'true')) {
+    Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
+}
 
 # ScriptBlock used by every ToolSpec — self-contained, runs in parallel runspace
 $runnerBlock = {
@@ -1687,3 +1698,7 @@ if ($toolErrors.Count -gt 0) {
         Write-Host (Remove-Credentials "  - $($te.Tool): $($te.Error)") -ForegroundColor Red
     }
 }
+
+# Restore env-vars touched for missing-tool messaging (issue #472)
+if ($null -eq $script:PriorOrchestratedFlag) { Remove-Item Env:AZURE_ANALYZER_ORCHESTRATED -ErrorAction SilentlyContinue } else { $env:AZURE_ANALYZER_ORCHESTRATED = $script:PriorOrchestratedFlag }
+if ($null -eq $script:PriorExplicitToolsFlag) { Remove-Item Env:AZURE_ANALYZER_EXPLICIT_TOOLS -ErrorAction SilentlyContinue } else { $env:AZURE_ANALYZER_EXPLICIT_TOOLS = $script:PriorExplicitToolsFlag }

@@ -13,6 +13,8 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -99,7 +101,7 @@ function Get-ProwlerRemediationSnippets {
 }
 
 if (-not (Test-ProwlerInstalled)) {
-    Write-Warning 'prowler is not installed. Skipping Prowler scan. Install from https://github.com/prowler-cloud/prowler'
+    Write-MissingToolNotice -Tool 'prowler' -Message 'prowler is not installed. Skipping Prowler scan. Install from https://github.com/prowler-cloud/prowler'
     return [PSCustomObject]@{
         Source        = 'prowler'
         SchemaVersion = '1.0'

@@ -39,6 +39,8 @@ if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
 }
 $sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
 
@@ -225,7 +227,7 @@ function Get-TrivyEvidenceUris {
 }
 
 if (-not (Test-TrivyInstalled)) {
-    Write-Warning "trivy is not installed. Skipping Trivy scan. Install from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy"
+    Write-MissingToolNotice -Tool 'trivy' -Message "trivy is not installed. Skipping Trivy scan. Install from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy"
     return [PSCustomObject]@{
         Source   = 'trivy'
         SchemaVersion = '1.0'
