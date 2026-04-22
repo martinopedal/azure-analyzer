@@ -9,6 +9,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Changed
 - docs: surface sample reports in README quick-reference
+- docs(audit): added Track D tool output audit docs (`docs/tool-output-audit.md`, `docs/tool-output-audit.template.json`) with completed wave-1 entries for Azure (`azure-quota`), Azure DevOps (`ado-connections`), and GitHub (`zizmor`), including per-tool raw/wrapper/normalized fixture links, sample counts, dropped-field lists, and audit metadata (`auditedAt`, `auditor`); added sanitized sample fixtures under `tests/fixtures/<tool>/` for each audited tool.
 - chore(report): regenerated `samples/sample-report.html` and `samples/sample-report.md` from `samples/sample-findings-v2.json` so both showcase the same curated Schema 2.2 dataset (11 findings, posture 9/100). Verified `New-HtmlReport.ps1` and `New-MdReport.ps1` are intentionally located at the repo root as siblings of `Invoke-AzureAnalyzer.ps1`; they are public module entry-points exported by `AzureAnalyzer.psd1` and invoked via `$PSScriptRoot`.
 - docs: refresh PERMISSIONS.md to match current tool manifest
 
