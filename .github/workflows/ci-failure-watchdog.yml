@@ -80,20 +80,23 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Hawkeye-C6: use a here-string instead of `printf | sed` to avoid
+          # SIGPIPE propagating under `set -euo pipefail` when sed closes its
+          # stdin early. Here-strings have no pipe, so no broken-pipe exit.
           sanitize_text() {
             local input="$1"
-            printf '%s' "$input" \
-              | sed -E \
-                -e 's/ghp_[A-Za-z0-9]{36}/[GITHUB-PAT-REDACTED]/g' \
-                -e 's/gho_[A-Za-z0-9]{36}/[GITHUB-OAUTH-REDACTED]/g' \
-                -e 's/ghs_[A-Za-z0-9]{36}/[GITHUB-TOKEN-REDACTED]/g' \
-                -e 's/ghr_[A-Za-z0-9]{36}/[GITHUB-REFRESH-REDACTED]/g' \
-                -e 's/github_pat_[A-Za-z0-9_]{82}/[GITHUB-PAT-REDACTED]/g' \
-                -e 's/(Bearer|Basic)[[:space:]]+[^[:space:]]+/\1 [REDACTED]/Ig' \
-                -e 's/(AccountKey|SharedAccessKey|Password)=[^;[:space:]]+/\1=[REDACTED]/Ig' \
-                -e 's/sig=[A-Za-z0-9%+/=]{10,}/sig=[REDACTED]/Ig' \
-                -e 's/client_secret=[^&[:space:]]+/client_secret=[REDACTED]/Ig' \
-                -e 's/SharedAccessSignature=[^;[:space:]]+/SharedAccessSignature=[REDACTED]/Ig'
+            sed -E \
+              -e 's/ghp_[A-Za-z0-9]{36}/[GITHUB-PAT-REDACTED]/g' \
+              -e 's/gho_[A-Za-z0-9]{36}/[GITHUB-OAUTH-REDACTED]/g' \
+              -e 's/ghs_[A-Za-z0-9]{36}/[GITHUB-TOKEN-REDACTED]/g' \
+              -e 's/ghr_[A-Za-z0-9]{36}/[GITHUB-REFRESH-REDACTED]/g' \
+              -e 's/github_pat_[A-Za-z0-9_]{82}/[GITHUB-PAT-REDACTED]/g' \
+              -e 's/(Bearer|Basic)[[:space:]]+[^[:space:]]+/\1 [REDACTED]/Ig' \
+              -e 's/(AccountKey|SharedAccessKey|Password)=[^;[:space:]]+/\1=[REDACTED]/Ig' \
+              -e 's/sig=[A-Za-z0-9%+/=]{10,}/sig=[REDACTED]/Ig' \
+              -e 's/client_secret=[^&[:space:]]+/client_secret=[REDACTED]/Ig' \
+              -e 's/SharedAccessSignature=[^;[:space:]]+/SharedAccessSignature=[REDACTED]/Ig' \
+              <<<"$input"
           }
 
           failed_log_raw="$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 || true)"
