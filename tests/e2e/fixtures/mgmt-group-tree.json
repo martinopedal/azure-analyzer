@@ -1,0 +1,39 @@
+{
+  "description": "Synthetic management-group / subscription tenant tree for the Tenant + MG surface. Placeholder GUIDs only.",
+  "tenantId": "00000000-0000-0000-0000-0000000000a1",
+  "tenantDisplayName": "Contoso Fake Tenant",
+  "root": {
+    "id": "mg-root",
+    "displayName": "Tenant Root Group",
+    "children": [
+      {
+        "id": "mg-prod",
+        "displayName": "Production",
+        "children": [
+          {
+            "id": "mg-prod-eu",
+            "displayName": "Prod Europe",
+            "subscriptions": [
+              { "id": "00000000-0000-0000-0000-000000000002", "displayName": "prod-eu-sub-01" },
+              { "id": "00000000-0000-0000-0000-000000000003", "displayName": "prod-eu-sub-02" }
+            ]
+          },
+          {
+            "id": "mg-prod-us",
+            "displayName": "Prod US",
+            "subscriptions": [
+              { "id": "00000000-0000-0000-0000-000000000004", "displayName": "prod-us-sub-01" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "mg-nonprod",
+        "displayName": "NonProduction",
+        "subscriptions": [
+          { "id": "00000000-0000-0000-0000-000000000005", "displayName": "dev-sub-01" }
+        ]
+      }
+    ]
+  }
+}

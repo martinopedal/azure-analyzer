@@ -1,0 +1,43 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**.ps1'
+      - '**.psm1'
+      - '**.psd1'
+      - 'tests/e2e/**'
+      - 'tools/tool-manifest.json'
+      - '.github/workflows/e2e.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Run E2E suite
+        shell: pwsh
+        run: |
+          . ./tests/_helpers/setup.ps1
+          $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
+          $result = Invoke-Pester -Path ./tests/e2e -Output Detailed -CI -PassThru
+          if ($result.FailedCount -gt 0) {
+              Write-Host "::error::E2E suite failed: $($result.FailedCount) of $($result.TotalCount) tests."
+              exit 1
+          }

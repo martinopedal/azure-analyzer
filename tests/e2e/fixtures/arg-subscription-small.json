@@ -1,0 +1,106 @@
+{
+  "description": "Synthetic Azure Resource Graph results for a Tier 1 (small) subscription scan. Placeholder GUIDs only; never reference real tenants or subscriptions. Used by the E2E harness to drive results.json / entities.json / HTML / MD generation without touching Azure.",
+  "subscriptionId": "00000000-0000-0000-0000-000000000001",
+  "tenantId": "00000000-0000-0000-0000-0000000000a1",
+  "findings": [
+    {
+      "ruleId": "Azure.KeyVault.SoftDelete",
+      "title": "Key Vault soft delete disabled",
+      "severity": "High",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.KeyVault/vaults/kv-sample-001",
+      "resourceGroup": "rg-sample",
+      "category": "Security",
+      "pillar": "Security",
+      "detail": "Soft delete is not enabled on the key vault. Deleted secrets cannot be recovered.",
+      "remediation": "Enable soft delete: az keyvault update --name kv-sample-001 --enable-soft-delete true",
+      "learnMoreUrl": "https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview"
+    },
+    {
+      "ruleId": "Azure.Storage.SecureTransfer",
+      "title": "Storage account allows insecure transfer",
+      "severity": "Critical",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Storage/storageAccounts/stfakesample001",
+      "resourceGroup": "rg-sample",
+      "category": "Security",
+      "pillar": "Security",
+      "detail": "HTTPS-only transfer is not enforced.",
+      "remediation": "Set supportsHttpsTrafficOnly=true on the storage account."
+    },
+    {
+      "ruleId": "Azure.VM.DiskEncryption",
+      "title": "VM OS disk is not encrypted",
+      "severity": "High",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Compute/virtualMachines/vm-sample-01",
+      "resourceGroup": "rg-sample",
+      "category": "Security",
+      "pillar": "Security"
+    },
+    {
+      "ruleId": "Azure.SQL.AAD",
+      "title": "SQL Server AAD admin not configured",
+      "severity": "Medium",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Sql/servers/sql-sample-001",
+      "resourceGroup": "rg-sample",
+      "category": "Identity",
+      "pillar": "Security"
+    },
+    {
+      "ruleId": "Azure.AppService.HTTPS",
+      "title": "App Service https-only disabled",
+      "severity": "High",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Web/sites/app-sample-001",
+      "resourceGroup": "rg-sample",
+      "category": "Security"
+    },
+    {
+      "ruleId": "Azure.AppService.MinTLS",
+      "title": "App Service allows TLS 1.0",
+      "severity": "Medium",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Web/sites/app-sample-001",
+      "resourceGroup": "rg-sample",
+      "category": "Security"
+    },
+    {
+      "ruleId": "Azure.CosmosDB.AccessKeys",
+      "title": "Cosmos DB local auth enabled",
+      "severity": "Medium",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-sample-001",
+      "resourceGroup": "rg-sample",
+      "category": "Identity"
+    },
+    {
+      "ruleId": "Azure.Network.NSGOpenPort",
+      "title": "NSG exposes management port to Internet",
+      "severity": "Critical",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Network/networkSecurityGroups/nsg-sample-001",
+      "resourceGroup": "rg-sample",
+      "category": "Network",
+      "detail": "Inbound RDP/SSH permitted from 0.0.0.0/0 with token ghp_FAKE1234567890abcdef1234567890abcdef (planted secret for scrub test)."
+    },
+    {
+      "ruleId": "Azure.Compute.Tags",
+      "title": "VM missing required tag 'Environment'",
+      "severity": "Low",
+      "compliant": false,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-sample/providers/Microsoft.Compute/virtualMachines/vm-sample-02",
+      "resourceGroup": "rg-sample",
+      "category": "Governance"
+    },
+    {
+      "ruleId": "Azure.Defender.Enabled",
+      "title": "Defender for Cloud subscription plan enabled",
+      "severity": "Info",
+      "compliant": true,
+      "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001",
+      "category": "Security"
+    }
+  ]
+}
