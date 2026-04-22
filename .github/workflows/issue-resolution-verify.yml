@@ -1,0 +1,191 @@
+name: Issue Resolution Verify
+
+# Praxis contract (#510): when a PR merges and auto-closes one or more issues
+# via `Closes #N`, this workflow re-runs the `## Repro` block from each
+# closed issue body and reopens the issue if the repro still fails.
+#
+# Source of truth for the parsing/execution/sanitization logic lives in
+# `.github/scripts/Verify-IssueRepro.ps1` so it is unit-tested in Pester
+# (tests/workflows/IssueResolutionVerify.Tests.ps1).
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: issue-resolution-verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify repro for closed issues
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout merged head (post-merge SHA)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 1
+
+      - name: Install PowerShell + Pester (with retry)
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: bash
+          command: |
+            if ! command -v pwsh >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y powershell
+            fi
+            pwsh -NoProfile -Command "if (-not (Get-Module -ListAvailable Pester | Where-Object { \$_.Version -ge [version]'5.0' })) { Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0 }"
+
+      - name: Resolve closing issues (with retry)
+        id: closing
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: bash
+          command: |
+            set -euo pipefail
+            owner="${REPO%/*}"
+            repo="${REPO#*/}"
+            gh api graphql -f query='
+              query($owner:String!, $repo:String!, $pr:Int!) {
+                repository(owner:$owner, name:$repo) {
+                  pullRequest(number:$pr) {
+                    closingIssuesReferences(first: 50) {
+                      nodes { number }
+                    }
+                  }
+                }
+              }' -F owner="$owner" -F repo="$repo" -F pr="$PR_NUMBER" \
+              --jq '.data.repository.pullRequest.closingIssuesReferences.nodes | map(.number) | join(",")' \
+              > closing-issues.txt
+            echo "issues=$(cat closing-issues.txt)" >> "$GITHUB_OUTPUT"
+            echo "Closing issues: $(cat closing-issues.txt)"
+
+      - name: Verify each closed issue's repro
+        if: steps.closing.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ISSUES: ${{ steps.closing.outputs.issues }}
+          REPO: ${{ github.repository }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . "$PWD/.github/scripts/Verify-IssueRepro.ps1"
+
+          $issueNumbers = $env:ISSUES -split ',' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
+          if (-not $issueNumbers) { Write-Host 'No closing issues, exiting.'; exit 0 }
+
+          foreach ($n in $issueNumbers) {
+            Write-Host "::group::Issue #$n"
+            try {
+              $issueJson = gh issue view $n --repo $env:REPO --json number,body,labels,state 2>&1 | Out-String
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "::warning::Failed to fetch issue #$n: $issueJson"
+                Write-Host '::endgroup::'
+                continue
+              }
+              $issue  = $issueJson | ConvertFrom-Json
+              $labels = @($issue.labels | ForEach-Object { $_.name })
+              $repro  = Get-IssueReproBlock -Body ($issue.body ?? '')
+
+              if (-not $repro) {
+                if ($labels -contains 'bug') {
+                  Write-Host "Issue #$n is a bug with no ## Repro - fail-soft reopen."
+                  $msg = "issue-resolution-verify: missing ``## Repro`` block on bug issue. Reopening for manual verification. See ``docs/contributing/issue-verification.md`` for the contract. (run: $env:RUN_URL)"
+                  gh issue reopen $n --repo $env:REPO --comment $msg | Out-Host
+                } else {
+                  Write-Host "Issue #$n has no ## Repro and is not labelled bug - skipping silently."
+                }
+                Write-Host '::endgroup::'
+                continue
+              }
+
+              if ($repro.Type -eq 'manual') {
+                Write-Host "Issue #$n is manual - posting info comment + label."
+                gh issue edit $n --repo $env:REPO --add-label 'verify-manual' | Out-Host
+                $msg = "Praxis: manual verification required for #$n (per ``## Repro`` block). PR #$($env:PR_NUMBER) merged at $env:MERGE_SHA. (run: $env:RUN_URL)"
+                gh issue comment $n --repo $env:REPO --body $msg | Out-Host
+                Write-Host '::endgroup::'
+                continue
+              }
+
+              Write-Host "Executing repro: type=$($repro.Type) command='$($repro.Command)' expect='$($repro.Expect)'"
+              $result = Invoke-IssueRepro -Repro $repro -TimeoutSeconds 300
+              $tail   = Format-SanitizedTail -Output $result.Output -Lines 50
+
+              if ($result.Status -eq 'PASS') {
+                $msg = ":white_check_mark: Praxis: repro confirmed resolved at $env:MERGE_SHA by $env:RUN_URL. Closing as verified."
+                gh issue comment $n --repo $env:REPO --body $msg | Out-Host
+                if ($issue.state -ne 'CLOSED') {
+                  gh issue close $n --repo $env:REPO --reason completed | Out-Host
+                }
+              } else {
+                $fence = [string][char]0x60 * 3
+                $bodyLines = @(
+                  ":x: Praxis: repro still fails after PR #$($env:PR_NUMBER) merge at $env:MERGE_SHA. Output (last 50 lines, sanitized):",
+                  '',
+                  $fence,
+                  $tail,
+                  $fence,
+                  '',
+                  "Run: $env:RUN_URL"
+                )
+                $body = $bodyLines -join "`n"
+                gh issue reopen $n --repo $env:REPO --comment $body | Out-Host
+                gh issue edit   $n --repo $env:REPO --add-label 'verification-failed' | Out-Host
+
+                $trackerTitle = "verification-failed: PR #$($env:PR_NUMBER) did not resolve #$n"
+                $trackerLines = @(
+                  "Praxis verification gate detected that PR #$($env:PR_NUMBER) (merged at $env:MERGE_SHA) did not actually resolve the repro from #$n.",
+                  '',
+                  "- Original issue: #$n",
+                  "- Closing PR: #$($env:PR_NUMBER) (author: @$($env:PR_AUTHOR))",
+                  "- Verification run: $env:RUN_URL",
+                  "- Repro type: ``$($repro.Type)``",
+                  "- Repro command: ``$($repro.Command)``",
+                  '',
+                  'Sanitized tail:',
+                  '',
+                  $fence,
+                  $tail,
+                  $fence,
+                  '',
+                  "Action: investigate the regression, push a follow-up, and re-link with ``Closes #$n``."
+                )
+                $trackerBody = $trackerLines -join "`n"
+                gh issue create --repo $env:REPO `
+                  --title $trackerTitle `
+                  --body  $trackerBody `
+                  --label 'squad,bug,verification,verification-failed' `
+                  --assignee $env:PR_AUTHOR | Out-Host
+              }
+            } catch {
+              Write-Host "::warning::Praxis verification threw on issue #$n - $($_.Exception.Message)"
+            }
+            Write-Host '::endgroup::'
+          }

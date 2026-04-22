@@ -151,6 +151,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 
+- ci(verify): issue-resolution verification workflow - auto-runs the `## Repro` block from each closed issue when its closing PR merges and reopens the issue with `verification-failed` if the repro still fails. Supports `pester:`, `shell:`, `gh:` (with optional `expect:` regex), and `manual:` block types. Bug template (`.github/ISSUE_TEMPLATE/bug.yml`) now requires an executable `## Repro` block. See `docs/contributing/issue-verification.md` for the contract (closes #510).
 - feat(reports): framework x tool coverage matrix with click-to-filter (closes #230)
 - feat(manifest): registered `azure-quota` (Azure Quota Reports) in `tools/tool-manifest.json` with Azure CLI install metadata and report taxonomy (`Reliability` / `Capacity`) as foundation for #322-#325.
 - feat: Application Insights perf wrapper (slow requests + dependency failures + exception rate via KQL) (closes #237)
