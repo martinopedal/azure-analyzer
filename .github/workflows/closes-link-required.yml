@@ -66,10 +66,18 @@ jobs:
             ];
             const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
 
-            const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md'];
+            const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'AI_GOVERNANCE.md', 'THIRD_PARTY_NOTICES.md'];
             const docPathPatterns = [
-              /^docs\//,
-              /\.md$/i,
+              /^docs\/consumer\//,
+              /^docs\/contributor\//,
+              /^docs\/getting-started\//,
+              /^docs\/guides\//,
+              /^docs\/reference\//,
+              /^docs\/operators\//,
+              /^docs\/contributing\//,
+              /^docs\/architecture\//,
+              /^docs\/decisions\//,
+              /^docs\/design\//,
             ];
             const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
 
