@@ -51,6 +51,12 @@ jobs:
           fi
 
       - name: Resolve addressed review threads
+        # Belt-and-braces: GitHub's GraphQL `resolveReviewThread` rejects
+        # bot-vs-bot resolution (e.g., GHA bot trying to resolve a Copilot
+        # Code Review thread) with FORBIDDEN even when `pull-requests: write`
+        # is granted. That is a platform limit, not a fixable perms issue, so
+        # we treat it as non-fatal and never red-check the PR on it.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -58,6 +64,20 @@ jobs:
           SQUAD_AUTO_RESOLVE_THREADS: ${{ vars.SQUAD_AUTO_RESOLVE_THREADS || '1' }}
         shell: pwsh
         run: |
-          ./modules/shared/Resolve-PRReviewThreads.ps1 `
-            -PRNumber ([int]$env:PR_NUMBER) `
-            -Repo $env:REPO_NAME
+          try {
+            $result = ./modules/shared/Resolve-PRReviewThreads.ps1 `
+              -PRNumber ([int]$env:PR_NUMBER) `
+              -Repo $env:REPO_NAME
+            $result | ConvertTo-Json -Depth 10 | Write-Host
+            if ($result.Status -eq 'Failed' -and $result.ErrorMessage -match 'FORBIDDEN|Resource not accessible by integration') {
+              Write-Host "::warning::Auto-resolve hit known bot-vs-bot GraphQL FORBIDDEN; treating as non-fatal."
+              exit 0
+            }
+            if ($result.Status -eq 'Failed') {
+              Write-Host "::warning::Auto-resolve failed: $($result.ErrorMessage)"
+              exit 0
+            }
+          } catch {
+            Write-Host "::warning::Auto-resolve threw: $($_.Exception.Message)"
+            exit 0
+          }
