@@ -10,6 +10,7 @@ permissions:
 jobs:
   label:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       # no-retry: single addLabels REST call. github-script ships its own Octokit
       # retry policy and addLabels is idempotent (re-adding the same label is a

@@ -43,6 +43,7 @@ concurrency:
 jobs:
   approve:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Approve run if actor is trusted
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0

@@ -32,6 +32,7 @@ concurrency:
 jobs:
   rerun-failed-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Branch filter: only fire on agent-pushed branches. Manual dispatch
     # bypasses the filter so a maintainer can recover any PR.
     if: >

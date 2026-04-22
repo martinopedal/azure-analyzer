@@ -45,6 +45,7 @@ permissions:
 jobs:
   triage-failure:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     concurrency:
       group: ci-failure-watchdog
       cancel-in-progress: false
@@ -187,6 +188,7 @@ jobs:
   # watchdog run had jobs_count == 0 and conclusion == failure.
   self-health-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: always()
     permissions:
       issues: write

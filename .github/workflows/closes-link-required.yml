@@ -13,6 +13,7 @@ jobs:
   closes-link:
     name: Closes/Fixes link required
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Verify PR body has Closes/Fixes link or N/A justification
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0

@@ -38,6 +38,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+    timeout-minutes: 10
     steps:
       - name: Checkout base ref (trusted resolver)
         # No `ref:` -> checks out the base SHA for pull_request_target events,
