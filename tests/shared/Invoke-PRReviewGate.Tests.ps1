@@ -86,6 +86,18 @@ Describe 'Invoke-PRReviewGate shared helper' {
         $feedback.LineComments[0].Line | Should -Be 27
     }
 
+    It 'ignores stale LASTEXITCODE when gh is mocked' {
+        $previous = $global:LASTEXITCODE
+        try {
+            $global:LASTEXITCODE = 1
+            $feedback = Get-PRReviewFeedback -PRNumber 105 -Repo 'martinopedal/azure-analyzer'
+            $feedback.Reviews.Count | Should -Be 2
+            $feedback.LineComments.Count | Should -Be 1
+        } finally {
+            $global:LASTEXITCODE = $previous
+        }
+    }
+
     It 'Save-ReviewPlan writes all required sections to consensus markdown file' {
         $outputPath = Join-Path $TestDrive 'inbox'
         $consensus = [PSCustomObject]@{

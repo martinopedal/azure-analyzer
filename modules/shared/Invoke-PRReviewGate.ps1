@@ -72,6 +72,11 @@ function Invoke-GhApiPaged {
 
     try {
         for ($attempt = 0; $attempt -lt $maxRetries; $attempt++) {
+            # `gh` can be mocked as a PowerShell function in tests. In that case,
+            # LASTEXITCODE is not updated and may retain a stale non-zero value
+            # from an earlier native command (observed on ubuntu-latest). Reset
+            # before invocation so exit handling reflects this call only.
+            $global:LASTEXITCODE = 0
             & gh api $Endpoint --paginate --slurp 1> $stdoutPath 2> $stderrPath
             $exitCode = 0
             $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
@@ -608,6 +613,9 @@ _Updated in place on each review event — see PR timeline for full history._
     try {
         Set-Content -Path $bodyFilePath -Value $safeBody -Encoding utf8
         for ($attempt = 0; $attempt -lt $maxRetries; $attempt++) {
+            # See Invoke-GhApiPaged: reset LASTEXITCODE so function-mocked `gh`
+            # in Pester does not inherit a stale non-zero from a prior native call.
+            $global:LASTEXITCODE = 0
             if ($existingId) {
                 & gh api --method PATCH "repos/$Repo/issues/comments/$existingId" -F "body=@$bodyFilePath" 1> $null 2> $stderrPath
             } else {
