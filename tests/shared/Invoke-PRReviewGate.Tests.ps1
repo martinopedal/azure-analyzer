@@ -145,4 +145,69 @@ Describe 'Invoke-PRReviewGate shared helper' {
         Test-Path $bundle.BundlePath | Should -BeFalse
         Test-Path $plan.Path | Should -BeFalse
     }
+
+    Context 'null-safe model response handling' {
+        It 'Get-ModelResponses returns @() when no path or env is set' {
+            $previous = $env:PR_REVIEW_GATE_RESPONSES_JSON
+            try {
+                $env:PR_REVIEW_GATE_RESPONSES_JSON = $null
+                $result = @(Get-ModelResponses)
+                $result.Count | Should -Be 0
+            } finally {
+                $env:PR_REVIEW_GATE_RESPONSES_JSON = $previous
+            }
+        }
+
+        It 'Get-ModelResponses returns @() when env contains JSON null' {
+            $previous = $env:PR_REVIEW_GATE_RESPONSES_JSON
+            try {
+                $env:PR_REVIEW_GATE_RESPONSES_JSON = 'null'
+                $result = @(Get-ModelResponses)
+                $result.Count | Should -Be 0
+            } finally {
+                $env:PR_REVIEW_GATE_RESPONSES_JSON = $previous
+            }
+        }
+
+        It 'Get-ModelResponses returns @() when env contains empty JSON array' {
+            $previous = $env:PR_REVIEW_GATE_RESPONSES_JSON
+            try {
+                $env:PR_REVIEW_GATE_RESPONSES_JSON = '[]'
+                $result = @(Get-ModelResponses)
+                $result.Count | Should -Be 0
+            } finally {
+                $env:PR_REVIEW_GATE_RESPONSES_JSON = $previous
+            }
+        }
+
+        It 'ConvertTo-TriageResponse returns $null when input is $null' {
+            $result = ConvertTo-TriageResponse -Response $null
+            $result | Should -BeNullOrEmpty
+        }
+
+        It 'Merge-TriageResponses tolerates a Responses array containing $null elements' {
+            $feedback = [PSCustomObject]@{
+                Repo         = 'martinopedal/azure-analyzer'
+                PRNumber     = 200
+                Reviews      = @()
+                LineComments = @()
+                Summary      = [PSCustomObject]@{}
+            }
+            $consensus = Merge-TriageResponses -FeedbackPayload $feedback -Responses @($null, $null) -LockedOutAgent 'martinopedal'
+            $consensus.ReviewerVerdict | Should -Be 'COMMENTED'
+            $consensus.RecommendedRevisionOwner | Should -Not -Be 'martinopedal'
+        }
+
+        It 'Merge-TriageResponses tolerates an empty Responses array' {
+            $feedback = [PSCustomObject]@{
+                Repo         = 'martinopedal/azure-analyzer'
+                PRNumber     = 201
+                Reviews      = @()
+                LineComments = @()
+                Summary      = [PSCustomObject]@{}
+            }
+            $consensus = Merge-TriageResponses -FeedbackPayload $feedback -Responses @() -LockedOutAgent 'martinopedal'
+            $consensus.ReviewerVerdict | Should -Be 'COMMENTED'
+        }
+    }
 }
