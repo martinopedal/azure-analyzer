@@ -87,6 +87,50 @@ function Normalize-Kubescape {
         $pillar = if ($f.PSObject.Properties['Pillar'] -and $f.Pillar) { [string]$f.Pillar } else { 'Security' }
         $controls = if (-not [string]::IsNullOrWhiteSpace($controlId)) { @($controlId) } else { @() }
 
+        # Track D enrichment (#432b): derive Impact/Effort, surface DeepLinkUrl,
+        # build RemediationSnippets from the prose Remediation, pass through ScoreDelta,
+        # and attach subscription EntityRef for cross-source folding.
+        $impact = if ($f.PSObject.Properties['Impact'] -and $f.Impact) { [string]$f.Impact } else {
+            switch ($sev) { 'Critical' { 'High' } 'High' { 'High' } 'Medium' { 'Medium' } default { 'Low' } }
+        }
+        $effort = if ($f.PSObject.Properties['Effort'] -and $f.Effort) { [string]$f.Effort } else {
+            switch ($sev) { 'Critical' { 'High' } 'High' { 'Medium' } 'Medium' { 'Medium' } default { 'Low' } }
+        }
+        $deepLinkUrl = if ($f.PSObject.Properties['DeepLinkUrl'] -and $f.DeepLinkUrl) {
+            [string]$f.DeepLinkUrl
+        } elseif (-not [string]::IsNullOrWhiteSpace($controlId)) {
+            "https://hub.armosec.io/docs/$($controlId.ToLowerInvariant())"
+        } else {
+            ''
+        }
+        $remediationSnippets = @()
+        if ($f.PSObject.Properties['RemediationSnippets'] -and $f.RemediationSnippets) {
+            $remediationSnippets = @($f.RemediationSnippets | ForEach-Object {
+                    if ($null -eq $_) { return }
+                    if ($_ -is [hashtable]) { return $_ }
+                    $h = @{}
+                    foreach ($p in $_.PSObject.Properties) { $h[$p.Name] = $p.Value }
+                    return $h
+                })
+        }
+        if (@($remediationSnippets).Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($remediation)) {
+            $remediationSnippets = @(@{ language = 'text'; code = $remediation.Trim() })
+        }
+        $scoreDelta = $null
+        if ($f.PSObject.Properties['ScoreDelta'] -and $null -ne $f.ScoreDelta) {
+            try { $scoreDelta = [double]$f.ScoreDelta } catch { $scoreDelta = $null }
+        }
+        $entityRefs = [System.Collections.Generic.List[string]]::new()
+        if ($f.PSObject.Properties['EntityRefs'] -and $f.EntityRefs) {
+            foreach ($r in @($f.EntityRefs)) { if (-not [string]::IsNullOrWhiteSpace([string]$r)) { $entityRefs.Add([string]$r) | Out-Null } }
+        }
+        if ($subId) {
+            try {
+                $subRef = (ConvertTo-CanonicalEntityId -RawId $subId -EntityType 'Subscription').CanonicalId
+                if ($subRef -and $entityRefs -notcontains $subRef) { $entityRefs.Add($subRef) | Out-Null }
+            } catch { }
+        }
+
         $row = New-FindingRow -Id $findingId `
             -Source 'kubescape' -EntityId $canonicalId -EntityType 'AzureResource' `
             -Title ([string]$f.Title) -RuleId $ruleId -Compliant $false -ProvenanceRunId $runId `
@@ -97,6 +141,9 @@ function Normalize-Kubescape {
             -Pillar $pillar -Frameworks @($frameworks) -Controls @($controls) `
             -MitreTactics @($mitreTactics) -MitreTechniques @($mitreTechniques) `
             -EvidenceUris @($evidenceUris) -BaselineTags @($baselineTags) `
+            -Impact $impact -Effort $effort -DeepLinkUrl $deepLinkUrl `
+            -RemediationSnippets @($remediationSnippets) -ScoreDelta $scoreDelta `
+            -EntityRefs @($entityRefs) `
             -ToolVersion $toolVersion
 
         # Skip null rows (validation failed)
