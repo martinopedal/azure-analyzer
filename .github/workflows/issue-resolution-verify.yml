@@ -102,6 +102,11 @@ jobs:
 
           function Invoke-GhChecked {
               param([Parameter(Mandatory)][string] $Label, [Parameter(Mandatory)][string[]] $Args)
+              # PS 7.4+ default: $PSNativeCommandUseErrorActionPreference=$true means `& gh`
+              # throws on non-zero exit *before* our $LASTEXITCODE branch runs, collapsing
+              # all gh failures into the outer catch. Scope-local override keeps the labelled
+              # warning contract working.
+              $PSNativeCommandUseErrorActionPreference = $false
               & gh @Args 2>&1 | Out-Host
               if ($LASTEXITCODE -ne 0) {
                   Write-Host "::warning::gh $Label failed (exit $LASTEXITCODE) args=$($Args -join ' ')"
@@ -116,7 +121,7 @@ jobs:
             try {
               $issueJson = gh issue view $n --repo $env:REPO --json number,body,labels,state 2>&1 | Out-String
               if ($LASTEXITCODE -ne 0) {
-                Write-Host "::warning::Failed to fetch issue #$n: $issueJson"
+                Write-Host "::warning::Failed to fetch issue #${n}: $issueJson"
                 Write-Host '::endgroup::'
                 continue
               }
