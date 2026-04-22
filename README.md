@@ -17,6 +17,7 @@
 - **Interactive HTML report** with sortable findings tree, framework heatmap, CSV export.
 - **Markdown report** for Git commit workflows.
 - **Entity store** (JSON) with deduplicated cross-tool findings.
+- **Optional local findings viewer scaffold** (`-Show`) that starts on `127.0.0.1` with a session token and health probe.
 
 ## Quickest start
 
