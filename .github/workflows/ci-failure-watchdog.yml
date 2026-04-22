@@ -62,6 +62,11 @@ jobs:
       - if: steps.gate.outputs.skip == 'false'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # no-retry: orchestrates a multi-step gh-API dance (run lookup, dedup
+      # lookup, label create, issue create OR comment, post-create dedup sweep)
+      # with hash-based idempotency built in. A blind whole-step retry on a
+      # partial failure could open a duplicate ci-failure issue or close a wrong
+      # duplicate. Each gh call already trails `|| true` to ride out transients.
       - name: Triage failed workflow run
         if: steps.gate.outputs.skip == 'false'
         env:
@@ -185,6 +190,10 @@ jobs:
       actions: read
       contents: read
     steps:
+      # no-retry: sticky-issue maintenance (create / comment / close) keyed off a
+      # daily-bounded gh api query. A blind retry could open duplicate stickies
+      # if the first attempt succeeded after the runner timed out. Daily schedule
+      # provides natural retry; `|| true` rides out transients within the step.
       - name: Detect 0-job watchdog runs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

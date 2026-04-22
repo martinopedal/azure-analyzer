@@ -16,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # no-retry: emits a single createComment per issue label event. createComment
+      # is NOT idempotent and a wrapper retry would post duplicate assignment
+      # acknowledgments. Octokit's built-in 5xx/429 backoff is sufficient.
       - name: Identify assigned member and trigger work
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -117,6 +120,9 @@ jobs:
       # Falls back to GITHUB_TOKEN when COPILOT_ASSIGN_TOKEN is not configured so
       # the step runs and API rejection is caught by the script's try/catch
       # instead of aborting with "Input required and not supplied: github-token".
+      # no-retry: wrapped end-to-end in try/catch with a fallback POST. Octokit
+      # handles transient 5xx/429 internally; whole-step retry would re-attempt
+      # assignment that may have already succeeded on the first call.
       - name: Assign @copilot coding agent
         if: github.event.label.name == 'squad:copilot'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
