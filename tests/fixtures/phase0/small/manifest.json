@@ -1,0 +1,11 @@
+{
+  "Seed": 1,
+  "Tier": "PureJson",
+  "Counts": {
+    "Findings": 50,
+    "Entities": 12,
+    "Edges": 20
+  },
+  "GeneratedBy": "tests/fixtures/Generate-SyntheticFixture.ps1",
+  "GeneratedAt": "2026-01-01T00:00:00.0000000Z"
+}
