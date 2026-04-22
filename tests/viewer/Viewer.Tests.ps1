@@ -8,21 +8,8 @@ BeforeAll {
     . (Join-Path $script:RepoRoot 'modules' 'shared' 'Viewer.ps1')
 }
 
-Describe 'Select-ReportArchitecture' {
-    It 'applies 1.25x headroom and picks the expected tier' {
-        $result = Select-ReportArchitecture -FindingCount 1600 -EntityCount 600 -EdgeCount 3000
-        $result.ProjectedFindings | Should -Be 2000
-        $result.ProjectedEntities | Should -Be 750
-        $result.ProjectedEdges | Should -Be 3750
-        $result.Tier | Should -Be 'Tier1'
-    }
-
-    It 'falls through to Tier4 for large datasets' {
-        $result = Select-ReportArchitecture -FindingCount 120000 -EntityCount 60000 -EdgeCount 300000
-        $result.Tier | Should -Be 'Tier4'
-    }
-
-    It 'can derive counts from output files when explicit counts are not passed' {
+Describe 'viewer architecture wiring' {
+    It 'derives counts from output files using the merged ReportManifest contract' {
         $outDir = Join-Path $TestDrive 'viewer-counts'
         New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
@@ -37,13 +24,39 @@ Describe 'Select-ReportArchitecture' {
             Edges         = @(@{ EdgeId = 'e1' }, @{ EdgeId = 'e2' }, @{ EdgeId = 'e3' })
         } | ConvertTo-Json -Depth 6 | Set-Content -Path (Join-Path $outDir 'entities.json') -Encoding UTF8
 
-        $result = Select-ReportArchitecture `
+        $result = Resolve-ViewerArchitecture `
             -FindingsPath (Join-Path $outDir 'results.json') `
             -EntitiesPath (Join-Path $outDir 'entities.json')
 
-        $result.Findings | Should -Be 2
-        $result.Entities | Should -Be 1
-        $result.Edges | Should -Be 3
+        $result.Tier | Should -Be 'PureJson'
+        $result.Measurements.Findings | Should -Be 2
+        $result.Measurements.Entities | Should -Be 1
+        $result.Measurements.Edges | Should -Be 3
+    }
+
+    It 'reports edges=0 for v3.0 bare-array entities.json (regression guard)' {
+        $outDir = Join-Path $TestDrive 'viewer-bare-array'
+        New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+        # v3.0 bare-array entities.json: a JSON array root with no Edges property at all.
+        @(
+            [pscustomobject]@{ EntityId = 'tenant:1' },
+            [pscustomobject]@{ EntityId = 'tenant:2' },
+            [pscustomobject]@{ EntityId = 'tenant:3' },
+            [pscustomobject]@{ EntityId = 'tenant:4' },
+            [pscustomobject]@{ EntityId = 'tenant:5' }
+        ) | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $outDir 'entities.json') -Encoding UTF8
+
+        # Edges count derived from the bare-array file MUST default to 0, NOT entity count.
+        $edges = Get-ViewerJsonCount -Path (Join-Path $outDir 'entities.json') -PropertyPreference @('Edges','edges') -ArrayIsAxis:$false
+        $edges | Should -Be 0
+
+        $entities = Get-ViewerJsonCount -Path (Join-Path $outDir 'entities.json') -PropertyPreference @('Entities','entities') -ArrayIsAxis:$true
+        $entities | Should -Be 5
+
+        $arch = Resolve-ViewerArchitecture -EntitiesPath (Join-Path $outDir 'entities.json')
+        $arch.Measurements.Entities | Should -Be 5
+        $arch.Measurements.Edges | Should -Be 0
     }
 }
 
@@ -84,6 +97,24 @@ Describe 'viewer security stubs' {
     }
 }
 
+Describe 'viewer cookie-bootstrap auth' {
+    It 'parses an aa_session cookie out of a Cookie header' {
+        Get-ViewerCookieValue -CookieHeader 'aa_session=abc123' -Name 'aa_session' | Should -Be 'abc123'
+        Get-ViewerCookieValue -CookieHeader 'foo=bar; aa_session=xyz; baz=qux' -Name 'aa_session' | Should -Be 'xyz'
+        Get-ViewerCookieValue -CookieHeader '' -Name 'aa_session' | Should -BeNullOrEmpty
+        Get-ViewerCookieValue -CookieHeader 'foo=bar' -Name 'aa_session' | Should -BeNullOrEmpty
+    }
+
+    It 'accepts a valid session via cookie OR header but rejects mismatched/empty input' {
+        $expected = 'tok-good'
+        (Test-ViewerSessionAuth -CookieHeader 'aa_session=tok-good' -TokenHeader $null -ExpectedToken $expected) | Should -BeTrue
+        (Test-ViewerSessionAuth -CookieHeader $null -TokenHeader 'tok-good' -ExpectedToken $expected) | Should -BeTrue
+        (Test-ViewerSessionAuth -CookieHeader 'aa_session=tok-bad' -TokenHeader $null -ExpectedToken $expected) | Should -BeFalse
+        (Test-ViewerSessionAuth -CookieHeader $null -TokenHeader 'tok-bad' -ExpectedToken $expected) | Should -BeFalse
+        (Test-ViewerSessionAuth -CookieHeader $null -TokenHeader $null -ExpectedToken $expected) | Should -BeFalse
+    }
+}
+
 Describe 'viewer lifecycle' {
     BeforeEach {
         $script:CapturedStartJobScript = $null
@@ -98,10 +129,27 @@ Describe 'viewer lifecycle' {
         { Start-AzureAnalyzerViewer -OutputPath $TestDrive -BindAddress '0.0.0.0' } | Should -Throw -ExpectedMessage '*loopback-only*'
     }
 
-    It 'starts a Pode-backed job and wires /api/health route' {
+    It 'fails fast with a helpful message when Pode is not installed' {
+        Mock Get-Command { $null } -ParameterFilter { $Name -eq 'Start-PodeServer' }
+        Mock Test-ViewerPortAvailable { $true }
+        Mock Import-Module { throw 'Module Pode was not found' } -ParameterFilter { $Name -eq 'Pode' }
+        { Start-AzureAnalyzerViewer -OutputPath $TestDrive -Port 4282 } | Should -Throw -ExpectedMessage '*Pode module is required*'
+    }
+
+    It 'fails fast when the chosen viewer port is already in use' {
+        Mock Test-ViewerPortAvailable { $false }
         Mock Get-Command {
             [pscustomobject]@{ Name = 'Start-PodeServer'; CommandType = 'Function' }
         } -ParameterFilter { $Name -eq 'Start-PodeServer' }
+        { Start-AzureAnalyzerViewer -OutputPath $TestDrive -Port 4283 } | Should -Throw -ExpectedMessage '*already in use*'
+    }
+
+    It 'starts a Pode-backed job, wires /api/health, /auth and / routes, and waits for readiness' {
+        Mock Get-Command {
+            [pscustomobject]@{ Name = 'Start-PodeServer'; CommandType = 'Function' }
+        } -ParameterFilter { $Name -eq 'Start-PodeServer' }
+        Mock Test-ViewerPortAvailable { $true }
+        Mock Wait-ViewerHealthReady { $true }
         Mock Start-Sleep {}
         Mock Start-Job {
             param($Name, $ScriptBlock, $ArgumentList)
@@ -117,7 +165,13 @@ Describe 'viewer lifecycle' {
 
         $result.Url | Should -Be 'http://127.0.0.1:4281/'
         $result.HealthUrl | Should -Be 'http://127.0.0.1:4281/api/health'
+        $result.AuthUrl | Should -Match '^http://127\.0\.0\.1:4281/auth\?t=[0-9a-f]{32}$'
         $script:CapturedStartJobScript | Should -Match '/api/health'
+        $script:CapturedStartJobScript | Should -Match "Path '/auth'"
+        # /api/health must validate Host header (DNS-rebinding guard).
+        $script:CapturedStartJobScript | Should -Match 'invalid_host'
+        # / must accept either the cookie or the header.
+        $script:CapturedStartJobScript | Should -Match 'Test-ViewerSessionAuth'
     }
 
     It 'stops and clears active viewer job state' {
@@ -132,5 +186,10 @@ Describe 'viewer lifecycle' {
         $script:AzureAnalyzerViewerState.Job | Should -BeNullOrEmpty
         Should -Invoke Stop-Job -Times 1
         Should -Invoke Remove-Job -Times 1
+    }
+
+    It 'Start- and Stop-AzureAnalyzerViewer support ShouldProcess (-WhatIf)' {
+        (Get-Command Start-AzureAnalyzerViewer).Parameters.ContainsKey('WhatIf') | Should -BeTrue
+        (Get-Command Stop-AzureAnalyzerViewer).Parameters.ContainsKey('WhatIf') | Should -BeTrue
     }
 }

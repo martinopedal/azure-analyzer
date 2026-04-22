@@ -52,7 +52,7 @@ See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md).
 
 <details><summary><b>Tool output audit (Track D)</b></summary>
 
-See [docs/tool-output-audit.md](docs/tool-output-audit.md) and [docs/tool-output-audit.template.json](docs/tool-output-audit.template.json) for per-tool raw/wrapper/normalized field-coverage entries.
+See [docs/tool-output-audit.md](docs/tool-output-audit.md) and [docs/tool-output-audit.json](docs/tool-output-audit.json) for per-tool wrapper-vs-normalizer field-coverage entries (audit-first input for #432b FindingRow extension).
 
 </details>
 
