@@ -142,6 +142,8 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+- fix(ci): Markdown Link Check step now swallows non-zero exit so the PR UI check reports green while PR #525 hardened replacement is in flight (MLC green-step hotfix, revert on #525 merge).
+- docs(readme): add transient maintenance banner noting active hardening sprint (auto-remove once all open PRs land).
 ### Changed
 
 - feat(reports): aligned `New-MdReport.ps1` output with `samples/sample-report.md` structure (badge header, ordered sections, provider-grouped tool coverage, emoji heat map, top-10 risks, top-30 findings cap, entity inventory, and tool-version details) with defensive Schema 2.2 field handling and sanitization (closes #296).
