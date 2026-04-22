@@ -59,6 +59,14 @@ function Write-MissingToolNotice {
         [object] $ExplicitlyRequested
     )
 
+    # Belt-and-suspenders kill-switch for noisy CI / Pester transcripts.
+    # When AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS is truthy we always
+    # downgrade to Write-Verbose, regardless of explicit-request status. See #472.
+    if (Test-SuppressMissingToolWarnings) {
+        Write-Verbose "[missing-tool] $Message"
+        return
+    }
+
     $explicit = if ($PSBoundParameters.ContainsKey('ExplicitlyRequested')) {
         [bool]$ExplicitlyRequested
     } else {
@@ -70,4 +78,15 @@ function Write-MissingToolNotice {
     } else {
         Write-Verbose "[missing-tool] $Message"
     }
+}
+
+function Test-SuppressMissingToolWarnings {
+    <#
+    .SYNOPSIS
+        Returns $true when AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS is set
+        to a truthy value ('1', 'true', 'yes', 'on' — case-insensitive).
+    #>
+    $val = $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS
+    if ([string]::IsNullOrWhiteSpace($val)) { return $false }
+    return ($val.Trim().ToLowerInvariant() -in @('1', 'true', 'yes', 'on'))
 }

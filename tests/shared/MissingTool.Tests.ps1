@@ -8,6 +8,12 @@ BeforeAll {
 
 Describe 'Write-MissingToolNotice' {
 
+    BeforeEach {
+        # Suite-level setup.ps1 sets the suppress flag globally; the helper-behaviour
+        # tests below must observe a clean baseline so they can assert warn-vs-silent.
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    }
+
     AfterEach {
         Remove-Item Env:AZURE_ANALYZER_ORCHESTRATED   -ErrorAction SilentlyContinue
         Remove-Item Env:AZURE_ANALYZER_EXPLICIT_TOOLS -ErrorAction SilentlyContinue
@@ -72,6 +78,10 @@ Describe 'Write-MissingToolNotice' {
 
 Describe 'Test-ToolExplicitlyRequested' {
 
+    BeforeEach {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    }
+
     AfterEach {
         Remove-Item Env:AZURE_ANALYZER_ORCHESTRATED   -ErrorAction SilentlyContinue
         Remove-Item Env:AZURE_ANALYZER_EXPLICIT_TOOLS -ErrorAction SilentlyContinue
@@ -94,6 +104,52 @@ Describe 'Test-ToolExplicitlyRequested' {
         $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
         $env:AZURE_ANALYZER_EXPLICIT_TOOLS = 'gitleaks'
         Test-ToolExplicitlyRequested -Tool 'trivy' | Should -BeFalse
+    }
+}
+
+Describe 'AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS env var' {
+
+    AfterEach {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+        Remove-Item Env:AZURE_ANALYZER_ORCHESTRATED                  -ErrorAction SilentlyContinue
+        Remove-Item Env:AZURE_ANALYZER_EXPLICIT_TOOLS                -ErrorAction SilentlyContinue
+    }
+
+    It 'silences warning even on standalone wrapper invocation' {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
+        $warnings = $null
+        Write-MissingToolNotice -Tool 'trivy' -Message 'trivy missing.' -WarningVariable warnings -WarningAction SilentlyContinue
+        $warnings.Count | Should -Be 0
+    }
+
+    It 'silences warning even when tool is explicitly requested via -IncludeTools' {
+        $env:AZURE_ANALYZER_ORCHESTRATED                   = '1'
+        $env:AZURE_ANALYZER_EXPLICIT_TOOLS                 = 'trivy'
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = 'true'
+        $warnings = $null
+        Write-MissingToolNotice -Tool 'trivy' -Message 'trivy missing.' -WarningVariable warnings -WarningAction SilentlyContinue
+        $warnings.Count | Should -Be 0
+    }
+
+    It 'silences even when -ExplicitlyRequested:$true is passed' {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = 'yes'
+        $warnings = $null
+        Write-MissingToolNotice -Tool 'trivy' -Message 'trivy missing.' -ExplicitlyRequested:$true -WarningVariable warnings -WarningAction SilentlyContinue
+        $warnings.Count | Should -Be 0
+    }
+
+    It 'still warns when env var is empty / unset' {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = ''
+        $warnings = $null
+        Write-MissingToolNotice -Tool 'trivy' -Message 'trivy missing.' -WarningVariable warnings -WarningAction SilentlyContinue
+        $warnings.Count | Should -Be 1
+    }
+
+    It 'still warns when env var holds a non-truthy value (e.g. "0")' {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '0'
+        $warnings = $null
+        Write-MissingToolNotice -Tool 'trivy' -Message 'trivy missing.' -WarningVariable warnings -WarningAction SilentlyContinue
+        $warnings.Count | Should -Be 1
     }
 }
 

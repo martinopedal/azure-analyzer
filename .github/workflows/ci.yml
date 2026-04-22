@@ -34,6 +34,7 @@ jobs:
         shell: pwsh
         run: |
           Import-Module Pester -MinimumVersion 5.0 -Force
+          . ./tests/_helpers/setup.ps1
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
           # Keep Exit disabled so we can persist pester-count.json before failing.
