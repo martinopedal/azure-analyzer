@@ -18,11 +18,17 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Run ALZ query sync in dry-run mode
-        shell: pwsh
-        run: |
-          $result = ./scripts/Sync-AlzQueries.ps1 -DryRun
-          if ($result.Changed) {
-            throw 'ALZ query drift detected. Run scripts/Sync-AlzQueries.ps1 and commit the updated queries/alz_additional_queries.json cache.'
-          }
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            $result = ./scripts/Sync-AlzQueries.ps1 -DryRun
+            if ($result.Changed) {
+              throw 'ALZ query drift detected. Run scripts/Sync-AlzQueries.ps1 and commit the updated queries/alz_additional_queries.json cache.'
+            }
 
-          Write-Host 'ALZ query cache is in sync with upstream.'
+            Write-Host 'ALZ query cache is in sync with upstream.'

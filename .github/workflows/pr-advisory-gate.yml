@@ -53,11 +53,18 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install PowerShell
-        run: |
-          if ! command -v pwsh >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y powershell
-          fi
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: bash
+          command: |
+            if ! command -v pwsh >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y powershell
+            fi
 
       - name: Run advisory gate
         id: gate
@@ -71,6 +78,10 @@ jobs:
           SQUAD_ADVISORY_GATE: ${{ vars.SQUAD_ADVISORY_GATE || '1' }}
           SQUAD_AGENT_LOGINS: ${{ vars.SQUAD_AGENT_LOGINS || '' }}
         shell: pwsh
+        # no-retry: step writes triage plan files locally and is wrapped end-to-end in
+        # try/catch that degrades to advisory no-op on any failure. The single inline
+        # `gh pr diff` already has its own try/catch fallback. Re-running the whole
+        # step on a partial failure would overwrite the plan file with a fresh result.
         run: |
           try {
             $enabled = $env:SQUAD_ADVISORY_GATE -ne '0'
@@ -130,6 +141,8 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           UNADDRESSED_COPILOT_THREADS: ${{ steps.gate.outputs.unaddressed-copilot-threads }}
         shell: pwsh
+        # no-retry: posts review thread replies via Add-ResolutionReply; replies are
+        # not idempotent (each retry would post a duplicate reply on the thread).
         run: |
           . ./modules/shared/Resolve-PRReviewThreads.ps1
 
@@ -161,6 +174,7 @@ jobs:
         # the script emits gate-state=success with a skip-reason; we still
         # post a success status so the required context is present on the
         # commit and merging is not blocked.
+        # no-retry: idempotent one-shot side effect; CI surfaces failures.
         if: always() && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}

@@ -47,13 +47,23 @@ jobs:
             // Patterns that are never considered "code changes"
             const ignoredPatterns = [
               /^\.squad\//,
+              /^\.copilot\//,
               /^\.github\/workflows\//,
               /^\.github\/ISSUE_TEMPLATE\//,
               /^\.github\/PULL_REQUEST_TEMPLATE/,
               /^\.github\/copilot-instructions\.md$/,
               /^\.github\/dependabot\.yml$/,
+              /^\.github\/agents\//,
+              /^tests\//,
+              /^samples\//,
               /^LICENSE$/,
               /^\.gitignore$/,
+              /^\.gitattributes$/,
+              /^\.lychee\.toml$/,
+              /^\.markdownlint(-cli2)?\.(json|yaml|yml|jsonc)$/,
+              /^pester\.log$/,
+              /^retry\.log$/,
+              /^testResults\.xml$/,
             ];
 
             const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
