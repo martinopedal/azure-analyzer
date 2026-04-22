@@ -4,7 +4,7 @@
 **Issue:** [#434](https://github.com/martinopedal/azure-analyzer/issues/434) (Track F of epic [#427](https://github.com/martinopedal/azure-analyzer/issues/427)).
 **Author:** Atlas (Azure Resource Graph Engineer / Lead).
 **Authority:** RESEARCH-AND-DRAFT. Implementation is held until Tracks A–E + V land.
-**Scope decision:** Lead 8h close plan ([`.squad/decisions/inbox/lead-8h-close-plan-2026-04-22.md`](../../.squad/decisions/inbox/lead-8h-close-plan-2026-04-22.md)) closes #434 as `defer-post-epic`. This document is the code-ready proposal so the next agent can ship Track F in **days, not weeks**, once the upstream tracks merge.
+**Scope decision:** The Lead 8-hour close plan (recorded in PR #481) closes #434 as `defer-post-epic`. This document is the code-ready proposal so the next agent can ship Track F in **days, not weeks**, once the upstream tracks merge.
 
 ---
 
@@ -421,7 +421,7 @@ Estimated implementation effort once dependencies land: **2–3 days** for one e
 
 - Issue [#434](https://github.com/martinopedal/azure-analyzer/issues/434) — Track F requirements + Round 2 parity rule.
 - Issue [#427](https://github.com/martinopedal/azure-analyzer/issues/427) — Epic Round 3 reconciliation.
-- `.squad/decisions/inbox/lead-8h-close-plan-2026-04-22.md` — close plan and dependency call-out.
+- Lead 8-hour close plan (recorded in PR #481 description) — close plan and dependency call-out.
 - `New-HtmlReport.ps1` — current v2 developer report (reused renderers).
 - `New-MdReport.ps1` — Markdown report (reused MD helpers).
 - `New-ExecDashboard.ps1` / `modules/shared/ExecDashboardRender.ps1` — single-page exec dashboard (KPI tile patterns).
