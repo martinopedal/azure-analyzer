@@ -9,6 +9,10 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: closes-link-required-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   closes-link:
     name: Closes/Fixes link required

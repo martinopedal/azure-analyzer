@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: alz-queries-drift-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   drift-check:
     name: Detect ALZ query drift

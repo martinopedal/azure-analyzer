@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: stub-deadline-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-stub-deadline:
     name: Check redirect stub deadline
