@@ -27,7 +27,7 @@ on:
       - "PR Review Gate"
       - "PR Auto-Resolve Review Threads"
       - "CI failure watchdog"
-      - "Bicep build"
+      - "Bicep Build"
       - "ALZ queries drift check"
     types: [requested]
 
@@ -45,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Approve run if actor is trusted
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -52,56 +53,60 @@ jobs:
           ACTOR: ${{ github.event.workflow_run.actor.login }}
           TRIGGERING_ACTOR: ${{ github.event.workflow_run.triggering_actor.login }}
           WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
-        run: |
-          set -euo pipefail
+        with:
+          max_attempts: 3
+          timeout_minutes: 5
+          retry_wait_seconds: 15
+          command: |
+            set -euo pipefail
 
-          # Hard-coded allow-list. Adding to this list is a code change that
-          # goes through review + the rubber-duck gate. Do NOT source from
-          # PR content, env vars, or workflow inputs.
-          trusted=(
-            "copilot-swe-agent[bot]"
-            "Copilot"
-            "copilot"
-            "dependabot[bot]"
-            "github-actions[bot]"
-            "martinopedal"
-          )
-
-          is_trusted=false
-          for t in "${trusted[@]}"; do
-            if [ "$ACTOR" = "$t" ] || [ "$TRIGGERING_ACTOR" = "$t" ]; then
-              is_trusted=true
-              break
-            fi
-          done
-
-          if [ "$is_trusted" != "true" ]; then
-            echo "Actor '$ACTOR' (triggering: '$TRIGGERING_ACTOR') not in trusted allow-list. No approval issued."
-            exit 0
-          fi
-
-          # Only approve runs that are actually waiting on the action_required
-          # gate. Pulling fresh state avoids racing the run lifecycle.
-          run_state="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}" --jq '{status: .status, conclusion: .conclusion}')"
-          status="$(printf '%s' "$run_state" | jq -r '.status')"
-          conclusion="$(printf '%s' "$run_state" | jq -r '.conclusion')"
-          echo "Run ${RUN_ID} (workflow='${WORKFLOW_NAME}') status=${status} conclusion=${conclusion}"
-
-          if [ "$status" != "action_required" ] && [ "$conclusion" != "action_required" ]; then
-            echo "Run is not gated on approval. Nothing to do."
-            exit 0
-          fi
-
-          echo "Approving run ${RUN_ID} for trusted actor '${ACTOR}'."
-          if ! gh api -X POST "repos/${REPO}/actions/runs/${RUN_ID}/approve" >approve.out 2>&1; then
-            echo "Approve call failed:"
-            cat approve.out
-            # A 403 here is expected when the run was already approved by a
-            # parallel invocation. Treat that as success.
-            if grep -q "already" approve.out; then
-              echo "Run already approved by another invocation. Treating as success."
+            # Hard-coded allow-list. Adding to this list is a code change that
+            # goes through review + the rubber-duck gate. Do NOT source from
+            # PR content, env vars, or workflow inputs.
+            trusted=(
+              "copilot-swe-agent[bot]"
+              "Copilot"
+              "copilot"
+              "dependabot[bot]"
+              "github-actions[bot]"
+              "martinopedal"
+            )
+  
+            is_trusted=false
+            for t in "${trusted[@]}"; do
+              if [ "$ACTOR" = "$t" ] || [ "$TRIGGERING_ACTOR" = "$t" ]; then
+                is_trusted=true
+                break
+              fi
+            done
+  
+            if [ "$is_trusted" != "true" ]; then
+              echo "Actor '$ACTOR' (triggering: '$TRIGGERING_ACTOR') not in trusted allow-list. No approval issued."
               exit 0
             fi
-            exit 1
-          fi
-          echo "Approved."
+  
+            # Only approve runs that are actually waiting on the action_required
+            # gate. Pulling fresh state avoids racing the run lifecycle.
+            run_state="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}" --jq '{status: .status, conclusion: .conclusion}')"
+            status="$(printf '%s' "$run_state" | jq -r '.status')"
+            conclusion="$(printf '%s' "$run_state" | jq -r '.conclusion')"
+            echo "Run ${RUN_ID} (workflow='${WORKFLOW_NAME}') status=${status} conclusion=${conclusion}"
+  
+            if [ "$status" != "action_required" ] && [ "$conclusion" != "action_required" ]; then
+              echo "Run is not gated on approval. Nothing to do."
+              exit 0
+            fi
+  
+            echo "Approving run ${RUN_ID} for trusted actor '${ACTOR}'."
+            if ! gh api -X POST "repos/${REPO}/actions/runs/${RUN_ID}/approve" >approve.out 2>&1; then
+              echo "Approve call failed:"
+              cat approve.out
+              # A 403 here is expected when the run was already approved by a
+              # parallel invocation. Treat that as success.
+              if grep -q "already" approve.out; then
+                echo "Run already approved by another invocation. Treating as success."
+                exit 0
+              fi
+              exit 1
+            fi
+            echo "Approved."
