@@ -18,6 +18,7 @@ Exactly one of these is required:
 - **`-OutputPath <string>`** — Where to write results. Default: `./output`. Example: `-OutputPath ./findings`.
 - **`-Severity <string[]>`** — Filter findings by severity before report. Options: `Critical`, `High`, `Medium`, `Low`, `Info`. Default: show all.
 - **`-InstallMissingModules`** — Auto-install missing prerequisites (PSGallery modules, CLI tools). Default: `$false`.
+- **`-NonInteractive`** — Disable prompting for required tool inputs. Missing required inputs fail fast with exit code `2`.
 
 **Common invocation**:
 ```powershell

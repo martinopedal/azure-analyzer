@@ -38,6 +38,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
+- **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.
 
 </details>
 
