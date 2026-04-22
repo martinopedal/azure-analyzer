@@ -17,12 +17,36 @@ function Get-DefaultReportArchitectureConfig {
             edges    = [pscustomobject]@{ embedded = 2500; pode = 50000 }
         }
         vendored_dependencies = @(
-            [pscustomobject]@{ name = 'cytoscape'; placeholder = $true; verify_stub = 'Test-CytoscapePlaceholder' },
-            [pscustomobject]@{ name = 'dagre'; placeholder = $true; verify_stub = 'Test-DagrePlaceholder' },
-            [pscustomobject]@{ name = 'pode'; placeholder = $true; verify_stub = 'Test-PodePlaceholder' },
-            [pscustomobject]@{ name = 'sqlite-wasm'; placeholder = $true; verify_stub = 'Test-SqliteWasmPlaceholder' }
+            [pscustomobject]@{ name = 'cytoscape'; placeholder = $true; verify_stub = 'Test-CytoscapePlaceholder'; applicable_tiers = @('EmbeddedSqlite', 'SidecarSqlite', 'PodeViewer') },
+            [pscustomobject]@{ name = 'dagre'; placeholder = $true; verify_stub = 'Test-DagrePlaceholder'; applicable_tiers = @('EmbeddedSqlite', 'SidecarSqlite', 'PodeViewer') },
+            [pscustomobject]@{ name = 'Pode'; placeholder = $true; verify_stub = 'Test-PodePlaceholder'; applicable_tiers = @('PodeViewer') },
+            [pscustomobject]@{ name = 'sqlite-wasm'; placeholder = $true; verify_stub = 'Test-SqliteWasmPlaceholder'; applicable_tiers = @('EmbeddedSqlite', 'SidecarSqlite', 'PodeViewer') }
         )
     }
+}
+
+function Test-CytoscapePlaceholder {
+    [CmdletBinding()]
+    param()
+    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+}
+
+function Test-DagrePlaceholder {
+    [CmdletBinding()]
+    param()
+    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+}
+
+function Test-PodePlaceholder {
+    [CmdletBinding()]
+    param()
+    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+}
+
+function Test-SqliteWasmPlaceholder {
+    [CmdletBinding()]
+    param()
+    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
 }
 
 function Get-ReportTierRank {
@@ -42,7 +66,7 @@ function Select-ReportArchitecture {
     )
 
     if ($HeadroomFactor -le 0) {
-        throw "HeadroomFactor must be greater than 0."
+        throw "HeadroomFactor must be a positive number (>0), received: $HeadroomFactor."
     }
 
     $cfg = if ($ArchitectureConfig) { $ArchitectureConfig } else { Get-DefaultReportArchitectureConfig }
@@ -56,7 +80,7 @@ function Select-ReportArchitecture {
     $adjustedEntities = [int][math]::Ceiling($rawEntities * $HeadroomFactor)
     $adjustedEdges = [int][math]::Ceiling($rawEdges * $HeadroomFactor)
 
-    $findingTier = if ($adjustedFindings -gt [int]$thresholds.findings.pode) {
+    $findingTier = if ($adjustedFindings -ge [int]$thresholds.findings.pode) {
         'PodeViewer'
     } elseif ($adjustedFindings -ge [int]$thresholds.findings.sidecar) {
         'SidecarSqlite'
@@ -66,7 +90,7 @@ function Select-ReportArchitecture {
         'PureJson'
     }
 
-    $entityTier = if ($adjustedEntities -gt [int]$thresholds.entities.pode) {
+    $entityTier = if ($adjustedEntities -ge [int]$thresholds.entities.pode) {
         'PodeViewer'
     } elseif ($adjustedEntities -ge [int]$thresholds.entities.sidecar) {
         'SidecarSqlite'
@@ -76,7 +100,7 @@ function Select-ReportArchitecture {
         'PureJson'
     }
 
-    $edgeTier = if ($adjustedEdges -gt [int]$thresholds.edges.pode) {
+    $edgeTier = if ($adjustedEdges -ge [int]$thresholds.edges.pode) {
         'PodeViewer'
     } elseif ($adjustedEdges -ge [int]$thresholds.edges.embedded) {
         'EmbeddedSqlite'
@@ -98,7 +122,7 @@ function Select-ReportArchitecture {
 
     if (-not [string]::IsNullOrWhiteSpace($forcedTier)) {
         if ($forcedTier -notin $script:ReportArchitectureTiers) {
-            throw "AZURE_ANALYZER_FORCE_ARCH must be one of: $($script:ReportArchitectureTiers -join ', ')."
+            throw "AZURE_ANALYZER_FORCE_ARCH must be one of (case-sensitive): $($script:ReportArchitectureTiers -join ', '). Received: $forcedTier."
         }
         $forcedOverride = $true
         $tier = $forcedTier
@@ -135,15 +159,20 @@ function Get-ReportVerificationStubs {
         $deps = @((Get-DefaultReportArchitectureConfig).vendored_dependencies)
     }
 
-    $depNames = @($deps | ForEach-Object { [string]$_.name })
-    $podeDeps = @($depNames | Where-Object { $_ -eq 'pode' -or $_ -eq 'cytoscape' -or $_ -eq 'dagre' -or $_ -eq 'sqlite-wasm' })
-    $sqliteDeps = @($depNames | Where-Object { $_ -eq 'cytoscape' -or $_ -eq 'dagre' -or $_ -eq 'sqlite-wasm' })
+    function Get-DependenciesForTier {
+        param([string] $TierName)
+        return @(
+            $deps |
+                Where-Object { $_ -and $_.PSObject.Properties['applicable_tiers'] -and (@($_.applicable_tiers) -contains $TierName) } |
+                ForEach-Object { [string]$_.name }
+        )
+    }
 
     return [pscustomobject]@{
         PureJson = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @(); Dependencies = @() }
-        EmbeddedSqlite = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = $sqliteDeps }
-        SidecarSqlite = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = $sqliteDeps }
-        PodeViewer = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = $podeDeps }
+        EmbeddedSqlite = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'EmbeddedSqlite') }
+        SidecarSqlite = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'SidecarSqlite') }
+        PodeViewer = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'PodeViewer') }
     }
 }
 

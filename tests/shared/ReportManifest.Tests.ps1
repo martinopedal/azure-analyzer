@@ -53,7 +53,7 @@ Describe 'New-ReportManifest serialization' {
 
         $roundTrip = Get-Content -Path $path -Raw | ConvertFrom-Json
         $roundTrip.SchemaVersion | Should -Be '1.0'
-        $roundTrip.VerificationResults.PodeViewer.Dependencies | Should -Contain 'pode'
+        $roundTrip.VerificationResults.PodeViewer.Dependencies | Should -Contain 'Pode'
         $roundTrip.VerificationResults.EmbeddedSqlite.Dependencies | Should -Contain 'sqlite-wasm'
     }
 }

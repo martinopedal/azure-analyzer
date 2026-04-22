@@ -36,6 +36,7 @@ jobs:
           Import-Module Pester -MinimumVersion 5.0 -Force
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
+          # Keep Exit disabled so we can persist pester-count.json before failing.
           $config.Run.Exit = $false
           $config.Output.Verbosity = 'Detailed'
           $config.CodeCoverage.Enabled = $false
@@ -66,6 +67,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          GH_WORKFLOW_FILE: ci.yml
         shell: pwsh
         run: |
           $currentPath = Join-Path (Get-Location) 'output' 'pester-count.json'
@@ -74,7 +76,7 @@ jobs:
             exit 1
           }
           $current = Get-Content -Path $currentPath -Raw | ConvertFrom-Json
-          $runs = gh run list --repo $env:GH_REPO --workflow ci.yml --branch main --event push --status success --limit 20 --json databaseId | ConvertFrom-Json
+          $runs = gh run list --repo $env:GH_REPO --workflow $env:GH_WORKFLOW_FILE --branch main --event push --status success --limit 10 --json databaseId | ConvertFrom-Json
           if (-not $runs -or @($runs).Count -eq 0) {
             Write-Warning "No previous successful main runs found. Skipping baseline comparison."
             exit 0
@@ -84,6 +86,7 @@ jobs:
           $downloaded = $false
           foreach ($run in @($runs)) {
             try {
+              # Baseline artifact is uploaded separately from per-OS pester-count-* artifacts.
               gh run download $run.databaseId --repo $env:GH_REPO --name pester-baseline --dir $baselineDir --skip-existing
               $downloaded = $true
               break
@@ -103,6 +106,10 @@ jobs:
           $baseline = Get-Content -Path $baselinePath -Raw | ConvertFrom-Json
           if ([int]$current.TotalCount -lt [int]$baseline.TotalCount) {
             Write-Error "Pester TotalCount dropped from $($baseline.TotalCount) to $($current.TotalCount)."
+            exit 1
+          }
+          if ([int]$current.PassedCount -lt [int]$baseline.PassedCount) {
+            Write-Error "Pester PassedCount dropped from $($baseline.PassedCount) to $($current.PassedCount)."
             exit 1
           }
           Write-Host "Pester TotalCount check passed. Current=$($current.TotalCount), Baseline=$($baseline.TotalCount)" -ForegroundColor Green

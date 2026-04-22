@@ -1251,7 +1251,18 @@ try {
     foreach ($edge in @($normalizerEdgeCollector)) {
         if (-not $edge) { continue }
         try { $store.AddEdge([pscustomobject]$edge) }
-        catch { Write-Warning (Remove-Credentials "EdgeCollector edge rejected: $_") }
+        catch {
+            $getEdgePropertySafely = {
+                param([object] $EdgeObject, [string] $PropertyName)
+                if ($EdgeObject -and $EdgeObject.PSObject.Properties[$PropertyName]) { return [string]$EdgeObject.$PropertyName }
+                return '<missing>'
+            }
+            $edgeRelation = & $getEdgePropertySafely $edge 'Relation'
+            $edgeSource = & $getEdgePropertySafely $edge 'Source'
+            $edgeTarget = & $getEdgePropertySafely $edge 'Target'
+            $edgeSummary = "Relation=$edgeRelation; Source=$edgeSource; Target=$edgeTarget"
+            Write-Warning (Remove-Credentials "EdgeCollector edge rejected ($edgeSummary): $_")
+        }
     }
     $edges = @()
     if (Get-Command Export-Edges -ErrorAction SilentlyContinue) {
