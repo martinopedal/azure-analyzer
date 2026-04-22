@@ -19,7 +19,11 @@ Describe 'Get-RequiredInputs' {
                         prompt = 'Enter subscription id'
                         envVar = 'AZURE_SUBSCRIPTION_ID'
                         example = '00000000-0000-0000-0000-000000000000'
-                        validator = '^[0-9a-fA-F-]{36}$'
+                        validator = '^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$'
+                        conditional = [PSCustomObject]@{
+                            param = 'ManagementGroupId'
+                            equals = ''
+                        }
                     }
                 )
             }
@@ -65,15 +69,24 @@ Describe 'Get-RequiredInputs' {
             [PSCustomObject]@{
                 name = 'azqr'
                 required_inputs = @(
-                    [PSCustomObject]@{ name = 'SubscriptionId'; type = 'guid'; envVar = 'AZURE_SUBSCRIPTION_ID'; example = '00000000-0000-0000-0000-000000000000' },
-                    [PSCustomObject]@{ name = 'ManagementGroupId'; type = 'string'; envVar = 'AZURE_MANAGEMENT_GROUP_ID'; example = 'alz-root' }
+                    [PSCustomObject]@{ name = 'SubscriptionId'; type = 'guid'; prompt = 'Enter subscription'; envVar = 'AZURE_SUBSCRIPTION_ID'; example = '00000000-0000-0000-0000-000000000000' },
+                    [PSCustomObject]@{ name = 'ManagementGroupId'; type = 'string'; prompt = 'Enter management group'; envVar = 'AZURE_MANAGEMENT_GROUP_ID'; example = 'alz-root' }
                 )
             }
         )
         Mock Read-Host { throw 'Read-Host should not have been called' }
 
-        { Get-RequiredInputs -Tools $tools -CliValues @{} -NonInteractive } |
-            Should -Throw '*Unresolved required inputs*SubscriptionId*ManagementGroupId*'
+        $thrown = $null
+        try {
+            $null = Get-RequiredInputs -Tools $tools -CliValues @{} -NonInteractive
+        } catch {
+            $thrown = $_
+        }
+
+        $thrown | Should -Not -BeNullOrEmpty
+        $thrown.Exception.Message | Should -Match 'Unresolved required inputs'
+        $thrown.Exception.Message | Should -Match 'SubscriptionId env:AZURE_SUBSCRIPTION_ID example:00000000-0000-0000-0000-000000000000'
+        $thrown.Exception.Message | Should -Match 'ManagementGroupId env:AZURE_MANAGEMENT_GROUP_ID example:alz-root'
         Should -Invoke Read-Host -Times 0
     }
 

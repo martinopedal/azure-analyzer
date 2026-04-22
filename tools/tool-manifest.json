@@ -22,7 +22,10 @@
           "envVar": "AZURE_SUBSCRIPTION_ID",
           "example": "00000000-0000-0000-0000-000000000000",
           "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
-          "conditional": null
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
         }
       ],
       "optionalParams": [
@@ -88,7 +91,10 @@
           "envVar": "AZURE_SUBSCRIPTION_ID",
           "example": "00000000-0000-0000-0000-000000000000",
           "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
-          "conditional": null
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
         }
       ],
       "optionalParams": [
@@ -187,17 +193,6 @@
       "requiredParams": [
         "SubscriptionId"
       ],
-      "required_inputs": [
-        {
-          "name": "SubscriptionId",
-          "type": "guid",
-          "prompt": "Enter the Azure subscription ID to scan with prowler",
-          "envVar": "AZURE_SUBSCRIPTION_ID",
-          "example": "00000000-0000-0000-0000-000000000000",
-          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
-          "conditional": null
-        }
-      ],
       "optionalParams": [
         "OutputPath"
       ],
@@ -239,6 +234,20 @@
       "script": "modules/Invoke-Prowler.ps1",
       "requiredParams": [
         "SubscriptionId"
+      ],
+      "required_inputs": [
+        {
+          "name": "SubscriptionId",
+          "type": "guid",
+          "prompt": "Enter the Azure subscription ID to scan with prowler",
+          "envVar": "AZURE_SUBSCRIPTION_ID",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
+        }
       ],
       "optionalParams": [
         "OutputPath"

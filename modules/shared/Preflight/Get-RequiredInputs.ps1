@@ -19,7 +19,7 @@ function Test-PreflightNonInteractive {
     if ($NonInteractive) { return $true }
 
     $ci = [string]$env:CI
-    if ($ci -match '^(?i:true|1|yes|on)$') { return $true }
+    if ($ci -imatch '^(true|1|yes|on)$') { return $true }
 
     try {
         if (-not [Environment]::UserInteractive) { return $true }
@@ -40,17 +40,18 @@ function Test-PreflightConditional {
     )
 
     if ($null -eq $Conditional) { return $true }
-    if ($Conditional -isnot [System.Collections.IDictionary] -and -not $Conditional.PSObject.Properties['param']) { return $true }
+    if ($Conditional -isnot [System.Collections.IDictionary] -and -not $Conditional.PSObject) { return $true }
+    if (-not $Conditional.PSObject.Properties['param']) { return $true }
 
     $paramName = [string]$Conditional.param
     if ([string]::IsNullOrWhiteSpace($paramName)) { return $true }
     $current = if ($KnownValues.ContainsKey($paramName)) { [string]$KnownValues[$paramName] } else { '' }
 
     if ($Conditional.PSObject.Properties['equals']) {
-        return ($current -ceq [string]$Conditional.equals)
+        return ($current -ieq [string]$Conditional.equals)
     }
     if ($Conditional.PSObject.Properties['notEquals']) {
-        return ($current -cne [string]$Conditional.notEquals)
+        return ($current -ine [string]$Conditional.notEquals)
     }
 
     return $true
@@ -128,8 +129,6 @@ function Get-RequiredInputs {
             $nameProp = $inputDef.PSObject.Properties['name']
             $name = if ($nameProp) { [string]$nameProp.Value } else { '' }
             if ([string]::IsNullOrWhiteSpace($name)) { continue }
-            if ($name -eq 'SubscriptionId' -and -not [string]::IsNullOrWhiteSpace([string]$CliValues['ManagementGroupId'])) { continue }
-            if ($name -eq 'ManagementGroupId' -and -not [string]::IsNullOrWhiteSpace([string]$CliValues['SubscriptionId'])) { continue }
             $conditional = if ($inputDef.PSObject.Properties['conditional']) { $inputDef.conditional } else { $null }
             if (-not (Test-PreflightConditional -Conditional $conditional -KnownValues $CliValues)) { continue }
             if (-not $requirements.Contains($name)) {
@@ -147,6 +146,7 @@ function Get-RequiredInputs {
                     Example   = $example
                     Validator = $validator
                     EnumValues = $enumValues
+                    Sensitive = (Test-IsSensitiveInputName -Name $name)
                 }
             }
         }
@@ -170,9 +170,10 @@ function Get-RequiredInputs {
             }
         }
 
+        # Prompt only when interactive, unresolved, and not a sensitive secret-like input.
         if ((-not $isNonInteractive) -and
             [string]::IsNullOrWhiteSpace([string]$value) -and
-            -not (Test-IsSensitiveInputName -Name $name)) {
+            -not $entry.Sensitive) {
             $prompt = if ([string]::IsNullOrWhiteSpace($entry.Prompt)) { "Enter $name" } else { $entry.Prompt }
             if (-not [string]::IsNullOrWhiteSpace($entry.Example)) {
                 $prompt = "$prompt (example: $($entry.Example))"
@@ -190,12 +191,14 @@ function Get-RequiredInputs {
 
     if ($missing.Count -gt 0) {
         $details = foreach ($item in $missing) {
-            $parts = @($item.Name)
+            $displayName = if ([string]::IsNullOrWhiteSpace([string]$item.Name)) { '<unknown>' } else { [string]$item.Name }
+            $parts = @($displayName)
             if (-not [string]::IsNullOrWhiteSpace($item.EnvVar)) { $parts += "env:$($item.EnvVar)" }
             if (-not [string]::IsNullOrWhiteSpace($item.Example)) { $parts += "example:$($item.Example)" }
+            if ($item.Sensitive) { $parts += 'prompting-disabled(use-cli-or-env)' }
             $parts -join ' '
         }
-        throw (Remove-Credentials -Text "Unresolved required inputs: $($details -join '; ')")
+        throw (Remove-Credentials -Text "Unresolved required inputs. Provide via CLI parameters, environment variables, or run without -NonInteractive: $($details -join '; ')")
     }
 
     return $resolved

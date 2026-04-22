@@ -279,15 +279,18 @@ function ShouldRunTool { param ([string]$ToolName)
 
 if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
     $selectedTools = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
+    $declaredParamNames = @($MyInvocation.MyCommand.Parameters.Keys)
     $cliValues = @{}
-    foreach ($name in @('SubscriptionId','ManagementGroupId','TenantId','Repository','RepoPath','AdoOrg','AdoProject','AdoPat','AdoRepoUrl')) {
-        if (Get-Variable -Name $name -ErrorAction SilentlyContinue) {
-            $cliValues[$name] = Get-Variable -Name $name -ValueOnly
-        }
+    foreach ($name in $PSBoundParameters.Keys) {
+        $cliValues[$name] = $PSBoundParameters[$name]
     }
     try {
         $resolvedRequiredInputs = Get-RequiredInputs -Tools $selectedTools -CliValues $cliValues -NonInteractive:$NonInteractive
         foreach ($name in $resolvedRequiredInputs.Keys) {
+            if ($name -notin $declaredParamNames) { continue }
+            # Keep both variable state and bound-parameter state in sync:
+            # - script vars are read directly throughout orchestration flow
+            # - PSBoundParameters is used by ContainsKey guards for optional forwarding
             Set-Variable -Name $name -Value $resolvedRequiredInputs[$name] -Scope Script
             $PSBoundParameters[$name] = $resolvedRequiredInputs[$name]
         }
