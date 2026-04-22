@@ -10,6 +10,9 @@ All notable changes to azure-analyzer will be documented here.
 ### Changed
 - docs: surface sample reports in README quick-reference
 - docs(audit): added `docs/tool-output-audit.md` with completed wave-1 entries for Azure (`azure-quota`), Azure DevOps (`ado-connections`), and GitHub (`zizmor`) including per-tool counts and dropped-field lists.
+
+### Fixed
+- fix(audit fixtures): added top-level `SchemaVersion: "1.0"` to `tests/fixtures/zizmor/wrapper-sample.json` and `tests/fixtures/ado-connections/wrapper-sample.json` so they match the v1 envelope contract emitted by real wrappers (e.g. `Invoke-Azqr.ps1`). Reconciled the zizmor raw vs wrapper finding count divergence by adding the missing `dangerous-triggers` finding to `tests/fixtures/zizmor/raw-sample.json` so the raw-to-wrapper-to-normalized audit trail is internally consistent (3/3/3 instead of 2/3/3) and updated `docs/tool-output-audit.md` accordingly.
 - docs(audit): added `docs/tool-output-audit.template.json` with structured audit entries and metadata (`auditedAt`, `auditor`) for each completed tool.
 - docs(audit): added sanitized raw/wrapper/normalized sample fixtures under `tests/fixtures/<tool>/` for `azure-quota`, `ado-connections`, and `zizmor`.
 - chore(report): regenerated `samples/sample-report.html` and `samples/sample-report.md` from `samples/sample-findings-v2.json` so both showcase the same curated Schema 2.2 dataset (11 findings, posture 9/100). Verified `New-HtmlReport.ps1` and `New-MdReport.ps1` are intentionally located at the repo root as siblings of `Invoke-AzureAnalyzer.ps1`; they are public module entry-points exported by `AzureAnalyzer.psd1` and invoked via `$PSScriptRoot`.

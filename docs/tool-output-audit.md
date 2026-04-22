@@ -25,7 +25,7 @@ Per-tool coverage below explicitly tracks these additive `FindingRow`-level fiel
 | --- | --- | ---:| ---:| ---:| ---:| ---:| --- | --- |
 | `azure-quota` | Azure | 1 | 1 | 1 | 21 | 47 | _none_ | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `EntityRefs`, `ScoreDelta`, `ToolVersion` |
 | `ado-connections` | Azure DevOps | 3 | 3 | 3 | 26 | 37 | `AdoOrg`, `AdoProject`, `ConnectionId`, `ConnectionType`, `AuthScheme`, `AuthMechanism`, `IsShared` | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion` |
-| `zizmor` | GitHub | 2 | 3 | 3 | 21 | 37 | _none_ | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTechniques`, `EntityRefs`, `ToolVersion` |
+| `zizmor` | GitHub | 3 | 3 | 3 | 21 | 37 | _none_ | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTechniques`, `EntityRefs`, `ToolVersion` |
 
 ## Fixture set used for this audit
 

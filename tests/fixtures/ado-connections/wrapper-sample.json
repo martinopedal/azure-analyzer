@@ -1,5 +1,6 @@
 {
   "Source": "ado-connections",
+  "SchemaVersion": "1.0",
   "Status": "Success",
   "Message": "Scanned 1 project(s), found 3 service connection(s).",
   "Findings": [
