@@ -66,6 +66,10 @@ jobs:
           $componentCount = $sbom.components.Count
           Write-Host "✓ SBOM validated: $componentCount components" -ForegroundColor Green
 
+      # no-retry: softprops/action-gh-release ships internal retry/backoff for
+      # the GitHub release + asset upload APIs. Wrapping in nick-fields/retry
+      # would restart the whole publish (re-uploading SBOM bytes) on every
+      # transient hiccup; the action handles that more carefully internally.
       - name: Create Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:

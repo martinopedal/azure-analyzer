@@ -23,6 +23,10 @@ jobs:
     if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      # no-retry: github-script wraps Octokit which already retries 5xx + 429.
+      # The reviewer-request is idempotent (POST returns 422 if already requested
+      # -- caught by try/catch -> warning) and the policy comment is gated by
+      # `isFirstRun` so a manual re-run cannot post duplicate comments.
       - name: Request Copilot code review
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
