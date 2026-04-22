@@ -12,6 +12,7 @@ The falco Schema 2.2 ETL enrichment adds runtime metadata only (CIS framework ma
 The alz-queries Schema 2.2 ETL enrichment adds ALZ governance metadata only (framework tags, pillar mapping, source deep links, evidence URIs, baseline tags, and tool version) and does not change required Azure Reader scope.
 The HTML remediation-snippet null-guard report fix only changes rendering behavior and does not introduce any new permissions.
 Phase 0 foundation report architecture metadata, report-manifest output, and vendoring verification stubs add no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
+The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only and introduces no Azure, Graph, GitHub, or Azure DevOps permissions.
 
 ## Permission domains at a glance
 

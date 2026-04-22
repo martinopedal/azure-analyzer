@@ -147,7 +147,10 @@ param (
     [ValidateRange(1, 365)]
     [int] $HistoryRetention = 30,
     [string] $TenantConfig,
-    [string[]] $Tenants
+    [string[]] $Tenants,
+    [switch] $Show,
+    [ValidateRange(1, 65535)]
+    [int] $ViewerPort = 4280
 )
 
 Set-StrictMode -Version Latest
@@ -1631,6 +1634,28 @@ if (Test-Path $entitiesFile) {
 }
 if (Test-Path $portfolioFile) {
     Write-Host "  Portfolio: $portfolioFile" -ForegroundColor Green
+}
+
+# ---------------------------------------------------------------------------
+# Optional findings viewer launch (#430)
+# ---------------------------------------------------------------------------
+if ($Show) {
+    try {
+        if (-not (Get-Command Start-AzureAnalyzerViewer -ErrorAction SilentlyContinue)) {
+            $viewerModulePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Viewer.ps1'
+            if (Test-Path $viewerModulePath) { . $viewerModulePath }
+        }
+        if (Get-Command Start-AzureAnalyzerViewer -ErrorAction SilentlyContinue) {
+            $viewer = Start-AzureAnalyzerViewer -OutputPath $OutputPath -Port $ViewerPort
+            Write-Host "  Viewer: $($viewer.Url)" -ForegroundColor Green
+            Write-Host "  Viewer Health: $($viewer.HealthUrl)" -ForegroundColor Green
+            Write-Host "  Viewer Token (X-Session-Token): $($viewer.Token)" -ForegroundColor DarkGray
+        } else {
+            Write-Warning "Viewer module could not be loaded. Skipping -Show launch."
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Viewer launch failed: $_")
+    }
 }
 
 # ---------------------------------------------------------------------------
