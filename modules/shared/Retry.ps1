@@ -92,9 +92,7 @@ function Invoke-WithRetry {
             }
 
             Write-Verbose "Invoke-WithRetry: retryable '$category' (status=$statusCode), sleeping $delay s before next attempt"
-            if ($delay -gt 0) {
-                Start-Sleep -Seconds $delay
-            }
+            Start-Sleep -Seconds ([math]::Max(0, [double]$delay))
         }
     }
 }
