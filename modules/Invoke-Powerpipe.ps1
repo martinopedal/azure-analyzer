@@ -24,6 +24,8 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -111,7 +113,7 @@ function Flatten-PowerpipeControls {
 }
 
 if (-not (Test-PowerpipeInstalled)) {
-    Write-Warning 'powerpipe is not installed. Skipping Powerpipe scan. Install from https://powerpipe.io'
+    Write-MissingToolNotice -Tool 'powerpipe' -Message 'powerpipe is not installed. Skipping Powerpipe scan. Install from https://powerpipe.io'
     return [PSCustomObject]@{
         Source        = 'powerpipe'
         SchemaVersion = '1.0'

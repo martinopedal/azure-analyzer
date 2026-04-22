@@ -27,6 +27,8 @@ All notable changes to azure-analyzer will be documented here.
 - feat(schema): added `IaCFile` as a first-class EntityTypeto the schema v2 enum with Platform=IaC. Canonical ID format is `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). EntityStore deduplicates IaCFile entities by Platform|EntityType|EntityId composite key, enabling cross-tool correlation when multiple IaC scanners (Terraform, Trivy, Checkov, tfsec) report findings on the same file. Canonical ID logic added to `modules/shared/Canonicalize.ps1`, dedup contract validated in EntityStore tests, and documentation updated in `docs/reference/entity-model.md`.
 
 ### Changed
+- ux(launch): missing-tool warnings are now downgraded to verbose output when the tool was not explicitly requested via `-IncludeTools`, eliminating noisy "<tool> is not installed. Skipping..." messages from default scans (#472).
+- ux(launch): the `=== Azure Analyzer ===` launch banner is now suppressed when `AZURE_ANALYZER_NO_BANNER` is set or when running under CI (`CI=true` or `GITHUB_ACTIONS=true`) (#472).
 - docs: surface sample reports in README quick-reference
 - docs(audit): added `docs/tool-output-audit.md` with completed wave-1 entries for Azure (`azure-quota`), Azure DevOps (`ado-connections`), and GitHub (`zizmor`) including per-tool counts and dropped-field lists.
 
