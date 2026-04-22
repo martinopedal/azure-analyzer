@@ -1658,12 +1658,37 @@ if ($Show) {
         }
         if (Get-Command Start-AzureAnalyzerViewer -ErrorAction SilentlyContinue) {
             $viewer = Start-AzureAnalyzerViewer -OutputPath $OutputPath -Port $ViewerPort
-            Write-Host "  Viewer: $($viewer.Url)" -ForegroundColor Green
+            $authUrl = if ($viewer.PSObject.Properties['AuthUrl']) { [string]$viewer.AuthUrl } else { [string]$viewer.Url }
+            Write-Host "  Viewer (open in browser): $authUrl" -ForegroundColor Green
             Write-Host "  Viewer Health: $($viewer.HealthUrl)" -ForegroundColor Green
             try {
-                $viewerTokenFile = Join-Path $OutputPath 'viewer-session-token.txt'
-                Set-Content -Path $viewerTokenFile -Value ([string]$viewer.Token) -Encoding UTF8
+                # Harden parent dir BEFORE writing the token file so the file inherits a
+                # locked-down permission set rather than briefly existing world-readable.
+                $tokenDir = Join-Path $OutputPath 'viewer'
+                if (-not (Test-Path -LiteralPath $tokenDir)) {
+                    New-Item -ItemType Directory -Path $tokenDir -Force | Out-Null
+                    if (-not $IsWindows) {
+                        & chmod 700 $tokenDir 2>$null
+                    }
+                }
+                $viewerTokenFile = Join-Path $tokenDir 'session-token.txt'
+                $previousUmask = $null
                 if (-not $IsWindows) {
+                    try { $previousUmask = (& sh -c 'umask 077 && umask') } catch { $previousUmask = $null }
+                }
+                Set-Content -Path $viewerTokenFile -Value ([string]$viewer.Token) -Encoding UTF8
+                if ($IsWindows) {
+                    try {
+                        $acl = New-Object System.Security.AccessControl.FileSecurity
+                        $acl.SetAccessRuleProtection($true, $false)
+                        $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+                        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, [System.Security.AccessControl.FileSystemRights]::FullControl, [System.Security.AccessControl.AccessControlType]::Allow)
+                        $acl.AddAccessRule($rule)
+                        Set-Acl -LiteralPath $viewerTokenFile -AclObject $acl
+                    } catch {
+                        Write-Warning "Unable to restrict ACL on viewer session token file: $viewerTokenFile"
+                    }
+                } else {
                     & chmod 600 $viewerTokenFile 2>$null
                     if ($LASTEXITCODE -ne 0) {
                         Write-Warning "Unable to set restrictive permissions on viewer session token file: $viewerTokenFile"
