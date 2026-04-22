@@ -90,8 +90,13 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             'NOT_VALID_JSON{{{{' | Set-Content (Join-Path $sd 'index.json')
             WriteResults -Path $rf -Findings @(NewFinding 'A')
 
-            { Add-RunSnapshot -SnapshotDir $sd -RunId 'run-fresh' -SourceFile $rf } |
-                Should -Not -Throw
+            $warnings = @()
+            Add-RunSnapshot -SnapshotDir $sd -RunId 'run-fresh' -SourceFile $rf `
+                -WarningVariable warnings -WarningAction SilentlyContinue
+
+            # Promote intentional warning to asserted behavior (no log noise).
+            $warnings.Count | Should -BeGreaterThan 0
+            ($warnings -join "`n") | Should -Match 'could not read existing index'
 
             $idx = Get-Content (Join-Path $sd 'index.json') -Raw | ConvertFrom-Json
             $idx.SchemaVersion       | Should -Be '1.0'
@@ -107,7 +112,13 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
                 ConvertTo-Json | Set-Content (Join-Path $sd 'index.json')
             WriteResults -Path $rf -Findings @(NewFinding 'A')
 
-            Add-RunSnapshot -SnapshotDir $sd -RunId 'run-newver' -SourceFile $rf
+            $warnings = @()
+            Add-RunSnapshot -SnapshotDir $sd -RunId 'run-newver' -SourceFile $rf `
+                -WarningVariable warnings -WarningAction SilentlyContinue
+
+            # Promote intentional warning to asserted behavior (no log noise).
+            $warnings.Count | Should -BeGreaterThan 0
+            ($warnings -join "`n") | Should -Match 'unknown schema'
 
             $idx = Get-Content (Join-Path $sd 'index.json') -Raw | ConvertFrom-Json
             $idx.SchemaVersion    | Should -Be '1.0'
@@ -163,8 +174,10 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $null = New-Item -ItemType Directory -Path $sd -Force
             'BAD_JSON{{{' | Set-Content (Join-Path $sd 'index.json')
             $warnings = @()
-            Resolve-BaselineRun -SnapshotDir $sd -WarningVariable warnings | Should -BeNullOrEmpty
+            Resolve-BaselineRun -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue |
+                Should -BeNullOrEmpty
             $warnings.Count | Should -BeGreaterThan 0
+            ($warnings -join "`n") | Should -Match 'could not read snapshot index'
         }
 
         It 'warns and returns $null on unknown SchemaVersion' {
@@ -173,7 +186,8 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             [pscustomobject]@{ SchemaVersion = '9.9'; Entries = @() } |
                 ConvertTo-Json | Set-Content (Join-Path $sd 'index.json')
             $warnings = @()
-            Resolve-BaselineRun -SnapshotDir $sd -WarningVariable warnings | Should -BeNullOrEmpty
+            Resolve-BaselineRun -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue |
+                Should -BeNullOrEmpty
             $warnings | Should -Match 'SchemaVersion'
         }
 
@@ -181,9 +195,12 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $sd = Join-Path $TestDrive 'null-entries-resolve'
             $null = New-Item -ItemType Directory -Path $sd -Force
             '{"SchemaVersion":"1.0","Entries":null}' | Set-Content (Join-Path $sd 'index.json')
-            Resolve-BaselineRun -SnapshotDir $sd | Should -BeNullOrEmpty
+            $warnings = @()
+            Resolve-BaselineRun -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue |
+                Should -BeNullOrEmpty
             # Snapshot dir must still exist (not treated as the baseline path)
             Test-Path $sd | Should -BeTrue
+            ($warnings -join "`n") | Should -Match 'Entries is absent or null'
         }
 
         It 'returns the most recent snapshot when called before current run is indexed' {
@@ -221,8 +238,10 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $null = New-Item -ItemType Directory -Path $sd -Force
             'BADJSON{{{' | Set-Content (Join-Path $sd 'index.json')
             $warnings = @()
-            @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings).Count | Should -Be 0
+            @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue).Count |
+                Should -Be 0
             $warnings.Count | Should -BeGreaterThan 0
+            ($warnings -join "`n") | Should -Match 'could not read index'
         }
 
         It 'warns and returns empty on unknown SchemaVersion' {
@@ -231,7 +250,8 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             [pscustomobject]@{ SchemaVersion = '2.1'; Entries = @() } |
                 ConvertTo-Json | Set-Content (Join-Path $sd 'index.json')
             $warnings = @()
-            @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings).Count | Should -Be 0
+            @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue).Count |
+                Should -Be 0
             $warnings | Should -Match 'SchemaVersion'
         }
 
@@ -239,7 +259,10 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             $sd = Join-Path $TestDrive 'null-entries-trend'
             $null = New-Item -ItemType Directory -Path $sd -Force
             '{"SchemaVersion":"1.0","Entries":null}' | Set-Content (Join-Path $sd 'index.json')
-            @(Get-RunTrend -SnapshotDir $sd).Count | Should -Be 0
+            $warnings = @()
+            @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue).Count |
+                Should -Be 0
+            ($warnings -join "`n") | Should -Match 'Entries is absent or null'
         }
 
         It 'returns items ordered oldest to newest (left-to-right for sparkline)' {
@@ -323,9 +346,12 @@ Describe 'ReportTrend — Add-RunSnapshot, Resolve-BaselineRun, Get-RunTrend' {
             [pscustomobject]@{ SchemaVersion = '1.0'; Entries = $entries } |
                 ConvertTo-Json -Depth 4 | Set-Content (Join-Path $sd 'index.json')
 
-            $result = @(Get-RunTrend -SnapshotDir $sd)
+            $warnings = @()
+            $result = @(Get-RunTrend -SnapshotDir $sd -WarningVariable warnings -WarningAction SilentlyContinue)
             $result.Count    | Should -Be 1
             $result[0].RunId | Should -Be 'run-good'
+            # Asserted behavior: ghost entry surfaces a warning then is skipped.
+            ($warnings -join "`n") | Should -Match 'snapshot file missing'
         }
 
         It 'simulates concurrent writes: second Add-RunSnapshot wins and index has two entries' {

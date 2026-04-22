@@ -72,8 +72,12 @@ Describe 'Read-ScanState / Write-ScanState' {
     It 'rebuilds when state file is corrupt' {
         $stateFile = Get-ScanStatePath -OutputPath $script:outDir
         Set-Content -Path $stateFile -Value '{ this is not json' -Encoding utf8
-        $reloaded = Read-ScanState -OutputPath $script:outDir
+        $warnings = @()
+        $reloaded = Read-ScanState -OutputPath $script:outDir `
+            -WarningVariable warnings -WarningAction SilentlyContinue
         $reloaded.schemaVersion | Should -Be 1
+        # Promote intentional warning to asserted behavior (no log noise).
+        ($warnings -join "`n") | Should -Match 'corrupt or unreadable'
     }
 }
 
