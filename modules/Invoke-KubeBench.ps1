@@ -70,6 +70,13 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command Write-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+    function Write-FindingError { param($FindingError) Write-Warning ('[{0}] {1}: {2}{3}' -f $FindingError.Source, $FindingError.Category, $FindingError.Reason, $(if ($FindingError.Remediation) { ' Action: ' + $FindingError.Remediation } else { '' })) }
+}
+
 $kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
 if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
 
@@ -435,7 +442,26 @@ spec:
         $jobApplied = $true
 
         & kubectl @kctxArgs -n $Namespace wait --for=condition=complete "job/$jobName" --timeout="$($JobTimeoutSeconds)s" 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-FindingError (New-FindingError -Source 'wrapper:kube-bench' `
+                -Category 'TimeoutExceeded' `
+                -Reason ("kubectl wait did not see job/{0} complete within {1}s on cluster {2} (context={3} namespace={4})." -f $jobName, $JobTimeoutSeconds, $cluster.name, $context, $Namespace) `
+                -Remediation 'Increase -JobTimeoutSeconds or check cluster scheduler health and node capacity.' `
+                -Details ("kubectl exit {0}" -f $LASTEXITCODE))
+            $failed++
+            continue
+        }
+
         & kubectl @kctxArgs -n $Namespace logs "job/$jobName" 2>&1 | Set-Variable -Name kubeBenchLogs
+        if ($LASTEXITCODE -ne 0) {
+            Write-FindingError (New-FindingError -Source 'wrapper:kube-bench' `
+                -Category 'IOFailure' `
+                -Reason ("kubectl logs failed for job/{0} on cluster {1} (context={2} namespace={3})." -f $jobName, $cluster.name, $context, $Namespace) `
+                -Remediation 'Verify kubeconfig credentials, RBAC for pods/log in the namespace, and that the job pod has not been evicted.' `
+                -Details ("kubectl exit {0}" -f $LASTEXITCODE))
+            $failed++
+            continue
+        }
         if ([string]::IsNullOrWhiteSpace($kubeBenchLogs)) {
             $failed++
             continue
