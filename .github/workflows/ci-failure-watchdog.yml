@@ -17,7 +17,7 @@ on:
       - "CI"                            # tests, install manifest, SBOM
       - "CodeQL"                        # required status check on main
       - "Docs Check"                    # docs-vs-code drift gate
-      - "Markdown Link Check"           # docs link-rot gate (PR #483 + follow-up)
+      - "Markdown Check"                # docs lint + link-rot + em-dash gate (replaces Markdown Link Check; #516)
       - "ALZ queries drift check"       # ARG query drift vs upstream
       - "Bicep Build"                   # infra/Bicep lint + build
       - "Stub deadline check"           # stale-stub deadline enforcement

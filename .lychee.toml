@@ -1,13 +1,33 @@
+# Lychee link checker configuration for azure-analyzer.
+#
+# Hardening history: PR #444 (keda.sh TLS), PR #483 (retries 5 / 10s wait),
+# PR #500 (workflow-level retry wrapper), PR #N (this file: caching, transient
+# squad-inbox path excludes).
+
 verbose = "info"
 no_progress = true
 max_concurrency = 8
+# Resolve root-relative links like /CONTRIBUTING.md against the repo root
+# so lychee does not error with "provide a root dir" on local scans.
+base = "."
+
+# Per-request retry policy: stays gentle on third-party hosts so we do not get
+# IP-banned for hammering on PR push storms.
 max_retries = 5
 retry_wait_time = 10
 timeout = 30
-accept = ["200..=299", "301", "302", "304", "429"]
+
+# Persistent cache lives in .lycheecache; the workflow restores/saves it via
+# actions/cache so consecutive runs do not re-probe stable URLs. Drains the
+# 429 / rate-limit failure mode that dominates flaky-link reports.
+cache = true
+max_cache_age = "7d"
+
+accept = ["200..=299", "301", "302", "304", "307", "308", "429"]
 include_fragments = false
 exclude_loopback = true
 include_mail = false
+
 exclude = [
   "^http://",
   "^https://img\\.shields\\.io/",
@@ -16,6 +36,8 @@ exclude = [
   "^https://twitter\\.com/",
   # keda.sh has recurring TLS handshake flakiness in GitHub-hosted runners (PR #444 / run 24803238036)
   "^https://keda\\.sh",
+  # Loopback / placeholder hosts
+  "^https?://(localhost|127\\.|0\\.0\\.0\\.0|example\\.(com|org|net))",
   "^file:///.*?/\\.copilot/skills/humanizer/url$",
   "^file:///.*?/\\.squad/templates/skills/humanizer/url$",
   # Temporary: docs restructure in progress - stub pages don't exist yet
@@ -47,10 +69,23 @@ exclude = [
   "^file:.*docs/reference/gitleaks-pattern-tuning\\.md",
   "^file:.*docs/reference/k8s-auth\\.md",
   "^file:.*docs/reference/ARCHITECTURE\\.md",
+  # Stale links to ephemeral squad-inbox / atlas-stash files (lifetime hours)
+  "^file:.*\\.squad/decisions/inbox/.*\\.md$",
+  "^file:.*\\.atlas-stash/.*\\.md$",
+  "^file:.*\\.copilot/(audits|status|session-state)/.*\\.md$",
 ]
+
 exclude_path = [
+  "(^|/)\\.lychee-bin/",
   "(^|/)\\.copilot/skills/humanizer/SKILL\\.md$",
   "(^|/)\\.squad/templates/skills/humanizer/SKILL\\.md$",
+  # Ephemeral squad / agent state: never link-validated.
+  "(^|/)\\.squad/decisions/inbox/",
+  "(^|/)\\.copilot/audits/",
+  "(^|/)\\.copilot/status/",
+  "(^|/)\\.copilot/session-state/",
+  "(^|/)\\.atlas-stash/",
+  "(^|/)output(-[^/]+)?/",
   # Temporary: docs restructure in progress - broken internal links will be fixed in separate PR
   "^docs/README\\.md$",
   "^docs/architecture/README\\.md$",
