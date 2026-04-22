@@ -95,6 +95,21 @@ jobs:
             Write-Error "Current Pester run reports TotalCount=0 (no tests executed). Refusing to upload as baseline."
             exit 1
           }
+          # Hardcoded floor (PR #501 baseline: 1637 total / 1597 passed / 0 failed / 40 skipped on Windows).
+          # Belt-and-suspenders against slow drift: the dynamic compare below only checks current >= previous-main,
+          # which can quietly accept a long downward staircase. The floor is the absolute lower bound
+          # below which CI must fail regardless of what the previous main artifact says.
+          # Bump these numbers in the same PR that legitimately raises the count; never lower them.
+          $MinTotal  = 1637
+          $MinPassed = 1597
+          if ([int]$current.TotalCount -lt $MinTotal) {
+            Write-Error "Pester TotalCount $($current.TotalCount) is below hardcoded floor $MinTotal. If tests were intentionally removed, lower the floor in .github/workflows/ci.yml in the same PR and document the removal."
+            exit 1
+          }
+          if ([int]$current.PassedCount -lt $MinPassed) {
+            Write-Error "Pester PassedCount $($current.PassedCount) is below hardcoded floor $MinPassed. New failures or skips have eroded the green floor. Fix the failing tests; do not lower the floor."
+            exit 1
+          }
           $runs = gh run list --repo $env:GH_REPO --workflow $env:GH_WORKFLOW_FILE --branch main --event push --status success --limit 10 --json databaseId | ConvertFrom-Json
           if (-not $runs -or @($runs).Count -eq 0) {
             Write-Warning "No previous successful main runs found. Skipping baseline comparison."
