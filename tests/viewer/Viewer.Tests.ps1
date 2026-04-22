@@ -50,16 +50,25 @@ Describe 'Select-ReportArchitecture' {
 Describe 'viewer security stubs' {
     It 'accepts loopback-only bind address' {
         (Test-LoopbackBind -Address '127.0.0.1') | Should -BeTrue
+        (Test-LoopbackBind -Address 'localhost') | Should -BeTrue
+        (Test-LoopbackBind -Address 'LocalHost') | Should -BeTrue
+        (Test-LoopbackBind -Address '') | Should -BeFalse
+        (Test-LoopbackBind -Address '   ') | Should -BeFalse
+        (Test-LoopbackBind -Address '::1') | Should -BeFalse
         (Test-LoopbackBind -Address '0.0.0.0') | Should -BeFalse
     }
 
     It 'validates host header against loopback and selected port' {
         (Test-HostHeader -HostHeader '127.0.0.1:4280' -Port 4280) | Should -BeTrue
+        (Test-HostHeader -HostHeader '127.0.0.1' -Port 4280) | Should -BeTrue
+        (Test-HostHeader -HostHeader 'localhost' -Port 4280) | Should -BeTrue
+        (Test-HostHeader -HostHeader '127.0.0.1:9999' -Port 4280) | Should -BeFalse
         (Test-HostHeader -HostHeader 'evil.example:4280' -Port 4280) | Should -BeFalse
     }
 
     It 'validates origin header for same-origin loopback requests' {
         (Test-OriginHeader -Origin 'http://127.0.0.1:4280' -Port 4280) | Should -BeTrue
+        (Test-OriginHeader -Origin 'http://localhost:4280' -Port 4280) | Should -BeTrue
         (Test-OriginHeader -Origin 'https://127.0.0.1:4280' -Port 4280) | Should -BeFalse
         (Test-OriginHeader -Origin 'http://example.com:4280' -Port 4280) | Should -BeFalse
     }

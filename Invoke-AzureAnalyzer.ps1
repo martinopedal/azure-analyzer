@@ -1649,7 +1649,19 @@ if ($Show) {
             $viewer = Start-AzureAnalyzerViewer -OutputPath $OutputPath -Port $ViewerPort
             Write-Host "  Viewer: $($viewer.Url)" -ForegroundColor Green
             Write-Host "  Viewer Health: $($viewer.HealthUrl)" -ForegroundColor Green
-            Write-Host "  Viewer Token (X-Session-Token): $($viewer.Token)" -ForegroundColor DarkGray
+            try {
+                $viewerTokenFile = Join-Path $OutputPath 'viewer-session-token.txt'
+                Set-Content -Path $viewerTokenFile -Value ([string]$viewer.Token) -Encoding UTF8
+                if (-not $IsWindows) {
+                    & chmod 600 $viewerTokenFile 2>$null
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Warning "Unable to set restrictive permissions on viewer session token file: $viewerTokenFile"
+                    }
+                }
+                Write-Host "  Viewer session token written to: $viewerTokenFile" -ForegroundColor DarkGray
+            } catch {
+                Write-Warning (Remove-Credentials "Failed to persist viewer session token: $_")
+            }
         } else {
             Write-Warning "Viewer module could not be loaded. Skipping -Show launch."
         }

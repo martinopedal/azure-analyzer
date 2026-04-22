@@ -5,6 +5,10 @@ param ()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param ([string]$Text) return $Text }
+}
+
 if (-not (Get-Variable -Scope Script -Name AzureAnalyzerViewerState -ErrorAction SilentlyContinue)) {
     $script:AzureAnalyzerViewerState = [ordered]@{
         IsRunning = $false
@@ -15,6 +19,9 @@ if (-not (Get-Variable -Scope Script -Name AzureAnalyzerViewerState -ErrorAction
         Job       = $null
     }
 }
+
+$script:MaxViewerEntityIdLength = 512
+$script:ViewerStartupTimeoutSeconds = 5
 
 function Get-ViewerCollectionCount {
     [CmdletBinding()]
@@ -70,8 +77,9 @@ function Select-ReportArchitecture {
         [hashtable] $Thresholds
     )
 
-    # Stub thresholds for #430 while Foundation interfaces (#456) are in-flight.
-    # Wire this to Foundation count providers once they are available.
+    # Stub thresholds for #430 while Foundation interfaces from #456 are in-flight.
+    # TODO(#456): replace these placeholder limits with Foundation-provided
+    # count providers/thresholds once #456 merges and tests are in place.
     $defaultThresholds = [ordered]@{
         'Tier1' = @{ Findings = 2000; Entities = 1000; Edges = 5000 }
         'Tier2' = @{ Findings = 10000; Entities = 5000; Edges = 25000 }
@@ -117,7 +125,9 @@ function Select-ReportArchitecture {
 function Test-LoopbackBind {
     [CmdletBinding()]
     param ([string] $Address)
-    return -not [string]::IsNullOrWhiteSpace($Address) -and $Address.Trim().ToLowerInvariant() -eq '127.0.0.1'
+    if ([string]::IsNullOrWhiteSpace($Address)) { return $false }
+    $value = $Address.Trim().ToLowerInvariant()
+    return $value -eq '127.0.0.1' -or $value -eq 'localhost'
 }
 
 function Test-HostHeader {
@@ -188,9 +198,9 @@ function Test-EntityIdSafe {
     )
 
     if ([string]::IsNullOrWhiteSpace($EntityId)) { return $false }
-    if ($EntityId.Length -gt 512) { return $false }
-    if ($EntityId -match '\.\.' -or $EntityId -match '[\r\n]') { return $false }
-    return $EntityId -match '^[a-zA-Z0-9:/._|#@-]+$'
+    if ($EntityId.Length -gt $script:MaxViewerEntityIdLength) { return $false }
+    if ($EntityId -match '(\.\.|[\r\n])') { return $false }
+    return $EntityId -match '^[a-zA-Z0-9:/._\-]+$'
 }
 
 function Start-AzureAnalyzerViewer {
@@ -225,7 +235,7 @@ function Start-AzureAnalyzerViewer {
         try {
             Import-Module Pode -ErrorAction Stop
         } catch {
-            throw "Pode is required to launch the viewer. Install-Module Pode -Scope CurrentUser"
+            throw "Pode module is required but not found. In interactive environments, run: Install-Module Pode -Scope CurrentUser. In CI or restricted environments, pre-install Pode in the runner image."
         }
     }
 
@@ -288,11 +298,19 @@ function Start-AzureAnalyzerViewer {
         }
     } -ArgumentList $modulePath, $BindAddress, $Port, $token, $archJson
 
-    Start-Sleep -Milliseconds 400
+    if ($viewerJob -is [System.Management.Automation.Job]) {
+        $deadline = [datetime]::UtcNow.AddSeconds($script:ViewerStartupTimeoutSeconds)
+        while ($viewerJob.State -eq 'NotStarted') {
+            if ([datetime]::UtcNow -ge $deadline) { break }
+            Start-Sleep -Milliseconds 200
+            $viewerJob = Get-Job -Id $viewerJob.Id -ErrorAction SilentlyContinue
+            if (-not $viewerJob) { break }
+        }
+    }
     if ($viewerJob.State -eq 'Failed') {
         $jobError = (Receive-Job -Job $viewerJob -Keep -ErrorAction SilentlyContinue | Out-String).Trim()
         Remove-Job -Job $viewerJob -Force -ErrorAction SilentlyContinue
-        throw "Viewer failed to start: $jobError"
+        throw (Remove-Credentials "Viewer failed to start: $jobError")
     }
 
     $script:AzureAnalyzerViewerState.IsRunning = $true
