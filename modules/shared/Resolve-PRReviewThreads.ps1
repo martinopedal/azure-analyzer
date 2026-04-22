@@ -213,6 +213,9 @@ function Get-PRCommitsAfter {
     $r = Resolve-RepoOwnerName -Repo $Repo
     $endpoint = "repos/$($r.Owner)/$($r.Name)/pulls/$PRNumber/commits"
     $text = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+        # See Invoke-GhGraphQl: reset LASTEXITCODE so function-mocked `gh`
+        # in Pester does not inherit a stale non-zero from a prior native call.
+        $global:LASTEXITCODE = 0
         $stdout = & gh api $endpoint --paginate --slurp 2>&1
         $exitCode = 0
         $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
@@ -264,6 +267,9 @@ function Get-CommitChangedRanges {
     $r = Resolve-RepoOwnerName -Repo $Repo
     $endpoint = "repos/$($r.Owner)/$($r.Name)/commits/$Sha"
     $text = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+        # See Invoke-GhGraphQl: reset LASTEXITCODE so function-mocked `gh`
+        # in Pester does not inherit a stale non-zero from a prior native call.
+        $global:LASTEXITCODE = 0
         $stdout = & gh api $endpoint 2>&1
         $exitCode = 0
         $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
@@ -406,6 +412,9 @@ function Add-ResolutionReply {
     $endpoint = "repos/$($r.Owner)/$($r.Name)/pulls/$PRNumber/comments/$InReplyToCommentDatabaseId/replies"
     try {
         Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 1 -ScriptBlock {
+            # See Invoke-GhGraphQl: reset LASTEXITCODE so function-mocked `gh`
+            # in Pester does not inherit a stale non-zero from a prior native call.
+            $global:LASTEXITCODE = 0
             $stdout = & gh api --method POST $endpoint -f "body=$body" 2>&1
             $exitCode = 0
             $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
