@@ -23,6 +23,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Changed
 - docs: surface sample reports in README quick-reference
+- docs(audit): tool-output fidelity audit (#432a) — expanded `docs/tool-output-audit.md` to cover all 36 enabled manifest tools (was wave-1 / 3 tools), added machine-readable sidecar `docs/tool-output-audit.json`, and shipped reproducible static-extraction scripts under `scripts/`. Produces the proven-dropped-field list that input for #432b FindingRow extension.
 - docs(audit): added `docs/tool-output-audit.md` with completed wave-1 entries for Azure (`azure-quota`), Azure DevOps (`ado-connections`), and GitHub (`zizmor`) including per-tool counts and dropped-field lists.
 
 ### Fixed
