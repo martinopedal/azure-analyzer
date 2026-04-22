@@ -257,6 +257,11 @@ function Test-SkipAdvisoryLabel {
             }
         }
     } else {
+        # `gh` can be mocked as a PowerShell function in tests. In that case,
+        # LASTEXITCODE is not updated and may retain a stale non-zero value
+        # from an earlier native command (observed on ubuntu-latest). Reset
+        # before invocation so exit handling reflects this call only.
+        $global:LASTEXITCODE = 0
         $rawLabels = & gh pr view $PRNumber --repo $Repo --json labels -q '.labels[].name' 2>$null
         if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$rawLabels)) {
             foreach ($name in ([string]$rawLabels -split '[\r\n]')) {
@@ -401,6 +406,9 @@ function Get-AdvisoryCommentId {
     )
 
     $endpoint = "repos/$Repo/issues/$PRNumber/comments"
+    # See Test-IsSkipAdvisory: reset LASTEXITCODE so function-mocked `gh`
+    # in Pester does not inherit a stale non-zero from a prior native call.
+    $global:LASTEXITCODE = 0
     $raw = & gh api $endpoint --paginate --slurp 2>$null
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$raw)) {
         return $null
@@ -465,6 +473,9 @@ function Publish-AdvisoryComment {
 
     try {
         $existingId = Get-AdvisoryCommentId -PRNumber $PRNumber -Repo $Repo
+        # See Test-IsSkipAdvisory: reset LASTEXITCODE so function-mocked `gh`
+        # in Pester does not inherit a stale non-zero from a prior native call.
+        $global:LASTEXITCODE = 0
         if ($existingId) {
             $endpoint = "repos/$Repo/issues/comments/$existingId"
             & gh api -X PATCH $endpoint -F "body=@$bodyFile" 1>$null
@@ -615,6 +626,9 @@ function Invoke-AdvisoryRubberDuck {
     $diff = ''
     if (-not $DryRun) {
         try {
+            # See Test-IsSkipAdvisory: reset LASTEXITCODE so function-mocked `gh`
+            # in Pester does not inherit a stale non-zero from a prior native call.
+            $global:LASTEXITCODE = 0
             $rawDiff = & gh pr diff $PRNumber --repo $Repo 2>$null
             if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$rawDiff)) {
                 $diff = [string]$rawDiff
@@ -793,6 +807,9 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
 
     if ([string]::IsNullOrWhiteSpace($HeadSha)) {
         try {
+            # See Test-IsSkipAdvisory: reset LASTEXITCODE so function-mocked `gh`
+            # in Pester does not inherit a stale non-zero from a prior native call.
+            $global:LASTEXITCODE = 0
             $resolved = & gh pr view $PRNumber --repo $Repo --json headRefOid -q '.headRefOid' 2>$null
             if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace([string]$resolved)) {
                 $HeadSha = ([string]$resolved).Trim()
