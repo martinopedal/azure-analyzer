@@ -122,6 +122,36 @@ function Get-RequiredInputs {
     $isNonInteractive = Test-PreflightNonInteractive -NonInteractive:$NonInteractive
     $requirements = [System.Collections.Specialized.OrderedDictionary]::new()
 
+    # Pre-resolve a merged value map (CLI > env) across every candidate input across every
+    # tool, regardless of whether a `conditional` would gate it. This lets
+    # Test-PreflightConditional honor values supplied via env vars - not just CLI - so a
+    # downstream input is not falsely flagged as required when its prerequisite is satisfied
+    # by an env var. CLI > env > prompt precedence is preserved (prompt happens later, only
+    # for inputs that survive the conditional pass).
+    $knownValues = @{}
+    foreach ($k in $CliValues.Keys) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$CliValues[$k])) {
+            $knownValues[$k] = $CliValues[$k]
+        }
+    }
+    foreach ($tool in @($Tools)) {
+        $allInputs = if ($tool.PSObject.Properties['required_inputs']) { @($tool.required_inputs) } else { @() }
+        foreach ($inputDef in $allInputs) {
+            if ($null -eq $inputDef) { continue }
+            $nameProp = $inputDef.PSObject.Properties['name']
+            $name = if ($nameProp) { [string]$nameProp.Value } else { '' }
+            if ([string]::IsNullOrWhiteSpace($name)) { continue }
+            if ($knownValues.ContainsKey($name)) { continue }
+            $envName = if ($inputDef.PSObject.Properties['envVar']) { [string]$inputDef.envVar } else { '' }
+            if (-not [string]::IsNullOrWhiteSpace($envName)) {
+                $envValue = [Environment]::GetEnvironmentVariable($envName)
+                if (-not [string]::IsNullOrWhiteSpace([string]$envValue)) {
+                    $knownValues[$name] = $envValue
+                }
+            }
+        }
+    }
+
     foreach ($tool in @($Tools)) {
         $toolRequiredInputs = if ($tool.PSObject.Properties['required_inputs']) { @($tool.required_inputs) } else { @() }
         foreach ($inputDef in $toolRequiredInputs) {
@@ -130,7 +160,7 @@ function Get-RequiredInputs {
             $name = if ($nameProp) { [string]$nameProp.Value } else { '' }
             if ([string]::IsNullOrWhiteSpace($name)) { continue }
             $conditional = if ($inputDef.PSObject.Properties['conditional']) { $inputDef.conditional } else { $null }
-            if (-not (Test-PreflightConditional -Conditional $conditional -KnownValues $CliValues)) { continue }
+            if (-not (Test-PreflightConditional -Conditional $conditional -KnownValues $knownValues)) { continue }
             if (-not $requirements.Contains($name)) {
                 $type = if ($inputDef.PSObject.Properties['type']) { [string]$inputDef.type } else { 'string' }
                 $prompt = if ($inputDef.PSObject.Properties['prompt']) { [string]$inputDef.prompt } else { '' }

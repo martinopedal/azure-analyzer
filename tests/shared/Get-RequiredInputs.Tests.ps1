@@ -94,6 +94,46 @@ Describe 'Get-RequiredInputs' {
         $resolved = Get-RequiredInputs -Tools $script:toolDefs -CliValues @{ ManagementGroupId = 'alz-root' } -NonInteractive
         $resolved.Keys.Count | Should -Be 0
     }
+
+    It 'does not require SubscriptionId when conditional dependency is satisfied via env var' {
+        $tools = @(
+            [PSCustomObject]@{
+                name = 'azqr'
+                required_inputs = @(
+                    [PSCustomObject]@{
+                        name = 'ManagementGroupId'
+                        type = 'string'
+                        prompt = 'Enter management group'
+                        envVar = 'AZURE_MANAGEMENT_GROUP_ID'
+                        example = 'alz-root'
+                    },
+                    [PSCustomObject]@{
+                        name = 'SubscriptionId'
+                        type = 'guid'
+                        prompt = 'Enter subscription id'
+                        envVar = 'AZURE_SUBSCRIPTION_ID'
+                        example = '00000000-0000-0000-0000-000000000000'
+                        validator = '^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$'
+                        conditional = [PSCustomObject]@{ param = 'ManagementGroupId'; equals = '' }
+                    }
+                )
+            }
+        )
+        $originalMg = $env:AZURE_MANAGEMENT_GROUP_ID
+        try {
+            $env:AZURE_MANAGEMENT_GROUP_ID = 'alz-root'
+            Mock Read-Host { throw 'Read-Host should not have been called' }
+            $resolved = Get-RequiredInputs -Tools $tools -CliValues @{} -NonInteractive
+            $resolved.ContainsKey('SubscriptionId') | Should -BeFalse
+            $resolved.ManagementGroupId | Should -Be 'alz-root'
+        } finally {
+            if ($null -eq $originalMg) {
+                Remove-Item Env:\AZURE_MANAGEMENT_GROUP_ID -ErrorAction SilentlyContinue
+            } else {
+                $env:AZURE_MANAGEMENT_GROUP_ID = $originalMg
+            }
+        }
+    }
 }
 
 Describe 'Test-PreflightNonInteractive' {
