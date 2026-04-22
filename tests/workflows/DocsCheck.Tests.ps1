@@ -9,11 +9,11 @@ Describe 'Docs Check workflow' {
     }
 
     It 'treats every docs/ path as documentation' {
-        $script:WorkflowText | Should -Match ([regex]::Escape('/^docs\//'))
+        $script:WorkflowText | Should -Match 'const docPathPatterns = \[\s*/\^docs\\//'
     }
 
     It 'does not require hardcoded docs subdirectory allow-lists' {
-        $script:WorkflowText | Should -Not -Match ([regex]::Escape('/^docs\/consumer\//'))
-        $script:WorkflowText | Should -Not -Match ([regex]::Escape('/^docs\/contributor\//'))
+        $script:WorkflowText | Should -Not -Match 'docs/consumer/'
+        $script:WorkflowText | Should -Not -Match 'docs/contributor/'
     }
 }

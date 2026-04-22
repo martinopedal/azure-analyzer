@@ -82,7 +82,7 @@ jobs:
             if (docFiles.length === 0) {
               core.error(`error: Missing documentation updates for code changes in PR #${context.issue.number}.`);
               core.error(`error: Code files changed: ${codeFiles.join(', ')}`);
-              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or any file under docs/.');
+              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or any file in the docs/ directory.');
               core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
               core.setFailed(
                 'error: This PR changes code files but no documentation was updated.\n' +
