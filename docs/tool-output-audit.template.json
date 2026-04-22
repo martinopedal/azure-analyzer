@@ -25,7 +25,7 @@
         "normalized": "tests/fixtures/azure-quota/normalized-sample.json"
       },
       "counts": {
-        "rawFindings": 2,
+        "rawFindings": 1,
         "wrapperFindings": 1,
         "normalizedFindings": 1,
         "rawFieldCountSample": 4,

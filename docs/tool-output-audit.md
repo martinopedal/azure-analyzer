@@ -23,7 +23,7 @@ Per-tool coverage below explicitly tracks these additive `FindingRow`-level fiel
 
 | Tool | Family | Raw findings | Wrapper findings | Normalized findings | Wrapper fields (sample) | Normalized fields (sample) | Dropped from wrapper in normalizer | #432b additions observed in wrapper |
 | --- | --- | ---:| ---:| ---:| ---:| ---:| --- | --- |
-| `azure-quota` | Azure | 2 | 1 | 1 | 21 | 47 | _none_ | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `EntityRefs`, `ScoreDelta`, `ToolVersion` |
+| `azure-quota` | Azure | 1 | 1 | 1 | 21 | 47 | _none_ | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `EvidenceUris`, `EntityRefs`, `ScoreDelta`, `ToolVersion` |
 | `ado-connections` | Azure DevOps | 3 | 3 | 3 | 26 | 37 | `AdoOrg`, `AdoProject`, `ConnectionId`, `ConnectionType`, `AuthScheme`, `AuthMechanism`, `IsShared` | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `EntityRefs`, `ToolVersion` |
 | `zizmor` | GitHub | 2 | 3 | 3 | 21 | 37 | _none_ | `Pillar`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `BaselineTags`, `MitreTechniques`, `EntityRefs`, `ToolVersion` |
 

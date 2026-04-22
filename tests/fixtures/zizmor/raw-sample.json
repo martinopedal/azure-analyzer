@@ -8,6 +8,7 @@
         "symbolic": {
           "key": ".github/workflows/ci.yml"
         },
+        "path": ".github/workflows/ci.yml",
         "line": 17,
         "end_line": 22
       }
