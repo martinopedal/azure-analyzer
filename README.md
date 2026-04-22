@@ -1,5 +1,8 @@
 # azure-analyzer
 
+> **Active maintenance in progress (2026-04-23).** This repository is undergoing a comprehensive hardening sprint: CI workflow hygiene, wrapper consistency, E2E validation harness, and report architecture upgrades. Expect frequent commits on `main` and rapid iteration on internal docs. Markdown Link Check is currently advisory. This banner will be removed once the sprint closes and all open PRs land. For production use, pin to the latest tagged release.
+
+
 [![CI](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
