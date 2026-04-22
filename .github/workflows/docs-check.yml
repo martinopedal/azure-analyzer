@@ -59,15 +59,7 @@ jobs:
             const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
             const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md'];
             const docPathPatterns = [
-              /^docs\/consumer\//,
-              /^docs\/contributor\//,
-              /^docs\/getting-started\//,
-              /^docs\/guides\//,
-              /^docs\/reference\//,
-              /^docs\/operators\//,
-              /^docs\/contributing\//,
-              /^docs\/architecture\//,
-              /^docs\/decisions\//,
+              /^docs\//,
             ];
             const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
 
@@ -90,11 +82,11 @@ jobs:
             if (docFiles.length === 0) {
               core.error(`error: Missing documentation updates for code changes in PR #${context.issue.number}.`);
               core.error(`error: Code files changed: ${codeFiles.join(', ')}`);
-              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/ (getting-started, guides, reference, operators, contributing, architecture).');
+              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or any file under docs/.');
               core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
               core.setFailed(
                 'error: This PR changes code files but no documentation was updated.\n' +
-                'Please update README.md, CHANGELOG.md, or a page under docs/consumer/ or docs/contributor/.\n' +
+                'Please update README.md, CHANGELOG.md, PERMISSIONS.md, or a page under docs/.\n' +
                 'See CONTRIBUTING.md for documentation requirements.'
               );
             }

@@ -11,6 +11,7 @@ The zizmor Schema 2.2 ETL enrichment only adds metadata fields and does not intr
 The falco Schema 2.2 ETL enrichment adds runtime metadata only (CIS framework mapping, MITRE tags, evidence links, and tool version) and does not introduce any new Azure RBAC requirements.
 The alz-queries Schema 2.2 ETL enrichment adds ALZ governance metadata only (framework tags, pillar mapping, source deep links, evidence URIs, baseline tags, and tool version) and does not change required Azure Reader scope.
 The HTML remediation-snippet null-guard report fix only changes rendering behavior and does not introduce any new permissions.
+The Docs Check workflow path-classification fix (treat all `docs/` paths as documentation updates) changes CI validation logic only and introduces no new permissions.
 
 ## Permission domains at a glance
 
