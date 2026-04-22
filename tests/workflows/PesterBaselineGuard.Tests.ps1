@@ -30,8 +30,10 @@ Describe 'CI Pester baseline guard (regression for #471)' {
         $script:CiRaw | Should -Match '\[int\]\$current\.TotalCount\s+-lt\s+\$MinTotal'
     }
 
-    It 'enforces hardcoded PassedCount floor of 1597 (PR #501 baseline)' {
-        $script:CiRaw | Should -Match '\$MinPassed\s*=\s*1597'
+    It 'enforces hardcoded PassedCount floor of 1602 (PR #538 baseline)' {
+        # Bumped from 1597 to 1602 in PR #538 (Tier 4 mock conversion of
+        # 5 Invoke-Gitleaks "tool missing" contract tests).
+        $script:CiRaw | Should -Match '\$MinPassed\s*=\s*1602'
         $script:CiRaw | Should -Match '\[int\]\$current\.PassedCount\s+-lt\s+\$MinPassed'
     }
 }
