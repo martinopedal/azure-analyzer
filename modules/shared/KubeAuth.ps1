@@ -395,10 +395,14 @@ function Initialize-KubeAuth {
         param($_workingPath, $_workingOwned, $_envSnapshot, $_tokenFileResult)
         if ($_envSnapshot) { Restore-WorkloadIdentityEnv -Snapshot $_envSnapshot }
         if ($_tokenFileResult -and $_tokenFileResult.Owned -and (Test-Path -LiteralPath $_tokenFileResult.Path)) {
-            try { Remove-Item -LiteralPath $_tokenFileResult.Path -Force -ErrorAction SilentlyContinue } catch {}
+            try { Remove-Item -LiteralPath $_tokenFileResult.Path -Force -ErrorAction SilentlyContinue } catch {
+                Write-Verbose ("KubeAuth cleanup: token-file removal failed at '{0}'. Reason: {1}" -f $_tokenFileResult.Path, $_.Exception.Message)
+            }
         }
         if ($_workingOwned -and $_workingPath -and (Test-Path -LiteralPath $_workingPath)) {
-            try { Remove-Item -LiteralPath $_workingPath -Force -ErrorAction SilentlyContinue } catch {}
+            try { Remove-Item -LiteralPath $_workingPath -Force -ErrorAction SilentlyContinue } catch {
+                Write-Verbose ("KubeAuth cleanup: working kubeconfig removal failed at '{0}'. Reason: {1}" -f $_workingPath, $_.Exception.Message)
+            }
         }
     }
     $captured = [pscustomobject]@{

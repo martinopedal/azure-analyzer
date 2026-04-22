@@ -23,11 +23,15 @@ function Test-PreflightNonInteractive {
 
     try {
         if (-not [Environment]::UserInteractive) { return $true }
-    } catch {}
+    } catch {
+        Write-Verbose ("Test-NonInteractive: [Environment]::UserInteractive probe failed; defaulting to interactive. Reason: {0}" -f $_.Exception.Message)
+    }
 
     try {
         if ([Console]::IsInputRedirected) { return $true }
-    } catch {}
+    } catch {
+        Write-Verbose ("Test-NonInteractive: [Console]::IsInputRedirected probe failed; defaulting to interactive. Reason: {0}" -f $_.Exception.Message)
+    }
 
     return $false
 }
