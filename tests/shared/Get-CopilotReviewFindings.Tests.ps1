@@ -52,6 +52,17 @@ Describe 'Get-CopilotReviewFindings' {
         @($findings | Where-Object { $_.Id -match 'COMMENT_correctness_reply' }).Count | Should -Be 0
     }
 
+    It 'ignores stale LASTEXITCODE when gh is mocked' {
+        $previous = $global:LASTEXITCODE
+        try {
+            $global:LASTEXITCODE = 1
+            $findings = @(Get-CopilotReviewFindings -Owner 'martinopedal' -Repo 'azure-analyzer' -PullNumber 172)
+            $findings.Count | Should -Be 4
+        } finally {
+            $global:LASTEXITCODE = $previous
+        }
+    }
+
     It 'defaults category to correctness when not tagged' {
         $findings = @(Get-CopilotReviewFindings -Owner 'martinopedal' -Repo 'azure-analyzer' -PullNumber 172)
         $item = $findings | Where-Object { $_.Id -match 'THREAD_correctness:COMMENT_correctness' } | Select-Object -First 1
@@ -79,4 +90,3 @@ Describe 'Get-CopilotReviewFindings' {
         $graphqlCall | Should -Not -Match 'name=martinopedal/azure-analyzer'
     }
 }
-
