@@ -30,6 +30,18 @@ function Invoke-ResponseSanitization {
 }
 
 function Get-AvailableModelsFromCopilotPlan {
+    <#
+    .SYNOPSIS
+        Resolves available Copilot models for triage.
+    .DESCRIPTION
+        Discovery order is:
+        1) parse `gh copilot status` for model ids
+        2) fallback to `-CopilotTier`
+        3) fallback to `AZURE_ANALYZER_COPILOT_TIER`
+        Throws when no tier can be resolved and no models are discoverable.
+    .OUTPUTS
+        String[] model ids available for the resolved plan/tier.
+    #>
     [CmdletBinding()]
     param(
         [ValidateSet('Pro', 'Business', 'Enterprise')]
@@ -84,6 +96,16 @@ function Get-AvailableModelsFromCopilotPlan {
 }
 
 function Select-TriageTrio {
+    <#
+    .SYNOPSIS
+        Selects the triage trio from available models.
+    .DESCRIPTION
+        Scores all 3-model combinations using weighted ranking from
+        `config/triage-model-ranking.json` (sum(rank) dominates), then applies
+        provider diversity as tie-break by preferring combinations with more
+        unique providers. Returns top 3 models in rank order. If fewer than
+        three ranked models are available, returns ranked fallback list.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -139,6 +161,21 @@ function Select-TriageTrio {
 }
 
 function Invoke-CopilotTriage {
+    <#
+    .SYNOPSIS
+        Builds sanitized model selection context for LLM triage.
+    .DESCRIPTION
+        Rubberduck mode is default. `-SingleModel` (or `-Mode SingleModel`)
+        explicitly opts out and emits a warning. Prompt and response payloads
+        are always sanitized via `Remove-Credentials`.
+    .OUTPUTS
+        PSCustomObject with:
+          - Mode ('Rubberduck'|'SingleModel')
+          - SelectedModels (string[])
+          - AvailableModels (string[])
+          - Prompt (sanitized string)
+          - Response (sanitized string)
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
