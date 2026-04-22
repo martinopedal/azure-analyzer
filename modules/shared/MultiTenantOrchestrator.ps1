@@ -62,7 +62,10 @@ function ConvertFrom-TenantConfig {
             throw "ConvertFrom-TenantConfig: -Path is required."
         }
         if (-not (Test-Path -LiteralPath $Path)) {
-            throw "Tenant config file not found: $Path"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:MultiTenantOrchestrator' `
+                -Category 'NotFound' `
+                -Reason "Tenant config file not found: $Path" `
+                -Remediation 'Verify the -TenantConfig path exists and is readable.'))
         }
         $raw = Get-Content -LiteralPath $Path -Raw
         try {
@@ -73,7 +76,10 @@ function ConvertFrom-TenantConfig {
         # ConvertFrom-Json via pipeline unwraps single-element JSON arrays into
         # a bare pscustomobject. Re-wrap so we can iterate uniformly.
         if ($parsed -is [string] -or $parsed -is [System.ValueType]) {
-            throw "Tenant config '$Path' must be a JSON array of tenant entries."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:MultiTenantOrchestrator' `
+                -Category 'ConfigurationError' `
+                -Reason "Tenant config '$Path' must be a JSON array of tenant entries." `
+                -Remediation 'Wrap the entries in [ ] (e.g. [{ "tenantId": "...", "subscriptionIds": [ ... ] }, ...]).'))
         }
         $entries = if ($parsed -is [System.Collections.IEnumerable]) { @($parsed) } else { @($parsed) }
     } else {
@@ -97,7 +103,10 @@ function ConvertFrom-TenantConfig {
             throw (Remove-Credentials "Invalid tenantId '$tid' in tenant config (expected GUID).")
         }
         if ($seen.ContainsKey($tid.ToLowerInvariant())) {
-            throw "Duplicate tenantId '$tid' in tenant config."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:MultiTenantOrchestrator' `
+                -Category 'ConfigurationError' `
+                -Reason "Duplicate tenantId '$tid' in tenant config." `
+                -Remediation 'Each tenantId must appear at most once; merge subscriptionIds into a single entry.'))
         }
         $seen[$tid.ToLowerInvariant()] = $true
 
