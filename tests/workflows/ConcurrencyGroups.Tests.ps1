@@ -24,7 +24,7 @@ Describe 'Workflow concurrency contract' {
             'ci.yml',
             'codeql.yml',
             'docs-check.yml',
-            'markdown-link-check.yml',
+            'markdown-check.yml',
             'stub-deadline-check.yml',
             'copilot-agent-pr-review.yml',
             'pr-review-gate.yml',
