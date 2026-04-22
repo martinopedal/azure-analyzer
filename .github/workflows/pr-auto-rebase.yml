@@ -1,0 +1,199 @@
+name: PR Auto-Rebase Conflicts
+
+# Repo directive 2026-04-22T23:35:00Z: when `main` advances during a sprint,
+# agent PRs frequently flip to MERGEABLE=false. This workflow auto-rebases the
+# branches under agent control (squad/copilot/fix/feat/ci/docs prefixes) using
+# a union-merge strategy for additive files (CHANGELOG, manifest entries,
+# README/docs additions) so the iterate-until-green loop is not blocked by
+# pure additive collisions. Human-owned branches and genuine logic conflicts
+# always fall back to a PR comment requesting a manual rebase.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [synchronize, opened, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: auto-rebase-pr-${{ github.event.pull_request.number || 'main-push' }}
+  cancel-in-progress: true
+
+jobs:
+  enumerate:
+    name: Enumerate conflicting agent PRs
+    runs-on: ubuntu-latest
+    outputs:
+      prs: ${{ steps.list.outputs.prs }}
+      count: ${{ steps.list.outputs.count }}
+    steps:
+      - name: List conflicting PRs from agent branches
+        id: list
+        # Wrapped with nick-fields/retry so a transient gh-API hiccup does not
+        # abandon the rebase sweep. SHA pinned per repo invariant; coordinate
+        # with sloan's retry-wrap PR if she pins a different SHA.
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        with:
+          max_attempts: 3
+          timeout_minutes: 5
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: bash
+          command: |
+            set -euo pipefail
+            allowed='copilot-swe-agent[bot] martinopedal Copilot github-actions[bot] dependabot[bot]'
+            raw="$(gh pr list \
+              --repo "$REPO" \
+              --state open --limit 50 \
+              --json number,headRefName,mergeable,author,baseRefName)"
+            filtered="$(echo "$raw" | jq -c --arg authors "$allowed" '
+              [ .[]
+                | select(.baseRefName == "main")
+                | select(.mergeable == "CONFLICTING")
+                | select(.headRefName | test("^(squad|copilot|fix|feat|ci|docs)/"))
+                | select((.author.login) as $a | ($authors | split(" ") | index($a)))
+                | { number: .number, head: .headRefName, author: .author.login }
+              ]
+            ')"
+            count="$(echo "$filtered" | jq 'length')"
+            echo "count=$count" >> "$GITHUB_OUTPUT"
+            echo "prs=$filtered" >> "$GITHUB_OUTPUT"
+            echo "Found $count conflicting agent PR(s) eligible for auto-rebase."
+
+  rebase:
+    name: Auto-rebase PR ${{ matrix.pr.number }}
+    needs: enumerate
+    if: needs.enumerate.outputs.count != '0' && needs.enumerate.outputs.count != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: ${{ fromJson(needs.enumerate.outputs.prs) }}
+    concurrency:
+      group: auto-rebase-pr-${{ matrix.pr.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Attempt auto-rebase with conflict auto-resolution
+        id: rebase
+        shell: pwsh
+        env:
+          GH_TOKEN:   ${{ github.token }}
+          PR_NUMBER:  ${{ matrix.pr.number }}
+          HEAD_REF:   ${{ matrix.pr.head }}
+          REPO:       ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pr   = $env:PR_NUMBER
+          $head = $env:HEAD_REF
+
+          Write-Host "=== Auto-rebase PR #$pr ($head) ==="
+          git fetch origin main --quiet
+          git fetch origin "$head" --quiet
+          git checkout -B $head "origin/$head"
+
+          $headSha = (git rev-parse HEAD).Trim()
+
+          git rebase origin/main 2>&1 | Out-Host
+          $rebaseExit = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+
+          if ($rebaseExit -eq 0) {
+            Write-Host "Rebase succeeded with no conflicts."
+            git push --force-with-lease origin $head
+            "outcome=clean" >> $env:GITHUB_OUTPUT
+            return
+          }
+
+          $conflicting = @(git diff --name-only --diff-filter=U) | Where-Object { $_ }
+          Write-Host "Conflicting files: $($conflicting -join ', ')"
+
+          $unresolved = New-Object 'System.Collections.Generic.List[string]'
+          foreach ($file in $conflicting) {
+            $strategy = $null
+            switch -Regex ($file) {
+              '^CHANGELOG\.md$'                     { $strategy = 'Changelog' }
+              '^tools/tool-manifest\.json$'         { $strategy = 'Manifest' }
+              '^(README\.md|docs/)'                 { $strategy = 'DocAddition' }
+              '^tests/fixtures/baselines/.+\.json$' { $strategy = 'TakeIncoming' }
+              'pester-baseline.*\.json$'            { $strategy = 'TakeIncoming' }
+            }
+            if (-not $strategy) {
+              Write-Host "No auto-resolve strategy for $file"
+              $unresolved.Add($file) | Out-Null
+              continue
+            }
+            try {
+              if ($strategy -eq 'TakeIncoming') {
+                git checkout --theirs -- $file
+                git add -- $file
+                Write-Host "Resolved $file via TakeIncoming"
+              } else {
+                & ./scripts/Resolve-CommonMergeConflicts.ps1 -Path $file -Strategy $strategy
+                git add -- $file
+                Write-Host "Resolved $file via $strategy"
+              }
+            } catch {
+              Write-Host "Auto-resolve FAILED for ${file}: $_"
+              $unresolved.Add($file) | Out-Null
+            }
+          }
+
+          if ($unresolved.Count -gt 0) {
+            Write-Host "Aborting rebase, $($unresolved.Count) file(s) need manual attention."
+            git rebase --abort
+            $files = ($unresolved -join ', ')
+            $fence = [string][char]0x60 * 3
+            $bashFence = $fence + 'bash'
+            $body = @(
+              ":warning: Auto-rebase failed for commit $headSha -- genuine conflict in $files.",
+              "",
+              "Manual rebase required:",
+              "",
+              $bashFence,
+              "gh pr checkout $pr",
+              "git fetch origin main",
+              "git rebase origin/main",
+              "# resolve conflicts in: $files",
+              "git push --force-with-lease",
+              $fence,
+              "",
+              "_(Posted by [pr-auto-rebase.yml](https://github.com/$env:REPO/actions/workflows/pr-auto-rebase.yml). Re-run that workflow once the manual rebase lands.)_"
+            ) -join "`n"
+            $tmp = New-TemporaryFile
+            Set-Content -LiteralPath $tmp -Value $body
+            gh pr comment $pr --repo $env:REPO --body-file $tmp
+            Remove-Item -LiteralPath $tmp -Force
+            "outcome=manual" >> $env:GITHUB_OUTPUT
+            "files=$files" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          git -c core.editor=true rebase --continue
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "rebase --continue failed after auto-resolve."
+            git rebase --abort
+            "outcome=continue-failed" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          git push --force-with-lease origin $head
+          "outcome=resolved" >> $env:GITHUB_OUTPUT
+          Write-Host "Auto-resolved + force-push complete for PR #$pr."

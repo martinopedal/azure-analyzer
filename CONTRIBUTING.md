@@ -50,6 +50,7 @@ These workflows support repo development and the AI squad workflow. They're not 
 | `squad-issue-assign.yml` | Label event | Assigns issues to squad agents |
 | `sync-squad-labels.yml` | Push | Syncs squad labels |
 | `auto-label-issues.yml` | Issue opened | Adds `squad` label |
+| `pr-auto-rebase.yml` | `push: main` / `pull_request` / `workflow_dispatch` | Auto-rebases agent-owned PRs (`squad/*`, `copilot/*`, `fix/*`, `feat/*`, `ci/*`, `docs/*`) when `main` advances. Auto-resolves additive conflicts in `CHANGELOG.md`, `tools/tool-manifest.json`, `README.md`, and `docs/`; takes incoming for Pester baseline files. Genuine logic conflicts trigger a "Manual rebase required" PR comment instead. Uses `--force-with-lease` only. Human-owned branches are skipped. |
 
 Set `SQUAD_WATCH_CI=1` to opt into the local polling helper (`tools/Watch-GithubActions.ps1`) that applies the same dedup loop outside GitHub Actions.
 
