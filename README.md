@@ -1,5 +1,11 @@
 # azure-analyzer
 
+<<<<<<< HEAD
+> **Active maintenance in progress (2026-04-23).** This repository is undergoing a comprehensive hardening sprint: CI workflow hygiene, wrapper consistency, E2E validation harness, and report architecture upgrades. Expect frequent commits on `main` and rapid iteration on internal docs. Markdown Link Check is currently advisory. This banner will be removed once the sprint closes and all open PRs land. For production use, pin to the latest tagged release.
+
+=======
+
+>>>>>>> f549853 (test(e2e): end-to-end harness for Invoke-AzureAnalyzer with 3-surface coverage)
 [![CI](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -29,6 +35,11 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 ```
 
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
+
+## Testing
+
+- `Invoke-Pester -Path .\tests -CI`: full Pester suite (baseline 842+ green).
+- `Invoke-Pester -Path .\tests\e2e -Output Detailed`: end-to-end harness that drives `Invoke-AzureAnalyzer`'s output pipeline (FindingRow -> EntityStore -> `results.json` + `entities.json` -> HTML + Markdown reports) across three surfaces (Azure subscription, GitHub repo, Tenant / management-group) with synthetic fixtures under `tests/e2e/fixtures/`. Runs in CI via [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) on windows-latest, ubuntu-latest, and macos-latest (8-minute timeout per leg). Asserts v1 / v3.1 schema shapes, tier selection across PureJson / EmbeddedSqlite / SidecarSqlite, `Invoke-RemoteRepoClone` host allow-list, and credential-scrub for planted `ghp_*` / `xoxb-*` / `AKIA*` / `pat-*` literals.
 
 ---
 

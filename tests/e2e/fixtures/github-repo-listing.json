@@ -1,0 +1,55 @@
+{
+  "description": "Synthetic GitHub repository listing for the -RepoUrl surface. Used to drive v3 Repository entities into the E2E pipeline without a real git clone.",
+  "repos": [
+    {
+      "slug": "contoso-fake/app-alpha",
+      "defaultBranch": "main",
+      "cloneUrl": "https://github.com/contoso-fake/app-alpha.git",
+      "findings": [
+        {
+          "ruleId": "gh-workflow-injection",
+          "title": "Workflow expression injection in release.yml",
+          "severity": "High",
+          "compliant": false,
+          "category": "CICD",
+          "detail": "${{ github.event.issue.title }} is interpolated into a run step."
+        },
+        {
+          "ruleId": "gh-branch-protection",
+          "title": "Default branch lacks required reviews",
+          "severity": "Medium",
+          "compliant": false,
+          "category": "Governance"
+        }
+      ]
+    },
+    {
+      "slug": "contoso-fake/service-beta",
+      "defaultBranch": "main",
+      "cloneUrl": "https://github.com/contoso-fake/service-beta.git",
+      "findings": [
+        {
+          "ruleId": "gh-secret-scanning",
+          "title": "Secret scanning disabled",
+          "severity": "High",
+          "compliant": false,
+          "category": "Security"
+        }
+      ]
+    },
+    {
+      "slug": "contoso-fake/infra-gamma",
+      "defaultBranch": "main",
+      "cloneUrl": "https://github.com/contoso-fake/infra-gamma.git",
+      "findings": [
+        {
+          "ruleId": "gh-dependabot",
+          "title": "Dependabot alerts disabled",
+          "severity": "Medium",
+          "compliant": false,
+          "category": "Security"
+        }
+      ]
+    }
+  ]
+}
