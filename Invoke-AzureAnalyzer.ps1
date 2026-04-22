@@ -565,7 +565,19 @@ if (-not $PSBoundParameters.ContainsKey('InstallMissingModules') -and
 }
 
 if (-not $SkipPrereqCheck) {
-    $shouldRunRef = { param($name) ShouldRunTool $name }.GetNewClosure()
+    # Closure captures $IncludeTools/$ExcludeTools by value so the predicate
+    # works even when invoked from another module's session state (e.g. when
+    # Invoke-AzureAnalyzer is called via the AzureAnalyzer.psm1 wrapper, where
+    # the script-level ShouldRunTool function would not be visible to a
+    # scriptblock dispatched from inside Install-PrerequisitesFromManifest).
+    $includeToolsLocal = $IncludeTools
+    $excludeToolsLocal = $ExcludeTools
+    $shouldRunRef = {
+        param($name)
+        if ($includeToolsLocal) { return $name -in $includeToolsLocal }
+        if ($excludeToolsLocal) { return $name -notin $excludeToolsLocal }
+        return $true
+    }.GetNewClosure()
     $null = Install-PrerequisitesFromManifest `
         -Manifest $manifest `
         -RepoRoot $PSScriptRoot `
