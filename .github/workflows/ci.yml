@@ -38,9 +38,14 @@ jobs:
           $config.Run.Path = './tests'
           # Keep Exit disabled so we can persist pester-count.json before failing.
           $config.Run.Exit = $false
+          $config.Run.PassThru = $true
           $config.Output.Verbosity = 'Detailed'
           $config.CodeCoverage.Enabled = $false
           $result = Invoke-Pester -Configuration $config
+          if ($null -eq $result) {
+            Write-Error "Invoke-Pester returned null; cannot record TotalCount."
+            exit 1
+          }
           $outputDir = Join-Path (Get-Location) 'output'
           if (-not (Test-Path $outputDir)) { $null = New-Item -ItemType Directory -Path $outputDir -Force }
           [pscustomobject]@{
