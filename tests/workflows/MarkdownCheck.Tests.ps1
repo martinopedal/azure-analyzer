@@ -86,12 +86,12 @@ Describe 'em-dash policy gate' {
     }
 
     It 'uses ripgrep (rg)' {
-        $script:WorkflowText | Should -Match '\brg\s+-l\b'
+        $script:WorkflowText | Should -Match '\brg\s+-n\b'
     }
 
-    It 'is restricted to changed Markdown on pull_request events' {
+    It 'is restricted to added lines on pull_request events' {
         $script:WorkflowText | Should -Match "if:\s*github\.event_name\s*==\s*'pull_request'"
-        $script:WorkflowText | Should -Match 'git diff --name-only'
+        $script:WorkflowText | Should -Match 'git diff --unified=0'
     }
 
     It 'matches both U+2014 (em dash) and U+2013 (en dash)' {

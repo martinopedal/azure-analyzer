@@ -100,7 +100,13 @@ jobs:
 
       # PR mode: only block on em-dashes introduced by this PR. Avoids
       # back-pressure on the existing em-dash backlog (tracked separately).
-      - name: Em-dash gate (changed Markdown only)
+      #
+      # We scan only the *added* lines (unified=0 diff, lines prefixed with
+      # '+' but not '+++') so pre-existing em-dashes in files that happen to
+      # be modified do not re-trigger the gate on every touch. This is the
+      # tightest possible scope and matches the repo policy "no em-dashes
+      # *introduced* by a PR".
+      - name: Em-dash gate (added lines only)
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -112,15 +118,23 @@ jobs:
             echo "No changed Markdown files; skipping em-dash gate."
             exit 0
           fi
-          echo "Scanning changed files:"
+          echo "Scanning added lines in changed files:"
           printf ' - %s\n' "${changed[@]}"
+          # Extract only added lines (lines starting with '+' but not '+++').
+          added_lines=$(git diff --unified=0 --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' \
+            | grep -E '^\+' \
+            | grep -Ev '^\+\+\+ ' || true)
+          if [ -z "$added_lines" ]; then
+            echo "No added lines in changed Markdown; skipping em-dash gate."
+            exit 0
+          fi
           # U+2014 (em dash) and U+2013 (en dash) are forbidden by repo policy.
-          if rg -l -e $'\u2014' -e $'\u2013' "${changed[@]}" 2>/dev/null; then
+          if printf '%s\n' "$added_lines" | rg -n -e $'\u2014' -e $'\u2013'; then
             echo ""
-            echo "::error::Em-dash (U+2014) or en-dash (U+2013) found in changed Markdown. Repo policy: replace with ' - ' (space-hyphen-space) or rewrite the sentence."
+            echo "::error::Em-dash (U+2014) or en-dash (U+2013) found in lines added by this PR. Repo policy: replace with ' - ' (space-hyphen-space) or rewrite the sentence."
             exit 1
           fi
-          echo "OK: no em-dashes introduced."
+          echo "OK: no em-dashes introduced by this PR."
 
       # Schedule / manual: full corpus scan, advisory only (writes to summary).
       - name: Em-dash backlog scan (advisory)
