@@ -35,6 +35,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         shell: pwsh
+        # no-retry: step manages a sticky issue (create / edit / close) and aggregates
+        # paginated `gh api` results. A blind whole-step retry could open a duplicate
+        # sticky issue if the first attempt's create succeeded but the runner timed
+        # out before exit. Internal calls already use `2>$null` + null-fallback to
+        # ride out transient API errors; the daily schedule provides natural retry.
         run: |
           Set-StrictMode -Version Latest
           $ErrorActionPreference = 'Stop'
