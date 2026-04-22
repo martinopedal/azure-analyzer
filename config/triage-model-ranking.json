@@ -6,8 +6,6 @@
     "reviewCadence": "quarterly",
     "notes": "Capability ranking for end-user LLM triage trio composition."
   },
-  "schemaVersion": "1.0",
-  "lastReviewed": "2026-04-21",
   "rankings": [
     { "model": "claude-opus-4.6", "tier": "premium", "rank": 100, "provider": "anthropic", "notes": "Best reasoning, slowest" },
     { "model": "gpt-5.2-codex", "tier": "standard-code", "rank": 90, "provider": "openai", "notes": "Best for code-heavy triage" },
