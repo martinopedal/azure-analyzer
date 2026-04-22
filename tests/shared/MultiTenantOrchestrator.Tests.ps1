@@ -5,6 +5,7 @@ BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     . (Join-Path $script:RepoRoot 'modules' 'shared' 'Sanitize.ps1')
+    . (Join-Path $script:RepoRoot 'modules' 'shared' 'Errors.ps1')
     . (Join-Path $script:RepoRoot 'modules' 'shared' 'MultiTenantOrchestrator.ps1')
 }
 
