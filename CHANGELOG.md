@@ -7,6 +7,9 @@ All notable changes to azure-analyzer will be documented here.
 ### Added
 - feat(schema): added `IaCFile` as a first-class EntityType to the schema v2 enum with Platform=IaC. Canonical ID format is `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). EntityStore deduplicates IaCFile entities by Platform|EntityType|EntityId composite key, enabling cross-tool correlation when multiple IaC scanners (Terraform, Trivy, Checkov, tfsec) report findings on the same file. Canonical ID logic added to `modules/shared/Canonicalize.ps1`, dedup contract validated in EntityStore tests, and documentation updated in `docs/reference/entity-model.md`.
 
+### Fixed
+- fix(ci): CI Health Digest now correlates triaged workflow runs from both `ci-failure` issue bodies and issue comments (open and closed), eliminating false "untriaged" duplicates when watchdog updates existing issues with `still failing` run links.
+
 ### Changed
 - docs: surface sample reports in README quick-reference
 - chore(report): regenerated `samples/sample-report.html` and `samples/sample-report.md` from `samples/sample-findings-v2.json` so both showcase the same curated Schema 2.2 dataset (11 findings, posture 9/100). Verified `New-HtmlReport.ps1` and `New-MdReport.ps1` are intentionally located at the repo root as siblings of `Invoke-AzureAnalyzer.ps1`; they are public module entry-points exported by `AzureAnalyzer.psd1` and invoked via `$PSScriptRoot`.
