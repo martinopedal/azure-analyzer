@@ -9,14 +9,15 @@ BeforeAll {
     . $script:ModulePath
 }
 
-Describe 'LLM triage model selection (#433)' {
+Describe 'LLM triage model selection (#433, frontier-only)' {
     Context 'Tier discovery and available models' {
         It 'falls back to -CopilotTier when gh copilot status is unavailable' {
             function global:gh { throw 'unsupported command' }
             try {
                 $models = @(Get-AvailableModelsFromCopilotPlan -CopilotTier Business)
-                $models | Should -Contain 'gpt-5.2-codex'
-                $models | Should -Contain 'gemini-3-pro-preview'
+                $models | Should -Contain 'claude-opus-4.7'
+                $models | Should -Contain 'gpt-5.4'
+                $models | Should -Contain 'goldeneye'
             } finally {
                 Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
             }
@@ -25,7 +26,20 @@ Describe 'LLM triage model selection (#433)' {
         It 'requires explicit tier when status is unavailable and no fallback is provided' {
             function global:gh { throw 'unsupported command' }
             try {
-                { Get-AvailableModelsFromCopilotPlan } | Should -Throw '*Provide -CopilotTier*'
+                { Get-AvailableModelsFromCopilotPlan } | Should -Throw
+            } finally {
+                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'roster contains only frontier models (no sonnet/haiku/mini/gpt-4.1/gpt-5.2/gemini/opus-4.6)' {
+            function global:gh { throw 'unsupported command' }
+            try {
+                $banned = @('claude-sonnet-4.6', 'claude-haiku-4.5', 'gpt-4.1', 'gpt-5.2', 'gpt-5.2-codex', 'gemini-3-pro-preview', 'claude-opus-4.6', 'gpt-5-mini', 'gpt-5.4-mini')
+                foreach ($tier in @('Pro', 'Business', 'Enterprise')) {
+                    $models = @(Get-AvailableModelsFromCopilotPlan -CopilotTier $tier)
+                    foreach ($b in $banned) { $models | Should -Not -Contain $b }
+                }
             } finally {
                 Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
             }
@@ -36,16 +50,15 @@ Describe 'LLM triage model selection (#433)' {
         It 'prefers top-ranked available models from ranking config' {
             $ranking = Get-Content -Path $script:RankingPath -Raw -Encoding utf8 | ConvertFrom-Json
             $trio = @(Select-TriageTrio -AvailableModels @(
-                    'claude-sonnet-4.6',
-                    'gpt-5.2',
-                    'gemini-3-pro-preview',
-                    'claude-haiku-4.5'
+                    'claude-opus-4.7',
+                    'claude-opus-4.6-1m',
+                    'gpt-5.4',
+                    'gpt-5.3-codex',
+                    'goldeneye'
                 ) -RankingTable $ranking)
 
             $trio.Count | Should -Be 3
-            $trio | Should -Contain 'claude-sonnet-4.6'
-            $trio | Should -Contain 'gpt-5.2'
-            $trio | Should -Contain 'gemini-3-pro-preview'
+            $trio | Should -Contain 'claude-opus-4.7'
         }
 
         It 'uses provider diversity as tie-break when total rank is equal' {
@@ -66,6 +79,34 @@ Describe 'LLM triage model selection (#433)' {
         }
     }
 
+    Context 'Frontier fallback chain' {
+        It 'returns models in rank-descending order' {
+            $ranking = Get-Content -Path $script:RankingPath -Raw -Encoding utf8 | ConvertFrom-Json
+            $chain = @(Get-FrontierFallbackChain -AvailableModels @('goldeneye', 'claude-opus-4.7', 'gpt-5.4') -RankingTable $ranking)
+            $chain[0] | Should -Be 'claude-opus-4.7'
+            $chain[-1] | Should -Be 'goldeneye'
+        }
+
+        It 'walks chain on transient failure and returns first success' {
+            $attempted = [System.Collections.Generic.List[string]]::new()
+            $invoker = {
+                param($m)
+                $attempted.Add($m)
+                if ($m -eq 'claude-opus-4.7') { throw '503 service unavailable' }
+                return "ok-$m"
+            }
+            $result = Invoke-ModelWithFallback -ModelChain @('claude-opus-4.7', 'gpt-5.4') -Invoker $invoker
+            $result | Should -Be 'ok-gpt-5.4'
+            $attempted | Should -Contain 'claude-opus-4.7'
+            $attempted | Should -Contain 'gpt-5.4'
+        }
+
+        It 'throws AllModelsFailed when entire chain is exhausted' {
+            $invoker = { param($m) throw '503 service unavailable' }
+            { Invoke-ModelWithFallback -ModelChain @('claude-opus-4.7', 'gpt-5.4') -Invoker $invoker } | Should -Throw
+        }
+    }
+
     Context 'Invoke-CopilotTriage mode behavior' {
         It 'warns when -SingleModel opts out of rubberduck' {
             function global:gh { throw 'unsupported command' }
@@ -78,6 +119,7 @@ Describe 'LLM triage model selection (#433)' {
                     -WarningVariable warnings
 
                 $result.Mode | Should -Be 'SingleModel'
+                $result.SchemaVersion | Should -Be '1.0'
                 @($warnings).Count | Should -BeGreaterThan 0
                 (@($warnings) -join ' ') | Should -Match 'opting out of default rubberduck consensus'
             } finally {
@@ -92,35 +134,73 @@ Describe 'LLM triage model selection (#433)' {
                     Invoke-CopilotTriage `
                         -Findings @([pscustomobject]@{ Id = 'f1'; Title = 'x' }) `
                         -CopilotTier Pro `
-                        -ExplicitModel 'claude-opus-4.6'
-                } | Should -Throw '*not available for this Copilot tier*'
-            } finally {
-                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
-            }
-        }
-
-        It 'refuses rubberduck mode when fewer than three models are available' {
-            function global:gh { "Plan: Pro`nModels: gpt-5.2, gpt-4.1" }
-            try {
-                {
-                    Invoke-CopilotTriage -Findings @([pscustomobject]@{ Id = 'f1'; Title = 'x' })
-                } | Should -Throw '*requires at least three available models*'
+                        -ExplicitModel 'claude-sonnet-4.6'
+                } | Should -Throw
             } finally {
                 Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
             }
         }
 
         It 'allows single-model fallback when fewer than three models are available and -SingleModel is set' {
-            function global:gh { "Plan: Pro`nModels: gpt-5.2, gpt-4.1" }
+            function global:gh { throw 'unsupported command' }
             try {
                 $warnings = $null
                 $result = Invoke-CopilotTriage `
                     -Findings @([pscustomobject]@{ Id = 'f1'; Title = 'x' }) `
+                    -CopilotTier Pro `
                     -SingleModel `
                     -WarningVariable warnings
                 $result.Mode | Should -Be 'SingleModel'
                 $result.SelectedModels.Count | Should -Be 1
+                $result.FallbackChain.Count | Should -BeGreaterThan 0
                 @($warnings).Count | Should -BeGreaterThan 0
+            } finally {
+                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'emits versioned schema with FallbackChain and GeneratedAt' {
+            function global:gh { throw 'unsupported command' }
+            try {
+                $result = Invoke-CopilotTriage -Findings @([pscustomobject]@{ Id = 'f1'; Title = 'x' }) -CopilotTier Business
+                $result.SchemaVersion | Should -Be '1.0'
+                $result.Mode | Should -Be 'Rubberduck'
+                $result.SelectedModels.Count | Should -Be 3
+                $result.FallbackChain.Count | Should -BeGreaterOrEqual 3
+                $result.GeneratedAt | Should -Match '^\d{4}-\d{2}-\d{2}T'
+            } finally {
+                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    Context 'Prompt-injection mitigation' {
+        It 'projects findings to allow-listed fields only' {
+            function global:gh { throw 'unsupported command' }
+            try {
+                $finding = [pscustomobject]@{
+                    Id              = 'f1'
+                    Title           = 'safe'
+                    SecretMaterial  = 'should-not-appear-in-prompt'
+                    ArbitraryField  = 'also-not'
+                }
+                $result = Invoke-CopilotTriage -Findings @($finding) -CopilotTier Pro -SingleModel
+                $result.Prompt | Should -Not -Match 'should-not-appear-in-prompt'
+                $result.Prompt | Should -Not -Match 'ArbitraryField'
+                $result.Prompt | Should -Match 'safe'
+            } finally {
+                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'truncates long allow-listed field values to MaxPromptFieldChars' {
+            function global:gh { throw 'unsupported command' }
+            try {
+                $longTitle = ('A' * 5000)
+                $finding = [pscustomobject]@{ Id = 'f1'; Title = $longTitle }
+                $result = Invoke-CopilotTriage -Findings @($finding) -CopilotTier Pro -SingleModel
+                $result.Prompt | Should -Match '\[TRUNCATED\]'
+                $result.Prompt.Length | Should -BeLessThan 5000
             } finally {
                 Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
             }

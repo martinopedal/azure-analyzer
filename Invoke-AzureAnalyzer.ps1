@@ -1477,9 +1477,42 @@ $triageFile = Join-Path $OutputPath 'triage.json'
 if ($EnableAiTriage) {
     Write-Host "`n[AI] Running Copilot triage..." -ForegroundColor Magenta
     try {
-        $triageResult = & (Join-Path $modulesPath 'Invoke-CopilotTriage.ps1') `
-            -InputPath $outputFile -OutputPath $triageFile
-        if ($null -eq $triageResult) { Write-Warning "AI triage did not produce results." }
+        # Wire to the new sanitized PowerShell triage module. The legacy
+        # modules/Invoke-CopilotTriage.ps1 path bypassed Remove-Credentials
+        # and is no longer supported (round-2 triage bottom-fix).
+        $triageModulePath = Join-Path $modulesPath 'shared' 'Triage' 'Invoke-CopilotTriage.ps1'
+        if (-not (Test-Path -LiteralPath $triageModulePath)) {
+            throw "Triage module not found at expected path: $triageModulePath"
+        }
+        . $triageModulePath
+        $triageFindings = @()
+        if (Test-Path -LiteralPath $outputFile) {
+            try {
+                $triageInput = Get-Content -LiteralPath $outputFile -Raw -Encoding utf8 | ConvertFrom-Json -Depth 20
+                if ($triageInput -is [System.Collections.IEnumerable] -and -not ($triageInput -is [string])) {
+                    $triageFindings = @($triageInput)
+                } elseif ($null -ne $triageInput.findings) {
+                    $triageFindings = @($triageInput.findings)
+                } else {
+                    $triageFindings = @($triageInput)
+                }
+            } catch {
+                Write-Warning (Remove-Credentials "Failed to parse findings for triage: $_")
+            }
+        }
+        if ($triageFindings.Count -gt 0) {
+            $triageResult = Invoke-CopilotTriage -Findings $triageFindings -SingleModel
+            if ($null -ne $triageResult) {
+                $triageJson = $triageResult | ConvertTo-Json -Depth 10
+                # Defense-in-depth: scrub the serialized payload before writing.
+                $triageJson = Remove-Credentials $triageJson
+                Set-Content -LiteralPath $triageFile -Value $triageJson -Encoding utf8
+            } else {
+                Write-Warning "AI triage did not produce results."
+            }
+        } else {
+            Write-Warning "AI triage skipped: no findings to triage."
+        }
     } catch { Write-Warning (Remove-Credentials "AI triage failed: $_ -- continuing without enrichment.") }
 } else {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }

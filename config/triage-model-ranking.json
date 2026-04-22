@@ -1,18 +1,15 @@
 {
   "_header": {
-    "schemaVersion": "1.0",
+    "schemaVersion": "1.1",
     "lastReviewed": "2026-04-21",
-    "sha256": "PENDING-COMPUTED-AT-COMMIT",
     "reviewCadence": "quarterly",
-    "notes": "Capability ranking for end-user LLM triage trio composition."
+    "notes": "Frontier-only capability ranking for end-user LLM triage trio composition. Non-frontier models (sonnet, haiku, mini, gpt-4.1, gpt-5.2, gemini, opus-4.6) are explicitly excluded by the .copilot Frontier Fallback Chain policy."
   },
   "rankings": [
-    { "model": "claude-opus-4.6", "tier": "premium", "rank": 100, "provider": "anthropic", "notes": "Best reasoning, slowest" },
-    { "model": "gpt-5.2-codex", "tier": "standard-code", "rank": 90, "provider": "openai", "notes": "Best for code-heavy triage" },
-    { "model": "gemini-3-pro-preview", "tier": "standard-analytical", "rank": 85, "provider": "google", "notes": "Strong analytical diversity" },
-    { "model": "claude-sonnet-4.6", "tier": "standard", "rank": 80, "provider": "anthropic", "notes": "" },
-    { "model": "gpt-5.2", "tier": "standard", "rank": 75, "provider": "openai", "notes": "" },
-    { "model": "claude-haiku-4.5", "tier": "fast", "rank": 50, "provider": "anthropic", "notes": "Fallback only" },
-    { "model": "gpt-4.1", "tier": "fast", "rank": 40, "provider": "openai", "notes": "Fallback only" }
+    { "model": "claude-opus-4.7",   "tier": "premium",  "rank": 100, "provider": "anthropic", "notes": "Frontier reasoning, primary rubberduck anchor" },
+    { "model": "claude-opus-4.6-1m","tier": "premium",  "rank": 95,  "provider": "anthropic", "notes": "1M-context fallback for large finding sets" },
+    { "model": "gpt-5.4",           "tier": "balanced", "rank": 90,  "provider": "openai",    "notes": "Provider-diversity counterweight to Opus" },
+    { "model": "gpt-5.3-codex",     "tier": "balanced", "rank": 85,  "provider": "openai",    "notes": "Code-heavy triage, IaC remediation" },
+    { "model": "goldeneye",         "tier": "fast",     "rank": 80,  "provider": "microsoft", "notes": "Internal frontier; last-resort fallback" }
   ]
 }
