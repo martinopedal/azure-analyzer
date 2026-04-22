@@ -322,12 +322,22 @@ function Get-ReplacementAgent {
 function ConvertTo-TriageResponse {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [AllowNull()]
         [object] $Response
     )
 
+    if ($null -eq $Response) {
+        return $null
+    }
+
     if ($Response -is [string]) {
+        if ([string]::IsNullOrWhiteSpace($Response)) {
+            return $null
+        }
         $Response = $Response | ConvertFrom-Json -ErrorAction Stop
+        if ($null -eq $Response) {
+            return $null
+        }
     }
 
     $verdict = if ($Response.reviewerVerdict) { [string]$Response.reviewerVerdict } else { 'COMMENTED' }
@@ -356,7 +366,12 @@ function Merge-TriageResponses {
         [string] $LockedOutAgent
     )
 
-    $normalized = @($Responses | ForEach-Object { ConvertTo-TriageResponse -Response $_ })
+    $normalized = @(
+        $Responses |
+            Where-Object { $null -ne $_ } |
+            ForEach-Object { ConvertTo-TriageResponse -Response $_ } |
+            Where-Object { $null -ne $_ }
+    )
     if ($normalized.Count -eq 0) {
         $autoVerdict = if ($FeedbackPayload.Reviews | Where-Object { $_.State -eq 'CHANGES_REQUESTED' }) {
             'CHANGES_REQUESTED'
@@ -655,20 +670,27 @@ function Get-ModelResponses {
         [string] $ModelResponsesPath
     )
 
+    $rawText = $null
     if ($ModelResponsesPath) {
         if (-not (Test-Path $ModelResponsesPath)) {
             throw "ModelResponsesPath not found: $ModelResponsesPath"
         }
 
-        $raw = Get-Content -Path $ModelResponsesPath -Raw
-        return @($raw | ConvertFrom-Json -ErrorAction Stop)
+        $rawText = Get-Content -Path $ModelResponsesPath -Raw
+    } elseif (-not [string]::IsNullOrWhiteSpace($env:PR_REVIEW_GATE_RESPONSES_JSON)) {
+        $rawText = $env:PR_REVIEW_GATE_RESPONSES_JSON
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($env:PR_REVIEW_GATE_RESPONSES_JSON)) {
-        return @($env:PR_REVIEW_GATE_RESPONSES_JSON | ConvertFrom-Json -ErrorAction Stop)
+    if ([string]::IsNullOrWhiteSpace($rawText)) {
+        return @()
     }
 
-    @()
+    $parsed = $rawText | ConvertFrom-Json -ErrorAction Stop
+    if ($null -eq $parsed) {
+        return @()
+    }
+
+    @($parsed | Where-Object { $null -ne $_ })
 }
 
 function Invoke-PRReviewGate {
@@ -710,10 +732,18 @@ function Invoke-PRReviewGate {
         }
     } catch {
         $safeError = Remove-Credentials ([string]$_.Exception.Message)
+        $location = ''
+        if ($_.InvocationInfo -and $_.InvocationInfo.PositionMessage) {
+            $location = Remove-Credentials ([string]$_.InvocationInfo.PositionMessage)
+        }
         Write-Warning "Invoke-PRReviewGate failed: $safeError"
+        if ($location) {
+            Write-Warning $location
+        }
         [PSCustomObject]@{
             Status   = 'Failed'
             Message  = $safeError
+            Location = $location
             DryRun   = [bool]$DryRun
             PlanPath = $null
         }
