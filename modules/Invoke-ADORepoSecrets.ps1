@@ -51,6 +51,7 @@ $ErrorActionPreference = 'Stop'
 $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
+. (Join-Path $sharedDir 'Errors.ps1')
 . (Join-Path $sharedDir 'RemoteClone.ps1')
 $installerPath = Join-Path $sharedDir 'Installer.ps1'
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) -and (Test-Path $installerPath)) {
@@ -75,9 +76,9 @@ function Resolve-AdoEndpoint {
 
     function Get-ValidatedHttpsUri {
         param ([Parameter(Mandatory)][string]$Value, [Parameter(Mandatory)][string]$ParameterName)
-        try { $uri = [uri]$Value } catch { throw "$ParameterName is not a valid URI." }
+        try { $uri = [uri]$Value } catch { throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'InvalidParameter' -Reason "$ParameterName is not a valid URI." -Remediation "Pass a syntactically valid URI for -$ParameterName.")) }
         if (-not $uri.IsAbsoluteUri -or $uri.Scheme -ne 'https') {
-            throw "$ParameterName must be an absolute HTTPS URL."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'InvalidParameter' -Reason "$ParameterName must be an absolute HTTPS URL." -Remediation "Pass -$ParameterName as 'https://...'."))
         }
         return $uri
     }
@@ -122,7 +123,7 @@ function Resolve-AdoEndpoint {
 
         $basePath = $orgUri.GetLeftPart([System.UriPartial]::Path).TrimEnd('/')
         if ($orgUri.AbsolutePath -eq '/' -or [string]::IsNullOrWhiteSpace($orgUri.AbsolutePath.Trim('/'))) {
-            throw 'AdoOrganizationUrl for Azure DevOps Server must include a collection path (for example /tfs/DefaultCollection).'
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'InvalidParameter' -Reason 'AdoOrganizationUrl for Azure DevOps Server must include a collection path (for example /tfs/DefaultCollection).' -Remediation 'Append the collection segment to the URL, e.g. https://server/tfs/DefaultCollection.'))
         }
         return [PSCustomObject]@{
             Deployment = 'OnPrem'
@@ -329,15 +330,15 @@ function Resolve-GitleaksConfig {
     }
 
     if ($ConfigPath -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
-        throw "Gitleaks config path must be a local file path. URLs are not allowed: '$ConfigPath'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'InvalidParameter' -Reason "Gitleaks config path must be a local file path. URLs are not allowed: '$ConfigPath'" -Remediation 'Download the config and pass a local path with -GitleaksConfigPath.'))
     }
 
     if ([System.IO.Path]::GetExtension($ConfigPath).ToLowerInvariant() -ne '.toml') {
-        throw "Gitleaks config path must point to a .toml file: '$ConfigPath'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'InvalidParameter' -Reason "Gitleaks config path must point to a .toml file: '$ConfigPath'" -Remediation 'Provide a Gitleaks .toml config file via -GitleaksConfigPath.'))
     }
 
     if (-not (Test-Path -Path $ConfigPath -PathType Leaf)) {
-        throw "Gitleaks config file not found: '$ConfigPath'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'NotFound' -Reason "Gitleaks config file not found: '$ConfigPath'" -Remediation 'Verify the -GitleaksConfigPath value resolves to an existing .toml file.'))
     }
 
     $resolvedConfigPath = Resolve-Path -Path $ConfigPath -ErrorAction Stop | Select-Object -ExpandProperty Path
@@ -437,7 +438,7 @@ function Invoke-GitleaksForRepo {
         }
 
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
-            throw "gitleaks exited with code $exitCode and produced no report"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:ado-repo-secrets' -Category 'UnexpectedFailure' -Reason "gitleaks exited with code $exitCode and produced no report" -Remediation 'Re-run with -Verbose to capture gitleaks stderr; verify the binary is healthy.'))
         }
 
         $records = @()
