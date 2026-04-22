@@ -7,10 +7,6 @@
 verbose = "info"
 no_progress = true
 max_concurrency = 8
-# Resolve root-relative links like /CONTRIBUTING.md against the repo root
-# so lychee does not error with "provide a root dir" on local scans.
-base = "."
-
 # Per-request retry policy: stays gentle on third-party hosts so we do not get
 # IP-banned for hammering on PR push storms.
 max_retries = 5
