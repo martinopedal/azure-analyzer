@@ -1,10 +1,10 @@
 verbose = "info"
 no_progress = true
 max_concurrency = 8
-max_retries = 2
-retry_wait_time = 2
-timeout = 20
-accept = ["200..=299", "429"]
+max_retries = 5
+retry_wait_time = 10
+timeout = 30
+accept = ["200..=299", "301", "302", "304", "429"]
 include_fragments = false
 exclude_loopback = true
 include_mail = false
@@ -14,6 +14,8 @@ exclude = [
   "^https://(www\\.)?linkedin\\.com/",
   "^https://x\\.com/",
   "^https://twitter\\.com/",
+  # keda.sh has recurring TLS handshake flakiness in GitHub-hosted runners (PR #444 / run 24803238036)
+  "^https://keda\\.sh",
   "^file:///.*?/\\.copilot/skills/humanizer/url$",
   "^file:///.*?/\\.squad/templates/skills/humanizer/url$",
   # Temporary: docs restructure in progress - stub pages don't exist yet

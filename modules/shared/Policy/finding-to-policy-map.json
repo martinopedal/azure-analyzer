@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "_comment": "Track C scaffold (#431). 7 sample entries demonstrating the schema. Curated table grows in implementation PR after Foundation #435.",
+  "schemaVersion": "0.1.0-scaffold",
+  "catalogVintage": {
+    "azAdvertizer": { "date": "TBD", "sha": "TBD" },
+    "alz":          { "date": "TBD", "sha": "TBD" }
+  },
+  "entries": [
+    {
+      "findingType": "storage.publicNetworkAccess.enabled",
+      "suggestions": [
+        {
+          "source": "AzAdvertizer",
+          "policyId": "/providers/Microsoft.Authorization/policyDefinitions/b2982f36-99f2-4db5-8eff-283140c09693",
+          "displayName": "Storage accounts should disable public network access",
+          "scopeHint": "subscription",
+          "priority": 1
+        },
+        {
+          "source": "ALZ",
+          "policyId": "Deny-Storage-PublicAccess",
+          "displayName": "ALZ: Deny storage accounts with public access",
+          "scopeHint": "Corp",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "findingType": "keyvault.softDelete.disabled",
+      "suggestions": [
+        {
+          "source": "AzAdvertizer",
+          "policyId": "/providers/Microsoft.Authorization/policyDefinitions/0b60c0b2-2dc2-4e1c-b5c9-abbed971de53",
+          "displayName": "Key vaults should have soft delete enabled",
+          "scopeHint": "subscription",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "findingType": "sql.transparentDataEncryption.disabled",
+      "suggestions": [
+        {
+          "source": "AzAdvertizer",
+          "policyId": "/providers/Microsoft.Authorization/policyDefinitions/17k78e20-9358-41c9-923c-fb736d382a4d",
+          "displayName": "Transparent Data Encryption on SQL databases should be enabled",
+          "scopeHint": "subscription",
+          "priority": 1
+        },
+        {
+          "source": "ALZ",
+          "policyId": "Deploy-Sql-TDE",
+          "displayName": "ALZ: Deploy TDE on SQL databases",
+          "scopeHint": "Landing Zones",
+          "priority": 2
+        }
+      ]
+    },
+    {
+      "findingType": "vm.diskEncryption.disabled",
+      "suggestions": [
+        {
+          "source": "ALZ",
+          "policyId": "Deploy-VM-DiskEncryption",
+          "displayName": "ALZ: Deploy disk encryption on VMs",
+          "scopeHint": "Landing Zones",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "findingType": "network.nsg.openToInternet",
+      "suggestions": [
+        {
+          "source": "AzAdvertizer",
+          "policyId": "/providers/Microsoft.Authorization/policyDefinitions/9daedab3-fb2d-461e-b861-71790eead4f6",
+          "displayName": "All network ports should be restricted on NSGs associated to your VM",
+          "scopeHint": "subscription",
+          "priority": 1
+        },
+        {
+          "source": "ALZ",
+          "policyId": "Deny-MgmtPorts-From-Internet",
+          "displayName": "ALZ: Deny management ports open from the internet",
+          "scopeHint": "Corp",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "findingType": "identity.guestUsers.unrestricted",
+      "suggestions": [
+        {
+          "source": "ALZ",
+          "policyId": "Deny-Guest-Users",
+          "displayName": "ALZ: Restrict guest user invitations",
+          "scopeHint": "Identity",
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "findingType": "resource.locations.unrestricted",
+      "suggestions": [
+        {
+          "source": "ALZ",
+          "policyId": "Deny-Resource-Locations",
+          "displayName": "ALZ: Allowed locations initiative",
+          "scopeHint": "Sandbox",
+          "priority": 1
+        },
+        {
+          "source": "AzAdvertizer",
+          "policyId": "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c",
+          "displayName": "Allowed locations",
+          "scopeHint": "managementGroup",
+          "priority": 2
+        }
+      ]
+    }
+  ]
+}
