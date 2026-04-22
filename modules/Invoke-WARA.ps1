@@ -28,6 +28,11 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -113,14 +118,14 @@ function Get-WaraWorkbookMetadata {
 # Check WARA module is available (centralized Install-Prerequisites handles installation)
 $waraModule = @(Get-Module -ListAvailable -Name WARA | Sort-Object Version -Descending | Select-Object -First 1)
 if (-not $waraModule) {
-    Write-Warning "WARA module not found. Install with: Install-Module WARA -Scope CurrentUser"
+    Write-MissingToolNotice -Tool 'wara' -Message "WARA module not found. Install with: Install-Module WARA -Scope CurrentUser"
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @() }
 }
 $toolVersion = [string]$waraModule[0].Version
 
 Import-Module WARA -ErrorAction SilentlyContinue
 if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
-    Write-Warning "WARA module loaded but Start-WARACollector not found. Returning empty result."
+    Write-MissingToolNotice -Tool 'wara' -Message "WARA module loaded but Start-WARACollector not found. Returning empty result."
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
 }
 

@@ -253,7 +253,7 @@ Import-Module Az.Accounts -ErrorAction SilentlyContinue
 Import-Module Az.ResourceGraph -ErrorAction SilentlyContinue
 
 if (-not (Get-Module -ListAvailable -Name Az.CostManagement)) {
-    Write-Warning 'Az.CostManagement module not installed. Cost Management REST query will be used via Az.Accounts context.'
+    Write-Verbose '[finops] Az.CostManagement module not installed. Cost Management REST query will be used via Az.Accounts context.'
 }
 
 try {

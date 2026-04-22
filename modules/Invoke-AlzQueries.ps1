@@ -43,8 +43,13 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
+}
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
 }
 
 # Dot-source retry helper so Search-AzGraph calls transparently handle
@@ -52,7 +57,7 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 . (Join-Path $PSScriptRoot 'shared' 'Retry.ps1')
 
 if (-not (Get-Module -Name Az.ResourceGraph -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Warning "Az.ResourceGraph module not installed. Skipping ALZ queries. Run: Install-Module Az.ResourceGraph"
+    Write-MissingToolNotice -Tool 'alz-queries' -Message "Az.ResourceGraph module not installed. Skipping ALZ queries. Run: Install-Module Az.ResourceGraph"
     return [PSCustomObject]@{
         Source   = 'alz-queries'
         SchemaVersion = '1.0'
