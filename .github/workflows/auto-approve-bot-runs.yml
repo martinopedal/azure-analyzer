@@ -20,7 +20,7 @@ on:
       - "CI"
       - "CodeQL"
       - "Docs Check"
-      - "Markdown Link Check"
+      - "Markdown Check"
       - "Stub deadline check"
       - "Copilot Agent PR Review"
       - "PR Advisory Gate"

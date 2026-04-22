@@ -64,7 +64,7 @@ Describe 'Auto-approve bot workflow runs' {
 
     It 'watches the critical squad workflows' {
         $watched = @($script:OnBlock['workflow_run']['workflows'])
-        foreach ($required in @('CI', 'CodeQL', 'Docs Check', 'Markdown Link Check', 'Copilot Agent PR Review')) {
+        foreach ($required in @('CI', 'CodeQL', 'Docs Check', 'Markdown Check', 'Copilot Agent PR Review')) {
             $watched | Should -Contain $required -Because "auto-approve must cover the $required workflow"
         }
     }

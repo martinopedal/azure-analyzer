@@ -1,0 +1,155 @@
+name: Markdown Check
+
+# Replaces the legacy "Markdown Link Check" workflow with a 3-job split:
+#   - lint:    structural / style validation (markdownlint-cli2)
+#   - links:   external + internal link validation (lychee + cache)
+#   - em-dash: repo-policy gate, no em-dashes in changed Markdown on PRs
+#
+# Tracker: #516. Replaces .github/workflows/markdown-link-check.yml.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '**/*.md'
+      - '.markdownlint-cli2.jsonc'
+      - '.lychee.toml'
+      - '.github/workflows/markdown-check.yml'
+  schedule:
+    # Mondays 06:00 UTC: catches link-rot independent of PR cadence.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: markdown-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (markdownlint-cli2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: DavidAnson/markdownlint-cli2-action@ce4853d43830c74c1753b39f3cf40f71c2031eb9 # v23.0.0
+        with:
+          config: .markdownlint-cli2.jsonc
+          globs: |
+            **/*.md
+
+  links:
+    name: links (lychee)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Restore lychee cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .lycheecache
+          key: lychee-cache-${{ github.run_id }}
+          restore-keys: |
+            lychee-cache-
+
+      - name: Install lychee CLI (pinned)
+        env:
+          LYCHEE_VERSION: v0.23.0
+        run: |
+          set -euo pipefail
+          curl --retry 3 --retry-delay 5 -fsSL \
+            "https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz" \
+            -o lychee.tgz
+          mkdir -p .lychee-bin && tar -xzf lychee.tgz -C .lychee-bin
+          sudo install -m 0755 .lychee-bin/lychee /usr/local/bin/lychee
+          rm -rf .lychee-bin lychee.tgz
+          mkdir -p lychee
+          lychee --version
+
+      - name: Check markdown links (workflow-level retry on transient errors)
+        id: lychee
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 60
+          retry_on: error
+          command: |
+            lychee --config .lychee.toml --cache --max-cache-age 7d --format markdown --output lychee/out.md './**/*.md'
+
+      - name: Append lychee report to job summary
+        if: always()
+        run: |
+          if [ -f lychee/out.md ]; then
+            echo '## Lychee link-check report' >> "$GITHUB_STEP_SUMMARY"
+            cat lychee/out.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  em-dash:
+    name: em-dash policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Install ripgrep
+        run: sudo apt-get update -y && sudo apt-get install -y ripgrep
+
+      # PR mode: only block on em-dashes introduced by this PR. Avoids
+      # back-pressure on the existing em-dash backlog (tracked separately).
+      #
+      # We scan only the *added* lines (unified=0 diff, lines prefixed with
+      # '+' but not '+++') so pre-existing em-dashes in files that happen to
+      # be modified do not re-trigger the gate on every touch. This is the
+      # tightest possible scope and matches the repo policy "no em-dashes
+      # *introduced* by a PR".
+      - name: Em-dash gate (added lines only)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md')
+          if [ ${#changed[@]} -eq 0 ]; then
+            echo "No changed Markdown files; skipping em-dash gate."
+            exit 0
+          fi
+          echo "Scanning added lines in changed files:"
+          printf ' - %s\n' "${changed[@]}"
+          # Extract only added lines (lines starting with '+' but not '+++').
+          added_lines=$(git diff --unified=0 --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' \
+            | grep -E '^\+' \
+            | grep -Ev '^\+\+\+ ' || true)
+          if [ -z "$added_lines" ]; then
+            echo "No added lines in changed Markdown; skipping em-dash gate."
+            exit 0
+          fi
+          # U+2014 (em dash) and U+2013 (en dash) are forbidden by repo policy.
+          if printf '%s\n' "$added_lines" | rg -n -e $'\u2014' -e $'\u2013'; then
+            echo ""
+            echo "::error::Em-dash (U+2014) or en-dash (U+2013) found in lines added by this PR. Repo policy: replace with ' - ' (space-hyphen-space) or rewrite the sentence."
+            exit 1
+          fi
+          echo "OK: no em-dashes introduced by this PR."
+
+      # Schedule / manual: full corpus scan, advisory only (writes to summary).
+      - name: Em-dash backlog scan (advisory)
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          {
+            echo '## Em-dash backlog (advisory)'
+            echo ''
+            echo 'Files containing U+2014 or U+2013:'
+            echo ''
+            echo '```'
+            rg -l -e $'\u2014' -e $'\u2013' --glob '*.md' --glob '*.ps1' --glob '*.yml' --glob '!.git/**' --glob '!node_modules/**' --glob '!output*/**' || echo '(none)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
