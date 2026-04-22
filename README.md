@@ -4,7 +4,7 @@
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**One PowerShell command, 35 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
+**One PowerShell command, 37 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
 ## Sample Reports
 
@@ -41,7 +41,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 
 </details>
 
-<details><summary><b>Tool catalog (35 tools)</b></summary>
+<details><summary><b>Tool catalog (37 tools)</b></summary>
 
 See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md).
 
