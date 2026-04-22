@@ -157,7 +157,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -920,6 +920,7 @@ if ($toolSpecs.Count -gt 0) {
 # ---------------------------------------------------------------------------
 $store      = [EntityStore]::new(50000, $OutputPath)
 $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
+$normalizerEdgeCollector = [System.Collections.Generic.List[psobject]]::new()
 # Per-tool aggregation for tool-status.json
 $toolAgg = @{}   # toolName → @{ WorstStatus; Messages; Count }
 
@@ -979,7 +980,12 @@ foreach ($wr in $parallelResults) {
     $v3Findings = @()
     if ($normFunc -and (Get-Command $normFunc -ErrorAction SilentlyContinue)) {
         try {
-            $v3Findings = @(& $normFunc -ToolResult $toolResult)
+            $normCmd = Get-Command $normFunc -ErrorAction SilentlyContinue
+            $normParams = @{ ToolResult = $toolResult }
+            if ($normCmd -and (@($normCmd.Parameters.Keys) -contains 'EdgeCollector')) {
+                $normParams['EdgeCollector'] = $normalizerEdgeCollector
+            }
+            $v3Findings = @(& $normFunc @normParams)
         } catch {
             Write-Warning (Remove-Credentials "Normaliser $normFunc failed: $_")
             $v3Findings = @()
@@ -1242,6 +1248,22 @@ try {
     $entitiesFile = Join-Path $OutputPath 'entities.json'
     $entities = Export-Entities -Store $store
     if ($null -eq $entities) { $entities = @() }
+    foreach ($edge in @($normalizerEdgeCollector)) {
+        if (-not $edge) { continue }
+        try { $store.AddEdge([pscustomobject]$edge) }
+        catch {
+            $getEdgePropertySafely = {
+                param([object] $EdgeObject, [string] $PropertyName)
+                if ($EdgeObject -and $EdgeObject.PSObject.Properties[$PropertyName]) { return [string]$EdgeObject.$PropertyName }
+                return '<missing>'
+            }
+            $edgeRelation = & $getEdgePropertySafely $edge 'Relation'
+            $edgeSource = & $getEdgePropertySafely $edge 'Source'
+            $edgeTarget = & $getEdgePropertySafely $edge 'Target'
+            $edgeSummary = "Relation=$edgeRelation; Source=$edgeSource; Target=$edgeTarget"
+            Write-Warning (Remove-Credentials "EdgeCollector edge rejected ($edgeSummary): $_")
+        }
+    }
     $edges = @()
     if (Get-Command Export-Edges -ErrorAction SilentlyContinue) {
         $edges = @(Export-Edges -Store $store)
@@ -1253,6 +1275,40 @@ try {
     }
     $entitiesJson = $entitiesPayload | ConvertTo-Json -Depth 30
     Set-Content -Path $entitiesFile -Value (Remove-Credentials $entitiesJson) -Encoding UTF8
+
+    $reportManifestPath = Join-Path $OutputPath 'report-manifest.json'
+    if ((Get-Command Select-ReportArchitecture -ErrorAction SilentlyContinue) -and (Get-Command New-ReportManifest -ErrorAction SilentlyContinue)) {
+        try {
+            $reportArchConfig = $null
+            if ($manifest.PSObject.Properties['report_architecture']) {
+                $reportArchConfig = $manifest.report_architecture
+            }
+            # Do NOT pass -HeadroomFactor here: Select-ReportArchitecture honors
+            # report_architecture.headroom_factor from the manifest when unbound.
+            $selection = Select-ReportArchitecture `
+                -FindingCount $allResults.Count `
+                -EntityCount @($entities).Count `
+                -EdgeCount @($edges).Count `
+                -ArchitectureConfig $reportArchConfig
+            $verification = [pscustomobject]@{}
+            if (Get-Command Get-ReportVerificationStubs -ErrorAction SilentlyContinue) {
+                $verification = Get-ReportVerificationStubs -ArchitectureConfig $reportArchConfig
+            }
+            $null = New-ReportManifest `
+                -Path $reportManifestPath `
+                -SelectedTier $selection.Tier `
+                -Measurements $selection.Measurements `
+                -HeadroomFactor ([double]$selection.Headroom.Factor) `
+                -PickerReasoning @($selection.Reasoning) `
+                -ForcedOverride ([bool]$selection.ForcedOverride) `
+                -VerificationResults $verification `
+                -AutoUpgrades @() `
+                -Timings ([pscustomobject]@{}) `
+                -Features @()
+        } catch {
+            Write-Warning (Remove-Credentials "Failed to write report-manifest.json: $_")
+        }
+    }
 
     $portfolio = Get-PortfolioRollup -Store $store -Entities $entities -ManagementGroupId $ManagementGroupId
     $portfolioJson = if ($null -eq $portfolio) { '{}' } else { $portfolio | ConvertTo-Json -Depth 30 }

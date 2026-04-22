@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   test:
@@ -35,10 +36,108 @@ jobs:
           Import-Module Pester -MinimumVersion 5.0 -Force
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
-          $config.Run.Exit = $true
+          # Keep Exit disabled so we can persist pester-count.json before failing.
+          $config.Run.Exit = $false
+          $config.Run.PassThru = $true
           $config.Output.Verbosity = 'Detailed'
           $config.CodeCoverage.Enabled = $false
-          Invoke-Pester -Configuration $config
+          $result = Invoke-Pester -Configuration $config
+          if ($null -eq $result) {
+            Write-Error "Invoke-Pester returned null; cannot record TotalCount."
+            exit 1
+          }
+          $outputDir = Join-Path (Get-Location) 'output'
+          if (-not (Test-Path $outputDir)) { $null = New-Item -ItemType Directory -Path $outputDir -Force }
+          [pscustomobject]@{
+            TotalCount = [int]$result.TotalCount
+            PassedCount = [int]$result.PassedCount
+            FailedCount = [int]$result.FailedCount
+            SkippedCount = [int]$result.SkippedCount
+            GeneratedAt = (Get-Date).ToUniversalTime().ToString('o')
+          } | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $outputDir 'pester-count.json') -Encoding UTF8
+          if ($result.FailedCount -gt 0) {
+            Write-Error "Pester failures detected: $($result.FailedCount)"
+            exit 1
+          }
+
+      - name: Upload current Pester count
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-count-${{ matrix.os }}
+          path: output/pester-count.json
+          retention-days: 7
+
+      - name: Compare Pester TotalCount to previous main baseline
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_WORKFLOW_FILE: ci.yml
+        shell: pwsh
+        run: |
+          $currentPath = Join-Path (Get-Location) 'output' 'pester-count.json'
+          if (-not (Test-Path $currentPath)) {
+            Write-Error "Current pester-count.json missing."
+            exit 1
+          }
+          $current = Get-Content -Path $currentPath -Raw | ConvertFrom-Json
+          if ([int]$current.TotalCount -le 0) {
+            Write-Error "Current Pester run reports TotalCount=0 (no tests executed). Refusing to upload as baseline."
+            exit 1
+          }
+          $runs = gh run list --repo $env:GH_REPO --workflow $env:GH_WORKFLOW_FILE --branch main --event push --status success --limit 10 --json databaseId | ConvertFrom-Json
+          if (-not $runs -or @($runs).Count -eq 0) {
+            Write-Warning "No previous successful main runs found. Skipping baseline comparison."
+            exit 0
+          }
+          $baselineDir = Join-Path (Get-Location) 'baseline'
+          if (Test-Path $baselineDir) { Remove-Item -Path $baselineDir -Recurse -Force }
+          $downloaded = $false
+          foreach ($run in @($runs)) {
+            # `gh` is a native binary; non-zero exits don't throw in PowerShell. Reset
+            # $LASTEXITCODE so a prior failure can't leak into this iteration, then check
+            # both the exit code AND that pester-count.json actually landed before declaring success.
+            $global:LASTEXITCODE = 0
+            New-Item -ItemType Directory -Path $baselineDir -Force | Out-Null
+            gh run download $run.databaseId --repo $env:GH_REPO --name pester-baseline --dir $baselineDir --skip-existing 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $baselineDir 'pester-count.json'))) {
+              $downloaded = $true
+              break
+            }
+            # Clean partial download before next attempt.
+            if (Test-Path $baselineDir) { Remove-Item -Path $baselineDir -Recurse -Force -ErrorAction SilentlyContinue }
+          }
+          if (-not $downloaded) {
+            Write-Warning "No previous pester-baseline artifact found on main across last 10 runs. Skipping baseline comparison."
+            exit 0
+          }
+          $baselinePath = Join-Path $baselineDir 'pester-count.json'
+          if (-not (Test-Path $baselinePath)) {
+            Write-Warning "Baseline artifact did not include pester-count.json. Skipping."
+            exit 0
+          }
+          $baseline = Get-Content -Path $baselinePath -Raw | ConvertFrom-Json
+          if ([int]$baseline.TotalCount -le 0) {
+            Write-Warning "Baseline TotalCount<=0 (corrupt or empty). Skipping comparison rather than fail-open."
+            exit 0
+          }
+          if ([int]$current.TotalCount -lt [int]$baseline.TotalCount) {
+            Write-Error "Pester TotalCount dropped from $($baseline.TotalCount) to $($current.TotalCount)."
+            exit 1
+          }
+          if ([int]$current.PassedCount -lt [int]$baseline.PassedCount) {
+            Write-Error "Pester PassedCount dropped from $($baseline.PassedCount) to $($current.PassedCount)."
+            exit 1
+          }
+          Write-Host "Pester TotalCount check passed. Current=$($current.TotalCount), Baseline=$($baseline.TotalCount)" -ForegroundColor Green
+
+      - name: Upload Pester baseline artifact (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-baseline
+          path: output/pester-count.json
+          retention-days: 90
 
   verify-install-manifest:
     name: Verify install manifest

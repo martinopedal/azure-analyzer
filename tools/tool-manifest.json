@@ -1,5 +1,32 @@
 {
   "schemaVersion": "2.2",
+  "report_architecture": {
+    "schemaVersion": "1.0",
+    "default_tier": "PureJson",
+    "headroom_factor": 1.25,
+    "thresholds": {
+      "findings": {
+        "embedded": 10000,
+        "sidecar": 100000,
+        "pode": 500000
+      },
+      "entities": {
+        "embedded": 10000,
+        "sidecar": 100000,
+        "pode": 500000
+      },
+      "edges": {
+        "embedded": 2500,
+        "pode": 50000
+      }
+    },
+    "vendored_dependencies": [
+      { "name": "cytoscape", "placeholder": true, "verify_stub": "Test-CytoscapePlaceholder", "applicable_tiers": ["EmbeddedSqlite", "SidecarSqlite", "PodeViewer"] },
+      { "name": "dagre", "placeholder": true, "verify_stub": "Test-DagrePlaceholder", "applicable_tiers": ["EmbeddedSqlite", "SidecarSqlite", "PodeViewer"] },
+      { "name": "Pode", "placeholder": true, "verify_stub": "Test-PodePlaceholder", "applicable_tiers": ["PodeViewer"] },
+      { "name": "sqlite-wasm", "placeholder": true, "verify_stub": "Test-SqliteWasmPlaceholder", "applicable_tiers": ["EmbeddedSqlite", "SidecarSqlite", "PodeViewer"] }
+    ]
+  },
   "tools": [
     {
       "name": "azqr",
