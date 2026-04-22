@@ -1,7 +1,7 @@
 # Track D — tool output fidelity audit (#432)
 
 > Status: **draft**, queued behind the 8h close plan
-> ([`.squad/decisions/inbox/lead-8h-close-plan-2026-04-22.md`](../../.squad/decisions/inbox/lead-8h-close-plan-2026-04-22.md)).
+> (see `.squad/decisions/inbox/` for the lead's 8h close plan dated 2026-04-22).
 > Wave-1 audit lives in [`docs/tool-output-audit.md`](../tool-output-audit.md) (#432a, merged in PR #465).
 > This doc extends the audit to **all 36 normalizers** and proposes the first three enrichment patches (#432b).
 
