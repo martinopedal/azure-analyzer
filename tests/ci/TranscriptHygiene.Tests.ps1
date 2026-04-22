@@ -35,7 +35,7 @@ Describe 'CI transcript hygiene (category 12 ratchet)' -Tag 'HygieneGate' {
         $script:WrappersPath = Join-Path $script:RepoRoot 'tests' 'wrappers'
     }
 
-    It 'emits zero "<tool> is not installed" WARNING lines during wrapper tests' -Skip:(-not ($env:AZURE_ANALYZER_RUN_HYGIENE_GATE -in @('1', 'true', 'yes', 'on'))) {
+    It 'emits zero tool/auth/cap WARNING lines during wrapper tests' -Skip:(-not ($env:AZURE_ANALYZER_RUN_HYGIENE_GATE -in @('1', 'true', 'yes', 'on'))) {
         $transcript = Join-Path $script:RepoRoot 'tests' 'ci' "hygiene-transcript-$([guid]::NewGuid().ToString('N')).log"
         $cmd = @"
 Import-Module Pester -MinimumVersion 5.0 -Force
@@ -47,13 +47,16 @@ Set-Location '$($script:RepoRoot.Path.Replace("'", "''"))'
             $content = Get-Content -LiteralPath $transcript -Raw -ErrorAction SilentlyContinue
             $offenders = @()
             if ($content) {
-                $offenders = $content -split "`n" | Where-Object {
-                    $_ -match '^\s*WARNING:.*(not installed|not found|module not|CLI is|Skipping)'
-                }
+                # #472 sweep #3 (class A) + sweep #4 (classes B, C):
+                #   A - tool-missing: "X is not installed", "module not found", "Skipping"
+                #   B - auth-missing: "GITHUB_AUTH_TOKEN", "GITHUB_TOKEN is set"
+                #   C - cap-truncation: "exceeds cap"
+                $pattern = '^\s*WARNING:.*(not installed|not found|module not|CLI is|Skipping|GITHUB_AUTH_TOKEN|GITHUB_TOKEN|exceeds cap)'
+                $offenders = $content -split "`n" | Where-Object { $_ -match $pattern }
             }
             if ($offenders.Count -gt 0) {
                 $sample = ($offenders | Select-Object -First 5) -join "`n"
-                throw "Detected $($offenders.Count) tool-missing WARNING line(s) in wrapper-test transcript. First 5:`n$sample`n`nFix: route the wrapper's tool-presence check through Write-MissingToolNotice (modules/shared/MissingTool.ps1), or mock it in the test via tests/_helpers/Mock-ToolPresence.ps1."
+                throw "Detected $($offenders.Count) wrapper-warning line(s) in test transcript. First 5:`n$sample`n`nFix options:`n  A. Route tool-presence through Write-MissingToolNotice (modules/shared/MissingTool.ps1) or mock via tests/_helpers/Mock-ToolPresence.ps1.`n  B. Use Enable-WrapperWarningSuppression from tests/_helpers/Suppress-WrapperWarnings.ps1 in BeforeAll.`n  C. Redirect the warning stream (3>`$null) on the cap-hit call and assert on the Info finding."
             }
         }
         finally {

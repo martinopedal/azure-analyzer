@@ -22,3 +22,5 @@ output-test/
 
 # Local-only squad coordinator state (continuance prompts, scratch)
 .squad-local/
+
+.git-commit-msg.txt

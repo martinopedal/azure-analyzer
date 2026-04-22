@@ -309,7 +309,7 @@ Describe 'Invoke-IdentityGraphExpansion principal cap' {
             $oid = [guid]::NewGuid().ToString()
             $store.MergeEntityMetadata([pscustomobject]@{ EntityId = "objectId:$oid"; EntityType = 'User'; Platform = 'Entra'; Observations = $null })
         }
-        $result = Invoke-IdentityGraphExpansion -EntityStore $store -TenantId 'tid' -IncludeGraphLookup -MaxPrincipals 3
+        $result = Invoke-IdentityGraphExpansion -EntityStore $store -TenantId 'tid' -IncludeGraphLookup -MaxPrincipals 3 3>$null
         $capFindings = @($result.Findings | Where-Object { $_.Category -eq 'Expansion Cap' })
         $capFindings.Count | Should -Be 1
         $capFindings[0].Severity | Should -Be 'Info'

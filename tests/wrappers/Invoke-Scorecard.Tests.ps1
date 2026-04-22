@@ -7,10 +7,16 @@ BeforeAll {
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Scorecard.ps1'
     $global:scorecardCliFixtureRaw = Get-Content (Join-Path $script:RepoRoot 'tests\fixtures\scorecard-cli-output.json') -Raw
+
+    # #472 sweep #4 (class B): silence "Neither GITHUB_AUTH_TOKEN nor GITHUB_TOKEN is set"
+    # soft-fail warning. The happy-path fixture doesn't exercise the unauth path.
+    . (Join-Path $script:RepoRoot 'tests' '_helpers' 'Suppress-WrapperWarnings.ps1')
+    $script:RestoreScorecardEnv = Enable-WrapperWarningSuppression
 }
 
 AfterAll {
     Remove-Variable -Name scorecardCliFixtureRaw -Scope Global -ErrorAction SilentlyContinue
+    if ($script:RestoreScorecardEnv) { & $script:RestoreScorecardEnv }
 }
 
 Describe 'scorecard wrapper: GH_HOST handling' {
