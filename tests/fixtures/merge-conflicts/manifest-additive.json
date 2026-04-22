@@ -1,0 +1,13 @@
+{
+  "tools": [
+    { "name": "azqr", "enabled": true },
+<<<<<<< HEAD
+    { "name": "policy-viz", "enabled": true },
+    { "name": "attack-path", "enabled": false },
+=======
+    { "name": "resilience-map", "enabled": false },
+    { "name": "policy-viz", "enabled": true },
+>>>>>>> origin/main
+    { "name": "trivy", "enabled": true }
+  ]
+}

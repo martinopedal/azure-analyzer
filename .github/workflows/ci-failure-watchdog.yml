@@ -29,6 +29,7 @@ on:
       - "Tool auto-update"              # weekly tool-manifest refresh
       - "Release"                       # tag/release automation
       - "PR Auto-Rerun On Push"         # auto-retry agent-branch failed checks
+      - "PR Auto-Rebase Conflicts"      # auto-rebase on main-advance (2026-04-22T23:35:00Z)
     types: [completed]
 
 permissions:
