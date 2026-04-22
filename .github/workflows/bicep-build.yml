@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: bicep-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bicep-build:
     name: Bicep build smoke test

@@ -8,6 +8,10 @@ permissions:
   issues: write
   contents: read
 
+concurrency:
+  group: squad-issue-assign-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   assign-work:
     # Only trigger on squad:{member} labels (not the base "squad" label)

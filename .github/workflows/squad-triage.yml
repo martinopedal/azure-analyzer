@@ -8,6 +8,10 @@ permissions:
   issues: write
   contents: read
 
+concurrency:
+  group: squad-triage-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   triage:
     if: github.event.label.name == 'squad'
