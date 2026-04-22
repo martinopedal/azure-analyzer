@@ -101,6 +101,16 @@ jobs:
           }
 
           failed_log_raw="$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 || true)"
+          
+          # Detect GitHub API rate-limit errors (HTTP 403). If the watchdog
+          # reporter itself is rate-limited, abort triage to prevent
+          # false-positive ci-failure issues (see #548-583, root-cause tracked separately).
+          if printf '%s' "$failed_log_raw" | grep -q 'HTTP 403|rate limit exceeded'; then
+            echo "GitHub API rate-limit detected (HTTP 403) -- suppressing false-positive ci-failure issue."
+            echo "Root-cause fix for reporter rate-limiting is tracked separately."
+            exit 0
+          fi
+          
           failed_log_head="$(printf '%s\n' "$failed_log_raw" | head -n 500)"
 
           # Prefer explicit Actions annotations first, then broader fallback patterns.
