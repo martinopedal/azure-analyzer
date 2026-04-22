@@ -59,22 +59,30 @@ jobs:
           if (-not $issuesJson) { $issuesJson = '[]' }
           $issues = $issuesJson | ConvertFrom-Json
           $triagedRunUrls = @{}
+          $ciFailureIssueNumbers = [System.Collections.Generic.HashSet[string]]::new()
           foreach ($i in $issues) {
+              if (-not $i.number) { continue }
+              [void]$ciFailureIssueNumbers.Add([string]$i.number)
               if ($i.body) {
                   foreach ($m in [regex]::Matches($i.body, 'https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+')) {
                       $triagedRunUrls[$m.Value] = $i.number
                   }
               }
-
-              if (-not $i.number) { continue }
-              $issueWithCommentsJson = gh issue view $i.number --repo $repo --comments --json comments 2>$null
-              if (-not $issueWithCommentsJson) { continue }
-              $issueWithComments = $issueWithCommentsJson | ConvertFrom-Json
-              foreach ($comment in @($issueWithComments.comments)) {
-                  if (-not $comment.body) { continue }
-                  foreach ($m in [regex]::Matches($comment.body, 'https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+')) {
-                      $triagedRunUrls[$m.Value] = $i.number
-                  }
+          }
+          $commentsJson = gh api --paginate --slurp "repos/$repo/issues/comments?per_page=100&since=$since" 2>$null
+          if (-not $commentsJson) { $commentsJson = '[]' }
+          $commentsPages = $commentsJson | ConvertFrom-Json
+          $comments = @()
+          foreach ($page in @($commentsPages)) {
+              $comments += @($page)
+          }
+          foreach ($comment in @($comments)) {
+              if (-not $comment.body) { continue }
+              if (-not $comment.issue_url) { continue }
+              $issueNumber = [string]($comment.issue_url -replace '.*/issues/', '')
+              if (-not $ciFailureIssueNumbers.Contains($issueNumber)) { continue }
+              foreach ($m in [regex]::Matches($comment.body, 'https://github\.com/[^/\s]+/[^/\s]+/actions/runs/\d+')) {
+                  $triagedRunUrls[$m.Value] = $issueNumber
               }
           }
 

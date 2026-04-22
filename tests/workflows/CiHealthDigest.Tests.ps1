@@ -5,10 +5,12 @@ Describe 'CI Health Digest regression guards' {
     }
 
     It 'correlates triaged runs from all ci-failure issues (open and closed)' {
-        $script:WorkflowRaw.Contains('gh issue list --repo $repo --label ci-failure --state all') | Should -BeTrue
+        $script:WorkflowRaw | Should -Match 'gh\s+issue\s+list\s+--repo\s+\$repo\s+--label\s+ci-failure\s+--state\s+all'
+        $script:WorkflowRaw | Should -Match '--limit\s+200\s+--json\s+number,body'
     }
 
     It 'harvests run URLs from ci-failure issue comments' {
-        $script:WorkflowRaw.Contains('gh issue view $i.number --repo $repo --comments --json comments') | Should -BeTrue
+        $script:WorkflowRaw | Should -Match 'gh\s+api\s+--paginate\s+--slurp\s+"repos/\$repo/issues/comments\?per_page=100&since=\$since"'
+        $script:WorkflowRaw | Should -Match '\[regex\]::Matches\(\$comment\.body,\s*''https://github\\.com/\[\^/\\s\]\+/\[\^/\\s\]\+/actions/runs/\\d\+'''
     }
 }
