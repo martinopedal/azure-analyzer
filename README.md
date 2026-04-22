@@ -6,6 +6,11 @@
 
 **One PowerShell command, 35 read-only Azure assessment tools, one unified HTML and Markdown report.** Cloud-first by default: target remote GitHub and Azure DevOps repositories without cloning anything by hand.
 
+## Sample Reports
+
+- **[samples/sample-report.html](samples/sample-report.html)**, rendered HTML report with the framework coverage matrix, severity heatmap, top risks, and interactive findings exploration.
+- **[samples/sample-report.md](samples/sample-report.md)**, Markdown report variant with the same posture summary, framework coverage, and detailed findings for Git-native review flows.
+
 ## What you get
 
 - **Unified findings JSON** with Schema 2.2 metadata (severity, frameworks, MITRE mappings, remediation snippets, evidence URIs, entity references, deep links).
@@ -33,13 +38,6 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
-
-</details>
-
-<details><summary><b>View sample reports</b></summary>
-
-- **[samples/sample-report.html](samples/sample-report.html)** - interactive single-file HTML with sortable findings, control-domain and framework heatmaps, pillar breakdown, MITRE and evidence details, deep-link shortcuts, remediation snippets.
-- **[samples/sample-report.md](samples/sample-report.md)** - the same scan rendered as GitHub-Flavored Markdown with Schema 2.2 context, MITRE mappings, and expandable evidence.
 
 </details>
 
