@@ -160,7 +160,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'Errors', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -182,15 +182,24 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
 # ---------------------------------------------------------------------------
 if ($TenantConfig -or ($Tenants -and $Tenants.Count -gt 0)) {
     if ($TenantConfig -and $Tenants -and $Tenants.Count -gt 0) {
-        throw "-TenantConfig and -Tenants are mutually exclusive."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'InvalidParameter' `
+            -Reason '-TenantConfig and -Tenants are mutually exclusive.' `
+            -Remediation 'Pass either -TenantConfig <path-to-json> or -Tenants <list>, not both.'))
     }
     foreach ($conflict in 'TenantId','SubscriptionId','ManagementGroupId') {
         if ($PSBoundParameters.ContainsKey($conflict)) {
-            throw "-$conflict cannot be combined with -TenantConfig/-Tenants in v1 (per-tenant scope is supplied by the fan-out config)."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+                -Category 'InvalidParameter' `
+                -Reason "-$conflict cannot be combined with -TenantConfig/-Tenants in v1." `
+                -Remediation 'Per-tenant scope is supplied by the fan-out config; remove the conflicting parameter.'))
         }
     }
     if (-not (Get-Command Invoke-MultiTenantScan -ErrorAction SilentlyContinue)) {
-        throw "MultiTenantOrchestrator module failed to load; cannot fan out."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'MissingDependency' `
+            -Reason 'MultiTenantOrchestrator module failed to load; cannot fan out.' `
+            -Remediation 'Verify modules/shared/MultiTenantOrchestrator.ps1 exists and re-import AzureAnalyzer.'))
     }
     $tenantList = if ($TenantConfig) {
         ConvertFrom-TenantConfig -Path $TenantConfig
@@ -268,10 +277,18 @@ $validTools = @($manifest.tools | ForEach-Object { $_.name })
 $azureScopedTools = @($manifest.tools | Where-Object { $_.provider -eq 'azure' } | ForEach-Object { $_.name })
 
 if ($IncludeTools -and $ExcludeTools) {
-    throw "Cannot use both -IncludeTools and -ExcludeTools. Use one or the other."
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'InvalidParameter' `
+        -Reason 'Cannot use both -IncludeTools and -ExcludeTools.' `
+        -Remediation 'Pass one or the other.'))
 }
 foreach ($t in @($IncludeTools) + @($ExcludeTools) | Where-Object { $_ }) {
-    if ($t -notin $validTools) { throw "Unknown tool '$t'. Valid: $($validTools -join ', ')" }
+    if ($t -notin $validTools) {
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'InvalidParameter' `
+            -Reason "Unknown tool '$t'." `
+            -Remediation "Valid tools: $($validTools -join ', ')."))
+    }
 }
 
 function ShouldRunTool { param ([string]$ToolName)
@@ -350,13 +367,22 @@ if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
 $workspaceScopedTools = @($manifest.tools | Where-Object { $_.scope -eq 'workspace' } | ForEach-Object { $_.name })
 $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' -and $_ -notin $workspaceScopedTools }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
-    throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'InvalidParameter' `
+        -Reason "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')." `
+        -Remediation 'Pass -SubscriptionId <guid> or -ManagementGroupId <name>, or use -IncludeTools to scope to non-Azure tools only.'))
 }
 if ($SinkLogAnalytics -and [string]::IsNullOrWhiteSpace($LogAnalyticsConfig)) {
-    throw "-LogAnalyticsConfig is required when -SinkLogAnalytics is enabled."
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'InvalidParameter' `
+        -Reason '-LogAnalyticsConfig is required when -SinkLogAnalytics is enabled.' `
+        -Remediation 'Pass -LogAnalyticsConfig <path-to-json> with WorkspaceId/DcrImmutableId/DceUri/StreamName.'))
 }
 if ($SinkLogAnalytics -and -not (Test-Path $LogAnalyticsConfig)) {
-    throw "Log Analytics config file not found: $LogAnalyticsConfig"
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'NotFound' `
+        -Reason "Log Analytics config file not found: $LogAnalyticsConfig" `
+        -Remediation 'Verify the -LogAnalyticsConfig path exists and is readable.'))
 }
 
 # ---------------------------------------------------------------------------

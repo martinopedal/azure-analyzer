@@ -200,7 +200,9 @@ function Invoke-RemoteRepoClone {
             $stderrTask = $proc.StandardError.ReadToEndAsync()
 
             if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
-                try { $proc.Kill($true) } catch { }
+                try { $proc.Kill($true) } catch {
+                    Write-Verbose ("RemoteClone: git Process.Kill after timeout failed (process likely already exited). Reason: {0}" -f $_.Exception.Message)
+                }
                 $lastErr = "Timed out after $TimeoutSec seconds"
             } else {
                 $stderr = $stderrTask.Result
