@@ -54,7 +54,7 @@ Describe 'CI failure watchdog watchlist' {
     }
 
     It 'covers the critical squad + PR-gate workflows' {
-        $required = @('CI', 'CodeQL', 'Docs Check', 'PR Review Gate', 'PR Advisory Gate', 'PR Auto-Resolve Review Threads', 'Squad Heartbeat (Ralph)')
+        $required = @('CI', 'CodeQL', 'Docs Check', 'PR Review Gate', 'PR Advisory Gate', 'PR Auto-Resolve Review Threads', 'Squad Heartbeat (Ralph)', 'PR Auto-Rerun On Push')
         foreach ($r in $required) {
             $script:Watchlist | Should -Contain $r -Because "watchlist must guard the $r workflow"
         }
