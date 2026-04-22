@@ -76,6 +76,10 @@ jobs:
             exit 1
           }
           $current = Get-Content -Path $currentPath -Raw | ConvertFrom-Json
+          if ([int]$current.TotalCount -le 0) {
+            Write-Error "Current Pester run reports TotalCount=0 (no tests executed). Refusing to upload as baseline."
+            exit 1
+          }
           $runs = gh run list --repo $env:GH_REPO --workflow $env:GH_WORKFLOW_FILE --branch main --event push --status success --limit 10 --json databaseId | ConvertFrom-Json
           if (-not $runs -or @($runs).Count -eq 0) {
             Write-Warning "No previous successful main runs found. Skipping baseline comparison."
@@ -85,17 +89,21 @@ jobs:
           if (Test-Path $baselineDir) { Remove-Item -Path $baselineDir -Recurse -Force }
           $downloaded = $false
           foreach ($run in @($runs)) {
-            try {
-              # Baseline artifact is uploaded separately from per-OS pester-count-* artifacts.
-              gh run download $run.databaseId --repo $env:GH_REPO --name pester-baseline --dir $baselineDir --skip-existing
+            # `gh` is a native binary; non-zero exits don't throw in PowerShell. Reset
+            # $LASTEXITCODE so a prior failure can't leak into this iteration, then check
+            # both the exit code AND that pester-count.json actually landed before declaring success.
+            $global:LASTEXITCODE = 0
+            New-Item -ItemType Directory -Path $baselineDir -Force | Out-Null
+            gh run download $run.databaseId --repo $env:GH_REPO --name pester-baseline --dir $baselineDir --skip-existing 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $baselineDir 'pester-count.json'))) {
               $downloaded = $true
               break
-            } catch {
-              continue
             }
+            # Clean partial download before next attempt.
+            if (Test-Path $baselineDir) { Remove-Item -Path $baselineDir -Recurse -Force -ErrorAction SilentlyContinue }
           }
           if (-not $downloaded) {
-            Write-Warning "No previous pester-baseline artifact found on main. Skipping baseline comparison."
+            Write-Warning "No previous pester-baseline artifact found on main across last 10 runs. Skipping baseline comparison."
             exit 0
           }
           $baselinePath = Join-Path $baselineDir 'pester-count.json'
@@ -104,6 +112,10 @@ jobs:
             exit 0
           }
           $baseline = Get-Content -Path $baselinePath -Raw | ConvertFrom-Json
+          if ([int]$baseline.TotalCount -le 0) {
+            Write-Warning "Baseline TotalCount<=0 (corrupt or empty). Skipping comparison rather than fail-open."
+            exit 0
+          }
           if ([int]$current.TotalCount -lt [int]$baseline.TotalCount) {
             Write-Error "Pester TotalCount dropped from $($baseline.TotalCount) to $($current.TotalCount)."
             exit 1

@@ -1283,6 +1283,8 @@ try {
             if ($manifest.PSObject.Properties['report_architecture']) {
                 $reportArchConfig = $manifest.report_architecture
             }
+            # Do NOT pass -HeadroomFactor here: Select-ReportArchitecture honors
+            # report_architecture.headroom_factor from the manifest when unbound.
             $selection = Select-ReportArchitecture `
                 -FindingCount $allResults.Count `
                 -EntityCount @($entities).Count `

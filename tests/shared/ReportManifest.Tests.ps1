@@ -27,6 +27,76 @@ Describe 'Select-ReportArchitecture picker defaults' {
             $env:AZURE_ANALYZER_FORCE_ARCH = $original
         }
     }
+
+    It 'honors headroom_factor from manifest config when -HeadroomFactor is unbound' {
+        $cfg = Get-DefaultReportArchitectureConfig
+        $cfg.headroom_factor = 2.0
+        # 6000 * 2.0 = 12000 >= 10000 embedded threshold
+        $selection = Select-ReportArchitecture -FindingCount 6000 -EntityCount 0 -EdgeCount 0 -ArchitectureConfig $cfg
+        $selection.Tier | Should -Be 'EmbeddedSqlite'
+        $selection.Headroom.Factor | Should -Be 2.0
+    }
+
+    It 'lets explicit -HeadroomFactor override manifest config' {
+        $cfg = Get-DefaultReportArchitectureConfig
+        $cfg.headroom_factor = 5.0
+        $selection = Select-ReportArchitecture -FindingCount 100 -EntityCount 0 -EdgeCount 0 -HeadroomFactor 1.0 -ArchitectureConfig $cfg
+        $selection.Headroom.Factor | Should -Be 1.0
+        $selection.Tier | Should -Be 'PureJson'
+    }
+
+    It 'applies default_tier as a floor across all axes' {
+        $cfg = Get-DefaultReportArchitectureConfig
+        $cfg.default_tier = 'EmbeddedSqlite'
+        $selection = Select-ReportArchitecture -FindingCount 5 -EntityCount 5 -EdgeCount 5 -HeadroomFactor 1.0 -ArchitectureConfig $cfg
+        $selection.Tier | Should -Be 'EmbeddedSqlite'
+    }
+
+    It 'validates threshold monotonicity and rejects misordered config' {
+        $cfg = Get-DefaultReportArchitectureConfig
+        $cfg.thresholds.findings.sidecar = 5  # below embedded=10000 -> not monotonic
+        { Select-ReportArchitecture -FindingCount 1 -ArchitectureConfig $cfg } | Should -Throw -ExpectedMessage '*monotonic*'
+    }
+
+    It 'rejects null threshold values' {
+        $cfg = Get-DefaultReportArchitectureConfig
+        $cfg.thresholds.findings.embedded = $null
+        { Select-ReportArchitecture -FindingCount 1 -ArchitectureConfig $cfg } | Should -Throw -ExpectedMessage '*null*'
+    }
+
+    It 'rejects unknown default_tier value' {
+        $cfg = Get-DefaultReportArchitectureConfig
+        $cfg.default_tier = 'NotARealTier'
+        { Select-ReportArchitecture -FindingCount 1 -ArchitectureConfig $cfg } | Should -Throw -ExpectedMessage '*default_tier*'
+    }
+}
+
+Describe 'Get-ReportVerificationStubs placeholder semantics' {
+    It 'reports placeholder tiers as Success=$false with Status=placeholder' {
+        $verify = Get-ReportVerificationStubs
+        $verify.PureJson.Success | Should -BeTrue
+        $verify.PureJson.Status | Should -Be 'ready'
+        foreach ($tier in 'EmbeddedSqlite','SidecarSqlite','PodeViewer') {
+            $verify.$tier.Success | Should -BeFalse
+            $verify.$tier.Status | Should -Be 'placeholder'
+        }
+    }
+
+    It 'placeholder verifier functions report Success=$false' {
+        (Test-CytoscapePlaceholder).Success | Should -BeFalse
+        (Test-DagrePlaceholder).Success | Should -BeFalse
+        (Test-PodePlaceholder).Success | Should -BeFalse
+        (Test-SqliteWasmPlaceholder).Success | Should -BeFalse
+    }
+}
+
+Describe 'New-ReportManifest atomic write' {
+    It 'does not leave a temp file behind on success' {
+        $path = Join-Path $TestDrive 'atomic.json'
+        $null = New-ReportManifest -Path $path -SelectedTier 'PureJson'
+        Test-Path $path | Should -BeTrue
+        @(Get-ChildItem -Path $TestDrive -Filter 'atomic.json.tmp-*').Count | Should -Be 0
+    }
 }
 
 Describe 'New-ReportManifest serialization' {

@@ -25,28 +25,71 @@ function Get-DefaultReportArchitectureConfig {
     }
 }
 
+# Placeholder verifiers report Success=$false with Status='placeholder' so downstream
+# tier-selection code does NOT mistake an unbundled dep for a healthy one. They are
+# replaced by real verifiers in the matching dep PRs (#467 viewer, future SQLite tier).
 function Test-CytoscapePlaceholder {
     [CmdletBinding()]
     param()
-    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+    return [pscustomobject]@{ Success = $false; Status = 'placeholder'; Reason = 'cytoscape vendored dependency not yet bundled'; Warning = 'placeholder' }
 }
 
 function Test-DagrePlaceholder {
     [CmdletBinding()]
     param()
-    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+    return [pscustomobject]@{ Success = $false; Status = 'placeholder'; Reason = 'dagre vendored dependency not yet bundled'; Warning = 'placeholder' }
 }
 
 function Test-PodePlaceholder {
     [CmdletBinding()]
     param()
-    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+    return [pscustomobject]@{ Success = $false; Status = 'placeholder'; Reason = 'Pode vendored dependency not yet bundled'; Warning = 'placeholder' }
 }
 
 function Test-SqliteWasmPlaceholder {
     [CmdletBinding()]
     param()
-    return [pscustomobject]@{ Success = $true; Warning = 'placeholder' }
+    return [pscustomobject]@{ Success = $false; Status = 'placeholder'; Reason = 'sqlite-wasm vendored dependency not yet bundled'; Warning = 'placeholder' }
+}
+
+function Test-ReportArchitectureConfig {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][object] $Config)
+
+    if (-not $Config) { throw 'ArchitectureConfig is null.' }
+    if (-not $Config.PSObject.Properties['thresholds']) { throw 'ArchitectureConfig.thresholds missing.' }
+    $t = $Config.thresholds
+    foreach ($axis in 'findings','entities') {
+        if (-not $t.PSObject.Properties[$axis]) { throw "ArchitectureConfig.thresholds.$axis missing." }
+        $axisCfg = $t.$axis
+        foreach ($lvl in 'embedded','sidecar','pode') {
+            if (-not $axisCfg.PSObject.Properties[$lvl]) { throw "ArchitectureConfig.thresholds.$axis.$lvl missing." }
+            $val = $axisCfg.$lvl
+            if ($null -eq $val) { throw "ArchitectureConfig.thresholds.$axis.$lvl is null." }
+            if ([int]$val -le 0) { throw "ArchitectureConfig.thresholds.$axis.$lvl must be > 0 (received $val)." }
+        }
+        if (-not ([int]$axisCfg.embedded -lt [int]$axisCfg.sidecar -and [int]$axisCfg.sidecar -lt [int]$axisCfg.pode)) {
+            throw "ArchitectureConfig.thresholds.$axis must be strictly monotonic (embedded<sidecar<pode)."
+        }
+    }
+    if (-not $t.PSObject.Properties['edges']) { throw 'ArchitectureConfig.thresholds.edges missing.' }
+    foreach ($lvl in 'embedded','pode') {
+        if (-not $t.edges.PSObject.Properties[$lvl]) { throw "ArchitectureConfig.thresholds.edges.$lvl missing." }
+        if ([int]$t.edges.$lvl -le 0) { throw "ArchitectureConfig.thresholds.edges.$lvl must be > 0." }
+    }
+    if (-not ([int]$t.edges.embedded -lt [int]$t.edges.pode)) {
+        throw 'ArchitectureConfig.thresholds.edges must satisfy embedded<pode.'
+    }
+    if ($Config.PSObject.Properties['default_tier'] -and -not [string]::IsNullOrWhiteSpace([string]$Config.default_tier)) {
+        if ($Config.default_tier -notin $script:ReportArchitectureTiers) {
+            throw "ArchitectureConfig.default_tier must be one of: $($script:ReportArchitectureTiers -join ', '). Received: $($Config.default_tier)."
+        }
+    }
+    if ($Config.PSObject.Properties['headroom_factor'] -and $null -ne $Config.headroom_factor) {
+        if ([double]$Config.headroom_factor -le 0) {
+            throw "ArchitectureConfig.headroom_factor must be > 0."
+        }
+    }
 }
 
 function Get-ReportTierRank {
@@ -70,6 +113,21 @@ function Select-ReportArchitecture {
     }
 
     $cfg = if ($ArchitectureConfig) { $ArchitectureConfig } else { Get-DefaultReportArchitectureConfig }
+    Test-ReportArchitectureConfig -Config $cfg
+
+    # Honor manifest headroom_factor when caller did not bind -HeadroomFactor explicitly.
+    if (-not $PSBoundParameters.ContainsKey('HeadroomFactor') -and
+        $cfg.PSObject.Properties['headroom_factor'] -and
+        $null -ne $cfg.headroom_factor -and
+        [double]$cfg.headroom_factor -gt 0) {
+        $HeadroomFactor = [double]$cfg.headroom_factor
+    }
+
+    $defaultTier = if ($cfg.PSObject.Properties['default_tier'] -and -not [string]::IsNullOrWhiteSpace([string]$cfg.default_tier)) {
+        [string]$cfg.default_tier
+    } else {
+        'PureJson'
+    }
     $thresholds = $cfg.thresholds
 
     $rawFindings = [math]::Max(0, $FindingCount)
@@ -108,7 +166,9 @@ function Select-ReportArchitecture {
         'PureJson'
     }
 
-    $pickerTier = @($findingTier, $entityTier, $edgeTier) |
+    # Apply manifest default_tier as a floor across all axes (manifest contract).
+    $candidates = @($findingTier, $entityTier, $edgeTier, $defaultTier)
+    $pickerTier = $candidates |
         Sort-Object { Get-ReportTierRank $_ } -Descending |
         Select-Object -First 1
 
@@ -168,11 +228,14 @@ function Get-ReportVerificationStubs {
         )
     }
 
+    # Tiers backed only by placeholder verifiers report Success=$false (Status='placeholder')
+    # so the picker / orchestrator can detect the gap and fall back to PureJson rather than
+    # silently shipping an unrenderable tier. Real verifiers replace these in follow-up PRs.
     return [pscustomobject]@{
-        PureJson = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @(); Dependencies = @() }
-        EmbeddedSqlite = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'EmbeddedSqlite') }
-        SidecarSqlite = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'SidecarSqlite') }
-        PodeViewer = [pscustomobject]@{ Success = $true; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'PodeViewer') }
+        PureJson = [pscustomobject]@{ Success = $true; Status = 'ready'; Errors = @(); Warnings = @(); Dependencies = @() }
+        EmbeddedSqlite = [pscustomobject]@{ Success = $false; Status = 'placeholder'; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'EmbeddedSqlite') }
+        SidecarSqlite = [pscustomobject]@{ Success = $false; Status = 'placeholder'; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'SidecarSqlite') }
+        PodeViewer = [pscustomobject]@{ Success = $false; Status = 'placeholder'; Errors = @(); Warnings = @('placeholder verification stubs active'); Dependencies = @(Get-DependenciesForTier -TierName 'PodeViewer') }
     }
 }
 
@@ -222,6 +285,19 @@ function New-ReportManifest {
     }
 
     $json = $manifest | ConvertTo-Json -Depth 30
-    Set-Content -Path $Path -Value $json -Encoding UTF8
+    # Atomic write: stage to a sibling temp file then move. Prevents truncated JSON on
+    # interrupt and keeps any prior manifest readable until the new one is fully on disk.
+    $dir = Split-Path -Parent $Path
+    if (-not [string]::IsNullOrWhiteSpace($dir) -and -not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+    $stagingPath = "$Path.tmp-$([guid]::NewGuid().ToString('N'))"
+    try {
+        Set-Content -Path $stagingPath -Value $json -Encoding UTF8 -NoNewline
+        Move-Item -Path $stagingPath -Destination $Path -Force
+    } catch {
+        if (Test-Path $stagingPath) { Remove-Item -Path $stagingPath -Force -ErrorAction SilentlyContinue }
+        throw
+    }
     return $manifest
 }
