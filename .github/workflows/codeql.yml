@@ -23,18 +23,52 @@ jobs:
       fail-fast: false
       matrix:
         language: [actions]
-    # no-retry: this workflow only composes vetted official actions
-    # (actions/checkout + github/codeql-action/{init,autobuild,analyze}) which
-    # ship their own retry/backoff for upstream registry + database fetches.
-    # No `run:` blocks perform external network I/O.
+    # Retry policy: analysis itself is pure-compute on the runner, but SARIF
+    # upload hits the GitHub code-scanning API with the installation token,
+    # which is a shared, rate-limited budget across every workflow in the
+    # repo. On busy days we see HTTP 429 "API rate limit exceeded for
+    # installation" on the POST even though analysis passed (26/26 files).
+    # We therefore split analyze (upload: never) from upload-sarif, and
+    # retry the upload up to 3x with backoff. No `run:` blocks perform
+    # external network I/O beyond the backoff sleep.
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
         with:
           languages: ${{ matrix.language }}
       - uses: github/codeql-action/autobuild@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
-      - uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
+      - name: Analyze (no upload)
+        uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
         with:
+          category: "/language:${{matrix.language}}"
+          upload: never
+          output: sarif-results
+      - name: Upload SARIF (attempt 1)
+        id: upload1
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
+        with:
+          sarif_file: sarif-results
+          category: "/language:${{matrix.language}}"
+      - name: Backoff before retry 2
+        if: steps.upload1.outcome == 'failure'
+        run: sleep 45
+      - name: Upload SARIF (attempt 2)
+        id: upload2
+        if: steps.upload1.outcome == 'failure'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
+        with:
+          sarif_file: sarif-results
+          category: "/language:${{matrix.language}}"
+      - name: Backoff before retry 3
+        if: steps.upload1.outcome == 'failure' && steps.upload2.outcome == 'failure'
+        run: sleep 120
+      - name: Upload SARIF (attempt 3, final)
+        if: steps.upload1.outcome == 'failure' && steps.upload2.outcome == 'failure'
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
+        with:
+          sarif_file: sarif-results
           category: "/language:${{matrix.language}}"
 # trigger: heatmap-211 20260420-131500
 # trigger: hotfix-216 20260420-125025
