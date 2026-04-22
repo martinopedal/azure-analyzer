@@ -20,10 +20,6 @@ on:
   pull_request_review:
     types: [submitted, edited]
 
-permissions:
-  pull-requests: write
-  contents: read
-
 concurrency:
   group: pr-auto-resolve-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -36,6 +32,12 @@ jobs:
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # Job-scope permissions (Hawkeye-C5): resolveReviewThread GraphQL mutation
+    # requires pull-requests:write on the token. Keep at job scope to avoid
+    # broadening the whole workflow surface.
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
       - name: Checkout base ref (trusted resolver)
         # No `ref:` -> checks out the base SHA for pull_request_target events,
@@ -44,11 +46,18 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install PowerShell
-        run: |
-          if ! command -v pwsh >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y powershell
-          fi
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: bash
+          command: |
+            if ! command -v pwsh >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y powershell
+            fi
 
       - name: Resolve addressed review threads
         # Belt-and-braces: GitHub's GraphQL `resolveReviewThread` rejects
@@ -63,6 +72,11 @@ jobs:
           REPO_NAME: ${{ github.repository }}
           SQUAD_AUTO_RESOLVE_THREADS: ${{ vars.SQUAD_AUTO_RESOLVE_THREADS || '1' }}
         shell: pwsh
+        # no-retry: inner script already swallows transient + bot-vs-bot FORBIDDEN
+        # via try/catch and exits 0 with a ::warning::. Wrapping the whole step in
+        # nick-fields/retry would re-run the resolver on every transient hiccup and
+        # could double-resolve threads where the first attempt partially succeeded
+        # before the GraphQL error surfaced.
         run: |
           try {
             $result = ./modules/shared/Resolve-PRReviewThreads.ps1 `

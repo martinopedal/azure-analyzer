@@ -1766,7 +1766,7 @@
       "normalizer": null,
       "invokeMethod": "script",
       "type": "enrichment",
-      "script": "modules/Invoke-CopilotTriage.ps1",
+      "script": "modules/shared/Triage/Invoke-CopilotTriage.ps1",
       "requiredParams": [],
       "optionalParams": [
         "InputPath",

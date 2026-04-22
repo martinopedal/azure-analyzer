@@ -54,6 +54,10 @@ jobs:
             --squad-dir .squad \
             --output triage-results.json
 
+      # no-retry: per-issue addLabels + comment upsert via HTML marker (#113).
+      # Each iteration is wrapped in try/catch and warn-on-fail; Octokit retries
+      # 5xx/429 internally. A wrapper-level retry would re-walk every issue and
+      # could double-trigger label events.
       - name: Ralph — Apply triage decisions
         if: steps.check-script.outputs.has_script == 'true' && hashFiles('triage-results.json') != ''
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -133,6 +137,9 @@ jobs:
             core.info(`🔄 Ralph triaged ${results.length} issue(s)`);
 
       # Copilot auto-assign step (uses PAT if available)
+      # no-retry: each per-issue assignment call is wrapped in try/catch and
+      # warn-on-fail. Re-running the whole step would re-list issues and could
+      # re-assign already-completed ones.
       - name: Ralph — Assign @copilot issues
         if: success()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0

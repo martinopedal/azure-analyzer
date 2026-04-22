@@ -24,4 +24,14 @@ Describe 'CI Pester baseline guard (regression for #471)' {
     It 'compares current TotalCount against the previous main baseline' {
         $script:CiRaw | Should -Match '\[int\]\$current\.TotalCount\s+-lt\s+\[int\]\$baseline\.TotalCount'
     }
+
+    It 'enforces hardcoded TotalCount floor of 1637 (PR #501 baseline)' {
+        $script:CiRaw | Should -Match '\$MinTotal\s*=\s*1637'
+        $script:CiRaw | Should -Match '\[int\]\$current\.TotalCount\s+-lt\s+\$MinTotal'
+    }
+
+    It 'enforces hardcoded PassedCount floor of 1597 (PR #501 baseline)' {
+        $script:CiRaw | Should -Match '\$MinPassed\s*=\s*1597'
+        $script:CiRaw | Should -Match '\[int\]\$current\.PassedCount\s+-lt\s+\$MinPassed'
+    }
 }

@@ -1,5 +1,8 @@
 # azure-analyzer
 
+> **Active maintenance in progress (2026-04-23).** This repository is undergoing a comprehensive hardening sprint: CI workflow hygiene, wrapper consistency, E2E validation harness, and report architecture upgrades. Expect frequent commits on `main` and rapid iteration on internal docs. Markdown Link Check is currently advisory. This banner will be removed once the sprint closes and all open PRs land. For production use, pin to the latest tagged release.
+
+
 [![CI](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -41,6 +44,8 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.
+- **Mandatory scanner-param prompts (#426)**: when a scanner is selected but its mandatory parameter is missing, `Read-MandatoryScannerParam` resolves it via env var (`AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `ADO_ORG`, `GITHUB_REPOSITORY`, `AZUREANALYZER_REPO_PATH`) or interactive prompt. CI / `-NonInteractive` runs skip the scanner with a sanitized warning instead of failing late inside the underlying tool.
+- **Opt-in LLM triage** scaffold: defaults to 3-model rubberduck consensus, supports explicit `-SingleModel` opt-out, and applies credential sanitization on prompt + response paths.
 
 </details>
 
@@ -69,3 +74,10 @@ See [docs/contributing/](docs/contributing/CONTRIBUTING.md) to add a new tool, e
 CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates.
 
 </details>
+
+<details><summary><b>Environment variables</b></summary>azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:
+
+- `AZURE_ANALYZER_NO_BANNER=1` — suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`.
+- `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` — silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
+- `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) — tells wrappers they were launched by the orchestrator, not standalone.
+- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) — comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.</details>

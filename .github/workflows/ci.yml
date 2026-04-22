@@ -24,16 +24,23 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install Pester
-        shell: pwsh
-        run: |
-          if (-not (Get-Module -ListAvailable -Name Pester)) {
-            Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
-          }
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            if (-not (Get-Module -ListAvailable -Name Pester)) {
+              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
+            }
 
       - name: Run Pester tests
         shell: pwsh
         run: |
           Import-Module Pester -MinimumVersion 5.0 -Force
+          . ./tests/_helpers/setup.ps1
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
           # Keep Exit disabled so we can persist pester-count.json before failing.
@@ -74,6 +81,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_WORKFLOW_FILE: ci.yml
         shell: pwsh
+        # no-retry: step orchestrates a multi-run artifact walk with its own
+        # per-iteration retry + cleanup. Wrapping the whole step would restart
+        # the walk and risk silent baseline mismatches.
         run: |
           $currentPath = Join-Path (Get-Location) 'output' 'pester-count.json'
           if (-not (Test-Path $currentPath)) {
@@ -83,6 +93,21 @@ jobs:
           $current = Get-Content -Path $currentPath -Raw | ConvertFrom-Json
           if ([int]$current.TotalCount -le 0) {
             Write-Error "Current Pester run reports TotalCount=0 (no tests executed). Refusing to upload as baseline."
+            exit 1
+          }
+          # Hardcoded floor (PR #501 baseline: 1637 total / 1597 passed / 0 failed / 40 skipped on Windows).
+          # Belt-and-suspenders against slow drift: the dynamic compare below only checks current >= previous-main,
+          # which can quietly accept a long downward staircase. The floor is the absolute lower bound
+          # below which CI must fail regardless of what the previous main artifact says.
+          # Bump these numbers in the same PR that legitimately raises the count; never lower them.
+          $MinTotal  = 1637
+          $MinPassed = 1597
+          if ([int]$current.TotalCount -lt $MinTotal) {
+            Write-Error "Pester TotalCount $($current.TotalCount) is below hardcoded floor $MinTotal. If tests were intentionally removed, lower the floor in .github/workflows/ci.yml in the same PR and document the removal."
+            exit 1
+          }
+          if ([int]$current.PassedCount -lt $MinPassed) {
+            Write-Error "Pester PassedCount $($current.PassedCount) is below hardcoded floor $MinPassed. New failures or skips have eroded the green floor. Fix the failing tests; do not lower the floor."
             exit 1
           }
           $runs = gh run list --repo $env:GH_REPO --workflow $env:GH_WORKFLOW_FILE --branch main --event push --status success --limit 10 --json databaseId | ConvertFrom-Json

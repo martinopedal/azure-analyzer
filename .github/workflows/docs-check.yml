@@ -16,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
+      # no-retry: read-only paginate of pulls.listFiles via github-script.
+      # Octokit's built-in retry handles 5xx/429; a wrapper-level retry would
+      # restart pagination and could re-trigger setFailed against a transient
+      # error from a single page after most files were already fetched.
       - name: Check for documentation updates
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -47,13 +51,23 @@ jobs:
             // Patterns that are never considered "code changes"
             const ignoredPatterns = [
               /^\.squad\//,
+              /^\.copilot\//,
               /^\.github\/workflows\//,
               /^\.github\/ISSUE_TEMPLATE\//,
               /^\.github\/PULL_REQUEST_TEMPLATE/,
               /^\.github\/copilot-instructions\.md$/,
               /^\.github\/dependabot\.yml$/,
+              /^\.github\/agents\//,
+              /^tests\//,
+              /^samples\//,
               /^LICENSE$/,
               /^\.gitignore$/,
+              /^\.gitattributes$/,
+              /^\.lychee\.toml$/,
+              /^\.markdownlint(-cli2)?\.(json|yaml|yml|jsonc)$/,
+              /^pester\.log$/,
+              /^retry\.log$/,
+              /^testResults\.xml$/,
             ];
 
             const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));

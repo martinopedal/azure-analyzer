@@ -160,7 +160,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'Errors', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -182,15 +182,24 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
 # ---------------------------------------------------------------------------
 if ($TenantConfig -or ($Tenants -and $Tenants.Count -gt 0)) {
     if ($TenantConfig -and $Tenants -and $Tenants.Count -gt 0) {
-        throw "-TenantConfig and -Tenants are mutually exclusive."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'InvalidParameter' `
+            -Reason '-TenantConfig and -Tenants are mutually exclusive.' `
+            -Remediation 'Pass either -TenantConfig <path-to-json> or -Tenants <list>, not both.'))
     }
     foreach ($conflict in 'TenantId','SubscriptionId','ManagementGroupId') {
         if ($PSBoundParameters.ContainsKey($conflict)) {
-            throw "-$conflict cannot be combined with -TenantConfig/-Tenants in v1 (per-tenant scope is supplied by the fan-out config)."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+                -Category 'InvalidParameter' `
+                -Reason "-$conflict cannot be combined with -TenantConfig/-Tenants in v1." `
+                -Remediation 'Per-tenant scope is supplied by the fan-out config; remove the conflicting parameter.'))
         }
     }
     if (-not (Get-Command Invoke-MultiTenantScan -ErrorAction SilentlyContinue)) {
-        throw "MultiTenantOrchestrator module failed to load; cannot fan out."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'MissingDependency' `
+            -Reason 'MultiTenantOrchestrator module failed to load; cannot fan out.' `
+            -Remediation 'Verify modules/shared/MultiTenantOrchestrator.ps1 exists and re-import AzureAnalyzer.'))
     }
     $tenantList = if ($TenantConfig) {
         ConvertFrom-TenantConfig -Path $TenantConfig
@@ -268,10 +277,18 @@ $validTools = @($manifest.tools | ForEach-Object { $_.name })
 $azureScopedTools = @($manifest.tools | Where-Object { $_.provider -eq 'azure' } | ForEach-Object { $_.name })
 
 if ($IncludeTools -and $ExcludeTools) {
-    throw "Cannot use both -IncludeTools and -ExcludeTools. Use one or the other."
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'InvalidParameter' `
+        -Reason 'Cannot use both -IncludeTools and -ExcludeTools.' `
+        -Remediation 'Pass one or the other.'))
 }
 foreach ($t in @($IncludeTools) + @($ExcludeTools) | Where-Object { $_ }) {
-    if ($t -notin $validTools) { throw "Unknown tool '$t'. Valid: $($validTools -join ', ')" }
+    if ($t -notin $validTools) {
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'InvalidParameter' `
+            -Reason "Unknown tool '$t'." `
+            -Remediation "Valid tools: $($validTools -join ', ')."))
+    }
 }
 
 function ShouldRunTool { param ([string]$ToolName)
@@ -288,6 +305,39 @@ $script:PriorOrchestratedFlag    = $env:AZURE_ANALYZER_ORCHESTRATED
 $script:PriorExplicitToolsFlag   = $env:AZURE_ANALYZER_EXPLICIT_TOOLS
 $env:AZURE_ANALYZER_ORCHESTRATED   = '1'
 $env:AZURE_ANALYZER_EXPLICIT_TOOLS = if ($IncludeTools) { ($IncludeTools -join ',') } else { '' }
+
+# ---------------------------------------------------------------------------
+# Mandatory scanner-param prompts (#426): for the headline params common to
+# all scanners (subscription, tenant, GitHub org/repo, ADO org), prompt the
+# user when interactive, fall back to env vars otherwise. Per-tool, deeper
+# requirements are still resolved by Get-RequiredInputs below.
+# ---------------------------------------------------------------------------
+if ((Get-Command Read-MandatoryScannerParam -ErrorAction SilentlyContinue) -and -not $NonInteractive) {
+    $selectedToolsForPrompt = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
+    $providers = @($selectedToolsForPrompt | ForEach-Object { $_.provider } | Where-Object { $_ } | Sort-Object -Unique)
+    $scopes    = @($selectedToolsForPrompt | ForEach-Object { $_.scope    } | Where-Object { $_ } | Sort-Object -Unique)
+
+    if (('azure' -in $providers) -and -not $SubscriptionId -and -not $ManagementGroupId) {
+        $v = Read-MandatoryScannerParam -ScannerName 'azure-scanners' -ParamName 'SubscriptionId' -EnvVarFallback 'AZURE_SUBSCRIPTION_ID' -Example '00000000-0000-0000-0000-000000000000'
+        if ($v) { $SubscriptionId = $v; $PSBoundParameters['SubscriptionId'] = $v }
+    }
+    if (('azure' -in $providers) -and -not $TenantId) {
+        $v = Read-MandatoryScannerParam -ScannerName 'azure-scanners' -ParamName 'TenantId' -EnvVarFallback 'AZURE_TENANT_ID' -Example '00000000-0000-0000-0000-000000000000'
+        if ($v) { $TenantId = $v; $PSBoundParameters['TenantId'] = $v }
+    }
+    if (('ado' -in $providers) -and -not $AdoOrg) {
+        $v = Read-MandatoryScannerParam -ScannerName 'ado-scanners' -ParamName 'AdoOrg' -EnvVarFallback 'ADO_ORG' -Example 'contoso'
+        if ($v) { $AdoOrg = $v; $PSBoundParameters['AdoOrg'] = $v }
+    }
+    if (('github' -in $providers) -and -not $Repository) {
+        $v = Read-MandatoryScannerParam -ScannerName 'github-scanners' -ParamName 'Repository' -EnvVarFallback 'GITHUB_REPOSITORY' -Example 'github.com/org/repo'
+        if ($v) { $Repository = $v; $PSBoundParameters['Repository'] = $v }
+    }
+    if (('repository' -in $scopes) -and -not $RepoPath -and -not $Repository) {
+        $v = Read-MandatoryScannerParam -ScannerName 'repo-scanners' -ParamName 'RepoPath' -EnvVarFallback 'AZUREANALYZER_REPO_PATH' -Example 'C:\repos\my-app'
+        if ($v) { $RepoPath = $v; $PSBoundParameters['RepoPath'] = $v }
+    }
+}
 
 if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
     $selectedTools = @($manifest.tools | Where-Object { $_.enabled -and (ShouldRunTool $_.name) })
@@ -317,13 +367,22 @@ if (Get-Command Get-RequiredInputs -ErrorAction SilentlyContinue) {
 $workspaceScopedTools = @($manifest.tools | Where-Object { $_.scope -eq 'workspace' } | ForEach-Object { $_.name })
 $needsAzureScope = $azureScopedTools | Where-Object { ShouldRunTool $_ } | Where-Object { $_ -ne 'psrule' -and $_ -notin $workspaceScopedTools }
 if ($needsAzureScope -and -not $SubscriptionId -and -not $ManagementGroupId) {
-    throw "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')."
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'InvalidParameter' `
+        -Reason "At least one of -SubscriptionId or -ManagementGroupId is required for: $($needsAzureScope -join ', ')." `
+        -Remediation 'Pass -SubscriptionId <guid> or -ManagementGroupId <name>, or use -IncludeTools to scope to non-Azure tools only.'))
 }
 if ($SinkLogAnalytics -and [string]::IsNullOrWhiteSpace($LogAnalyticsConfig)) {
-    throw "-LogAnalyticsConfig is required when -SinkLogAnalytics is enabled."
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'InvalidParameter' `
+        -Reason '-LogAnalyticsConfig is required when -SinkLogAnalytics is enabled.' `
+        -Remediation 'Pass -LogAnalyticsConfig <path-to-json> with WorkspaceId/DcrImmutableId/DceUri/StreamName.'))
 }
 if ($SinkLogAnalytics -and -not (Test-Path $LogAnalyticsConfig)) {
-    throw "Log Analytics config file not found: $LogAnalyticsConfig"
+    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+        -Category 'NotFound' `
+        -Reason "Log Analytics config file not found: $LogAnalyticsConfig" `
+        -Remediation 'Verify the -LogAnalyticsConfig path exists and is readable.'))
 }
 
 # ---------------------------------------------------------------------------
@@ -1444,9 +1503,65 @@ $triageFile = Join-Path $OutputPath 'triage.json'
 if ($EnableAiTriage) {
     Write-Host "`n[AI] Running Copilot triage..." -ForegroundColor Magenta
     try {
-        $triageResult = & (Join-Path $modulesPath 'Invoke-CopilotTriage.ps1') `
-            -InputPath $outputFile -OutputPath $triageFile
-        if ($null -eq $triageResult) { Write-Warning "AI triage did not produce results." }
+        # Wire to the new sanitized PowerShell triage module. The legacy
+        # modules/Invoke-CopilotTriage.ps1 path bypassed Remove-Credentials
+        # and is no longer supported (round-2 triage bottom-fix).
+        $triageModulePath = Join-Path $modulesPath 'shared' 'Triage' 'Invoke-CopilotTriage.ps1'
+        if (-not (Test-Path -LiteralPath $triageModulePath)) {
+            # Dot-source Schema.ps1 to access New-FindingError if it has not
+            # been loaded yet by the orchestrator's earlier setup.
+            $schemaPath = Join-Path $modulesPath 'shared' 'Schema.ps1'
+            if ((Test-Path -LiteralPath $schemaPath) -and -not (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue)) {
+                . $schemaPath
+            }
+            if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+                throw (New-FindingError -Source 'triage' -Category 'TriageModuleMissing' `
+                    -Reason 'AI triage module not found at expected path.' `
+                    -Remediation 'Reinstall azure-analyzer or restore modules/shared/Triage/Invoke-CopilotTriage.ps1 from source control.' `
+                    -Details "Expected: $triageModulePath")
+            }
+            # Defensive last-resort: Schema.ps1 unavailable. Throw a structured
+            # PSCustomObject (same shape) so callers still get the rich-error
+            # contract instead of a raw string.
+            throw ([PSCustomObject]@{
+                PSTypeName   = 'AzureAnalyzer.FindingError'
+                Source       = 'triage'
+                Category     = 'TriageModuleMissing'
+                Reason       = 'AI triage module not found at expected path.'
+                Remediation  = 'Reinstall azure-analyzer or restore modules/shared/Triage/Invoke-CopilotTriage.ps1 from source control.'
+                Details      = "Expected: $triageModulePath"
+                TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
+            })
+        }
+        . $triageModulePath
+        $triageFindings = @()
+        if (Test-Path -LiteralPath $outputFile) {
+            try {
+                $triageInput = Get-Content -LiteralPath $outputFile -Raw -Encoding utf8 | ConvertFrom-Json -Depth 20
+                if ($triageInput -is [System.Collections.IEnumerable] -and -not ($triageInput -is [string])) {
+                    $triageFindings = @($triageInput)
+                } elseif ($null -ne $triageInput.findings) {
+                    $triageFindings = @($triageInput.findings)
+                } else {
+                    $triageFindings = @($triageInput)
+                }
+            } catch {
+                Write-Warning (Remove-Credentials "Failed to parse findings for triage: $_")
+            }
+        }
+        if ($triageFindings.Count -gt 0) {
+            $triageResult = Invoke-CopilotTriage -Findings $triageFindings -SingleModel
+            if ($null -ne $triageResult) {
+                $triageJson = $triageResult | ConvertTo-Json -Depth 10
+                # Defense-in-depth: scrub the serialized payload before writing.
+                $triageJson = Remove-Credentials $triageJson
+                Set-Content -LiteralPath $triageFile -Value $triageJson -Encoding utf8
+            } else {
+                Write-Warning "AI triage did not produce results."
+            }
+        } else {
+            Write-Warning "AI triage skipped: no findings to triage."
+        }
     } catch { Write-Warning (Remove-Credentials "AI triage failed: $_ -- continuing without enrichment.") }
 } else {
     if (Test-Path $triageFile) { Remove-Item $triageFile -Force -ErrorAction SilentlyContinue }

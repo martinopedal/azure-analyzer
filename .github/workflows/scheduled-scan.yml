@@ -69,10 +69,16 @@ jobs:
           subscription-id: ${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install required PowerShell modules
-        shell: pwsh
-        run: |
-          Install-Module Az.Accounts -RequiredVersion 3.0.5 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
-          Install-Module Az.ResourceGraph -RequiredVersion 1.1.0 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            Install-Module Az.Accounts -RequiredVersion 3.0.5 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+            Install-Module Az.ResourceGraph -RequiredVersion 1.1.0 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
 
       - name: Run azure-analyzer
         shell: pwsh
@@ -109,6 +115,10 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+        # no-retry: step is wrapped end-to-end in try/catch with a non-fatal warning,
+        # iterates over multiple candidate runs, and writes its own status outputs.
+        # Rerunning the whole block on a single transient gh api hiccup would re-walk
+        # the run list and could pick a different artifact, masking baseline drift.
         run: |
           $prevPath = Join-Path $env:RUNNER_TEMP 'baseline-entities.json'
           $found = $false

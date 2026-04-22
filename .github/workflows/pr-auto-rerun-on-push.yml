@@ -45,6 +45,10 @@ jobs:
       - name: Wait for initial check runs to register
         run: sleep 30
 
+      # no-retry: this workflow IS the auto-rerun layer. Each gh call inside the
+      # loop tolerates non-zero exits and continues; a wrapper-level retry would
+      # walk the failed-check list a second time and could double-dispatch reruns
+      # against the same workflow run.
       - name: Re-run failed checks
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

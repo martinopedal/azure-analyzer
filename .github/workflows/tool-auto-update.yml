@@ -30,6 +30,12 @@ jobs:
       - name: Check upstream versions and open PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          ./tools/Update-ToolPins.ps1
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            ./tools/Update-ToolPins.ps1

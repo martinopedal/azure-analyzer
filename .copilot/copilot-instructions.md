@@ -155,6 +155,14 @@ Escalation to a human maintainer is permitted **only after at least 3 distinct s
 ### Workflow-layer auto-retry (engages BEFORE this loop)
 As of repo directive 2026-04-22T23:26:00Z, the `.github/workflows/pr-auto-rerun-on-push.yml` workflow auto-reruns failed/cancelled checks on every push to a PR branch matching `squad/*`, `copilot/*`, `fix/*`, `ci/*`, or `feat/*`. It waits 30 seconds after the push for checks to register, then calls `gh run rerun <id> --failed` (only failed jobs, cost-optimized) on each red check and posts a single summary comment. This means **the iterate-until-green loop above only engages on the SECOND failure**: one transient-flake retry has already happened at the workflow layer, free of charge. If a check is still red after the auto-rerun, that is a real signal and the agent enters the loop above starting at step 1 (read the failing logs). Do not manually rerun checks on these branches; the workflow has already done it. Do not rely on the auto-retry to mask a real bug; if the same check fails twice on the same SHA, the bug is real.
 
+### Bot-PR approval auto-bypass
+GitHub gates workflow runs from outside-collaborator-classified actors (including `copilot-swe-agent[bot]`) behind a manual "Approve and run workflow" click. The required `Analyze (actions)` check then surfaces as `Expected -- Waiting for status to be reported` indefinitely, wedging the loop. The `.github/workflows/auto-approve-bot-runs.yml` workflow watches `workflow_run.requested` for the squad-critical workflows and, when the triggering actor matches the hard-coded trusted allow-list (`copilot-swe-agent[bot]`, `Copilot`, `copilot`, `dependabot[bot]`, `github-actions[bot]`, `martinopedal`), calls `/actions/runs/{id}/approve` automatically. An agent should never see the approval gate; if a run does get stuck on it (e.g. a new workflow not yet on the watch-list, or a new trusted bot identity), the fix is to extend the watch-list or allow-list in that workflow file, not to ask a maintainer to click through. Invariants are locked by `tests/workflows/AutoApproveBotRuns.Tests.ps1` (allow-list shape, permission scope, trigger surface).
+### Systemic step-level retry invariant (every workflow, every network step)
+Independent of the PR-level auto-rerun above, every step that performs network I/O — PSGallery `Install-Module`, `gh api`/`gh run`/`gh pr`/`gh issue`, `git clone`, `Invoke-WebRequest`, `apt-get`, `curl`/`wget`, `winget install`, `pip install`, `npm install`, `az bicep ...` — MUST be wrapped in `nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60` (v4.0.0, repo-pinned SHA) so transient hiccups self-heal at the step layer (3 attempts, 30-60s backoff). This is layer 1 of the resilience stack; the PR auto-rerun above is layer 2; the iterate-until-green loop is layer 3.
+
+The only legal way to opt a network step out of `nick-fields/retry` is a `# no-retry: <reason>` comment on the line immediately above the step, justifying the opt-out. Acceptable reasons: non-idempotent side effects (e.g. `gh issue create` would open duplicates), the step has its own internal try/catch + dedup logic, or the step delegates to a vetted action that ships its own retry (e.g. `softprops/action-gh-release`, `github/codeql-action/*`, `actions/github-script` whose Octokit retries 5xx + 429).
+`tests/workflows/RetryWrapping.Tests.ps1` enforces both halves of this invariant: every step doing network I/O is wrapped OR has a `# no-retry:` comment, AND every third-party `uses:` reference is SHA-pinned (40 hex). Adding a new workflow without satisfying these is a Pester failure on `main`. When bumping `nick-fields/retry`, update every workflow file and the SHA constant in `RetryWrapping.Tests.ps1` in the same PR.
+
 ### Cross-references
 - "Rate-Limit Retry + Frontier Fallback Chain" (above) — the model-side resilience policy this section composes with.
 - "Comment Triage Loop (every Copilot finding)" (above) — the structured loop for the Copilot-rejection failure mode.
@@ -222,6 +230,32 @@ The squad coordinator (or the PR author agent, after self-review) marks the PR r
 - Every PR that changes code must update README, CHANGELOG, PERMISSIONS.md as applicable
 - Docs are rubber-ducked against actual code before merge
 - No em dashes in any documentation
+
+## Issue Verification Contract
+
+Every closed issue must survive a re-run of its own repro. The
+`issue-resolution-verify.yml` workflow (Praxis, #510) triggers on every
+`pull_request` `closed` event with `merged == true`, walks the PR's
+`closingIssuesReferences`, and re-executes the `## Repro` block from each
+closed issue body on a clean runner.
+
+- Block formats supported: `pester:`, `shell:`, `gh:` (with optional
+  `expect:` regex), `manual:`. Full spec in
+  `docs/contributing/issue-verification.md`.
+- Bug issues without a `## Repro` block are fail-soft reopened by Praxis.
+  Other label sets (enhancement, docs, chore, epic, defer-post-window)
+  are skipped silently.
+- On verified PASS: Praxis posts a confirmation comment and leaves the
+  issue closed.
+- On FAIL: Praxis reopens the issue, labels it `verification-failed`,
+  posts the sanitized last 50 lines of output, and opens a tracker issue
+  assigned to the PR author.
+- Vigil routes `verification-failed` labels to the right specialist:
+  Hunter for code regressions, Helix for test regressions, Orca for
+  OS-specific regressions.
+- The `bug.yml` issue template enforces a `## Repro` block at issue
+  creation time. Manual-only checks are flagged with the `verify-manual`
+  label so the next maintainer review pass picks them up.
 
 ## Squad Pre-PR Self-Review (mandatory)
 
