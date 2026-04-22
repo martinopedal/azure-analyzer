@@ -6,6 +6,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Added
 - feat(preflight): added `modules/shared/Preflight/Get-RequiredInputs.ps1` and orchestrator wiring to resolve manifest-declared mandatory inputs before any tool dispatch using deterministic precedence `CLI > env > prompt > fail-fast`. Non-interactive unresolved inputs now abort with exit code 2 and a sanitized aggregate error message. Added `required_inputs` manifest metadata for azqr, prowler, kubescape, zizmor, and gitleaks plus focused Pester coverage for resolution order and non-interactive detection.
+- feat(foundation): completed Phase 0 foundation wiring with report architecture picker defaults, report-manifest output, manifest report_architecture metadata, normalizer edge-collector introspection, CI Pester count gate derived from baseline artifacts, and vendoring verification stubs for cytoscape, dagre, Pode, and sqlite-wasm placeholders.
 
 ### Fixed
 - fix(preflight): conditional required-input gates now consult env-resolved values, not only CLI values. Two-pass resolution: pre-build a merged CLI+env known-values map across every candidate input across every tool, then evaluate `conditional` against that map. Closes the gap where `SubscriptionId` was still flagged required after `ManagementGroupId` was satisfied via `AZURE_MANAGEMENT_GROUP_ID`. Added Pester case `does not require SubscriptionId when conditional dependency is satisfied via env var` to lock the contract.

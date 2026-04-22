@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   test:
@@ -35,10 +36,84 @@ jobs:
           Import-Module Pester -MinimumVersion 5.0 -Force
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
-          $config.Run.Exit = $true
+          $config.Run.Exit = $false
           $config.Output.Verbosity = 'Detailed'
           $config.CodeCoverage.Enabled = $false
-          Invoke-Pester -Configuration $config
+          $result = Invoke-Pester -Configuration $config
+          $outputDir = Join-Path (Get-Location) 'output'
+          if (-not (Test-Path $outputDir)) { $null = New-Item -ItemType Directory -Path $outputDir -Force }
+          [pscustomobject]@{
+            TotalCount = [int]$result.TotalCount
+            PassedCount = [int]$result.PassedCount
+            FailedCount = [int]$result.FailedCount
+            SkippedCount = [int]$result.SkippedCount
+            GeneratedAt = (Get-Date).ToUniversalTime().ToString('o')
+          } | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $outputDir 'pester-count.json') -Encoding UTF8
+          if ($result.FailedCount -gt 0) {
+            Write-Error "Pester failures detected: $($result.FailedCount)"
+            exit 1
+          }
+
+      - name: Upload current Pester count
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-count-${{ matrix.os }}
+          path: output/pester-count.json
+          retention-days: 7
+
+      - name: Compare Pester TotalCount to previous main baseline
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: pwsh
+        run: |
+          $currentPath = Join-Path (Get-Location) 'output' 'pester-count.json'
+          if (-not (Test-Path $currentPath)) {
+            Write-Error "Current pester-count.json missing."
+            exit 1
+          }
+          $current = Get-Content -Path $currentPath -Raw | ConvertFrom-Json
+          $runs = gh run list --repo $env:GH_REPO --workflow ci.yml --branch main --event push --status success --limit 20 --json databaseId | ConvertFrom-Json
+          if (-not $runs -or @($runs).Count -eq 0) {
+            Write-Warning "No previous successful main runs found. Skipping baseline comparison."
+            exit 0
+          }
+          $baselineDir = Join-Path (Get-Location) 'baseline'
+          if (Test-Path $baselineDir) { Remove-Item -Path $baselineDir -Recurse -Force }
+          $downloaded = $false
+          foreach ($run in @($runs)) {
+            try {
+              gh run download $run.databaseId --repo $env:GH_REPO --name pester-baseline --dir $baselineDir --skip-existing
+              $downloaded = $true
+              break
+            } catch {
+              continue
+            }
+          }
+          if (-not $downloaded) {
+            Write-Warning "No previous pester-baseline artifact found on main. Skipping baseline comparison."
+            exit 0
+          }
+          $baselinePath = Join-Path $baselineDir 'pester-count.json'
+          if (-not (Test-Path $baselinePath)) {
+            Write-Warning "Baseline artifact did not include pester-count.json. Skipping."
+            exit 0
+          }
+          $baseline = Get-Content -Path $baselinePath -Raw | ConvertFrom-Json
+          if ([int]$current.TotalCount -lt [int]$baseline.TotalCount) {
+            Write-Error "Pester TotalCount dropped from $($baseline.TotalCount) to $($current.TotalCount)."
+            exit 1
+          }
+          Write-Host "Pester TotalCount check passed. Current=$($current.TotalCount), Baseline=$($baseline.TotalCount)" -ForegroundColor Green
+
+      - name: Upload Pester baseline artifact (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pester-baseline
+          path: output/pester-count.json
+          retention-days: 90
 
   verify-install-manifest:
     name: Verify install manifest
