@@ -20,10 +20,6 @@ on:
   pull_request_review:
     types: [submitted, edited]
 
-permissions:
-  pull-requests: write
-  contents: read
-
 concurrency:
   group: pr-auto-resolve-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -36,6 +32,12 @@ jobs:
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # Job-scope permissions (Hawkeye-C5): resolveReviewThread GraphQL mutation
+    # requires pull-requests:write on the token. Keep at job scope to avoid
+    # broadening the whole workflow surface.
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
       - name: Checkout base ref (trusted resolver)
         # No `ref:` -> checks out the base SHA for pull_request_target events,

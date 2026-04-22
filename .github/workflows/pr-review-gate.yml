@@ -11,6 +11,14 @@ permissions:
   issues: write
   contents: read
 
+# Oracle: cancel redundant runs when multiple review events fire in quick
+# succession on the same PR. Key on PR number only so non-PR events (if any
+# added in future) would not share a group. cancel-in-progress is safe here
+# because the gate is idempotent.
+concurrency:
+  group: pr-review-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   review-gate:
     if: >
