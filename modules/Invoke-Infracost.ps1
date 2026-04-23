@@ -100,7 +100,7 @@ function ConvertTo-InfracostDouble {
 
 function Get-InfracostToolVersion {
     $versionExec = Invoke-WithRetry -MaxAttempts 2 -InitialDelaySeconds 1 -MaxDelaySeconds 5 -ScriptBlock {
-        Invoke-WithTimeout -Command 'infracost' -Arguments @('--version') -TimeoutSec 60
+        Invoke-WithTimeout -Command 'infracost' -Arguments @('--version') -TimeoutSec 300
     }
     if (-not $versionExec -or $versionExec.ExitCode -ne 0) { return '' }
     $raw = Remove-Credentials ([string]$versionExec.Output)

@@ -98,11 +98,13 @@ Describe 'Invoke-Infracost: success path' {
                     [int]$TimeoutSec
                 )
                 if ($Arguments -contains '--version') {
+                    if ($TimeoutSec -ne 300) { throw "Infracost --version called with TimeoutSec=$TimeoutSec; expected 300" }
                     return [PSCustomObject]@{
                         ExitCode = 0
                         Output   = "Infracost v0.10.31`n"
                     }
                 }
+                if ($TimeoutSec -ne 300) { throw "Infracost breakdown called with TimeoutSec=$TimeoutSec; expected 300" }
                 return [PSCustomObject]@{
                     ExitCode = 0
                     Output   = $global:InfracostBreakdownJson
