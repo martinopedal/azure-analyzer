@@ -226,10 +226,10 @@ if (Test-Path $toolStatusPath) {
     }
 }
 
-$toolLabels = @{}
-$toolProvider = @{}
-$toolScope = @{}
-$toolReportColor = @{}
+$toolLabels = [ordered]@{}
+$toolProvider = [ordered]@{}
+$toolScope = [ordered]@{}
+$toolReportColor = [ordered]@{}
 foreach ($t in $manifestTools) {
     $toolLabels[[string]$t.name] = if ($t.PSObject.Properties['displayName']) { [string]$t.displayName } else { [string]$t.name }
     $toolProvider[[string]$t.name] = if ($t.PSObject.Properties['provider']) { [string]$t.provider } else { 'unknown' }
@@ -252,7 +252,7 @@ $normalized = foreach ($f in $rawFindings) {
     [pscustomobject]@{
         Id = if ($f.PSObject.Properties['Id']) { [string]$f.Id } else { [guid]::NewGuid().ToString() }
         Source = $source
-        SourceLabel = if ($toolLabels.ContainsKey($source)) { $toolLabels[$source] } else { $source }
+        SourceLabel = if ($toolLabels.Contains($source)) { $toolLabels[$source] } else { $source }
         SeverityKey = $sevKey
         Severity = $sevLabel
         RuleKey = $ruleKey
@@ -286,9 +286,9 @@ $normalized = foreach ($f in $rawFindings) {
 $total = @($normalized).Count
 $nonPass = @($normalized | Where-Object { $_.Status -ne 'Pass' })
 $sevOrder = @('crit','high','med','low','info')
-$sevLabels = @{ crit='Crit'; high='High'; med='Med'; low='Low'; info='Info' }
-$sevFull = @{ crit='Critical'; high='High'; med='Medium'; low='Low'; info='Info' }
-$sevCount = @{}
+$sevLabels = [ordered]@{ crit='Crit'; high='High'; med='Med'; low='Low'; info='Info' }
+$sevFull = [ordered]@{ crit='Critical'; high='High'; med='Medium'; low='Low'; info='Info' }
+$sevCount = [ordered]@{}
 foreach ($k in $sevOrder) { $sevCount[$k] = @($nonPass | Where-Object { $_.SeverityKey -eq $k }).Count }
 
 $compliantCount = @($normalized | Where-Object { $_.Status -eq 'Pass' }).Count
@@ -336,9 +336,9 @@ $fwRows = @($normalized | ForEach-Object { @($_.Frameworks) } | Where-Object { -
 $rgRows = @($normalized | Where-Object { -not [string]::IsNullOrWhiteSpace($_.ResourceGroup) } | Select-Object -ExpandProperty ResourceGroup -Unique | Sort-Object)
 if ($rgRows.Count -eq 0) { $rgRows = @('n/a') }
 
-$hmMatrices = @{}
+$hmMatrices = [ordered]@{}
 
-$domainCells = @{}
+$domainCells = [ordered]@{}
 foreach ($d in $domains) {
     foreach ($s in $subs) {
         $k = "$d||$s"
@@ -347,7 +347,7 @@ foreach ($d in $domains) {
 }
 $hmMatrices['domain'] = [pscustomobject]@{ rowLabel='Control domain'; rows=$domains; cols=$subs; cells=$domainCells }
 
-$toolSevCells = @{}
+$toolSevCells = [ordered]@{}
 foreach ($toolId in $toolsForRows) {
     foreach ($sev in $sevOrder) {
         $k = "$toolId||$sev"
@@ -356,7 +356,7 @@ foreach ($toolId in $toolsForRows) {
 }
 $hmMatrices['toolsev'] = [pscustomobject]@{ rowLabel='Tool'; rows=$toolsForRows; cols=$sevOrder; cells=$toolSevCells }
 
-$fwCells = @{}
+$fwCells = [ordered]@{}
 foreach ($fw in $fwRows) {
     foreach ($s in $subs) {
         $k = "$fw||$s"
@@ -519,7 +519,7 @@ foreach ($row in $normalized) {
     }
 
     $toolChipStyle = ''
-    if ($toolReportColor.ContainsKey($row.Tool) -and -not [string]::IsNullOrWhiteSpace([string]$toolReportColor[$row.Tool])) {
+    if ($toolReportColor.Contains($row.Tool) -and -not [string]::IsNullOrWhiteSpace([string]$toolReportColor[$row.Tool])) {
         $color = [string]$toolReportColor[$row.Tool]
         $toolChipStyle = " style='background:$color;border-color:$color;color:#fff'"
     }
@@ -663,7 +663,7 @@ if ($entities.Count -gt 0) {
 }
 if ($entityTypeCounts.Count -eq 0) { $entityTypeCounts['Unknown'] = 0 }
 $maxEntity = [math]::Max(1, [int](@($entityTypeCounts.Values | Measure-Object -Maximum).Maximum))
-$entityBarsHtml = ($entityTypeCounts.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object {
+$entityBarsHtml = ($entityTypeCounts.GetEnumerator() | Sort-Object @{Expression={$_.Value};Descending=$true}, @{Expression={$_.Key};Descending=$false} | ForEach-Object {
     $pct = [math]::Round(($_.Value / $maxEntity) * 100)
     "<div class='ent-bar'><span class='lab'>$(HE $_.Key)</span><div class='track'><div class='fill' style='width:${pct}%'></div></div><span class='n'>$($_.Value)</span></div>"
 }) -join "`n"
