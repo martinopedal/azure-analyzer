@@ -44,6 +44,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $WarningPreference = 'Continue'
 
+# Clear both keys to handle POSIX-style PATH and Windows-style Path casing.
 $env:PATH = ''
 $env:Path = ''
 Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
