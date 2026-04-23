@@ -11,7 +11,7 @@ BeforeAll {
     . (Join-Path $script:SharedRoot 'New-WrapperEnvelope.ps1')
 }
 
-Describe 'New-WrapperEnvelope helper' {
+Describe 'New-WrapperEnvelope helper' -Tag 'AllowsWarning' {
 
     It 'returns a PSCustomObject with all required v1 fields' {
         $env = New-WrapperEnvelope -Source 'test-tool'
@@ -48,7 +48,7 @@ Describe 'New-WrapperEnvelope helper' {
     }
 }
 
-Describe 'Per-wrapper envelope contract' {
+Describe 'Per-wrapper envelope contract' -Tag 'AllowsWarning' {
 
     BeforeDiscovery {
         $script:WrapperRoot = Join-Path $PSScriptRoot '..' '..' 'modules'
