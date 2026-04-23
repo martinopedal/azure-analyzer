@@ -57,12 +57,12 @@ Describe 'Invoke-Falco: kubeconfig param surface (#240)' {
     It 'rejects a non-existent kubeconfig path' {
         $bogus = Join-Path ([System.IO.Path]::GetTempPath()) "falco-doesnotexist-$([guid]::NewGuid()).yaml"
         { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath $bogus } |
-            Should -Throw -ExpectedMessage '*does not exist*'
+            Should -Throw -ExpectedMessage '*wrapper:falco*NotFound*does not exist*'
     }
 
     It 'rejects URL-style kubeconfig values' {
         { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kc' } |
-            Should -Throw -ExpectedMessage '*URLs are not accepted*'
+            Should -Throw -ExpectedMessage '*wrapper:falco*InvalidParameter*URLs are not accepted*'
     }
 
     It 'accepts an existing kubeconfig in install mode (skips on missing helm, no AKS discovery)' {

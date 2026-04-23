@@ -239,6 +239,29 @@ Describe 'Invoke-AksKarpenterCost' {
             $global:KubeAuthCalls | Should -Be 0
         }
 
+        It 'surfaces FindingError-formatted kubectl failures from the elevated branch' {
+            function global:Invoke-WithTimeout {
+                param([string] $Command, [string[]] $Arguments, [int] $TimeoutSec)
+                if ($Command -eq 'kubectl' -and ($Arguments -join ' ') -match 'version') {
+                    return [PSCustomObject]@{
+                        ExitCode = 0
+                        Output   = "clientVersion:`n  gitVersion: v1.31.0"
+                    }
+                }
+                return [PSCustomObject]@{ ExitCode = 2; Output = 'forbidden: cannot list provisioners' }
+            }
+
+            $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
+            Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8
+            try {
+                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube
+                $result.Status | Should -BeIn @('PartialSuccess', 'Failed')
+                $result.Message | Should -Match '\[wrapper:aks-karpenter-cost\] UnexpectedFailure'
+            } finally {
+                Remove-Item -LiteralPath $tmpKube -ErrorAction SilentlyContinue
+            }
+        }
+
         It 'detects only the un-consolidated provisioner from the kubectl fixture' {
             $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
             Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8

@@ -80,6 +80,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 $installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) -and (Test-Path $installerPath)) { . $installerPath }
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
@@ -446,14 +460,14 @@ function Invoke-KarpenterKubectl {
 
     $proc = Invoke-WithTimeout -Command 'kubectl' -Arguments $kArgs -TimeoutSec 300
     if ($proc.ExitCode -ne 0) {
-        throw "kubectl get provisioners.karpenter.sh failed (exit=$($proc.ExitCode)): $(Remove-Credentials -Text ([string]$proc.Output))"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:aks-karpenter-cost' -Category 'UnexpectedFailure' -Reason "kubectl get provisioners.karpenter.sh failed with exit code $($proc.ExitCode)." -Remediation 'Verify cluster access, kubeconfig context, and kubectl permissions for provisioners.karpenter.sh.' -Details ([string]$proc.Output)))
     }
     if ([string]::IsNullOrWhiteSpace($proc.Output)) { return @() }
 
     try {
         $parsed = $proc.Output | ConvertFrom-Json -Depth 20
     } catch {
-        throw "kubectl returned non-JSON output: $(Remove-Credentials -Text ([string]$_.Exception.Message))"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:aks-karpenter-cost' -Category 'ConfigurationError' -Reason 'kubectl returned non-JSON output.' -Remediation 'Ensure kubectl returns JSON for provisioners.karpenter.sh and that no shell wrappers modify output.' -Details ([string]$_.Exception.Message)))
     }
 
     if ($parsed -and $parsed.PSObject.Properties['items']) { return @($parsed.items) }

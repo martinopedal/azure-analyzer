@@ -41,6 +41,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 $installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
 if (Test-Path $installerPath) { . $installerPath }
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
@@ -406,10 +420,10 @@ function Invoke-RightsizingKql {
     try {
         $ping = Invoke-WithTimeout -Command 'pwsh' -Arguments @('-NoProfile', '-NonInteractive', '-Command', 'exit 0') -TimeoutSec 300
         if ($ping.ExitCode -ne 0) {
-            throw "timeout preflight failed: $($ping.Output)"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:aks-rightsizing' -Category 'TimeoutExceeded' -Reason "Invoke-WithTimeout preflight failed for ${QueryName} (exit code $($ping.ExitCode))." -Remediation 'Verify pwsh can run non-interactive commands and that timeout helpers are functioning.' -Details ([string]$ping.Output)))
         }
     } catch {
-        throw "Invoke-WithTimeout preflight failed for ${QueryName}: $($_.Exception.Message)"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:aks-rightsizing' -Category 'UnexpectedFailure' -Reason "Invoke-WithTimeout preflight failed for ${QueryName}." -Remediation 'Verify shared Installer.ps1 timeout helper availability and retry the rightsizing query.' -Details ([string]$_.Exception.Message)))
     }
 
     return Invoke-LogAnalyticsQuery -WorkspaceId $WorkspaceId -Query $QueryText -TimeoutSeconds 300

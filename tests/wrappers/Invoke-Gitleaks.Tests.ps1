@@ -109,7 +109,7 @@ useDefault = true
             $missingPath = Join-Path $script:TestRoot 'missing.toml'
             {
                 & $script:Wrapper -RepoPath $script:RepoPath -GitleaksConfigPath $missingPath
-            } | Should -Throw '*Gitleaks config file not found*'
+            } | Should -Throw '*wrapper:gitleaks*NotFound*Gitleaks config file not found*'
         }
 
         It 'emits High finding when defaults are disabled without custom rules' {
