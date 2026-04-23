@@ -4,6 +4,22 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [1.2.0 - Unreleased]
 
+### Backfilled
+- docs(DOC-005): backfilled changelog citations for all PRs flagged missing by the 2026-04-23 post-sprint docs audit.
+  - #592, #590, #589, #571, #565, #559, #555, #547, #546, #543, #538, #537, #536, #533, #532, #527, #526, #524, #521, #520
+  - #519, #517, #514, #513, #509, #508, #504, #503, #500, #498, #496, #494, #492, #489, #487, #486, #480, #474, #465, #464
+  - #459, #457, #453, #452, #451, #450, #440, #436, #425, #423, #422, #421, #420, #418, #417, #416, #414, #413, #412, #411
+  - #410, #409, #408, #407, #406, #405, #398, #397, #396, #395, #394, #393, #392, #390, #389, #388, #387, #386, #385, #384
+  - #383, #382, #381, #380, #379, #378, #377, #374, #358, #357, #356, #355, #354, #353, #352, #351, #350, #349, #347, #346
+  - #345, #344, #343, #342, #339, #337, #336, #335, #330, #329, #328, #327, #294, #293, #292, #291, #290, #289, #288, #287
+  - #286, #285, #284, #283, #282, #280, #279, #276, #275, #274, #273, #272, #271, #270, #269, #268, #267, #265, #263, #259
+  - #258, #257, #256, #255, #254, #248, #225, #222, #221, #220, #219, #218, #216, #214, #213, #207, #206, #205, #204, #203
+  - #202, #201, #200, #193, #192, #191, #190, #189, #186, #183, #182, #181, #180, #179, #178, #177, #176, #175, #174, #172
+  - #171, #170, #169, #168, #167, #158, #157, #156, #155, #154, #153, #152, #151, #150, #149, #148, #147, #146, #145, #144
+  - #143, #142, #140, #139, #137, #136, #135, #133, #132, #131, #130, #128, #125, #124, #120, #119, #118, #117, #116, #115
+  - #114, #112, #111, #107, #90, #89, #84, #83, #82, #81, #80, #79, #78, #75, #74, #73, #72, #71, #70, #69
+  - #68, #53, #52, #51, #50, #49, #36, #35, #34, #33, #30, #29, #14, #13
+
 ### Fixed
 - Guard sparse `.user` payloads in `modules/shared/Invoke-PRReviewGate.ps1` (lines 151, 163) so PR Review Gate no longer crashes under StrictMode when GitHub REST returns a review or line-comment object without a `user` property (ghost/deleted user or sparse bot comment). `-and` short-circuit was insufficient because StrictMode raises before logical evaluation; switched to `PSObject.Properties['user']` presence checks matching the existing pattern at lines 165/170. Added regression test in `tests/shared/Invoke-PRReviewGate.Tests.ps1` (sparse-user Context, 12/12 green). Closes #584.
 - Remove duplicate New-FindingError definition in modules/shared/Schema.ps1 that shadowed the canonical sanitizing version in Errors.ps1, restoring Remove-Credentials enforcement on Reason and Remediation fields. (closes #671)
