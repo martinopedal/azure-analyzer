@@ -1,0 +1,43 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "maester",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Conditional Access policy missing for legacy auth block",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "IdentityProtection",
+      "Pillar": "Security",
+      "Detail": "Maester test CA-001 found no policy blocking legacy authentication protocols.",
+      "EntityType": "Tenant",
+      "EntityId": "tenant:99999999-aaaa-bbbb-cccc-111122223333",
+      "Remediation": "Create CA policy targeting all users blocking legacy authentication.",
+      "RuleId": "maester-ca-001"
+    },
+    {
+      "Title": "Security defaults disabled and no replacement CA baseline",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "IdentityProtection",
+      "Pillar": "Security",
+      "Detail": "Tenant has security defaults off without an equivalent baseline policy set.",
+      "EntityType": "Tenant",
+      "EntityId": "tenant:99999999-aaaa-bbbb-cccc-111122223333",
+      "Remediation": "Adopt Microsoft baseline CA policies.",
+      "RuleId": "maester-ca-014"
+    },
+    {
+      "Title": "Authentication methods policy enforces FIDO2",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "IdentityProtection",
+      "Pillar": "Security",
+      "Detail": "FIDO2 enabled and required for privileged users.",
+      "EntityType": "Tenant",
+      "EntityId": "tenant:99999999-aaaa-bbbb-cccc-111122223333",
+      "Remediation": "",
+      "RuleId": "maester-auth-002"
+    }
+  ]
+}
