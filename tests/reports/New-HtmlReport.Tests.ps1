@@ -63,6 +63,7 @@ Describe 'New HTML report redesign contract (#295)' {
         & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
         $html = Get-Content $out -Raw
         $html | Should -Match "href='#overview'"
+        $html | Should -Match "href='#triage'"
         $html | Should -Match "href='#coverage'"
         $html | Should -Match "href='#heatmap'"
         $html | Should -Match "href='#risks'"
@@ -150,6 +151,28 @@ Describe 'New HTML report redesign contract (#295)' {
         $html | Should -Match '<details'
         $html | Should -Match 'Before:'
         $html | Should -Match 'After:'
+    }
+
+    It 'renders triage panel content when -TriagePath is provided' {
+        $tmp = Join-Path $TestDrive 'report-contract-triage'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        @([pscustomobject]@{ Id='F-1'; Source='azqr'; Severity='High'; Compliant=$false; Title='R1: t'; RuleId='R1'; Detail='d'; Remediation='r'; EntityId='tenant:11111111-1111-1111-1111-111111111111' }) |
+            ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        [pscustomobject]@{
+            Mode = 'Rubberduck'
+            SelectedModels = @('claude-sonnet-4.6','gpt-5.2','gemini-3-pro-preview')
+            FallbackChain = @('claude-sonnet-4.6','gpt-5.2')
+            Response = 'Fix control order and validate blast radius.'
+        } | ConvertTo-Json -Depth 6 | Set-Content -Path (Join-Path $tmp 'triage.json') -Encoding UTF8
+
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out -TriagePath (Join-Path $tmp 'triage.json') | Out-Null
+        $html = Get-Content $out -Raw
+
+        $html | Should -Match "id='triage'"
+        $html | Should -Match 'AI-assisted'
+        $html | Should -Match 'claude-sonnet-4.6'
+        $html | Should -Match 'Fix control order and validate blast radius'
     }
 
     # v2 Design System Tests (PR1)

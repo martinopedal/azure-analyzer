@@ -148,6 +148,11 @@ param (
     [ValidateRange(1, 365)]
     [int] $SentinelLookbackDays = 30,
     [switch] $EnableAiTriage,
+    [ValidateSet('Pro', 'Business', 'Enterprise')]
+    [string] $CopilotTier,
+    [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
+    [string] $TriageModel = 'Auto',
+    [switch] $SingleModel,
     [switch] $SinkLogAnalytics,
     [string] $LogAnalyticsConfig,
     [ValidateRange(1, 365)]
@@ -1575,7 +1580,17 @@ if ($EnableAiTriage) {
             }
         }
         if ($triageFindings.Count -gt 0) {
-            $triageResult = Invoke-CopilotTriage -Findings $triageFindings -SingleModel
+            $triageParams = @{
+                Findings    = $triageFindings
+                TriageModel = $TriageModel
+            }
+            if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
+                $triageParams['CopilotTier'] = $CopilotTier
+            }
+            if ($SingleModel) {
+                $triageParams['SingleModel'] = $true
+            }
+            $triageResult = Invoke-CopilotTriage @triageParams
             if ($null -ne $triageResult) {
                 $triageJson = $triageResult | ConvertTo-Json -Depth 10
                 # Defense-in-depth: scrub the serialized payload before writing.
