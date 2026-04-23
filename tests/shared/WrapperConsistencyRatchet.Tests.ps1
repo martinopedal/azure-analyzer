@@ -25,10 +25,18 @@ BeforeDiscovery {
             Sort-Object Name
     )
     $script:WrapperNames = $script:WrapperFiles | ForEach-Object { $_.Name }
+
+    $script:SinkRoot = Join-Path $script:WrapperRoot 'sinks'
+    $script:SinkFiles = @(
+        Get-ChildItem -Path $script:SinkRoot -Filter '*.ps1' -File |
+            Sort-Object Name
+    )
+    $script:SinkNames = $script:SinkFiles | ForEach-Object { $_.Name }
 }
 
 BeforeAll {
     $script:WrapperRoot = Join-Path $PSScriptRoot '..' '..' 'modules'
+    $script:SinkRoot    = Join-Path $script:WrapperRoot 'sinks'
 
     # Grandfathered baseline: number of raw `throw "..."` (and inline
     # `catch { throw "..." }`) strings allowed per wrapper. Any change
@@ -44,6 +52,12 @@ BeforeAll {
         'Invoke-Scorecard.ps1'         = 1
         'Invoke-SentinelCoverage.ps1'  = 1
         'Invoke-SentinelIncidents.ps1' = 1
+    }
+
+    $script:SinkRawThrowBaseline = @{
+        # Bootstrap guard for missing modules/shared/Errors.ps1 - cannot use New-FindingError
+        # because the guard runs precisely when New-FindingError is unavailable.
+        'Send-FindingsToLogAnalytics.ps1' = 1
     }
 
     function Get-RawThrowCount {
@@ -98,6 +112,24 @@ If the count went UP, replace the new throw with:
       -Remediation '<concrete next step>'))
 
 See modules/shared/Errors.ps1 for the full FindingError schema.
+"@
+        }
+    }
+
+    Context 'Sinks - raw throw "..." ratchet (use New-FindingError instead)' {
+        It '<_> raw-throw count matches sink baseline' -ForEach $script:SinkNames {
+            $path     = Join-Path $script:SinkRoot $_
+            $actual   = Get-RawThrowCount -Path $path
+            $expected = if ($script:SinkRawThrowBaseline.ContainsKey($_)) { $script:SinkRawThrowBaseline[$_] } else { 0 }
+            $actual | Should -Be $expected -Because @"
+Raw `throw "..."` count for sink $_ changed.
+Expected (baseline): $expected. Actual: $actual.
+
+If the count went DOWN, update `$script:SinkRawThrowBaseline` in this test
+to the new lower value (or remove the entry entirely if it dropped to 0).
+
+If the count went UP, replace the new throw with:
+  throw (Format-FindingErrorMessage (New-FindingError ...))
 "@
         }
     }

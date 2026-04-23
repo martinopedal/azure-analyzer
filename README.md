@@ -47,6 +47,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 ## Testing
 
 - `Invoke-Pester -Path .\tests -CI`: full Pester suite (baseline 842+ green).
+- `Invoke-Pester -Path .\tests\wrappers -CI`: wrapper contract suite, including E2E wrapper-to-normalizer coverage for zizmor, gitleaks, and trivy.
 - `Invoke-Pester -Path .\tests\wrappers -Tag 'LiveTool' -CI`: optional live-CLI wrapper smoke tier (gitleaks, trivy, zizmor, scorecard) that exercises real binaries when present.
 - `Invoke-Pester -Path .\tests\e2e -Output Detailed`: end-to-end harness that drives `Invoke-AzureAnalyzer`'s output pipeline (FindingRow -> EntityStore -> `results.json` + `entities.json` -> HTML + Markdown reports) across three surfaces (Azure subscription, GitHub repo, Tenant / management-group) with synthetic fixtures under `tests/e2e/fixtures/`. Runs in CI via [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) on windows-latest, ubuntu-latest, and macos-latest (8-minute timeout per leg). Asserts v1 / v3.1 schema shapes, tier selection across PureJson / EmbeddedSqlite / SidecarSqlite, `Invoke-RemoteRepoClone` host allow-list, and credential-scrub for planted `ghp_*` / `xoxb-*` / `AKIA*` / `pat-*` literals.
 - `Invoke-Pester -Path .\tests\wrappers\MissingToolRuntime.Tests.ps1`: cross-platform runtime coverage for missing-tool behavior in `Invoke-Trivy`, `Invoke-Kubescape`, and `Invoke-Scorecard` using a PATH-stripped child pwsh harness that captures stdout/stderr/warnings and asserts clean skipped v1 envelopes with `MissingTool` diagnostics.
@@ -64,6 +65,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
+- **Hardened Log Analytics sink errors**: sink failures now use structured `New-FindingError` messages with mandatory remediation and credential-safe details, and sink raw-throw regressions are ratcheted in tests.
 - **Uniform correlator dispatch**: `identity-correlator` now uses a thin `Invoke-*` wrapper entrypoint while keeping correlation logic in shared modules.
 - **Shared credential sanitization contract**: CI watchdog issue-body generation now reuses `modules/shared/Sanitize.ps1::Remove-Credentials` (no local sanitizer drift).
 - **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.

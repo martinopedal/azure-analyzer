@@ -57,7 +57,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | Name | Normalizer | Invoke | Script / module | Required params |
 |---|---|---|---|---|
 | `ado-connections` | `Normalize-ADOConnections` | script | `modules/Invoke-ADOServiceConnections.ps1` | AdoOrg |
-| `ado-consumption` | `Normalize-AdoConsumption` | script | `modules/Invoke-AdoConsumption.ps1` | Organization |
+| `ado-consumption` | `Normalize-AdoConsumption` | script | `modules/Invoke-AdoConsumption.ps1` | AdoOrg |
 | `ado-pipeline-correlator` | `Normalize-ADOPipelineCorrelator` | script | `modules/Invoke-ADOPipelineCorrelator.ps1` | AdoOrg |
 | `ado-pipelines` | `Normalize-ADOPipelineSecurity` | script | `modules/Invoke-ADOPipelineSecurity.ps1` | AdoOrg |
 | `ado-repos-secrets` | `Normalize-ADORepoSecrets` | script | `modules/Invoke-ADORepoSecrets.ps1` | AdoOrg |
