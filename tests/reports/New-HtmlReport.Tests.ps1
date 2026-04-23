@@ -234,4 +234,16 @@ Describe 'New HTML report redesign contract (#295)' {
         $html | Should -Match '<nav.*aria-label=''Section''>'
         $html | Should -Match 'aria-label=''Findings by severity'''
     }
+
+    It 'renders Audit view chip when audit-report.html exists in output directory' {
+        $tmp = Join-Path $TestDrive 'report-contract-audit-chip'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        '[]' | Set-Content -Path (Join-Path $tmp 'results.json') -Encoding UTF8
+        '<html></html>' | Set-Content -Path (Join-Path $tmp 'audit-report.html') -Encoding UTF8
+        $out = Join-Path $tmp 'report.html'
+        & (Join-Path $RootDir 'New-HtmlReport.ps1') -InputPath (Join-Path $tmp 'results.json') -OutputPath $out | Out-Null
+        $html = Get-Content $out -Raw
+        $html | Should -Match 'Audit view ↗'
+        $html | Should -Match 'href=''audit-report.html'''
+    }
 }

@@ -13,6 +13,7 @@ The alz-queries Schema 2.2 ETL enrichment adds ALZ governance metadata only (fra
 The HTML remediation-snippet null-guard report fix only changes rendering behavior and does not introduce any new permissions.
 Phase 0 foundation report architecture metadata, report-manifest output, and vendoring verification stubs add no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
 The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only and introduces no Azure, Graph, GitHub, or Azure DevOps permissions.
+The auditor report profile (`-Profile Auditor`, `audit-report.html/.md`, `audit-evidence/`) is an output-layer transform over existing findings/entities and introduces no new Azure, Graph, GitHub, or Azure DevOps permissions.
 Optional Copilot triage makes GitHub Copilot API calls (for model-plan discovery and triage generation) only when users explicitly enable AI triage; this does not require Azure/Graph write permissions.
 
 ## Permission domains at a glance

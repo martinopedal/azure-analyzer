@@ -157,6 +157,8 @@ param (
     [switch] $Show,
     [ValidateRange(1, 65535)]
     [int] $ViewerPort = 4280,
+    [ValidateSet('Developer','Auditor')]
+    [string] $Profile = 'Developer',
     [switch] $NoBanner
 )
 
@@ -176,6 +178,8 @@ foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'Entit
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
+$auditorBuilderPath = Join-Path $sharedDir 'AuditorReportBuilder.ps1'
+if (Test-Path $auditorBuilderPath) { . $auditorBuilderPath }
 $preflightPath = Join-Path $sharedDir 'Preflight' 'Get-RequiredInputs.ps1'
 if (Test-Path $preflightPath) { . $preflightPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
@@ -1739,6 +1743,23 @@ try {
     & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg @portfolioArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
+}
+
+if ($Profile -eq 'Auditor' -and (Get-Command Build-AuditorReport -ErrorAction SilentlyContinue)) {
+    try {
+        $auditorParams = @{
+            InputPath = $outputFile
+            EntitiesPath = $entitiesFile
+            ManifestPath = $reportManifestPath
+            OutputDirectory = $OutputPath
+            Profile = 'auditor'
+        }
+        if (Test-Path -LiteralPath $triageFile) { $auditorParams.TriagePath = $triageFile }
+        if ($resolvedBaseline -and (Test-Path -LiteralPath $resolvedBaseline)) { $auditorParams.PreviousRunPath = $resolvedBaseline }
+        $null = Build-AuditorReport @auditorParams
+    } catch {
+        Write-Warning (Remove-Credentials "Auditor report generation failed: $_")
+    }
 }
 
 # ---------------------------------------------------------------------------

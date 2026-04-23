@@ -16,6 +16,7 @@
 - **Unified findings JSON** with Schema 2.2 metadata (severity, frameworks, MITRE mappings, remediation snippets, evidence URIs, entity references, deep links).
 - **Interactive HTML report** with sortable findings tree, framework heatmap, CSV export.
 - **Markdown report** for Git commit workflows.
+- **Auditor profile report** (`-Profile Auditor`) that emits `audit-report.html`, `audit-report.md`, and `audit-evidence/` alongside standard outputs.
 - **Entity store** (JSON) with deduplicated cross-tool findings.
 - **Optional local findings viewer scaffold** (`-Show`) that starts on `127.0.0.1` with a session token and health probe.
 
@@ -26,6 +27,7 @@ git clone https://github.com/martinopedal/azure-analyzer.git && cd azure-analyze
 Import-Module .\AzureAnalyzer.psd1
 Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, report.html, report.md
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>" -Profile Auditor  # also writes audit-report.html/.md + audit-evidence/
 ```
 
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**

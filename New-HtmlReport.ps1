@@ -241,6 +241,13 @@ foreach ($t in $manifestTools) {
     $toolReportColor[[string]$t.name] = $reportColor
 }
 
+$auditReportChipPath = Join-Path (Split-Path -Parent $OutputPath) 'audit-report.html'
+$auditReportChip = if (Test-Path -LiteralPath $auditReportChipPath) {
+    "<a class='btn' href='audit-report.html' title='Open auditor report'>Audit view ↗</a>"
+} else {
+    ''
+}
+
 $normalized = foreach ($f in $rawFindings) {
     $source = if ($f.PSObject.Properties['Source'] -and -not [string]::IsNullOrWhiteSpace([string]$f.Source)) { [string]$f.Source } else { 'unknown' }
     $sevKey = Get-SeverityKey ([string]$f.Severity)
@@ -809,6 +816,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       <div class='sev-cnt sev-info'><span class='n'>$($sevCount['info'])</span><span class='l'>Info</span></div>
     </div>
     <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>$(@($manifestTools).Count)</strong> tools</span><span class='kpi'><strong>$entityCount</strong> entities</span><span class='kpi'><strong>$compliantPct%</strong> compliant</span></div>
+    $auditReportChip
     <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
@@ -1017,4 +1025,3 @@ renderHeatmap();
 $sanitizedHtml = Remove-Credentials $html
 Set-Content -Path $OutputPath -Value $sanitizedHtml -Encoding UTF8
 Write-Host "HTML report written to: $OutputPath"
-
