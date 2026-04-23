@@ -45,6 +45,12 @@ function Invoke-WrapperWithHostCapture {
                 $message = [string]$item.MessageData
                 if ($message -match $warningLikeInfoPattern) {
                     $warningBuffer.Add($message)
+                } else {
+                    # Non-warning-like Write-Information output is preserved by
+                    # re-emitting to the Information stream so it remains visible
+                    # in Pester transcripts for debugging (addresses Copilot review
+                    # feedback on PR #826: do not silently drop info records).
+                    Write-Information -MessageData $message -InformationAction Continue
                 }
             } else {
                 $result = $item
