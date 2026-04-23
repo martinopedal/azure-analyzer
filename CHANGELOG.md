@@ -12,13 +12,18 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Documentation
+- docs: post-cascade refresh across README, PERMISSIONS, CONTRIBUTING (cloud-agent edition), `.github/copilot-instructions.md`, reference index counts, and regenerated manifest-driven sample reports/catalog checks.
+- docs(samples): reconcile Markdown/HTML/mockup sample reports - unify tool count to 37 and posture grade to `F (0/100)` across `samples/sample-report.md` and `samples/sample-report.html`; populate tool-versions table in HTML sample to match Markdown; canonicalize tool id `finops` (was `finops-signals`) in `samples/sample-report-v2-mockup.md`; drop hardcoded enabled/opt-in counts from `docs/reference/README.md` quick-links description so it does not drift with manifest.
+
 ### Changed
 - add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
 
 ### Fixed
-- Restore env/global state in BeforeAll/AfterAll across test suite (#746).
+- Restore env/global state in BeforeAll/AfterAll (or matching cleanup lifecycle blocks) across test suite and tighten the isolation guard coverage for wrapper env suppression patterns (#746).
 - CI: exempt `Copilot`/`copilot` PR authors in closes-link-required and add a `pull_request_target` fallback in auto-approve-bot-runs so trusted bot PR checks do not stall in `action_required`.
 - Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
+- Markdown Check `links (lychee)` now scans only changed Markdown files on PRs (keeping full-corpus scans on schedule/manual runs) to reduce repeated PR flake/rate-limit failures while still surfacing real link rot.
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
