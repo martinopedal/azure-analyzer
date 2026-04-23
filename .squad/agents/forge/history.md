@@ -49,6 +49,8 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Importing a `.psd1` should not dot-source script entry points that execute immediately. For `AzureAnalyzer.psm1`, export wrapper functions that invoke root scripts on demand, and limit import-time dot-sourcing to pure helper modules.
 - PSGallery readiness is manifest-driven: replace placeholder GUIDs before publication and populate `PrivateData.PSData` with `Tags`, `ProjectUri`, `LicenseUri`, and `ReleaseNotes` so the package page is navigable and discoverable.
 
+- 2026-04-24 — Bot gate solution (#938): GITHUB_TOKEN in PR-creating or branch-pushing workflows causes two problems: (1) first-time-contributor approval gate blocks bot PR workflow runs, (2) anti-recursion guard prevents downstream CI from triggering. Fix: use GitHub App token (actions/create-github-app-token) for any workflow that creates PRs or pushes to PR branches. Read-only downstream workflows don't need App tokens. copilot-swe-agent[bot] PRs are residual (external product, not fixable via workflow). PR #956.
+
 ### 2026-04-20T15:18:09Z: CI-failure batch #260/#261/#262/#264
 
 - Triage complete: all four issues were categorized stale or transient and closed with rationale comments.
@@ -189,3 +191,4 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - **Pattern:** SHA-pinned `actions/create-github-app-token` generates a 1-hour token from App credentials stored as repo secrets (`RELEASE_APP_ID`, `RELEASE_APP_PRIVATE_KEY`). This is the recommended pattern over PATs for any automation that needs to create PRs that trigger CI.
 - **Scope:** Only the `release_please` job was modified. The `publish` job still uses `GITHUB_TOKEN` (appropriate since it doesn't create PRs).
 - **Setup required:** Issue #954 documents one-time manual steps to create the GitHub App and install it on the repo.
+- 2026-04-24 — Fixed two Pester blockers on main: (1) SampleDrift entity-bar sort was non-deterministic due to hashtable GetEnumerator() order; added secondary sort by Key + converted heatmap/entity hashtables to [ordered]@{} + fixed ContainsKey→Contains for OrderedDictionary. (2) Backfill-ChangelogCitations .Count on null/scalar under strict mode; wrapped with @(). Documented patterns in .squad/skills/pester-fixture-testing/SKILL.md.

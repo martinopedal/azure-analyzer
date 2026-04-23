@@ -3,9 +3,11 @@
 ### CI
 
 - Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
+- **Bot gate unification (#938):** Extend GitHub App token pattern to `tool-auto-update.yml` and `pr-auto-rebase.yml`. PRs created by tool-auto-update and rebase force-pushes now use the same App token (`RELEASE_APP_ID`) as release-please, bypassing the first-time-contributor approval gate and the `GITHUB_TOKEN` anti-recursion guard that previously prevented downstream CI from triggering on bot activity
 
 ### Fixed
 
+- **HTML report determinism**: Entity-type bar chart and heatmap JSON had non-deterministic ordering across process invocations due to PowerShell `@{}` hashtable key randomization. Converted 11 hashtables feeding `ConvertTo-Json` to `[ordered]@{}`, added alphabetical tiebreaker to entity-type sort, replaced `.ContainsKey()` with `.Contains()` for `OrderedDictionary` compat. Regenerated SampleDrift fixture. Root cause existed since entity bars were introduced; exposed by SampleDrift drift canary.
 - **DocsCheck tests**: Added missing Pester assertions for `docs/design` path and other documentation path patterns (`copilot/audits`, `.squad/decisions`, `.squad/ceremonies.md`, root-level docs). PR #941 added `docs/design` to the docs-check workflow but the test file was not updated. Fixes M4 from 24h CI audit. Closes #945, #943, #942, #939, #936, #935, #934, #933.
 - **Shared helper**: Converted `modules/shared/New-WrapperEnvelope.ps1` from standalone script (with top-level `param()`) to pure function definition. Eliminates phantom object emission when dot-sourced, fixing Invoke-Maester double-return (M1) and Errors.Regression529 child-process crash (M3). (#907)
 - **CI watchdog**:No longer opens ci-failure issues for advisory workflows (CI / E2E / Scheduled scan). These workflows are monitored for observability but do NOT escalate to backlog noise because they are not required branch-protection checks. Required checks (Analyze, links, lint) still escalate as ci-failure issues. Implements Track A from `.squad/decisions/inbox/rca-drift-sonnet.md`.

@@ -33,6 +33,16 @@ jobs:
       prs: ${{ steps.list.outputs.prs }}
       count: ${{ steps.list.outputs.count }}
     steps:
+      # App token so rebase pushes bypass the GITHUB_TOKEN anti-recursion
+      # guard and re-trigger downstream CI on the rebased commit. Also
+      # bypasses the first-time-contributor approval gate. See #938.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: List conflicting PRs from agent branches
         id: list
         # Wrapped with nick-fields/retry so a transient gh-API hiccup does not
@@ -40,7 +50,7 @@ jobs:
         # with sloan's retry-wrap PR if she pins a different SHA.
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
         with:
           max_attempts: 3
@@ -83,11 +93,22 @@ jobs:
       group: auto-rebase-pr-${{ matrix.pr.number }}
       cancel-in-progress: true
     steps:
+      # App token so rebase force-pushes bypass the GITHUB_TOKEN
+      # anti-recursion guard and re-trigger downstream CI on the rebased
+      # commit. Also avoids the first-time-contributor approval gate on
+      # workflows triggered by the synchronize event. See #938.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Configure git identity
         run: |
@@ -98,7 +119,7 @@ jobs:
         id: rebase
         shell: pwsh
         env:
-          GH_TOKEN:   ${{ github.token }}
+          GH_TOKEN:   ${{ steps.app-token.outputs.token }}
           PR_NUMBER:  ${{ matrix.pr.number }}
           HEAD_REF:   ${{ matrix.pr.head }}
           REPO:       ${{ github.repository }}
