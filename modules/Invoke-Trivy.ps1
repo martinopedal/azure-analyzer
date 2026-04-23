@@ -252,10 +252,10 @@ $trivyVersionInfo = Get-TrivyVersionInfo
 $trivyVersion = $trivyVersionInfo.ParsedVersion
 $trivyToolVersion = if ($trivyVersionInfo.RawOutput) { $trivyVersionInfo.RawOutput } elseif ($trivyVersion) { "Version: $trivyVersion" } else { '' }
 if ($null -ne $trivyVersion -and $trivyVersion -lt $script:MinTrivyVersion) {
-    Write-Warning "trivy version $trivyVersion is below the recommended minimum ($script:MinTrivyVersion). Update from https://github.com/aquasecurity/trivy/releases"
+    Write-Verbose "trivy version $trivyVersion is below the recommended minimum ($script:MinTrivyVersion). Update from https://github.com/aquasecurity/trivy/releases"
 }
 if ($null -eq $trivyVersion) {
-    Write-Warning "Could not determine trivy version. Verify binary integrity — download from https://github.com/aquasecurity/trivy/releases"
+    Write-Verbose "Could not determine trivy version. Verify binary integrity - download from https://github.com/aquasecurity/trivy/releases"
 }
 
 $cloneInfo = $null
