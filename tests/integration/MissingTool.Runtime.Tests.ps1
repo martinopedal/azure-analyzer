@@ -5,6 +5,19 @@ Set-StrictMode -Version Latest
 BeforeAll {
     $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
     . (Join-Path $repoRoot 'modules\shared\MissingTool.ps1')
+    # The bootstrap helper (tests/_helpers/setup.ps1) sets
+    # AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1 to silence wrapper noise.
+    # These tests verify the orchestrator-aware warning logic, so the kill-switch
+    # must be cleared for the lifetime of this file. Captured + restored to
+    # avoid leaking into subsequent test files.
+    $script:OriginalSuppressFlag = $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS
+    Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+}
+
+AfterAll {
+    if ($null -ne $script:OriginalSuppressFlag) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $script:OriginalSuppressFlag
+    }
 }
 
 Describe 'Write-MissingToolNotice' {

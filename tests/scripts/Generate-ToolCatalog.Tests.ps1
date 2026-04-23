@@ -7,8 +7,8 @@ Describe 'Generate-ToolCatalog' {
         $script:RepoRoot       = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $script:ScriptPath     = Join-Path $script:RepoRoot 'scripts\Generate-ToolCatalog.ps1'
         $script:ManifestPath   = Join-Path $script:RepoRoot 'tools\tool-manifest.json'
-        $script:ConsumerPath   = Join-Path $script:RepoRoot 'docs\consumer\tool-catalog.md'
-        $script:ContribPath    = Join-Path $script:RepoRoot 'docs\contributor\tool-catalog.md'
+        $script:ConsumerPath   = Join-Path $script:RepoRoot 'docs\reference\tool-catalog.md'
+        $script:ContribPath    = Join-Path $script:RepoRoot 'docs\reference\tool-catalog-contributor.md'
         $script:Manifest       = Get-Content -LiteralPath $script:ManifestPath -Raw | ConvertFrom-Json
         $script:EnabledTools   = @($script:Manifest.tools | Where-Object { $_.enabled })
     }

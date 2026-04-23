@@ -178,6 +178,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Non-blocking by design: live binaries add early integration signal without gating merges.
+    # tracked: martinopedal/azure-analyzer#604
     continue-on-error: true
     steps:
       - name: Checkout
