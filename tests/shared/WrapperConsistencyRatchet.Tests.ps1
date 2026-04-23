@@ -54,7 +54,11 @@ BeforeAll {
         'Invoke-SentinelIncidents.ps1' = 1
     }
 
-    $script:SinkRawThrowBaseline = @{}
+    $script:SinkRawThrowBaseline = @{
+        # Bootstrap guard for missing modules/shared/Errors.ps1 - cannot use New-FindingError
+        # because the guard runs precisely when New-FindingError is unavailable.
+        'Send-FindingsToLogAnalytics.ps1' = 1
+    }
 
     function Get-RawThrowCount {
         param ([Parameter(Mandatory)][string] $Path)

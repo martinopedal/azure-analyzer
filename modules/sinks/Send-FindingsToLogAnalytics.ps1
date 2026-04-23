@@ -24,6 +24,11 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
 }
+foreach ($required in @('New-FindingError', 'Format-FindingErrorMessage')) {
+    if (-not (Get-Command $required -ErrorAction SilentlyContinue)) {
+        throw "Send-FindingsToLogAnalytics requires modules/shared/Errors.ps1 (missing command: $required). Ensure the shared/Errors.ps1 module is present and loadable before invoking the sink."
+    }
+}
 
 function New-SinkFindingError {
     [CmdletBinding()]
