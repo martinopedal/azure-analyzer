@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "appinsights",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Application Insights instrumentation key in use (deprecated)",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Telemetry",
+      "Pillar": "Operational Excellence",
+      "Detail": "Component contoso-appi still uses iKey instead of connection string.",
+      "ResourceId": "/subscriptions/aaaaaaaa-1111-2222-3333-444444444444/resourceGroups/rg-obs/providers/Microsoft.Insights/components/contoso-appi",
+      "Remediation": "Switch SDK config to APPLICATIONINSIGHTS_CONNECTION_STRING.",
+      "RuleId": "appi-ikey-deprecated"
+    },
+    {
+      "Title": "Sampling disabled on high-volume App Insights component",
+      "Severity": "Low",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Adaptive sampling off; 14M events/day will exceed 5GB cap.",
+      "ResourceId": "/subscriptions/aaaaaaaa-1111-2222-3333-444444444444/resourceGroups/rg-obs/providers/Microsoft.Insights/components/contoso-appi-prod",
+      "Remediation": "Enable adaptive sampling at 5 traces/sec.",
+      "RuleId": "appi-sampling-off"
+    },
+    {
+      "Title": "Workspace-based Application Insights component",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Architecture",
+      "Pillar": "Operational Excellence",
+      "Detail": "Component linked to Log Analytics workspace law-shared.",
+      "ResourceId": "/subscriptions/aaaaaaaa-1111-2222-3333-444444444444/resourceGroups/rg-obs/providers/Microsoft.Insights/components/contoso-appi-modern",
+      "Remediation": "",
+      "RuleId": "appi-workspace-based"
+    }
+  ]
+}

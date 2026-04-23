@@ -420,6 +420,15 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Documentation
+- docs(design): RFC for LLM-driven triage with rubberduck and tier-aware
+  model selection (Track E, #433). Design document at
+  `docs/design/RFC-433-llm-triage.md` covers provider abstraction, tier
+  detection protocol, trio composition algorithm, sanitization pipeline,
+  triage output schema, phased rollout plan, and test strategy.
+  Implementation deferred per scope estimate until Phase 1 MVP ships and
+  Track D completes.
+
 ### Fixed
 
 - fix(test): tolerate YAML comment lines between `concurrency:` and `group:` keys in `tests/workflows/ConcurrencyGroups.Tests.ps1`. PR #771 added explanatory comments inside the `concurrency:` block of `.github/workflows/codeql.yml`, breaking the prior strict regex (`^concurrency:\s*\r?\n\s+group:`) across the Test (ubuntu/macos/windows) matrix on every PR rebased after #771 merged. Updated regex now allows interleaved comment / blank lines while still requiring both keys.
@@ -437,6 +446,7 @@ All notable changes to azure-analyzer will be documented here.
 - test(e2e): wrapper coverage batch 1/5 for #745 — adds orchestrator-pipeline E2E tests for `azqr`, `defender-for-cloud`, `prowler`, `finops`, and `azure-cost`. New file `tests/e2e/Batch1-AzureGovernance.E2E.Tests.ps1` feeds per-tool wrapper-output fixtures (`tests/e2e/fixtures/<tool>-e2e.json`) through `Invoke-E2EPipeline` and asserts results.json shape, entities.json v3.1 envelope, EntityType enum compliance, severity enum, HTML/MD render, and credential scrubbing of planted secrets. Tracker entries E2E-001, E2E-004, E2E-005, E2E-007, and E2E-009 graduated from `not-covered` to `covered`. 35 new tests, baseline preserved.
 ### Changed
 - chore(wrappers): Phase 2 PR1 wrapper-consistency hardening. Upgraded `[CmdletBinding()]` to `[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]` on 10 wrappers (`Invoke-Trivy`, `Invoke-Gitleaks`, `Invoke-Scorecard`, `Invoke-Zizmor`, `Invoke-IaCBicep`, `Invoke-IaCTerraform`, `Invoke-Infracost`, `Invoke-Powerpipe`, `Invoke-KubeBench`, `Invoke-Kubescape`) so every wrapper accepts `-WhatIf` / `-Confirm` common parameters. Added `$PSCmdlet.ShouldProcess()` gates around the side-effecting paths in `Invoke-KubeBench` (kubectl apply Job) and `Invoke-Kubescape` (`az aks get-credentials`). Marked internal helper parameters as `[Parameter(Mandatory)]` in `Invoke-ADOPipelineCorrelator.ps1` (`Get-AdoBuilds`, `Get-AdoBuildLogs`) and `Invoke-ADOPipelineSecurity.ps1` (`Get-AdoProjects`, `Get-BuildDefinitions`, `Get-ReleaseDefinitions`, `Get-VariableGroups`) where Org / Project / BuildId / Headers were dereferenced unconditionally. Closes #627; partial progress on #742.
+- test(e2e): wrapper coverage batch 2/5 for #745 — adds orchestrator-pipeline E2E tests for `appinsights`, `loadtesting`, `azure-quota`, `sentinel-incidents`, and `sentinel-coverage`. New file `tests/e2e/Batch2-AzureObservability.E2E.Tests.ps1` follows the batch 1 pattern with per-tool fixtures under `tests/e2e/fixtures/`. Tracker entries E2E-008, E2E-010, E2E-011, E2E-035, E2E-036 graduated to `covered`. 35 new tests, baseline preserved.
 
 ### Fixed
 - fix(ci): swap `.github/workflows/pr-auto-resolve-threads.yml` from the default `GITHUB_TOKEN` to a GitHub App installation token minted via `actions/create-github-app-token@v1` from the new `azure-analyzer-thread-resolver` App, so `resolveReviewThread` no longer fails with `FORBIDDEN` on Copilot Code Review threads. Documented the auth flow, secret rotation, and operator runbook in `docs/operations/copilot-thread-resolution.md`. Dropped the job-level `pull-requests: write` since the workflow `GITHUB_TOKEN` is now read-only and the App token carries the write scope (#604).
@@ -816,21 +826,71 @@ The documentation now leads with the consumer experience, keeps advanced operato
 
 ### Backfilled citations
 
-Pragmatic partial backfill of 69 PRs from the last 100 merged (coverage: PRs #689 to #411). Full historical backfill of all 254 PRs deferred to future doc-sweep to balance completeness vs maintenance overhead. These entries represent actual shipped work; full pull request descriptions are available on GitHub.
+Complete backfill of 128 PRs from the recent sprint (2026-04-15 to 2026-04-23, coverage: PRs #590-#747). These entries represent actual shipped work; full pull request descriptions are available on GitHub.
 
+**Recent sprint backfill (PRs #689-#747)**
+
+- PR #747: fix(main-red): Karpenter -WhatIf side effects + LogAnalytics Source param
+- PR #741: fix(tests): clear suppress flag in MissingTool.Runtime.Tests
+- PR #739: chore(tech-debt): sweep #669 #670 #672 #674
+- PR #738: fix(framework-mapper): repair parse error from #716 (CI hotfix)
+- PR #735: chore: convergence sweep CON-001..005 (#624-#628)
+- PR #733: test(e2e): add wrapper coverage for bicep + infracost + terraform-iac (#663 #664 #665)
+- PR #729: test(e2e): add wrapper coverage for ADO family (#653-#657)
+- PR #726: fix(security+perf): pr-auto-resolve permissions + Collapsible-Tree perf (#604 #631)
+- PR #724: docs(release-blocker): generate tool-catalog.md and permissions-index.md (#528)
+- PR #719: Chore(normalizers): Implement per-family adoption of FindingRow fields
+- PR #717: Automate semver releases with release-please, GitHub Releases, and PSGallery publish flow
+- PR #716: chore(ci): silence Frameworks property warning in framework coverage path
+- PR #715: fix(ci): harden watchdog log extraction against SIGPIPE in pipefail mode
+- PR #714: Chore(ci): replace exit 1 with throw in Resolve-PRReviewThreads
+- PR #712: SEC-002: enforce shared sanitizer contract in Watch-GithubActions
+- PR #711: chore: normalize ADO consumption params to canonical AdoOrg/AdoProject
+- PR #710: chore: converge repo wrapper inputs on RepoPath and RemoteUrl (CON-002)
+- PR #709: Migrate wrapper raw throws to New-FindingError across remaining CON-003 targets
+- PR #708: chore: add ShouldProcess support for side-effecting Falco and AKS Karpenter paths
+- PR #707: chore: clarify identity-correlator manifest dispatch with thin wrapper
+- PR #703: ci: tag all workflow soft-fails with tracked hotfix-debt marker
+- PR #702: Enforce alphabetical ordering in tool manifest with a Pester guard
+- PR #701: Track E2E wrapper parity with manifest-backed matrix and guard test
+- PR #700: Scope Markdown em-dash gate to policy-owned docs and exclude ephemeral agent state
+- PR #697: Add LiveTool tier for wrapper tests with audit results
+- PR #696: test: restore deterministic cross-OS runtime missing-tool integration coverage
+- PR #693: Deduplicate CHANGELOG Unreleased sections into one canonical block
+- PR #692: docs(changelog): add missing 1.2.0 sprint PR citations
+- PR #690: fix(ci): hardening sweep #586 #587 #588
 - PR #689: fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545)
+
+**Mid-sprint backfill (PRs #668-#686)**
+
 - PR #686: fix(ci): pr-auto-rebase job name now evaluates matrix.pr.number expression (#534)
 - PR #684: fix(ci): guard sparse .user payloads in PR Review Gate (#584)
 - PR #683: fix(security): remove duplicate New-FindingError in Schema.ps1 (#671)
 - PR #682: chore(sweep): post-sprint 3-model rubberduck final report + 6 tech-debt issues
 - PR #680: docs(permissions): add copilot-triage to PERMISSIONS.md (DQS-003)
 - PR #679: fix(docs): repair broken README contributing link (DQS-001)
+- PR #668: docs(readme): remove transient maintenance banner (sprint closed)
+
+**Early-sprint backfill (PRs #598-#609)**
+
 - PR #609: chore(consistency): final sentinel sweep - silent-failure intent docs (cat 3 close-out)
+- PR #608: fix(tests): MgPath uses env/param instead of interactive Read-Host (PES-002)
 - PR #607: chore(ci): full workflow consistency sweep - permissions, retries, concurrency
+- PR #605: fix(tests): reconcile Pester skip baseline 35->36 (PES-001)
+- PR #603: fix(sanitize): scrub Infracost JSON output (SEC-001)
 - PR #602: chore(consistency): exhaustive Class A tool-presence inventory (sweep #5)
+- PR #600: fix(docs): resolve README merge-conflict markers (DOC-001)
+- PR #598: fix(docs): reconcile README tool counts (DOC-002)
+
+**Pre-sprint backfill (PRs #590-#597)**
+
 - PR #594: fix(ci): remove duplicate concurrency blocks breaking 5 workflows on main
 - PR #593: chore(consistency): zero-warning wrapper test baseline (sweep #4)
+- PR #592: fix(ci): serialize CodeQL Analyze(actions) runs globally
 - PR #590: fix: suppress rate-limit false-positives in ci-failure-watchdog
+
+**Earlier sprint contributions (PRs #489-#589)**
+
 - PR #589: fix(retry): eliminate Windows full-jitter sleep-count flake
 - PR #571: fix(ci): retry SARIF upload in CodeQL Analyze on installation rate-limit
 - PR #565: chore(consistency): CI transcript hygiene + mock-the-tool-presence pattern (sweep #3 cat 12)
@@ -861,6 +921,9 @@ Pragmatic partial backfill of 69 PRs from the last 100 merged (coverage: PRs #68
 - PR #494: feat: prompt for mandatory scanner parameters (#426)
 - PR #492: feat(ci): auto-rerun failed PR checks on agent branch pushes
 - PR #489: feat: Phase 0 foundation -- schema + tier picker + edge-collector + fixtures (#435)
+
+**Earlier contributions (PRs #411-#488)**
+
 - PR #486: docs(audit): tool output fidelity audit (#432a)
 - PR #481: design(track-f): auditor-driven report redesign architecture (#434)
 - PR #480: fix: silence missing-tool warnings when not explicitly requested (#472)
@@ -868,7 +931,7 @@ Pragmatic partial backfill of 69 PRs from the last 100 merged (coverage: PRs #68
 - PR #465: docs(audit): complete Track D tool-output audit skeleton for Azure/ADO/GitHub wave-1
 - PR #464: feat(preflight): enforce deterministic required-input resolution before tool execution
 - PR #459: fix(ci): recognize docs/design updates in Docs Check
-- PR #457: fix(ci): stop false ÔÇ£untriaged CI failuresÔÇØ in daily digest
+- PR #457: fix(ci): stop false untriaged CI failures in daily digest
 - PR #453: docs: refresh PERMISSIONS/README manifest consistency
 - PR #452: chore: publish open-issue label hygiene and staleness audit (2026-04-22)
 - PR #451: docs: link sample reports in README
@@ -880,7 +943,7 @@ Pragmatic partial backfill of 69 PRs from the last 100 merged (coverage: PRs #68
 - PR #423: feat(schema): add IaCFile EntityType for cross-tool dedup (#413)
 - PR #422: docs(squad): iris inbox + history note for PR #421
 - PR #421: chore(report): regenerate sample-report.md + verify generator path
-- PR #420: chore(squad): scribe sweep ÔÇö archive 17 inbox files into decisions.md post #418
+- PR #420: chore(squad): scribe sweep -- archive 17 inbox files into decisions.md post #418
 - PR #418: feat(report): v2 HTML generator foundations (PR1 of 3)
 - PR #417: chore(squad): merge sprint decisions inbox and log launch-ready state
 - PR #416: fix: prevent HTML report crash on null remediation snippets
