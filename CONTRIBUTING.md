@@ -12,6 +12,19 @@ This is a solo-maintained repository. Contributions are welcome but the maintain
 4. Sign off your commit: `git commit -s -m "feat: describe your change"`
 5. Open a pull request against `main`
 
+## How to contribute (cloud-agent edition)
+
+- **Iterate Until Green**: failures are normal. Keep looping on CI/test failures until the PR is green and merged (don't stop at "blocked").
+- **3-model gate + Comment Triage Loop**: for `squad:copilot` work, triage Copilot comments through the 3-model process, update plan/todos, implement, and re-gate before merge.
+- **Commit trailers**: include `Co-authored-by: Copilot <198982749+Copilot@users.noreply.github.com>` on cloud-agent authored commits.
+- **Branch naming**: use `squad/{issue}-{slug}` or `copilot/{slug}`.
+- **Label lifecycle**: new issues should carry `squad`; `squad:copilot` issues are assigned to the cloud agent and remain tracked until all review threads are resolved.
+- **Where to look first**:
+  - Tool registration: `tools/tool-manifest.json`
+  - Shared infra: `modules/shared/Installer.ps1`, `RemoteClone.ps1`, `Retry.ps1`, `Sanitize.ps1`, `Schema.ps1`, `Canonicalize.ps1`, `EntityStore.ps1`
+  - Normalizer contract: `docs/architecture/normalizer-contract.md`
+  - Security invariants: `.github/copilot-instructions.md` ("Security invariants — enforced")
+
 ## Conventional commits for releases
 
 Release automation uses conventional commits to determine semantic version bumps:

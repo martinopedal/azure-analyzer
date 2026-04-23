@@ -23,6 +23,8 @@ Log Analytics sink error-model hardening (`New-FindingError` migration with mand
 Release automation (release-please, GitHub Releases, and PSGallery publication) introduces repository automation and package feed credentials (`GITHUB_TOKEN`, `PSGALLERY_API_KEY`) only; it does not require any additional Azure, Microsoft Graph, GitHub repository-content write scopes for runtime scanners, or Azure DevOps read scope changes.
 Manifest ordering enforcement (`tools/tool-manifest.json` alphabetical-by-name + `tests/manifest/Manifest.Sorted.Tests.ps1`) is test-only hygiene and introduces no new scopes.
 Resilience map renderer implementation (Track B #429 follow-up) is report-layer logic over existing EntityStore data and introduces no new Azure, Graph, GitHub, or Azure DevOps permissions.
+Wrapper consistency convergence (CON-003/CON-004 error-model and `SupportsShouldProcess` hardening) is contract-level behavior and introduces no new Azure, Graph, GitHub, or Azure DevOps scopes.
+Microsoft Sentinel onboarding/probe hardening from issue #529 remains read-only and continues to require only existing Reader + Log Analytics read permissions documented below.
 
 ## Permission domains at a glance
 

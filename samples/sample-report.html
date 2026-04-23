@@ -120,84 +120,90 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 <header role='banner'>
   <div class='hdr'>
     <div class='brand'><span>Azure Analyzer</span><span class='pill ghost'>v2</span></div>
-    <div class='kpi'><strong>2026-04-21 19:41 UTC</strong></div>
-    <div class='score'><div class='score-text'><span class='num'>D<span style='font-size:11px;color:var(--txtf);font-weight:500'> (9/100)</span></span><span class='lbl'>Posture</span></div></div>
+    <div class='kpi'><strong>2026-04-23 14:24 UTC</strong></div>
+    <div class='score'><div class='score-text'><span class='num'>D<span style='font-size:11px;color:var(--txtf);font-weight:500'> (0/100)</span></span><span class='lbl'>Posture</span></div></div>
     <div class='sev-strip' role='group' aria-label='Findings by severity'>
-      <div class='sev-cnt sev-crit'><span class='n'>1</span><span class='l'>Crit</span></div>
-      <div class='sev-cnt sev-high'><span class='n'>4</span><span class='l'>High</span></div>
-      <div class='sev-cnt sev-med'><span class='n'>5</span><span class='l'>Med</span></div>
-      <div class='sev-cnt sev-low'><span class='n'>0</span><span class='l'>Low</span></div>
+      <div class='sev-cnt sev-crit'><span class='n'>3</span><span class='l'>Crit</span></div>
+      <div class='sev-cnt sev-high'><span class='n'>11</span><span class='l'>High</span></div>
+      <div class='sev-cnt sev-med'><span class='n'>8</span><span class='l'>Med</span></div>
+      <div class='sev-cnt sev-low'><span class='n'>1</span><span class='l'>Low</span></div>
       <div class='sev-cnt sev-info'><span class='n'>0</span><span class='l'>Info</span></div>
     </div>
-    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>37</strong> tools</span><span class='kpi'><strong>3</strong> entities</span><span class='kpi'><strong>9%</strong> compliant</span></div>
+    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>37</strong> tools</span><span class='kpi'><strong>3</strong> entities</span><span class='kpi'><strong>0%</strong> compliant</span></div>
     <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
-<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
+<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#triage'>Triage</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
 <main id='main'>
 <section class='sec' id='overview'>
   <h2>Overview <span class='badge'>executive summary</span></h2>
   <div class='grid2'>
     <div class='card'>
-      <p><strong>Run summary</strong>: scanned <strong>11 findings</strong> across <strong>37 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>9%</strong>.</p>
+      <p><strong>Run summary</strong>: scanned <strong>23 findings</strong> across <strong>37 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>0%</strong>.</p>
       <p>Critical and High findings are prioritized in top risks. Schema 2.2 fields render when present and are skipped when absent.</p>
       <h3 style='margin:14px 0 10px'>Pillar breakdown (non-pass)</h3>
-      <div style='display:flex;flex-direction:column;gap:6px'><div class='pill-row'><span class='name'>Security</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>5</span></div>
-<div class='pill-row'><span class='name'>Cost Optimization</span><div class='bar'><i style='width:80%'></i></div><span class='cnt'>4</span></div>
-<div class='pill-row'><span class='name'>Performance Efficiency</span><div class='bar'><i style='width:20%'></i></div><span class='cnt'>1</span></div></div>
+      <div style='display:flex;flex-direction:column;gap:6px'><div class='pill-row'><span class='name'>Identity</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>7</span></div>
+<div class='pill-row'><span class='name'>Supply Chain</span><div class='bar'><i style='width:57%'></i></div><span class='cnt'>4</span></div>
+<div class='pill-row'><span class='name'>Reliability</span><div class='bar'><i style='width:43%'></i></div><span class='cnt'>3</span></div>
+<div class='pill-row'><span class='name'>CI/CD Security</span><div class='bar'><i style='width:29%'></i></div><span class='cnt'>2</span></div>
+<div class='pill-row'><span class='name'>Governance</span><div class='bar'><i style='width:29%'></i></div><span class='cnt'>2</span></div>
+<div class='pill-row'><span class='name'>Networking</span><div class='bar'><i style='width:29%'></i></div><span class='cnt'>2</span></div>
+<div class='pill-row'><span class='name'>Security</span><div class='bar'><i style='width:29%'></i></div><span class='cnt'>2</span></div>
+<div class='pill-row'><span class='name'>Secret Detection</span><div class='bar'><i style='width:14%'></i></div><span class='cnt'>1</span></div></div>
     </div>
     <div class='card'><h3 style='margin-bottom:10px'>Top recommendations</h3><div id='topRecs'><div class='rec'>
   <span class='pill sev-crit'>Critical</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Azure.KeyVault.SoftDelete");return false;'>Key Vault soft delete disabled</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("MT.1010");return false;'>MT.1010: Breakglass accounts without MFA</a></span><div class='meta'>1 findings · Identity</div></div>
+  <div class='impact'><strong>10</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-crit'>Critical</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("template-injection");return false;'>template-injection: Workflow uses ${{ github.event.issue.title }} in run step</a></span><div class='meta'>1 findings · CI/CD Security</div></div>
+  <div class='impact'><strong>10</strong>impact</div>
+</div>
+<div class='rec'>
+  <span class='pill sev-crit'>Critical</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("trivy-cve-001");return false;'>CVE-2024-24790 (golang.org/x/net)</a></span><div class='meta'>1 findings · Supply Chain</div></div>
   <div class='impact'><strong>10</strong>impact</div>
 </div>
 <div class='rec'>
   <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("ADO.CORR.SECRET");return false;'>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("ado-svc-001");return false;'>Classic (password-based) service connection in use</a></span><div class='meta'>1 findings · Identity</div></div>
   <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
   <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("AZQR.NET.012");return false;'>Internet-exposed management port on NSG</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("alz-net-001");return false;'>Public IP without NSG association</a></span><div class='meta'>1 findings · Networking</div></div>
   <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
   <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("C-0057");return false;'>Privileged container in payments namespace</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("azgovviz-rbac-002");return false;'>Owner role assigned to non-PIM eligible user</a></span><div class='meta'>1 findings · Identity</div></div>
   <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
   <span class='pill sev-high'>High</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Consumption-DurationRegression");return false;'>Pipeline duration regression exceeds budget</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("azqr-kv-002");return false;'>Key Vault soft delete is disabled</a></span><div class='meta'>1 findings · Security</div></div>
   <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("AKS.RIGHT.001");return false;'>AKS node pool over-provisioned</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("azqr-nsg-001");return false;'>NSG allows SSH from any source</a></span><div class='meta'>1 findings · Networking</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("APPINSIGHTS.P95.REGRESSION");return false;'>API p95 latency regressed by 38%</a></span><div class='meta'>1 findings · Performance Efficiency</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("Azure.Storage.SecureTransfer");return false;'>Azure.Storage.SecureTransfer: Storage account requires HTTPS</a></span><div class='meta'>1 findings · Security</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
 </div>
 <div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("FINOPS.APPSERVICE.IDLE");return false;'>Idle App Service Plan spend exceeds threshold</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("GHA-BILLING-BUDGET");return false;'>Runner minute spend trend exceeds weekly budget</a></span><div class='meta'>1 findings · Cost Optimization</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
-</div>
-<div class='rec'>
-  <span class='pill sev-med'>Medium</span>
-  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("SENT-COV-T1190");return false;'>MITRE tactic coverage gap for Initial Access</a></span><div class='meta'>1 findings · Security</div></div>
-  <div class='impact'><strong>2</strong>impact</div>
+  <span class='pill sev-high'>High</span>
+  <div class='body'><span class='ttl'><a href='#findings' onclick='focusRisk("EIDSCA.AG01");return false;'>EIDSCA.AG01: Security defaults disabled, no Conditional Access</a></span><div class='meta'>1 findings · Identity</div></div>
+  <div class='impact'><strong>5</strong>impact</div>
 </div></div></div>
   </div>
 </section>
+<section class='sec' id='triage'><h2>Triage <span class='badge'>AI-assisted</span></h2><div class='card'><p style='margin:0;color:var(--txtf)'>No AI triage output for this run.</p></div></section>
 <section class='sec' id='coverage'><h2>Tool coverage <span class='badge'>37 registered</span></h2><div id='covRoot'><div class='cov-group'>
   <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
     <span class='chev'>▾</span>
@@ -212,8 +218,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>ado</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>ado-consumption</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-consumption</span></div>
 </div>
 <div class='tool '>
   <div class='top'>
@@ -222,8 +228,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>ado</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>ado-pipeline-correlator</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>ado-pipeline-correlator</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -245,15 +251,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>ado-repos-secrets</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>ADO Service Connections</div>
     <span class='scope'>ado</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>ado-connections</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>ado-connections</span></div>
 </div>
   </div>
 </div>
@@ -264,25 +270,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='cnt'>2 tools</span>
   </div>
   <div class='cov-grid'>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>ALZ Resource Graph Queries</div>
     <span class='scope'>managementGroup</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>alz-queries</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--low)' title='1 Low'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>alz-queries</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>AzGovViz</div>
     <span class='scope'>managementGroup</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>azgovviz</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>azgovviz</span></div>
 </div>
   </div>
 </div>
@@ -310,8 +316,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>aks-rightsizing</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>aks-rightsizing</span></div>
 </div>
 <div class='tool '>
   <div class='top'>
@@ -320,8 +326,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>appinsights</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>appinsights</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -349,8 +355,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <div class='name'>Azure Quick Review</div>
     <span class='scope'>subscription</span>
   </div>
-  <div class='pass'><span>50% pass</span><div class='bar'><i style='width:50%'></i></div></div>
-  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i></div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='2 High'></i></div>
   <div class='meta'><span>2 findings</span><span class='mono'>azqr</span></div>
 </div>
 <div class='tool disabled'>
@@ -400,8 +406,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>kubescape</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>kubescape</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -440,18 +446,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--crit)' title='1 Critical'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>psrule</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>psrule</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Well-Architected Reliability Assessment</div>
     <span class='scope'>subscription</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>wara</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>wara</span></div>
 </div>
   </div>
 </div>
@@ -479,8 +485,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>workspace</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>sentinel-coverage</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>sentinel-coverage</span></div>
 </div>
   </div>
 </div>
@@ -511,15 +517,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>copilot-triage</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>gitleaks (Secrets Scanner)</div>
     <span class='scope'>repository</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>gitleaks</span></div>
+  <div class='stack'><i style='width:100%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>1 findings</span><span class='mono'>gitleaks</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -541,25 +547,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>terraform-iac</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Trivy Vulnerability Scanner</div>
     <span class='scope'>repository</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>trivy</span></div>
+  <div class='stack'><i style='width:50%;background:var(--crit)' title='1 Critical'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>trivy</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>zizmor (Actions YAML Scanner)</div>
     <span class='scope'>repository</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>zizmor</span></div>
+  <div class='stack'><i style='width:50%;background:var(--crit)' title='1 Critical'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>zizmor</span></div>
 </div>
   </div>
 </div>
@@ -577,18 +583,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='scope'>repository</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--med)' title='1 Medium'></i></div>
-  <div class='meta'><span>1 findings</span><span class='mono'>gh-actions-billing</span></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>gh-actions-billing</span></div>
 </div>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>OpenSSF Scorecard</div>
     <span class='scope'>repository</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>scorecard</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>scorecard</span></div>
 </div>
   </div>
 </div>
@@ -599,15 +605,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='cnt'>2 tools</span>
   </div>
   <div class='cov-grid'>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Identity Correlator</div>
     <span class='scope'>tenant</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>identity-correlator</span></div>
+  <div class='stack'><i style='width:50%;background:var(--high)' title='1 High'></i><i style='width:50%;background:var(--med)' title='1 Medium'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>identity-correlator</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -628,15 +634,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <span class='cnt'>1 tools</span>
   </div>
   <div class='cov-grid'>
-<div class='tool disabled'>
+<div class='tool '>
   <div class='top'>
     <div class='ico'>●</div>
     <div class='name'>Maester</div>
     <span class='scope'>tenant</span>
   </div>
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
-  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
-  <div class='meta'><span>0 findings</span><span class='mono'>maester</span></div>
+  <div class='stack'><i style='width:50%;background:var(--crit)' title='1 Critical'></i><i style='width:50%;background:var(--high)' title='1 High'></i></div>
+  <div class='meta'><span>2 findings</span><span class='mono'>maester</span></div>
 </div>
   </div>
 </div></div></section>
@@ -655,26 +661,62 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 <section class='sec' id='risks'><h2>Top risks <span class='badge'>ranked by impact</span></h2><div class='risks' id='risksRoot'><div class='risk'>
   <span class='pill sev-crit'>Critical</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("Azure.KeyVault.SoftDelete");return false;'>Key Vault soft delete disabled</a></div>
-    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-mcsb' title='MCSB'>MCSB</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("MT.1010");return false;'>MT.1010: Breakglass accounts without MFA</a></div>
+    <div class='meta'>Identity · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>PSRule for Azure</span>
+  <span class='tool-tag'>Maester</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-crit'>Critical</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("template-injection");return false;'>template-injection: Workflow uses ${{ github.event.issue.title }} in run step</a></div>
+    <div class='meta'>CI/CD Security · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>zizmor (Actions YAML Scanner)</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-crit'>Critical</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("trivy-cve-001");return false;'>CVE-2024-24790 (golang.org/x/net)</a></div>
+    <div class='meta'>Supply Chain · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>Trivy Vulnerability Scanner</span>
   <div class='count'><strong>1</strong>findings</div>
 </div>
 <div class='risk'>
   <span class='pill sev-high'>High</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("ADO.CORR.SECRET");return false;'>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</a></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("ado-svc-001");return false;'>Classic (password-based) service connection in use</a></div>
+    <div class='meta'>Identity · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>ADO Service Connections</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("alz-net-001");return false;'>Public IP without NSG association</a></div>
+    <div class='meta'>Networking · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>ALZ Resource Graph Queries</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("azgovviz-rbac-002");return false;'>Owner role assigned to non-PIM eligible user</a></div>
+    <div class='meta'>Identity · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+  </div>
+  <span class='tool-tag'>AzGovViz</span>
+  <div class='count'><strong>1</strong>findings</div>
+</div>
+<div class='risk'>
+  <span class='pill sev-high'>High</span>
+  <div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("azqr-kv-002");return false;'>Key Vault soft delete is disabled</a></div>
     <div class='meta'>Security · <span class="faint" style="font-size:11px">no framework mapping</span></div>
-  </div>
-  <span class='tool-tag'>ADO Pipeline Run Correlator</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-high'>High</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("AZQR.NET.012");return false;'>Internet-exposed management port on NSG</a></div>
-    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span><span class='fw fw-default' title='PCI DSS'>PCI DSS</span></div>
   </div>
   <span class='tool-tag'>Azure Quick Review</span>
   <div class='count'><strong>1</strong>findings</div>
@@ -682,68 +724,32 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 <div class='risk'>
   <span class='pill sev-high'>High</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("C-0057");return false;'>Privileged container in payments namespace</a></div>
-    <div class='meta'>Security · <span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-default' title='NSA'>NSA</span><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("azqr-nsg-001");return false;'>NSG allows SSH from any source</a></div>
+    <div class='meta'>Networking · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>Kubescape (AKS runtime posture)</span>
+  <span class='tool-tag'>Azure Quick Review</span>
   <div class='count'><strong>1</strong>findings</div>
 </div>
 <div class='risk'>
   <span class='pill sev-high'>High</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("Consumption-DurationRegression");return false;'>Pipeline duration regression exceeds budget</a></div>
-    <div class='meta'>Cost Optimization · <span class="faint" style="font-size:11px">no framework mapping</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("Azure.Storage.SecureTransfer");return false;'>Azure.Storage.SecureTransfer: Storage account requires HTTPS</a></div>
+    <div class='meta'>Security · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>ADO Pipeline Consumption</span>
+  <span class='tool-tag'>PSRule for Azure</span>
   <div class='count'><strong>1</strong>findings</div>
 </div>
 <div class='risk'>
-  <span class='pill sev-med'>Medium</span>
+  <span class='pill sev-high'>High</span>
   <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("AKS.RIGHT.001");return false;'>AKS node pool over-provisioned</a></div>
-    <div class='meta'>Cost Optimization · <span class='fw fw-waf' title='WAF'>WAF</span></div>
+    <div class='ttl'><a href='#findings' onclick='focusRisk("EIDSCA.AG01");return false;'>EIDSCA.AG01: Security defaults disabled, no Conditional Access</a></div>
+    <div class='meta'>Identity · <span class="faint" style="font-size:11px">no framework mapping</span></div>
   </div>
-  <span class='tool-tag'>AKS Rightsizing (Container Insights utilization)</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("APPINSIGHTS.P95.REGRESSION");return false;'>API p95 latency regressed by 38%</a></div>
-    <div class='meta'>Performance Efficiency · <span class='fw fw-waf' title='WAF'>WAF</span></div>
-  </div>
-  <span class='tool-tag'>Application Insights Performance Signals</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("FINOPS.APPSERVICE.IDLE");return false;'>Idle App Service Plan spend exceeds threshold</a></div>
-    <div class='meta'>Cost Optimization · <span class='fw fw-waf' title='WAF'>WAF</span></div>
-  </div>
-  <span class='tool-tag'>finops-signals</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("GHA-BILLING-BUDGET");return false;'>Runner minute spend trend exceeds weekly budget</a></div>
-    <div class='meta'>Cost Optimization · <span class='fw fw-soc' title='SOC2'>SOC2</span></div>
-  </div>
-  <span class='tool-tag'>GitHub Actions Billing</span>
-  <div class='count'><strong>1</strong>findings</div>
-</div>
-<div class='risk'>
-  <span class='pill sev-med'>Medium</span>
-  <div>
-    <div class='ttl'><a href='#findings' onclick='focusRisk("SENT-COV-T1190");return false;'>MITRE tactic coverage gap for Initial Access</a></div>
-    <div class='meta'>Security · <span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span></div>
-  </div>
-  <span class='tool-tag'>Microsoft Sentinel (Coverage / Posture)</span>
+  <span class='tool-tag'>Maester</span>
   <div class='count'><strong>1</strong>findings</div>
 </div></div></section>
 <section class='sec' id='findings'>
-  <h2>Findings <span class='badge' id='fndCountBadge'>11 of 11</span></h2>
+  <h2>Findings <span class='badge' id='fndCountBadge'>23 of 23</span></h2>
   <div class='fnd-toolbar'>
     <input type='search' id='fndSearch' placeholder='Search rule, entity, message' aria-label='Search findings'>
     <div class='sev-filter' role='group' aria-label='Severity filter'>
@@ -757,383 +763,694 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <table class='fnd-table' id='fndTable'>
     <thead><tr><th data-sort='severity' class='sorted'>Sev <span class='arr'>▾</span></th><th data-sort='rule'>Rule <span class='arr'>▾</span></th><th data-sort='entity'>Entity <span class='arr'>▾</span></th><th data-sort='sub'>Subscription <span class='arr'>▾</span></th><th data-sort='tool'>Tool <span class='arr'>▾</span></th><th data-sort='status'>Status <span class='arr'>▾</span></th></tr></thead>
     <tbody id='fndBody'>
-<tr class='row s-high' data-id='azqr-net-001' data-severity='high' data-rule='AZQR.NET.012' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge' data-sub='11111111-1111-1111-1111-111111111111' data-tool='azqr' data-status='Fail'>
+<tr class='row s-high' data-id='azqr-nsg-001' data-severity='high' data-rule='azqr-nsg-001' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend' data-sub='00000000-1111-2222-3333-444444444444' data-tool='azqr' data-status='Fail'>
   <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>AZQR.NET.012</span>Internet-exposed management port on NSG</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span><span class='fw fw-default' title='PCI DSS'>PCI DSS</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-net</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
+  <td><div style='font-weight:600'><span class='rule-id'>azqr-nsg-001</span>NSG allows SSH from any source</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Networking</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend</div><div class='faint' style='font-size:11px'> · rg-prod-net</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
   <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
   <td><span class='pill sev-high'>Fail</span></td>
 </tr>
-<tr class='expand' data-parent-id='azqr-net-001' hidden>
+<tr class='expand' data-parent-id='azqr-nsg-001' hidden>
   <td colspan='6'><div class='ev-grid'>
     <div class='ev'>
       <h4>Description</h4>
-      <p>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</p>
+      <p>Network Security Group allows SSH (port 22) from any source address.</p>
       <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>NSG nsg-payments-edge allows RDP (3389) from 0.0.0.0/0.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:ga, internet-exposed</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Restrict inbound access to JIT or approved source ranges.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
-      <details style='margin-top:8px'><summary>Snippet (azurecli)</summary><pre>az network nsg rule update --resource-group rg-payments-net --nsg-name nsg-payments-edge --name Allow-RDP --source-address-prefixes 10.0.0.0/24</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>/subscriptions/11111111-1111-1111-1111-111111111111
-nsg:nsg-payments-edge</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-crit' data-id='psrule-kv-001' data-severity='crit' data-rule='Azure.KeyVault.SoftDelete' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='psrule' data-status='Fail'>
-  <td><span class='pill sev-crit'>Critical</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>Azure.KeyVault.SoftDelete</span>Key Vault soft delete disabled</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-mcsb' title='MCSB'>MCSB</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-sec</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#6a1b9a;border-color:#6a1b9a;color:#fff'>PSRule for Azure</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='psrule-kv-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Key Vault kv-payments-prod has soft delete disabled and purge protection off.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:ga, keyvault</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Enable soft delete and purge protection on production Key Vaults.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Low</p>
-      <details style='margin-top:8px'><summary>Snippet (bicep)</summary><pre>resource kv &#39;Microsoft.KeyVault/vaults@2023-07-01&#39; existing = { name: &#39;kv-payments-prod&#39; }
-resource kvPatch &#39;Microsoft.KeyVault/vaults@2023-07-01&#39; = {
-  name: kv.name
-  properties: {
-    enableSoftDelete: true
-    enablePurgeProtection: true
-  }
-}</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>/subscriptions/11111111-1111-1111-1111-111111111111
-kv:kv-payments-prod</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/key-vault/general/overview' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-high' data-id='kubescape-001' data-severity='high' data-rule='C-0057' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments' data-sub='11111111-1111-1111-1111-111111111111' data-tool='kubescape' data-status='Fail'>
-  <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>C-0057</span>Privileged container in payments namespace</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span><span class='fw fw-default' title='NSA'>NSA</span><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments</div><div class='faint' style='font-size:11px'>AzureResource · rg-aks-prod</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#7b1fa2;border-color:#7b1fa2;color:#fff'>Kubescape (AKS runtime posture)</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='kubescape-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Deployment payments-api uses privileged=true in one container.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Deployment payments-api uses privileged=true in one container.</pre>
-      <div class='links'><a href='https://hub.armosec.io/docs/c-0057' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://attack.mitre.org/techniques/T1611/' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      <h4 style='margin-top:10px'>MITRE</h4><p>Tactics: Privilege Escalation<br>Techniques: T1611</p>
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>nsa, cis, mitreattck</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Drop privileged mode and enforce Pod Security Standards.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
-      <details style='margin-top:8px'><summary>Snippet (yaml)</summary><pre>securityContext:
-  privileged: false
-  allowPrivilegeEscalation: false</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>cluster:aks-prod-payments
-namespace:payments
-workload:payments-api</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='sentinel-coverage-001' data-severity='med' data-rule='SENT-COV-T1190' data-entity='/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01' data-sub='22222222-2222-2222-2222-222222222222' data-tool='sentinel-coverage' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>SENT-COV-T1190</span>MITRE tactic coverage gap for Initial Access</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-mitre' title='MITRE ATT&amp;CK'>MITRE ATT&amp;CK</span><span class='fw fw-nist' title='NIST 800-53'>NIST 800-53</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01</div><div class='faint' style='font-size:11px'>AzureResource · rg-sec</div></td>
-  <td>22222222-2222-2222-2222-222222222222</td>
-  <td><span class='tool-chip' style='background:#3949ab;border-color:#3949ab;color:#fff'>Microsoft Sentinel (Coverage / Posture)</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='sentinel-coverage-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>No enabled analytics rules mapped to Initial Access in the last 14 days.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>No enabled analytics rules mapped to Initial Access in the last 14 days.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/sentinel/detect-threats-custom' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://attack.mitre.org/tactics/TA0001/' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      <h4 style='margin-top:10px'>MITRE</h4><p>Tactics: Initial Access<br>Techniques: T1190</p>
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>correlation-gap, mitre</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Enable analytics for external-facing service exploitation and suspicious sign-ins.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium</p>
-      
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>workspace:law-sec-01
-mitre:TA0001
-mitre:T1190</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/sentinel/detect-threats-custom' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-high' data-id='ado-corr-001' data-severity='high' data-rule='ADO.CORR.SECRET' data-entity='ado://contoso/payments/pipeline/55' data-sub='' data-tool='ado-pipeline-correlator' data-status='Fail'>
-  <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>ADO.CORR.SECRET</span>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
-  <td><div class='mono' style='font-size:12px'>ado://contoso/payments/pipeline/55</div><div class='faint' style='font-size:11px'>Pipeline · </div></td>
-  <td></td>
-  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>ADO Pipeline Run Correlator</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='ado-corr-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Secret finding secret-9 commit abcdef1234567890 correlated to build 8201 in payments-ci.</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201&amp;view=logs' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>correlated-direct, secret-category:github-pat</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Rotate affected secret, audit variable groups, and inspect downstream artifacts.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium</p>
-      <details style='margin-top:8px'><summary>Snippet (text)</summary><pre>1) Rotate leaked credentials.
-2) Inspect pipeline variable groups and service connections.
-3) Verify artifact consumers and deployment logs.</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>finding:secret-9
-pipeline:ado://contoso/payments/pipeline/55
-build:8201
-repository:ado://contoso/payments/repository/payments-api
-commit:abcdef1234567890</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build/results?buildId=8201&amp;view=results' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='appi-001' data-severity='med' data-rule='APPINSIGHTS.P95.REGRESSION' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai' data-sub='11111111-1111-1111-1111-111111111111' data-tool='appinsights' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>APPINSIGHTS.P95.REGRESSION</span>API p95 latency regressed by 38%</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Performance Efficiency</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-app</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>Application Insights Performance Signals</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='appi-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>payments-api p95 latency increased from 420ms to 580ms after release 2026.04.21.3.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/azure-monitor/app/app-map' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>release:canary, latency-regression</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Profile hot endpoints and reduce dependency latency in checkout path.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium<br>Score delta: 38</p>
-      <details style='margin-top:8px'><summary>Snippet (kusto)</summary><pre>requests
-| where cloud_RoleName == &quot;payments-api&quot;
-| summarize p95=percentile(duration,95) by bin(timestamp, 1h)</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>appinsights:payments-api-ai
-service:checkout</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='finops-001' data-severity='med' data-rule='FINOPS.APPSERVICE.IDLE' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='finops-signals' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>FINOPS.APPSERVICE.IDLE</span>Idle App Service Plan spend exceeds threshold</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-app</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip'>finops-signals</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='finops-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>App Service Plan asp-payments-prod spent $1420 with avg CPU below 6% for 14 days.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/app-service/overview-hosting-plans' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>cost-hotspot, release:ga</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Right-size to P1v3 or consolidate workloads into shared plan.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Low<br>Score delta: 1420</p>
-      <details style='margin-top:8px'><summary>Snippet (text)</summary><pre>Downsize to P1v3 and set autoscale max instances to 2.</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>plan:asp-payments-prod
-subscription:11111111-1111-1111-1111-111111111111</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-high' data-id='ado-consume-001' data-severity='high' data-rule='Consumption-DurationRegression' data-entity='ado://contoso/payments/pipeline/55' data-sub='' data-tool='ado-consumption' data-status='Fail'>
-  <td><span class='pill sev-high'>High</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>Consumption-DurationRegression</span>Pipeline duration regression exceeds budget</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>ado://contoso/payments/pipeline/55</div><div class='faint' style='font-size:11px'>Pipeline · </div></td>
-  <td></td>
-  <td><span class='tool-chip' style='background:#5e35b1;border-color:#5e35b1;color:#fff'>ADO Pipeline Consumption</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='ado-consume-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>payments-ci average duration increased by 44% week-over-week.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>payments-ci average duration increased by 44% week-over-week.</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_analytics' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/devops/pipelines/process/phases' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>duration-regression, minutes</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Parallelize tests and cache dependencies for build stages.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: High<br>Effort: Medium<br>Score delta: 44</p>
-      
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>pipeline:ado://contoso/payments/pipeline/55
-project:ado://contoso/payments/project/payments</pre>
-      <div class='links'><a href='https://dev.azure.com/contoso/payments/_build?definitionId=55' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='gh-billing-001' data-severity='med' data-rule='GHA-BILLING-BUDGET' data-entity='github.com/contoso/payments-api' data-sub='' data-tool='gh-actions-billing' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>GHA-BILLING-BUDGET</span>Runner minute spend trend exceeds weekly budget</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-soc' title='SOC2'>SOC2</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>github.com/contoso/payments-api</div><div class='faint' style='font-size:11px'>Repository · </div></td>
-  <td></td>
-  <td><span class='tool-chip' style='background:#8e24aa;border-color:#8e24aa;color:#fff'>GitHub Actions Billing</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='gh-billing-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Repository contoso/payments-api consumed 19k minutes, 32% above weekly target.</pre>
-      <div class='links'><a href='https://github.com/contoso/payments-api/actions' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://github.com/contoso/payments-api/settings/actions' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>runner-minutes, budget</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Enable path filters and reduce redundant workflow triggers.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Low<br>Score delta: 32</p>
-      
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>repo:github.com/contoso/payments-api
-workflow:.github/workflows/ci.yml</pre>
-      <div class='links'><a href='https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-med' data-id='aks-right-001' data-severity='med' data-rule='AKS.RIGHT.001' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments' data-sub='11111111-1111-1111-1111-111111111111' data-tool='aks-rightsizing' data-status='Fail'>
-  <td><span class='pill sev-med'>Medium</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>AKS.RIGHT.001</span>AKS node pool over-provisioned</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-waf' title='WAF'>WAF</span> <span class='faint' style='margin-left:6px'>Cost Optimization</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments</div><div class='faint' style='font-size:11px'>AzureResource · rg-aks-prod</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#2e7d32;border-color:#2e7d32;color:#fff'>AKS Rightsizing (Container Insights utilization)</span></td>
-  <td><span class='pill sev-high'>Fail</span></td>
-</tr>
-<tr class='expand' data-parent-id='aks-right-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Node pool usernp average CPU 11% and memory 18% over 7 days.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Node pool usernp average CPU 11% and memory 18% over 7 days.</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/aks/resize-node-pool' target='_blank' rel='noopener noreferrer'>Evidence link</a><a href='https://learn.microsoft.com/azure/aks/cluster-autoscaler' target='_blank' rel='noopener noreferrer'>Evidence link</a></div>
-      
-      <h4 style='margin-top:10px'>Baseline tags</h4><p>rightsizing, cluster-autoscaler</p>
-    </div>
-    <div class='ev'>
-      <h4>Remediation</h4>
-      <p>Reduce min node count from 6 to 3 and enable cluster autoscaler profile.</p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Medium<br>Effort: Medium<br>Score delta: 1200</p>
-      <details style='margin-top:8px'><summary>Snippet (bash)</summary><pre>az aks nodepool update -g rg-aks-prod --cluster-name aks-prod-payments -n usernp --min-count 3 --max-count 10</pre></details>
-      <h4 style='margin-top:10px'>Entity refs</h4><pre>cluster:aks-prod-payments
-nodepool:usernp</pre>
-      <div class='links'><a href='https://learn.microsoft.com/azure/aks/resize-node-pool' target='_blank' rel='noopener noreferrer'>Open deep link</a></div>
-    </div>
-  </div></td>
-</tr>
-<tr class='row s-low' data-id='azqr-pass-001' data-severity='low' data-rule='AZQR.KV.LOG' data-entity='/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod' data-sub='11111111-1111-1111-1111-111111111111' data-tool='azqr' data-status='Pass'>
-  <td><span class='pill sev-low'>Low</span></td>
-  <td><div style='font-weight:600'><span class='rule-id'>AZQR.KV.LOG</span>Diagnostic settings configured for Key Vault</div><div style='font-size:11.5px;margin-top:3px'><span class='fw fw-cis' title='CIS'>CIS</span> <span class='faint' style='margin-left:6px'>Operational Excellence</span></div></td>
-  <td><div class='mono' style='font-size:12px'>/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod</div><div class='faint' style='font-size:11px'>AzureResource · rg-payments-sec</div></td>
-  <td>11111111-1111-1111-1111-111111111111</td>
-  <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
-  <td><span class='pill sev-pass'>Pass</span></td>
-</tr>
-<tr class='expand' data-parent-id='azqr-pass-001' hidden>
-  <td colspan='6'><div class='ev-grid'>
-    <div class='ev'>
-      <h4>Description</h4>
-      <p>Key Vault kv-payments-prod streams audit logs to Log Analytics.</p>
-      <h4 style='margin-top:10px'>Evidence</h4>
-      <pre>Key Vault kv-payments-prod streams audit logs to Log Analytics.</pre>
+      <pre>Network Security Group allows SSH (port 22) from any source address.</pre>
       <div class='links'></div>
       
       
     </div>
     <div class='ev'>
       <h4>Remediation</h4>
-      <p></p>
-      <h4 style='margin-top:10px'>Impact and effort</h4><p>Impact: Low<br>Effort: Low</p>
+      <p>Restrict SSH access to specific IP ranges or use Azure Bastion.</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='azqr-kv-002' data-severity='high' data-rule='azqr-kv-002' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-sec/providers/Microsoft.KeyVault/vaults/kv-prod-secrets' data-sub='00000000-1111-2222-3333-444444444444' data-tool='azqr' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>azqr-kv-002</span>Key Vault soft delete is disabled</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-sec/providers/Microsoft.KeyVault/vaults/kv-prod-secrets</div><div class='faint' style='font-size:11px'> · rg-prod-sec</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#1565c0;border-color:#1565c0;color:#fff'>Azure Quick Review</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='azqr-kv-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Key Vault &#39;kv-prod-secrets&#39; does not have soft delete enabled.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Key Vault &#39;kv-prod-secrets&#39; does not have soft delete enabled.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable soft delete on the Key Vault with a minimum retention of 7 days.</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='psrule-sa-001' data-severity='high' data-rule='Azure.Storage.SecureTransfer' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stprodlogs' data-sub='00000000-1111-2222-3333-444444444444' data-tool='psrule' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>Azure.Storage.SecureTransfer</span>Azure.Storage.SecureTransfer: Storage account requires HTTPS</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stprodlogs</div><div class='faint' style='font-size:11px'> · rg-prod-data</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#6a1b9a;border-color:#6a1b9a;color:#fff'>PSRule for Azure</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='psrule-sa-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Storage account &#39;stprodlogs&#39; allows unencrypted HTTP traffic.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Storage account &#39;stprodlogs&#39; allows unencrypted HTTP traffic.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Set supportsHttpsTrafficOnly=true on the storage account.</p>
+      
+      
+      
+      <div class='links'><a href='https://azure.github.io/PSRule.Rules.Azure/en/rules/Azure.Storage.SecureTransfer/' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='psrule-vm-002' data-severity='med' data-rule='Azure.VM.AvailabilityZone' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-web/providers/Microsoft.Compute/virtualMachines/vm-prod-web-01' data-sub='00000000-1111-2222-3333-444444444444' data-tool='psrule' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>Azure.VM.AvailabilityZone</span>Azure.VM.AvailabilityZone: VM not deployed to availability zone</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Reliability</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-web/providers/Microsoft.Compute/virtualMachines/vm-prod-web-01</div><div class='faint' style='font-size:11px'> · rg-prod-web</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#6a1b9a;border-color:#6a1b9a;color:#fff'>PSRule for Azure</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='psrule-vm-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Virtual machine &#39;vm-prod-web-01&#39; has no availability zone assigned.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Virtual machine &#39;vm-prod-web-01&#39; has no availability zone assigned.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Redeploy the VM with an explicit availabilityZone (1, 2, or 3).</p>
+      
+      
+      
+      <div class='links'><a href='https://azure.github.io/PSRule.Rules.Azure/' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='azgovviz-pol-001' data-severity='med' data-rule='azgovviz-pol-001' data-entity='/providers/Microsoft.Management/managementGroups/contoso-root' data-sub='' data-tool='azgovviz' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>azgovviz-pol-001</span>Built-in policy &#39;Audit VMs without Azure Monitor agent&#39; not assigned</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Governance</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/providers/Microsoft.Management/managementGroups/contoso-root</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>AzGovViz</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='azgovviz-pol-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Recommended built-in policy is not assigned at the management group scope.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Recommended built-in policy is not assigned at the management group scope.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Assign the &#39;Audit VMs without Azure Monitor agent&#39; policy at the tenant root MG.</p>
+      
+      
+      
+      <div class='links'><a href='https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='azgovviz-rbac-002' data-severity='high' data-rule='azgovviz-rbac-002' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444' data-sub='00000000-1111-2222-3333-444444444444' data-tool='azgovviz' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>azgovviz-rbac-002</span>Owner role assigned to non-PIM eligible user</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#00838f;border-color:#00838f;color:#fff'>AzGovViz</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='azgovviz-rbac-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>User &#39;alice@contoso.com&#39; holds a permanent Owner assignment on subscription &#39;prod-01&#39;.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>User &#39;alice@contoso.com&#39; holds a permanent Owner assignment on subscription &#39;prod-01&#39;.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Convert the permanent assignment to PIM-eligible with JIT activation.</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-configure' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='alz-net-001' data-severity='high' data-rule='alz-net-001' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/publicIPAddresses/pip-prod-lb' data-sub='00000000-1111-2222-3333-444444444444' data-tool='alz-queries' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>alz-net-001</span>Public IP without NSG association</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Networking</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/publicIPAddresses/pip-prod-lb</div><div class='faint' style='font-size:11px'> · rg-prod-net</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#e65100;border-color:#e65100;color:#fff'>ALZ Resource Graph Queries</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='alz-net-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Public IP &#39;pip-prod-lb&#39; is attached to a NIC that has no associated NSG.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Public IP &#39;pip-prod-lb&#39; is attached to a NIC that has no associated NSG.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Attach an NSG to the NIC or subnet; deny inbound by default.</p>
+      
+      
+      
+      <div class='links'><a href='https://github.com/martinopedal/alz-graph-queries' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-low' data-id='alz-tag-002' data-severity='low' data-rule='alz-tag-002' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444' data-sub='00000000-1111-2222-3333-444444444444' data-tool='alz-queries' data-status='Fail'>
+  <td><span class='pill sev-low'>Low</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>alz-tag-002</span>Resource missing required tag &#39;owner&#39;</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Governance</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#e65100;border-color:#e65100;color:#fff'>ALZ Resource Graph Queries</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='alz-tag-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>12 resources in subscription &#39;prod-01&#39; are missing the required &#39;owner&#39; tag.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>12 resources in subscription &#39;prod-01&#39; are missing the required &#39;owner&#39; tag.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Apply tags via Azure Policy &#39;Require a tag on resources&#39;.</p>
+      
+      
+      
+      <div class='links'><a href='https://github.com/martinopedal/alz-graph-queries' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='wara-sql-001' data-severity='high' data-rule='wara-sql-001' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod/databases/sqldb-prod-orders' data-sub='00000000-1111-2222-3333-444444444444' data-tool='wara' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>wara-sql-001</span>SQL Database has no active geo-replication</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Reliability</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod/databases/sqldb-prod-orders</div><div class='faint' style='font-size:11px'> · rg-prod-data</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#2e7d32;border-color:#2e7d32;color:#fff'>Well-Architected Reliability Assessment</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='wara-sql-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>SQL database &#39;sqldb-prod-orders&#39; has no secondary replica configured.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>SQL database &#39;sqldb-prod-orders&#39; has no secondary replica configured.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable active geo-replication or failover groups for critical databases.</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/azure/azure-sql/database/active-geo-replication-overview' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='wara-aks-002' data-severity='med' data-rule='wara-aks-002' data-entity='/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-aks/providers/Microsoft.ContainerService/managedClusters/aks-prod-apps' data-sub='00000000-1111-2222-3333-444444444444' data-tool='wara' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>wara-aks-002</span>AKS cluster has no SLA tier enabled</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Reliability</span></div></td>
+  <td><div class='mono' style='font-size:12px'>/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-aks/providers/Microsoft.ContainerService/managedClusters/aks-prod-apps</div><div class='faint' style='font-size:11px'> · rg-prod-aks</div></td>
+  <td>00000000-1111-2222-3333-444444444444</td>
+  <td><span class='tool-chip' style='background:#2e7d32;border-color:#2e7d32;color:#fff'>Well-Architected Reliability Assessment</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='wara-aks-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>AKS cluster &#39;aks-prod-apps&#39; is running on the Free tier without uptime SLA.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>AKS cluster &#39;aks-prod-apps&#39; is running on the Free tier without uptime SLA.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Upgrade to Standard tier to get 99.95% uptime SLA on the control plane.</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/azure/aks/uptime-sla' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-crit' data-id='maester-mfa-001' data-severity='crit' data-rule='MT.1010' data-entity='tenant:11111111-2222-3333-4444-555555555555' data-sub='' data-tool='maester' data-status='Fail'>
+  <td><span class='pill sev-crit'>Critical</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>MT.1010</span>MT.1010: Breakglass accounts without MFA</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>tenant:11111111-2222-3333-4444-555555555555</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#7b1fa2;border-color:#7b1fa2;color:#fff'>Maester</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='maester-mfa-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>2 of 2 breakglass accounts have no MFA registered.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>2 of 2 breakglass accounts have no MFA registered.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Register FIDO2 keys for all breakglass accounts; review per NIST SP 800-63.</p>
+      
+      
+      
+      <div class='links'><a href='https://maester.dev/docs/tests/MT.1010' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='maester-eidsca-002' data-severity='high' data-rule='EIDSCA.AG01' data-entity='tenant:11111111-2222-3333-4444-555555555555' data-sub='' data-tool='maester' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>EIDSCA.AG01</span>EIDSCA.AG01: Security defaults disabled, no Conditional Access</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>tenant:11111111-2222-3333-4444-555555555555</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#7b1fa2;border-color:#7b1fa2;color:#fff'>Maester</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='maester-eidsca-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Tenant has security defaults off and fewer than 2 baseline CA policies.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Tenant has security defaults off and fewer than 2 baseline CA policies.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Deploy baseline Conditional Access policies covering MFA, legacy auth block, and risky sign-ins.</p>
+      
+      
+      
+      <div class='links'><a href='https://maester.dev/docs/tests/EIDSCA.AG01' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='scorecard-branchprot-001' data-severity='high' data-rule='scorecard-branchprot-001' data-entity='github.com/contoso/azure-landing-zone' data-sub='' data-tool='scorecard' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>scorecard-branchprot-001</span>Branch-Protection score 3/10</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Supply Chain</span></div></td>
+  <td><div class='mono' style='font-size:12px'>github.com/contoso/azure-landing-zone</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#ff6f00;border-color:#ff6f00;color:#fff'>OpenSSF Scorecard</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='scorecard-branchprot-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Default branch &#39;main&#39; allows force-push and does not require code review.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Default branch &#39;main&#39; allows force-push and does not require code review.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Enable required reviews, linear history, and prohibit force-push on protected branches.</p>
+      
+      
+      
+      <div class='links'><a href='https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='scorecard-pinned-002' data-severity='med' data-rule='scorecard-pinned-002' data-entity='github.com/contoso/azure-landing-zone' data-sub='' data-tool='scorecard' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>scorecard-pinned-002</span>Pinned-Dependencies score 5/10</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Supply Chain</span></div></td>
+  <td><div class='mono' style='font-size:12px'>github.com/contoso/azure-landing-zone</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#ff6f00;border-color:#ff6f00;color:#fff'>OpenSSF Scorecard</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='scorecard-pinned-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>3 GitHub Actions in .github/workflows are pinned by tag rather than SHA.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>3 GitHub Actions in .github/workflows are pinned by tag rather than SHA.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Replace tag references (e.g. @v4) with full 40-char SHAs and add Dependabot for updates.</p>
+      
+      
+      
+      <div class='links'><a href='https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='ado-svc-001' data-severity='high' data-rule='ado-svc-001' data-entity='ado://contoso/Platform/serviceEndpoint/prod-deploy' data-sub='' data-tool='ado-connections' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>ado-svc-001</span>Classic (password-based) service connection in use</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>ado://contoso/Platform/serviceEndpoint/prod-deploy</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#0078d4;border-color:#0078d4;color:#fff'>ADO Service Connections</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='ado-svc-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Service connection &#39;prod-deploy&#39; authenticates with a client secret instead of workload identity federation.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Service connection &#39;prod-deploy&#39; authenticates with a client secret instead of workload identity federation.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Migrate the service connection to Workload Identity Federation (OIDC).</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/azure/devops/pipelines/release/configure-workload-identity' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='ado-svc-002' data-severity='med' data-rule='ado-svc-002' data-entity='ado://contoso/Platform/serviceEndpoint/prod-deploy' data-sub='' data-tool='ado-connections' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>ado-svc-002</span>Service connection grants Contributor at subscription scope</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>ado://contoso/Platform/serviceEndpoint/prod-deploy</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#0078d4;border-color:#0078d4;color:#fff'>ADO Service Connections</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='ado-svc-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>&#39;prod-deploy&#39; has Contributor on the entire prod subscription.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>&#39;prod-deploy&#39; has Contributor on the entire prod subscription.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Scope the service connection to a single resource group or use fine-grained roles.</p>
+      
+      
+      
+      <div class='links'><a href='https://learn.microsoft.com/azure/role-based-access-control/best-practices' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='identity-corr-001' data-severity='high' data-rule='identity-corr-001' data-entity='appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' data-sub='' data-tool='identity-correlator' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>identity-corr-001</span>Service principal with Owner role is also an ADO service connection</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#5e35b1;border-color:#5e35b1;color:#fff'>Identity Correlator</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='identity-corr-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>SPN &#39;sp-prod-deploy&#39; has Owner on subscription prod-01 AND is used by ADO service connection &#39;prod-deploy&#39;. A compromised ADO pipeline would gain subscription-scoped Owner privileges.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>SPN &#39;sp-prod-deploy&#39; has Owner on subscription prod-01 AND is used by ADO service connection &#39;prod-deploy&#39;. A compromised ADO pipeline would gain subscription-scoped Owner privileges.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Split responsibilities: use one SPN for role management (User Access Administrator) and a separate, scoped SPN for deployments.</p>
+      
       
       
       <div class='links'><span class='tool-chip'>No links provided</span></div>
     </div>
   </div></td>
 </tr>
+<tr class='row s-med' data-id='identity-corr-002' data-severity='med' data-rule='identity-corr-002' data-entity='appId:ffffffff-0000-1111-2222-333333333333' data-sub='' data-tool='identity-correlator' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>identity-corr-002</span>Orphaned service principal with active role assignment</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Identity</span></div></td>
+  <td><div class='mono' style='font-size:12px'>appId:ffffffff-0000-1111-2222-333333333333</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#5e35b1;border-color:#5e35b1;color:#fff'>Identity Correlator</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='identity-corr-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>SPN &#39;sp-legacy-etl&#39; still holds Contributor on rg-prod-data but the corresponding App Registration was deleted 47 days ago.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>SPN &#39;sp-legacy-etl&#39; still holds Contributor on rg-prod-data but the corresponding App Registration was deleted 47 days ago.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Remove the stale role assignment or recreate the App Registration if still needed.</p>
+      
+      
+      
+      <div class='links'><span class='tool-chip'>No links provided</span></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-crit' data-id='zizmor-inj-001' data-severity='crit' data-rule='template-injection' data-entity='.github/workflows/triage.yml' data-sub='' data-tool='zizmor' data-status='Fail'>
+  <td><span class='pill sev-crit'>Critical</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>template-injection</span>template-injection: Workflow uses ${{ github.event.issue.title }} in run step</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>CI/CD Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>.github/workflows/triage.yml</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#ad1457;border-color:#ad1457;color:#fff'>zizmor (Actions YAML Scanner)</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='zizmor-inj-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>File .github/workflows/triage.yml injects untrusted issue title directly into a shell command.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>File .github/workflows/triage.yml injects untrusted issue title directly into a shell command.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Move the expression to an env variable and reference it as &quot;$ISSUE_TITLE&quot; in the script.</p>
+      
+      
+      
+      <div class='links'><a href='https://woodruffw.github.io/zizmor/audits/#template-injection' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='zizmor-unpin-002' data-severity='med' data-rule='unpinned-uses' data-entity='.github/workflows/release.yml' data-sub='' data-tool='zizmor' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>unpinned-uses</span>unpinned-uses: action pinned by tag, not SHA</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>CI/CD Security</span></div></td>
+  <td><div class='mono' style='font-size:12px'>.github/workflows/release.yml</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#ad1457;border-color:#ad1457;color:#fff'>zizmor (Actions YAML Scanner)</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='zizmor-unpin-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>File .github/workflows/release.yml references actions/upload-artifact@v4 instead of a 40-char SHA.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>File .github/workflows/release.yml references actions/upload-artifact@v4 instead of a 40-char SHA.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Pin third-party actions to a full commit SHA and add Dependabot for updates.</p>
+      
+      
+      
+      <div class='links'><a href='https://woodruffw.github.io/zizmor/audits/#unpinned-uses' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-high' data-id='gitleaks-aws-001' data-severity='high' data-rule='gitleaks-aws-001' data-entity='scripts/legacy-migrate.sh' data-sub='' data-tool='gitleaks' data-status='Fail'>
+  <td><span class='pill sev-high'>High</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>gitleaks-aws-001</span>AWS access key found in commit history</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Secret Detection</span></div></td>
+  <td><div class='mono' style='font-size:12px'>scripts/legacy-migrate.sh</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#c62828;border-color:#c62828;color:#fff'>gitleaks (Secrets Scanner)</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='gitleaks-aws-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Rule &#39;aws-access-token&#39; matched in file scripts/legacy-migrate.sh at line 14. Commit: 8a1f3c2.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Rule &#39;aws-access-token&#39; matched in file scripts/legacy-migrate.sh at line 14. Commit: 8a1f3c2.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Rotate the exposed credential immediately and purge it from git history with git-filter-repo.</p>
+      
+      
+      
+      <div class='links'><a href='https://github.com/gitleaks/gitleaks' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-crit' data-id='trivy-cve-001' data-severity='crit' data-rule='trivy-cve-001' data-entity='go.mod' data-sub='' data-tool='trivy' data-status='Fail'>
+  <td><span class='pill sev-crit'>Critical</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>trivy-cve-001</span>CVE-2024-24790 (golang.org/x/net)</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Supply Chain</span></div></td>
+  <td><div class='mono' style='font-size:12px'>go.mod</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#00695c;border-color:#00695c;color:#fff'>Trivy Vulnerability Scanner</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='trivy-cve-001' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>Parsing malformed IPv4-mapped IPv6 addresses in net/netip causes incorrect results. File: go.mod. Installed: 0.21.0. Fixed: 0.23.0.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Upgrade golang.org/x/net to 0.23.0 or later.</p>
+      
+      
+      
+      <div class='links'><a href='https://nvd.nist.gov/vuln/detail/CVE-2024-24790' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
+<tr class='row s-med' data-id='trivy-cve-002' data-severity='med' data-rule='trivy-cve-002' data-entity='package-lock.json' data-sub='' data-tool='trivy' data-status='Fail'>
+  <td><span class='pill sev-med'>Medium</span></td>
+  <td><div style='font-weight:600'><span class='rule-id'>trivy-cve-002</span>CVE-2024-28849 (follow-redirects)</div><div style='font-size:11.5px;margin-top:3px'><span class="faint" style="font-size:11px">no framework mapping</span> <span class='faint' style='margin-left:6px'>Supply Chain</span></div></td>
+  <td><div class='mono' style='font-size:12px'>package-lock.json</div><div class='faint' style='font-size:11px'> · </div></td>
+  <td></td>
+  <td><span class='tool-chip' style='background:#00695c;border-color:#00695c;color:#fff'>Trivy Vulnerability Scanner</span></td>
+  <td><span class='pill sev-high'>Fail</span></td>
+</tr>
+<tr class='expand' data-parent-id='trivy-cve-002' hidden>
+  <td colspan='6'><div class='ev-grid'>
+    <div class='ev'>
+      <h4>Description</h4>
+      <p>follow-redirects leaks Proxy-Authorization header across hosts. File: package-lock.json. Installed: 1.15.5. Fixed: 1.15.6.</p>
+      <h4 style='margin-top:10px'>Evidence</h4>
+      <pre>follow-redirects leaks Proxy-Authorization header across hosts. File: package-lock.json. Installed: 1.15.5. Fixed: 1.15.6.</pre>
+      <div class='links'></div>
+      
+      
+    </div>
+    <div class='ev'>
+      <h4>Remediation</h4>
+      <p>Upgrade follow-redirects to 1.15.6 or later.</p>
+      
+      
+      
+      <div class='links'><a href='https://nvd.nist.gov/vuln/detail/CVE-2024-28849' target='_blank' rel='noopener noreferrer'>Learn more</a></div>
+    </div>
+  </div></td>
+</tr>
     </tbody>
   </table>
-  <div class='fnd-foot'><span id='fndShown'>11 shown</span><span>Click any row to expand evidence and remediation</span></div>
+  <div class='fnd-foot'><span id='fndShown'>23 shown</span><span>Click any row to expand evidence and remediation</span></div>
 </section>
 <section class='sec' id='entities'>
   <h2>Entities <span class='badge'>3 total</span></h2>
   <div class='ent-grid'>
-    <div class='card'><h3 style='margin-bottom:14px'>Inventory by type</h3><div class='ent-bars' id='entBars'><div class='ent-bar'><span class='lab'>AzureResource</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
+    <div class='card'><h3 style='margin-bottom:14px'>Inventory by type</h3><div class='ent-bars' id='entBars'><div class='ent-bar'><span class='lab'>Repository</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
 <div class='ent-bar'><span class='lab'>Pipeline</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div>
-<div class='ent-bar'><span class='lab'>Repository</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div></div></div>
+<div class='ent-bar'><span class='lab'>AzureResource</span><div class='track'><div class='fill' style='width:100%'></div></div><span class='n'>1</span></div></div></div>
     <div class='card'><h3 style='margin-bottom:10px'>Entity graph (preview)</h3><p style='margin:0 0 10px;font-size:12.5px;color:var(--txtm)'>Identity relationships from entity store.</p><div class='graph-wrap'><svg viewBox='0 0 600 280' role='img' aria-label='Entity relationship preview graph'><g stroke='var(--bords)' stroke-width='1' opacity='.7'><line x1='80' y1='140' x2='220' y2='100'/><line x1='220' y1='100' x2='380' y2='80'/><line x1='380' y1='80' x2='520' y2='70'/></g><g><circle cx='80' cy='140' r='14' fill='var(--high)'/><circle cx='220' cy='100' r='10' fill='var(--brand)'/><circle cx='380' cy='80' r='8' fill='var(--brand)'/><rect x='510' y='62' width='22' height='16' rx='3' fill='var(--med)'/></g></svg><div class='graph-legend'><span><i style='background:var(--high)'></i>Identity</span><span><i style='background:var(--brand)'></i>Group</span><span><i style='background:var(--med)'></i>Resource</span></div></div></div>
   </div>
 </section>
 </main>
 <footer>
   <div class='foot-row'>
-    <div class='versions'><strong style='color:var(--txt)'>Tool versions used in this run</strong><table><tr><td>ADO Pipeline Consumption</td><td>azure-devops/1.0.1</td></tr>
-<tr><td>ADO Pipeline Run Correlator</td><td>azure-devops/1.0.1</td></tr>
-<tr><td>AKS Rightsizing (Container Insights utilization)</td><td>aks-rightsizing/0.5.0</td></tr>
-<tr><td>Application Insights Performance Signals</td><td>appinsights-api-2024-03-11</td></tr>
-<tr><td>Azure Quick Review</td><td>2.7.0</td></tr>
-<tr><td>finops-signals</td><td>finops-signals/0.7.0</td></tr>
-<tr><td>GitHub Actions Billing</td><td>gh-actions-billing-api-2024-10-01</td></tr>
-<tr><td>Kubescape (AKS runtime posture)</td><td>kubescape version v3.1.1</td></tr>
-<tr><td>PSRule for Azure</td><td>1.40.0</td></tr>
-<tr><td>Microsoft Sentinel (Coverage / Posture)</td><td>securityinsights-2024-09-01+loganalytics-2020-08-01</td></tr></table><div style='margin-top:10px'>Generated by <a href='https://github.com/martinopedal/azure-analyzer'>azure-analyzer</a> · Schema 2.2 · v2 report · <a href='../README.md'>Docs</a></div></div>
+    <div class='versions'><strong style='color:var(--txt)'>Tool versions used in this run</strong><table><tr><td>n/a</td><td>No tool versions in this run</td></tr></table><div style='margin-top:10px'>Generated by <a href='https://github.com/martinopedal/azure-analyzer'>azure-analyzer</a> · Schema 2.2 · v2 report · <a href='../README.md'>Docs</a></div></div>
     <div class='foot-actions'><button class='btn' onclick='window.print()'>Print</button><a class='btn' href='#overview'>Top</a></div>
   </div>
 </footer>
-<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"domain":{"rowLabel":"Control domain","rows":["Cost Optimization","Operational Excellence","Performance Efficiency","Security"],"cols":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"cells":{"Performance Efficiency||22222222-2222-2222-2222-222222222222":0,"Performance Efficiency||11111111-1111-1111-1111-111111111111":1,"Cost Optimization||11111111-1111-1111-1111-111111111111":2,"Operational Excellence||22222222-2222-2222-2222-222222222222":0,"Cost Optimization||22222222-2222-2222-2222-222222222222":0,"Operational Excellence||11111111-1111-1111-1111-111111111111":0,"Security||11111111-1111-1111-1111-111111111111":3,"Security||22222222-2222-2222-2222-222222222222":1}},"toolsev":{"rowLabel":"Tool","rows":["azqr","kubescape","kube-bench","defender-for-cloud","prowler","falco","azure-cost","azure-quota","finops","appinsights","loadtesting","aks-rightsizing","aks-karpenter-cost","psrule","powerpipe","azgovviz","alz-queries","wara","maester","scorecard","gh-actions-billing","ado-connections","ado-pipelines","ado-consumption","ado-repos-secrets","ado-pipeline-correlator","identity-correlator","identity-graph-expansion","zizmor","gitleaks","trivy","bicep-iac","infracost","terraform-iac","sentinel-incidents","sentinel-coverage","copilot-triage"],"cols":["crit","high","med","low","info"],"cells":{"azgovviz||crit":0,"azure-quota||high":0,"zizmor||low":0,"wara||med":0,"ado-pipeline-correlator||high":1,"appinsights||high":0,"psrule||med":0,"ado-connections||low":0,"scorecard||high":0,"gh-actions-billing||info":0,"copilot-triage||low":0,"appinsights||low":0,"aks-karpenter-cost||high":0,"finops||high":0,"azgovviz||high":0,"bicep-iac||low":0,"identity-graph-expansion||med":0,"azqr||low":0,"bicep-iac||crit":0,"zizmor||crit":0,"sentinel-incidents||crit":0,"ado-pipelines||med":0,"aks-rightsizing||low":0,"ado-consumption||crit":0,"scorecard||info":0,"loadtesting||low":0,"powerpipe||high":0,"falco||crit":0,"alz-queries||crit":0,"azure-cost||info":0,"prowler||info":0,"ado-repos-secrets||high":0,"falco||info":0,"kubescape||info":0,"azgovviz||info":0,"ado-pipeline-correlator||info":0,"powerpipe||info":0,"scorecard||crit":0,"powerpipe||med":0,"defender-for-cloud||high":0,"terraform-iac||med":0,"terraform-iac||low":0,"azqr||med":0,"ado-pipeline-correlator||low":0,"identity-correlator||med":0,"azure-cost||crit":0,"aks-rightsizing||med":1,"ado-connections||high":0,"azqr||crit":0,"copilot-triage||info":0,"copilot-triage||med":0,"aks-karpenter-cost||crit":0,"alz-queries||info":0,"falco||high":0,"zizmor||med":0,"maester||low":0,"alz-queries||med":0,"ado-pipelines||high":0,"bicep-iac||med":0,"ado-repos-secrets||crit":0,"kubescape||low":0,"terraform-iac||crit":0,"copilot-triage||crit":0,"powerpipe||crit":0,"kube-bench||info":0,"bicep-iac||info":0,"azure-quota||med":0,"maester||info":0,"aks-rightsizing||info":0,"ado-repos-secrets||info":0,"aks-karpenter-cost||med":0,"ado-connections||crit":0,"identity-correlator||crit":0,"prowler||crit":0,"terraform-iac||info":0,"finops||med":0,"sentinel-incidents||info":0,"loadtesting||med":0,"finops||info":0,"loadtesting||info":0,"bicep-iac||high":0,"kubescape||high":1,"azure-cost||med":0,"loadtesting||high":0,"identity-graph-expansion||info":0,"gh-actions-billing||high":0,"infracost||crit":0,"psrule||low":0,"defender-for-cloud||low":0,"ado-pipeline-correlator||med":0,"wara||high":0,"identity-correlator||high":0,"ado-pipelines||crit":0,"trivy||high":0,"sentinel-coverage||high":0,"azgovviz||med":0,"finops||crit":0,"copilot-triage||high":0,"azure-quota||crit":0,"alz-queries||low":0,"gitleaks||info":0,"psrule||info":0,"infracost||info":0,"ado-consumption||high":1,"ado-consumption||low":0,"kubescape||med":0,"kube-bench||high":0,"terraform-iac||high":0,"aks-rightsizing||crit":0,"azgovviz||low":0,"falco||med":0,"finops||low":0,"infracost||med":0,"powerpipe||low":0,"ado-repos-secrets||med":0,"azure-quota||low":0,"prowler||med":0,"azure-quota||info":0,"kubescape||crit":0,"azure-cost||high":0,"ado-connections||info":0,"aks-karpenter-cost||info":0,"gh-actions-billing||low":0,"sentinel-incidents||low":0,"scorecard||low":0,"ado-connections||med":0,"maester||crit":0,"psrule||crit":1,"appinsights||crit":0,"identity-graph-expansion||crit":0,"maester||high":0,"infracost||high":0,"sentinel-incidents||med":0,"sentinel-coverage||info":0,"trivy||med":0,"kube-bench||crit":0,"wara||info":0,"psrule||high":0,"appinsights||info":0,"gh-actions-billing||med":1,"wara||low":0,"ado-consumption||med":0,"sentinel-coverage||med":1,"prowler||low":0,"sentinel-incidents||high":0,"defender-for-cloud||crit":0,"identity-graph-expansion||high":0,"gitleaks||high":0,"infracost||low":0,"trivy||crit":0,"azqr||high":1,"azqr||info":0,"gh-actions-billing||crit":0,"alz-queries||high":0,"identity-graph-expansion||low":0,"falco||low":0,"kube-bench||med":0,"defender-for-cloud||info":0,"loadtesting||crit":0,"maester||med":0,"appinsights||med":1,"ado-consumption||info":0,"defender-for-cloud||med":0,"gitleaks||low":0,"prowler||high":0,"kube-bench||low":0,"ado-pipelines||low":0,"zizmor||high":0,"aks-rightsizing||high":0,"azure-cost||low":0,"aks-karpenter-cost||low":0,"wara||crit":0,"sentinel-coverage||low":0,"sentinel-coverage||crit":0,"trivy||low":0,"identity-correlator||low":0,"ado-pipeline-correlator||crit":0,"identity-correlator||info":0,"gitleaks||crit":0,"ado-pipelines||info":0,"trivy||info":0,"scorecard||med":0,"gitleaks||med":0,"zizmor||info":0,"ado-repos-secrets||low":0}},"fwsub":{"rowLabel":"Framework","rows":["CIS","MCSB","MITRE ATT&CK","NIST 800-53","NSA","PCI DSS","SOC2","WAF"],"cols":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"],"cells":{"MITRE ATT&CK||11111111-1111-1111-1111-111111111111":1,"NIST 800-53||11111111-1111-1111-1111-111111111111":1,"NIST 800-53||22222222-2222-2222-2222-222222222222":1,"WAF||11111111-1111-1111-1111-111111111111":3,"MITRE ATT&CK||22222222-2222-2222-2222-222222222222":1,"SOC2||22222222-2222-2222-2222-222222222222":0,"SOC2||11111111-1111-1111-1111-111111111111":0,"CIS||22222222-2222-2222-2222-222222222222":0,"NSA||11111111-1111-1111-1111-111111111111":1,"CIS||11111111-1111-1111-1111-111111111111":3,"MCSB||11111111-1111-1111-1111-111111111111":1,"PCI DSS||22222222-2222-2222-2222-222222222222":0,"WAF||22222222-2222-2222-2222-222222222222":0,"NSA||22222222-2222-2222-2222-222222222222":0,"MCSB||22222222-2222-2222-2222-222222222222":0,"PCI DSS||11111111-1111-1111-1111-111111111111":1}}},"toolLabels":{"defender-for-cloud":"Microsoft Defender for Cloud","psrule":"PSRule for Azure","wara":"Well-Architected Reliability Assessment","azgovviz":"AzGovViz","infracost":"Infracost IaC Cost Estimation","trivy":"Trivy Vulnerability Scanner","bicep-iac":"Bicep IaC Validation","alz-queries":"ALZ Resource Graph Queries","scorecard":"OpenSSF Scorecard","ado-pipelines":"ADO Pipeline Security","kubescape":"Kubescape (AKS runtime posture)","kube-bench":"kube-bench (AKS node-level CIS compliance)","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","ado-connections":"ADO Service Connections","maester":"Maester","finops":"FinOps Signals (Idle Resource Detection)","gh-actions-billing":"GitHub Actions Billing","terraform-iac":"Terraform IaC Validation","gitleaks":"gitleaks (Secrets Scanner)","powerpipe":"Powerpipe Compliance Benchmarks","ado-repos-secrets":"ADO Repos Secret Scanning","azqr":"Azure Quick Review","identity-graph-expansion":"Identity Graph Expansion","prowler":"Prowler (Azure security posture)","identity-correlator":"Identity Correlator","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","copilot-triage":"Copilot AI Triage","azure-quota":"Azure Quota Reports","sentinel-incidents":"Microsoft Sentinel (Active Incidents)","azure-cost":"Azure Cost (Consumption API)","falco":"Falco (AKS runtime anomaly detection)","zizmor":"zizmor (Actions YAML Scanner)","appinsights":"Application Insights Performance Signals","ado-pipeline-correlator":"ADO Pipeline Run Correlator","ado-consumption":"ADO Pipeline Consumption","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)"},"severityLabels":{"high":"High","med":"Medium","crit":"Critical","low":"Low","info":"Info"}}</script>
+<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"toolsev":{"rowLabel":"Tool","rows":["ado-connections","ado-consumption","ado-pipeline-correlator","ado-pipelines","ado-repos-secrets","aks-karpenter-cost","aks-rightsizing","alz-queries","appinsights","azgovviz","azqr","azure-cost","azure-quota","bicep-iac","copilot-triage","defender-for-cloud","falco","finops","gh-actions-billing","gitleaks","identity-correlator","identity-graph-expansion","infracost","kube-bench","kubescape","loadtesting","maester","powerpipe","prowler","psrule","scorecard","sentinel-coverage","sentinel-incidents","terraform-iac","trivy","wara","zizmor"],"cols":["crit","high","med","low","info"],"cells":{"ado-pipelines||crit":0,"powerpipe||high":0,"defender-for-cloud||crit":0,"sentinel-coverage||info":0,"aks-karpenter-cost||crit":0,"loadtesting||low":0,"bicep-iac||info":0,"aks-rightsizing||med":0,"zizmor||crit":1,"kube-bench||info":0,"maester||high":1,"aks-rightsizing||crit":0,"terraform-iac||high":0,"azure-cost||high":0,"appinsights||info":0,"ado-repos-secrets||info":0,"ado-pipeline-correlator||high":0,"alz-queries||med":0,"sentinel-coverage||low":0,"identity-graph-expansion||info":0,"azqr||high":2,"psrule||info":0,"copilot-triage||info":0,"alz-queries||low":1,"sentinel-coverage||crit":0,"aks-rightsizing||info":0,"scorecard||high":1,"zizmor||med":1,"gitleaks||crit":0,"ado-pipeline-correlator||med":0,"copilot-triage||low":0,"finops||info":0,"appinsights||low":0,"copilot-triage||crit":0,"identity-graph-expansion||med":0,"gh-actions-billing||info":0,"azqr||low":0,"maester||low":0,"infracost||low":0,"loadtesting||crit":0,"terraform-iac||med":0,"azure-quota||high":0,"prowler||med":0,"sentinel-coverage||med":0,"identity-correlator||info":0,"identity-correlator||med":1,"ado-pipelines||med":0,"ado-connections||info":0,"wara||info":0,"ado-repos-secrets||crit":0,"copilot-triage||high":0,"loadtesting||high":0,"wara||crit":0,"azure-cost||crit":0,"falco||high":0,"terraform-iac||crit":0,"appinsights||high":0,"kubescape||high":0,"ado-connections||low":0,"ado-consumption||info":0,"alz-queries||crit":0,"ado-repos-secrets||high":0,"azgovviz||med":1,"azqr||med":0,"ado-consumption||low":0,"azure-cost||med":0,"ado-connections||high":1,"powerpipe||low":0,"kube-bench||crit":0,"ado-repos-secrets||med":0,"azure-quota||low":0,"finops||high":0,"infracost||high":0,"ado-pipeline-correlator||info":0,"psrule||low":0,"finops||med":0,"identity-correlator||low":0,"kubescape||crit":0,"finops||crit":0,"kube-bench||med":0,"powerpipe||info":0,"alz-queries||high":1,"ado-connections||crit":0,"copilot-triage||med":0,"appinsights||med":0,"gitleaks||high":1,"ado-consumption||high":0,"ado-consumption||crit":0,"azgovviz||crit":0,"trivy||info":0,"azure-quota||info":0,"azure-quota||crit":0,"wara||med":1,"terraform-iac||low":0,"wara||high":1,"prowler||high":0,"sentinel-incidents||low":0,"scorecard||low":0,"azure-quota||med":0,"azqr||crit":0,"maester||med":0,"infracost||crit":0,"prowler||info":0,"trivy||crit":1,"azure-cost||info":0,"terraform-iac||info":0,"falco||info":0,"gh-actions-billing||low":0,"psrule||crit":0,"prowler||low":0,"defender-for-cloud||info":0,"azgovviz||low":0,"aks-rightsizing||low":0,"scorecard||info":0,"maester||info":0,"kube-bench||low":0,"identity-graph-expansion||low":0,"kubescape||info":0,"bicep-iac||low":0,"scorecard||med":1,"powerpipe||crit":0,"prowler||crit":0,"loadtesting||info":0,"gitleaks||low":0,"kubescape||med":0,"ado-pipelines||low":0,"ado-pipeline-correlator||low":0,"kube-bench||high":0,"ado-pipelines||high":0,"defender-for-cloud||med":0,"bicep-iac||crit":0,"finops||low":0,"ado-consumption||med":0,"ado-pipelines||info":0,"alz-queries||info":0,"sentinel-incidents||info":0,"loadtesting||med":0,"ado-connections||med":1,"azgovviz||high":1,"trivy||high":0,"gh-actions-billing||med":0,"aks-karpenter-cost||med":0,"gitleaks||med":0,"identity-correlator||high":1,"azqr||info":0,"ado-repos-secrets||low":0,"sentinel-incidents||crit":0,"sentinel-incidents||high":0,"identity-correlator||crit":0,"falco||low":0,"kubescape||low":0,"falco||med":0,"trivy||low":0,"ado-pipeline-correlator||crit":0,"falco||crit":0,"gh-actions-billing||high":0,"aks-karpenter-cost||low":0,"trivy||med":1,"sentinel-coverage||high":0,"infracost||info":0,"zizmor||high":0,"appinsights||crit":0,"azure-cost||low":0,"zizmor||low":0,"aks-rightsizing||high":0,"zizmor||info":0,"gh-actions-billing||crit":0,"azgovviz||info":0,"defender-for-cloud||low":0,"powerpipe||med":0,"psrule||med":1,"defender-for-cloud||high":0,"infracost||med":0,"aks-karpenter-cost||info":0,"bicep-iac||high":0,"scorecard||crit":0,"sentinel-incidents||med":0,"identity-graph-expansion||crit":0,"wara||low":0,"bicep-iac||med":0,"psrule||high":1,"identity-graph-expansion||high":0,"gitleaks||info":0,"maester||crit":1,"aks-karpenter-cost||high":0}},"domain":{"rowLabel":"Control domain","rows":["CI/CD Security","Governance","Identity","Networking","Reliability","Secret Detection","Security","Supply Chain"],"cols":["00000000-1111-2222-3333-444444444444"],"cells":{"CI/CD Security||00000000-1111-2222-3333-444444444444":0,"Governance||00000000-1111-2222-3333-444444444444":1,"Supply Chain||00000000-1111-2222-3333-444444444444":0,"Reliability||00000000-1111-2222-3333-444444444444":3,"Identity||00000000-1111-2222-3333-444444444444":1,"Networking||00000000-1111-2222-3333-444444444444":2,"Secret Detection||00000000-1111-2222-3333-444444444444":0,"Security||00000000-1111-2222-3333-444444444444":2}},"fwsub":{"rowLabel":"Framework","rows":[],"cols":["00000000-1111-2222-3333-444444444444"],"cells":{}}},"toolLabels":{"powerpipe":"Powerpipe Compliance Benchmarks","gitleaks":"gitleaks (Secrets Scanner)","ado-connections":"ADO Service Connections","terraform-iac":"Terraform IaC Validation","identity-graph-expansion":"Identity Graph Expansion","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","ado-consumption":"ADO Pipeline Consumption","zizmor":"zizmor (Actions YAML Scanner)","alz-queries":"ALZ Resource Graph Queries","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","prowler":"Prowler (Azure security posture)","identity-correlator":"Identity Correlator","azqr":"Azure Quick Review","falco":"Falco (AKS runtime anomaly detection)","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)","ado-pipelines":"ADO Pipeline Security","kubescape":"Kubescape (AKS runtime posture)","maester":"Maester","bicep-iac":"Bicep IaC Validation","azgovviz":"AzGovViz","copilot-triage":"Copilot AI Triage","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","ado-repos-secrets":"ADO Repos Secret Scanning","infracost":"Infracost IaC Cost Estimation","psrule":"PSRule for Azure","gh-actions-billing":"GitHub Actions Billing","azure-cost":"Azure Cost (Consumption API)","wara":"Well-Architected Reliability Assessment","scorecard":"OpenSSF Scorecard","defender-for-cloud":"Microsoft Defender for Cloud","azure-quota":"Azure Quota Reports","trivy":"Trivy Vulnerability Scanner","kube-bench":"kube-bench (AKS node-level CIS compliance)","ado-pipeline-correlator":"ADO Pipeline Run Correlator","appinsights":"Application Insights Performance Signals","finops":"FinOps Signals (Idle Resource Detection)","sentinel-incidents":"Microsoft Sentinel (Active Incidents)"},"severityLabels":{"low":"Low","info":"Info","med":"Medium","high":"High","crit":"Critical"}}</script>
 <script>
 (function(){
 'use strict';

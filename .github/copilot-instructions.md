@@ -72,7 +72,7 @@ When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `sq
 Failure is the default state of a multi-system pipeline. A PR is "done" only when it is **green AND merged**. See `.copilot/copilot-instructions.md` → "Iterate Until Green — Resilience Contract" for the full policy. Summary:
 
 - **Triggers (any of):** CI red, Pester red, Copilot rejection, 3-model gate fail, merge conflict, rate-limit / model unavailable, flaky test, branch corrupted.
-- **Required loop:** read failing logs (`gh run view <id> --log-failed`) → diagnose root cause → fix at root (not symptom) → push → `gh pr checks <pr> --watch` → repeat until green.
+- **Required loop:** read failing logs (`gh run view <id> --log-failed` or GitHub MCP run/job logs) → diagnose root cause → fix at root (not symptom) → push → `gh pr checks <pr> --watch` → repeat until green.
 - **Per-failure playbook:**
   - CI red → fetch failed-job logs, fix root cause, push, re-check.
   - Pester red → fix code or test, re-run full suite locally, never push red.
@@ -85,6 +85,16 @@ Failure is the default state of a multi-system pipeline. A PR is "done" only whe
 - **Hard rule:** "blocked, needs maintainer" replies without the 3-strategy analysis are forbidden — resume the loop.
 
 Cross-refs: rubber-duck retry / fallback chain in `.copilot/copilot-instructions.md`, Comment Triage Loop above (cloud-agent PR review contract), Squad Pre-PR Self-Review.
+
+## Wrapper consistency ratchet (CON-001..005)
+
+- **CON-001** — ADO wrapper parameter consistency (`AdoOrg` / `AdoProject` conventions with compatibility aliases as needed).
+- **CON-002** — Repo input consistency (`RepoPath` + `RemoteUrl` canonical names; legacy aliases only for compatibility).
+- **CON-003** — Structured wrapper errors: prefer `New-FindingError` + `Format-FindingErrorMessage` over raw throw strings.
+- **CON-004** — Side-effecting wrappers should support safe dry-runs (`SupportsShouldProcess`, `-WhatIf` / `-Confirm`) where applicable.
+- **CON-005** — Manifest/wrapper uniformity: manifest entries map to stable `Invoke-*` dispatch surfaces.
+
+Treat regressions against these contracts as blockers; tighten ratchet baselines when drift is reduced.
 
 ## Shared infrastructure — REUSE, don't reinvent
 
@@ -114,7 +124,7 @@ Non-negotiable rules that apply to every new wrapper/module:
 
 ## Testing gate
 
-- `Invoke-Pester -Path .\tests -CI` — baseline is **842/842 green**. Any PR that lands must preserve or extend this.
+- `Invoke-Pester -Path .\tests -CI` — baseline is enforced by `tests/workflows/PesterBaselineGuard.Tests.ps1` and should be preserved or extended.
 - Normalizer tests live under `tests/normalizers/`; wrapper tests under `tests/wrappers/`; shared-module tests under `tests/shared/`.
 - Every new tool MUST ship with a normalizer test using a realistic fixture in `tests/fixtures/`.
 - Every new shared module MUST ship with its own `tests/shared/<Module>.Tests.ps1`.

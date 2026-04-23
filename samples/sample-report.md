@@ -2,12 +2,12 @@
 
 **Tenant:** `contoso-prod` &nbsp;|&nbsp; **Scanned:** 22 Apr 2026 07:52 UTC &nbsp;|&nbsp; **Run ID:** `launch-2026-04-22-0800`
 
-![Critical](https://img.shields.io/badge/Critical-1-7f1d1d)
-![High](https://img.shields.io/badge/High-4-b91c1c)
-![Medium](https://img.shields.io/badge/Medium-5-b45309)
-![Low](https://img.shields.io/badge/Low-0-a16207)
+![Critical](https://img.shields.io/badge/Critical-3-7f1d1d)
+![High](https://img.shields.io/badge/High-11-b91c1c)
+![Medium](https://img.shields.io/badge/Medium-8-b45309)
+![Low](https://img.shields.io/badge/Low-1-a16207)
 ![Info](https://img.shields.io/badge/Info-0-475569)
-![Posture](https://img.shields.io/badge/Posture-F%20%289%2F100%29-2563eb)
+![Posture](https://img.shields.io/badge/Posture-F%20%280%2F100%29-2563eb)
 ![Tools](https://img.shields.io/badge/Tools-36-0369a1)
 ![Run](https://img.shields.io/badge/Run-22%20Apr%202026%2007%3A52%20UTC-334155)
 
@@ -25,17 +25,22 @@
 
 ## Executive summary
 
-Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope(s). Compliance is 9%. Posture grade is **F (9/100)**.
+Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope(s). Compliance is 0%. Posture grade is **F (0/100)**.
 
-1 critical, 4 high, 5 medium, 0 low, and 0 info findings are currently non-compliant.
+3 critical, 11 high, 8 medium, 1 low, and 0 info findings are currently non-compliant.
 
 ### Pillar breakdown (non-compliant)
 
 | Pillar | Findings |
 | --- | ---: |
-| Security | 5 |
-| Cost Optimization | 4 |
-| Performance Efficiency | 1 |
+| Identity | 7 |
+| Supply Chain | 4 |
+| Reliability | 3 |
+| CI/CD Security | 2 |
+| Governance | 2 |
+| Networking | 2 |
+| Security | 2 |
+| Secret Detection | 1 |
 
 ## Tool coverage
 
@@ -43,73 +48,78 @@ Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| azqr | subscription | 2 | 50% | OK |
-| kubescape | subscription | 1 | 0% | OK |
-| kube-bench | subscription | 0 | - | _skipped_ |
-| defender-for-cloud | subscription | 0 | - | _skipped_ |
-| prowler | subscription | 0 | - | _skipped_ |
-| falco | subscription | 0 | - | _skipped_ |
+| aks-karpenter-cost | subscription | 0 | - | _skipped_ |
+| aks-rightsizing | subscription | 0 | - | OK |
+| alz-queries | managementGroup | 2 | 0% | OK |
+| appinsights | subscription | 0 | - | OK |
+| azgovviz | managementGroup | 2 | 0% | OK |
+| azqr | subscription | 2 | 0% | OK |
 | azure-cost | subscription | 0 | - | _skipped_ |
 | azure-quota | subscription | 0 | - | _skipped_ |
+| defender-for-cloud | subscription | 0 | - | _skipped_ |
+| falco | subscription | 0 | - | _skipped_ |
 | finops | subscription | 0 | - | _skipped_ |
-| appinsights | subscription | 1 | 0% | OK |
+| kube-bench | subscription | 0 | - | _skipped_ |
+| kubescape | subscription | 0 | - | OK |
 | loadtesting | subscription | 0 | - | _skipped_ |
-| aks-rightsizing | subscription | 1 | 0% | OK |
-| aks-karpenter-cost | subscription | 0 | - | _skipped_ |
-| psrule | subscription | 1 | 0% | OK |
 | powerpipe | subscription | 0 | - | _skipped_ |
-| azgovviz | managementGroup | 0 | - | _skipped_ |
-| alz-queries | managementGroup | 0 | - | _skipped_ |
-| wara | subscription | 0 | - | _skipped_ |
+| prowler | subscription | 0 | - | _skipped_ |
+| psrule | subscription | 2 | 0% | OK |
+| sentinel-coverage | workspace | 0 | - | OK |
 | sentinel-incidents | workspace | 0 | - | _skipped_ |
-| sentinel-coverage | workspace | 1 | 0% | OK |
+| wara | subscription | 2 | 0% | OK |
 
 ### Microsoft 365 / Graph
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| maester | tenant | 0 | - | _skipped_ |
-| identity-correlator | tenant | 0 | - | _skipped_ |
+| identity-correlator | tenant | 2 | 0% | OK |
 | identity-graph-expansion | tenant | 0 | - | _skipped_ |
+| maester | tenant | 2 | 0% | OK |
 
 ### GitHub
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| scorecard | repository | 0 | - | _skipped_ |
-| gh-actions-billing | repository | 1 | 0% | OK |
+| gh-actions-billing | repository | 0 | - | OK |
+| scorecard | repository | 2 | 0% | OK |
 
 ### Azure DevOps
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| ado-connections | ado | 0 | - | _skipped_ |
+| ado-connections | ado | 2 | 0% | OK |
+| ado-consumption | ado | 0 | - | OK |
+| ado-pipeline-correlator | ado | 0 | - | OK |
 | ado-pipelines | ado | 0 | - | _skipped_ |
-| ado-consumption | ado | 1 | 0% | OK |
 | ado-repos-secrets | ado | 0 | - | _skipped_ |
-| ado-pipeline-correlator | ado | 1 | 0% | OK |
 
 ### Other
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
-| zizmor | repository | 0 | - | _skipped_ |
-| gitleaks | repository | 0 | - | _skipped_ |
-| trivy | repository | 0 | - | _skipped_ |
 | bicep-iac | repository | 0 | - | _skipped_ |
+| copilot-triage | repository | 0 | - | _skipped_ |
+| gitleaks | repository | 1 | 0% | OK |
 | infracost | repository | 0 | - | _skipped_ |
 | terraform-iac | repository | 0 | - | _skipped_ |
-| copilot-triage | repository | 0 | - | _skipped_ |
+| trivy | repository | 2 | 0% | OK |
+| zizmor | repository | 2 | 0% | OK |
 
 ## Heat map
 
 Findings by control domain (rows) and subscription (columns). Cell glyph indicates the highest severity present and includes the finding count.
 
-| Control domain | prod-identity | prod-payments | Total |
+| Control domain | (tenant) | 00000000-1111-2222-3333-444444444444 | Total |
 | --- | :---: | :---: | ---: |
-| Cost Optimization | ⚪ 0 | 🟠 4 | 4 |
-| Performance Efficiency | ⚪ 0 | 🟡 1 | 1 |
-| Security | 🟡 1 | 🔴 4 | 5 |
+| CI/CD Security | 🔴 2 | ⚪ 0 | 2 |
+| Governance | 🟡 1 | 🟢 1 | 2 |
+| Identity | 🔴 6 | 🟠 1 | 7 |
+| Networking | ⚪ 0 | 🟠 2 | 2 |
+| Reliability | ⚪ 0 | 🟠 3 | 3 |
+| Secret Detection | 🟠 1 | ⚪ 0 | 1 |
+| Security | ⚪ 0 | 🟠 2 | 2 |
+| Supply Chain | 🔴 4 | ⚪ 0 | 4 |
 
 Legend: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low, ⚪ Info
 
@@ -117,204 +127,46 @@ Legend: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low, ⚪ Info
 
 | # | Severity | Rule | Domain | Tool | Findings |
 | ---: | --- | --- | --- | --- | ---: |
-| 1 | 🔴 Critical | Azure.KeyVault.SoftDelete | Security | psrule | 1 |
-| 2 | 🟠 High | ADO.CORR.SECRET | Security | ado-pipeline-correlator | 1 |
-| 3 | 🟠 High | AZQR.NET.012 | Security | azqr | 1 |
-| 4 | 🟠 High | C-0057 | Security | kubescape | 1 |
-| 5 | 🟠 High | Consumption-DurationRegression | Cost Optimization | ado-consumption | 1 |
-| 6 | 🟡 Medium | AKS.RIGHT.001 | Cost Optimization | aks-rightsizing | 1 |
-| 7 | 🟡 Medium | APPINSIGHTS.P95.REGRESSION | Performance Efficiency | appinsights | 1 |
-| 8 | 🟡 Medium | FINOPS.APPSERVICE.IDLE | Cost Optimization | finops-signals | 1 |
-| 9 | 🟡 Medium | GHA-BILLING-BUDGET | Cost Optimization | gh-actions-billing | 1 |
-| 10 | 🟡 Medium | SENT-COV-T1190 | Security | sentinel-coverage | 1 |
+| 1 | 🔴 Critical | CVE-2024-24790 (golang.org/x/net) | Supply Chain | trivy | 1 |
+| 2 | 🔴 Critical | MT.1010 | Identity | maester | 1 |
+| 3 | 🔴 Critical | template-injection | CI/CD Security | zizmor | 1 |
+| 4 | 🟠 High | AWS access key found in commit history | Secret Detection | gitleaks | 1 |
+| 5 | 🟠 High | Azure.Storage.SecureTransfer | Security | psrule | 1 |
+| 6 | 🟠 High | Branch-Protection score 3/10 | Supply Chain | scorecard | 1 |
+| 7 | 🟠 High | Classic (password-based) service connection in use | Identity | ado-connections | 1 |
+| 8 | 🟠 High | EIDSCA.AG01 | Identity | maester | 1 |
+| 9 | 🟠 High | Key Vault soft delete is disabled | Security | azqr | 1 |
+| 10 | 🟠 High | NSG allows SSH from any source | Networking | azqr | 1 |
 
 ## Findings (top 30)
 
 Top 30 findings from this run. The [interactive HTML report](sample-report.html) renders the full set.
 
-### Framework reference
-
-| Framework | Badge text |
-| --- | --- |
-| CIS | [[CIS]] |
-| MCSB | [[MCSB]] |
-| MITRE ATT&CK | [[MITRE ATT&CK]] |
-| NIST 800-53 | [[NIST 800-53]] |
-| NSA | [[NSA]] |
-| PCI DSS | [[PCI DSS]] |
-| SOC2 | [[SOC2]] |
-| WAF | [[WAF]] |
-
 | # | Sev | Rule ID | Rule | Frameworks | Entity | Sub | Tool | Status |
 | ---: | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 🔴 | `Azure.KeyVault.SoftDelete` | Key Vault soft delete disabled | CIS · MCSB | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-sec/providers/microsoft.keyvault/vaults/kv-payments-prod` | prod-payments | psrule | Open |
-| 2 | 🟠 | `Consumption-DurationRegression` | Pipeline duration regression exceeds budget | - | `ado://contoso/payments/pipeline/55` | prod-payments | ado-consumption | Open |
-| 3 | 🟠 | `AZQR.NET.012` | Internet-exposed management port on NSG | CIS · NIST 800-53 · PCI DSS | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-net/providers/microsoft.network/networksecuritygroups/nsg-payments-edge` | prod-payments | azqr | Open |
-| 4 | 🟠 | `C-0057` | Privileged container in payments namespace | CIS · NSA · MITRE ATT&CK | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments` | prod-payments | kubescape | Open |
-| 5 | 🟠 | `ADO.CORR.SECRET` | Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9] | - | `ado://contoso/payments/pipeline/55` | prod-payments | ado-pipeline-correlator | Open |
-| 6 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments` | prod-payments | aks-rightsizing | Open |
-| 7 | 🟡 | `FINOPS.APPSERVICE.IDLE` | Idle App Service Plan spend exceeds threshold | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod` | prod-payments | finops-signals | Open |
-| 8 | 🟡 | `GHA-BILLING-BUDGET` | Runner minute spend trend exceeds weekly budget | SOC2 | `github.com/contoso/payments-api` | prod-payments | gh-actions-billing | Open |
-| 9 | 🟡 | `APPINSIGHTS.P95.REGRESSION` | API p95 latency regressed by 38% | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai` | prod-payments | appinsights | Open |
-| 10 | 🟡 | `SENT-COV-T1190` | MITRE tactic coverage gap for Initial Access | MITRE ATT&CK · NIST 800-53 | `/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01` | prod-identity | sentinel-coverage | Open |
-
-## Schema 2.2 spotlight
-
-| # | Tool | Pillar | Impact | Effort | Frameworks | MITRE | Deep link |
-| ---: | --- | --- | --- | --- | --- | --- | --- |
-| 1 | PSRule for Azure | Security | High | Low | CIS · MCSB | - | [Open](https://learn.microsoft.com/azure/key-vault/general/overview) |
-| 2 | Azure Quick Review | Security | High | Medium | CIS · NIST 800-53 · PCI DSS | - | [Open](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview) |
-| 3 | ADO Pipeline Consumption | Cost Optimization | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build?definitionId=55) |
-| 4 | Kubescape (AKS runtime posture) | Security | High | Medium | CIS · NSA · MITRE ATT&CK | Privilege Escalation, T1611 | [Open](https://learn.microsoft.com/azure/aks/operator-best-practices-cluster-security) |
-| 5 | ADO Pipeline Run Correlator | Security | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=results) |
-| 6 | AKS Rightsizing (Container Insights utilization) | Cost Optimization | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/aks/resize-node-pool) |
-| 7 | Application Insights Performance Signals | Performance Efficiency | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions) |
-| 8 | finops-signals | Cost Optimization | Medium | Low | WAF | - | [Open](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
-| 9 | Microsoft Sentinel (Coverage / Posture) | Security | Medium | Medium | MITRE ATT&CK · NIST 800-53 | Initial Access, T1190 | [Open](https://learn.microsoft.com/azure/sentinel/detect-threats-custom) |
-| 10 | GitHub Actions Billing | Cost Optimization | Medium | Low | SOC2 | - | [Open](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions) |
-
-### Evidence and remediation snippets
-
-<details><summary>Key Vault soft delete disabled</summary>
-
-- **Baseline tags:** "release:ga", "keyvault"
-- **Entity refs:** `/subscriptions/11111111-1111-1111-1111-111111111111`, `kv:kv-payments-prod`
-- **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview](https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview)
-- **Remediation snippets:**
-  ```bicep
-resource kv 'Microsoft.KeyVault/vaults@2023-07-01' existing = { name: 'kv-payments-prod' }
-resource kvPatch 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: kv.name
-  properties: {
-    enableSoftDelete: true
-    enablePurgeProtection: true
-  }
-}
-  ```
-
-</details>
-
-<details><summary>Internet-exposed management port on NSG</summary>
-
-- **Baseline tags:** "release:ga", "internet-exposed"
-- **Entity refs:** `/subscriptions/11111111-1111-1111-1111-111111111111`, `nsg:nsg-payments-edge`
-- **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
-  - [https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview](https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview)
-- **Remediation snippets:**
-  ```azurecli
-az network nsg rule update --resource-group rg-payments-net --nsg-name nsg-payments-edge --name Allow-RDP --source-address-prefixes 10.0.0.0/24
-  ```
-
-</details>
-
-<details><summary>Pipeline duration regression exceeds budget</summary>
-
-- **Baseline tags:** "duration-regression", "minutes"
-- **Entity refs:** `pipeline:ado://contoso/payments/pipeline/55`, `project:ado://contoso/payments/project/payments`
-- **Evidence URIs:**
-  - [https://dev.azure.com/contoso/payments/_analytics](https://dev.azure.com/contoso/payments/_analytics)
-  - [https://learn.microsoft.com/azure/devops/pipelines/process/phases](https://learn.microsoft.com/azure/devops/pipelines/process/phases)
-
-</details>
-
-<details><summary>Privileged container in payments namespace</summary>
-
-- **Baseline tags:** "nsa", "cis", "mitreattck"
-- **Entity refs:** `cluster:aks-prod-payments`, `namespace:payments`, `workload:payments-api`
-- **Evidence URIs:**
-  - [https://hub.armosec.io/docs/c-0057](https://hub.armosec.io/docs/c-0057)
-  - [https://attack.mitre.org/techniques/T1611/](https://attack.mitre.org/techniques/T1611/)
-- **Remediation snippets:**
-  ```yaml
-securityContext:
-  privileged: false
-  allowPrivilegeEscalation: false
-  ```
-
-</details>
-
-<details><summary>Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9]</summary>
-
-- **Baseline tags:** "correlated-direct", "secret-category:github-pat"
-- **Entity refs:** `finding:secret-9`, `pipeline:ado://contoso/payments/pipeline/55`, `build:8201`, `repository:ado://contoso/payments/repository/payments-api`, `commit:abcdef1234567890`
-- **Evidence URIs:**
-  - [https://dev.azure.com/contoso/payments/_build/results?buildId=8201](https://dev.azure.com/contoso/payments/_build/results?buildId=8201)
-  - [https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=logs](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=logs)
-  - [https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890](https://dev.azure.com/contoso/payments/_git/payments-api/commit/abcdef1234567890)
-- **Remediation snippets:**
-  ```text
-1) Rotate leaked credentials.
-2) Inspect pipeline variable groups and service connections.
-3) Verify artifact consumers and deployment logs.
-  ```
-
-</details>
-
-<details><summary>AKS node pool over-provisioned</summary>
-
-- **Baseline tags:** "rightsizing", "cluster-autoscaler"
-- **Entity refs:** `cluster:aks-prod-payments`, `nodepool:usernp`
-- **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/aks/resize-node-pool](https://learn.microsoft.com/azure/aks/resize-node-pool)
-  - [https://learn.microsoft.com/azure/aks/cluster-autoscaler](https://learn.microsoft.com/azure/aks/cluster-autoscaler)
-- **Remediation snippets:**
-  ```bash
-az aks nodepool update -g rg-aks-prod --cluster-name aks-prod-payments -n usernp --min-count 3 --max-count 10
-  ```
-
-</details>
-
-<details><summary>API p95 latency regressed by 38%</summary>
-
-- **Baseline tags:** "release:canary", "latency-regression"
-- **Entity refs:** `appinsights:payments-api-ai`, `service:checkout`
-- **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions)
-  - [https://learn.microsoft.com/azure/azure-monitor/app/app-map](https://learn.microsoft.com/azure/azure-monitor/app/app-map)
-- **Remediation snippets:**
-  ```kusto
-requests
-| where cloud_RoleName == "payments-api"
-| summarize p95=percentile(duration,95) by bin(timestamp, 1h)
-  ```
-
-</details>
-
-<details><summary>Idle App Service Plan spend exceeds threshold</summary>
-
-- **Baseline tags:** "cost-hotspot", "release:ga"
-- **Entity refs:** `plan:asp-payments-prod`, `subscription:11111111-1111-1111-1111-111111111111`
-- **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses)
-  - [https://learn.microsoft.com/azure/app-service/overview-hosting-plans](https://learn.microsoft.com/azure/app-service/overview-hosting-plans)
-- **Remediation snippets:**
-  ```text
-Downsize to P1v3 and set autoscale max instances to 2.
-  ```
-
-</details>
-
-<details><summary>MITRE tactic coverage gap for Initial Access</summary>
-
-- **Baseline tags:** "correlation-gap", "mitre"
-- **Entity refs:** `workspace:law-sec-01`, `mitre:TA0001`, `mitre:T1190`
-- **Evidence URIs:**
-  - [https://learn.microsoft.com/azure/sentinel/detect-threats-custom](https://learn.microsoft.com/azure/sentinel/detect-threats-custom)
-  - [https://attack.mitre.org/tactics/TA0001/](https://attack.mitre.org/tactics/TA0001/)
-
-</details>
-
-<details><summary>Runner minute spend trend exceeds weekly budget</summary>
-
-- **Baseline tags:** "runner-minutes", "budget"
-- **Entity refs:** `repo:github.com/contoso/payments-api`, `workflow:.github/workflows/ci.yml`
-- **Evidence URIs:**
-  - [https://github.com/contoso/payments-api/actions](https://github.com/contoso/payments-api/actions)
-  - [https://github.com/contoso/payments-api/settings/actions](https://github.com/contoso/payments-api/settings/actions)
-
-</details>
+| 1 | 🔴 | `template-injection` | template-injection: Workflow uses ${{ github.event.issue.title }} in run step | - | `.github/workflows/triage.yml` | (tenant) | zizmor | Open |
+| 2 | 🔴 | `MT.1010` | MT.1010: Breakglass accounts without MFA | - | `tenant:11111111-2222-3333-4444-555555555555` | (tenant) | maester | Open |
+| 3 | 🔴 | `CVE-2024-24790 (golang.org/x/net)` | CVE-2024-24790 (golang.org/x/net) | - | `go.mod` | (tenant) | trivy | Open |
+| 4 | 🟠 | `Classic (password-based) service connection in use` | Classic (password-based) service connection in use | - | `ado://contoso/Platform/serviceEndpoint/prod-deploy` | (tenant) | ado-connections | Open |
+| 5 | 🟠 | `EIDSCA.AG01` | EIDSCA.AG01: Security defaults disabled, no Conditional Access | - | `tenant:11111111-2222-3333-4444-555555555555` | (tenant) | maester | Open |
+| 6 | 🟠 | `Owner role assigned to non-PIM eligible user` | Owner role assigned to non-PIM eligible user | - | `/subscriptions/00000000-1111-2222-3333-444444444444` | 00000000-1111-2222-3333-444444444444 | azgovviz | Open |
+| 7 | 🟠 | `Service principal with Owner role is also an ADO service connection` | Service principal with Owner role is also an ADO service connection | - | `appId:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee` | (tenant) | identity-correlator | Open |
+| 8 | 🟠 | `NSG allows SSH from any source` | NSG allows SSH from any source | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend` | 00000000-1111-2222-3333-444444444444 | azqr | Open |
+| 9 | 🟠 | `Public IP without NSG association` | Public IP without NSG association | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-net/providers/Microsoft.Network/publicIPAddresses/pip-prod-lb` | 00000000-1111-2222-3333-444444444444 | alz-queries | Open |
+| 10 | 🟠 | `SQL Database has no active geo-replication` | SQL Database has no active geo-replication | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod/databases/sqldb-prod-orders` | 00000000-1111-2222-3333-444444444444 | wara | Open |
+| 11 | 🟠 | `AWS access key found in commit history` | AWS access key found in commit history | - | `scripts/legacy-migrate.sh` | (tenant) | gitleaks | Open |
+| 12 | 🟠 | `Azure.Storage.SecureTransfer` | Azure.Storage.SecureTransfer: Storage account requires HTTPS | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stprodlogs` | 00000000-1111-2222-3333-444444444444 | psrule | Open |
+| 13 | 🟠 | `Key Vault soft delete is disabled` | Key Vault soft delete is disabled | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-sec/providers/Microsoft.KeyVault/vaults/kv-prod-secrets` | 00000000-1111-2222-3333-444444444444 | azqr | Open |
+| 14 | 🟠 | `Branch-Protection score 3/10` | Branch-Protection score 3/10 | - | `github.com/contoso/azure-landing-zone` | (tenant) | scorecard | Open |
+| 15 | 🟡 | `unpinned-uses` | unpinned-uses: action pinned by tag, not SHA | - | `.github/workflows/release.yml` | (tenant) | zizmor | Open |
+| 16 | 🟡 | `Built-in policy 'Audit VMs without Azure Monitor agent' not assigned` | Built-in policy 'Audit VMs without Azure Monitor agent' not assigned | - | `/providers/Microsoft.Management/managementGroups/contoso-root` | (tenant) | azgovviz | Open |
+| 17 | 🟡 | `Orphaned service principal with active role assignment` | Orphaned service principal with active role assignment | - | `appId:ffffffff-0000-1111-2222-333333333333` | (tenant) | identity-correlator | Open |
+| 18 | 🟡 | `Service connection grants Contributor at subscription scope` | Service connection grants Contributor at subscription scope | - | `ado://contoso/Platform/serviceEndpoint/prod-deploy` | (tenant) | ado-connections | Open |
+| 19 | 🟡 | `AKS cluster has no SLA tier enabled` | AKS cluster has no SLA tier enabled | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-aks/providers/Microsoft.ContainerService/managedClusters/aks-prod-apps` | 00000000-1111-2222-3333-444444444444 | wara | Open |
+| 20 | 🟡 | `Azure.VM.AvailabilityZone` | Azure.VM.AvailabilityZone: VM not deployed to availability zone | - | `/subscriptions/00000000-1111-2222-3333-444444444444/resourceGroups/rg-prod-web/providers/Microsoft.Compute/virtualMachines/vm-prod-web-01` | 00000000-1111-2222-3333-444444444444 | psrule | Open |
+| 21 | 🟡 | `CVE-2024-28849 (follow-redirects)` | CVE-2024-28849 (follow-redirects) | - | `package-lock.json` | (tenant) | trivy | Open |
+| 22 | 🟡 | `Pinned-Dependencies score 5/10` | Pinned-Dependencies score 5/10 | - | `github.com/contoso/azure-landing-zone` | (tenant) | scorecard | Open |
+| 23 | 🟢 | `Resource missing required tag 'owner'` | Resource missing required tag 'owner' | - | `/subscriptions/00000000-1111-2222-3333-444444444444` | 00000000-1111-2222-3333-444444444444 | alz-queries | Open |
 
 ## Entity inventory
 
@@ -333,43 +185,43 @@ Downsize to P1v3 and set autoscale max instances to 2.
 
 | Tool | Version | Provider |
 | --- | --- | --- |
+| ado-connections | - | ado |
+| ado-consumption | - | ado |
+| ado-pipeline-correlator | azure-devops/1.0.1 | ado |
+| ado-pipelines | - | ado |
+| ado-repos-secrets | - | ado |
+| aks-karpenter-cost | - | azure |
+| aks-rightsizing | - | azure |
+| alz-queries | - | azure |
+| appinsights | - | azure |
+| azgovviz | - | azure |
 | azqr | 2.7.0 | azure |
-| kubescape | kubescape version v3.1.1 | azure |
-| kube-bench | - | azure |
-| defender-for-cloud | - | azure |
-| prowler | - | azure |
-| falco | - | azure |
 | azure-cost | - | azure |
 | azure-quota | - | azure |
+| bicep-iac | - | cli |
+| copilot-triage | - | cli |
+| defender-for-cloud | - | azure |
+| falco | - | azure |
 | finops | - | azure |
-| appinsights | appinsights-api-2024-03-11 | azure |
-| loadtesting | - | azure |
-| aks-rightsizing | aks-rightsizing/0.5.0 | azure |
-| aks-karpenter-cost | - | azure |
-| psrule | 1.40.0 | azure |
-| powerpipe | - | azure |
-| azgovviz | - | azure |
-| alz-queries | - | azure |
-| wara | - | azure |
-| maester | - | microsoft365 |
-| scorecard | - | github |
-| gh-actions-billing | gh-actions-billing-api-2024-10-01 | github |
-| ado-connections | - | ado |
-| ado-pipelines | - | ado |
-| ado-consumption | azure-devops/1.0.1 | ado |
-| ado-repos-secrets | - | ado |
-| ado-pipeline-correlator | azure-devops/1.0.1 | ado |
+| gh-actions-billing | - | github |
+| gitleaks | - | cli |
 | identity-correlator | - | graph |
 | identity-graph-expansion | - | graph |
-| zizmor | - | cli |
-| gitleaks | - | cli |
-| trivy | - | cli |
-| bicep-iac | - | cli |
 | infracost | - | cli |
-| terraform-iac | - | cli |
+| kube-bench | - | azure |
+| kubescape | v3.1.1 | azure |
+| loadtesting | - | azure |
+| maester | - | microsoft365 |
+| powerpipe | - | azure |
+| prowler | - | azure |
+| psrule | 1.40.0 | azure |
+| scorecard | - | github |
+| sentinel-coverage | 2024-09-01 | azure |
 | sentinel-incidents | - | azure |
-| sentinel-coverage | securityinsights-2024-09-01+loganalytics-2020-08-01 | azure |
-| copilot-triage | - | cli |
+| terraform-iac | - | cli |
+| trivy | - | cli |
+| wara | - | azure |
+| zizmor | - | cli |
 
 </details>
 
