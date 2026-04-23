@@ -181,3 +181,11 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - **3 required checks green on final SHA 31d36f3:** `Analyze (actions)` + `links (lychee)` + `lint (markdownlint-cli2)`.
 - **Local Pester baseline:** 2615 passed / 1 failed / 47 skipped (the 1 failure is a local Windows gitleaks env quirk on `Status=Failed` — reproduces on main, unrelated to this PR).
 - **Decision filed:** .squad/decisions/inbox/forge-pr826-livetool-findings-empty-array.md
+
+### 2026-04-24: Release-please GITHUB_TOKEN → GitHub App token (PR #955, Issue #954)
+
+- **Problem:** `GITHUB_TOKEN`-authored PRs don't trigger downstream workflows (GitHub's anti-recursion guard). Release-please PR #932 was stuck in BLOCKED state with zero CI checks.
+- **Decision:** Switch to `actions/create-github-app-token@v2` (SHA-pinned: `fee1f7d63c2ff003460e3d139729b119787bc349`). GitHub App tokens are not subject to the anti-recursion guard, and they provide scoped permissions, short-lived rotation (1h), and a clean audit trail.
+- **Pattern:** SHA-pinned `actions/create-github-app-token` generates a 1-hour token from App credentials stored as repo secrets (`RELEASE_APP_ID`, `RELEASE_APP_PRIVATE_KEY`). This is the recommended pattern over PATs for any automation that needs to create PRs that trigger CI.
+- **Scope:** Only the `release_please` job was modified. The `publish` job still uses `GITHUB_TOKEN` (appropriate since it doesn't create PRs).
+- **Setup required:** Issue #954 documents one-time manual steps to create the GitHub App and install it on the repo.
