@@ -116,7 +116,12 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          mapfile -t changed < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md')
+          mapfile -t changed < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' \
+            ':(exclude).copilot/audits/**' \
+            ':(exclude).copilot/status/**' \
+            ':(exclude).copilot/session-state/**' \
+            ':(exclude).squad/decisions/inbox/**' \
+            ':(exclude).atlas-stash/**')
           if [ ${#changed[@]} -eq 0 ]; then
             echo "No changed Markdown files; skipping em-dash gate."
             exit 0
@@ -125,6 +130,11 @@ jobs:
           printf ' - %s\n' "${changed[@]}"
           # Extract only added lines (lines starting with '+' but not '+++').
           added_lines=$(git diff --unified=0 --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' \
+            ':(exclude).copilot/audits/**' \
+            ':(exclude).copilot/status/**' \
+            ':(exclude).copilot/session-state/**' \
+            ':(exclude).squad/decisions/inbox/**' \
+            ':(exclude).atlas-stash/**' \
             | grep -E '^\+' \
             | grep -Ev '^\+\+\+ ' || true)
           if [ -z "$added_lines" ]; then
