@@ -1,3 +1,5 @@
+> ⚠️ **MAINTENANCE WINDOW** — main is undergoing a coordinated PR/issue cleanup sweep. Expect rapid commits and short-lived branch churn while open PRs land. Banner removed when the board is clear. (See open PRs and 'squad' issues.)
+
 # azure-analyzer
 
 [![CI](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/martinopedal/azure-analyzer/actions/workflows/ci.yml)
