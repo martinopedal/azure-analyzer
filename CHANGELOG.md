@@ -1,5 +1,9 @@
 ## Unreleased
 
+### CI
+
+- Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
+
 ### Fixed
 
 - **DocsCheck tests**: Added missing Pester assertions for `docs/design` path and other documentation path patterns (`copilot/audits`, `.squad/decisions`, `.squad/ceremonies.md`, root-level docs). PR #941 added `docs/design` to the docs-check workflow but the test file was not updated. Fixes M4 from 24h CI audit. Closes #945, #943, #942, #939, #936, #935, #934, #933.
