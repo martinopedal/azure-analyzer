@@ -106,4 +106,16 @@ Describe 'Shared function collision detector (regression #529)' {
         $collisions = @(Test-AzureAnalyzerSharedFunctionCollisions -Files $files -WarningAction SilentlyContinue)
         $collisions.Count | Should -Be 0
     }
+
+    It 'flags duplicate function names inside unguarded if blocks' {
+        $tmpDir = Join-Path $TestDrive ("aa-unguarded-" + [guid]::NewGuid())
+        New-Item -ItemType Directory -Path $tmpDir | Out-Null
+        'function Foo-Conditional { 1 }' | Set-Content -Path (Join-Path $tmpDir 'A.ps1')
+        'if ($true) { function Foo-Conditional { 2 } }' |
+            Set-Content -Path (Join-Path $tmpDir 'B.ps1')
+        $files = @(Get-ChildItem $tmpDir -Filter '*.ps1')
+        $collisions = @(Test-AzureAnalyzerSharedFunctionCollisions -Files $files -WarningAction SilentlyContinue)
+        $collisions.Count | Should -Be 1
+        $collisions[0].Key | Should -Be 'Foo-Conditional'
+    }
 }

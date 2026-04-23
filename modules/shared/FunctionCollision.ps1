@@ -16,6 +16,40 @@
 function Test-AzureAnalyzerSharedFunctionCollisions {
     [CmdletBinding()]
     param ([Parameter(Mandatory)] [System.IO.FileInfo[]] $Files)
+
+    function Test-IsAstDescendant {
+        param(
+            [Parameter(Mandatory)] $Node,
+            [Parameter(Mandatory)] $Ancestor
+        )
+        $cursor = $Node
+        while ($cursor) {
+            if ($cursor -eq $Ancestor) { return $true }
+            $cursor = $cursor.Parent
+        }
+        return $false
+    }
+
+    function Test-IsGuardedFallbackShim {
+        param(
+            [Parameter(Mandatory)] [System.Management.Automation.Language.IfStatementAst] $IfAst,
+            [Parameter(Mandatory)] [System.Management.Automation.Language.FunctionDefinitionAst] $FunctionAst
+        )
+
+        foreach ($clause in $IfAst.Clauses) {
+            $conditionAst = $clause.Item1
+            $blockAst = $clause.Item2
+            if (-not (Test-IsAstDescendant -Node $FunctionAst -Ancestor $blockAst)) { continue }
+
+            $conditionText = $conditionAst.Extent.Text
+            if ($conditionText -notmatch '^\s*-not\s*\(\s*Get-Command\s+([A-Za-z0-9_-]+)\b') { continue }
+
+            if ($matches[1] -ieq $FunctionAst.Name) { return $true }
+        }
+
+        return $false
+    }
+
     $seen = @{}
     foreach ($f in $Files) {
         $tokens = $null; $errors = $null
@@ -28,8 +62,11 @@ function Test-AzureAnalyzerSharedFunctionCollisions {
             $isGuarded = $false
             $p = $fn.Parent
             while ($p) {
-                if ($p -is [System.Management.Automation.Language.IfStatementAst] -or
-                    $p -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                if ($p -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                    $isGuarded = $true; break
+                }
+                if ($p -is [System.Management.Automation.Language.IfStatementAst] -and
+                    (Test-IsGuardedFallbackShim -IfAst $p -FunctionAst $fn)) {
                     $isGuarded = $true; break
                 }
                 $p = $p.Parent
