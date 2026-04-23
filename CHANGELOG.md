@@ -2,6 +2,7 @@
 
 ### Added
 
+<<<<<<< HEAD
 - **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
 
 ### Added
@@ -12,6 +13,10 @@
 
 - **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
 - **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
+=======
+- **Security ratchet**: New `tests/shared/JsonSanitizeOrderRatchet.Tests.ps1` prevents future regression of the JSON-sanitize-before-parse anti-pattern (PR #876 lesson). Scans all `modules/**/*.ps1` for `Remove-Credentials` piped to `ConvertFrom-Json` on the same variable. Baseline: 0 violations. Enforces parse-first, sanitize-after pattern for JSON outputs (#915).
+- **B2 audit tracking**: Added `.copilot/audits/b2-low-risk-items-tracking.md` documenting Sentinel B2 audit low-risk findings (F1: timeout wrapper consistency P2, F2: rich-error preconditions P3) as acknowledged non-blocking improvements. No code changes required; both items have sufficient mitigation (#915).
+>>>>>>> 9bfd514 (fix(security): sanitize-after-parse ratchet + B2 low-risk items)
 
 ### Changed
 
