@@ -15,10 +15,10 @@
     "EntityType": "AzureResource",
     "Platform": "Azure",
     "Provenance": {
-      "RunId": "sample-20260423-212015",
+      "RunId": "sample-20260423-225957",
       "Source": "azqr",
       "RawRecordRef": "",
-      "Timestamp": "2026-04-23T19:20:15.7571523Z"
+      "Timestamp": "2026-04-23T20:59:57.1857161Z"
     },
     "SubscriptionId": "",
     "SubscriptionName": "",
@@ -59,10 +59,10 @@
     "EntityType": "AzureResource",
     "Platform": "Azure",
     "Provenance": {
-      "RunId": "sample-20260423-212015",
+      "RunId": "sample-20260423-225957",
       "Source": "prowler",
       "RawRecordRef": "",
-      "Timestamp": "2026-04-23T19:20:15.8524875Z"
+      "Timestamp": "2026-04-23T20:59:57.2687687Z"
     },
     "SubscriptionId": "",
     "SubscriptionName": "",
@@ -103,10 +103,10 @@
     "EntityType": "Tenant",
     "Platform": "Entra",
     "Provenance": {
-      "RunId": "sample-20260423-212015",
+      "RunId": "sample-20260423-225957",
       "Source": "maester",
       "RawRecordRef": "",
-      "Timestamp": "2026-04-23T19:20:15.8932039Z"
+      "Timestamp": "2026-04-23T20:59:57.3138263Z"
     },
     "SubscriptionId": "",
     "SubscriptionName": "",
@@ -147,10 +147,10 @@
     "EntityType": "Repository",
     "Platform": "GitHub",
     "Provenance": {
-      "RunId": "sample-20260423-212015",
+      "RunId": "sample-20260423-225957",
       "Source": "gitleaks",
       "RawRecordRef": "",
-      "Timestamp": "2026-04-23T19:20:15.9328517Z"
+      "Timestamp": "2026-04-23T20:59:57.3588403Z"
     },
     "SubscriptionId": "",
     "SubscriptionName": "",
@@ -191,10 +191,10 @@
     "EntityType": "AzureResource",
     "Platform": "Azure",
     "Provenance": {
-      "RunId": "sample-20260423-212015",
+      "RunId": "sample-20260423-225957",
       "Source": "trivy",
       "RawRecordRef": "",
-      "Timestamp": "2026-04-23T19:20:15.9695651Z"
+      "Timestamp": "2026-04-23T20:59:57.4125692Z"
     },
     "SubscriptionId": "",
     "SubscriptionName": "",
