@@ -20,7 +20,7 @@
     Type of scan to perform: 'fs' (filesystem) or 'repo' (remote repository).
     Defaults to 'fs'.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Alias('ScanPath')]
     [string] $RepoPath = '.',

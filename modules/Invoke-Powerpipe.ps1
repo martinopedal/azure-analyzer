@@ -10,7 +10,7 @@
 .PARAMETER Benchmark
     Powerpipe benchmark selector. Default: all.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]

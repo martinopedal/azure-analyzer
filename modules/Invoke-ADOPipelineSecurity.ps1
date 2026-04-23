@@ -310,8 +310,8 @@ function Get-AdoPagedValues {
 
 function Get-AdoProjects {
     param (
-        [string] $Org,
-        [hashtable] $Headers
+        [Parameter(Mandatory)][string] $Org,
+        [Parameter(Mandatory)][hashtable] $Headers
     )
 
     $orgEnc = [uri]::EscapeDataString($Org)
@@ -322,9 +322,9 @@ function Get-AdoProjects {
 
 function Get-BuildDefinitions {
     param (
-        [string] $Org,
-        [string] $Project,
-        [hashtable] $Headers
+        [Parameter(Mandatory)][string] $Org,
+        [Parameter(Mandatory)][string] $Project,
+        [Parameter(Mandatory)][hashtable] $Headers
     )
 
     $orgEnc = [uri]::EscapeDataString($Org)
@@ -335,9 +335,9 @@ function Get-BuildDefinitions {
 
 function Get-ReleaseDefinitions {
     param (
-        [string] $Org,
-        [string] $Project,
-        [hashtable] $Headers
+        [Parameter(Mandatory)][string] $Org,
+        [Parameter(Mandatory)][string] $Project,
+        [Parameter(Mandatory)][hashtable] $Headers
     )
 
     $orgEnc = [uri]::EscapeDataString($Org)
@@ -348,9 +348,9 @@ function Get-ReleaseDefinitions {
 
 function Get-VariableGroups {
     param (
-        [string] $Org,
-        [string] $Project,
-        [hashtable] $Headers
+        [Parameter(Mandatory)][string] $Org,
+        [Parameter(Mandatory)][string] $Project,
+        [Parameter(Mandatory)][hashtable] $Headers
     )
 
     $orgEnc = [uri]::EscapeDataString($Org)
