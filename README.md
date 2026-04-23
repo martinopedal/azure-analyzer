@@ -87,6 +87,9 @@ See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.m
 See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood, and design proposals belong under [docs/design/](docs/design/).
 
 CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates. The watchdog log-truncation/extraction path uses here-strings (`<<<`) for `head`/`grep` calls to avoid SIGPIPE aborts under `set -euo pipefail`.
+Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
+
+CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates.
 
 CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
 
