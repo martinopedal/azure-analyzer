@@ -1,29 +1,14 @@
 #Requires -Version 7.0
-<#
-.SYNOPSIS
-    Build a canonical v1 wrapper envelope for error or empty-result paths.
-.DESCRIPTION
-    All 37 wrappers must return a consistent PSCustomObject envelope on ALL
-    code paths (success, partial failure, skip, fatal error). This helper
-    produces the canonical structure for error and empty-result returns, ensuring:
-      - SchemaVersion: '1.0' is always present
-      - Findings: @() is never null/omitted
-      - Errors: @() is never null/omitted
-      - Status is one of: 'Success', 'Skipped', 'Failed'
-
-    Use this on wrapper catch blocks and early-exit paths (tool-missing,
-    auth-missing, config-invalid) to guarantee contract compliance.
-
-    For success paths with findings, wrappers build the envelope directly.
-#>
-[CmdletBinding()]
-param ()
-
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
 function New-WrapperEnvelope {
     <#
+    .SYNOPSIS
+        Build a canonical v1 wrapper envelope for error or empty-result paths.
+    .DESCRIPTION
+        All 37 wrappers must return a consistent PSCustomObject envelope on ALL
+        code paths (success, partial failure, skip, fatal error). This helper
+        produces the canonical structure for error and empty-result returns.
+
+        Dot-source this file to define the function without side effects.
     .PARAMETER Source
         Tool/wrapper name (e.g., 'gitleaks', 'trivy', 'maester').
     .PARAMETER Status
