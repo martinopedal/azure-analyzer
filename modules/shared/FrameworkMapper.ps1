@@ -254,9 +254,6 @@ function Get-FrameworkCoverage {
     # Count controls actually touched by current findings.
     $touched = @{}
     foreach ($f in $Findings) {
-        if (-not $f.PSObject.Properties['Frameworks']) { continue }
-        if (-not $f.Frameworks) { continue }
-        foreach ($block in $f.Frameworks) {
         $frameworksProp = $f.PSObject.Properties['Frameworks']
         if (-not $frameworksProp -or -not $frameworksProp.Value) { continue }
         foreach ($block in @($frameworksProp.Value)) {
