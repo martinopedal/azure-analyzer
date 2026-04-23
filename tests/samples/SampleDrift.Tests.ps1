@@ -28,7 +28,7 @@ Describe 'samples/drift detection' {
         $committed = ((Get-Content $committedHtml -Raw -Encoding UTF8) -replace '\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC', 'TIMESTAMP') -replace "`r`n", "`n"
         $fresh = ((Get-Content $freshHtml -Raw -Encoding UTF8) -replace '\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC', 'TIMESTAMP') -replace "`r`n", "`n"
         
-        $committed.Length | Should -Be $fresh.Length -Because 'renderer output changed'
+        $fresh | Should -BeExactly $committed -Because 'renderer output changed'
     }
 }
 
