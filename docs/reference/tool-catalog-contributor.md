@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 37.
+**Total tools registered:** 41.
 
 ## Registration matrix
 
@@ -16,8 +16,12 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 |---|---|---|---|---|---|---|---|---|
 | `ado-connections` | ADO Service Connections | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `ado-consumption` | ADO Pipeline Consumption | collector | ado | ado | Enabled | 0 | windows, macos, linux | Azure CAF, SOC2 |
+| `ado-consumption` | ADO Pipeline Consumption | collector | ado | ado | Enabled | 0 | windows, macos, linux | Azure CAF, SOC2 |
+| `ado-pipeline-correlator` | ADO Pipeline Run Correlator | correlator | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
 | `ado-pipeline-correlator` | ADO Pipeline Run Correlator | correlator | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
 | `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `ado-pipelines` | ADO Pipeline Security | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | collector | ado | ado | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `aks-karpenter-cost` | AKS Karpenter Cost (consolidation + node utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
@@ -34,7 +38,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `finops` | FinOps Signals (Idle Resource Detection) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `gh-actions-billing` | GitHub Actions Billing | collector | github | repository | Enabled | 0 | windows, macos, linux | Azure CAF, SOC2 |
 | `gitleaks` | gitleaks (Secrets Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
-| `identity-correlator` | Identity Correlator | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `identity-correlator` | Identity Correlator (Shared Module) | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `identity-graph-expansion` | Identity Graph Expansion | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2 |
 | `infracost` | Infracost IaC Cost Estimation | collector | cli | repository | Enabled | 0 | windows, macos, linux | Azure CAF |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure |
@@ -58,8 +62,12 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 |---|---|---|---|---|
 | `ado-connections` | `Normalize-ADOConnections` | script | `modules/Invoke-ADOServiceConnections.ps1` | AdoOrg |
 | `ado-consumption` | `Normalize-AdoConsumption` | script | `modules/Invoke-AdoConsumption.ps1` | Organization |
+| `ado-consumption` | `Normalize-AdoConsumption` | script | `modules/Invoke-AdoConsumption.ps1` | AdoOrg |
+| `ado-pipeline-correlator` | `Normalize-ADOPipelineCorrelator` | script | `modules/Invoke-ADOPipelineCorrelator.ps1` | AdoOrg |
 | `ado-pipeline-correlator` | `Normalize-ADOPipelineCorrelator` | script | `modules/Invoke-ADOPipelineCorrelator.ps1` | AdoOrg |
 | `ado-pipelines` | `Normalize-ADOPipelineSecurity` | script | `modules/Invoke-ADOPipelineSecurity.ps1` | AdoOrg |
+| `ado-pipelines` | `Normalize-ADOPipelineSecurity` | script | `modules/Invoke-ADOPipelineSecurity.ps1` | AdoOrg |
+| `ado-repos-secrets` | `Normalize-ADORepoSecrets` | script | `modules/Invoke-ADORepoSecrets.ps1` | AdoOrg |
 | `ado-repos-secrets` | `Normalize-ADORepoSecrets` | script | `modules/Invoke-ADORepoSecrets.ps1` | AdoOrg |
 | `aks-karpenter-cost` | `Normalize-AksKarpenterCost` | script | `modules/Invoke-AksKarpenterCost.ps1` | SubscriptionId |
 | `aks-rightsizing` | `Normalize-AksRightsizing` | script | `modules/Invoke-AksRightsizing.ps1` | SubscriptionId |
@@ -100,8 +108,12 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 |---|---|---|---|---|
 | `ado-connections` | none | n/a | `#0078d4` | 2 |
 | `ado-consumption` | none | n/a | `#5e35b1` | 2 |
+| `ado-consumption` | none | n/a | `#5e35b1` | 2 |
+| `ado-pipeline-correlator` | none | n/a | `#00838f` | 2 |
 | `ado-pipeline-correlator` | none | n/a | `#00838f` | 2 |
 | `ado-pipelines` | none | n/a | `#006064` | 2 |
+| `ado-pipelines` | none | n/a | `#006064` | 2 |
+| `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `aks-karpenter-cost` | psmodule | n/a | `#00695c` | 4 |
 | `aks-rightsizing` | psmodule | n/a | `#2e7d32` | 4 |

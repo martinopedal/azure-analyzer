@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 36. **Disabled / opt-in:** 1.
+**Total enabled:** 40. **Disabled / opt-in:** 1.
 
 ## Enabled by default
 
@@ -16,8 +16,12 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 |---|---|---|---|---|---|---|
 | `ado-connections` | ADO Service Connections | ado | ado | NIST 800-53, SOC2, PCI-DSS | Azure DevOps service-connection security: identity, scope, federation. | - |
 | `ado-consumption` | ADO Pipeline Consumption | ado | ado | Azure CAF, SOC2 | Azure DevOps pipeline consumption telemetry: runner share, duration regression, and failure waste. | [docs](./permissions/ado-consumption.md) |
+| `ado-consumption` | ADO Pipeline Consumption | ado | ado | Azure CAF, SOC2 | Azure DevOps pipeline consumption telemetry: runner share, duration regression, and failure waste. | [docs](./permissions/ado-consumption.md) |
+| `ado-pipeline-correlator` | ADO Pipeline Run Correlator | ado | ado | NIST 800-53, SOC2 | Correlates ADO pipeline runs with downstream Azure resource changes. | - |
 | `ado-pipeline-correlator` | ADO Pipeline Run Correlator | ado | ado | NIST 800-53, SOC2 | Correlates ADO pipeline runs with downstream Azure resource changes. | - |
 | `ado-pipelines` | ADO Pipeline Security | ado | ado | NIST 800-53, SOC2, PCI-DSS | Azure DevOps pipeline-security posture (variable groups, environments, approvals). | - |
+| `ado-pipelines` | ADO Pipeline Security | ado | ado | NIST 800-53, SOC2, PCI-DSS | Azure DevOps pipeline-security posture (variable groups, environments, approvals). | - |
+| `ado-repos-secrets` | ADO Repos Secret Scanning | ado | ado | NIST 800-53, SOC2, PCI-DSS | Secret scanning across Azure DevOps repositories via gitleaks. | [docs](./gitleaks-pattern-tuning.md) |
 | `ado-repos-secrets` | ADO Repos Secret Scanning | ado | ado | NIST 800-53, SOC2, PCI-DSS | Secret scanning across Azure DevOps repositories via gitleaks. | [docs](./gitleaks-pattern-tuning.md) |
 | `aks-karpenter-cost` | AKS Karpenter Cost (consolidation + node utilization) | subscription | azure | Azure WAF, Azure CAF | AKS Karpenter Cost (consolidation + node utilization) | - |
 | `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | subscription | azure | Azure WAF, Azure CAF | AKS Rightsizing (Container Insights utilization) | - |
@@ -33,7 +37,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `finops` | FinOps Signals (Idle Resource Detection) | subscription | azure | Azure WAF, Azure CAF | FinOps signals: idle / orphaned resources that drive avoidable spend. | - |
 | `gh-actions-billing` | GitHub Actions Billing | repository | github | Azure CAF, SOC2 | GitHub Actions billing and runner-minute telemetry for CI/CD cost optimization. | [docs](./permissions/gh-actions-billing.md) |
 | `gitleaks` | gitleaks (Secrets Scanner) | repository | cli | NIST 800-53, SOC2, PCI-DSS | Secret scanning across local or remote git repositories. | [docs](./gitleaks-pattern-tuning.md) |
-| `identity-correlator` | Identity Correlator | tenant | graph | NIST 800-53, SOC2, PCI-DSS | Correlates Entra identities, role assignments, and resource ownership. | - |
+| `identity-correlator` | Identity Correlator (Shared Module) | tenant | graph | NIST 800-53, SOC2, PCI-DSS | Correlates Entra identities, role assignments, and resource ownership. | - |
 | `identity-graph-expansion` | Identity Graph Expansion | tenant | graph | NIST 800-53, SOC2 | Expands the identity graph: cross-tenant B2B + service-principal-to-resource edges. | - |
 | `infracost` | Infracost IaC Cost Estimation | repository | cli | Azure CAF | Pre-deploy cost estimate for Terraform and Bicep resources. | - |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | subscription | azure | CIS Azure | CIS Kubernetes benchmark for AKS node hardening. | - |
