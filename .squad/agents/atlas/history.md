@@ -272,3 +272,10 @@ Wrote `.copilot/audits/atlas-manifest-audit-2026-04-23.md` (11.8 KB). Full-boile
 - 21 of 37 tools have `<name>-output.json` fixtures that normalizers can consume directly. The remaining tools either lack fixtures or use subdirectory-based fixtures with different shapes.
 - Subprocess-based Pester tests that capture `Write-Host -ForegroundColor` output must strip ANSI codes (`-replace '\x1B\[[0-9;]*m', ''`) to avoid NUnit XML serialization failures under `-CI`.
 
+### 2026-04-24 - Envelope contract sweep (#907)
+
+- All 37 wrappers use three shared-module sourcing patterns: (A) `. (Join-Path $sharedDir '...')` (ADO wrappers), (B) `$xxxPath = Join-Path ...; if (Test-Path $xxxPath) { . $xxxPath }` (most wrappers), (C) `. "$PSScriptRoot\shared\..."` (IdentityGraphExpansion). Envelope insertion must match the wrapper's existing pattern.
+- CRLF line endings in wrapper files break PowerShell string `.Replace()` when replacement strings use LF-only. Always use `Get-Content -Raw` and `Set-Content -NoNewline` to preserve original line endings.
+- `New-WrapperEnvelope` (PR #950) uses `-Source` parameter (not `-ToolName`). Fallback stubs must match this signature exactly.
+- In shared environments, `git checkout` from other sessions can silently switch branches between tool calls. Commit and push atomically after changes to prevent loss.
+
