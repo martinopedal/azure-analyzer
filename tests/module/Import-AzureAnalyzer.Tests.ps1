@@ -31,4 +31,24 @@ Describe 'AzureAnalyzer module import and manifest integrity' {
         $manifest = Test-ModuleManifest -Path $script:ManifestPath -ErrorAction Stop
         $manifest | Should -Not -BeNullOrEmpty
     }
+
+    It 'exposes typed Invoke-AzureAnalyzer parameters via module command metadata' {
+        Import-Module $script:ManifestPath -Force -ErrorAction Stop
+        $command = Get-Command -Name Invoke-AzureAnalyzer -Module AzureAnalyzer
+
+        $command.Parameters.Keys | Should -Contain 'SubscriptionId'
+        $command.Parameters.Keys | Should -Contain 'OutputPath'
+        $command.Parameters.Keys | Should -Contain 'IncludeTools'
+        $command.Parameters.Keys | Should -Not -Contain 'Arguments'
+    }
+
+    It 'includes typed parameters in Invoke-AzureAnalyzer help syntax' {
+        Import-Module $script:ManifestPath -Force -ErrorAction Stop
+        $help = Get-Help -Name Invoke-AzureAnalyzer -Full
+        $parameterNames = @($help.parameters.parameter | ForEach-Object { $_.name })
+
+        $parameterNames | Should -Contain 'SubscriptionId'
+        $parameterNames | Should -Contain 'OutputPath'
+        $parameterNames | Should -Contain 'IncludeTools'
+    }
 }
