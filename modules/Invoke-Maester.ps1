@@ -21,11 +21,21 @@ $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
     function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
+}
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) {
+    function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } }
+}
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [PSCustomObject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
 }
 
 function ConvertTo-MaesterStringArray {
@@ -172,26 +182,26 @@ function Get-MaesterRemediationSnippets {
 # Check Maester module is available (centralized Install-Prerequisites handles installation)
 if (-not (Get-Module -ListAvailable -Name Maester)) {
     Write-MissingToolNotice -Tool 'maester' -Message "Maester module not found. Install with: Install-Module Maester -Scope CurrentUser"
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Maester module not installed. Run: Install-Module Maester -Scope CurrentUser'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Maester module not installed. Run: Install-Module Maester -Scope CurrentUser'; Findings = @(); Errors = @() }
 }
 
 Import-Module Maester -ErrorAction SilentlyContinue
 if (-not (Get-Command Invoke-Maester -ErrorAction SilentlyContinue)) {
     Write-MissingToolNotice -Tool 'maester' -Message "Maester module loaded but Invoke-Maester not found. Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Invoke-Maester command not available'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Invoke-Maester command not available'; Findings = @(); Errors = @() }
 }
 
 # Verify Microsoft Graph connection
 if (-not (Get-Command Get-MgContext -ErrorAction SilentlyContinue)) {
     Write-MissingToolNotice -Tool 'maester' -Message "Microsoft Graph SDK command Get-MgContext not found. Install Microsoft.Graph and connect before using Maester."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Get-MgContext command not available. Install Microsoft.Graph and run Connect-MgGraph.'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'Get-MgContext command not available. Install Microsoft.Graph and run Connect-MgGraph.'; Findings = @(); Errors = @() }
 }
 
 # Probe Microsoft Graph context (SilentlyContinue: probing for connection state, not an error)
 $mgContext = Get-MgContext -ErrorAction SilentlyContinue
 if (-not $mgContext) {
     Write-Warning "No Microsoft Graph connection found. Run 'Connect-MgGraph -Scopes (Get-MtGraphScope)' before using Maester. Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection. Run: Connect-MgGraph -Scopes (Get-MtGraphScope)'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Skipped'; Message = 'No Microsoft Graph connection. Run: Connect-MgGraph -Scopes (Get-MtGraphScope)'; Findings = @(); Errors = @() }
 }
 
 # Run Maester assessment — returns a Pester TestResultContainer
@@ -199,12 +209,12 @@ try {
     $container = Invoke-Maester -PassThru -Quiet -ErrorAction Stop
 } catch {
     Write-Warning "Maester assessment failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @(); Errors = @() }
 }
 
 if (-not $container -or -not $container.Result) {
     Write-Warning "Maester returned no test results."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Failed'; Message = 'No test results returned'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'maester'; Status = 'Failed'; Message = 'No test results returned'; Findings = @(); Errors = @() }
 }
 
 # Map Pester TestResult objects to flat findings
@@ -322,4 +332,5 @@ return [PSCustomObject]@{
     TenantId      = [string]$mgContext.TenantId
     ToolVersion   = $toolVersion
     Findings      = $findings
+    Errors        = @()
 }

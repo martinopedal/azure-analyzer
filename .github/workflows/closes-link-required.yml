@@ -42,12 +42,18 @@ jobs:
             }
 
             const author = pr.user?.login ?? '';
+            // Trusted bot allow-list (B3 fix from Forge A1 audit): exempt bots
+            // that open infrastructure PRs (release-please, dependabot, github-actions)
+            // or squad-automation PRs (copilot-swe-agent) from the Closes/Fixes
+            // link requirement. These PRs track work via their own automation flows
+            // (e.g. release-please opens PRs from commits on main, not from issues).
             const skipAuthors = new Set([
+              'release-please[bot]',
               'dependabot[bot]',
+              'github-actions[bot]',
               'copilot-swe-agent[bot]',
               'copilot-swe-agent',
               'Copilot',
-              'github-actions[bot]',
             ]);
             if (skipAuthors.has(author)) {
               core.info(`Skipping closes check - author '${author}' is exempt.`);
