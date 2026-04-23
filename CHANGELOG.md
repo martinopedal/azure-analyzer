@@ -69,11 +69,12 @@ All notable changes to azure-analyzer will be documented here.
 ### Added
 - test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 ### Fixed
-- Restore env/global state in BeforeAll/AfterAll (or matching cleanup lifecycle blocks) across test suite and tighten the isolation guard coverage for wrapper env suppression patterns (#746).
-- fix(ci): make `Closes Link Required` tolerant for release-please branches, `skip-closes-check` labeled PRs, and trusted bot-authored PRs while still enforcing closes/fixes links for regular PRs.
+- Restore env/global state in BeforeAll/AfterAll across test suite (#746).
+- Tightened live wrapper smoke assertions to require clean success diagnostics, deterministic findings/skip behavior, and no unannotated warning markers (`WARNING:`, `##[warning]`, `Notice:`).
+- LiveTool smoke `Findings` assertion now uses the comma operator (`,$result.Findings`) to prevent empty arrays from collapsing the Should pipeline and being mis-reported as `$null` (#770). Scorecard skip branch also re-asserts non-null empty collection to catch `@($null).Count == 1` masking a regression.
+- `Invoke-WrapperWithHostCapture` now re-emits non-warning-like `Write-Information` output via `Write-Information` instead of silently dropping it, preserving debug context in Pester transcripts.
 - Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
 - Markdown Check `links (lychee)` now scans only changed Markdown files on PRs (keeping full-corpus scans on schedule/manual runs) to reduce repeated PR flake/rate-limit failures while still surfacing real link rot.
-- LiveTool wrappers now always return `Findings` as an array (never `$null`) for gitleaks/trivy success paths, and CI uses `scorecard version` in LiveTool dependency verification (#846).
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
