@@ -258,4 +258,62 @@ Describe 'Normalize-AzGovViz' {
             $results[0].EntityId | Should -Be 'objectId:22222222-2222-2222-2222-222222222222'
         }
     }
+
+    Context 'policy edge emission via EdgeCollector' {
+        It 'emits PolicyAssignedTo, PolicyEnforces, ExemptedFrom and InheritsFrom edges' {
+            $edgeCollector = [System.Collections.Generic.List[psobject]]::new()
+            $input = [pscustomobject]@{
+                Source = 'azgovviz'
+                Status = 'Success'
+                Findings = @(
+                    [pscustomobject]@{
+                        Source = 'azgovviz'
+                        ResourceId = '/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm1'
+                        Scope = '/subscriptions/00000000-0000-0000-0000-000000000001'
+                        ParentScopeId = '/providers/Microsoft.Management/managementGroups/mg-platform'
+                        Category = 'Policy'
+                        Title = 'Policy compliance state'
+                        Compliant = $false
+                        Severity = 'High'
+                        PolicyAssignmentId = '/providers/Microsoft.Authorization/policyAssignments/pa-demo'
+                        PolicyDefinitionId = '/providers/Microsoft.Authorization/policyDefinitions/pd-demo'
+                        PolicyExemptionId = '/providers/Microsoft.Authorization/policyExemptions/pe-demo'
+                        SchemaVersion = '1.0'
+                    }
+                )
+            }
+
+            $rows = Normalize-AzGovViz -ToolResult $input -EdgeCollector $edgeCollector
+            @($rows).Count | Should -Be 1
+            @($edgeCollector).Count | Should -BeGreaterThan 0
+
+            $relations = @($edgeCollector | Select-Object -ExpandProperty Relation -Unique)
+            $relations | Should -Contain 'PolicyAssignedTo'
+            $relations | Should -Contain 'PolicyEnforces'
+            $relations | Should -Contain 'ExemptedFrom'
+            $relations | Should -Contain 'InheritsFrom'
+
+            $assignmentLower = '/providers/microsoft.authorization/policyassignments/pa-demo'
+            $definitionLower = '/providers/microsoft.authorization/policydefinitions/pd-demo'
+            $resourceLower = '/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm1'
+            $parentScopeLower = '/providers/microsoft.management/managementgroups/mg-platform'
+
+            $policyAssignedToEdge = @($edgeCollector | Where-Object { $_.Relation -eq 'PolicyAssignedTo' })
+            $policyAssignedToEdge.Count | Should -Be 1
+            $policyAssignedToEdge[0].Source | Should -Be $assignmentLower
+
+            $policyEnforcesEdge = @($edgeCollector | Where-Object { $_.Relation -eq 'PolicyEnforces' })
+            $policyEnforcesEdge.Count | Should -Be 1
+            $policyEnforcesEdge[0].Source | Should -Be $assignmentLower
+            $policyEnforcesEdge[0].Target | Should -Be $definitionLower
+
+            $exemptedFromEdge = @($edgeCollector | Where-Object { $_.Relation -eq 'ExemptedFrom' })
+            $exemptedFromEdge.Count | Should -Be 1
+            $exemptedFromEdge[0].Target | Should -Be $assignmentLower
+
+            $inheritsFromEdge = @($edgeCollector | Where-Object { $_.Relation -eq 'InheritsFrom' })
+            $inheritsFromEdge.Count | Should -BeGreaterOrEqual 1
+            $inheritsFromEdge[0].Target | Should -Be $parentScopeLower
+        }
+    }
 }

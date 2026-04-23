@@ -9,4 +9,10 @@ Describe 'Invoke-AzureAnalyzer -Help' {
         $LASTEXITCODE | Should -Be 0
         ($output -join "`n") | Should -Match 'Invoke-AzureAnalyzer'
     }
+
+    It 'documents -AlzReferenceMode in help output' {
+        $script = Join-Path $PSScriptRoot '..' 'Invoke-AzureAnalyzer.ps1'
+        $output = & pwsh -NoProfile -NonInteractive -Command "& '$script' -Help" 2>&1
+        ($output -join "`n") | Should -Match 'AlzReferenceMode'
+    }
 }

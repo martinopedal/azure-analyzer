@@ -450,7 +450,7 @@
       "scope": "managementGroup",
       "normalizer": "Normalize-AzGovViz",
       "invokeMethod": "script",
-      "comment": "Auto-cloned into tools/AzGovViz/ on first run if missing.",
+      "comment": "Auto-cloned into tools/AzGovViz/ on first run if missing. Normalizer emits policy edge relations for policy-enforcement visualization.",
       "type": "collector",
       "script": "modules/Invoke-AzGovViz.ps1",
       "requiredParams": [

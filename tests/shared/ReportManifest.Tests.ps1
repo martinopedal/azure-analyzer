@@ -126,4 +126,30 @@ Describe 'New-ReportManifest serialization' {
         $roundTrip.VerificationResults.PodeViewer.Dependencies | Should -Contain 'Pode'
         $roundTrip.VerificationResults.EmbeddedSqlite.Dependencies | Should -Contain 'sqlite-wasm'
     }
+
+    It 'persists policy ALZ audit shape when provided' {
+        $path = Join-Path $TestDrive 'report-manifest-policy.json'
+        $policy = [pscustomobject]@{
+            alz = [pscustomobject]@{
+                mode = 'Auto'
+                score = 0.82
+                components = [pscustomobject]@{
+                    exactName = 0.40
+                    structural = 0.24
+                    renames = 0.18
+                    levenshtein = 0.00
+                }
+            }
+            azAdvertizer = [pscustomobject]@{
+                catalogVintage = '2026-04-23'
+                catalogSha = 'ea952a6e70811ee2d6568b92fee5db0e4e9aa02d'
+            }
+        }
+        $manifest = New-ReportManifest -Path $path -SelectedTier 'PureJson' -Policy $policy
+        $manifest.Policy.alz.mode | Should -Be 'Auto'
+
+        $roundTrip = Get-Content -Path $path -Raw | ConvertFrom-Json
+        $roundTrip.Policy.alz.mode | Should -Be 'Auto'
+        $roundTrip.Policy.azAdvertizer.catalogVintage | Should -Be '2026-04-23'
+    }
 }
