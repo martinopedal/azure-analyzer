@@ -262,7 +262,7 @@ function Get-KubescapeToolVersion {
         $versionOutput = & kubescape --version 2>&1
         $line = @($versionOutput | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)
         if (@($line).Count -gt 0) { return $line[0].Trim() }
-    } catch {}
+    } catch {} # best-effort: kubescape CLI not installed; ToolVersion stays empty
     return ''
 }
 

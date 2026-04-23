@@ -24,7 +24,7 @@ function Test-MandatoryParamInteractive {
 
     try {
         if ([Console]::IsInputRedirected) { return $false }
-    } catch {}
+    } catch {} # best-effort: stdin not a console (e.g., service host); treat as non-interactive
 
     return $true
 }
