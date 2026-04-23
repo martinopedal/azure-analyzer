@@ -38,7 +38,8 @@ function New-PolicyEnforcementGraph {
         [Parameter(Mandatory)] [hashtable] $ComplianceState,
         [int] $Tier = 1
     )
-    $scopeTypes = @('Tenant', 'ManagementGroup', 'Subscription', 'ResourceGroup')
+    $scopeTypes = @('Tenant', 'ManagementGroup', 'Subscription', 'ResourceGroup', 'AzureResource')
+    $policyTypes = @('PolicyExemption', 'PolicyAssignment', 'PolicyDefinition')
     $nodes = [System.Collections.Generic.List[object]]::new()
     $renderedEntityIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($entity in @($Entities)) {
@@ -46,7 +47,8 @@ function New-PolicyEnforcementGraph {
         $entityType = if ($entity.PSObject.Properties['EntityType']) { [string]$entity.EntityType } else { '' }
         $entityId = if ($entity.PSObject.Properties['EntityId']) { [string]$entity.EntityId } else { '' }
         if ([string]::IsNullOrWhiteSpace($entityId)) { continue }
-        if (-not ($entityType -in $scopeTypes -or $entityType -eq 'PolicyExemption')) { continue }
+        if (-not ($entityType -in $scopeTypes -or $entityType -in $policyTypes)) { continue }
+        if ($renderedEntityIds.Contains($entityId)) { continue }
 
         $compliance = 100.0
         if ($ComplianceState.ContainsKey($entityId)) {
@@ -89,7 +91,7 @@ function New-PolicyEnforcementGraph {
         $relation = if ($edge.PSObject.Properties['Relation']) { [string]$edge.Relation } else { '' }
         if ([string]::IsNullOrWhiteSpace($source) -or [string]::IsNullOrWhiteSpace($target)) { continue }
         if (-not ($relation -in @('PolicyAssignedTo', 'PolicyEnforces', 'ExemptedFrom', 'InheritsFrom'))) { continue }
-        if (-not ($renderedEntityIds.Contains($source) -or $renderedEntityIds.Contains($target))) { continue }
+        if (-not ($renderedEntityIds.Contains($source) -and $renderedEntityIds.Contains($target))) { continue }
         $renderedEdges.Add([pscustomobject]@{
             data = [pscustomobject]@{
                 id       = if ($edge.PSObject.Properties['EdgeId']) { [string]$edge.EdgeId } else { "edge:$source|$relation|$target" }

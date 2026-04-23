@@ -19,20 +19,23 @@ Describe 'Policy enforcement renderer' -Tag 'policy' {
         $entities = @(
             [pscustomobject]@{ EntityId = '/providers/microsoft.management/managementgroups/root'; EntityType = 'ManagementGroup'; DisplayName = 'Root MG'; FailingAssignments = @('pa-1') },
             [pscustomobject]@{ EntityId = '00000000-0000-0000-0000-000000000001'; EntityType = 'Subscription'; DisplayName = 'Prod Sub' },
-            [pscustomobject]@{ EntityId = 'exemption:1'; EntityType = 'PolicyExemption'; DisplayName = 'Exemption #1'; Reason = 'Legacy workload'; ExpiresOn = '2027-01-01' }
+            [pscustomobject]@{ EntityId = 'exemption:1'; EntityType = 'PolicyExemption'; DisplayName = 'Exemption #1'; Reason = 'Legacy workload'; ExpiresOn = '2027-01-01' },
+            [pscustomobject]@{ EntityId = 'policyassignment:demo'; EntityType = 'PolicyAssignment'; DisplayName = 'Demo Assignment' }
         )
         $edges = @(
             [pscustomobject]@{ Source = '00000000-0000-0000-0000-000000000001'; Target = '/providers/microsoft.management/managementgroups/root'; Relation = 'InheritsFrom' },
-            [pscustomobject]@{ Source = 'exemption:1'; Target = 'policyassignment:demo'; Relation = 'ExemptedFrom' }
+            [pscustomobject]@{ Source = 'exemption:1'; Target = 'policyassignment:demo'; Relation = 'ExemptedFrom' },
+            [pscustomobject]@{ Source = 'exemption:1'; Target = 'policyassignment:missing'; Relation = 'ExemptedFrom' }
         )
         $compliance = @{
             '/providers/microsoft.management/managementgroups/root' = 72
             '00000000-0000-0000-0000-000000000001' = 39
             'exemption:1' = 100
+            'policyassignment:demo' = 80
         }
 
         $graph = Invoke-PolicyEnforcementRender -Entities $entities -Edges $edges -ComplianceState $compliance -Tier 1
-        @($graph.elements.nodes).Count | Should -Be 3
+        @($graph.elements.nodes).Count | Should -Be 4
         @($graph.elements.edges).Count | Should -Be 2
 
         $inheritEdge = $graph.elements.edges | Where-Object { $_.data.relation -eq 'InheritsFrom' } | Select-Object -First 1
@@ -43,5 +46,18 @@ Describe 'Policy enforcement renderer' -Tag 'policy' {
 
         $mgNode = $graph.elements.nodes | Where-Object { $_.data.id -eq '/providers/microsoft.management/managementgroups/root' } | Select-Object -First 1
         @($mgNode.data.failingAssignments) | Should -Contain 'pa-1'
+    }
+
+    It 'deduplicates duplicate entity ids and drops edges with missing endpoints' {
+        $entities = @(
+            [pscustomobject]@{ EntityId = '00000000-0000-0000-0000-000000000001'; EntityType = 'Subscription'; DisplayName = 'Prod Sub' },
+            [pscustomobject]@{ EntityId = '00000000-0000-0000-0000-000000000001'; EntityType = 'Subscription'; DisplayName = 'Prod Sub (dup)' }
+        )
+        $edges = @(
+            [pscustomobject]@{ Source = '00000000-0000-0000-0000-000000000001'; Target = 'missing-target'; Relation = 'InheritsFrom' }
+        )
+        $graph = Invoke-PolicyEnforcementRender -Entities $entities -Edges $edges -ComplianceState @{} -Tier 1
+        @($graph.elements.nodes).Count | Should -Be 1
+        @($graph.elements.edges).Count | Should -Be 0
     }
 }

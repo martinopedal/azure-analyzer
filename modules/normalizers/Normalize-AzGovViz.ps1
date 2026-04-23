@@ -425,13 +425,13 @@ function Normalize-AzGovViz {
                 if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
             }
 
-            if ($definitionId -and $canonicalScopeId) {
-                $edge = New-Edge -Source $definitionId.ToLowerInvariant() -Target $canonicalScopeId -Relation 'PolicyEnforces' -Platform 'Azure' -DiscoveredBy 'azgovviz'
+            if ($assignmentId -and $definitionId) {
+                $edge = New-Edge -Source $assignmentId.ToLowerInvariant() -Target $definitionId.ToLowerInvariant() -Relation 'PolicyEnforces' -Platform 'Azure' -DiscoveredBy 'azgovviz'
                 if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
             }
 
-            if ($exemptionId -and $assignmentId) {
-                $edge = New-Edge -Source $exemptionId.ToLowerInvariant() -Target $assignmentId.ToLowerInvariant() -Relation 'ExemptedFrom' -Platform 'Azure' -DiscoveredBy 'azgovviz'
+            if ($canonicalScopeId -and $assignmentId) {
+                $edge = New-Edge -Source $canonicalScopeId -Target $assignmentId.ToLowerInvariant() -Relation 'ExemptedFrom' -Platform 'Azure' -DiscoveredBy 'azgovviz'
                 if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
             }
 

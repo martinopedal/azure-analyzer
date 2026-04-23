@@ -5,6 +5,9 @@
 
 Set-StrictMode -Version Latest
 
+$script:PolicyCatalogCache = @{}
+$script:FindingMapCache = @{}
+
 function Get-PolicyCatalogPath {
     param([string] $Leaf)
     return Join-Path (Join-Path $PSScriptRoot 'catalogs') $Leaf
@@ -19,11 +22,16 @@ function Import-PolicyCatalog {
     if (-not (Test-Path -LiteralPath $Path)) {
         throw "$Name catalog not found at '$Path'."
     }
-    $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+    $resolved = (Resolve-Path -LiteralPath $Path).ProviderPath
+    if ($script:PolicyCatalogCache.ContainsKey($resolved)) {
+        return $script:PolicyCatalogCache[$resolved]
+    }
+    $raw = Get-Content -LiteralPath $resolved -Raw -Encoding UTF8
     $catalog = $raw | ConvertFrom-Json
     if (-not $catalog.PSObject.Properties['entries']) {
-        throw "$Name catalog at '$Path' is missing entries[]."
+        throw "$Name catalog at '$resolved' is missing entries[]."
     }
+    $script:PolicyCatalogCache[$resolved] = $catalog
     return $catalog
 }
 
@@ -36,7 +44,7 @@ function Invoke-AzAdvertizerLookup {
 
     if ([string]::IsNullOrWhiteSpace($PolicyId)) { return $null }
     $catalog = Import-PolicyCatalog -Path $CatalogPath -Name 'AzAdvertizer'
-    return @($catalog.entries | Where-Object { [string]$_.policyId -ieq [string]$PolicyId } | Select-Object -First 1)
+    return ($catalog.entries | Where-Object { [string]$_.policyId -ieq [string]$PolicyId } | Select-Object -First 1)
 }
 
 function Get-PolicySuggestionsForFinding {
@@ -144,20 +152,25 @@ function Import-FindingToPolicyMap {
     if (-not (Test-Path -LiteralPath $MapPath)) {
         throw "finding-to-policy map not found at '$MapPath'."
     }
+    $resolved = (Resolve-Path -LiteralPath $MapPath).ProviderPath
+    if ($script:FindingMapCache.ContainsKey($resolved)) {
+        return $script:FindingMapCache[$resolved]
+    }
 
-    $raw = Get-Content -LiteralPath $MapPath -Raw -Encoding UTF8
+    $raw = Get-Content -LiteralPath $resolved -Raw -Encoding UTF8
     $map = $raw | ConvertFrom-Json
     if (-not $map.PSObject.Properties['entries']) {
-        throw "finding-to-policy map '$MapPath' is missing entries[]."
+        throw "finding-to-policy map '$resolved' is missing entries[]."
     }
     foreach ($entry in @($map.entries)) {
         if (-not $entry.PSObject.Properties['findingType'] -or [string]::IsNullOrWhiteSpace([string]$entry.findingType)) {
-            throw "finding-to-policy map '$MapPath' contains an entry without findingType."
+            throw "finding-to-policy map '$resolved' contains an entry without findingType."
         }
         if (-not $entry.PSObject.Properties['suggestions']) {
-            throw "finding-to-policy map '$MapPath' entry '$($entry.findingType)' is missing suggestions[]."
+            throw "finding-to-policy map '$resolved' entry '$($entry.findingType)' is missing suggestions[]."
         }
     }
+    $script:FindingMapCache[$resolved] = $map
     return $map
 }
 
