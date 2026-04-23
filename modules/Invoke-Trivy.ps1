@@ -255,7 +255,7 @@ if ($null -ne $trivyVersion -and $trivyVersion -lt $script:MinTrivyVersion) {
     Write-Verbose "trivy version $trivyVersion is below the recommended minimum ($script:MinTrivyVersion). Update from https://github.com/aquasecurity/trivy/releases"
 }
 if ($null -eq $trivyVersion) {
-    Write-Verbose "Could not determine trivy version. Verify binary integrity - download from https://github.com/aquasecurity/trivy/releases"
+    Write-Verbose "Could not determine trivy version. Verify binary integrity — download from https://github.com/aquasecurity/trivy/releases"
 }
 
 $cloneInfo = $null
