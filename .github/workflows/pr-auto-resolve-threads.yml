@@ -94,6 +94,7 @@ jobs:
         # tolerance, a genuine network outage on the graphql endpoint must
         # not paint every PR red on a non-required check and train the
         # squad to ignore CI signal.
+        # tracked: martinopedal/azure-analyzer#604
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
