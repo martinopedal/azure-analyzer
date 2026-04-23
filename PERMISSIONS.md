@@ -9,6 +9,7 @@ Identity Correlator manifest dispatch now routes through a thin `Invoke-Identity
 The ado-connections Schema 2.2 auth posture enrichment adds metadata only and does not require any new Azure DevOps PAT scopes.
 The gitleaks Schema 2.2 ETL enrichment adds metadata only (framework mapping, evidence links, remediation snippets, baseline tags, and tool version) and does not introduce any new permissions.
 The zizmor Schema 2.2 ETL enrichment only adds metadata fields and does not introduce new GitHub or Azure permissions.
+Repo-input parameter convergence (`RepoPath` + `RemoteUrl` with legacy aliases) is naming-only and does not introduce any new Azure, Graph, GitHub, or Azure DevOps permissions.
 The falco Schema 2.2 ETL enrichment adds runtime metadata only (CIS framework mapping, MITRE tags, evidence links, and tool version) and does not introduce any new Azure RBAC requirements.
 The alz-queries Schema 2.2 ETL enrichment adds ALZ governance metadata only (framework tags, pillar mapping, source deep links, evidence URIs, baseline tags, and tool version) and does not change required Azure Reader scope.
 The HTML remediation-snippet null-guard report fix only changes rendering behavior and does not introduce any new permissions.

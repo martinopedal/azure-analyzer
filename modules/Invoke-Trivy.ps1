@@ -13,15 +13,17 @@
 
     JSON output is written to a temp file (--output) to avoid stderr/stdout
     mixing. The temp file is cleaned up in a finally block.
-.PARAMETER ScanPath
+.PARAMETER RepoPath
     Path to scan for vulnerabilities. Defaults to current directory.
+    Legacy alias: -ScanPath.
 .PARAMETER ScanType
     Type of scan to perform: 'fs' (filesystem) or 'repo' (remote repository).
     Defaults to 'fs'.
 #>
 [CmdletBinding()]
 param (
-    [string] $ScanPath = '.',
+    [Alias('ScanPath')]
+    [string] $RepoPath = '.',
 
     [ValidateSet('fs', 'repo')]
     [string] $ScanType = 'fs',
@@ -270,17 +272,17 @@ try {
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
-        $ScanPath = $cloneInfo.Path
+        $RepoPath = $cloneInfo.Path
         $ScanType = 'fs'
     }
 
-    Write-Verbose "Running trivy $ScanType scan on '$ScanPath'"
+    Write-Verbose "Running trivy $ScanType scan on '$RepoPath'"
 
     # Write JSON to a temp file to keep stderr separate from the JSON stream
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-report-$([guid]::NewGuid().ToString('N')).json"
 
     try {
-        & trivy $ScanType --format json --scanners vuln,misconfig --output $reportFile $ScanPath 2>&1 | ForEach-Object {
+        & trivy $ScanType --format json --scanners vuln,misconfig --output $reportFile $RepoPath 2>&1 | ForEach-Object {
             if ($_ -is [System.Management.Automation.ErrorRecord]) {
                 Write-Verbose "trivy stderr: $_"
             }
@@ -433,7 +435,7 @@ try {
                         }
                     )
                 }
-                $resourceId = if (-not [string]::IsNullOrWhiteSpace($target)) { $target } else { $ScanPath }
+                $resourceId = if (-not [string]::IsNullOrWhiteSpace($target)) { $target } else { $RepoPath }
                 if ($resourceId -match '(sha256:[A-Fa-f0-9]{64})') { $resourceId = $Matches[1].ToLowerInvariant() }
 
                 $findings.Add([PSCustomObject]@{
@@ -485,7 +487,7 @@ try {
                 $evidenceUris = Get-TrivyEvidenceUris -VulnerabilityId '' -PrimaryUrl $primaryUrl -References $references
                 $baselineTags = Get-TrivyBaselineTags -Target $target -Texts @($title, $description, $resolution)
                 $entityRefs = Get-TrivyEntityRefs -Result $result -RemoteUrl $RemoteUrl
-                $resourceId = if (-not [string]::IsNullOrWhiteSpace($target)) { $target } else { $ScanPath }
+                $resourceId = if (-not [string]::IsNullOrWhiteSpace($target)) { $target } else { $RepoPath }
                 if ($resourceId -match '(sha256:[A-Fa-f0-9]{64})') { $resourceId = $Matches[1].ToLowerInvariant() }
                 $detail = @(
                     if (-not [string]::IsNullOrWhiteSpace($description)) { $description }
