@@ -20,7 +20,7 @@ lychee --config .lychee.toml --cache --max-cache-age 7d "./**/*.md"
 
 # PR-like scope (changed Markdown only)
 $base = git merge-base origin/main HEAD
-$targets = git diff --name-only --diff-filter=ACMR $base HEAD -- '*.md'
+$targets = git diff --name-only --diff-filter=ACMR $base HEAD -- '**/*.md'
 if ($targets) { lychee --config .lychee.toml --cache --max-cache-age 7d $targets }
 
 # Em-dash policy (requires ripgrep)

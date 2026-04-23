@@ -81,15 +81,20 @@ jobs:
         run: |
           set -euo pipefail
           targets_file='lychee/targets.txt'
+          targets=()
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            mapfile -t targets < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' \
+            if [ -z "${BASE_SHA:-}" ] || [ -z "${HEAD_SHA:-}" ]; then
+              echo "Error: BASE_SHA or HEAD_SHA is missing from pull_request event context. These values are required to determine changed Markdown files in the PR. Ensure the workflow is triggered by a pull_request event with a valid base and head SHA."
+              exit 1
+            fi
+            mapfile -t targets < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '**/*.md' \
               ':(exclude).copilot/audits/**' \
               ':(exclude).copilot/status/**' \
               ':(exclude).copilot/session-state/**' \
               ':(exclude).squad/decisions/inbox/**' \
               ':(exclude).atlas-stash/**')
           else
-            mapfile -t targets < <(git ls-files '*.md' \
+            mapfile -t targets < <(git ls-files '**/*.md' \
               ':(exclude).copilot/audits/**' \
               ':(exclude).copilot/status/**' \
               ':(exclude).copilot/session-state/**' \
@@ -98,7 +103,7 @@ jobs:
           fi
 
           if [ ${#targets[@]} -eq 0 ]; then
-            echo "No markdown files in lychee scope; skipping link check."
+            echo "No Markdown files in lychee scope; skipping link check."
             echo 'has_targets=false' >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -121,7 +126,8 @@ jobs:
           retry_on: error
           on_retry_command: rm -rf .lycheecache lychee/out.md
           command: |
-            xargs -r -d '\n' lychee --config .lychee.toml --cache --max-cache-age 7d --github-token "$GITHUB_TOKEN" --format markdown --output lychee/out.md < "${{ steps.lychee-scope.outputs.targets_file }}"
+            mapfile -t lychee_targets < "${{ steps.lychee-scope.outputs.targets_file }}"
+            lychee --config .lychee.toml --cache --max-cache-age 7d --github-token "$GITHUB_TOKEN" --format markdown --output lychee/out.md "${lychee_targets[@]}"
 
       - name: Append lychee report to job summary
         if: always()
