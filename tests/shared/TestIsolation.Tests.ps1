@@ -123,4 +123,29 @@ Describe 'Test isolation guard (#746)' -Tag 'isolation' {
 
         $offenders -join "`n" | Should -BeNullOrEmpty -Because "use [System.IO.Path]::GetTempPath() instead of literal '/tmp'; offenders:`n$($offenders -join "`n")"
     }
+
+    It 'back-to-back test runs produce identical PassedCount (detects cross-file state leaks)' -Skip:(-not ($env:AZURE_ANALYZER_RUN_ISOLATION_META_TEST -in @('1', 'true', 'yes', 'on'))) {
+        # This meta-test runs a subset of the test suite twice in the same
+        # pwsh process and asserts that PassedCount is identical. A difference
+        # signals that some test file is leaking state (env vars, globals,
+        # module-scope variables, PSDefaultParameterValues, etc.) that affects
+        # downstream tests in the second run.
+        #
+        # Gated behind AZURE_ANALYZER_RUN_ISOLATION_META_TEST=1 to avoid
+        # exploding CI time. Enable locally via:
+        #   $env:AZURE_ANALYZER_RUN_ISOLATION_META_TEST = '1'
+        #   Invoke-Pester -Path tests/shared/TestIsolation.Tests.ps1
+
+        $testPaths = @(
+            (Join-Path $script:TestsRoot 'shared')
+            (Join-Path $script:TestsRoot 'normalizers')
+            (Join-Path $script:TestsRoot 'wrappers')
+        )
+
+        $run1 = Invoke-Pester -Path $testPaths -PassThru -Output None
+        $run2 = Invoke-Pester -Path $testPaths -PassThru -Output None
+
+        $run1.PassedCount | Should -Be $run2.PassedCount -Because "back-to-back runs must have identical PassedCount; run1=$($run1.PassedCount) run2=$($run2.PassedCount). Difference signals a state leak."
+        $run1.FailedCount | Should -Be $run2.FailedCount -Because "back-to-back runs must have identical FailedCount; run1=$($run1.FailedCount) run2=$($run2.FailedCount). Difference signals a state leak."
+    }
 }
