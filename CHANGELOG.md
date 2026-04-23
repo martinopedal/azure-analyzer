@@ -421,7 +421,13 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Documentation
-- docs(design): RFC for LLM-driven triage with rubberduck and tier-aware model selection (Track E, #433). Design document at `docs/design/RFC-433-llm-triage.md` covers provider abstraction, tier detection protocol, trio composition algorithm, sanitization pipeline, triage output schema, phased rollout plan, and test strategy. Implementation deferred per scope estimate until Phase 1 MVP ships and Track D completes.
+- docs(design): RFC for LLM-driven triage with rubberduck and tier-aware
+  model selection (Track E, #433). Design document at
+  `docs/design/RFC-433-llm-triage.md` covers provider abstraction, tier
+  detection protocol, trio composition algorithm, sanitization pipeline,
+  triage output schema, phased rollout plan, and test strategy.
+  Implementation deferred per scope estimate until Phase 1 MVP ships and
+  Track D completes.
 
 ### Fixed
 

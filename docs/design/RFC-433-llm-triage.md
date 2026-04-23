@@ -113,12 +113,20 @@ function Invoke-TriageModel {
         [Parameter(Mandatory)] [string] $ModelId,
         [Parameter(Mandatory)] [string] $Prompt,
         [Parameter(Mandatory)] [string] $SystemMessage,
-        [int] $MaxTokens = 4096,
+        [int] $MaxOutputTokens = 4096,
         [double] $Temperature = 0.2
     )
     # Returns: [PSCustomObject]@{ Response = '...'; TokensUsed = N; ModelId = '...'; LatencyMs = N }
 }
 ```
+
+`MaxOutputTokens` is an output-token cap (not a context budget). The 4096
+default is a conservative floor; the orchestrator MUST set it explicitly
+per task class to match the documented per-task output budgets in the
+"Token budget" section below (e.g. 8000 for narrative summaries, 15000
+for full-finding triage). Providers MUST treat the value as a hard
+upper bound on completion tokens and surface a structured truncation
+flag when the cap is hit.
 
 The initial implementation targets the GitHub Copilot API (via the
 `github-copilot-sdk` Python package or direct REST calls to the Copilot
@@ -133,10 +141,49 @@ info. The detection order is:
 
 1. **Explicit flag**: `-CopilotTier Pro|Business|Enterprise` on the CLI.
 2. **Config file**: `config/azure-analyzer.json` key `copilotTier`.
-3. **Runtime probe**: `gh copilot status` (returns plan name on recent gh CLI
-   versions).
+3. **Runtime probe**: `gh copilot status`, but only on supported `gh` CLI
+   versions and only via a machine-readable output shape.
 4. **Failure mode**: if none of the above resolves, emit a clear error and
    refuse to run triage. No silent fallback to a default tier.
+
+Runtime probe requirements:
+
+- **Minimum supported version**: triage runtime probing requires a `gh` CLI
+  version that supports `gh copilot status` with stable machine-readable
+  output (JSON or equivalent structured fields). Implementations MUST check
+  the installed `gh` version before relying on this path. If the installed
+  version is older, or if `gh copilot status` is unavailable, probing MUST
+  be treated as unsupported and the resolver MUST continue to the
+  fail-closed behavior unless the tier was already provided by flag or
+  config.
+- **Do not parse localized free-form text**: implementations MUST NOT infer
+  tier by scraping human-readable prose from `gh copilot status`, because
+  that output may be localized or reworded across CLI releases.
+- **Expected parsed value**: the probe MUST extract exactly one normalized
+  plan field/value representing the Copilot subscription tier and map only
+  the following values:
+  - `pro` -> `Pro`
+  - `business` -> `Business`
+  - `enterprise` -> `Enterprise`
+- **Example structured output shape**: for example, if the CLI exposes
+  JSON, the implementation should parse a field such as:
+
+  ```json
+  {
+    "plan": "business"
+  }
+  ```
+
+  or an equivalent documented machine-readable field carrying the same
+  semantic meaning. Parsing must key off the field name in the structured
+  payload, not surrounding display text.
+- **Format drift / localization handling**: if the expected structured
+  field is missing, renamed, duplicated, empty, or contains any value
+  other than `pro`, `business`, or `enterprise`, the implementation MUST
+  fail closed, emit a clear error that the installed `gh` version/output
+  format is not supported for automatic tier detection, and instruct the
+  user to set `-CopilotTier` explicitly or populate
+  `config/azure-analyzer.json`.
 
 ### Model discovery and capability ranking
 
@@ -145,26 +192,22 @@ the equivalent Copilot REST endpoint). The CLI does NOT hardcode model IDs
 per tier.
 
 A vendored, SHA-pinned capability ranking table lives at
-`config/triage-model-ranking.json`. This table assigns a numeric rank and
+`config/triage-model-ranking.json`. That file assigns a numeric rank and
 task-class suitability score to each known model. The trio composition
 algorithm picks the top-3 available models from the user's roster, maximizing
 provider diversity (at most 2 models from the same provider).
 
-Current ranking (v1.1, reviewed 2026-04-21):
+This RFC intentionally does **not** embed a concrete "current ranking" table.
+Specific model IDs, ranks, and provider mixes change over time and must remain
+non-normative here to avoid staleness. The sole source of truth for ranking is
+`config/triage-model-ranking.json`, which maintainers update through the normal
+review process whenever model availability or quality changes.
 
-| Model              | Rank | Provider   | Notes                          |
-|--------------------|------|------------|--------------------------------|
-| claude-opus-4.7    | 100  | Anthropic  | Primary rubberduck anchor      |
-| claude-opus-4.6-1m | 95   | Anthropic  | Large-context fallback         |
-| gpt-5.4            | 90   | OpenAI     | Provider-diversity counterweight|
-| gpt-5.3-codex      | 85   | OpenAI     | Code-heavy triage, IaC remediation |
-| goldeneye          | 80   | Microsoft  | Internal frontier, last resort |
-
-> **Note**: This ranking table is for *internal maintainer agents* per the
-> frontier-only invariant. End-user triage discovers the user's available
-> models at runtime and picks the best-3 by capability rank from *their*
-> roster, which may include non-frontier models (sonnet, haiku, gpt-4.1, etc.)
-> depending on the user's Copilot plan.
+> **Note**: This RFC defines the selection mechanism, not a fixed model list.
+> End-user triage discovers the user's available models at runtime and picks
+> the best-3 by capability rank from *their* roster. That roster may include
+> different models over time depending on the user's Copilot plan and current
+> provider availability.
 
 ### Trio composition algorithm
 
