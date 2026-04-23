@@ -139,8 +139,7 @@ $result = [ordered]@{
 # ---------------------------------------------------------------------------
 $allowElevatedOps = $EnableElevatedRbac.IsPresent
 if ($EnableElevatedRbac.IsPresent) {
-    $elevatedTarget = if (-not [string]::IsNullOrWhiteSpace($ClusterName)) { $ClusterName } elseif (-not [string]::IsNullOrWhiteSpace($ResourceGroup)) { $ResourceGroup } else { $SubscriptionId }
-    $allowElevatedOps = $PSCmdlet.ShouldProcess($elevatedTarget, 'Initialize kube auth and run kubectl Karpenter inspection')
+    $allowElevatedOps = -not $WhatIfPreference
     if ($allowElevatedOps) {
         if (Get-Command Set-RbacTier -ErrorAction SilentlyContinue) {
             Set-RbacTier -Tier 'ClusterUser'
