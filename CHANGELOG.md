@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [1.2.0 - Unreleased]
 
+### Fixed
+- Remove duplicate New-FindingError definition in modules/shared/Schema.ps1 that shadowed the canonical sanitizing version in Errors.ps1, restoring Remove-Credentials enforcement on Reason and Remediation fields. (closes #671)
+
 ### Changed
 - chore(sweep): post-sprint 3-model rubberduck audit (claude-opus-4.7 + gpt-5.4 + gpt-5.3-codex, parallel from fresh worktrees) covering workflows, retry, params, errors, schema, tests, docs, manifest, security, and hotfix-debt. 0 critical / 0 high / 6 medium 2-of-3-consensus findings shipped as tracking issues #669-#674: raw throws in `Send-FindingsToLogAnalytics` (#669), three Unreleased headers in CHANGELOG.md (#670), shadowed helpers in `Schema.ps1` (#671), `Invoke-Infracost` 60s timeout vs 300s invariant (#672), missing inline `# tracked: #NNN` markers on `continue-on-error` workflows (#673), and `tool-manifest.json` not alphabetically sorted (#674). Pester baseline confirmed green (2171 passed / 0 failed / 36 skipped). 1-of-3 findings (Retry pattern omits ECONNRESET/ETIMEDOUT errno tokens; ResilienceMap skip annotations; README em-dash backlog) deferred and logged in `.squad/decisions/inbox/sweep-final-2026-04-23T03-29-40Z.md`. Goldeneye leg returned `400 model not supported`; fell back to `gpt-5.4` per the Frontier Fallback Chain to keep three distinct legs. Sprint officially closed.
 - Remove transient maintenance banner from README, sprint closed (#668)
