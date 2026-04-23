@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [1.2.0 - Unreleased]
 
 ### Fixed
+- fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545, reported by external user)
 - Guard sparse `.user` payloads in `modules/shared/Invoke-PRReviewGate.ps1` (lines 151, 163) so PR Review Gate no longer crashes under StrictMode when GitHub REST returns a review or line-comment object without a `user` property (ghost/deleted user or sparse bot comment). `-and` short-circuit was insufficient because StrictMode raises before logical evaluation; switched to `PSObject.Properties['user']` presence checks matching the existing pattern at lines 165/170. Added regression test in `tests/shared/Invoke-PRReviewGate.Tests.ps1` (sparse-user Context, 12/12 green). Closes #584.
 - Remove duplicate New-FindingError definition in modules/shared/Schema.ps1 that shadowed the canonical sanitizing version in Errors.ps1, restoring Remove-Credentials enforcement on Reason and Remediation fields. (closes #671)
 
@@ -197,11 +198,12 @@ All notable changes to azure-analyzer will be documented here.
 - Reports: HTML/MD column "Learn more" renamed to "Fix it" (presentational only; field name `LearnMoreUrl` unchanged) (closes #228).
 - queries: moved 7 orphan KQL catalog files (3 `appinsights-*.json`, 4 `aks-rightsizing-*.json`) into new `queries/library/` subfolder with a README explaining the reference-catalog convention. Files are not loaded by any wrapper; they mirror inline KQL in `Invoke-AppInsights.ps1` / `Invoke-AksRightsizing.ps1` and exist as operator-facing documentation (closes #318).
 - queries: reorganized `queries/` into per-tool subfolders. `alz_additional_queries.json` moved to `queries/alz/`; the seven `finops-*.json` catalogs moved to `queries/finops/`. Wrapper defaults (`Invoke-AlzQueries.ps1`, `Invoke-FinOpsSignals.ps1`), `scripts/Sync-AlzQueries.ps1` destination, and tests updated. New `queries/README.md` documents the convention; `queries/library/` is unchanged. All moves done with `git mv` to preserve blame (closes #317).
-
-## [Unreleased]
-
 - fix(ci): Markdown Link Check step now swallows non-zero exit so the PR UI check reports green while PR #525 hardened replacement is in flight (MLC green-step hotfix, revert on #525 merge).
 - docs(readme): add transient maintenance banner noting active hardening sprint (auto-remove once all open PRs land).
+- chore(sweep): migrate Send-FindingsToLogAnalytics raw `throw` calls to `New-FindingError` for structured error handling (#669).
+- chore(timeout): raise Invoke-Infracost external-process timeout from 60s to 300s safety cap aligned with Invoke-WithTimeout convention (#672).
+- chore(manifest): alphabetize tools/tool-manifest.json `.tools[]` by `name` ascending (#674).
+
 ### Changed
 
 - feat(reports): aligned `New-MdReport.ps1` output with `samples/sample-report.md` structure (badge header, ordered sections, provider-grouped tool coverage, emoji heat map, top-10 risks, top-30 findings cap, entity inventory, and tool-version details) with defensive Schema 2.2 field handling and sanitization (closes #296).
