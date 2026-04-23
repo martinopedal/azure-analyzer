@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [1.2.0 - Unreleased]
 
 ### Fixed
+- test(perf): optimize `tests/reports/Collapsible-Tree.Tests.ps1` (PES-003) by moving report fixture generation and HTML loading from per-`It` setup into `BeforeAll`, eliminating repeated setup work as coverage grows.
 - fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545, reported by external user)
 - Guard sparse `.user` payloads in `modules/shared/Invoke-PRReviewGate.ps1` (lines 151, 163) so PR Review Gate no longer crashes under StrictMode when GitHub REST returns a review or line-comment object without a `user` property (ghost/deleted user or sparse bot comment). `-and` short-circuit was insufficient because StrictMode raises before logical evaluation; switched to `PSObject.Properties['user']` presence checks matching the existing pattern at lines 165/170. Added regression test in `tests/shared/Invoke-PRReviewGate.Tests.ps1` (sparse-user Context, 12/12 green). Closes #584.
 - Remove duplicate New-FindingError definition in modules/shared/Schema.ps1 that shadowed the canonical sanitizing version in Errors.ps1, restoring Remove-Credentials enforcement on Reason and Remediation fields. (closes #671)
