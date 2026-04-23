@@ -74,7 +74,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 
 <details><summary><b>Tool catalog (36 enabled + 1 opt-in)</b></summary>
 
-See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md).
+See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md). The catalog documents each tool's `scope` axis (`subscription`, `managementGroup`, `tenant`, `repository`, `ado`, or `workspace`), which maps directly to the `-SubscriptionId` / `-ManagementGroupId` / `-TenantId` / `-RepoPath` (or `-RemoteUrl`) / `-AdoOrg` / `-WorkspaceResourceId` parameters on `Invoke-AzureAnalyzer.ps1`.
 
 </details>
 
