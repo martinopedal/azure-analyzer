@@ -56,6 +56,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **36 tools** (+ 1 opt-in) across Azure (azqr, PSRule, Powerpipe, AzGovViz, Prowler, Defender for Cloud, ...), Entra (Maester, Identity Correlator, ...), GitHub (gitleaks, Trivy, Scorecard, zizmor), and Azure DevOps (pipeline security, service connections, repos).
 - **Schema 2.2 metadata**: Frameworks, Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets, EvidenceUris, BaselineTags, MitreTactics, MitreTechniques, EntityRefs, ToolVersion.
 - **Phase 0 foundation contract**: report architecture is selected with explicit thresholds and headroom, `output/report-manifest.json` captures picker and verification metadata, and normalizers can contribute edges through optional EdgeCollector introspection without breaking legacy signatures.
+- **Attack-path renderer (Track A)**: `AttackPathRenderer` now emits a tier-aware Cytoscape model/data-island with a shared edge budget report, finding pivot map, and hydration hints for Tier 1-4.
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
@@ -86,6 +87,7 @@ See [docs/tool-output-audit.md](docs/tool-output-audit.md) and [docs/tool-output
 <details><summary><b>All parameters and advanced usage</b></summary>
 
 See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.md) for every Invoke-AzureAnalyzer.ps1 parameter, plus scenario-specific grouping (subscription scan, repo scan, multi-tenant, CI/CD, Kubernetes).
+After `Import-Module .\AzureAnalyzer.psd1`, `Invoke-AzureAnalyzer` now exposes the same typed parameters in `Get-Command` / `Get-Help` as the script entrypoint.
 
 </details>
 

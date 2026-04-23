@@ -115,7 +115,8 @@ function Normalize-IaCTerraform {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [PSCustomObject] $ToolResult
+        [PSCustomObject] $ToolResult,
+        [System.Collections.Generic.List[psobject]] $EdgeCollector
     )
 
     if ($ToolResult.Status -ne 'Success' -or -not $ToolResult.Findings) {
@@ -126,7 +127,25 @@ function Normalize-IaCTerraform {
     $repositoryEntityId = Resolve-TerraformRepositoryEntityId -ToolResult $ToolResult
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+    function Add-TerraformTrackAEdges {
+        param([object] $Candidate)
+        if ($null -eq $EdgeCollector) { return }
+        if ($null -eq $Candidate -or -not $Candidate.PSObject.Properties['AttackPathEdges']) { return }
+        $allowedRelations = @('TriggeredBy', 'AuthenticatesAs', 'DeploysTo', 'UsesSecret', 'HasFederatedCredential', 'Declares')
+        foreach ($edgeHint in @($Candidate.AttackPathEdges)) {
+            if ($null -eq $edgeHint) { continue }
+            $source = if ($edgeHint.PSObject.Properties['Source']) { [string]$edgeHint.Source } else { '' }
+            $target = if ($edgeHint.PSObject.Properties['Target']) { [string]$edgeHint.Target } else { '' }
+            $relation = if ($edgeHint.PSObject.Properties['Relation']) { [string]$edgeHint.Relation } else { '' }
+            if ([string]::IsNullOrWhiteSpace($source) -or [string]::IsNullOrWhiteSpace($target)) { continue }
+            if ($relation -notin $allowedRelations) { continue }
+            $edge = New-Edge -Source $source -Target $target -Relation $relation -Confidence 'Likely' -Platform 'IaC' -DiscoveredBy 'terraform-iac'
+            if ($null -ne $edge) { $EdgeCollector.Add($edge) | Out-Null }
+        }
+    }
+
     foreach ($finding in $ToolResult.Findings) {
+        Add-TerraformTrackAEdges -Candidate $finding
         $rawId = if ($finding.PSObject.Properties['ResourceId'] -and $finding.ResourceId) { [string]$finding.ResourceId } else { '' }
         $findingId = if ($finding.PSObject.Properties['Id'] -and $finding.Id) { [string]$finding.Id } else { [guid]::NewGuid().ToString() }
         $title = if ($finding.PSObject.Properties['Title'] -and $finding.Title) { [string]$finding.Title } else { 'Unknown' }
