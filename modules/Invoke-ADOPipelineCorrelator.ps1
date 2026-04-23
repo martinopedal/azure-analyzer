@@ -27,7 +27,9 @@ $ErrorActionPreference = 'Stop'
 $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
-
+
+. (Join-Path $sharedDir 'New-WrapperEnvelope.ps1')
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 function Resolve-AdoPat {
     param ([string]$Explicit)
     if ($Explicit) { return $Explicit }

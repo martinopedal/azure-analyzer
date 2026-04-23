@@ -45,7 +45,10 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
-if (Test-Path $remoteClonePath) { . $remoteClonePath }
+if (Test-Path $remoteClonePath) { . $remoteClonePath }
+$envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 $installerPath = Join-Path $sharedDir 'Installer.ps1'
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) -and (Test-Path $installerPath)) {
     . $installerPath

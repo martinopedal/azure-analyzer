@@ -12,4 +12,13 @@ param ()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-. "$PSScriptRoot\shared\IdentityCorrelator.ps1"
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
+
+try {
+    . "$PSScriptRoot\shared\IdentityCorrelator.ps1"
+} catch {
+    Write-Warning "IdentityCorrelator failed: $_"
+    return New-WrapperEnvelope -Source 'identity-correlator' -Status 'Failed' -Message "$_"
+}

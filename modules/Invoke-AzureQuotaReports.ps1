@@ -25,7 +25,10 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
 }
 
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
-if (Test-Path $sanitizePath) { . $sanitizePath }
+if (Test-Path $sanitizePath) { . $sanitizePath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }

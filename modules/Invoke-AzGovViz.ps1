@@ -32,7 +32,10 @@ if (Test-Path $installerPath) { . $installerPath }
 $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
 $errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
-if (Test-Path $errorsPath) { . $errorsPath }
+if (Test-Path $errorsPath) { . $errorsPath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
     function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
 }

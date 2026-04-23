@@ -51,7 +51,10 @@ if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue))
 }
 
 $installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
-if (Test-Path $installerPath) { . $installerPath }
+if (Test-Path $installerPath) { . $installerPath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 $timeoutCmd = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
 if (-not $timeoutCmd -or -not $timeoutCmd.Parameters.ContainsKey('ScriptBlock')) {
     function Invoke-WithTimeout {
