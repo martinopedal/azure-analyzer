@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "aks-karpenter-cost",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Karpenter NodePool drives 38% of cluster cost",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "NodePool 'spot-batch' represents USD 612/mo of USD 1612/mo cluster spend; consider Reserved Instance baseline.",
+      "ResourceId": "/subscriptions/bbbbbbbb-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks-karpenter",
+      "Remediation": "Move steady baseline to RI-backed nodepool.",
+      "RuleId": "karpenter-nodepool-cost-share"
+    },
+    {
+      "Title": "On-demand fallback rate above 20%",
+      "Severity": "Low",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Spot interruption forced 27% of pods to on-demand instances last 7 days.",
+      "ResourceId": "/subscriptions/bbbbbbbb-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks-karpenter",
+      "Remediation": "Diversify spot SKU pool or pin AZ for stability.",
+      "RuleId": "karpenter-spot-fallback-high"
+    },
+    {
+      "Title": "Karpenter consolidation enabled",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Consolidation",
+      "Pillar": "Cost",
+      "Detail": "Consolidation policy WhenEmptyOrUnderutilized active.",
+      "ResourceId": "/subscriptions/bbbbbbbb-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks-karpenter",
+      "Remediation": "",
+      "RuleId": "karpenter-consolidation-on"
+    }
+  ]
+}
