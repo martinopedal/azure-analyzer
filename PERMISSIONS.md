@@ -110,6 +110,16 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 <!-- END INDEX -->
 
+### Opt-in / disabled-by-default tools
+
+These tools are registered in `tools/tool-manifest.json` with `enabled: false` and only run when the user explicitly opts in. They are documented here for completeness but are intentionally excluded from the auto-generated index above.
+
+| Tool | Scope | Opt-in flag | Required credentials | Detail |
+|---|---|---|---|---|
+| **Copilot AI Triage** | Repository | `-EnableAiTriage` | GitHub Copilot license + PAT with `copilot` scope (or existing `GITHUB_TOKEN`) via `COPILOT_GITHUB_TOKEN` / `GITHUB_TOKEN` env var. No Azure RBAC required. | [`copilot-triage.md`](docs/consumer/permissions/copilot-triage.md) |
+
+The manifest (`tools/tool-manifest.json`) remains the source of truth for `enabled`, `provider`, and `scope` metadata.
+
 ## Least-privilege summary
 
 - Read-only everywhere (the optional Log Analytics sink is the sole exception).
