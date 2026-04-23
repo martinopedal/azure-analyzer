@@ -110,7 +110,7 @@ CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to red
 
 Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
 
-Markdown Check hardening: the `links (lychee)` retry wrapper now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub 5xx / unauthenticated flake failures.
+Markdown Check hardening: the `links (lychee)` job now scopes PR runs to changed Markdown files (while scheduled/manual runs still scan the full corpus), clears `.lycheecache` between retry attempts, and passes `GITHUB_TOKEN` to reduce transient GitHub/rate-limit flakes.
 
 </details>
 

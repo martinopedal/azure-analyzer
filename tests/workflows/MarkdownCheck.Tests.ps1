@@ -72,7 +72,18 @@ Describe 'lychee retry + cache configuration' {
     }
 
     It 'workflow invokes lychee with --cache' {
-        $script:WorkflowText | Should -Match 'lychee[^\n]+--cache'
+        $script:WorkflowText | Should -Match '--cache'
+    }
+
+    It 'workflow scopes lychee to changed markdown on pull requests' {
+        $script:WorkflowText | Should -Match 'Resolve markdown scope for lychee'
+        $script:WorkflowText | Should -Match 'id:\s*lychee-scope'
+        $script:WorkflowText | Should -Match 'if \[ "\$EVENT_NAME" = "pull_request" \]'
+        $script:WorkflowText | Should -Match 'git diff --name-only --diff-filter=ACMR'
+    }
+
+    It 'workflow scans full markdown corpus for non-PR events' {
+        $script:WorkflowText | Should -Match "git ls-files '\*\*/\*\.md'"
     }
 
     It 'workflow wraps lychee in nick-fields/retry' {
@@ -86,6 +97,10 @@ Describe 'lychee retry + cache configuration' {
     It 'workflow passes GitHub token to lychee for GitHub URL reliability' {
         $script:WorkflowText | Should -Match 'GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}'
         $script:WorkflowText | Should -Match '--github-token\s+"\$GITHUB_TOKEN"'
+    }
+
+    It 'workflow skips lychee run when markdown scope is empty' {
+        $script:WorkflowText | Should -Match "if:\s*steps\.lychee-scope\.outputs\.has_targets == 'true'"
     }
 }
 
