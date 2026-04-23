@@ -1,5 +1,9 @@
 ## Unreleased
 
+### CI
+
+- Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
+
 ### Fixed
 
 - **Shared helper**: Converted `modules/shared/New-WrapperEnvelope.ps1` from standalone script (with top-level `param()`) to pure function definition. Eliminates phantom object emission when dot-sourced, fixing Invoke-Maester double-return (M1) and Errors.Regression529 child-process crash (M3). (#907)
