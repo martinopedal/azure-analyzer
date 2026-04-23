@@ -41,4 +41,14 @@ Describe 'AzAdvertizer policy lookup' -Tag 'policy' {
         $vintage.alz.catalogVintage | Should -Be '2026-04-23'
         $vintage.alz.catalogSha | Should -Match '^[a-f0-9]{40}$'
     }
+
+    It 'accepts preloaded Map and catalog objects to avoid per-call disk I/O' {
+        $map = Import-FindingToPolicyMap
+        $alzCatalog = Import-PolicyCatalog -Path (Get-PolicyCatalogPath -Leaf 'alz-policy-catalog.json') -Name 'ALZ'
+        $azCatalog = Import-PolicyCatalog -Path (Get-PolicyCatalogPath -Leaf 'azadvertizer-catalog.json') -Name 'AzAdvertizer'
+        $finding = [pscustomobject]@{ FindingType = 'storage.publicNetworkAccess.enabled' }
+        $suggestions = Get-PolicySuggestionsForFinding -Finding $finding -AlzActivation Full -MaxSuggestions 5 `
+            -Map $map -AlzCatalog $alzCatalog -AzAdvertizerCatalog $azCatalog
+        @($suggestions).Count | Should -Be 2
+    }
 }
