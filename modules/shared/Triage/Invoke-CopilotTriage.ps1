@@ -31,16 +31,22 @@ function New-TriageError {
         [string] $Remediation,
         [string] $Details
     )
-    if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
-        return New-FindingError -Source 'triage' -Category $Category -Reason $Reason -Remediation $Remediation -Details $Details
-    }
+    # Triage uses a domain-specific category vocabulary
+    # (TierUnresolved/AllModelsFailed/NoRankedModels/...) that intentionally
+    # does NOT overlap the canonical FindingErrorCategories enum in
+    # modules/shared/Errors.ps1. We therefore construct the rich error inline
+    # rather than delegating to New-FindingError, but mirror the same
+    # sanitization invariant: every free-text field passes through
+    # Remove-Credentials so the object is safe to log or throw. (See #671 for
+    # why we no longer rely on a Schema.ps1 alias of New-FindingError.)
     return [PSCustomObject]@{
-        PSTypeName  = 'AzureAnalyzer.FindingError'
-        Source      = 'triage'
-        Category    = $Category
-        Reason      = $Reason
-        Remediation = $Remediation
-        Details     = (Remove-Credentials ([string]$Details))
+        PSTypeName   = 'AzureAnalyzer.FindingError'
+        Source       = 'triage'
+        Category     = $Category
+        Reason       = (Remove-Credentials ([string]$Reason))
+        Remediation  = (Remove-Credentials ([string]$Remediation))
+        Details      = (Remove-Credentials ([string]$Details))
+        TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
     }
 }
 

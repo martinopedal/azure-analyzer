@@ -116,8 +116,8 @@ Describe 'Triage Frontier Fallback Chain (bottom-fix #466)' {
             ($payload | Out-String) | Should -Match 'AllModelsFailed'
         }
 
-        It 'New-FindingError emits the documented rich-error fields' {
-            $err = New-FindingError -Source 'triage' -Category 'TestCat' -Reason 'why' `
+        It 'New-TriageError emits the documented rich-error fields' {
+            $err = New-TriageError -Category 'TestCat' -Reason 'why' `
                 -Remediation 'how' -Details 'no secrets here'
             $err.PSObject.TypeNames | Should -Contain 'AzureAnalyzer.FindingError'
             $err.Source       | Should -Be 'triage'
@@ -128,8 +128,8 @@ Describe 'Triage Frontier Fallback Chain (bottom-fix #466)' {
             $err.TimestampUtc | Should -Match '^\d{4}-\d{2}-\d{2}T'
         }
 
-        It 'New-FindingError scrubs Bearer tokens out of Details' {
-            $err = New-FindingError -Source 'triage' -Category 'TestCat' -Reason 'why' `
+        It 'New-TriageError scrubs Bearer tokens out of Details' {
+            $err = New-TriageError -Category 'TestCat' -Reason 'why' `
                 -Details 'Authorization: Bearer abc.def.ghi-jkl_mn'
             $err.Details | Should -Not -Match 'abc\.def\.ghi-jkl_mn'
             $err.Details | Should -Match '\[REDACTED\]'

@@ -99,37 +99,6 @@ function Get-SchemaValidationFailures {
     return ,$script:ValidationFailures.ToArray()
 }
 
-function New-FindingError {
-    <#
-    .SYNOPSIS
-        Build a rich, sanitized error object for finding-pipeline failures
-        (normalizers, triage, ETL closures). Mirrors New-InstallerError shape.
-    .DESCRIPTION
-        Returned object can be thrown directly. Caller-supplied Details are
-        scrubbed via Remove-Credentials (when available) before being attached.
-    #>
-    param (
-        [Parameter(Mandatory)][string] $Source,
-        [Parameter(Mandatory)][string] $Category,
-        [Parameter(Mandatory)][string] $Reason,
-        [string] $Remediation,
-        [string] $Details
-    )
-    $safeDetails = [string]$Details
-    if (Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue) {
-        $safeDetails = Remove-Credentials $safeDetails
-    }
-    return [PSCustomObject]@{
-        PSTypeName   = 'AzureAnalyzer.FindingError'
-        Source       = $Source
-        Category     = $Category
-        Reason       = $Reason
-        Remediation  = $Remediation
-        Details      = $safeDetails
-        TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
-    }
-}
-
 function Reset-SchemaValidationFailures {
     <#
     .SYNOPSIS
