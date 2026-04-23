@@ -1,5 +1,6 @@
 name: CodeQL
 # trigger: re-run for #220 (Resources tab; no workflow logic change)
+# trigger: re-run for #721 (policy track C; no workflow logic change)
 
 on:
   push:
