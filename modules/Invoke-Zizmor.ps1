@@ -16,7 +16,7 @@
 .PARAMETER WorkflowPath
     Relative path to the workflows directory. Defaults to .github/workflows.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Alias('Repository')]
     [string] $RepoPath,

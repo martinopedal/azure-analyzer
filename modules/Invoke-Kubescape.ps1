@@ -77,7 +77,7 @@
     in pod) or the literal token value (will be written to a temp file with
     restrictive ACLs and cleaned up).
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
@@ -360,6 +360,9 @@ foreach ($cluster in $clusters) {
     $authPrep = $null
     try {
         if (-not $isKubeconfigMode) {
+            if (-not $PSCmdlet.ShouldProcess([string]$cluster.name, 'Run kubescape (az aks get-credentials + scan)')) {
+                continue
+            }
             # Isolated kubeconfig context per cluster - avoid cross-cluster pollution.
             $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
             $azArgs = @('aks', 'get-credentials',
