@@ -106,7 +106,7 @@ function Get-AvailableModelsFromCopilotPlan {
         2) enumerate available models from `gh copilot models list`
         Throws when tier or model discovery cannot be resolved.
     .OUTPUTS
-        String[] model ids available for the resolved plan/tier.
+        PSCustomObject with .Tier (string) and .Models (string[]) for the resolved plan.
     #>
     [CmdletBinding()]
     param(
@@ -168,7 +168,10 @@ function Get-AvailableModelsFromCopilotPlan {
             -Details $discoveryError)
     }
 
-    return @($discovered | Sort-Object)
+    return [pscustomobject]@{
+        Tier   = $resolvedTier
+        Models = @($discovered | Sort-Object)
+    }
 }
 
 function Select-TriageTrio {
@@ -340,11 +343,12 @@ function Invoke-CopilotTriage {
     }
     $rankingTable = Get-Content -LiteralPath $RankingPath -Raw -Encoding utf8 | ConvertFrom-Json -Depth 10
 
-    $availableModels = if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
-        @(Get-AvailableModelsFromCopilotPlan -CopilotTier $CopilotTier)
+    $discovery = if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
+        Get-AvailableModelsFromCopilotPlan -CopilotTier $CopilotTier
     } else {
-        @(Get-AvailableModelsFromCopilotPlan)
+        Get-AvailableModelsFromCopilotPlan
     }
+    $availableModels = @($discovery.Models)
 
     $explicitSelection = ''
     if ($TriageModel -match '^(?i)Explicit:(.+)$') {

@@ -430,6 +430,19 @@ function Start-AzureAnalyzerViewer {
                     Write-PodeJsonResponse -Value @{ error = 'invalid_host' }
                     return
                 }
+                $originHeader = [string]$WebEvent.Request.Headers['Origin']
+                if (-not (Test-OriginHeader -Origin $originHeader -Port $using:Port)) {
+                    Set-PodeResponseStatus -Code 403
+                    Write-PodeJsonResponse -Value @{ error = 'invalid_origin' }
+                    return
+                }
+                $cookieHeader = [string]$WebEvent.Request.Headers['Cookie']
+                $tokenHeader = [string]$WebEvent.Request.Headers['X-Session-Token']
+                if (-not (Test-ViewerSessionAuth -CookieHeader $cookieHeader -TokenHeader $tokenHeader -ExpectedToken $using:Token)) {
+                    Set-PodeResponseStatus -Code 403
+                    Write-PodeJsonResponse -Value @{ error = 'invalid_token' }
+                    return
+                }
                 $payload = $null
                 if (Test-Path -LiteralPath $using:TriagePath) {
                     try {

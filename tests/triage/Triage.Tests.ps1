@@ -23,7 +23,9 @@ Describe 'LLM triage model selection (#433)' {
                 throw "unexpected gh call: $cmd"
             }
             try {
-                $models = @(Get-AvailableModelsFromCopilotPlan)
+                $discovery = Get-AvailableModelsFromCopilotPlan
+                $discovery.Tier | Should -Be 'Business'
+                $models = @($discovery.Models)
                 $models | Should -Contain 'claude-sonnet-4.6'
                 $models | Should -Contain 'gpt-5.2'
                 $models | Should -Contain 'gemini-3-pro-preview'
@@ -243,6 +245,22 @@ Describe 'LLM triage model selection (#433)' {
             } finally {
                 Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
             }
+        }
+    }
+
+    Context 'Prompt projection truncation' {
+        It 'truncates long allow-listed field values to MaxPromptFieldChars including suffix length' {
+            $suffix = '...[TRUNCATED]'
+            $longTitle = ('A' * ($script:MaxPromptFieldChars + 25))
+            $finding = [pscustomobject]@{
+                Id    = 'f-long'
+                Title = $longTitle
+            }
+            $projection = @(ConvertTo-SafeFindingProjection -Findings @($finding))
+            $projection[0].Title.Length | Should -Be $script:MaxPromptFieldChars
+            $projection[0].Title | Should -Be ((('A' * ($script:MaxPromptFieldChars - $suffix.Length))) + $suffix)
+            $projection[0].Title | Should -Match '\.\.\.\[TRUNCATED\]$'
+            $projection[0].Title | Should -Not -Be $longTitle
         }
     }
 }
