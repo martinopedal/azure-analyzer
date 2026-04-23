@@ -1273,9 +1273,10 @@
       "provider": "graph",
       "scope": "tenant",
       "normalizer": "Normalize-IdentityCorrelation",
+      "entryFunction": "Invoke-IdentityCorrelation",
       "invokeMethod": "function",
       "type": "correlator",
-      "script": "modules/shared/IdentityCorrelator.ps1",
+      "script": "modules/Invoke-IdentityCorrelator.ps1",
       "requiredParams": [
         "TenantId"
       ],
