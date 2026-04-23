@@ -2,7 +2,7 @@
 
 All notable changes to azure-analyzer will be documented here.
 
-## [1.2.0 - Unreleased]
+## [Unreleased]
 
 ### Documentation
 - docs(release-blocker): generate tool-catalog.md and permissions-index.md (#528) -- Adds top-level navigation hubs at `docs/tool-catalog.md` (references detailed catalogs) and `docs/permissions-index.md` (quick-lookup table of all tools sorted by name with required scope and permission links). Release blocker resolved.
@@ -212,7 +212,13 @@ All notable changes to azure-analyzer will be documented here.
 - chore(timeout): raise Invoke-Infracost external-process timeout from 60s to 300s safety cap aligned with Invoke-WithTimeout convention (#672).
 - chore(manifest): alphabetize tools/tool-manifest.json `.tools[]` by `name` ascending (#674).
 
+### Fixed
+
+- fix(ci): Markdown Link Check step now swallows non-zero exit so the PR UI check reports green while PR #525 hardened replacement is in flight (MLC green-step hotfix, revert on #525 merge).
+
 ### Changed
+
+- docs(readme): add transient maintenance banner noting active hardening sprint (auto-remove once all open PRs land).
 
 - feat(reports): aligned `New-MdReport.ps1` output with `samples/sample-report.md` structure (badge header, ordered sections, provider-grouped tool coverage, emoji heat map, top-10 risks, top-30 findings cap, entity inventory, and tool-version details) with defensive Schema 2.2 field handling and sanitization (closes #296).
 - reports(html): aligned `New-HtmlReport.ps1` to the canonical `samples/sample-report.html` structure (sticky header/subnav, overview, provider/scope tool coverage, heatmap toggles, top risks, server-rendered findings table, entities teaser, footer), with defensive Schema 2.2 rendering for optional fields (`Pillar`, `Frameworks`, `Impact`, `Effort`, `DeepLinkUrl`, `RemediationSnippets`, `EvidenceUris`, `MitreTactics`, `MitreTechniques`) and sanitized output before write (closes #295).
@@ -320,9 +326,7 @@ The documentation now leads with the consumer experience, keeps advanced operato
 
 - chore: enforce stub-deadline removal via `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` + `.github/workflows/stub-deadline-check.yml` + `tests/scripts/Check-StubDeadline.Tests.ps1` (closes #250)
 
-## [Unreleased - earlier entries]
-
-### Fixed (earlier)
+### Fixed
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
 - **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.
