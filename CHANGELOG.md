@@ -8,6 +8,8 @@
 ### Fixed
 
 - Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient - fixes recurring auto-resolve-review-threads job flakes.
+- CodeQL `Analyze (actions)` now survives shared-installation API rate-limit waves. A pre-flight step reads `/rate_limit`, and if `core.remaining < 500` waits for `reset` (capped at 20 min, well inside the 30-min job timeout). A second, retry-on-failure step does the same check before re-running analyze once. Fixes the recurring rolling rate-limit noise seen on #864/#866/#869/#871 (and the "everything red" wave across the board), where analyze failed mid-run with `API rate limit exceeded for installation` — an environmental issue, not a code defect.
+- Retry classifier now treats `gh api graphql` EOF / network errors(EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
 - `ci-failure-watchdog.yml` concurrency group is now keyed on `github.event.workflow_run.id` so each triggering workflow-run gets its own slot (#862). The previous constant `ci-failure-watchdog` group caused GitHub to cancel ~72% of queued runs (23/32 sample). Triage remains hash-idempotent so parallel runs are safe.
 - `live-tool-tests` job in `.github/workflows/ci.yml` now sets `continue-on-error: true` at the STEP level on both the live-binary install step and the Pester test step (#861). Job-level guard alone kept the workflow green but left the job card rendered red on PR pages, teaching reviewers to ignore CI. With step-level guards, the non-blocking LiveTool tier reports as green unless a required contract regresses.
@@ -66,23 +68,16 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
-<<<<<<< HEAD
-=======
 ## [Unreleased]
 
 ### Changed
-
 - chore(wrappers): CON-003 raw throw migration - replace raw `throw "..."` with `New-FindingError` + `Format-FindingErrorMessage` across all remaining wrappers; `RawThrowBaseline` in `tests/shared/WrapperConsistencyRatchet.Tests.ps1` is now empty so any new raw throw fails fast (#626).
 - chore(wrappers): CON-004 SupportsShouldProcess ratchet - lock in `[CmdletBinding(SupportsShouldProcess=$true)]` plus `$PSCmdlet.ShouldProcess` gating on side-effecting wrappers (`Invoke-Falco`, `Invoke-AksKarpenterCost`) via a new CON-004 assertion in `WrapperConsistencyRatchet.Tests.ps1` (#627).
-
 ### Fixed
-
 - `Invoke-GhActionsBilling` now keeps sanitized CLI output only in `Details` (not duplicated in `Reason`) so error messages remain short and transient hints (HTTP 429) still work with `Invoke-WithRetry`.
 - `Invoke-Powerpipe` now emits CLI diagnostics via `Write-Verbose` before throwing so `-Verbose` users retain sanitized output even though `Format-FindingErrorMessage` does not include `Details` in the single-line message.
 - Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
 - CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
-
->>>>>>> 51e8d57 (fix(wrappers): address all PR #823 Copilot review threads)
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 

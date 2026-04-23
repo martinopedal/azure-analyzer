@@ -46,11 +46,72 @@ jobs:
     # external network I/O beyond the backoff sleep.
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # Pre-flight: CodeQL analyze hits the GitHub API installation-scoped
+      # rate-limit bucket (shared across every workflow in the repo). On
+      # high-traffic days we see "API rate limit exceeded for installation"
+      # mid-analyze, which fails the required check for reasons that are
+      # purely environmental (not a code issue). Before running init, check
+      # the remaining quota and sleep until reset if near empty. Cap the
+      # wait at 20 minutes to stay well inside the 30-min job timeout.
+      - name: Wait for API rate limit if exhausted
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          rl=$(gh api /rate_limit 2>/dev/null || echo '{}')
+          remaining=$(printf '%s' "$rl" | jq -r '.resources.core.remaining // 5000')
+          reset=$(printf '%s' "$rl" | jq -r '.resources.core.reset // 0')
+          now=$(date +%s)
+          echo "GitHub API core: remaining=$remaining reset=$reset now=$now"
+          # Threshold: CodeQL analyze uses ~200-400 API calls for telemetry +
+          # result reporting. Wait if under 500 to give headroom.
+          if [ "$remaining" -lt 500 ] && [ "$reset" -gt "$now" ]; then
+            wait=$(( reset - now + 15 ))
+            # Cap wait at 20 minutes (job timeout is 30)
+            if [ "$wait" -gt 1200 ]; then wait=1200; fi
+            echo "::notice::Rate limit low ($remaining left); waiting ${wait}s for reset"
+            sleep "$wait"
+            # Re-check after wait for diagnostics
+            gh api /rate_limit --jq '.resources.core' || true
+          else
+            echo "Rate limit healthy; proceeding"
+          fi
       - uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
         with:
           languages: ${{ matrix.language }}
       - uses: github/codeql-action/autobuild@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
-      - name: Analyze (no upload)
+      - name: Analyze (no upload) - attempt 1
+        id: analyze1
+        continue-on-error: true
+        uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
+        with:
+          category: "/language:${{matrix.language}}"
+          upload: never
+          output: sarif-results
+      # If attempt 1 fails AND the failure reason is rate-limit, wait for
+      # reset and retry once. Any other failure mode fails fast (the retry
+      # below is skipped via the condition).
+      - name: Wait for rate-limit reset before retry
+        if: steps.analyze1.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          rl=$(gh api /rate_limit 2>/dev/null || echo '{}')
+          remaining=$(printf '%s' "$rl" | jq -r '.resources.core.remaining // 5000')
+          reset=$(printf '%s' "$rl" | jq -r '.resources.core.reset // 0')
+          now=$(date +%s)
+          if [ "$remaining" -lt 500 ] && [ "$reset" -gt "$now" ]; then
+            wait=$(( reset - now + 15 ))
+            if [ "$wait" -gt 900 ]; then wait=900; fi
+            echo "::notice::Analyze failed; waiting ${wait}s for rate-limit reset before retry"
+            sleep "$wait"
+          else
+            echo "::notice::Analyze failed but rate limit is healthy — retry in 30s"
+            sleep 30
+          fi
+      - name: Analyze (no upload) - attempt 2
+        if: steps.analyze1.outcome == 'failure'
         uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.2
         with:
           category: "/language:${{matrix.language}}"
