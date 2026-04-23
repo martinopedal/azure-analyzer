@@ -60,9 +60,84 @@
 - Sentinel KQL projection gaps documented — 7 missing columns are single-line KQL additions per column.
 - Two-palette severity approach ratified: WAF pillar colors for posture, Defender colors for threats.
 
+### 2026-04-23 - CI governance honesty audit complete
+
+- **Finding:** Required checks are honest (3-check set: `Analyze`, `links`, `lint`). No advisory checks hiding failures.
+- **Branch protection:** Live config matches documentation exactly (signed commits NOT required, 0 reviewers, enforce_admins=true, linear history, no force push).
+- **Release flow gap:** release-please workflow not configured; manual release process. Recommended P0: implement release-please GitHub Actions to gate release PRs.
+- **Squad routing:** All 6 members correctly parsed and routable via sync-squad-labels/squad-triage/squad-issue-assign workflows; zero drift.
+- **Admin-merge:** No bypass observed in recent history; maintainer follows standard loop. Recommended P1: add exception policy to copilot-instructions.md.
+- **Closes Link Required:** Regex is precise; false positives stem from API rate-limit failures. Recommended P2: soft-fail on 429/408 instead of hard block.
+- **Audit report:** `.copilot/audits/lead-ci-governance-2026-04-23.md` (20.7 KB, 9 sections, 6 recommendations P0–P3).
+
 ### 2026-04-21 - Markdown report generator aligned to canonical sample (#296)
 
 - Replaced legacy Markdown renderer shape with canonical sample structure: badge row, anchor TOC, executive summary, provider-grouped coverage tables, emoji heat map, top-10 risks, top-30 findings, entity inventory, and run-details tool version block.
 - Wired tool coverage to `tools/tool-manifest.json` with italic `_skipped_` rendering for disabled/not-run tools, and added graceful empty states for each major section.
 - Added defensive Schema 2.2 consumption (`Frameworks`, `Pillar`, `ToolVersion`, and related optional fields) plus explicit sanitization via `Remove-Credentials` on dynamic output paths.
 - Added new Pester coverage at `tests/reports/New-MdReport.Tests.ps1` for section order, badge row, heat-map glyph legend, findings 30-cap, details block, and no em-dash invariant.
+
+## 2026-04-23 — Track F Implementation Plan (Issue #506)
+
+**Learning:** Multi-track implementation plans require a **serial dependency audit** (commit 0) before starting code.
+
+**Context:** Track F (issue #506) depends on 6 upstream tracks (A, B, C, D, E, V) per design doc §1. Rather than assuming dependencies are present, commit 0 programmatically validates all 6 are on main before commit 1 starts. This mirrors the "iterate until green — resilience contract" from .copilot/copilot-instructions.md: validate pre-conditions before proceeding.
+
+**Why this matters:** Skipping dependency check risks mid-implementation discovery that Track A/B/C/D/E/V are incomplete, forcing rework. The D1 gate (commit 0) catches blockers upfront, saving 12-18 hours of wasted effort.
+
+**Pattern:**
+`
+Commit 0: Dependency Gate
+  - Read all dependency modules (EdgeRelations.ps1, Schema.ps1, Select-ReportArchitecture.ps1, etc.)
+  - Run Pester baseline check
+  - If any dependency missing or baseline red: STOP, document blocker in issue, escalate to user
+  - If all green: proceed to commit 1
+`
+
+**When to apply:** Any issue with explicit depends_on metadata OR any design doc with a "hard dependencies" section.
+
+**Anti-pattern:** Starting implementation without validating dependencies, discovering blockers mid-sequence, abandoning work.
+
+**Evidence:** Track F plan (.copilot/audits/lead-track-f-impl-plan-2026-04-23.md) includes commit 0 as gating function with explicit escalation path if dependencies missing.
+
+---
+
+**Learning:** Open design questions should be answered with **LEAN defaults** when sensible defaults exist, rather than blocking on user input.
+
+**Context:** Design doc §10 flagged 3 open questions (citation provenance, PDF rendering, framework version pinning). Rather than blocking implementation until user answers, Lead provided LEAN defaults that align with existing repo patterns:
+- Citation provenance: include query hash if Track D populates field (conditional, not blocking)
+- PDF rendering: print stylesheet only (no Chromium dependency)
+- Framework version pinning: Track D drives (no dual manifest maintenance)
+
+User can override in PR review, but implementation can proceed without blocking.
+
+**Why this matters:** Blocking on user input delays implementation. Lead's job is to unblock. If a sensible default exists and the decision is reversible in PR review, provide the default and proceed.
+
+**When to apply:** Design questions flagged as "open" but have:
+- Sensible defaults aligned with existing repo patterns
+- Low cost of reversal (can change in PR review)
+- No security / compliance implications
+
+**Anti-pattern:** Blocking implementation on design questions that have obvious LEAN defaults, waiting days/weeks for user response.
+
+**Evidence:** Track F plan §14 answers all 3 §10 questions with LEAN defaults and rationale. Implementation can proceed without blocking on user input.
+
+---
+
+**Learning:** Batch documentation updates when incremental updates create churn, but always deliver docs before PR close.
+
+**Context:** Repo rule requires docs updates (README, PERMISSIONS, CHANGELOG) for every PR. Track F plan batches all docs in commit 9 (final commit) rather than incrementally across commits 1-8. Rationale: commits 1-8 are internal module changes; commit 9 is the first user-facing surface (orchestrator flag, outputs, parity tests). Incremental CHANGELOG entries for internal functions create noise.
+
+**Why this matters:** Honors repo doc rule (no PR merges without docs) while reducing churn. User can request incremental docs if preferred, but default batching is cleaner.
+
+**When to apply:** Multi-commit implementation where:
+- Early commits are internal (no user-facing surface)
+- Final commit wires orchestrator or exposes public API
+- Incremental CHANGELOG entries would be noisy ("Internal: Track F function X skeleton")
+
+**Anti-pattern:** Incremental CHANGELOG entries per internal commit, creating 8 noisy "Internal: ..." entries that get squash-merged away.
+
+**Evidence:** Track F plan §11 (commit 9) batches README, PERMISSIONS, CHANGELOG updates. Commits 1-8 have "Documentation update: None yet."
+
+---
+
