@@ -817,7 +817,7 @@ The documentation now leads with the consumer experience, keeps advanced operato
 
 Complete backfill of 128 PRs from the recent sprint (2026-04-15 to 2026-04-23, coverage: PRs #590-#747). These entries represent actual shipped work; full pull request descriptions are available on GitHub.
 
-**Recent sprint backfill (PRs #690-#747)**
+**Recent sprint backfill (PRs #689-#747)**
 
 - PR #747: fix(main-red): Karpenter -WhatIf side effects + LogAnalytics Source param
 - PR #741: fix(tests): clear suppress flag in MissingTool.Runtime.Tests
@@ -850,7 +850,7 @@ Complete backfill of 128 PRs from the recent sprint (2026-04-15 to 2026-04-23, c
 - PR #690: fix(ci): hardening sweep #586 #587 #588
 - PR #689: fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545)
 
-**Mid-sprint backfill (PRs #680-#688)**
+**Mid-sprint backfill (PRs #668-#686)**
 
 - PR #686: fix(ci): pr-auto-rebase job name now evaluates matrix.pr.number expression (#534)
 - PR #684: fix(ci): guard sparse .user payloads in PR Review Gate (#584)
@@ -860,7 +860,7 @@ Complete backfill of 128 PRs from the recent sprint (2026-04-15 to 2026-04-23, c
 - PR #679: fix(docs): repair broken README contributing link (DQS-001)
 - PR #668: docs(readme): remove transient maintenance banner (sprint closed)
 
-**Early-sprint backfill (PRs #609-#668)**
+**Early-sprint backfill (PRs #598-#609)**
 
 - PR #609: chore(consistency): final sentinel sweep - silent-failure intent docs (cat 3 close-out)
 - PR #608: fix(tests): MgPath uses env/param instead of interactive Read-Host (PES-002)
