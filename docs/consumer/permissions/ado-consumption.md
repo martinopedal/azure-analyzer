@@ -12,13 +12,13 @@ Findings are emitted with Schema 2.2 cost-governance metadata (`Pillar`, `Impact
 | PAT scope | Why |
 |---|---|
 | `Build (Read)` | Read build run history and result metadata |
-| `Project and Team (Read)` | Enumerate projects when `-Project` is not specified |
+| `Project and Team (Read)` | Enumerate projects when `-AdoProject` is not specified |
 | `Identity (Read)` | Resolve project context and principal metadata returned by build APIs |
 
 ## Parameters
 
-- `-Organization <name>` (required): Azure DevOps organization.
-- `-Project <name>` (optional): single project filter.
+- `-AdoOrg <name>` (required): Azure DevOps organization (`-Organization` alias retained for backward compatibility).
+- `-AdoProject <name>` (optional): single project filter (`-Project` alias retained for backward compatibility).
 - `-DaysBack <int>` (default `30`): telemetry lookback.
 - `-MonthlyBudgetUsd <double>` (optional): soft cost threshold.
 - `-AdoPat <token>` (optional): PAT override; env fallback supported.
