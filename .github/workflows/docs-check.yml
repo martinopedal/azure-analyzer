@@ -29,13 +29,16 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            // Check for skip-docs-check label
+            // Skip when explicitly labeled.
             const labels = context.payload.pull_request.labels.map(l => l.name);
             if (labels.includes('skip-docs-check')) {
               core.info('Skipping docs check - skip-docs-check label found.');
               return;
             }
+
             const prTitle = context.payload.pull_request.title || '';
+
+            // Skip stacked PRs (only the final stack PR carries the docs).
             const stackedPrMatch = prTitle.match(/\(pr\s*[-:]?\s*(\d+)\s+of\s+(\d+)\)/i);
             if (stackedPrMatch) {
               const currentPart = Number.parseInt(stackedPrMatch[1], 10);
@@ -46,52 +49,77 @@ jobs:
               }
             }
 
-            // Get changed files in the PR
+            // Conventional-commit prefixes that don't ship user-visible behavior.
+            // PRs with these titles are auto-skipped: docs are still allowed but not required.
+            const autoSkipTitlePrefixes = [
+              /^chore\(deps(-dev)?\):/i,
+              /^chore\(release\):/i,
+              /^chore\(main\):/i,            // release-please bot title
+              /^revert(\(.+\))?:/i,
+              /^ci(\(.+\))?:/i,
+              /^build(\(.+\))?:/i,
+              /^style(\(.+\))?:/i,
+              /^test(s)?(\(.+\))?:/i,
+              /^perf(\(.+\))?:/i,
+            ];
+            const autoSkip = autoSkipTitlePrefixes.find(p => p.test(prTitle));
+            if (autoSkip) {
+              core.info(`Skipping docs check - PR title matches auto-skip prefix (${autoSkip}). Docs are allowed but not required.`);
+              return;
+            }
+
+            // Paginated file fetch with a hard cap to avoid runaway PRs.
+            const MAX_FILES = 3000;
             const files = await github.paginate(
               github.rest.pulls.listFiles,
-              { owner: context.repo.owner, repo: context.repo.repo, pull_number: context.issue.number }
+              { owner: context.repo.owner, repo: context.repo.repo, pull_number: context.issue.number, per_page: 100 }
             );
-            const changed = files.map(f => f.filename);
+            if (files.length >= MAX_FILES) {
+              core.warning(`PR contains ${files.length} files; docs check truncated at ${MAX_FILES}.`);
+            }
+            const changed = files.slice(0, MAX_FILES).map(f => f.filename);
 
-            // Patterns that are never considered "code changes"
+            // Files that are NEVER considered "code changes" (no docs required if only these change).
             const ignoredPatterns = [
-              /^\.squad\//,
-              /^\.copilot\//,
               /^\.github\/workflows\//,
               /^\.github\/ISSUE_TEMPLATE\//,
               /^\.github\/PULL_REQUEST_TEMPLATE/,
               /^\.github\/copilot-instructions\.md$/,
               /^\.github\/dependabot\.yml$/,
               /^\.github\/agents\//,
+              /^\.github\/actions\//,
               /^tests\//,
               /^samples\//,
+              /^output\//,
+              /^output-review\//,
+              /^output-review2\//,
               /^LICENSE$/,
               /^\.gitignore$/,
               /^\.gitattributes$/,
+              /^\.editorconfig$/,
               /^\.lychee\.toml$/,
               /^\.markdownlint(-cli2)?\.(json|yaml|yml|jsonc)$/,
               /^pester\.log$/,
               /^retry\.log$/,
               /^testResults\.xml$/,
+              /^\.copilot\/checkpoints\//,
             ];
-
             const isIgnored = (f) => ignoredPatterns.some(p => p.test(f));
-            const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md'];
+
+            // Files that COUNT AS DOCS (presence satisfies the requirement).
+            const rootDocs = ['README.md', 'CHANGELOG.md', 'PERMISSIONS.md', 'CONTRIBUTING.md', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md'];
             const docPathPatterns = [
-              /^docs\/consumer\//,
-              /^docs\/contributor\//,
-              /^docs\/getting-started\//,
-              /^docs\/guides\//,
-              /^docs\/reference\//,
-              /^docs\/operators\//,
-              /^docs\/contributing\//,
-              /^docs\/architecture\//,
-              /^docs\/decisions\//,
-              /^docs\/design\//,
+              /^docs\//,
+              /^\.copilot\/audits\//,
+              /^\.squad\/decisions(-archive)?\.md$/,
+              /^\.squad\/agents\/[^/]+\/(history|inbox)\b/,
+              /^\.squad\/orchestration-log\.md$/,
+              /^\.squad\/v2-roadmap.*\.md$/,
+              /^\.squad\/plan-.*\.md$/,
+              /^\.squad\/ceremonies\.md$/,
             ];
             const isDoc = (f) => rootDocs.includes(f) || docPathPatterns.some(p => p.test(f));
 
-            // Code file extensions that require docs
             const codeExtensions = ['.ps1', '.psm1', '.psd1', '.json'];
             const isCodeFile = (f) => !isIgnored(f) && !isDoc(f) && codeExtensions.some(ext => f.toLowerCase().endsWith(ext));
 
@@ -100,23 +128,35 @@ jobs:
 
             if (codeFiles.length === 0) {
               core.info('No code files changed - docs check not required.');
-              core.info(`Changed files: ${changed.join(', ')}`);
+              core.info(`Changed files (${changed.length}): ${changed.slice(0, 30).join(', ')}${changed.length > 30 ? ', ...' : ''}`);
               return;
             }
 
-            core.info(`Code files changed: ${codeFiles.join(', ')}`);
-            core.info(`Doc files changed: ${docFiles.join(', ')}`);
+            core.info(`Code files changed (${codeFiles.length}): ${codeFiles.slice(0, 20).join(', ')}${codeFiles.length > 20 ? ', ...' : ''}`);
+            core.info(`Doc files changed (${docFiles.length}): ${docFiles.slice(0, 20).join(', ')}${docFiles.length > 20 ? ', ...' : ''}`);
 
             if (docFiles.length === 0) {
-              core.error(`error: Missing documentation updates for code changes in PR #${context.issue.number}.`);
-              core.error(`error: Code files changed: ${codeFiles.join(', ')}`);
-              core.error('error: Add README.md, CHANGELOG.md, PERMISSIONS.md, or docs under docs/ (getting-started, guides, reference, operators, contributing, architecture, design).');
-              core.error("error: If docs are intentionally deferred, add the 'skip-docs-check' label and follow up in a later PR.");
-              core.setFailed(
-                'error: This PR changes code files but no documentation was updated.\n' +
-                'Please update README.md, CHANGELOG.md, PERMISSIONS.md, or a page under docs/ (getting-started, guides, reference, operators, contributing, architecture, design).\n' +
-                'See CONTRIBUTING.md for documentation requirements.'
-              );
+              const sample = codeFiles[0];
+              const suggestedEntry = `- Updated \`${sample}\` (PR #${context.issue.number}).`;
+              const errMsg = [
+                `error: Missing documentation updates for code changes in PR #${context.issue.number}.`,
+                `error: Code files changed (${codeFiles.length}): ${codeFiles.slice(0, 10).join(', ')}${codeFiles.length > 10 ? ', ...' : ''}`,
+                'error:',
+                'error: To fix, do ONE of the following:',
+                'error:   1. Add a CHANGELOG.md "Unreleased" entry. Suggested:',
+                `error:        ${suggestedEntry}`,
+                'error:   2. Update README.md / PERMISSIONS.md / CONTRIBUTING.md / SECURITY.md if user-facing.',
+                'error:   3. Add or edit a page under docs/ (any subdirectory).',
+                'error:   4. Add an audit note under .copilot/audits/ or update .squad/decisions.md.',
+                "error:   5. If genuinely deferred, add the 'skip-docs-check' label.",
+                'error:',
+                'error: Auto-skip title prefixes (use these for non-user-facing PRs):',
+                'error:   chore(deps): chore(deps-dev): chore(release): chore(main): revert: ci: build: style: test: tests: perf:',
+                'error:',
+                'error: See CONTRIBUTING.md and .github/workflows/docs-check.yml for the full rules.',
+              ].join('\n');
+              errMsg.split('\n').forEach(line => core.error(line));
+              core.setFailed('This PR changes code files but no documentation was updated. See logs above for fix options.');
             }
 
   tool-catalog-fresh:

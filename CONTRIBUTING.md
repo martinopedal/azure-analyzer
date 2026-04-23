@@ -76,7 +76,7 @@ These workflows support repo development and the AI squad workflow. They're not 
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `codeql.yml` | Push / PR / weekly | CodeQL static analysis (SHA-pinned) |
-| `docs-check.yml` | PR | Enforces docs updates with code changes (non-final stacked PR parts titled `(PR-x of y)` are skipped) |
+| `docs-check.yml` | PR | Enforces docs updates with code changes. Auto-skipped for: stacked PRs (`(PR-x of y)`), `skip-docs-check` label, and conventional-commit prefixes that don't ship user-visible behavior (`chore(deps):`, `chore(release):`, `chore(main):`, `revert:`, `ci:`, `build:`, `style:`, `test:`/`tests:`, `perf:`). Accepted doc paths: any `docs/`, root `README.md` / `CHANGELOG.md` / `PERMISSIONS.md` / `CONTRIBUTING.md` / `SECURITY.md` / `THIRD_PARTY_NOTICES.md`, `.copilot/audits/`, and `.squad/decisions.md` / `.squad/agents/*/history.md` / inbox. |
 | `markdown-check.yml` | PR (`*.md` path filter) / weekly | Runs markdown lint, lychee link checks (PR = changed markdown only, schedule = full corpus), and em-dash policy checks |
 | `pr-review-gate.yml` | `pull_request_review` + `_comment` | Ingests review feedback, writes consensus plan to `.squad/decisions/inbox/`, posts gate summary |
 | `ci-failure-watchdog.yml` | `workflow_run` on failure | Deduplicated CI failure issue (hash = workflow + first error line) |

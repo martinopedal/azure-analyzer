@@ -126,13 +126,15 @@ jobs:
           # of the 5 Invoke-Gitleaks "missing tool" contract tests from silent -Skip to mock-based
           # run (they now run unconditionally, lifting PassedCount by 5 and dropping SkippedCount by 5).
           # Prior baseline PR #501: 1637 total / 1597 passed / 0 failed / 40 skipped on Windows.
-          # New baseline:           1637 total / 1602 passed / 0 failed / 35 skipped on Windows.
+          # Baseline PR #538:       1637 total / 1602 passed / 0 failed / 35 skipped on Windows.
+          # PR #937: removed auto-approve-bot-runs.yml workflow + its 7-test guard file
+          #          New baseline:   1630 total / 1595 passed / 0 failed / 35 skipped on Windows.
           # Belt-and-suspenders against slow drift: the dynamic compare below only checks current >= previous-main,
           # which can quietly accept a long downward staircase. The floor is the absolute lower bound
           # below which CI must fail regardless of what the previous main artifact says.
           # Bump these numbers in the same PR that legitimately raises the count; never lower them.
-          $MinTotal  = 1637
-          $MinPassed = 1602
+          $MinTotal  = 1630
+          $MinPassed = 1595
           if ([int]$current.TotalCount -lt $MinTotal) {
             Write-Error "Pester TotalCount $($current.TotalCount) is below hardcoded floor $MinTotal. If tests were intentionally removed, lower the floor in .github/workflows/ci.yml in the same PR and document the removal."
             exit 1

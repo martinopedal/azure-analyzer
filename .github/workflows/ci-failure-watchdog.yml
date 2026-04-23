@@ -34,7 +34,6 @@ on:
       - "Release"                       # tag/release automation
       - "PR Auto-Rerun On Push"         # auto-retry agent-branch failed checks
       - "PR Auto-Rebase Conflicts"      # auto-rebase on main-advance (2026-04-22T23:35:00Z)
-      - "Auto-approve trusted bot workflow runs" # bot-PR approval gate auto-bypass
       - "Closes Link Required"          # PR-template "Closes #N" enforcement
       - "E2E"                           # end-to-end runner smoke test
       - "Issue Resolution Verify"       # post-merge issue-close verification

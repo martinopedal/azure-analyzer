@@ -2,9 +2,10 @@
 
 ### Added
 
-<<<<<<< HEAD
 - **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
 - **CON-005 ratchet**: New wrapper envelope contract test in WrapperConsistencyRatchet.Tests.ps1 enforces that ALL 37 wrappers emit Errors = @() field alongside Findings on every code path (#907).
+- **Security ratchet**: New `tests/shared/JsonSanitizeOrderRatchet.Tests.ps1` prevents future regression of the JSON-sanitize-before-parse anti-pattern (PR #876 lesson). Scans all `modules/**/*.ps1` for `Remove-Credentials` piped to `ConvertFrom-Json` on the same variable. Baseline: 0 violations. Enforces parse-first, sanitize-after pattern for JSON outputs (#915).
+- **B2 audit tracking**: Added `.copilot/audits/b2-low-risk-items-tracking.md` documenting Sentinel B2 audit low-risk findings (F1: timeout wrapper consistency P2, F2: rich-error preconditions P3) as acknowledged non-blocking improvements. No code changes required; both items have sufficient mitigation (#915).
 
 ### Removed
 
@@ -14,10 +15,7 @@
 
 - **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
 - **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
-=======
-- **Security ratchet**: New `tests/shared/JsonSanitizeOrderRatchet.Tests.ps1` prevents future regression of the JSON-sanitize-before-parse anti-pattern (PR #876 lesson). Scans all `modules/**/*.ps1` for `Remove-Credentials` piped to `ConvertFrom-Json` on the same variable. Baseline: 0 violations. Enforces parse-first, sanitize-after pattern for JSON outputs (#915).
-- **B2 audit tracking**: Added `.copilot/audits/b2-low-risk-items-tracking.md` documenting Sentinel B2 audit low-risk findings (F1: timeout wrapper consistency P2, F2: rich-error preconditions P3) as acknowledged non-blocking improvements. No code changes required; both items have sufficient mitigation (#915).
->>>>>>> 9bfd514 (fix(security): sanitize-after-parse ratchet + B2 low-risk items)
+- **Docs check workflow**: `docs-check.yml` now auto-skips conventional-commit prefixes that don't ship user-visible behavior (`chore(deps):`, `chore(release):`, `chore(main):`, `revert:`, `ci:`, `build:`, `style:`, `test:`/`tests:`, `perf:`). Accepts additional doc paths: any `docs/` subtree (was: limited subset), `THIRD_PARTY_NOTICES.md`, `.copilot/audits/`, `.squad/decisions.md`, `.squad/decisions-archive.md`, `.squad/orchestration-log.md`, `.squad/agents/*/history.md` and `.squad/agents/*/inbox/`, plus `.squad/v2-roadmap*.md`, `.squad/plan-*.md`, `.squad/ceremonies.md`. Error message now suggests a copy-paste CHANGELOG entry pointing at the actual file changed and lists all auto-skip prefixes. Adds `MAX_FILES = 3000` cap to paginate to avoid runaway PRs. Resolves recurring false-positive blocks on legitimate PRs (audit deliverables, dep bumps, test-only changes).
 
 ### Changed
 
