@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "infracost",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Monthly cost increase exceeds threshold (+$1,240/mo)",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "CostOptimization",
+      "Detail": "infracost diff reports +$1240.55/mo from new Standard_D8s_v5 VM scale set in infra/aks.tf.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "Right-size the VM SKU or move workload to a lower-cost tier.",
+      "RuleId": "infracost-diff-threshold"
+    },
+    {
+      "Title": "Premium SQL DB DTU tier inflates baseline cost",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "CostOptimization",
+      "Detail": "infracost breakdown shows P2 SQL DB at $930/mo for non-prod environment in infra/sql.tf.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "Switch non-prod SQL DB to Basic or Standard tier.",
+      "RuleId": "infracost-sql-tier"
+    },
+    {
+      "Title": "Total monthly estimate within budget envelope",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Cost",
+      "Pillar": "CostOptimization",
+      "Detail": "infracost total monthly cost $4180.32 is below the $5000 budget gate for the IaC repo.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "",
+      "RuleId": "infracost-total-budget"
+    }
+  ]
+}
