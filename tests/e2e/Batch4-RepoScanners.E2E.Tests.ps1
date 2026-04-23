@@ -29,6 +29,9 @@ BeforeDiscovery {
 }
 
 BeforeAll {
+    # NOTE: $script:RepoRoot is recomputed here (also set in BeforeDiscovery above)
+    # because Pester evaluates BeforeDiscovery and BeforeAll in separate scopes;
+    # the BeforeDiscovery binding is not visible inside BeforeAll/It blocks at run time.
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
     $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
@@ -52,8 +55,15 @@ BeforeAll {
         'AdoProject', 'KarpenterProvisioner'
     )
 
-    $script:PlantedPat    = 'ghp_FAKEAZURE745E2EBATCH4434567890abcdEF'
-    $script:PlantedBearer = 'Bearer eyJhbGciOiJIUzI1NiJ9.FAKE_AZURE_E2E_PAYLOAD.signature'
+    # Obviously-fake sentinel literals (avoid real GitHub PAT / JWT shapes) so that
+    # GitHub secret scanning, gitleaks, and the in-repo no-secrets ratchet do not flag
+    # this test fixture as a leaked credential. Both literals still match the
+    # corresponding Sanitize.ps1 patterns (ghp_[A-Za-z0-9]{36} for the PAT, and
+    # \bBearer\s+[A-Za-z0-9\-._~+/]+ for the bearer token), so Remove-Credentials
+    # is exercised and the planted-secret assertion below remains meaningful.
+    # Use the FAKEFORTESTONLY marker GitHub Secret Scanning treats as a non-secret.
+    $script:PlantedPat    = 'ghp_FAKEFORTESTONLY1234567890abcdEFghijK'
+    $script:PlantedBearer = 'Bearer FAKE_FOR_TEST_ONLY_AZURE_ANALYZER_E2E_BATCH4_BEARER'
     $script:PlantedLiterals = @($script:PlantedPat, $script:PlantedBearer)
 
     function ConvertFrom-RepoFixture {
@@ -71,14 +81,17 @@ BeforeAll {
             $i++
 
             $repoId = if ($f.PSObject.Properties['RepoId']) { $f.RepoId } else { 'https://github.com/contoso/example' }
-            $canon = ConvertTo-CanonicalEntityId -RawId $repoId -EntityType 'Repository'
-            $platform = if ($canon.CanonicalId -match '^ado://') { 'ADO' } else { 'GitHub' }
+            # Use ConvertTo-CanonicalRepoId directly (per CHANGELOG entry for #765)
+            # rather than the generic ConvertTo-CanonicalEntityId dispatcher, to keep
+            # the contract under test explicit and aligned with the documented API.
+            $canonicalId = ConvertTo-CanonicalRepoId -RepoId $repoId
+            $platform = if ($canonicalId -match '^ado://') { 'ADO' } else { 'GitHub' }
 
             $rows.Add( (New-E2EFinding `
                 -RuleId      ($f.RuleId) `
                 -Title       ($f.Title) `
                 -Source      $ToolSource `
-                -EntityId    $canon.CanonicalId `
+                -EntityId    $canonicalId `
                 -EntityType  'Repository' `
                 -Compliant   ([bool]$f.Compliant) `
                 -Severity    ($f.Severity) `
