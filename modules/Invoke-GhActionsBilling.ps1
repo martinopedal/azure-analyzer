@@ -217,7 +217,8 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Status   = 'Skipped'
         Message  = 'gh CLI not installed. Install GitHub CLI and authenticate with gh auth login.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 try {
@@ -454,5 +455,6 @@ try {
         Status   = 'Failed'
         Message  = $msg
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

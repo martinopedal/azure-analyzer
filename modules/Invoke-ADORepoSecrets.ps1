@@ -1,4 +1,4 @@
-﻿#Requires -Version 7.4
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure DevOps repository secret scanner.
@@ -514,7 +514,8 @@ if (-not $pat) {
         Status = 'Skipped'
         Message = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $resolvedGitleaksConfig = Resolve-GitleaksConfig -ConfigPath $GitleaksConfigPath
@@ -525,7 +526,8 @@ if (-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
         Status = 'Skipped'
         Message = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $script:GitleaksToolVersion = Get-GitleaksVersion
@@ -774,5 +776,6 @@ try {
         Status = 'Failed'
         Message = $errMsg
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

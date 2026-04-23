@@ -133,7 +133,8 @@ if (-not (Test-AzqrInstalled)) {
         Status   = 'Skipped'
         Message  = 'azqr not installed'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 if (-not (Test-Path $OutputPath)) {
@@ -208,5 +209,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

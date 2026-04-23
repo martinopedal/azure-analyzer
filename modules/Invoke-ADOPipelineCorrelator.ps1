@@ -197,7 +197,8 @@ if (-not $SecretsFindingsPath -or -not (Test-Path $SecretsFindingsPath)) {
         Status = 'Skipped'
         Message = 'No secret findings file provided for pipeline correlation.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $secrets = @()
@@ -214,7 +215,8 @@ try {
         Status = 'Failed'
         Message = (Remove-Credentials "Failed to read secret findings: $($_.Exception.Message)")
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 if ($secrets.Count -eq 0) {
@@ -223,7 +225,8 @@ if ($secrets.Count -eq 0) {
         Status = 'Skipped'
         Message = 'No secret findings available for correlation.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $pat = Resolve-AdoPat -Explicit $AdoPat
@@ -233,7 +236,8 @@ if (-not $pat) {
         Status = 'Skipped'
         Message = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $pair = ":$pat"

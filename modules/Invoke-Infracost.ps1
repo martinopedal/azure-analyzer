@@ -190,7 +190,8 @@ if (-not (Test-InfracostInstalled)) {
         Status        = 'Skipped'
         Message       = 'infracost CLI not installed. Install from https://www.infracost.io/docs/'
         Findings      = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $cloneInfo = $null
@@ -205,7 +206,8 @@ try {
                 Status        = 'Failed'
                 Message       = 'RemoteClone helper unavailable'
                 Findings      = @()
-            }
+            }    Errors   = @()
+$3
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl -TimeoutSec 300
         if (-not $cloneInfo) {
@@ -215,7 +217,8 @@ try {
                 Status        = 'Failed'
                 Message       = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings      = @()
-            }
+            }    Errors   = @()
+$3
         }
         $cleanupClone = $cloneInfo.Cleanup
         $RepoPath = $cloneInfo.Path
@@ -228,7 +231,8 @@ try {
             Status        = 'Failed'
             Message       = "Path not found: $RepoPath"
             Findings      = @()
-        }
+        }    Errors   = @()
+$3
     }
 
     $iacFiles = @(Get-ChildItem -Path $RepoPath -Recurse -File -ErrorAction SilentlyContinue |
@@ -240,7 +244,8 @@ try {
             Status        = 'Skipped'
             Message       = 'No Terraform or Bicep files found under scan path.'
             Findings      = @()
-        }
+        }    Errors   = @()
+$3
     }
 
     $args = @('breakdown', '--path', $RepoPath, '--format', 'json', '--no-color')
@@ -256,7 +261,8 @@ try {
             Status        = 'Failed'
             Message       = "infracost breakdown failed (exit code $($exec.ExitCode)): $safeOutput"
             Findings      = @()
-        }
+        }    Errors   = @()
+$3
     }
 
     $jsonText = Get-FirstJsonObjectText -Text ([string]$exec.Output)
@@ -267,7 +273,8 @@ try {
             Status        = 'Failed'
             Message       = 'infracost output did not contain a JSON object.'
             Findings      = @()
-        }
+        }    Errors   = @()
+$3
     }
 
     $parsed = $null
@@ -280,7 +287,8 @@ try {
             Status        = 'Failed'
             Message       = Remove-Credentials "Failed to parse infracost JSON: $($_.Exception.Message)"
             Findings      = @()
-        }
+        }    Errors   = @()
+$3
     }
 
     $toolVersion = ''
@@ -427,7 +435,8 @@ try {
         Status        = 'Failed'
         Message       = Remove-Credentials -Text ([string]$_.Exception.Message)
         Findings      = @()
-    }
+    }    Errors   = @()
+$3
 } finally {
     if ($cleanupClone) {
         try { & $cleanupClone } catch {

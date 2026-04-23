@@ -135,7 +135,8 @@ if (-not (Test-PowerpipeInstalled)) {
         Message       = 'powerpipe not installed'
         ToolVersion   = ''
         Findings      = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 try {
@@ -189,5 +190,6 @@ try {
         Message       = (Remove-Credentials -Text ([string]$_))
         ToolVersion   = ''
         Findings      = @()
-    }
+    }    Errors   = @()
+$3
 }
