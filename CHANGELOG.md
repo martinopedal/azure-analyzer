@@ -12,6 +12,7 @@ All notable changes to azure-analyzer will be documented here.
 - test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll across test suite (#746).
+- Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
