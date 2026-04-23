@@ -99,6 +99,14 @@ Describe 'em-dash policy gate' {
         $script:WorkflowText | Should -Match 'u2013'
     }
 
+    It 'excludes ephemeral agent-state markdown paths from PR scan scope' {
+        $script:WorkflowText | Should -Match ':\(exclude\)\.copilot/audits/\*\*'
+        $script:WorkflowText | Should -Match ':\(exclude\)\.copilot/status/\*\*'
+        $script:WorkflowText | Should -Match ':\(exclude\)\.copilot/session-state/\*\*'
+        $script:WorkflowText | Should -Match ':\(exclude\)\.squad/decisions/inbox/\*\*'
+        $script:WorkflowText | Should -Match ':\(exclude\)\.atlas-stash/\*\*'
+    }
+
     It 'has an advisory backlog scan for non-PR events' {
         $script:WorkflowText | Should -Match "if:\s*github\.event_name\s*!=\s*'pull_request'"
         $script:WorkflowText | Should -Match 'Em-dash backlog'
