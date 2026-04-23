@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "sentinel-incidents",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Open Sentinel incident with severity High unassigned > 24h",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Detection",
+      "Pillar": "Security",
+      "Detail": "Incident INC-2026-0142 (Suspicious sign-in from anonymous IP) unassigned for 38h.",
+      "ResourceId": "/subscriptions/dddddddd-1111-2222-3333-444444444444/resourceGroups/rg-soc/providers/Microsoft.OperationalInsights/workspaces/law-soc/providers/Microsoft.SecurityInsights/incidents/INC-2026-0142",
+      "Remediation": "Assign incident to on-call SOC analyst and triage within SLA.",
+      "RuleId": "sentinel-incident-stale"
+    },
+    {
+      "Title": "Incident closed without classification",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Hygiene",
+      "Pillar": "Security",
+      "Detail": "Incident INC-2026-0140 closed with classification = Undetermined.",
+      "ResourceId": "/subscriptions/dddddddd-1111-2222-3333-444444444444/resourceGroups/rg-soc/providers/Microsoft.OperationalInsights/workspaces/law-soc/providers/Microsoft.SecurityInsights/incidents/INC-2026-0140",
+      "Remediation": "Reopen incident or document classification before closing.",
+      "RuleId": "sentinel-incident-unclassified"
+    },
+    {
+      "Title": "Mean time to acknowledge < 30 minutes",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Metric",
+      "Pillar": "Security",
+      "Detail": "30-day MTTA = 24m for High-severity incidents.",
+      "ResourceId": "/subscriptions/dddddddd-1111-2222-3333-444444444444/resourceGroups/rg-soc/providers/Microsoft.OperationalInsights/workspaces/law-soc",
+      "Remediation": "",
+      "RuleId": "sentinel-mtta-ok"
+    }
+  ]
+}
