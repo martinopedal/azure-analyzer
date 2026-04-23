@@ -529,12 +529,14 @@ try {
         }
     }
 
+    if ($null -eq $findings) { $findings = @() }
+
     return [PSCustomObject]@{
         Source   = 'trivy'
         SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
-        Findings = $findings
+        Findings = @($findings)
     }
 } catch {
     Write-Warning "Trivy scan failed: $(Remove-Credentials -Text ([string]$_))"

@@ -251,7 +251,7 @@ jobs:
 
           gitleaks version | Out-Host
           trivy --version | Out-Host
-          scorecard --version | Out-Host
+          scorecard version | Out-Host
           zizmor --version | Out-Host
 
       - name: Run LiveTool wrapper tests
