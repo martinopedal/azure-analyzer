@@ -262,11 +262,37 @@ function Get-AzGovVizEntityRefs {
     return @($refs)
 }
 
+function Convert-AzGovVizScopeToCanonicalId {
+    param([string] $RawId)
+    if ([string]::IsNullOrWhiteSpace($RawId)) { return '' }
+    $trimmed = $RawId.Trim()
+    try {
+        if ($trimmed -match '^/providers/microsoft\.management/managementgroups/') {
+            return (ConvertTo-CanonicalEntityId -RawId $trimmed -EntityType 'ManagementGroup').CanonicalId
+        }
+        if ($trimmed -match '^/subscriptions/[^/]+$') {
+            if ($trimmed -match '/subscriptions/([^/]+)') {
+                return (ConvertTo-CanonicalEntityId -RawId $Matches[1] -EntityType 'Subscription').CanonicalId
+            }
+        }
+        if ($trimmed -match '^/subscriptions/[^/]+/resourcegroups/[^/]+$') {
+            return $trimmed.ToLowerInvariant()
+        }
+        if ($trimmed -match '^/subscriptions/') {
+            return (ConvertTo-CanonicalEntityId -RawId $trimmed -EntityType 'AzureResource').CanonicalId
+        }
+    } catch {
+        return $trimmed.ToLowerInvariant()
+    }
+    return $trimmed.ToLowerInvariant()
+}
+
 function Normalize-AzGovViz {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [PSCustomObject] $ToolResult
+        [PSCustomObject] $ToolResult,
+        [System.Collections.Generic.List[psobject]] $EdgeCollector
     )
 
     if ($ToolResult.Status -ne 'Success' -or -not $ToolResult.Findings) {
@@ -383,6 +409,44 @@ function Normalize-AzGovViz {
         # Skip null rows (validation failed)
         if ($null -ne $row) {
             $normalized.Add($row)
+        }
+
+        if ($null -ne $EdgeCollector) {
+            $assignmentId = [string](Get-PropertyValue -Obj $finding -Name 'PolicyAssignmentId' -Default (Get-PropertyValue -Obj $finding -Name 'AssignmentId' -Default ''))
+            $definitionId = [string](Get-PropertyValue -Obj $finding -Name 'PolicyDefinitionId' -Default (Get-PropertyValue -Obj $finding -Name 'DefinitionId' -Default ''))
+            $exemptionId = [string](Get-PropertyValue -Obj $finding -Name 'PolicyExemptionId' -Default (Get-PropertyValue -Obj $finding -Name 'ExemptionId' -Default ''))
+            $scopeId = [string](Get-PropertyValue -Obj $finding -Name 'Scope' -Default (Get-PropertyValue -Obj $finding -Name 'ScopeId' -Default ''))
+            if ([string]::IsNullOrWhiteSpace($scopeId)) { $scopeId = [string](Get-PropertyValue -Obj $finding -Name 'ResourceId' -Default '') }
+            $canonicalScopeId = Convert-AzGovVizScopeToCanonicalId -RawId $scopeId
+            if ([string]::IsNullOrWhiteSpace($canonicalScopeId)) { $canonicalScopeId = [string]$entityResolution.CanonicalId }
+
+            if ($assignmentId -and $canonicalScopeId) {
+                $edge = New-Edge -Source $assignmentId.ToLowerInvariant() -Target $canonicalScopeId -Relation 'PolicyAssignedTo' -Platform 'Azure' -DiscoveredBy 'azgovviz'
+                if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
+            }
+
+            if ($definitionId -and $canonicalScopeId) {
+                $edge = New-Edge -Source $definitionId.ToLowerInvariant() -Target $canonicalScopeId -Relation 'PolicyEnforces' -Platform 'Azure' -DiscoveredBy 'azgovviz'
+                if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
+            }
+
+            if ($exemptionId -and $assignmentId) {
+                $edge = New-Edge -Source $exemptionId.ToLowerInvariant() -Target $assignmentId.ToLowerInvariant() -Relation 'ExemptedFrom' -Platform 'Azure' -DiscoveredBy 'azgovviz'
+                if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
+            }
+
+            $parentScopeRaw = [string](Get-PropertyValue -Obj $finding -Name 'ParentScopeId' -Default (Get-PropertyValue -Obj $finding -Name 'ParentManagementGroupResourceId' -Default ''))
+            if ([string]::IsNullOrWhiteSpace($parentScopeRaw)) {
+                $parentMg = [string](Get-PropertyValue -Obj $finding -Name 'ParentManagementGroupId' -Default '')
+                if ($parentMg) {
+                    $parentScopeRaw = "/providers/Microsoft.Management/managementGroups/$parentMg"
+                }
+            }
+            $parentScopeId = Convert-AzGovVizScopeToCanonicalId -RawId $parentScopeRaw
+            if ($canonicalScopeId -and $parentScopeId -and $canonicalScopeId -ne $parentScopeId) {
+                $edge = New-Edge -Source $canonicalScopeId -Target $parentScopeId -Relation 'InheritsFrom' -Platform 'Azure' -DiscoveredBy 'azgovviz'
+                if ($edge) { $EdgeCollector.Add($edge) | Out-Null }
+            }
         }
     }
 

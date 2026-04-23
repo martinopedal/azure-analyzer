@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "_comment": "Track C scaffold (#431). 7 sample entries demonstrating the schema. Curated table grows in implementation PR after Foundation #435.",
-  "schemaVersion": "0.1.0-scaffold",
+  "_comment": "Track C policy mapping table. Curated finding-type to AzAdvertizer/ALZ policy suggestions.",
+  "schemaVersion": "1.0.0",
   "catalogVintage": {
-    "azAdvertizer": { "date": "TBD", "sha": "TBD" },
-    "alz":          { "date": "TBD", "sha": "TBD" }
+    "azAdvertizer": { "date": "2026-04-23", "sha": "ea952a6e70811ee2d6568b92fee5db0e4e9aa02d" },
+    "alz":          { "date": "2026-04-23", "sha": "6773a7b9c9aef6c2c13a3d33996fa7d32a9268dc" }
   },
   "entries": [
     {

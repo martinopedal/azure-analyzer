@@ -116,6 +116,8 @@ function Invoke-AzureAnalyzer {
         [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
         [string] $TriageModel = 'Auto',
         [switch] $SingleModel,
+        [ValidateSet('Auto','Force','Off')]
+        [string] $AlzReferenceMode = 'Auto',
         [switch] $SinkLogAnalytics,
         [string] $LogAnalyticsConfig,
         [ValidateRange(1, 365)]
