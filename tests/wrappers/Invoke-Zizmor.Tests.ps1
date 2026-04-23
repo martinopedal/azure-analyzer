@@ -99,6 +99,7 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
 
     AfterAll {
         Remove-Item Function:\global:zizmor -ErrorAction SilentlyContinue
+        Remove-Item Function:\global:git -ErrorAction SilentlyContinue
         Remove-Variable -Name ZizmorRawFixture -Scope Global -ErrorAction SilentlyContinue
     }
 
@@ -106,8 +107,17 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
         Mock Get-Command {
             param($Name)
             if ($Name -eq 'zizmor') { return [pscustomobject]@{ Name = 'zizmor' } }
+            if ($Name -eq 'git')    { return [pscustomobject]@{ Name = 'git' } }
             return $null
-        } -ParameterFilter { $Name -eq 'zizmor' }
+        } -ParameterFilter { $Name -in @('zizmor', 'git') }
+        # Stub `git` invocations so the test is hermetic and does not depend on the
+        # ambient git binary (raised in #737 review).
+        function global:git {
+            $cmd = ($args -join ' ')
+            if ($cmd -match 'remote get-url origin') { return 'https://github.com/martinopedal/azure-analyzer.git' }
+            if ($cmd -match 'rev-parse HEAD')        { return '0123456789abcdef0123456789abcdef01234567' }
+            return ''
+        }
 
         $result = & $script:Wrapper -RepoPath $script:RepoRoot
         $result.Status | Should -Be 'Success'

@@ -26,6 +26,18 @@ Describe 'E2E wrapper coverage parity tracker' {
         $actual | Should -Be $expected
     }
 
+    It 'has unique tool entries (one row per enabled tool)' {
+        $names = @($script:Tracker.entries | ForEach-Object { $_.tool })
+        $unique = $names | Sort-Object -Unique
+        @($names).Count | Should -Be @($unique).Count
+    }
+
+    It 'has unique tool names in tool-manifest.json' {
+        $names = @($script:Manifest.tools | ForEach-Object { $_.name })
+        $unique = $names | Sort-Object -Unique
+        @($names).Count | Should -Be @($unique).Count
+    }
+
     It 'uses valid status values for each tracked tool' {
         $allowed = @('not-covered', 'in-progress', 'covered')
         foreach ($entry in @($script:Tracker.entries)) {
