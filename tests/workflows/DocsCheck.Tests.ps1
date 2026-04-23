@@ -10,11 +10,16 @@ BeforeAll {
 }
 
 Describe 'docs-check.yml documentation paths contract' {
-    It 'treats docs/design as documentation for docs-required gate' {
-        $script:RawYaml | Should -Match '\^docs\\/design\\/'
+    It 'treats docs/ subdirectories as documentation for docs-required gate' {
+        $script:RawYaml | Should -Match '\^docs\\/'
     }
 
-    It 'mentions docs/design in the missing-docs guidance message' {
-        $script:RawYaml | Should -Match 'architecture, design'
+    It 'mentions copy-pasteable suggested CHANGELOG entry in error message' {
+        $script:RawYaml | Should -Match 'Suggested:'
+    }
+
+    It 'lists auto-skip title prefixes in error message' {
+        $script:RawYaml | Should -Match 'chore\(deps\):'
+        $script:RawYaml | Should -Match 'Auto-skip title prefixes'
     }
 }
