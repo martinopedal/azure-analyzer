@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "powerpipe",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "CIS Azure 1.5.0 control 3.1 failed",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Compliance",
+      "Pillar": "Security",
+      "Detail": "Powerpipe benchmark 'cis_v1.5.0' control 3.1 (Storage 'Secure transfer required') FAILED on storage acct sa-legacy.",
+      "ResourceId": "/subscriptions/dddddddd-2222-3333-4444-555555555555/resourceGroups/rg-storage/providers/Microsoft.Storage/storageAccounts/sa-legacy",
+      "Remediation": "Enable supportsHttpsTrafficOnly.",
+      "RuleId": "powerpipe-cis-3.1"
+    },
+    {
+      "Title": "CIS Azure 1.5.0 control 1.21 failed",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Compliance",
+      "Pillar": "Security",
+      "Detail": "Subscription does not designate more than one user with the Owner role at subscription scope.",
+      "ResourceId": "/subscriptions/dddddddd-2222-3333-4444-555555555555",
+      "Remediation": "Add a second Owner for break-glass.",
+      "RuleId": "powerpipe-cis-1.21"
+    },
+    {
+      "Title": "CIS Azure 1.5.0 control 9.1 passed",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Compliance",
+      "Pillar": "Security",
+      "Detail": "App Service is using Azure AD authentication.",
+      "ResourceId": "/subscriptions/dddddddd-2222-3333-4444-555555555555/resourceGroups/rg-web/providers/Microsoft.Web/sites/contoso-app",
+      "Remediation": "",
+      "RuleId": "powerpipe-cis-9.1"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "alz-queries",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "ALZ-NET-001: Subnet without NSG attachment",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Network",
+      "Pillar": "Security",
+      "Detail": "Subnet workload-1 in vnet-spoke-prod has no NSG attached; ALZ baseline requires NSG on every workload subnet.",
+      "ResourceId": "/subscriptions/eeeeeeee-2222-3333-4444-555555555555/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-spoke-prod/subnets/workload-1",
+      "Remediation": "Attach default workload NSG.",
+      "RuleId": "alz-net-001"
+    },
+    {
+      "Title": "ALZ-MON-002: Diagnostic settings missing",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Monitoring",
+      "Pillar": "Operational Excellence",
+      "Detail": "Key vault contoso-kv has no diagnostic settings forwarding AuditEvent to Log Analytics.",
+      "ResourceId": "/subscriptions/eeeeeeee-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/contoso-kv",
+      "Remediation": "Create diagnostic setting -> law-platform.",
+      "RuleId": "alz-mon-002"
+    },
+    {
+      "Title": "ALZ-IDENT-001: Subscription owner count within bounds",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Identity",
+      "Pillar": "Security",
+      "Detail": "2 owners (target 2-4) at subscription scope.",
+      "ResourceId": "/subscriptions/eeeeeeee-2222-3333-4444-555555555555",
+      "Remediation": "",
+      "RuleId": "alz-ident-001"
+    }
+  ]
+}

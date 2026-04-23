@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "aks-rightsizing",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Node pool over-provisioned vs measured CPU",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Node pool 'systempool' Standard_D8s_v5 averaging 12% CPU; downsize to D4s_v5 saves USD 280/mo.",
+      "ResourceId": "/subscriptions/aaaaaaaa-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks",
+      "Remediation": "Resize systempool to Standard_D4s_v5.",
+      "RuleId": "aks-rightsize-cpu-overprovisioned"
+    },
+    {
+      "Title": "Memory request:limit ratio < 0.5 across deployments",
+      "Severity": "Low",
+      "Compliant": false,
+      "Category": "Resource Requests",
+      "Pillar": "Operational Excellence",
+      "Detail": "47/120 deployments have requests less than half of limits.",
+      "ResourceId": "/subscriptions/aaaaaaaa-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks",
+      "Remediation": "Tighten memory requests to match observed P95 + 20%.",
+      "RuleId": "aks-rightsize-memory-ratio"
+    },
+    {
+      "Title": "VPA recommender enabled",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Recommender",
+      "Pillar": "Operational Excellence",
+      "Detail": "Cluster has VerticalPodAutoscaler addon installed in recommend-only mode.",
+      "ResourceId": "/subscriptions/aaaaaaaa-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks",
+      "Remediation": "",
+      "RuleId": "aks-vpa-enabled"
+    }
+  ]
+}
