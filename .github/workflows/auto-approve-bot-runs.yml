@@ -66,11 +66,15 @@ jobs:
           retry_wait_seconds: 15
           command: |
             set -euo pipefail
+            already_approved_pattern="already approved|approval is not required|run is not waiting for approval|not in action_required"
 
             approve_run() {
               local run_id="$1"
               local workflow_label="$2"
               local run_state status conclusion
+              # Shared helper for both workflow_run and pull_request_target
+              # paths. Keep this duplicated state-check in one place so approval
+              # semantics stay identical for both trigger paths.
               run_state="$(gh api "repos/${REPO}/actions/runs/${run_id}" --jq '{status: .status, conclusion: .conclusion}')"
               status="$(printf '%s' "$run_state" | jq -r '.status')"
               conclusion="$(printf '%s' "$run_state" | jq -r '.conclusion')"
@@ -87,7 +91,13 @@ jobs:
                 cat approve.out
                 # A 403/422 here is expected when the run was already approved by a
                 # parallel invocation. Treat that as success.
-                if grep -Eq "already|action is not required" approve.out; then
+                # Pattern map:
+                # - "already approved" => another runner approved first
+                # - "approval is not required" / "not in action_required" =>
+                #   run state changed between read and approve call
+                # - "run is not waiting for approval" => same race surfaced with
+                #   slightly different API wording
+                if grep -Eiq "$already_approved_pattern" approve.out; then
                   echo "Run already approved (or no longer waiting). Treating as success."
                   return 0
                 fi
@@ -136,9 +146,20 @@ jobs:
               exit 0
             fi
 
+            # gh api --paginate --slurp emits an array of page objects, each with
+            # its own workflow_runs array. We flatten page[] -> workflow_runs[]
+            # before filtering down to the target PR's gated runs.
+            jq_filter='
+              .[] | .workflow_runs[] |
+              select(.status == "action_required" or .conclusion == "action_required") |
+              select(.head_sha == $head_sha) |
+              select([.pull_requests[].number] | index($pr_number)) |
+              .id
+            '
+            head_ref_encoded="$(jq -rn --arg ref "$HEAD_REF" '$ref|@uri')"
             mapfile -t run_ids < <(
-              gh api "repos/${REPO}/actions/runs?event=pull_request&branch=${HEAD_REF}&per_page=100" \
-                --jq ".workflow_runs[] | select((.status == \"action_required\" or .conclusion == \"action_required\") and .head_sha == \"${HEAD_SHA}\" and ([.pull_requests[].number] | index(${PR_NUMBER}))) | .id"
+              gh api --paginate --slurp "repos/${REPO}/actions/runs?event=pull_request&branch=${head_ref_encoded}&per_page=100" \
+                | jq -r --arg head_sha "$HEAD_SHA" --argjson pr_number "$PR_NUMBER" "$jq_filter"
             )
             if [ "${#run_ids[@]}" -eq 0 ]; then
               echo "No action_required pull_request runs found for PR #${PR_NUMBER} at ${HEAD_SHA}."

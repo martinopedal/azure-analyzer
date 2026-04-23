@@ -103,11 +103,8 @@ See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend 
 
 CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates. The watchdog log-truncation/extraction path uses here-strings (`<<<`) for `head`/`grep` calls to avoid SIGPIPE aborts under `set -euo pipefail`.
 The bot-run auto-approval workflow now includes a `pull_request_target` fallback that approves `action_required` PR runs by exact head SHA, so trusted Copilot/bot PRs do not deadlock when `workflow_run` approvals are themselves gated.
-Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
-
-CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates.
-
 CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
+Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
 
 Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
 

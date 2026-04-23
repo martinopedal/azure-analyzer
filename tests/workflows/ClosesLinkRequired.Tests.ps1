@@ -14,8 +14,8 @@ Describe 'closes-link-required workflow contract' {
     It 'exempts trusted bot authors including Copilot app identities' {
         $script:WorkflowText | Should -Match 'dependabot\[bot\]'
         $script:WorkflowText | Should -Match 'copilot-swe-agent\[bot\]'
-        $script:WorkflowText | Should -Match "'Copilot'"
-        $script:WorkflowText | Should -Match "'copilot'"
+        $script:WorkflowText | Should -Match 'Copilot'
+        $script:WorkflowText | Should -Match 'copilot'
     }
 
     It 'still supports skip-closes-check label bypass' {
