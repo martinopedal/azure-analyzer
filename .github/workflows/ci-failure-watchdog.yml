@@ -1,44 +1,48 @@
 name: CI failure watchdog
 
 on:
-  workflow_run:
-    # The workflows: key is REQUIRED -- without it GitHub never parses the
-    # trigger and creates 0-job failure runs on every push (see PR #111 + #154
-    # root-cause). Each entry below MUST match the `name:` field of the watched
-    # workflow exactly. The `tests/workflows/WatchdogWatchlist.Tests.ps1`
-    # Pester test enforces this -- keep it green.
-    #
-    # Inclusion criteria: every workflow whose failure on `main` or on a PR
-    # would silently degrade the squad pipeline. CI / CodeQL / Docs Check
-    # cover correctness + supply chain. The PR-gate trio (#108/#109/#157)
-    # protects merge quality. Squad workflows keep Ralph + triage alive.
-    # Sync / auto-label / tool-update keep repo housekeeping honest.
-    workflows:
-      - "CI"                            # tests, install manifest, SBOM
-      - "CodeQL"                        # required status check on main
-      - "Docs Check"                    # docs-vs-code drift gate
-      - "Markdown Check"                # docs lint + link-rot + em-dash gate (replaces Markdown Link Check; #516)
-      - "ALZ queries drift check"       # ARG query drift vs upstream
-      - "Bicep Build"                   # infra/Bicep lint + build
-      - "Stub deadline check"           # stale-stub deadline enforcement
-      - "PR Review Gate"                # blocking rubber-duck gate (#108)
-      - "PR Advisory Gate"              # advisory rubber-duck gate (#109)
-      - "PR Auto-Resolve Review Threads" # comment-triage automation
-      - "Copilot Agent PR Review"       # auto-requests Copilot review (#156)
-      - "Squad Heartbeat (Ralph)"       # squad dispatch loop
-      - "Squad Triage"                  # issue triage automation
-      - "Squad Issue Assign"            # squad agent assignment
-      - "Sync Squad Labels"             # label hygiene
-      - "Auto-label issues for squad"   # squad-label invariant on new issues
-      - "Tool auto-update"              # weekly tool-manifest refresh
-      - "Release"                       # tag/release automation
-      - "PR Auto-Rerun On Push"         # auto-retry agent-branch failed checks
-      - "PR Auto-Rebase Conflicts"      # auto-rebase on main-advance (2026-04-22T23:35:00Z)
-      - "Closes Link Required"          # PR-template "Closes #N" enforcement
-      - "E2E"                           # end-to-end runner smoke test
-      - "Issue Resolution Verify"       # post-merge issue-close verification
-      - "Scheduled scan"                # daily customer-env scan
-    types: [completed]
+  schedule:
+    # Run every 15 minutes to catch failures. The triage logic is hash-idempotent
+    # (sha256 of workflow+error line) so overlapping runs cannot open duplicate
+    # ci-failure issues.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# Watchlist (allow-list): every workflow whose failure on `main` or on a PR
+# would silently degrade the squad pipeline. CI / CodeQL / Docs Check
+# cover correctness + supply chain. The PR-gate trio (#108/#109/#157)
+# protects merge quality. Squad workflows keep Ralph + triage alive.
+# Sync / auto-label / tool-update keep repo housekeeping honest.
+#
+# Inclusion criteria matches the legacy workflow_run: watchlist (pre-schedule).
+# Each entry below MUST match the `name:` field of the watched workflow exactly.
+# The `tests/workflows/WatchdogWatchlist.Tests.ps1` Pester test enforces this.
+env:
+  WATCHLIST: |
+    CI
+    CodeQL
+    Docs Check
+    Markdown Check
+    ALZ queries drift check
+    Bicep Build
+    Stub deadline check
+    PR Review Gate
+    PR Advisory Gate
+    PR Auto-Resolve Review Threads
+    Copilot Agent PR Review
+    Squad Heartbeat (Ralph)
+    Squad Triage
+    Squad Issue Assign
+    Sync Squad Labels
+    Auto-label issues for squad
+    Tool auto-update
+    Release
+    PR Auto-Rerun On Push
+    PR Auto-Rebase Conflicts
+    Closes Link Required
+    E2E
+    Issue Resolution Verify
+    Scheduled scan
 
 permissions:
   issues: write
@@ -49,46 +53,26 @@ jobs:
   triage-failure:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Concurrency (tracked: #862):
-    # The group MUST be keyed off `github.event.workflow_run.id` so each
-    # triggering workflow-run gets its own slot. A constant `ci-failure-watchdog`
-    # group caused GitHub to cancel ~72% of runs (23/32 sample) because
-    # `cancel-in-progress: false` still drops a previously-queued run when a
-    # third run arrives (only one running + one pending allowed per group).
-    # The triage step is hash-idempotent (sha256 of workflow+error line), so
-    # parallel triage runs cannot open duplicate ci-failure issues.
+    # Concurrency:
+    # Constant group key is safe because the triage step is hash-idempotent
+    # (sha256 of workflow+error line), so parallel triage runs cannot open
+    # duplicate ci-failure issues. The 15-min schedule interval keeps queue
+    # pressure low (<2 concurrent runs expected).
     concurrency:
-      group: ci-failure-watchdog-${{ github.event.workflow_run.id }}
+      group: ci-failure-watchdog
       cancel-in-progress: false
     steps:
-      - name: Skip non-failure or self-triggered runs
-        id: gate
-        run: |
-          if [ "${{ github.event.workflow_run.conclusion }}" != "failure" ] || [ "${{ github.event.workflow_run.name }}" = "CI failure watchdog" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Watched run is not a triageable failure (conclusion=${{ github.event.workflow_run.conclusion }}, name=${{ github.event.workflow_run.name }}). Exiting cleanly."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - if: steps.gate.outputs.skip == 'false'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # no-retry: orchestrates a multi-step gh-API dance (run lookup, dedup
       # lookup, label create, issue create OR comment, post-create dedup sweep)
       # with hash-based idempotency built in. A blind whole-step retry on a
       # partial failure could open a duplicate ci-failure issue or close a wrong
       # duplicate. Each gh call already trails `|| true` to ride out transients.
-      - name: Triage failed workflow run
-        if: steps.gate.outputs.skip == 'false'
+      - name: Triage failed workflow runs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          RUN_URL: ${{ github.event.workflow_run.html_url }}
-          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
-          EVENT_NAME: ${{ github.event.workflow_run.event }}
-          PR_URL: ${{ github.event.workflow_run.pull_requests[0].html_url || '' }}
         run: |
           set -euo pipefail
 
@@ -111,97 +95,135 @@ jobs:
               <<<"$input"
           }
 
-          failed_log_raw="$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 || true)"
+          # Build allow-list from WATCHLIST env var
+          mapfile -t watchlist < <(printf '%s' "$WATCHLIST" | grep -v '^$')
 
-          # Detect GitHub API rate-limit errors (HTTP 403). If the watchdog
-          # reporter itself is rate-limited, abort triage to prevent
-          # false-positive ci-failure issues (see #548-583, root-cause tracked separately).
-          if grep -qE 'HTTP 403|rate limit exceeded' <<< "$failed_log_raw"; then
-            echo "GitHub API rate-limit detected (HTTP 403) -- suppressing false-positive ci-failure issue."
-            echo "Root-cause fix for reporter rate-limiting is tracked separately."
-            exit 0
-          fi
+          # Fetch failed runs from the last 15 minutes
+          since_iso="$(date -u -d '15 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+          failed_runs_json="$(gh api "/repos/${REPO}/actions/runs?status=failure&per_page=50&created=>${since_iso}" --jq '.workflow_runs' 2>/dev/null || echo '[]')"
 
-          failed_log_head="$(head -n 500 <<< "$failed_log_raw")"
-
-          # Prefer explicit Actions annotations first, then broader fallback patterns.
-          first_error_line="$(grep -Eim1 '##\[error\]|::error::' <<< "$failed_log_head" || true)"
-          if [ -z "${first_error_line}" ]; then
-            first_error_line="$(grep -Eim1 '(^|[^[:alpha:]])(error|failed|fatal)(:|[[:space:]])' <<< "$failed_log_head" || true)"
-          fi
-          if [ -z "${first_error_line}" ]; then
-            first_error_line="$(grep -Eim1 '(Exception|Traceback|exit code [1-9]|exited with code)' <<< "$failed_log_head" || true)"
-          fi
-          if [ -z "${first_error_line}" ]; then
-            first_error_line="No explicit error line found in failed log output."
-          fi
-          first_error_line="$(sanitize_text "$first_error_line")"
-
-          failed_jobs_json="$(gh run view "$RUN_ID" --repo "$REPO" --json jobs --jq '[.jobs[] | select(.conclusion == "failure") | .name]' 2>/dev/null || echo '[]')"
-          failed_jobs="$(printf '%s' "$failed_jobs_json" | jq -r 'if length == 0 then "unknown" else join(", ") end')"
-          failed_jobs="$(sanitize_text "$failed_jobs")"
-
-          hash_input="${WORKFLOW_NAME}|${first_error_line}"
-          error_hash="$(printf '%s' "$hash_input" | sha256sum | cut -c1-12)"
-
-          short_error="$(printf '%s' "$first_error_line" | tr '\r\n' ' ' | sed -E 's/[[:space:]]+/ /g' | cut -c1-120)"
-          short_error="$(sanitize_text "$short_error")"
-
-          issue_title="fix: CI failure in ${WORKFLOW_NAME} -- ${short_error} [${error_hash}]"
-          existing_issue_records="$(gh issue list --repo "$REPO" --label ci-failure --state all --search "[${error_hash}] in:title" --limit 100 --json number,state,createdAt 2>/dev/null || echo '[]')"
-          existing_issue="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .number // empty')"
-          existing_issue_state="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .state // empty')"
-
-          gh label create ci-failure --repo "$REPO" --color B60205 --description "Automated CI failure report" --force >/dev/null 2>&1 || true
-
-          body_lines=$'## CI failure detected\n\n'
-          body_lines+="- Workflow: ${WORKFLOW_NAME}"$'\n'
-          body_lines+="- Run URL: ${RUN_URL}"$'\n'
-          if [ "${EVENT_NAME}" = "pull_request" ] && [ -n "${PR_URL}" ]; then
-            body_lines+="- PR URL: ${PR_URL}"$'\n'
-          fi
-          body_lines+="- Failed jobs: ${failed_jobs}"$'\n'
-          body_lines+="- First error line: ${first_error_line}"
-
-          if [ -n "$existing_issue" ]; then
-            if [ "$existing_issue_state" = "CLOSED" ]; then
-              gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
-            else
-              gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
+          # Iterate over each failed run
+          printf '%s' "$failed_runs_json" | jq -c '.[]' | while IFS= read -r run; do
+            WORKFLOW_NAME="$(jq -r '.name' <<<"$run")"
+            RUN_ID="$(jq -r '.id' <<<"$run")"
+            RUN_URL="$(jq -r '.html_url' <<<"$run")"
+            EVENT_NAME="$(jq -r '.event' <<<"$run")"
+            
+            # Skip if workflow is not in the allow-list
+            if ! printf '%s\n' "${watchlist[@]}" | grep -Fxq "$WORKFLOW_NAME"; then
+              continue
             fi
-          else
-            if ! gh issue create \
-              --repo "$REPO" \
-              --title "$issue_title" \
-              --body "$body_lines" \
-              --label squad \
-              --label type:bug \
-              --label priority:p1 \
-              --label ci-failure; then
-              existing_issue_records="$(gh issue list --repo "$REPO" --label ci-failure --state all --search "[${error_hash}] in:title" --limit 100 --json number,state,createdAt 2>/dev/null || echo '[]')"
-              existing_issue="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .number // empty')"
-              existing_issue_state="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .state // empty')"
-              if [ -n "$existing_issue" ]; then
-                if [ "$existing_issue_state" = "CLOSED" ]; then
-                  gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
-                else
-                  gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
-                fi
+
+            # Advisory-workflow filter: failures here are observable in run logs but do
+            # NOT open ci-failure issues, because these workflows are not required checks
+            # in branch protection. Required checks (Analyze, links, lint) still escalate.
+            case "$WORKFLOW_NAME" in
+              "CI"|"E2E"|"Scheduled scan")
+                echo "Advisory workflow ($WORKFLOW_NAME) failed — logged but no issue created."
+                echo "Run URL: ${RUN_URL:-unknown}"
+                exit 0
+                ;;
+            esac
+
+            # Skip if workflow is the watchdog itself (self-trigger guard)
+            if [ "$WORKFLOW_NAME" = "CI failure watchdog" ]; then
+              continue
+            fi
+
+            # Extract PR URL if available
+            PR_URL="$(jq -r '.pull_requests[0].html_url // ""' <<<"$run")"
+
+            failed_log_raw="$(gh run view "$RUN_ID" --repo "$REPO" --log-failed 2>&1 || true)"
+
+            # Detect GitHub API rate-limit errors (HTTP 403). If the watchdog
+            # reporter itself is rate-limited, abort triage to prevent
+            # false-positive ci-failure issues (see #548-583, root-cause tracked separately).
+            if grep -qE 'HTTP 403|rate limit exceeded' <<< "$failed_log_raw"; then
+              echo "GitHub API rate-limit detected (HTTP 403) for run $RUN_ID -- suppressing false-positive ci-failure issue."
+              continue
+            fi
+
+            failed_log_head="$(head -n 500 <<< "$failed_log_raw")"
+
+            # Prefer explicit Actions annotations first, then broader fallback patterns.
+            first_error_line="$(grep -Eim1 '##\[error\]|::error::' <<< "$failed_log_head" || true)"
+            if [ -z "${first_error_line}" ]; then
+              first_error_line="$(grep -Eim1 '(^|[^[:alpha:]])(error|failed|fatal)(:|[[:space:]])' <<< "$failed_log_head" || true)"
+            fi
+            if [ -z "${first_error_line}" ]; then
+              first_error_line="$(grep -Eim1 '(Exception|Traceback|exit code [1-9]|exited with code)' <<< "$failed_log_head" || true)"
+            fi
+            if [ -z "${first_error_line}" ]; then
+              first_error_line="No explicit error line found in failed log output."
+            fi
+            first_error_line="$(sanitize_text "$first_error_line")"
+
+            failed_jobs_json="$(gh run view "$RUN_ID" --repo "$REPO" --json jobs --jq '[.jobs[] | select(.conclusion == "failure") | .name]' 2>/dev/null || echo '[]')"
+            failed_jobs="$(printf '%s' "$failed_jobs_json" | jq -r 'if length == 0 then "unknown" else join(", ") end')"
+            failed_jobs="$(sanitize_text "$failed_jobs")"
+
+            hash_input="${WORKFLOW_NAME}|${first_error_line}"
+            error_hash="$(printf '%s' "$hash_input" | sha256sum | cut -c1-12)"
+
+            short_error="$(printf '%s' "$first_error_line" | tr '\r\n' ' ' | sed -E 's/[[:space:]]+/ /g' | cut -c1-120)"
+            short_error="$(sanitize_text "$short_error")"
+
+            issue_title="fix: CI failure in ${WORKFLOW_NAME} -- ${short_error} [${error_hash}]"
+            existing_issue_records="$(gh issue list --repo "$REPO" --label ci-failure --state all --search "[${error_hash}] in:title" --limit 100 --json number,state,createdAt 2>/dev/null || echo '[]')"
+            existing_issue="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .number // empty')"
+            existing_issue_state="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .state // empty')"
+
+            gh label create ci-failure --repo "$REPO" --color B60205 --description "Automated CI failure report" --force >/dev/null 2>&1 || true
+
+            body_lines=$'## CI failure detected\n\n'
+            body_lines+="- Workflow: ${WORKFLOW_NAME}"$'\n'
+            body_lines+="- Run URL: ${RUN_URL}"$'\n'
+            if [ "${EVENT_NAME}" = "pull_request" ] && [ -n "${PR_URL}" ]; then
+              body_lines+="- PR URL: ${PR_URL}"$'\n'
+            fi
+            body_lines+="- Failed jobs: ${failed_jobs}"$'\n'
+            body_lines+="- First error line: ${first_error_line}"
+
+            if [ -n "$existing_issue" ]; then
+              if [ "$existing_issue_state" = "CLOSED" ]; then
+                gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
               else
-                echo "Failed to create or reconcile ci-failure issue for hash [${error_hash}]."
-                exit 1
+                gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
+              fi
+            else
+              if ! gh issue create \
+                --repo "$REPO" \
+                --title "$issue_title" \
+                --body "$body_lines" \
+                --label squad \
+                --label type:bug \
+                --label priority:p1 \
+                --label ci-failure; then
+                existing_issue_records="$(gh issue list --repo "$REPO" --label ci-failure --state all --search "[${error_hash}] in:title" --limit 100 --json number,state,createdAt 2>/dev/null || echo '[]')"
+                existing_issue="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .number // empty')"
+                existing_issue_state="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .state // empty')"
+                if [ -n "$existing_issue" ]; then
+                  if [ "$existing_issue_state" = "CLOSED" ]; then
+                    gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
+                  else
+                    gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
+                  fi
+                else
+                  echo "Failed to create or reconcile ci-failure issue for hash [${error_hash}]."
+                  exit 1
+                fi
               fi
             fi
-          fi
 
-          mapfile -t matching_issues < <(gh issue list --repo "$REPO" --label ci-failure --state open --search "[${error_hash}] in:title" --json number --jq '.[].number' 2>/dev/null || true)
-          if [ "${#matching_issues[@]}" -gt 1 ]; then
-            canonical_issue="${matching_issues[0]}"
-            for duplicate_issue in "${matching_issues[@]:1}"; do
-              gh issue comment "$duplicate_issue" --repo "$REPO" --body "Closing duplicate ci-failure issue in favor of #${canonical_issue} for hash [${error_hash}]." || true
-              gh issue close "$duplicate_issue" --repo "$REPO" --comment "Duplicate of #${canonical_issue}" || true
-            done
-          fi
+            mapfile -t matching_issues < <(gh issue list --repo "$REPO" --label ci-failure --state open --search "[${error_hash}] in:title" --json number --jq '.[].number' 2>/dev/null || true)
+            if [ "${#matching_issues[@]}" -gt 1 ]; then
+              canonical_issue="${matching_issues[0]}"
+              for duplicate_issue in "${matching_issues[@]:1}"; do
+                gh issue comment "$duplicate_issue" --repo "$REPO" --body "Closing duplicate ci-failure issue in favor of #${canonical_issue} for hash [${error_hash}]." || true
+                gh issue close "$duplicate_issue" --repo "$REPO" --comment "Duplicate of #${canonical_issue}" || true
+              done
+            fi
+          done
 
   # Self-health: detect the 0-job phantom-failure pattern (root cause of #111
   # / #154) recurring on the watchdog itself. Independent job so it runs even

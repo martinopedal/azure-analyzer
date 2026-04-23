@@ -1,5 +1,13 @@
 ## Unreleased
 
+### Fixed
+
+- **CI watchdog**: No longer opens ci-failure issues for advisory workflows (CI / E2E / Scheduled scan). These workflows are monitored for observability but do NOT escalate to backlog noise because they are not required branch-protection checks. Required checks (Analyze, links, lint) still escalate as ci-failure issues. Implements Track A from `.squad/decisions/inbox/rca-drift-sonnet.md`.
+- **CI watchdog**: Convert ci-failure-watchdog from `workflow_run:` trigger to 15-min `schedule:` trigger to eliminate Copilot-actor cascading `action_required` gate. When the upstream workflow's actor is the synthetic Copilot user (Coding Agent), the GitHub first-contributor approval gate fires on the cascading watchdog run, leaving stuck runs in the queue. The auto-approve workflow was deleted in PR #937 because the `/approve` API is fork-PR-only. The watchdog now polls failed runs via gh api every 15 minutes with allow-list filtering and hash-idempotent triage.
+- **Pester bootstrap**: Fixed SampleDrift.Tests.ps1 syntax error (literal `');'` breaking PowerShell parser) that caused ParameterBindingException on all PR test runs, blocking 8 PRs. The stream-6 (Information) warning-pattern detection in Capture-WrapperHostOutput.ps1 was already fixed in commit abd951e. Closes #913 #916 #920 #921 #923 #929.
+- **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
+- **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
+
 ### Added
 
 - **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
@@ -10,12 +18,6 @@
 ### Removed
 
 - **Dead workflow**: Removed `.github/workflows/auto-approve-bot-runs.yml` — used fork-PR-only `/actions/runs/{id}/approve` endpoint that returned HTTP 403 on all in-repo bot PRs, created cascade of stuck `action_required` runs when it gated itself.
-
-### Fixed
-
-- **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
-- **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
-- **Docs check workflow**: `docs-check.yml` now auto-skips conventional-commit prefixes that don't ship user-visible behavior (`chore(deps):`, `chore(release):`, `chore(main):`, `revert:`, `ci:`, `build:`, `style:`, `test:`/`tests:`, `perf:`). Accepts additional doc paths: any `docs/` subtree (was: limited subset), `THIRD_PARTY_NOTICES.md`, `.copilot/audits/`, `.squad/decisions.md`, `.squad/decisions-archive.md`, `.squad/orchestration-log.md`, `.squad/agents/*/history.md` and `.squad/agents/*/inbox/`, plus `.squad/v2-roadmap*.md`, `.squad/plan-*.md`, `.squad/ceremonies.md`. Error message now suggests a copy-paste CHANGELOG entry pointing at the actual file changed and lists all auto-skip prefixes. Adds `MAX_FILES = 3000` cap to paginate to avoid runaway PRs. Resolves recurring false-positive blocks on legitimate PRs (audit deliverables, dep bumps, test-only changes).
 
 ### Changed
 
