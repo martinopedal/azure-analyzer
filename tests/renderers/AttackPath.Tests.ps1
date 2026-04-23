@@ -73,7 +73,7 @@ Describe 'AttackPathRenderer' {
             $model.edges.Count | Should -BeLessOrEqual 4
         }
 
-        It 'expands one hop on node-click within 250 ms' {
+        It 'produces Tier 2 seed model within 250 ms' {
             $fx = New-AttackPathFixture
             $elapsed = Measure-Command {
                 $model = New-AttackPathModel -Entities @([pscustomobject]@{ Entities = $fx.Entities; Edges = $fx.Edges }) -Findings $fx.Findings -Tier 2 -EdgeBudget 6

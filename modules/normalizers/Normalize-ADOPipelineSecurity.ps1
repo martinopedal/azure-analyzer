@@ -17,7 +17,8 @@ function Normalize-ADOPipelineSecurity {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [PSCustomObject] $ToolResult
+        [PSCustomObject] $ToolResult,
+        [System.Collections.Generic.List[psobject]] $EdgeCollector
     )
 
     if ($ToolResult.Status -notin @('Success', 'PartialSuccess') -or -not $ToolResult.Findings) {
@@ -26,6 +27,23 @@ function Normalize-ADOPipelineSecurity {
 
     $runId = [guid]::NewGuid().ToString()
     $normalized = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    function Add-ADOPipelineTrackAEdges {
+        param([object] $Candidate)
+        if ($null -eq $EdgeCollector) { return }
+        if ($null -eq $Candidate -or -not $Candidate.PSObject.Properties['AttackPathEdges']) { return }
+        $allowedRelations = @('TriggeredBy', 'AuthenticatesAs', 'DeploysTo', 'UsesSecret', 'HasFederatedCredential', 'Declares')
+        foreach ($edgeHint in @($Candidate.AttackPathEdges)) {
+            if ($null -eq $edgeHint) { continue }
+            $source = if ($edgeHint.PSObject.Properties['Source']) { [string]$edgeHint.Source } else { '' }
+            $target = if ($edgeHint.PSObject.Properties['Target']) { [string]$edgeHint.Target } else { '' }
+            $relation = if ($edgeHint.PSObject.Properties['Relation']) { [string]$edgeHint.Relation } else { '' }
+            if ([string]::IsNullOrWhiteSpace($source) -or [string]::IsNullOrWhiteSpace($target)) { continue }
+            if ($relation -notin $allowedRelations) { continue }
+            $edge = New-Edge -Source $source -Target $target -Relation $relation -Confidence 'Likely' -Platform 'ADO' -DiscoveredBy 'ado-pipelines'
+            if ($null -ne $edge) { $EdgeCollector.Add($edge) | Out-Null }
+        }
+    }
 
     function ConvertTo-StringArray {
         param ([object] $Value)
@@ -75,6 +93,7 @@ function Normalize-ADOPipelineSecurity {
     }
 
     foreach ($finding in $ToolResult.Findings) {
+        Add-ADOPipelineTrackAEdges -Candidate $finding
         $assetType = if ($finding.PSObject.Properties['AssetType'] -and $finding.AssetType) { [string]$finding.AssetType } else { 'BuildDefinition' }
         $entityType = $assetType
         $org = if ($finding.PSObject.Properties['AdoOrg'] -and $finding.AdoOrg) { [string]$finding.AdoOrg } else { 'unknown' }
