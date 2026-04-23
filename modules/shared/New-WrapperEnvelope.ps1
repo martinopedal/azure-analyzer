@@ -37,8 +37,7 @@
 #>
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)]
-    [string] $Source,
+    [string] $Source = '',
 
     [ValidateSet('Success', 'Skipped', 'Failed')]
     [string] $Status = 'Failed',

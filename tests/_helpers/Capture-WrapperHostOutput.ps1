@@ -28,17 +28,24 @@ function Invoke-WrapperWithHostCapture {
     $warningBuffer = [System.Collections.Generic.List[string]]::new()
     $result = $null
     try {
-        # 3>&1 redirects warnings into the success stream so we can sift them
-        # out without re-emitting them to the host (which would still pollute
-        # the Pester transcript). The scriptblock's actual return value is the
-        # last non-warning emission.
+        # 3>&1 6>&1 redirects warnings and information into the success stream
+        # so we can sift them out without re-emitting them to the host (which
+        # would still pollute the Pester transcript). The scriptblock's actual
+        # return value is the last non-warning/non-info emission.
         $merged = & {
             & $ScriptBlock
-        } 3>&1
+        } 3>&1 6>&1
 
         foreach ($item in @($merged)) {
             if ($item -is [System.Management.Automation.WarningRecord]) {
                 $warningBuffer.Add([string]$item.Message)
+            } elseif ($item -is [System.Management.Automation.InformationRecord]) {
+                # Detect warning-like patterns in Information stream messages
+                $msg = [string]$item.MessageData
+                if ($msg -match '^WARNING:' -or $msg -match '^##\[warning\]' -or $msg -match '^Notice:') {
+                    $warningBuffer.Add($msg)
+                }
+                # Don't capture regular info messages as results
             } else {
                 $result = $item
             }
