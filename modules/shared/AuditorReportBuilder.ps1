@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 <#
 .SYNOPSIS
-    Auditor-driven report builder (Track F / issue #434) — SKELETON ONLY.
+    Auditor-driven report builder (Track F / issue #434) - SKELETON ONLY.
 
 .DESCRIPTION
     Track F redesigns azure-analyzer's report from a finding-centric view
@@ -14,13 +14,13 @@
     [System.NotImplementedException]. Implementation is held until the
     dependency tracks land:
 
-      - Track A (#428) — attack paths
-      - Track B (#429) — resilience / blast-radius
-      - Track C (#431) — policy coverage vs. ALZ reference
-      - Track D (#432) — tool-output fidelity (ComplianceMappings, Pillar,
+      - Track A (#428) - attack paths
+      - Track B (#429) - resilience / blast-radius
+      - Track C (#431) - policy coverage vs. ALZ reference
+      - Track D (#432) - tool-output fidelity (ComplianceMappings, Pillar,
                          Impact, Effort, RemediationSnippets, DeepLinkUrl)
-      - Track E (#433 / #466 / #462) — LLM triage verdicts
-      - Track V (#430 / #467) + foundation (#435) — tier picker and
+      - Track E (#433 / #466 / #462) - LLM triage verdicts
+      - Track V (#430 / #467) + foundation (#435) - tier picker and
                          report-manifest.json schema
 
     Function signatures here are FROZEN by the design doc at

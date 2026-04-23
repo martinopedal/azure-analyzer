@@ -1,9 +1,9 @@
-# Track F — Auditor-Driven Report Redesign (Design)
+# Track F - Auditor-Driven Report Redesign (Design)
 
-**Status:** DRAFT — design + skeleton only. No implementation in this PR.
+**Status:** DRAFT - design + skeleton only. No implementation in this PR.
 **Issue:** [#434](https://github.com/martinopedal/azure-analyzer/issues/434) (Track F of epic [#427](https://github.com/martinopedal/azure-analyzer/issues/427)).
 **Author:** Atlas (Azure Resource Graph Engineer / Lead).
-**Authority:** RESEARCH-AND-DRAFT. Implementation is held until Tracks A–E + V land.
+**Authority:** RESEARCH-AND-DRAFT. Implementation is held until Tracks A-E + V land.
 **Scope decision:** The Lead 8-hour close plan (recorded in PR #481) closes #434 as `defer-post-epic`. This document is the code-ready proposal so the next agent can ship Track F in **days, not weeks**, once the upstream tracks merge.
 
 ---
@@ -14,12 +14,12 @@ Track F is the **serial tail** of the epic. It cannot start until every dependen
 
 | Track | Issue | What Track F consumes from it | Why it blocks Track F |
 |---|---|---|---|
-| **A** — attack paths | #428 / PR #440 | `EdgeRelations` enum + attack-path edges in `entities.json` | Powers the *Attack Path* control-domain section and the auditor question "what is the path to privileged identity Z?" |
-| **B** — resilience maps | #429 / PR #436 | Blast-radius edges + resilience scoring | Powers the *Resilience / Blast Radius* section and the question "what is the blast radius of resource R?" |
-| **C** — policy enforcement & gaps | #431 / PR #444 | Policy-assignment vs. ALZ-reference deltas | Powers the *Policy Coverage* section and "which policies are missing at scope S?" |
-| **D** — tool-output fidelity | #432a (skeleton) + #432b/#432c (post-window) | Per-tool `ComplianceMappings`, `Pillar`, `Impact`, `Effort`, `RemediationSnippets`, `DeepLinkUrl` populated by every normalizer | Powers the compliance dashboard and the "ready to remediate" appendix. **Without #432b/c the dashboard renders mostly empty cells.** |
-| **E** — LLM triage | #433 (superseded by #466) / #462 flesh-out | Triage verdicts (`triage.json`) + rationale + suggested suppression | Powers the *Triage Panel* and the optional "auditor cross-check" annotations. |
-| **V** — 4-tier viewer + report architecture | #430 (superseded by #467) + foundation #435 | `Select-ReportArchitecture`, `report-manifest.json`, `Test-ReportFeatureParity` | Track F renders **into** the architecture chosen by Track V. We never invent a tier; we register feature blocks in `report-manifest.json`. |
+| **A** - attack paths | #428 / PR #440 | `EdgeRelations` enum + attack-path edges in `entities.json` | Powers the *Attack Path* control-domain section and the auditor question "what is the path to privileged identity Z?" |
+| **B** - resilience maps | #429 / PR #436 | Blast-radius edges + resilience scoring | Powers the *Resilience / Blast Radius* section and the question "what is the blast radius of resource R?" |
+| **C** - policy enforcement & gaps | #431 / PR #444 | Policy-assignment vs. ALZ-reference deltas | Powers the *Policy Coverage* section and "which policies are missing at scope S?" |
+| **D** - tool-output fidelity | #432a (skeleton) + #432b/#432c (post-window) | Per-tool `ComplianceMappings`, `Pillar`, `Impact`, `Effort`, `RemediationSnippets`, `DeepLinkUrl` populated by every normalizer | Powers the compliance dashboard and the "ready to remediate" appendix. **Without #432b/c the dashboard renders mostly empty cells.** |
+| **E** - LLM triage | #433 (superseded by #466) / #462 flesh-out | Triage verdicts (`triage.json`) + rationale + suggested suppression | Powers the *Triage Panel* and the optional "auditor cross-check" annotations. |
+| **V** - 4-tier viewer + report architecture | #430 (superseded by #467) + foundation #435 | `Select-ReportArchitecture`, `report-manifest.json`, `Test-ReportFeatureParity` | Track F renders **into** the architecture chosen by Track V. We never invent a tier; we register feature blocks in `report-manifest.json`. |
 | **Foundation** | #435 (MVP merged via PR #456) | `EdgeRelations` enum (16 values), `report-manifest.json` v1, dual-read entity store | Schema substrate for everything above. |
 
 Implementation starts on the day all of the above are on `main` and the Pester baseline is green.
@@ -40,7 +40,7 @@ Track F adds an **auditor mode** to the existing reports. Default (developer) mo
 ## 3. Non-goals
 
 - Replacing `New-HtmlReport.ps1` / `New-MdReport.ps1` / `New-ExecDashboard.ps1`. Those remain the developer-default outputs.
-- Inventing new schema fields. Track F **only consumes** what Tracks A–E + V populate. If a field is missing, the section degrades per `report-manifest.json` declared-degradation rules.
+- Inventing new schema fields. Track F **only consumes** what Tracks A-E + V populate. If a field is missing, the section degrades per `report-manifest.json` declared-degradation rules.
 - Re-implementing rendering primitives. Track F builds on top of `modules/shared/ExecDashboardRender.ps1` and the v2 HTML helpers in `New-HtmlReport.ps1`.
 
 ## 4. Architecture
@@ -79,10 +79,10 @@ Track F **must not** invent its own tier picker. It calls `Select-ReportArchitec
 
 | Tier | Rendering of auditor sections | Declared degradation |
 |---|---|---|
-| **Tier 1 — PureJson (≤10k findings)** | Prose-heavy. Full executive narrative (3–4 paragraphs). Each control domain has full finding tables inline. Compliance heatmap rendered as inline SVG. | none |
-| **Tier 2 — EmbeddedSqlite (10k–50k)** | Prose summary + sortable tables fed from embedded SQLite via `sql.js`. Heatmap inline SVG. | `tables.virtualized` (rows beyond viewport are paginated). |
-| **Tier 3 — SidecarSqlite (50k–240k)** | Executive summary + control-domain *headlines* with "Open in viewer" deep link. No inline finding tables. | `tables.sidecar`, `attackPath.paginatedSubgraph`, `evidence.exportOnly` (no in-page download; `audit-evidence/` directory shipped alongside report). |
-| **Tier 4 — PodeViewer (>240k)** | Executive summary + KPI tiles + deep links into the Pode viewer. Control domains rendered as tile grid. | `attackPath.serverQueriedNeighborhood`, `compliance.aggregatedCounts`, `evidence.serverStreamed`. |
+| **Tier 1 - PureJson (≤10k findings)** | Prose-heavy. Full executive narrative (3-4 paragraphs). Each control domain has full finding tables inline. Compliance heatmap rendered as inline SVG. | none |
+| **Tier 2 - EmbeddedSqlite (10k-50k)** | Prose summary + sortable tables fed from embedded SQLite via `sql.js`. Heatmap inline SVG. | `tables.virtualized` (rows beyond viewport are paginated). |
+| **Tier 3 - SidecarSqlite (50k-240k)** | Executive summary + control-domain *headlines* with "Open in viewer" deep link. No inline finding tables. | `tables.sidecar`, `attackPath.paginatedSubgraph`, `evidence.exportOnly` (no in-page download; `audit-evidence/` directory shipped alongside report). |
+| **Tier 4 - PodeViewer (>240k)** | Executive summary + KPI tiles + deep links into the Pode viewer. Control domains rendered as tile grid. | `attackPath.serverQueriedNeighborhood`, `compliance.aggregatedCounts`, `evidence.serverStreamed`. |
 
 All degradations are written to `report-manifest.json` under `report.profile.auditor.degradations[]` per Track V lock and surface in the report's degradation banner.
 
@@ -118,7 +118,7 @@ Internal (dot-sourced; not exported):
 | `Get-AuditorPolicyCoverageSection` | hashtable: `AssignedVsReference`, `AlzGaps`, `RecommendedRemediations` | C |
 | `Get-AuditorTriageAnnotations` | hashtable: `VerdictByFinding`, `SuggestedSuppressions` | E (optional, gated on `triage.json`) |
 | `Get-AuditorRemediationAppendix` | hashtable: `GroupsByRemediation` ordered by aggregate severity | D |
-| `Get-AuditorEvidenceExport` | string[]: written file paths | (none — pure transform) |
+| `Get-AuditorEvidenceExport` | string[]: written file paths | (none - pure transform) |
 | `Write-AuditorRenderTier` | string[]: written file paths | V |
 | `New-AuditorCitation` | string: e.g. `[azqr v1.5.0] F-12345: ...` | D |
 
@@ -146,7 +146,7 @@ output/
 
 ## 5. Mock JSON shapes
 
-### 5.1 `report-manifest.json` — auditor profile block (added by Track F)
+### 5.1 `report-manifest.json` - auditor profile block (added by Track F)
 
 ```jsonc
 {
@@ -240,7 +240,7 @@ output/
 
 ## 6. Layout sketches (ASCII)
 
-### 6.1 Tier 1 — `audit-report.html` (prose-heavy)
+### 6.1 Tier 1 - `audit-report.html` (prose-heavy)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -292,7 +292,7 @@ output/
 │         enabled for all privileged users                                     │
 │  2.1.4  Ensure Key Vault purge protection is        FAIL        8   High    │
 │         enabled                                                              │
-│  3.1    Ensure Microsoft Defender for Cloud is on   PASS        0   —       │
+│  3.1    Ensure Microsoft Defender for Cloud is on   PASS        0   -       │
 │  …                                                                           │
 │                                                                              │
 │  Heatmap: control × subscription                                             │
@@ -314,12 +314,12 @@ output/
 │       Affected: kv-prod-01, kv-prod-02, … (8)              [ Copy snippet 📋]│
 │                                                                              │
 │  ▼ Enforce HTTPS-only on storage accounts                 23 findings · High │
-│       Bicep snippet, az CLI snippet, Terraform snippet — all from           │
+│       Bicep snippet, az CLI snippet, Terraform snippet - all from           │
 │       FindingRow.RemediationSnippets[].                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.4 Tier 4 (PodeViewer) — KPI tiles only
+### 6.4 Tier 4 (PodeViewer) - KPI tiles only
 
 ```
 ┌─ Audit Report · Tier 4 (PodeViewer) ────────────────────────────────────────┐
@@ -360,7 +360,7 @@ Every cell in this matrix corresponds to one entry under `report.profile.auditor
 
 All tests live under `tests/` and follow the existing Pester v5 conventions. **Skeleton tests in this PR are `-Skip`** so the 842 baseline holds.
 
-### 8.1 Unit (tests/shared/AuditorReportBuilder.Tests.ps1) — NEW
+### 8.1 Unit (tests/shared/AuditorReportBuilder.Tests.ps1) - NEW
 
 | Test | Asserts |
 |---|---|
@@ -373,7 +373,7 @@ All tests live under `tests/` and follow the existing Pester v5 conventions. **S
 | `New-AuditorCitation produces single-line workpaper-ready string` | Format: `[<source> <pin>] <id>: <title>. Resource: <canonical>. Severity: <sev>. Collected <iso>. Rule: <url>. Docs: <url>.`. |
 | `Get-AuditorEvidenceExport writes CSV/JSON; XLSX only when ImportExcel present` | Conditional output, sanitized via `Remove-Credentials`. |
 
-### 8.2 Parity / contract (tests/integration/AuditorParity.Tests.ps1) — NEW
+### 8.2 Parity / contract (tests/integration/AuditorParity.Tests.ps1) - NEW
 
 | Test | Asserts |
 |---|---|
@@ -385,19 +385,19 @@ All tests live under `tests/` and follow the existing Pester v5 conventions. **S
 ### 8.3 Fixtures
 
 Reuse `tests/fixtures/Generate-SyntheticFixture.ps1` (foundation #435). Track F adds two profiles:
-- `auditor-small` — 200 findings, all four frameworks present, used by Tier 1 tests.
-- `auditor-jumbo` — 250k findings, used by Tier 3/4 parity tests.
+- `auditor-small` - 200 findings, all four frameworks present, used by Tier 1 tests.
+- `auditor-jumbo` - 250k findings, used by Tier 3/4 parity tests.
 
 Both written deterministically (seeded RNG).
 
 ### 8.4 Pester baseline impact
 
 - **This PR (skeleton):** +1 file, all tests `-Skip`, baseline preserved (no failing assertions).
-- **Implementation PR:** target +25–30 new passing tests, no regressions.
+- **Implementation PR:** target +25-30 new passing tests, no regressions.
 
 ## 9. Implementation plan (post-dependency)
 
-Once Tracks A–E + V are on `main`, execute in this order. Each step is a separate commit; the whole sequence ships in one PR (Track F is small once dependencies land).
+Once Tracks A-E + V are on `main`, execute in this order. Each step is a separate commit; the whole sequence ships in one PR (Track F is small once dependencies land).
 
 1. Implement `Resolve-AuditorContext` + `Get-AuditorExecutiveSummary` + skeleton tests pass. Drop `-Skip`.
 2. Implement `Get-AuditorControlDomainSections` (D consumer). Add CIS/NIST/MCSB/ISO renderers in HTML and MD.
@@ -409,21 +409,21 @@ Once Tracks A–E + V are on `main`, execute in this order. Each step is a separ
 8. Update `report-manifest.json` writer (foundation #435) to append the `report.profile.auditor` block.
 9. Update README + PERMISSIONS.md + CHANGELOG.md.
 
-Estimated implementation effort once dependencies land: **2–3 days** for one engineer (vs. 3+ weeks if everything is designed at the same time as it's coded).
+Estimated implementation effort once dependencies land: **2-3 days** for one engineer (vs. 3+ weeks if everything is designed at the same time as it's coded).
 
 ## 10. Open questions for review
 
-- **Citation provenance** — should the citation line include the exact ARG query hash (when source = ARG) so an auditor can replay the query? Lean **yes**; awaits Track D on whether `FindingRow.SourceQueryHash` will be populated.
-- **PDF rendering** — print stylesheet only, or do we ship a real headless-Chromium PDF generator? Lean **print-stylesheet only** to avoid a heavy dependency.
-- **Framework versions** — pin to a manifest (CIS Azure 2.1, NIST 800-53 r5, MCSB v1, ISO 27001:2022) or follow whatever Track D normalizers emit? Lean **Track D drives**; auditor mode renders whatever versions the data declares.
+- **Citation provenance** - should the citation line include the exact ARG query hash (when source = ARG) so an auditor can replay the query? Lean **yes**; awaits Track D on whether `FindingRow.SourceQueryHash` will be populated.
+- **PDF rendering** - print stylesheet only, or do we ship a real headless-Chromium PDF generator? Lean **print-stylesheet only** to avoid a heavy dependency.
+- **Framework versions** - pin to a manifest (CIS Azure 2.1, NIST 800-53 r5, MCSB v1, ISO 27001:2022) or follow whatever Track D normalizers emit? Lean **Track D drives**; auditor mode renders whatever versions the data declares.
 
 ## 11. References
 
-- Issue [#434](https://github.com/martinopedal/azure-analyzer/issues/434) — Track F requirements + Round 2 parity rule.
-- Issue [#427](https://github.com/martinopedal/azure-analyzer/issues/427) — Epic Round 3 reconciliation.
-- Lead 8-hour close plan (recorded in PR #481 description) — close plan and dependency call-out.
-- `New-HtmlReport.ps1` — current v2 developer report (reused renderers).
-- `New-MdReport.ps1` — Markdown report (reused MD helpers).
-- `New-ExecDashboard.ps1` / `modules/shared/ExecDashboardRender.ps1` — single-page exec dashboard (KPI tile patterns).
-- `modules/shared/Schema.ps1` — `New-FindingRow` and the v2.2 fields Track F consumes.
-- `tools/tool-manifest.json` — `report` block per tool (color, phase) and frameworks list.
+- Issue [#434](https://github.com/martinopedal/azure-analyzer/issues/434) - Track F requirements + Round 2 parity rule.
+- Issue [#427](https://github.com/martinopedal/azure-analyzer/issues/427) - Epic Round 3 reconciliation.
+- Lead 8-hour close plan (recorded in PR #481 description) - close plan and dependency call-out.
+- `New-HtmlReport.ps1` - current v2 developer report (reused renderers).
+- `New-MdReport.ps1` - Markdown report (reused MD helpers).
+- `New-ExecDashboard.ps1` / `modules/shared/ExecDashboardRender.ps1` - single-page exec dashboard (KPI tile patterns).
+- `modules/shared/Schema.ps1` - `New-FindingRow` and the v2.2 fields Track F consumes.
+- `tools/tool-manifest.json` - `report` block per tool (color, phase) and frameworks list.
