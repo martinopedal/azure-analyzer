@@ -87,6 +87,7 @@ See [docs/tool-output-audit.md](docs/tool-output-audit.md) and [docs/tool-output
 <details><summary><b>All parameters and advanced usage</b></summary>
 
 See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.md) for every Invoke-AzureAnalyzer.ps1 parameter, plus scenario-specific grouping (subscription scan, repo scan, multi-tenant, CI/CD, Kubernetes).
+After `Import-Module .\AzureAnalyzer.psd1`, `Invoke-AzureAnalyzer` now exposes the same typed parameters in `Get-Command` / `Get-Help` as the script entrypoint.
 
 </details>
 

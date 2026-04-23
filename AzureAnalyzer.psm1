@@ -51,11 +51,84 @@ function Invoke-ModuleScript {
 function Invoke-AzureAnalyzer {
     [CmdletBinding()]
     param(
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [object[]] $Arguments
+        [Parameter(ParameterSetName = 'Help')]
+        [switch] $Help,
+        [string] $SubscriptionId,
+        [string] $ManagementGroupId,
+        [string] $TenantId,
+        [string] $OutputPath = (Join-Path $ModuleRoot 'output'),
+        [string[]] $IncludeTools,
+        [string[]] $ExcludeTools,
+        [switch] $NonInteractive,
+        [switch] $SkipPrereqCheck,
+        [switch] $InstallMissingModules,
+        [string] $InstallConfigPath,
+        [switch] $Recurse,
+        [string] $Repository,
+        [string] $GitHubHost = 'github.com',
+        [string] $RepoPath,
+        [Alias('AdoOrganization')]
+        [string] $AdoOrg,
+        [string] $AdoProject,
+        [Alias('AdoPatToken')]
+        [string] $AdoPat,
+        [string] $GitleaksConfigPath,
+        [string] $AdoOrganizationUrl,
+        [string] $AdoServerUrl,
+        [string] $AdoRepoUrl,
+        [ValidateRange(0, 10)]
+        [int] $ScorecardThreshold = 7,
+        [string] $ScanPath,
+        [ValidateSet('fs', 'repo')]
+        [string] $ScanType,
+        [ValidateSet('CIS', 'NIST', 'PCI')]
+        [string] $Framework,
+        [string] $PreviousRun,
+        [string] $CompareTo,
+        [switch] $CompareToPrevious,
+        [switch] $Incremental,
+        [Nullable[datetime]] $Since,
+        [ValidateSet('auto', 'none')]
+        [string] $BaselineMode = 'auto',
+        [switch] $InstallFalco,
+        [switch] $UninstallFalco,
+        [ValidateRange(1, 60)]
+        [int] $FalcoCaptureMinutes = 5,
+        [string] $KubeconfigPath,
+        [string] $KubeContext,
+        [string] $KubescapeNamespace = '',
+        [string] $FalcoNamespace = 'falco',
+        [string] $KubeBenchNamespace = 'kube-system',
+        [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+        [string] $KubeAuthMode = 'Default',
+        [string] $KubeloginServerId,
+        [string] $KubeloginClientId,
+        [string] $KubeloginTenantId,
+        [string] $WorkloadIdentityClientId,
+        [string] $WorkloadIdentityTenantId,
+        [string] $WorkloadIdentityServiceAccountToken,
+        [string] $SentinelWorkspaceId,
+        [ValidateRange(1, 365)]
+        [int] $SentinelLookbackDays = 30,
+        [switch] $EnableAiTriage,
+        [switch] $SinkLogAnalytics,
+        [string] $LogAnalyticsConfig,
+        [ValidateRange(1, 365)]
+        [int] $HistoryRetention = 30,
+        [string] $TenantConfig,
+        [string[]] $Tenants,
+        [switch] $Show,
+        [ValidateRange(1, 65535)]
+        [int] $ViewerPort = 4280,
+        [switch] $NoBanner
     )
 
-    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1') @Arguments
+    $scriptPath = Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1'
+    if (-not (Test-Path $scriptPath)) {
+        throw "Required script not found: $scriptPath"
+    }
+
+    & $scriptPath @PSBoundParameters
 }
 
 function New-HtmlReport {
@@ -88,4 +161,3 @@ foreach ($moduleName in $coreRequired) {
 
 # Export public functions
 Export-ModuleMember -Function $publicFunctions
-
