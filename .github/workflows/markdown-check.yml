@@ -47,6 +47,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
 
       - name: Restore lychee cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -70,7 +72,44 @@ jobs:
           mkdir -p lychee
           lychee --version
 
+      - name: Resolve markdown scope for lychee
+        id: lychee-scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          targets_file='lychee/targets.txt'
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            mapfile -t targets < <(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' \
+              ':(exclude).copilot/audits/**' \
+              ':(exclude).copilot/status/**' \
+              ':(exclude).copilot/session-state/**' \
+              ':(exclude).squad/decisions/inbox/**' \
+              ':(exclude).atlas-stash/**')
+          else
+            mapfile -t targets < <(git ls-files '*.md' \
+              ':(exclude).copilot/audits/**' \
+              ':(exclude).copilot/status/**' \
+              ':(exclude).copilot/session-state/**' \
+              ':(exclude).squad/decisions/inbox/**' \
+              ':(exclude).atlas-stash/**')
+          fi
+
+          if [ ${#targets[@]} -eq 0 ]; then
+            echo "No markdown files in lychee scope; skipping link check."
+            echo 'has_targets=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf '%s\n' "${targets[@]}" > "$targets_file"
+          echo "Markdown files in lychee scope: ${#targets[@]}"
+          echo 'has_targets=true' >> "$GITHUB_OUTPUT"
+          echo "targets_file=$targets_file" >> "$GITHUB_OUTPUT"
+
       - name: Check markdown links (workflow-level retry on transient errors)
+        if: steps.lychee-scope.outputs.has_targets == 'true'
         id: lychee
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -82,7 +121,7 @@ jobs:
           retry_on: error
           on_retry_command: rm -rf .lycheecache lychee/out.md
           command: |
-            lychee --config .lychee.toml --cache --max-cache-age 7d --github-token "$GITHUB_TOKEN" --format markdown --output lychee/out.md './**/*.md'
+            xargs -r -d '\n' lychee --config .lychee.toml --cache --max-cache-age 7d --github-token "$GITHUB_TOKEN" --format markdown --output lychee/out.md < "${{ steps.lychee-scope.outputs.targets_file }}"
 
       - name: Append lychee report to job summary
         if: always()
