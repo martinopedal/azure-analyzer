@@ -161,6 +161,10 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
+<<<<<<< HEAD
+=======
+<<<<<<< ours
+>>>>>>> b9c57ea (fix(copilot-review): resolve CHANGELOG merge conflict + fix issue references)
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 
