@@ -1,11 +1,25 @@
 ## Unreleased
 
+### Added
+
+- **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
+
+### Added
+
+- **CON-005 ratchet**: New wrapper envelope contract test in WrapperConsistencyRatchet.Tests.ps1 enforces that ALL 37 wrappers emit Errors = @() field alongside Findings on every code path (#907).
+
+### Fixed
+
+- **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
+- **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
+
 ### Changed
 
 - chore(wrappers): CON-003 raw throw migration - replace raw `throw "..."` with `New-FindingError` + `Format-FindingErrorMessage` across all remaining wrappers; `RawThrowBaseline` in `tests/shared/WrapperConsistencyRatchet.Tests.ps1` is now empty so any new raw throw fails fast (#626).
 - chore(wrappers): CON-004 SupportsShouldProcess ratchet - lock in `[CmdletBinding(SupportsShouldProcess=$true)]` plus `$PSCmdlet.ShouldProcess` gating on side-effecting wrappers (`Invoke-Falco`, `Invoke-AksKarpenterCost`) via a new CON-004 assertion in `WrapperConsistencyRatchet.Tests.ps1` (#627).
 
 ### Fixed
+- **Documentation coherence sweep**: Updated stale Pester baseline language (842 → ≥1637 total, ≥1602 passed) across PR template, design docs, and custom instructions to reflect current test floor per `.github/workflows/ci.yml:128-137`. Regenerated tool catalogs from manifest via `scripts/Generate-ToolCatalog.ps1`. Establishes truthful baseline for all operator-facing metrics (#909).
 - `Invoke-GhApiPaged` no longer runs `Remove-Credentials` on raw JSON text before parsing. Greedy regex patterns (e.g. `Password=[^;]+`) could match inside `diff_hunk` string values and consume past the closing `"` delimiter, producing "Unterminated string" `ConvertFrom-Json` errors that caused the PR Review Gate to exit 1. Individual fields are already sanitized after parsing. Added a `diff_hunk`-stripping fallback if JSON parsing still fails for any reason (#842).
 - Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
@@ -1266,3 +1280,4 @@ Complete backfill of 128 PRs from the recent sprint (2026-04-15 to 2026-04-23, c
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
+

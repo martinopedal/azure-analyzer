@@ -103,4 +103,44 @@ Describe 'Markdown report generator alignment' {
         $md | Should -Match '\| azqr \| 2\.6\.1 \| azure \|'
         $md.Contains([char]0x2014) | Should -BeFalse
     }
+
+    It 'unwraps v1 wrapper format and handles Compliant property correctly' {
+        $tmp = Join-Path $TestDrive 'md-wrapper'
+        $null = New-Item -ItemType Directory -Path $tmp -Force
+        $resultsPath = Join-Path $tmp 'results.json'
+        $outputPath = Join-Path $tmp 'report.md'
+
+        # Create a v1 wrapper format with mixed compliant/non-compliant findings
+        $wrapper = [pscustomobject]@{
+            Source = 'azqr'
+            Status = 'Success'
+            Message = ''
+            Findings = @(
+                [pscustomobject]@{
+                    Id = 'f-1'; Source = 'azqr'; Category = 'Security'; Title = 'Non-compliant finding'
+                    Severity = 'High'; Compliant = $false; Detail = 'detail'; Remediation = 'fix'
+                    ResourceId = '/subscriptions/sub-a/resourceGroups/rg/providers/Microsoft.KeyVault/vaults/kv1'
+                    EntityId = 'resource/kv1'; ToolVersion = '2.0.0'
+                }
+                [pscustomobject]@{
+                    Id = 'f-2'; Source = 'azqr'; Category = 'Network'; Title = 'Compliant finding'
+                    Severity = 'Medium'; Compliant = $true; Detail = 'detail'; Remediation = 'n/a'
+                    ResourceId = '/subscriptions/sub-a/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet1'
+                    EntityId = 'resource/vnet1'; ToolVersion = '2.0.0'
+                }
+            )
+        }
+        @($wrapper) | ConvertTo-Json -Depth 8 | Set-Content -Path $resultsPath -Encoding UTF8
+
+        & $MdReport -InputPath $resultsPath -OutputPath $outputPath 2>&1 | Out-Null
+        $? | Should -BeTrue -Because 'MD report should process v1 wrapper without error'
+
+        Test-Path $outputPath | Should -BeTrue
+        $md = Get-Content -Path $outputPath -Raw
+
+        # Verify the report was generated with correct compliance calculations
+        $md | Should -Match '!\[Posture\]'
+        $md | Should -Match 'Compliance is 50%'
+        $md | Should -Match '1 high.+0 medium.+0 low.+0 info findings are currently non-compliant'
+    }
 }

@@ -8,7 +8,7 @@ Closes #
 <!-- What changed and why. Keep it focused. -->
 
 ## Test results
-<!-- Paste relevant Pester / CI output, or note 'N/A (docs only)'. Pester baseline (842/842) must be preserved or extended. -->
+<!-- Paste relevant Pester / CI output, or note 'N/A (docs only)'. Pester baseline (≥1637 total, ≥1602 passed) must be preserved or extended. -->
 
 ## Verification checklist
 - [ ] No em dashes in any new prose

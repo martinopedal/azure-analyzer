@@ -88,7 +88,7 @@ All degradations are written to `report-manifest.json` under `report.profile.aud
 
 ### 4.2 Module surface (decided)
 
-`modules/shared/AuditorReportBuilder.ps1` exposes the following functions. Signatures are **frozen** by this PR. Implementations throw `[NotImplementedException]` and are tested behind `-Skip` placeholders, preserving the 842-baseline.
+`modules/shared/AuditorReportBuilder.ps1` exposes the following functions. Signatures are **frozen** by this PR. Implementations throw `[NotImplementedException]` and are tested behind `-Skip` placeholders, preserving the Pester baseline (≥1637 total, ≥1602 passed).
 
 ```powershell
 Build-AuditorReport
@@ -358,7 +358,7 @@ Every cell in this matrix corresponds to one entry under `report.profile.auditor
 
 ## 8. Test strategy
 
-All tests live under `tests/` and follow the existing Pester v5 conventions. **Skeleton tests in this PR are `-Skip`** so the 842 baseline holds.
+All tests live under `tests/` and follow the existing Pester v5 conventions. **Skeleton tests in this PR are `-Skip`** so the Pester baseline is maintained (≥1637 total, ≥1602 passed).
 
 ### 8.1 Unit (tests/shared/AuditorReportBuilder.Tests.ps1) - NEW
 

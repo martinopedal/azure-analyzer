@@ -19,7 +19,7 @@ Describe 'closes-link-required workflow contract' {
     }
 
     It 'exempts expected bot authors' {
-        foreach ($author in @('github-actions[bot]', 'dependabot[bot]', 'copilot-swe-agent[bot]', 'copilot-swe-agent', 'Copilot')) {
+        foreach ($author in @('release-please[bot]', 'github-actions[bot]', 'dependabot[bot]', 'copilot-swe-agent[bot]', 'copilot-swe-agent', 'Copilot')) {
             $script:WorkflowText | Should -CMatch ([regex]::Escape($author))
         }
     }
