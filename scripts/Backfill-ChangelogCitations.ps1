@@ -96,6 +96,10 @@ function Get-VersionForCommit {
         [array]$SortedBoundaries   # @( @{Tag='v1.0.0'; Date=...}, ... )
     )
 
+    if (-not $SortedBoundaries -or $SortedBoundaries.Count -eq 0) {
+        return 'Unreleased'
+    }
+
     for ($i = $SortedBoundaries.Count - 1; $i -ge 0; $i--) {
         $b = $SortedBoundaries[$i]
         if ($CommitDate -le $b.Date) {
@@ -217,9 +221,9 @@ $citedPerSection = Get-CitedPRsPerSection -Lines $originalLines
 
 Write-Verbose "Collecting tag boundaries..."
 $tagDates = Get-TagDates
-$sortedBoundaries = $tagDates.GetEnumerator() |
+$sortedBoundaries = @($tagDates.GetEnumerator() |
     Sort-Object Value |
-    ForEach-Object { [PSCustomObject]@{ Tag = $_.Key; Date = $_.Value } }
+    ForEach-Object { [PSCustomObject]@{ Tag = $_.Key; Date = $_.Value } })
 
 Write-Verbose "Walking git log for PR references..."
 $commits = Get-CommitsWithPRs
