@@ -58,6 +58,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Uniform correlator dispatch**: `identity-correlator` now uses a thin `Invoke-*` wrapper entrypoint while keeping correlation logic in shared modules.
+- **Shared credential sanitization contract**: CI watchdog issue-body generation now reuses `modules/shared/Sanitize.ps1::Remove-Credentials` (no local sanitizer drift).
 - **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.
 - **Consistent wrapper error exits**: Falco, KubeBench, Kubescape, DefenderForCloud, Gitleaks, AksKarpenterCost, and AksRightsizing now emit structured `New-FindingError`/`Format-FindingErrorMessage` throws instead of raw throw strings.
 - **Repo input consistency**: repo-scoped wrappers now use `-RepoPath` (local) and `-RemoteUrl` (remote) as canonical inputs, with legacy aliases preserved for compatibility.
