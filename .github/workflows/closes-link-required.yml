@@ -36,7 +36,7 @@ jobs:
             }
 
             const author = pr.user && pr.user.login ? pr.user.login : '';
-            const skipAuthors = new Set(['dependabot[bot]', 'copilot-swe-agent[bot]', 'Copilot', 'copilot']);
+            const skipAuthors = new Set(['dependabot[bot]', 'copilot-swe-agent[bot]', 'Copilot', 'copilot', 'copilot[bot]', 'github-actions[bot]']);
             if (skipAuthors.has(author)) {
               core.info(`Skipping closes check - author '${author}' is exempt.`);
               return;

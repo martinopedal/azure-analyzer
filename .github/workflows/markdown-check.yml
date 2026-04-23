@@ -72,14 +72,17 @@ jobs:
 
       - name: Check markdown links (workflow-level retry on transient errors)
         id: lychee
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 60
           retry_on: error
+          on_retry_command: rm -rf .lycheecache lychee/out.md
           command: |
-            lychee --config .lychee.toml --cache --max-cache-age 7d --format markdown --output lychee/out.md './**/*.md'
+            lychee --config .lychee.toml --cache --max-cache-age 7d --github-token "$GITHUB_TOKEN" --format markdown --output lychee/out.md './**/*.md'
 
       - name: Append lychee report to job summary
         if: always()
