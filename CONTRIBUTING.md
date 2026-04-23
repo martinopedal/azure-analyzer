@@ -54,6 +54,17 @@ AI-assisted contributions are welcome. If you used an AI tool to generate or ref
 
 All commits must include a `Signed-off-by` trailer. Use `git commit -s` to add it automatically. This certifies that you wrote the contribution or have the right to submit it under the project license.
 
+## Closes/Fixes link check on PRs
+
+The `Closes Link Required` workflow enforces a `Closes #N` / `Fixes #N` / `Resolves #N` link (or an explicit `N/A` justification) for regular PRs.
+
+The check is skipped when:
+
+- the PR has the `skip-closes-check` label;
+- the PR head branch matches `release-please--*`;
+- the PR author is `github-actions[bot]`, `dependabot[bot]`, `copilot-swe-agent`, `copilot-swe-agent[bot]`, or `Copilot`;
+- the PR is documentation-only per the workflow's built-in file-path detection rules.
+
 ## Review
 
 PRs are reviewed by the maintainer. There are no required reviewers beyond the maintainer. `enforce_admins` is enabled, so branch protection applies to everyone including the maintainer.
