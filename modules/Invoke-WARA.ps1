@@ -131,6 +131,7 @@ if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
 
 # Resolve tenant
 if (-not $TenantId) {
+    # Probe Az context (SilentlyContinue: probing for sign-in state, handled by null check below)
     $ctx = Get-AzContext -ErrorAction SilentlyContinue
     $TenantId = if ($null -ne $ctx -and $null -ne $ctx.Tenant) { $ctx.Tenant.Id } else { $null }
     if (-not $TenantId) {

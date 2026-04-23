@@ -38,7 +38,7 @@ function Get-ProwlerVersion {
         if ($text -match '(\d+\.\d+\.\d+)') {
             return $Matches[1]
         }
-    } catch {}
+    } catch {} # best-effort: prowler CLI not installed; ToolVersion stays empty
     return ''
 }
 

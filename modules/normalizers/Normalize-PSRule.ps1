@@ -142,11 +142,11 @@ function Normalize-PSRule {
             try {
                 $subRef = (ConvertTo-CanonicalEntityId -RawId $subId -EntityType 'Subscription').CanonicalId
                 if ($subRef -and $entityRefs -notcontains $subRef) { $entityRefs.Add($subRef) | Out-Null }
-            } catch { }
+            } catch { } # best-effort: malformed subscriptionId; skip enrichment, keep raw finding
         }
 
         $row = New-FindingRow -Id $findingId `
-            -Source 'psrule' -EntityId $canonicalId -EntityType 'AzureResource' `
+            -Source 'psrule'-EntityId $canonicalId -EntityType 'AzureResource' `
             -Title $title -RuleId $ruleId -Compliant ([bool]$compliant) -ProvenanceRunId $runId `
             -Platform 'Azure' -Category $category -Severity $severity `
             -Detail $detail -Remediation $remediation `

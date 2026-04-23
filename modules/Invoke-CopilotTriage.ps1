@@ -22,14 +22,14 @@ try {
     if ($LASTEXITCODE -eq 0 -and $v -match 'Python (\d+)\.(\d+)' -and [int]$Matches[1] -ge 3 -and [int]$Matches[2] -ge 10) {
         $py = 'python3'
     }
-} catch { }
+} catch { } # best-effort: python3 not on PATH; fall through to 'python'
 if (-not $py) {
     try {
         $v = & python --version 2>&1
         if ($LASTEXITCODE -eq 0 -and $v -match 'Python (\d+)\.(\d+)' -and [int]$Matches[1] -ge 3 -and [int]$Matches[2] -ge 10) {
             $py = 'python'
         }
-    } catch { }
+    } catch { } # best-effort: python interpreter unavailable; handled by Write-Warning below
 }
 if (-not $py) {
     Write-Warning 'AI triage requires Python 3.10+. Skipping.'

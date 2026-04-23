@@ -128,11 +128,11 @@ function Normalize-Kubescape {
             try {
                 $subRef = (ConvertTo-CanonicalEntityId -RawId $subId -EntityType 'Subscription').CanonicalId
                 if ($subRef -and $entityRefs -notcontains $subRef) { $entityRefs.Add($subRef) | Out-Null }
-            } catch { }
+            } catch { } # best-effort: malformed subscriptionId; skip enrichment, keep raw finding
         }
 
         $row = New-FindingRow -Id $findingId `
-            -Source 'kubescape' -EntityId $canonicalId -EntityType 'AzureResource' `
+            -Source 'kubescape'-EntityId $canonicalId -EntityType 'AzureResource' `
             -Title ([string]$f.Title) -RuleId $ruleId -Compliant $false -ProvenanceRunId $runId `
             -Platform 'Azure' -Category 'KubernetesPosture' -Severity $sev `
             -Detail ([string]$f.Detail) -Remediation $remediation `

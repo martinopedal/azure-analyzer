@@ -155,7 +155,7 @@ try {
         try {
             $origin = git -C $RepoPath config --get remote.origin.url 2>$null
             if ($origin) { $repositoryUrl = ConvertTo-RepositoryWebUrl -Url ([string]$origin) }
-        } catch {}
+        } catch {} # best-effort: not a git repo or git CLI absent; repositoryUrl remains empty
     }
 
     $result = Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $RepoPath
