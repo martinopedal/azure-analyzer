@@ -11,14 +11,16 @@
 
     Security: All output passes through Remove-Credentials. Clones go through
     RemoteClone.ps1 (HTTPS-only, host allow-list).
-.PARAMETER RepoPath
+.PARAMETER Repository
     Path to the repository root containing .bicep files. Defaults to '.'.
+    Aliases: Repo, RepoPath, Path '.'.
 .PARAMETER RemoteUrl
     Remote repository URL to clone and scan.
 #>
 [CmdletBinding()]
 param (
-    [string] $RepoPath = '.',
+    [Alias('Repo', 'RepoPath', 'Path')]
+    [string] $Repository = '.',
 
     [string] $RemoteUrl
 )
@@ -125,21 +127,21 @@ try {
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
-        $RepoPath = $cloneInfo.Path
+        $Repository = $cloneInfo.Path
         if ($cloneInfo.PSObject.Properties['Url']) {
             $repositoryUrl = ConvertTo-RepositoryWebUrl -Url ([string]$cloneInfo.Url)
         }
     }
 
-    if (-not (Test-Path $RepoPath)) {
+    if (-not (Test-Path $Repository)) {
         return [PSCustomObject]@{
             Source = 'bicep-iac'
             SchemaVersion = '1.0'; Status = 'Failed'
-            Message = "Repository path not found: $RepoPath"; Findings = @()
+            Message = "Repository path not found: $Repository"; Findings = @()
         }
     }
 
-    Write-Verbose "Running Bicep IaC validation on '$RepoPath'"
+    Write-Verbose "Running Bicep IaC validation on '$Repository'"
 
     if (-not (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue)) {
         Write-Warning "IaCAdapters module not loaded. Bicep IaC validation cannot proceed."
@@ -153,12 +155,12 @@ try {
 
     if ([string]::IsNullOrWhiteSpace($repositoryUrl)) {
         try {
-            $origin = git -C $RepoPath config --get remote.origin.url 2>$null
+            $origin = git -C $Repository config --get remote.origin.url 2>$null
             if ($origin) { $repositoryUrl = ConvertTo-RepositoryWebUrl -Url ([string]$origin) }
         } catch {} # best-effort: not a git repo or git CLI absent; repositoryUrl remains empty
     }
 
-    $result = Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $RepoPath
+    $result = Invoke-IaCAdapter -Flavour 'bicep' -RepoPath $Repository
     if ($result -and $result.PSObject) {
         if (-not $result.PSObject.Properties['ToolVersion']) {
             $result | Add-Member -NotePropertyName ToolVersion -NotePropertyValue $toolVersion
@@ -204,3 +206,4 @@ try {
         }
     }
 }
+

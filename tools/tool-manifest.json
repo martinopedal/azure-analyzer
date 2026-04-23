@@ -21,10 +21,44 @@
       }
     },
     "vendored_dependencies": [
-      { "name": "cytoscape", "placeholder": true, "verify_stub": "Test-CytoscapePlaceholder", "applicable_tiers": ["EmbeddedSqlite", "SidecarSqlite", "PodeViewer"] },
-      { "name": "dagre", "placeholder": true, "verify_stub": "Test-DagrePlaceholder", "applicable_tiers": ["EmbeddedSqlite", "SidecarSqlite", "PodeViewer"] },
-      { "name": "Pode", "placeholder": true, "verify_stub": "Test-PodePlaceholder", "applicable_tiers": ["PodeViewer"] },
-      { "name": "sqlite-wasm", "placeholder": true, "verify_stub": "Test-SqliteWasmPlaceholder", "applicable_tiers": ["EmbeddedSqlite", "SidecarSqlite", "PodeViewer"] }
+      {
+        "name": "cytoscape",
+        "placeholder": true,
+        "verify_stub": "Test-CytoscapePlaceholder",
+        "applicable_tiers": [
+          "EmbeddedSqlite",
+          "SidecarSqlite",
+          "PodeViewer"
+        ]
+      },
+      {
+        "name": "dagre",
+        "placeholder": true,
+        "verify_stub": "Test-DagrePlaceholder",
+        "applicable_tiers": [
+          "EmbeddedSqlite",
+          "SidecarSqlite",
+          "PodeViewer"
+        ]
+      },
+      {
+        "name": "Pode",
+        "placeholder": true,
+        "verify_stub": "Test-PodePlaceholder",
+        "applicable_tiers": [
+          "PodeViewer"
+        ]
+      },
+      {
+        "name": "sqlite-wasm",
+        "placeholder": true,
+        "verify_stub": "Test-SqliteWasmPlaceholder",
+        "applicable_tiers": [
+          "EmbeddedSqlite",
+          "SidecarSqlite",
+          "PodeViewer"
+        ]
+      }
     ]
   },
   "tools": [
@@ -1084,7 +1118,7 @@
     },
     {
       "name": "identity-correlator",
-      "displayName": "Identity Correlator",
+      "displayName": "Identity Correlator (Shared Module)",
       "source": "identity-correlator",
       "provider": "graph",
       "scope": "tenant",
