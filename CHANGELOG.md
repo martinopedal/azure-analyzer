@@ -3,6 +3,7 @@
 ### CI
 
 - Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
+- **Bot gate unification (#938):** Extend GitHub App token pattern to `tool-auto-update.yml` and `pr-auto-rebase.yml`. PRs created by tool-auto-update and rebase force-pushes now use the same App token (`RELEASE_APP_ID`) as release-please, bypassing the first-time-contributor approval gate and the `GITHUB_TOKEN` anti-recursion guard that previously prevented downstream CI from triggering on bot activity
 
 ### Fixed
 
