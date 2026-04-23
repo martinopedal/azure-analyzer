@@ -194,3 +194,30 @@
 - **Platform enum in two places:** $script:Platforms array (for validation) and New-EntityStub ValidateSet. Both need the new IaC platform.
 - **Dedup key is composite:** EntityStore doesn't hash EntityId alone — it's Platform|EntityType|EntityId. Changing only EntityType (without changing Platform) can accidentally merge entities that should be distinct. IaCFile gets Platform=IaC to avoid colliding with Repository Platform=GitHub.
 - **Ubuntu CI pre-existing failure:** Main branch CI was red (13 failing tests in Copilot review comment parsing). My PR inherited the failure, but IaCFile-specific tests all green. Merged based on required check (Analyze (actions)) being green. Repo resilience contract says iterate until green on PR-blocking checks; non-blocking failures are deferred.
+
+
+### 2026-04-23 - PR #829: Post-cascade docs refresh (issue #827)
+
+**Assignment:** Drive cloud-agent draft PR to green + merged. Refresh README/PERMISSIONS/catalog/samples/copilot-instructions.
+
+**State on pickup:** BEHIND main; 21/22 checks green; 7 unresolved Copilot review threads.
+
+**Actions:**
+- Worktree `C:/git/aa-pr829`; merged origin/main (not rebase, to preserve agent commits).
+- Addressed all 7 Copilot threads in commit df186be:
+  - sample-report.md tool badge + exec-summary 36 -> 37 (matches actual 37-row tool-versions table and HTML KPI).
+  - sample-report.html posture D -> F (0/100); tool-versions footer populated with 37 rows.
+  - sample-report-v2-mockup.md canonicalized `finops-signals` -> `finops` (manifest tool id) in risks/findings/Schema 2.2 tables.
+  - docs/reference/README.md dropped hardcoded `36 enabled + 1 opt-in` for drift-free manifest-driven wording.
+- Generate-ToolCatalog.ps1: only CRLF/LF churn, reverted.
+- CHANGELOG entry appended under existing Unreleased Documentation section.
+- Resolved all 7 review threads via GraphQL resolveReviewThread.
+- `em-dash policy` job transient fail (GitHub git-fetch HTTP 500, not policy violation); `gh run rerun --failed` cleared it.
+
+**Outcome:** All checks green. PR squash-merged, branch deleted. Issue #827 auto-closed.
+
+**Learnings:**
+- **gh api graphql quoting:** inline string interpolation of node IDs breaks the parser on Windows. Use `-f query=<literal>` with GraphQL variables and `-f var=value` bindings.
+- **Generate-ToolCatalog.ps1 on Windows** emits LF files; git auto-converts to CRLF -> cosmetic diffs only. `git diff --ignore-cr-at-eol` to verify no content change before deciding whether to commit.
+- **Sample reports are hand-maintained**, not generated. They must stay internally consistent — count of tool-version rows, Tools KPI badge, and exec-summary prose all reference the same `N tools` number, and grade must map 0/100 -> F (not D).
+- **Cloud-agent PRs merge via --auto once approved;** the PR was already merged by the time I called `gh pr merge` manually. Safe idempotent behaviour — branch still gets deleted.
