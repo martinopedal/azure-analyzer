@@ -4,6 +4,8 @@
 - Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
 - `ci-failure-watchdog.yml` concurrency group is now keyed on `github.event.workflow_run.id` so each triggering workflow-run gets its own slot (#862). The previous constant `ci-failure-watchdog` group caused GitHub to cancel ~72% of queued runs (23/32 sample). Triage remains hash-idempotent so parallel runs are safe.
+- `live-tool-tests` job in `.github/workflows/ci.yml` now sets `continue-on-error: true` at the STEP level on both the live-binary install step and the Pester test step (#861). Job-level guard alone kept the workflow green but left the job card rendered red on PR pages, teaching reviewers to ignore CI. With step-level guards, the non-blocking LiveTool tier reports as green unless a required contract regresses.
+- Auto-approve trusted bot runs now covers the full set of PR-triggered workflows (Closes Link Required, E2E, Issue Resolution Verify, PR Auto-Rebase Conflicts, PR Auto-Rerun On Push, Squad Heartbeat). Previously these workflows wedged in `action_required` on bot-authored PRs because they were absent from the `workflow_run.workflows` filter, forcing manual approval of every run.
 
 # Changelog
 
@@ -68,6 +70,7 @@ All notable changes to azure-analyzer will be documented here.
 - test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll (or matching cleanup lifecycle blocks) across test suite and tighten the isolation guard coverage for wrapper env suppression patterns (#746).
+- fix(ci): make `Closes Link Required` tolerant for release-please branches, `skip-closes-check` labeled PRs, and trusted bot-authored PRs while still enforcing closes/fixes links for regular PRs.
 - Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
 - Markdown Check `links (lychee)` now scans only changed Markdown files on PRs (keeping full-corpus scans on schedule/manual runs) to reduce repeated PR flake/rate-limit failures while still surfacing real link rot.
 - LiveTool wrappers now always return `Findings` as an array (never `$null`) for gitleaks/trivy success paths, and CI uses `scorecard version` in LiveTool dependency verification (#846).
