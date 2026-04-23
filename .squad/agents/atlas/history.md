@@ -262,3 +262,13 @@ Foundational schema work. Bumped New-FindingRow to Schema 2.2: 13 new optional f
 
 ### Audit output
 Wrote `.copilot/audits/atlas-manifest-audit-2026-04-23.md` (11.8 KB). Full-boilerplate table of 37 entries with file-existence checks, install/report block validation, and per-finding PR title recommendations.
+
+## Learnings
+
+### 2026-04-24 - FixtureMode implementation (#926)
+
+- Fixture files follow `<toolname>-output.json` naming convention in `tests/fixtures/`. Two exceptions: `bicep-iac` maps to `iac-bicep-output.json` and `terraform-iac` maps to `iac-terraform-output.json`.
+- The normalizer loop in `Invoke-AzureAnalyzer.ps1` (lines 1047-1186) consumes wrapper envelopes with `{Source, Status, Findings}` shape. FixtureMode reuses this shape directly from fixture files, skipping the parallel worker pool entirely.
+- 21 of 37 tools have `<name>-output.json` fixtures that normalizers can consume directly. The remaining tools either lack fixtures or use subdirectory-based fixtures with different shapes.
+- Subprocess-based Pester tests that capture `Write-Host -ForegroundColor` output must strip ANSI codes (`-replace '\x1B\[[0-9;]*m', ''`) to avoid NUnit XML serialization failures under `-CI`.
+

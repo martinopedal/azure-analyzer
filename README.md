@@ -42,6 +42,15 @@ Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, report.html, report.md
 ```
 
+### Without Azure credentials (fixture mode)
+
+```powershell
+# Run against bundled test fixtures — no Azure login required
+.\Invoke-AzureAnalyzer.ps1 -FixtureMode -OutputPath .\output-fixture
+```
+
+Produces real `results.json`, `entities.json`, HTML and Markdown reports from fixture data in `tests/fixtures/`. Useful for contributors, CI pipelines, and demo environments without cloud credentials. Use `-FixturePath <dir>` to supply custom fixtures.
+
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
 
 ## Testing
