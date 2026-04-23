@@ -420,6 +420,15 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Documentation
+- docs(design): RFC for LLM-driven triage with rubberduck and tier-aware
+  model selection (Track E, #433). Design document at
+  `docs/design/RFC-433-llm-triage.md` covers provider abstraction, tier
+  detection protocol, trio composition algorithm, sanitization pipeline,
+  triage output schema, phased rollout plan, and test strategy.
+  Implementation deferred per scope estimate until Phase 1 MVP ships and
+  Track D completes.
+
 ### Fixed
 
 - fix(test): tolerate YAML comment lines between `concurrency:` and `group:` keys in `tests/workflows/ConcurrencyGroups.Tests.ps1`. PR #771 added explanatory comments inside the `concurrency:` block of `.github/workflows/codeql.yml`, breaking the prior strict regex (`^concurrency:\s*\r?\n\s+group:`) across the Test (ubuntu/macos/windows) matrix on every PR rebased after #771 merged. Updated regex now allows interleaved comment / blank lines while still requiring both keys.

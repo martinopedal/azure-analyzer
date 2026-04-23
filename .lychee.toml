@@ -32,6 +32,8 @@ exclude = [
   "^https://twitter\\.com/",
   # keda.sh has recurring TLS handshake flakiness in GitHub-hosted runners (PR #444 / run 24803238036)
   "^https://keda\\.sh",
+  # release-please compare link for v1.1.0 references non-existent v1.0.0 tag (first release)
+  "^https://github\\.com/martinopedal/azure-analyzer/compare/v1\\.0\\.0",
   # Loopback / placeholder hosts
   "^https?://(localhost|127\\.|0\\.0\\.0\\.0|example\\.(com|org|net))",
   "^file:///.*?/\\.copilot/skills/humanizer/url$",
