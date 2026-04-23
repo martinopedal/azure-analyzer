@@ -89,6 +89,7 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
 
     Context 'with snapshot query and custom threshold' {
         BeforeAll {
+            $script:OriginalCapturedQueryFile = $env:FINOPS_TEST_CAPTURED_QUERY_FILE
             $script:SnapshotQuery = Join-Path $script:RepoRoot 'queries' 'finops' 'finops-ungoverned-snapshots.json'
             Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Mock' } }
             Mock Import-Module {}
@@ -123,6 +124,14 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
             $script:CapturedQuery = if (Test-Path $script:CapturedQueryFile) { Get-Content -Path $script:CapturedQueryFile -Raw } else { '' }
             Remove-Item $script:CapturedQueryFile -ErrorAction SilentlyContinue
             Remove-Item Env:\FINOPS_TEST_CAPTURED_QUERY_FILE -ErrorAction SilentlyContinue
+        }
+
+        AfterAll {
+            if ($null -eq $script:OriginalCapturedQueryFile) {
+                Remove-Item Env:\FINOPS_TEST_CAPTURED_QUERY_FILE -ErrorAction SilentlyContinue
+            } else {
+                $env:FINOPS_TEST_CAPTURED_QUERY_FILE = $script:OriginalCapturedQueryFile
+            }
         }
 
         It 'substitutes the snapshot age threshold into the executed KQL' {

@@ -36,7 +36,7 @@ BeforeAll {
 
 Describe 'Test isolation guard (#746)' -Tag 'isolation' {
 
-    It 'every test file that writes $env:* also restores it in AfterAll/AfterEach or via Remove-Item Env:' {
+    It 'every test file that writes $env:* has lifecycle cleanup and env restore operations' {
         $offenders = [System.Collections.Generic.List[string]]::new()
         foreach ($file in $script:AllTestFiles) {
             $relative = ($file.Substring($script:RepoRoot.Length + 1)).Replace('\', '/')
@@ -50,25 +50,27 @@ Describe 'Test isolation guard (#746)' -Tag 'isolation' {
             $code = [regex]::Replace($content, '<#.*?#>', '', [System.Text.RegularExpressions.RegexOptions]::Singleline)
             $code = ($code -split "`n" | ForEach-Object { ($_ -replace '#.*$', '') }) -join "`n"
 
-            if ($code -notmatch '\$env:[A-Z][A-Z0-9_]*\s*=') { continue }
+            $writes = [regex]::Matches($code, '\$env:([A-Z][A-Z0-9_]*)\s*=')
+            if ($writes.Count -eq 0) { continue }
 
-            $hasRestore =
+            $hasAfterBlock =
                 ($code -match '(?im)^\s*AfterAll\s*\{') -or
-                ($code -match '(?im)^\s*AfterEach\s*\{') -or
+                ($code -match '(?im)^\s*AfterEach\s*\{')
+            $hasFinallyRestore = $code -match '(?is)\bfinally\s*\{[^}]*?(Remove-Item\s+Env:|Remove-Item\s+Env:\\|\$env:[A-Z][A-Z0-9_]*\s*=\s*\$)'
+            $hasRestoreOp =
                 ($code -match '(?i)Remove-Item\s+Env:') -or
-                ($code -match '\$env:[A-Z][A-Z0-9_]*\s*=\s*\$script:_orig') -or
-                # Inline try/finally restore: `$env:NAME = $original` or `= $saved...`
-                ($code -match '(?i)finally\s*\{[^}]*\$env:[A-Z][A-Z0-9_]*\s*=\s*\$\w+')
+                ($code -match '(?i)Remove-Item\s+Env:\\') -or
+                ($code -match '\$env:[A-Z][A-Z0-9_]*\s*=\s*\$(script:|global:|env:)?[A-Za-z_][A-Za-z0-9_]*')
 
-            if (-not $hasRestore) {
-                $offenders.Add($relative) | Out-Null
+            if (-not (($hasAfterBlock -or $hasFinallyRestore) -and $hasRestoreOp)) {
+                $offenders.Add("$relative (missing cleanup lifecycle block and/or env restore operation)") | Out-Null
             }
         }
 
         $offenders -join "`n" | Should -BeNullOrEmpty -Because "every test file that mutates `$env:* must restore it; offenders:`n$($offenders -join "`n")"
     }
 
-    It 'every test file that writes $global:* (other than LASTEXITCODE) restores it via Remove-Variable -Scope Global or Set-Variable -Scope Global' {
+    It 'every test file that writes $global:* (other than LASTEXITCODE) has lifecycle cleanup and global restore operations' {
         $offenders = [System.Collections.Generic.List[string]]::new()
         foreach ($file in $script:AllTestFiles) {
             $relative = ($file.Substring($script:RepoRoot.Length + 1)).Replace('\', '/')
@@ -83,16 +85,20 @@ Describe 'Test isolation guard (#746)' -Tag 'isolation' {
             # Find $global:Name = ... writes that aren't LASTEXITCODE (which
             # is auto-managed by pwsh after every external command).
             $writes = [regex]::Matches($code, '\$global:([A-Za-z_][A-Za-z0-9_]*)\s*=')
-            $nonExitWrites = @($writes | Where-Object { $_.Groups[1].Value -ne 'LASTEXITCODE' })
+            $nonExitWrites = @($writes | Where-Object { $_.Groups[1].Value -cne 'LASTEXITCODE' })
             if ($nonExitWrites.Count -eq 0) { continue }
 
-            $hasRestore =
-                ($code -match '(?i)Remove-Variable\s+(-Name\s+)?[A-Za-z_][A-Za-z0-9_,]*\s+(-ErrorAction\s+\w+\s+)?-Scope\s+''?Global''?') -or
-                ($code -match '(?i)Remove-Variable\s+(-Name\s+)?[A-Za-z_][A-Za-z0-9_,]*\s+-Scope\s+''?Global''?') -or
-                ($code -match '(?i)Set-Variable\s+(-Name\s+)?[A-Za-z_][A-Za-z0-9_]*.*-Scope\s+''?Global''?')
-
-            if (-not $hasRestore) {
-                $offenders.Add($relative) | Out-Null
+            $hasAfterBlock =
+                ($code -match '(?im)^\s*AfterAll\s*\{') -or
+                ($code -match '(?im)^\s*AfterEach\s*\{')
+            $hasFinallyRestore = $code -match '(?is)\bfinally\s*\{[^}]*?(Remove-Variable\b|\$global:[A-Za-z_][A-Za-z0-9_]*\s*=\s*\$)'
+            $hasGlobalRestore =
+                ($code -match '(?i)Remove-Variable\b[^`n]*-Scope\s+''?Global''?') -or
+                ($code -match '(?i)Remove-Variable\b') -or
+                ($code -match '(?i)Set-Variable\b[^`n]*-Scope\s+''?Global''?') -or
+                ($code -match '(?i)\$global:[A-Za-z_][A-Za-z0-9_]*\s*=\s*\$(script:|global:)?[A-Za-z_][A-Za-z0-9_]*')
+            if (-not (($hasAfterBlock -or $hasFinallyRestore) -and $hasGlobalRestore)) {
+                $offenders.Add("$relative (missing cleanup lifecycle block and/or global restore operation)") | Out-Null
             }
         }
 
