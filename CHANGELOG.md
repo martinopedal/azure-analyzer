@@ -77,6 +77,19 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.3.0](https://github.com/martinopedal/azure-analyzer/compare/v1.2.0...v1.3.0) (2026-04-23)
+
+
+### Features
+
+* redesign ASCII banner for readability + multi-color ([#975](https://github.com/martinopedal/azure-analyzer/issues/975)) ([df67100](https://github.com/martinopedal/azure-analyzer/commit/df671003d15d8f267e5323acd97acdfb9dcf365c)), closes [#964](https://github.com/martinopedal/azure-analyzer/issues/964)
+
+
+### Fixes
+
+* **scripts:** guard Backfill-ChangelogCitations against null SortedBoundaries ([#978](https://github.com/martinopedal/azure-analyzer/issues/978)) ([e6452a7](https://github.com/martinopedal/azure-analyzer/commit/e6452a7444848a1074761b6b1aeed7b2c8d0687a))
+* **wrappers:** generalize non-null Findings + Errors envelope contract ([#976](https://github.com/martinopedal/azure-analyzer/issues/976)) ([38236e5](https://github.com/martinopedal/azure-analyzer/commit/38236e5f624db5ad34c323e69f7f983090825af9))
+
 ## [1.2.0](https://github.com/martinopedal/azure-analyzer/compare/v1.1.2...v1.2.0) (2026-04-23)
 
 
