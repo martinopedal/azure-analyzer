@@ -64,11 +64,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      # no-retry: orchestrates a multi-step gh-API dance (run lookup, dedup
-      # lookup, label create, issue create OR comment, post-create dedup sweep)
-      # with hash-based idempotency built in. A blind whole-step retry on a
-      # partial failure could open a duplicate ci-failure issue or close a wrong
-      # duplicate. Each gh call already trails `|| true` to ride out transients.
+      # Retry-aware: individual gh calls are wrapped with gh_with_retry()
+      # (exponential backoff, 3 attempts). The 24h coalesce window pre-checks
+      # for existing open issues BEFORE creating, so concurrent runners that
+      # lose the race reconcile instead of duplicating. Post-create dedup
+      # sweep kept as belt-and-suspenders.
       - name: Triage failed workflow runs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -93,6 +93,25 @@ jobs:
               -e 's/client_secret=[^&[:space:]]+/client_secret=[REDACTED]/Ig' \
               -e 's/SharedAccessSignature=[^;[:space:]]+/SharedAccessSignature=[REDACTED]/Ig' \
               <<<"$input"
+          }
+
+          # Retry helper with exponential backoff for transient GitHub API failures
+          gh_with_retry() {
+            local max_retries=3
+            local retry_attempt=0
+            while [ $retry_attempt -le $max_retries ]; do
+              if "$@"; then
+                return 0
+              fi
+              retry_attempt=$((retry_attempt + 1))
+              if [ $retry_attempt -le $max_retries ]; then
+                sleep_time=$((2 ** retry_attempt))
+                echo "gh command failed (attempt $retry_attempt/$max_retries), retrying in ${sleep_time}s..." >&2
+                sleep "$sleep_time"
+              fi
+            done
+            echo "gh command failed after $max_retries retries" >&2
+            return 1
           }
 
           # Build allow-list from WATCHLIST env var
@@ -186,12 +205,13 @@ jobs:
 
             if [ -n "$existing_issue" ]; then
               if [ "$existing_issue_state" = "CLOSED" ]; then
-                gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
+                gh_with_retry gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
               else
-                gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
+                gh_with_retry gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
               fi
             else
-              if ! gh issue create \
+              issue_created=false
+              if gh_with_retry gh issue create \
                 --repo "$REPO" \
                 --title "$issue_title" \
                 --body "$body_lines" \
@@ -199,14 +219,20 @@ jobs:
                 --label type:bug \
                 --label priority:p1 \
                 --label ci-failure; then
+                issue_created=true
+              fi
+
+              if [ "$issue_created" = false ]; then
+                echo "Issue creation failed after retries, reconciling for hash [${error_hash}]..."
                 existing_issue_records="$(gh issue list --repo "$REPO" --label ci-failure --state all --search "[${error_hash}] in:title" --limit 100 --json number,state,createdAt 2>/dev/null || echo '[]')"
                 existing_issue="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .number // empty')"
                 existing_issue_state="$(printf '%s' "$existing_issue_records" | jq -r '([.[] | select(.state == "OPEN")] | sort_by(.createdAt) | .[0]) // (sort_by(.createdAt) | .[0]) | .state // empty')"
                 if [ -n "$existing_issue" ]; then
+                  echo "Found existing issue #${existing_issue} (reconciled after create race)"
                   if [ "$existing_issue_state" = "CLOSED" ]; then
-                    gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
+                    gh_with_retry gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL} (existing closed issue reused for hash [${error_hash}]; no new duplicate opened)" || true
                   else
-                    gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
+                    gh_with_retry gh issue comment "$existing_issue" --repo "$REPO" --body "still failing -- ${RUN_URL}" || true
                   fi
                 else
                   echo "Failed to create or reconcile ci-failure issue for hash [${error_hash}]."
