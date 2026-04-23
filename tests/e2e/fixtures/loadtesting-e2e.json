@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "loadtesting",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Azure Load Testing resource has no recent test runs",
+      "Severity": "Low",
+      "Compliant": false,
+      "Category": "Performance",
+      "Pillar": "Performance Efficiency",
+      "Detail": "No completed test runs in the last 30 days for resource alt-prod.",
+      "ResourceId": "/subscriptions/bbbbbbbb-1111-2222-3333-444444444444/resourceGroups/rg-perf/providers/Microsoft.LoadTestService/loadTests/alt-prod",
+      "Remediation": "Re-baseline performance with at least one monthly test run.",
+      "RuleId": "alt-no-recent-runs"
+    },
+    {
+      "Title": "Test run exceeded 5% error threshold",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Performance",
+      "Pillar": "Performance Efficiency",
+      "Detail": "Test run 2026-04-15 reported 8.7% HTTP 5xx rate against api.contoso.com.",
+      "ResourceId": "/subscriptions/bbbbbbbb-1111-2222-3333-444444444444/resourceGroups/rg-perf/providers/Microsoft.LoadTestService/loadTests/alt-prod/testRuns/run-042",
+      "Remediation": "Investigate API regression introduced in release 1.42.0.",
+      "RuleId": "alt-high-error-rate"
+    },
+    {
+      "Title": "Load test resource has managed identity",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Identity",
+      "Pillar": "Security",
+      "Detail": "System-assigned identity enabled for cross-vnet test scenarios.",
+      "ResourceId": "/subscriptions/bbbbbbbb-1111-2222-3333-444444444444/resourceGroups/rg-perf/providers/Microsoft.LoadTestService/loadTests/alt-prod",
+      "Remediation": "",
+      "RuleId": "alt-managed-identity"
+    }
+  ]
+}

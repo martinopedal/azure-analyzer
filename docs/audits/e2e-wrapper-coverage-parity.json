@@ -40,7 +40,7 @@
     {
       "id": "E2E-008",
       "tool": "azure-quota",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-009",
@@ -50,12 +50,12 @@
     {
       "id": "E2E-010",
       "tool": "appinsights",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-011",
       "tool": "loadtesting",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-012",
@@ -175,12 +175,12 @@
     {
       "id": "E2E-035",
       "tool": "sentinel-incidents",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-036",
       "tool": "sentinel-coverage",
-      "status": "not-covered"
+      "status": "covered"
     }
   ]
 }
