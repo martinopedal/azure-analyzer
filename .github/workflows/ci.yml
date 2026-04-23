@@ -173,6 +173,101 @@ jobs:
           path: output/pester-count.json
           retention-days: 90
 
+  live-tool-tests:
+    name: LiveTool wrappers (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Non-blocking by design: live binaries add early integration signal without gating merges.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install Pester
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            if (-not (Get-Module -ListAvailable -Name Pester)) {
+              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
+            }
+
+      - name: Install LiveTool CLI dependencies from install manifest (Linux)
+        shell: pwsh
+        run: |
+          $manifest = Get-Content tools/install-manifest.json -Raw | ConvertFrom-Json
+          $binDir = Join-Path $HOME '.local' 'bin'
+          $null = New-Item -ItemType Directory -Path $binDir -Force
+          $binDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          function Install-TarCli {
+            param(
+              [Parameter(Mandatory)][string] $ToolName,
+              [Parameter(Mandatory)][string] $BinaryName
+            )
+
+            $tool = @($manifest.tools | Where-Object { $_.name -eq $ToolName })[0]
+            if (-not $tool) { throw "Tool '$ToolName' not found in tools/install-manifest.json." }
+            $linux = $tool.platforms.linux
+            if (-not $linux.url) { throw "Tool '$ToolName' has no Linux download URL in install-manifest.json." }
+            if (-not $linux.sha256) { throw "Tool '$ToolName' has no Linux sha256 pin in install-manifest.json." }
+
+            $archivePath = Join-Path $env:RUNNER_TEMP "$ToolName.tar.gz"
+            $extractDir = Join-Path $env:RUNNER_TEMP "$ToolName-extract"
+            if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
+            $null = New-Item -ItemType Directory -Path $extractDir -Force
+
+            Invoke-WebRequest -Uri $linux.url -OutFile $archivePath
+            $actual = (Get-FileHash -Path $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $expected = ([string]$linux.sha256).ToLowerInvariant()
+            if ($actual -ne $expected) {
+              throw "SHA-256 mismatch for ${ToolName}. Expected=$expected Actual=$actual"
+            }
+
+            tar -xzf $archivePath -C $extractDir
+            $binary = Get-ChildItem -Path $extractDir -Recurse -File | Where-Object { $_.Name -eq $BinaryName } | Select-Object -First 1
+            if (-not $binary) { throw "Could not locate '$BinaryName' in extracted archive for '$ToolName'." }
+
+            $target = Join-Path $binDir $BinaryName
+            Copy-Item -Path $binary.FullName -Destination $target -Force
+            & chmod +x $target
+          }
+
+          python3 -m pip install --user --upgrade pipx
+          $zizmor = @($manifest.tools | Where-Object { $_.name -eq 'zizmor' })[0]
+          if (-not $zizmor -or -not $zizmor.platforms.linux.pipxPackage) {
+            throw "zizmor Linux pipx package pin missing in tools/install-manifest.json."
+          }
+          python3 -m pipx install $zizmor.platforms.linux.pipxPackage --force
+
+          Install-TarCli -ToolName 'gitleaks' -BinaryName 'gitleaks'
+          Install-TarCli -ToolName 'trivy' -BinaryName 'trivy'
+          Install-TarCli -ToolName 'scorecard' -BinaryName 'scorecard'
+
+          gitleaks version | Out-Host
+          trivy --version | Out-Host
+          scorecard --version | Out-Host
+          zizmor --version | Out-Host
+
+      - name: Run LiveTool wrapper tests
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0 -Force
+          . ./tests/_helpers/setup.ps1
+          $result = Invoke-Pester -Path './tests/wrappers' -Tag 'LiveTool' -Output Detailed -CI -PassThru
+          if ($null -eq $result) {
+            Write-Error "Invoke-Pester returned null for LiveTool tier."
+            exit 1
+          }
+          if ($result.FailedCount -gt 0) {
+            Write-Error "LiveTool failures detected: $($result.FailedCount)"
+            exit 1
+          }
+
   verify-install-manifest:
     name: Verify install manifest
     runs-on: ubuntu-latest
