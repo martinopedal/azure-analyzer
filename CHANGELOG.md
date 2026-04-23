@@ -76,6 +76,47 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.2.0](https://github.com/martinopedal/azure-analyzer/compare/v1.1.2...v1.2.0) (2026-04-23)
+
+
+### Features
+
+* add -FixtureMode flag for E2E runs without Azure credentials ([#957](https://github.com/martinopedal/azure-analyzer/issues/957)) ([caae5a1](https://github.com/martinopedal/azure-analyzer/commit/caae5a1118e5dff893cd82fb14cf24accad1a55b)), closes [#926](https://github.com/martinopedal/azure-analyzer/issues/926)
+* **ci:** extend GitHub App token to tool-auto-update and pr-auto-rebase ([#956](https://github.com/martinopedal/azure-analyzer/issues/956)) ([4ac9114](https://github.com/martinopedal/azure-analyzer/commit/4ac91146e457a1acf21090b01cebb803e3fb02f6))
+
+
+### Fixes
+
+* add module import regression gate for P0-2 (mandatory param prompt hang) ([#931](https://github.com/martinopedal/azure-analyzer/issues/931)) ([764ae51](https://github.com/martinopedal/azure-analyzer/commit/764ae51a249cca9d24975f43d939fcee73411144))
+* **ci:** allow trusted bots to bypass Closes link requirement (B3) ([#914](https://github.com/martinopedal/azure-analyzer/issues/914)) ([788a12d](https://github.com/martinopedal/azure-analyzer/commit/788a12dfda1767f3ac08f3591d54d3d742035a5e)), closes [#910](https://github.com/martinopedal/azure-analyzer/issues/910)
+* **ci:** make docs-check workflow truly usable + clear stale CHANGELOG conflict markers ([#941](https://github.com/martinopedal/azure-analyzer/issues/941)) ([8df1d5d](https://github.com/martinopedal/azure-analyzer/commit/8df1d5d5d4c429c0a8dc4f7a0780fd6d9507db6e))
+* **ci:** watchdog skips advisory workflows (CI / E2E / Scheduled scan) ([#947](https://github.com/martinopedal/azure-analyzer/issues/947)) ([fa60ff4](https://github.com/martinopedal/azure-analyzer/commit/fa60ff482cb939825d2aa4bcb1ca40074b3159a7))
+* MD report fails with .Compliant property error on v1 wrapper format ([#927](https://github.com/martinopedal/azure-analyzer/issues/927)) ([6d93510](https://github.com/martinopedal/azure-analyzer/commit/6d93510f66e0c9760c9fbc69605d01dfbaa6b8bf))
+* **security:** sanitize-after-parse ratchet + B2 low-risk items ([#922](https://github.com/martinopedal/azure-analyzer/issues/922)) ([7cbe42c](https://github.com/martinopedal/azure-analyzer/commit/7cbe42c1e6e31aa6f2d3df030d1b91b28af49d3f))
+* **shared:** convert New-WrapperEnvelope to function definition (fixes M1+M3) ([#950](https://github.com/martinopedal/azure-analyzer/issues/950)) ([cbbb994](https://github.com/martinopedal/azure-analyzer/commit/cbbb994c4ee5c15234642f3539e799752c5da0dc))
+* **tests:** stabilize Pester -- deterministic sort + isolated fixture + array guard ([#961](https://github.com/martinopedal/azure-analyzer/issues/961)) ([aa839b1](https://github.com/martinopedal/azure-analyzer/commit/aa839b13e32c324682a0f27ec680f0f2792deb36))
+* **tests:** stabilize Pester -- deterministic sort + isolated fixture + array guard. Closes [#959](https://github.com/martinopedal/azure-analyzer/issues/959) ([aa839b1](https://github.com/martinopedal/azure-analyzer/commit/aa839b13e32c324682a0f27ec680f0f2792deb36))
+* **tests:** update DocsCheck tests for docs/design path (M4) ([#952](https://github.com/martinopedal/azure-analyzer/issues/952)) ([e82ebed](https://github.com/martinopedal/azure-analyzer/commit/e82ebed4c8a4e428889b6037c9456685e4ebeed4))
+* **tests:** use .Length comparison in SampleDrift for cross-platform stability ([#951](https://github.com/martinopedal/azure-analyzer/issues/951)) ([c7534ba](https://github.com/martinopedal/azure-analyzer/commit/c7534baea451c1563d9bb9195108ad0f4817c247))
+* unblock Pester bootstrap (SampleDrift + Capture-WrapperHostOutput) ([#940](https://github.com/martinopedal/azure-analyzer/issues/940)) ([c835760](https://github.com/martinopedal/azure-analyzer/commit/c835760dfc04ee2db2f9da516a60076a1d20e64d))
+
+
+### Documentation
+
+* coherence sweep — truthful baseline + CHANGELOG dedup + tool catalog regen ([#917](https://github.com/martinopedal/azure-analyzer/issues/917)) ([680638b](https://github.com/martinopedal/azure-analyzer/commit/680638b73718ebbc2e4c82fd3fd907df75d0749e))
+* **squad:** document watchdog advisory-filter implementation ([#948](https://github.com/martinopedal/azure-analyzer/issues/948)) ([1c900c9](https://github.com/martinopedal/azure-analyzer/commit/1c900c94a86bd103f498d7021b875c71e51c1ae3))
+
+
+### Chores
+
+* remove dead auto-approve-bot-runs.yml workflow ([#937](https://github.com/martinopedal/azure-analyzer/issues/937)) ([66271bd](https://github.com/martinopedal/azure-analyzer/commit/66271bd45734ab980f97aeb6d7c4373c73f82b21))
+* **squad:** checkpoint session 16 — CI stabilization sprint ([#953](https://github.com/martinopedal/azure-analyzer/issues/953)) ([24fe78c](https://github.com/martinopedal/azure-analyzer/commit/24fe78c3d99dd0a8c5fd3d5bad684c3e37428914))
+
+
+### CI
+
+* switch release-please to GitHub App token for CI trigger on release PRs ([#955](https://github.com/martinopedal/azure-analyzer/issues/955)) ([7a2ae0b](https://github.com/martinopedal/azure-analyzer/commit/7a2ae0b595359dd1bfc5b81df39a7041f86edaa3))
+
 ## [1.1.2](https://github.com/martinopedal/azure-analyzer/compare/v1.1.1...v1.1.2) (2026-04-23)
 
 
@@ -1285,4 +1326,3 @@ Complete backfill of 128 PRs from the recent sprint (2026-04-15 to 2026-04-23, c
 
 ## [0.0.1] - Initial scaffold
 - Initial scaffold
-
