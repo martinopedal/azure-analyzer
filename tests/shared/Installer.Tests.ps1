@@ -36,7 +36,7 @@ Describe 'SHA-256 hash verification' {
     BeforeAll {
         $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
         # Cross-platform temp directory
-        $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+        $tempDir = [System.IO.Path]::GetTempPath()
         $testDir = Join-Path $tempDir "installer-tests-$(New-Guid)"
         $null = New-Item -ItemType Directory -Path $testDir -Force
     }

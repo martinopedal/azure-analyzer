@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 # in isolation (single-file Invoke-Pester). The full-suite bootstrap sets the
 # same flag via tests/_Bootstrap.Tests.ps1; this is the belt-and-suspenders
 # equivalent for isolated / CI shard runs. See tests/_helpers/Suppress-WrapperWarnings.ps1.
+$env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS = if ($null -eq $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS) { '__unset__' } else { $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS }
 $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
 BeforeAll {
@@ -94,3 +95,11 @@ Describe 'Invoke-AlzQueries: success path metadata' {
     }
 }
 
+AfterAll {
+    if ($env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -eq '__unset__') {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    } elseif ($null -ne $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS
+    }
+    Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
+}
