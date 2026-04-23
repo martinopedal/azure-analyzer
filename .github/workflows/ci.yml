@@ -37,14 +37,27 @@ jobs:
           retry_on: error
           shell: pwsh
           command: |
-            if (-not (Get-Module -ListAvailable -Name Pester)) {
-              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
+            # Pin Pester to a known-good 5.x line (#851):
+            # `-MinimumVersion 5.0` lets Install-Module pull Pester 6.x once
+            # it goes stable. Pester 6 is a major rewrite with a different
+            # [PesterConfiguration] surface; `Invoke-Pester -Configuration`
+            # has been observed returning $null under PassThru on some
+            # matrix OSes when the imported version does not match what the
+            # harness expects. Pin to 5.7.1 (the version the 842/842 green
+            # baseline was recorded on) so every OS in the matrix executes
+            # the identical Pester engine.
+            $pinned = '5.7.1'
+            $have = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -eq $pinned }
+            if (-not $have) {
+              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion $pinned
             }
 
       - name: Run Pester tests
         shell: pwsh
         run: |
-          Import-Module Pester -MinimumVersion 5.0 -Force
+          # Require-load the exact pinned version so a newer side-installed
+          # Pester cannot silently win the import race (#851).
+          Import-Module Pester -RequiredVersion 5.7.1 -Force
           . ./tests/_helpers/setup.ps1
           $config = [PesterConfiguration]::Default
           $config.Run.Path = './tests'
@@ -55,6 +68,15 @@ jobs:
           $config.CodeCoverage.Enabled = $false
           $result = Invoke-Pester -Configuration $config
           if ($null -eq $result) {
+            # Defensive diagnostics for #851: if the pin still yields null,
+            # dump the loaded Pester build so the next triage round has
+            # actionable evidence instead of an opaque abort.
+            $loaded = Get-Module Pester | Select-Object -First 1
+            if ($loaded) {
+              Write-Host "::error::Invoke-Pester returned null. Loaded Pester=$($loaded.Version) Path=$($loaded.ModuleBase)"
+            } else {
+              Write-Host "::error::Invoke-Pester returned null. No Pester module loaded."
+            }
             Write-Error "Invoke-Pester returned null; cannot record TotalCount."
             exit 1
           }
@@ -193,8 +215,13 @@ jobs:
           retry_on: error
           shell: pwsh
           command: |
-            if (-not (Get-Module -ListAvailable -Name Pester)) {
-              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
+            # Pester 5.7.1 pin (#851): match the Test job exactly so the
+            # LiveTool wrapper tier cannot silently run against a Pester
+            # 6.x preview.
+            $pinned = '5.7.1'
+            $have = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -eq $pinned }
+            if (-not $have) {
+              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion $pinned
             }
 
       - name: Install LiveTool CLI dependencies from install manifest (Linux)
@@ -270,7 +297,11 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          Import-Module Pester -MinimumVersion 5.0 -Force
+          # Pin Pester to the same 5.7.1 version as the main Test job (#851)
+          # so live-binary wrapper smoke tests run against an identical
+          # engine and a side-installed Pester 6 cannot silently win the
+          # import race.
+          Import-Module Pester -RequiredVersion 5.7.1 -Force
           . ./tests/_helpers/setup.ps1
           $result = Invoke-Pester -Path './tests/wrappers' -Tag 'LiveTool' -Output Detailed -CI -PassThru
           if ($null -eq $result) {

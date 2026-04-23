@@ -102,14 +102,21 @@ jobs:
           retry_on: error
           shell: pwsh
           command: |
-            if (-not (Get-Module -ListAvailable -Name Pester)) {
-              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
+            # Pester 5.7.1 pin (#851): minimum-version lets Install-Module
+            # pull Pester 6.x once stable, which has a different
+            # [PesterConfiguration] surface and has been observed returning
+            # $null from Invoke-Pester under PassThru. Pin to the same
+            # 5.7.1 version the Test matrix uses.
+            $pinned = '5.7.1'
+            $have = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -eq $pinned }
+            if (-not $have) {
+              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion $pinned
             }
 
       - name: Pester gate
         shell: pwsh
         run: |
-          Import-Module Pester -MinimumVersion 5.0 -Force
+          Import-Module Pester -RequiredVersion 5.7.1 -Force
           Invoke-Pester -Path ./tests -CI
 
       - name: Build module package + release zip

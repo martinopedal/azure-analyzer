@@ -34,9 +34,26 @@ jobs:
       - name: Run E2E suite
         shell: pwsh
         run: |
+          # Pester 5.7.1 pin (#851): match the Test job so e2e cannot
+          # silently be exercised against a Pester 6.x preview where
+          # Invoke-Pester -PassThru has been observed returning $null.
+          Import-Module Pester -RequiredVersion 5.7.1 -Force -ErrorAction SilentlyContinue
+          if (-not (Get-Module Pester)) {
+            Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion 5.7.1
+            Import-Module Pester -RequiredVersion 5.7.1 -Force
+          }
           . ./tests/_helpers/setup.ps1
           $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
           $result = Invoke-Pester -Path ./tests/e2e -Output Detailed -CI -PassThru
+          if ($null -eq $result) {
+            $loaded = Get-Module Pester | Select-Object -First 1
+            if ($loaded) {
+              Write-Host "::error::Invoke-Pester returned null (e2e). Loaded Pester=$($loaded.Version) Path=$($loaded.ModuleBase)"
+            } else {
+              Write-Host "::error::Invoke-Pester returned null (e2e). No Pester module loaded."
+            }
+            exit 1
+          }
           if ($result.FailedCount -gt 0) {
               Write-Host "::error::E2E suite failed: $($result.FailedCount) of $($result.TotalCount) tests."
               exit 1
