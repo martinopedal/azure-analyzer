@@ -1,0 +1,46 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "azgovviz",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Subscription has no Azure Policy assignments",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Governance",
+      "Pillar": "OperationalExcellence",
+      "Detail": "azgovviz reports zero policy assignments at subscription scope.",
+      "EntityType": "Subscription",
+      "EntityId": "/subscriptions/22222222-2222-2222-2222-222222222222",
+      "ResourceId": "/subscriptions/22222222-2222-2222-2222-222222222222",
+      "Remediation": "Apply ALZ baseline initiative at MG scope.",
+      "RuleId": "azgv-pol-001"
+    },
+    {
+      "Title": "Resource group missing required tags",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Governance",
+      "Pillar": "OperationalExcellence",
+      "Detail": "rg-shared-prod missing tags: CostCenter, Owner.",
+      "EntityType": "AzureResource",
+      "EntityId": "/subscriptions/22222222-2222-2222-2222-222222222222/resourceGroups/rg-shared-prod",
+      "ResourceId": "/subscriptions/22222222-2222-2222-2222-222222222222/resourceGroups/rg-shared-prod",
+      "Remediation": "Apply tag policy with required tags.",
+      "RuleId": "azgv-tag-001"
+    },
+    {
+      "Title": "Management group structure follows ALZ pattern",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Governance",
+      "Pillar": "OperationalExcellence",
+      "Detail": "MG hierarchy matches ALZ canonical layout.",
+      "EntityType": "AzureResource",
+      "EntityId": "/subscriptions/22222222-2222-2222-2222-222222222222/resourceGroups/rg-platform",
+      "ResourceId": "/subscriptions/22222222-2222-2222-2222-222222222222/resourceGroups/rg-platform",
+      "Remediation": "",
+      "RuleId": "azgv-mg-001"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "wara",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "VM lacks availability zone deployment",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Reliability",
+      "Pillar": "Reliability",
+      "Detail": "WARA check vm-zone-001 found single-zone deployment for production VM.",
+      "EntityType": "AzureResource",
+      "EntityId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "ResourceId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "Remediation": "Redeploy across 3 availability zones.",
+      "RuleId": "wara-vm-zone-001"
+    },
+    {
+      "Title": "SQL DB lacks geo-replication for DR",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Reliability",
+      "Pillar": "Reliability",
+      "Detail": "WARA check sql-geo-001 found no geo-secondary configured for production database.",
+      "EntityType": "AzureResource",
+      "EntityId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-prod/providers/Microsoft.Sql/servers/sql-prod/databases/orders",
+      "ResourceId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-prod/providers/Microsoft.Sql/servers/sql-prod/databases/orders",
+      "Remediation": "Configure auto-failover group with secondary in paired region.",
+      "RuleId": "wara-sql-geo-001"
+    },
+    {
+      "Title": "Storage account uses ZRS for resilience",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Reliability",
+      "Pillar": "Reliability",
+      "Detail": "Account uses zone-redundant storage as recommended.",
+      "EntityType": "AzureResource",
+      "EntityId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/contosoprodzrs",
+      "ResourceId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/contosoprodzrs",
+      "Remediation": "",
+      "RuleId": "wara-st-zrs-001"
+    }
+  ]
+}

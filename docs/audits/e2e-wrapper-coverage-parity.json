@@ -80,7 +80,7 @@
     {
       "id": "E2E-016",
       "tool": "azgovviz",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-017",
@@ -90,12 +90,12 @@
     {
       "id": "E2E-018",
       "tool": "wara",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-019",
       "tool": "maester",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-020",
@@ -105,42 +105,42 @@
     {
       "id": "E2E-021",
       "tool": "gh-actions-billing",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-022",
       "tool": "ado-connections",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-023",
       "tool": "ado-pipelines",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-024",
       "tool": "ado-consumption",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-025",
       "tool": "ado-repos-secrets",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-026",
       "tool": "ado-pipeline-correlator",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-027",
       "tool": "identity-correlator",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-028",
       "tool": "identity-graph-expansion",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-029",
@@ -160,17 +160,17 @@
     {
       "id": "E2E-032",
       "tool": "bicep-iac",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-033",
       "tool": "infracost",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-034",
       "tool": "terraform-iac",
-      "status": "not-covered"
+      "status": "covered"
     },
     {
       "id": "E2E-035",
