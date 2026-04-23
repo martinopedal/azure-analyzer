@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "finops",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Idle managed disk detected",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Disk vm-old-data has been unattached for 47 days; estimated USD 18.50/mo waste.",
+      "ResourceId": "/subscriptions/44444444-4444-4444-4444-444444444444/resourceGroups/rg-cost/providers/Microsoft.Compute/disks/vm-old-data",
+      "Remediation": "Delete the unattached disk if no longer needed.",
+      "RuleId": "finops-idle-disk"
+    },
+    {
+      "Title": "Reserved Instance coverage below 30%",
+      "Severity": "Low",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Subscription RI coverage at 12% for Standard_D2s_v3 family.",
+      "ResourceId": "/subscriptions/44444444-4444-4444-4444-444444444444",
+      "Remediation": "Evaluate 1-year RI purchase for steady-state VMs.",
+      "RuleId": "finops-ri-coverage"
+    },
+    {
+      "Title": "Budget configured on subscription",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Monthly budget of USD 5000 with 80% threshold alert exists.",
+      "ResourceId": "/subscriptions/44444444-4444-4444-4444-444444444444",
+      "Remediation": "",
+      "RuleId": "finops-budget-configured"
+    }
+  ]
+}

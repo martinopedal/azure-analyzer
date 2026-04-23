@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "azqr",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Storage account allows public blob access",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Security",
+      "Pillar": "Security",
+      "Detail": "azqr rule st-008 flagged public access on contosostorage.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/contosostorage",
+      "Remediation": "Disable allowBlobPublicAccess.",
+      "RuleId": "azqr-st-008"
+    },
+    {
+      "Title": "Key vault soft-delete disabled",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Reliability",
+      "Pillar": "Reliability",
+      "Detail": "azqr rule kv-002 flagged soft-delete off.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-prod/providers/Microsoft.KeyVault/vaults/contoso-kv",
+      "Remediation": "Enable soft-delete on key vault.",
+      "RuleId": "azqr-kv-002"
+    },
+    {
+      "Title": "App service uses HTTPS",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Security",
+      "Pillar": "Security",
+      "Detail": "azqr rule app-001 verified HTTPS-only on contoso-web.",
+      "ResourceId": "/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg-prod/providers/Microsoft.Web/sites/contoso-web",
+      "Remediation": "",
+      "RuleId": "azqr-app-001"
+    }
+  ]
+}

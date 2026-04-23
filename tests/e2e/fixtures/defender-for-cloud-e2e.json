@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "defender-for-cloud",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Defender for Servers Plan 2 not enabled",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Defender Plan",
+      "Pillar": "Security",
+      "Detail": "Subscription has Defender for Servers Free tier; Plan 2 recommended.",
+      "ResourceId": "/subscriptions/22222222-2222-2222-2222-222222222222",
+      "Remediation": "Enable Defender for Servers Plan 2 on the subscription.",
+      "RuleId": "mdc-plan-servers"
+    },
+    {
+      "Title": "Secure Score below 60",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Secure Score",
+      "Pillar": "Security",
+      "Detail": "Current secure score is 47/100.",
+      "ResourceId": "/subscriptions/22222222-2222-2222-2222-222222222222",
+      "Remediation": "Triage open MDC recommendations, focus on high-impact controls.",
+      "RuleId": "mdc-secure-score"
+    },
+    {
+      "Title": "Defender for Storage enabled",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Defender Plan",
+      "Pillar": "Security",
+      "Detail": "Defender for Storage is active.",
+      "ResourceId": "/subscriptions/22222222-2222-2222-2222-222222222222",
+      "Remediation": "",
+      "RuleId": "mdc-plan-storage"
+    }
+  ]
+}
