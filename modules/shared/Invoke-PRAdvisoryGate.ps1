@@ -62,6 +62,8 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'Sanitize.ps1')
 . (Join-Path $PSScriptRoot 'RubberDuckChain.ps1')
+$errorsPath = Join-Path $PSScriptRoot 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
 
 # Marker used to find and update the single advisory comment in place.
 $script:AdvisoryMarker = '<!-- squad-advisory -->'
@@ -88,12 +90,18 @@ function Import-CopilotTriagePlan {
     }
 
     if (-not (Test-Path -LiteralPath $PlanPath)) {
-        throw "Copilot triage plan file not found: $PlanPath"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRAdvisoryGate' `
+            -Category 'NotFound' `
+            -Reason "Copilot triage plan file not found: $PlanPath" `
+            -Remediation 'Pass -CopilotTriagePlanPath to an existing plan JSON, or omit it to skip Copilot triage.'))
     }
 
     $raw = Get-Content -LiteralPath $PlanPath -Raw -Encoding utf8
     if ([string]::IsNullOrWhiteSpace($raw)) {
-        throw "Copilot triage plan file is empty: $PlanPath"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRAdvisoryGate' `
+            -Category 'ConfigurationError' `
+            -Reason "Copilot triage plan file is empty: $PlanPath" `
+            -Remediation 'Regenerate the triage plan with the Copilot triage workflow before invoking the advisory gate.'))
     }
 
     $plan = $raw | ConvertFrom-Json -Depth 30
@@ -485,7 +493,11 @@ function Publish-AdvisoryComment {
         }
 
         if ($LASTEXITCODE -ne 0) {
-            throw "gh api failed with exit code $LASTEXITCODE while publishing advisory comment."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRAdvisoryGate' `
+                -Category 'UnexpectedFailure' `
+                -Reason "gh api failed with exit code $LASTEXITCODE while publishing advisory comment." `
+                -Remediation 'Verify the GH_TOKEN scope includes pull-requests:write and that the PR exists.' `
+                -Details "endpoint=$endpoint"))
         }
     } finally {
         Remove-Item -Path $bodyFile -ErrorAction SilentlyContinue
@@ -785,7 +797,10 @@ if ($MyInvocation.InvocationName -ne '.' -and $MyInvocation.MyCommand.Path -eq $
     }
 
     if ($PRNumber -le 0) {
-        throw 'PRNumber must be a positive integer.'
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRAdvisoryGate' `
+            -Category 'InvalidParameter' `
+            -Reason 'PRNumber must be a positive integer.' `
+            -Remediation 'Pass -PRNumber <int> when invoking the advisory gate.'))
     }
 
     if (-not (Test-SquadAuthor -Login $PRAuthor)) {

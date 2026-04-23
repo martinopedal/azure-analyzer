@@ -20,6 +20,8 @@ $ErrorActionPreference = 'Stop'
 
 $sanitizePath = Join-Path $PSScriptRoot 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
+$errorsPath = Join-Path $PSScriptRoot 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string] $Text) return $Text }
 }
@@ -32,6 +34,12 @@ function Get-EntitySnapshotPayload {
     )
 
     if (-not (Test-Path $Path)) {
+        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Compare-EntitySnapshots' `
+                -Category 'NotFound' `
+                -Reason "Snapshot not found: $Path" `
+                -Remediation 'Provide a valid path to an entities.json snapshot produced by Invoke-AzureAnalyzer.ps1.'))
+        }
         throw "Snapshot not found: $Path"
     }
 

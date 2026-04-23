@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- chore: replace raw throws with rich error builders (New-FindingError, New-InstallerError) in shared/orchestrator/normalizer code (#743).
+
 ### Added
 - test(e2e): wrapper coverage for the three IaC tools — `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 
