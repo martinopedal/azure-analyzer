@@ -10,11 +10,13 @@ BeforeAll {
 }
 
 Describe 'docs-check.yml documentation paths contract' {
-    It 'treats docs/design as documentation for docs-required gate' {
-        $script:RawYaml | Should -Match '\^docs\\/design\\/'
+    It 'treats docs/ subdirectories as documentation for docs-required gate' {
+        # After PR #941, the workflow uses /^docs\// to match all docs subdirectories
+        # instead of listing each one individually (e.g. /^docs\/design\/)
+        $script:RawYaml | Should -Match '/\^docs\\/'
     }
 
-    It 'mentions docs/design in the missing-docs guidance message' {
-        $script:RawYaml | Should -Match 'architecture, design'
+    It 'mentions docs/ in the missing-docs guidance message' {
+        $script:RawYaml | Should -Match 'docs/'
     }
 }
