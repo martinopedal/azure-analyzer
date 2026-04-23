@@ -109,6 +109,11 @@ if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
+}
 
 $errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
 if (Test-Path $errorsPath) { . $errorsPath }
@@ -135,6 +140,7 @@ $result = [ordered]@{
     Status        = 'Success'
     Message       = ''
     Findings      = @()
+    Diagnostics   = @()
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
@@ -178,8 +184,17 @@ if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
 
 # --- Tool prereqs ---
 if (-not (Get-Command kubescape -ErrorAction SilentlyContinue)) {
+    $missingMessage = 'kubescape is not installed. Skipping Kubescape scan. Install via: winget install ARMO.kubescape  |  brew install kubescape  |  curl -s https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh | /bin/bash'
+    Write-MissingToolNotice -Tool 'kubescape' -Message $missingMessage
     $result.Status  = 'Skipped'
     $result.Message = 'kubescape CLI not installed. Install via: winget install ARMO.kubescape  |  brew install kubescape  |  curl -s https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh | /bin/bash'
+    $result.Diagnostics = @(
+        [PSCustomObject]@{
+            Code    = 'MissingTool'
+            Tool    = 'kubescape'
+            Message = $missingMessage
+        }
+    )
     return [pscustomobject]$result
 }
 if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {

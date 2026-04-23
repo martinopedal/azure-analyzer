@@ -229,13 +229,21 @@ function Get-TrivyEvidenceUris {
 }
 
 if (-not (Test-TrivyInstalled)) {
-    Write-MissingToolNotice -Tool 'trivy' -Message "trivy is not installed. Skipping Trivy scan. Install from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy"
+    $missingMessage = "trivy is not installed. Skipping Trivy scan. Install from https://github.com/aquasecurity/trivy/releases or: brew install trivy / choco install trivy"
+    Write-MissingToolNotice -Tool 'trivy' -Message $missingMessage
     return [PSCustomObject]@{
         Source   = 'trivy'
         SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'trivy CLI not installed. Download from https://github.com/aquasecurity/trivy/releases'
         Findings = @()
+        Diagnostics = @(
+            [PSCustomObject]@{
+                Code    = 'MissingTool'
+                Tool    = 'trivy'
+                Message = $missingMessage
+            }
+        )
     }
 }
 
