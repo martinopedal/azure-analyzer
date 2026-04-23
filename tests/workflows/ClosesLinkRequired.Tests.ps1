@@ -24,7 +24,7 @@ Describe 'closes-link-required workflow contract' {
         }
     }
 
-    It 'does not include ambiguous copilot actor aliases' {
+    It 'does not include unsupported copilot[bot] actor alias' {
         $script:WorkflowText | Should -Not -CMatch "'copilot\[bot\]'"
     }
 
