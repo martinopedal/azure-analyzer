@@ -42,6 +42,12 @@ function Invoke-ModuleScript {
     )
 
     if (-not (Test-Path $ScriptPath)) {
+        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'AzureAnalyzer.psm1' `
+                -Category 'NotFound' `
+                -Reason "Required script not found: $ScriptPath" `
+                -Remediation 'Reinstall the AzureAnalyzer module or restore the missing script from source control.'))
+        }
         throw "Required script not found: $ScriptPath"
     }
 
@@ -132,6 +138,12 @@ function Invoke-AzureAnalyzer {
 
     $scriptPath = Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1'
     if (-not (Test-Path $scriptPath)) {
+        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'AzureAnalyzer.psm1' `
+                -Category 'NotFound' `
+                -Reason "Required script not found: $scriptPath" `
+                -Remediation 'Reinstall the AzureAnalyzer module or restore Invoke-AzureAnalyzer.ps1 from source control.'))
+        }
         throw "Required script not found: $scriptPath"
     }
 

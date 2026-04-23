@@ -37,6 +37,8 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'Sanitize.ps1')
 . (Join-Path $PSScriptRoot 'Retry.ps1')
+$errorsPath = Join-Path $PSScriptRoot 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
 
 $script:AutoResolveMarker = '<!-- squad-auto-resolve-thread -->'
 
@@ -46,7 +48,10 @@ function Resolve-RepoOwnerName {
 
     $parts = $Repo.Split('/', 2, [System.StringSplitOptions]::RemoveEmptyEntries)
     if ($parts.Count -ne 2) {
-        throw "Repo must be in owner/name format. Received: '$Repo'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+            -Category 'InvalidParameter' `
+            -Reason "Repo must be in owner/name format. Received: '$Repo'" `
+            -Remediation "Pass -Repo as 'owner/name' (e.g. 'martinopedal/azure-analyzer')."))
     }
     [PSCustomObject]@{ Owner = $parts[0]; Name = $parts[1] }
 }
@@ -80,7 +85,11 @@ function Invoke-GhGraphQl {
         if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
         $innerText = ($stdout | Out-String)
         if ($exitCode -ne 0) {
-            throw "gh api graphql failed: $(Remove-Credentials $innerText)"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+                -Category 'UnexpectedFailure' `
+                -Reason 'gh api graphql failed.' `
+                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope.' `
+                -Details (Remove-Credentials $innerText)))
         }
         $innerText
     }
@@ -222,7 +231,11 @@ function Get-PRCommitsAfter {
         if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
         $innerText = ($stdout | Out-String)
         if ($exitCode -ne 0) {
-            throw "gh api $endpoint failed: $(Remove-Credentials $innerText)"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+                -Category 'UnexpectedFailure' `
+                -Reason "gh api $endpoint failed (PR commits)." `
+                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope.' `
+                -Details (Remove-Credentials $innerText)))
         }
         $innerText
     }
@@ -276,7 +289,11 @@ function Get-CommitChangedRanges {
         if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
         $innerText = ($stdout | Out-String)
         if ($exitCode -ne 0) {
-            throw "gh api $endpoint failed: $(Remove-Credentials $innerText)"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+                -Category 'UnexpectedFailure' `
+                -Reason "gh api $endpoint failed (commit detail)." `
+                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope.' `
+                -Details (Remove-Credentials $innerText)))
         }
         $innerText
     }
@@ -420,7 +437,11 @@ function Add-ResolutionReply {
             $exitCodeVar = Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue
             if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
             if ($exitCode -ne 0) {
-                throw "Failed to post resolution reply: $(Remove-Credentials ($stdout | Out-String))"
+                throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+                    -Category 'UnexpectedFailure' `
+                    -Reason 'Failed to post resolution reply.' `
+                    -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope.' `
+                    -Details (Remove-Credentials ($stdout | Out-String))))
             }
             $true
         } | Out-Null
@@ -538,7 +559,10 @@ function Invoke-AutoResolveThreads {
 
 if ($MyInvocation.InvocationName -ne '.') {
     if ($PRNumber -lt 1) {
-        throw 'PRNumber is required when running Resolve-PRReviewThreads.ps1 directly.'
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+            -Category 'InvalidParameter' `
+            -Reason 'PRNumber is required when running Resolve-PRReviewThreads.ps1 directly.' `
+            -Remediation 'Pass -PRNumber <int> to the script invocation.'))
     }
     $result = Invoke-AutoResolveThreads -PRNumber $PRNumber -Repo $Repo -DryRun:$DryRun
     $result | ConvertTo-Json -Depth 5

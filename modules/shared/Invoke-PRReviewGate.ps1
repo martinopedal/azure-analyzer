@@ -23,6 +23,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'Sanitize.ps1')
+$errorsPath = Join-Path $PSScriptRoot 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
 
 function New-RepoTempFile {
     [CmdletBinding()]
@@ -48,7 +50,10 @@ function Resolve-RepoParts {
 
     $parts = $Repo.Split('/', 2, [System.StringSplitOptions]::RemoveEmptyEntries)
     if ($parts.Count -ne 2) {
-        throw "Repo must be in owner/name format. Received: '$Repo'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+            -Category 'InvalidParameter' `
+            -Reason "Repo must be in owner/name format. Received: '$Repo'" `
+            -Remediation "Pass -Repo as 'owner/name' (e.g. 'martinopedal/azure-analyzer')."))
     }
 
     [PSCustomObject]@{
@@ -100,7 +105,11 @@ function Invoke-GhApiPaged {
                 continue
             }
 
-            throw "gh api $Endpoint failed: $lastError"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                -Category 'UnexpectedFailure' `
+                -Reason "gh api $Endpoint failed." `
+                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and rate limits.' `
+                -Details $lastError))
         }
 
         if (Test-Path $stdoutPath) {
@@ -112,7 +121,11 @@ function Invoke-GhApiPaged {
     }
 
     if (-not [string]::IsNullOrWhiteSpace($lastError) -and [string]::IsNullOrWhiteSpace($text)) {
-        throw "gh api $Endpoint failed: $lastError"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+            -Category 'UnexpectedFailure' `
+            -Reason "gh api $Endpoint failed (empty stdout)." `
+            -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and rate limits.' `
+            -Details $lastError))
     }
 
     $text = Remove-Credentials $text
@@ -656,7 +669,11 @@ _Updated in place on each review event — see PR timeline for full history._
                 continue
             }
 
-            throw "gh pr comment failed: $errorText"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                -Category 'UnexpectedFailure' `
+                -Reason 'gh pr comment failed.' `
+                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and PR access.' `
+                -Details $errorText))
         }
     } finally {
         Remove-Item -Path $bodyFilePath -ErrorAction SilentlyContinue
@@ -673,7 +690,10 @@ function Get-ModelResponses {
     $rawText = $null
     if ($ModelResponsesPath) {
         if (-not (Test-Path $ModelResponsesPath)) {
-            throw "ModelResponsesPath not found: $ModelResponsesPath"
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                -Category 'NotFound' `
+                -Reason "ModelResponsesPath not found: $ModelResponsesPath" `
+                -Remediation 'Pass an existing JSON file path or unset -ModelResponsesPath to use $env:PR_REVIEW_GATE_RESPONSES_JSON.'))
         }
 
         $rawText = Get-Content -Path $ModelResponsesPath -Raw
@@ -712,11 +732,17 @@ function Invoke-PRReviewGate {
         $responses = Get-ModelResponses -ModelResponsesPath $ModelResponsesPath
         $consensus = Merge-TriageResponses -FeedbackPayload $feedback -Responses $responses -LockedOutAgent $PRAuthorAgent
         if ([string]::IsNullOrWhiteSpace($PRAuthorAgent)) {
-            throw 'PRAuthorAgent is required for mechanical lockout enforcement.'
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                -Category 'InvalidParameter' `
+                -Reason 'PRAuthorAgent is required for mechanical lockout enforcement.' `
+                -Remediation 'Pass -PRAuthorAgent or set $env:PR_AUTHOR_AGENT to the agent that authored the PR.'))
         }
 
         if ($consensus.RecommendedRevisionOwner -eq $PRAuthorAgent) {
-            throw "Lockout enforcement failed: replacement owner matches PR author '$PRAuthorAgent'."
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                -Category 'AuthorizationFailed' `
+                -Reason "Lockout enforcement failed: replacement owner matches PR author '$PRAuthorAgent'." `
+                -Remediation 'Re-run multi-model triage; the recommended revision owner must differ from the PR author.'))
         }
 
         $plan = Save-ReviewPlan -Consensus $consensus -PRNumber $PRNumber -OutputPath $OutputPath -Agent $Agent -DryRun:$DryRun
@@ -752,7 +778,10 @@ function Invoke-PRReviewGate {
 
 if ($MyInvocation.InvocationName -ne '.') {
     if ($PRNumber -lt 1) {
-        throw 'PRNumber is required when running Invoke-PRReviewGate.ps1 directly.'
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+            -Category 'InvalidParameter' `
+            -Reason 'PRNumber is required when running Invoke-PRReviewGate.ps1 directly.' `
+            -Remediation 'Pass -PRNumber <int> to the script invocation.'))
     }
 
     $result = Invoke-PRReviewGate `

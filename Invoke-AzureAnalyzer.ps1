@@ -1486,7 +1486,11 @@ try {
 
             foreach ($requiredField in @('DceEndpoint', 'DcrImmutableId', 'FindingsStream', 'EntitiesStream')) {
                 if (-not $sinkConfig.PSObject.Properties[$requiredField] -or [string]::IsNullOrWhiteSpace([string]$sinkConfig.$requiredField)) {
-                    throw "Missing required Log Analytics config field '$requiredField'."
+                    throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+                        -Category 'ConfigurationError' `
+                        -Reason "Missing required Log Analytics config field '$requiredField'." `
+                        -Remediation "Add '$requiredField' to the JSON file passed via -LogAnalyticsConfig (see docs/log-analytics-sink.md)." `
+                        -Details "Config path: $LogAnalyticsConfig"))
                 }
             }
 

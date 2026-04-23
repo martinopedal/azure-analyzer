@@ -165,6 +165,12 @@ function Get-ExecDashboardModel {
     )
 
     if (-not (Test-Path $InputPath)) {
+        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:ExecDashboardRender' `
+                -Category 'NotFound' `
+                -Reason "Results file not found: $InputPath" `
+                -Remediation 'Run Invoke-AzureAnalyzer.ps1 first to produce results.json, then re-run the dashboard renderer.'))
+        }
         throw "Results file not found: $InputPath. Run Invoke-AzureAnalyzer.ps1 first."
     }
 
