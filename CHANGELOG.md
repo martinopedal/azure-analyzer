@@ -5,6 +5,7 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Fixed
+- fix(module): mirror new triage params (-CopilotTier, -TriageModel, -SingleModel) in AzureAnalyzer.psm1 wrapper so the no-parameter-drift contract from #698 stays green after #723.
 - fix(ci): grant `pull-requests: write` and `issues: write` to the `release_please` job in `.github/workflows/release.yml` so release-please can create its release PR and apply labels. The job was running with the workflow's default `contents: write` only, causing release-please v17.3.0 to fail with `Resource not accessible by integration` on PR creation. Permissions are scoped at both the workflow and job level for defense in depth (#734).
 - test(pr-review-gate): add end-to-end DryRun regression test that reproduces the workflow scenario from issue #507 (gate triggered by `pull_request_review_comment` with no model response artifacts and a sparse `.user` payload). Locks in the joint fix from #517 (null-safe model response handling) + #584 (sparse `.user` payload guard) so the original "Cannot bind argument to parameter 'Response' because it is null" failure cannot regress. Closes #507.
 
@@ -71,6 +72,7 @@ All notable changes to azure-analyzer will be documented here.
 - ci(markdown): replaced flaky `markdown-link-check.yml` with hardened `markdown-check.yml` (3 parallel jobs: markdownlint-cli2 lint + lychee links + ripgrep em-dash gate). Lychee now uses persistent 7d cache, 5 retries with 10s wait, and `nick-fields/retry` wrapper for catastrophic transients. Em-dash gate runs against changed files on PRs and emits an advisory backlog list on schedule. Ephemeral agent state (`.copilot/audits/`, `.copilot/status/`, `.squad/decisions/inbox/`, `.atlas-stash/`) and auto-generated docs (`docs/reference/permissions/`, `docs/reference/tool-catalog*.md`, `docs/consumer/permissions/`) are excluded from lint + links. New config files: `.markdownlint-cli2.jsonc`. Updated: `.lychee.toml`. New tests: `tests/workflows/MarkdownCheck.Tests.ps1` (24 invariants). New doc: `docs/contributing/markdown.md`. Watchdog + auto-approve workflow watchlists updated to track `Markdown Check` (was `Markdown Link Check`). This supersedes and reverts both interim hotfixes on `markdown-link-check.yml`: #531 (`continue-on-error` job-level bypass) and #535 (`|| true` step-level bypass + README maintenance banner)  -  the workflow file is deleted entirely and the README banner is removed in this PR. Closes #516.
 
 ### Fixed
+- fix(module): mirror new triage params (-CopilotTier, -TriageModel, -SingleModel) in AzureAnalyzer.psm1 wrapper so the no-parameter-drift contract from #698 stays green after #723.
 - fix(ci): pr-auto-rebase job name now evaluates matrix.pr.number expression (#534). Wrapped the job name in double quotes to ensure GitHub Actions interpolates the matrix variable, preventing literal `${{ matrix.pr.number }}` from appearing in the workflow run UI.
 - Reconcile README supported-tool counts to manifest (#598, DOC-002) - 36 enabled + 1 disabled.
 - Sanitize raw Infracost CLI JSON output through Remove-Credentials before write (#603, SEC-001).
