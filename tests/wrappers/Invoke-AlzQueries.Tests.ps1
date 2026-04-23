@@ -2,6 +2,12 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Guarantee Class A tool-missing warnings stay suppressed when this file runs
+# in isolation (single-file Invoke-Pester). The full-suite bootstrap sets the
+# same flag via tests/_Bootstrap.Tests.ps1; this is the belt-and-suspenders
+# equivalent for isolated / CI shard runs. See tests/_helpers/Suppress-WrapperWarnings.ps1.
+$env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
+
 BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
