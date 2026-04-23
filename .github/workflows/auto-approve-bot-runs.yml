@@ -16,6 +16,10 @@ name: Auto-approve trusted bot workflow runs
 
 on:
   workflow_run:
+    # Covers every workflow that can be triggered by a bot-authored PR. When a
+    # new PR-triggering workflow lands, add its `name:` here or bot PRs will
+    # wedge in action_required. Keep this list in sync with every workflow
+    # that has `on: pull_request` or `on: pull_request_target`.
     workflows:
       - "CI"
       - "CodeQL"
@@ -29,6 +33,12 @@ on:
       - "CI failure watchdog"
       - "Bicep Build"
       - "ALZ queries drift check"
+      - "Closes Link Required"
+      - "E2E"
+      - "Issue Resolution Verify"
+      - "PR Auto-Rebase Conflicts"
+      - "PR Auto-Rerun On Push"
+      - "Squad Heartbeat (Ralph)"
     types: [requested]
 
 permissions:
