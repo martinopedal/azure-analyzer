@@ -51,4 +51,34 @@ Describe 'AzureAnalyzer module import and manifest integrity' {
         $parameterNames | Should -Contain 'OutputPath'
         $parameterNames | Should -Contain 'IncludeTools'
     }
+
+    It 'wrapper exposes the full Invoke-AzureAnalyzer.ps1 parameter contract (no drift)' {
+        Import-Module $script:ManifestPath -Force -ErrorAction Stop
+        $scriptPath = Join-Path $script:RepoRoot 'Invoke-AzureAnalyzer.ps1'
+        Test-Path $scriptPath | Should -BeTrue
+
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors)
+        $errors | Should -BeNullOrEmpty
+
+        $scriptParamAst = $ast.ParamBlock
+        $scriptParamAst | Should -Not -BeNullOrEmpty
+        $scriptParams = @($scriptParamAst.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath })
+
+        $command = Get-Command -Name Invoke-AzureAnalyzer -Module AzureAnalyzer
+        # PowerShell's CommonParameters are added automatically by [CmdletBinding()]; exclude them from the comparison.
+        $commonParameters = @(
+            'Verbose','Debug','ErrorAction','WarningAction','InformationAction',
+            'ProgressAction','ErrorVariable','WarningVariable','InformationVariable',
+            'OutVariable','OutBuffer','PipelineVariable'
+        )
+        $wrapperParams = @($command.Parameters.Keys | Where-Object { $_ -notin $commonParameters })
+
+        $missingFromWrapper = @($scriptParams | Where-Object { $_ -notin $wrapperParams })
+        $extraOnWrapper     = @($wrapperParams | Where-Object { $_ -notin $scriptParams })
+
+        $missingFromWrapper | Should -BeNullOrEmpty -Because "wrapper must mirror Invoke-AzureAnalyzer.ps1; missing: $($missingFromWrapper -join ', ')"
+        $extraOnWrapper     | Should -BeNullOrEmpty -Because "wrapper must not introduce drift vs script; extra: $($extraOnWrapper -join ', ')"
+    }
 }
