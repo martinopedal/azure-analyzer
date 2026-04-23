@@ -1,0 +1,159 @@
+{
+  "Source": "ado-connections",
+  "Status": "Success",
+  "Message": "Scanned 2 project(s), found 4 service connection(s).",
+  "Findings": [
+    {
+      "Source": "ado-connections",
+      "ResourceId": "ado://contoso/payments/serviceconnection/azure-wif",
+      "Category": "Service Connection",
+      "Title": "AzureRM connection: azure-wif",
+      "Compliant": true,
+      "Severity": "Info",
+      "Detail": "Type=AzureRM; AuthScheme=WorkloadIdentityFederation; AuthMechanism=WorkloadIdentityFederation; IsShared=False",
+      "Remediation": "No action needed -- already using workload identity federation.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+      "SchemaVersion": "1.0",
+      "Pillar": "Security",
+      "Impact": "Low",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_settings/adminservices?resourceId=11111111-1111-1111-1111-111111111111",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_apis/serviceendpoint/endpoints/11111111-1111-1111-1111-111111111111?api-version=7.1",
+        "https://dev.azure.com/contoso/_settings/audit"
+      ],
+      "BaselineTags": [
+        "AuthScheme-WorkloadIdentityFederation",
+        "Auth-WorkloadIdentityFederation",
+        "Connection-Scoped"
+      ],
+      "EntityRefs": [
+        "ado-org:contoso",
+        "ado-project:contoso/payments",
+        "ado-service-connection:contoso/payments/11111111-1111-1111-1111-111111111111"
+      ],
+      "ToolVersion": "ado-rest-api-7.1",
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "ConnectionId": "11111111-1111-1111-1111-111111111111",
+      "ConnectionType": "AzureRM",
+      "AuthScheme": "WorkloadIdentityFederation",
+      "AuthMechanism": "WorkloadIdentityFederation",
+      "IsShared": false
+    },
+    {
+      "Source": "ado-connections",
+      "ResourceId": "ado://contoso/payments/serviceconnection/github-pat",
+      "Category": "Service Connection",
+      "Title": "GitHub connection: github-pat",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Type=GitHub; AuthScheme=Token; AuthMechanism=PAT; IsShared=True",
+      "Remediation": "Migrate the shared service connection to workload identity federation and coordinate with dependent teams.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+      "SchemaVersion": "1.0",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_settings/adminservices?resourceId=22222222-2222-2222-2222-222222222222",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_apis/serviceendpoint/endpoints/22222222-2222-2222-2222-222222222222?api-version=7.1",
+        "https://dev.azure.com/contoso/_settings/audit"
+      ],
+      "BaselineTags": [
+        "AuthScheme-PAT",
+        "Auth-PAT",
+        "Connection-Shared"
+      ],
+      "EntityRefs": [
+        "ado-org:contoso",
+        "ado-project:contoso/payments",
+        "ado-service-connection:contoso/payments/22222222-2222-2222-2222-222222222222"
+      ],
+      "ToolVersion": "ado-rest-api-7.1",
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "ConnectionId": "22222222-2222-2222-2222-222222222222",
+      "ConnectionType": "GitHub",
+      "AuthScheme": "PAT",
+      "AuthMechanism": "PAT",
+      "IsShared": true
+    },
+    {
+      "Source": "ado-connections",
+      "ResourceId": "ado://contoso/identity/serviceconnection/azure-sp",
+      "Category": "Service Connection",
+      "Title": "AzureRM connection: azure-sp",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Type=AzureRM; AuthScheme=ServicePrincipal; AuthMechanism=ClientSecret; IsShared=False",
+      "Remediation": "Migrate this service connection to workload identity federation and remove long-lived credentials.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+      "SchemaVersion": "1.0",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/identity/_settings/adminservices?resourceId=33333333-3333-3333-3333-333333333333",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/identity/_apis/serviceendpoint/endpoints/33333333-3333-3333-3333-333333333333?api-version=7.1",
+        "https://dev.azure.com/contoso/_settings/audit"
+      ],
+      "BaselineTags": [
+        "AuthScheme-ServicePrincipal",
+        "Auth-ClientSecret",
+        "Connection-Scoped"
+      ],
+      "EntityRefs": [
+        "ado-org:contoso",
+        "ado-project:contoso/identity",
+        "ado-service-connection:contoso/identity/33333333-3333-3333-3333-333333333333"
+      ],
+      "ToolVersion": "ado-rest-api-7.1",
+      "AdoOrg": "contoso",
+      "AdoProject": "identity",
+      "ConnectionId": "33333333-3333-3333-3333-333333333333",
+      "ConnectionType": "AzureRM",
+      "AuthScheme": "ServicePrincipal",
+      "AuthMechanism": "ClientSecret",
+      "IsShared": false
+    },
+    {
+      "Source": "ado-connections",
+      "ResourceId": "ado://contoso/identity/serviceconnection/generic-webhook",
+      "Category": "Service Connection",
+      "Title": "Generic connection: generic-webhook",
+      "Compliant": true,
+      "Severity": "Info",
+      "Detail": "Type=Generic; AuthScheme=UsernamePassword; AuthMechanism=UsernamePassword; IsShared=False",
+      "Remediation": "Review whether this connection can be migrated to a more secure authentication scheme.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+      "SchemaVersion": "1.0",
+      "Pillar": "Security",
+      "Impact": "Low",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/identity/_settings/adminservices?resourceId=44444444-4444-4444-4444-444444444444",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/identity/_apis/serviceendpoint/endpoints/44444444-4444-4444-4444-444444444444?api-version=7.1",
+        "https://dev.azure.com/contoso/_settings/audit"
+      ],
+      "BaselineTags": [
+        "AuthScheme-UsernamePassword",
+        "Auth-UsernamePassword",
+        "Connection-Scoped"
+      ],
+      "EntityRefs": [
+        "ado-org:contoso",
+        "ado-project:contoso/identity",
+        "ado-service-connection:contoso/identity/44444444-4444-4444-4444-444444444444"
+      ],
+      "ToolVersion": "ado-rest-api-7.1",
+      "AdoOrg": "contoso",
+      "AdoProject": "identity",
+      "ConnectionId": "44444444-4444-4444-4444-444444444444",
+      "ConnectionType": "Generic",
+      "AuthScheme": "UsernamePassword",
+      "AuthMechanism": "UsernamePassword",
+      "IsShared": false
+    }
+  ]
+}
