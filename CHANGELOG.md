@@ -19,6 +19,9 @@
 - Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
 - CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
 
+### Tests
+- Add back-to-back meta-test in `tests/shared/TestIsolation.Tests.ps1` to detect cross-file state leaks. Runs a subset of the test suite twice in the same pwsh process and asserts identical PassedCount/FailedCount. Gated behind `$env:AZURE_ANALYZER_RUN_ISOLATION_META_TEST=1`. (Closes #746)
+
 # Changelog
 
 All notable changes to azure-analyzer will be documented here.

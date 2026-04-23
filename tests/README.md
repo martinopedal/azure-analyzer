@@ -48,3 +48,48 @@ Do NOT:
 - Remove `Write-Warning` from production code to make tests quieter — those
   warnings fire correctly for real users.
 - Let `WARNING:` lines accumulate in CI test output. Treat them as regressions.
+
+## Test isolation (#746)
+
+Every test file MUST restore any environment variables, global variables, or
+module-scope state that it mutates. Shared-process test runners (macOS/Linux
+runners, local `Invoke-Pester` across multiple files) will leak state from
+earlier files into later ones, causing order-dependent flakes.
+
+**Required pattern:**
+```powershell
+BeforeAll {
+    # Capture prior state
+    $script:_origFoo = $env:FOO
+    $env:FOO = 'test-value'
+}
+
+AfterAll {
+    # Restore prior state
+    if ($null -eq $script:_origFoo) {
+        Remove-Item Env:FOO -ErrorAction SilentlyContinue
+    } else {
+        $env:FOO = $script:_origFoo
+    }
+}
+```
+
+**Guard test:** `tests/shared/TestIsolation.Tests.ps1` scans all test files
+for `$env:*` and `$global:*` writes and asserts that matching cleanup blocks
+exist. Add new exemptions to `$script:Exemptions` ONLY with written
+justification. The guard also includes a meta-test (gated behind
+`$env:AZURE_ANALYZER_RUN_ISOLATION_META_TEST=1`) that runs a subset of the
+suite twice back-to-back and asserts identical PassedCount, detecting leaks
+that the static heuristic might miss.
+
+**Common state to restore:**
+- Environment variables: `$env:*`
+- Global variables: `$global:*` (excluding `$global:LASTEXITCODE`, auto-managed)
+- Script-scope variables shared across `It` blocks
+- `$PSDefaultParameterValues`
+- Preference variables (`$ErrorActionPreference`, `$WarningPreference`, etc.)
+  set at module scope
+
+**File-scoped mutations are safe:** `Set-StrictMode -Version Latest` and
+`$ErrorActionPreference = 'Stop'` at the top of a `.Tests.ps1` file are
+automatically scoped to that file and do not leak.
