@@ -30,6 +30,7 @@ Describe 'closes-link-required workflow contract' {
     }
 
     It 'still enforces Closes/Fixes/Resolves or N/A for non-exempt PRs' {
-        $script:WorkflowText | Should -Match "PR body must contain a 'Closes #N' \(or Fixes/Resolves\) link, or an explicit 'N/A' justification"
+        $message = "PR body must contain a 'Closes #N' (or Fixes/Resolves) link, or an explicit 'N/A' justification"
+        $script:WorkflowText | Should -CMatch ([regex]::Escape($message))
     }
 }
