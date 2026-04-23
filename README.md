@@ -81,7 +81,7 @@ CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to red
 
 <details><summary><b>Environment variables</b></summary>azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:
 
-- `AZURE_ANALYZER_NO_BANNER=1` — suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`.
-- `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` — silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
-- `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) — tells wrappers they were launched by the orchestrator, not standalone.
-- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) — comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.</details>
+- `AZURE_ANALYZER_NO_BANNER=1` -- suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`.
+- `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` -- silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
+- `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) -- tells wrappers they were launched by the orchestrator, not standalone.
+- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) -- comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.</details>

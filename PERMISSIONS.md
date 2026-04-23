@@ -164,7 +164,7 @@ azure-analyzer requires no special environment variables to run, but honours a s
 | `AZURE_ANALYZER_ORCHESTRATED=1` | Set automatically by `Invoke-AzureAnalyzer.ps1` for the duration of a run. Wrappers use it to distinguish orchestrated runs from standalone invocation. Do not set manually. |
 | `AZURE_ANALYZER_EXPLICIT_TOOLS=<csv>` | Set automatically by `Invoke-AzureAnalyzer.ps1` to the comma-separated list of tools the user named via `-IncludeTools`. Empty when no filter was passed. Do not set manually. |
 
-None of these flags grant additional permissions — they purely affect launch-surface and log verbosity.
+None of these flags grant additional permissions -- they purely affect launch-surface and log verbosity.
 
 ## See also
 
