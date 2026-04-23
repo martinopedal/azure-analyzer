@@ -1,3 +1,10 @@
+
+## Unreleased
+
+### Fixed
+- Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
+- Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
+
 # Changelog
 
 All notable changes to azure-analyzer will be documented here.
@@ -10,6 +17,7 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll across test suite (#746).
 - fix(ci): make `Closes Link Required` tolerant for release-please branches, `skip-closes-check` labeled PRs, and trusted bot-authored PRs while still enforcing closes/fixes links for regular PRs.
+- Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
