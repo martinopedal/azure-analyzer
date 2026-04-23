@@ -1,0 +1,43 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "identity-correlator",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Service principal has direct subscription Owner role",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "IAM",
+      "Pillar": "Security",
+      "Detail": "SPN sp-prod-deploy holds Owner on subscription 11111111-1111-1111-1111-111111111111 without PIM activation.",
+      "EntityType": "ServicePrincipal",
+      "EntityId": "objectId:aaaaaaaa-1111-2222-3333-444444444444",
+      "Remediation": "Move assignment to PIM-eligible.",
+      "RuleId": "ic-spn-001"
+    },
+    {
+      "Title": "User assigned Global Administrator without MFA",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Category": "IAM",
+      "Pillar": "Security",
+      "Detail": "User holds Global Administrator role with no strong auth method registered.",
+      "EntityType": "User",
+      "EntityId": "objectId:bbbbbbbb-2222-3333-4444-555555555555",
+      "Remediation": "Enforce phishing-resistant MFA.",
+      "RuleId": "ic-usr-014"
+    },
+    {
+      "Title": "Service principal credential rotation healthy",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "IAM",
+      "Pillar": "Security",
+      "Detail": "Last credential rotated within 60 days.",
+      "EntityType": "ServicePrincipal",
+      "EntityId": "objectId:cccccccc-3333-4444-5555-666666666666",
+      "Remediation": "",
+      "RuleId": "ic-spn-rot-001"
+    }
+  ]
+}

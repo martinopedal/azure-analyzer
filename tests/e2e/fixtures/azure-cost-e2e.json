@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "azure-cost",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Subscription month-to-date spend exceeds USD 4000",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Cost Management API reports MTD USD 4321.78 against forecast USD 4500.",
+      "ResourceId": "/subscriptions/55555555-5555-5555-5555-555555555555",
+      "Remediation": "Review top-spending services and consider workload optimization.",
+      "RuleId": "azure-cost-mtd-threshold"
+    },
+    {
+      "Title": "Resource group rg-analytics drives 38% of subscription cost",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "rg-analytics MTD = USD 1642.21; concentration risk.",
+      "ResourceId": "/subscriptions/55555555-5555-5555-5555-555555555555/resourceGroups/rg-analytics",
+      "Remediation": "Tag and chargeback or split workloads.",
+      "RuleId": "azure-cost-rg-concentration"
+    },
+    {
+      "Title": "Cost forecast within 5% of budget",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Cost",
+      "Pillar": "Cost",
+      "Detail": "Forecast USD 4500 vs budget USD 4750.",
+      "ResourceId": "/subscriptions/55555555-5555-5555-5555-555555555555",
+      "Remediation": "",
+      "RuleId": "azure-cost-forecast-ok"
+    }
+  ]
+}

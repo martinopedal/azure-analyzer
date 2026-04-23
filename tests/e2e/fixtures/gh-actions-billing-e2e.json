@@ -1,0 +1,43 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "gh-actions-billing",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Workflow consumed 8.2 GB-hours of Linux runners last 30 days",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "CostOptimization",
+      "Detail": "Workflow ci.yml is the top spender at 8.2 GB-hours; consider matrix pruning.",
+      "EntityType": "Workflow",
+      "EntityId": "github://martinopedal/azure-analyzer/.github/workflows/ci.yml",
+      "Remediation": "Split jobs and add path filters to reduce runner minutes.",
+      "RuleId": "ghab-cost-001"
+    },
+    {
+      "Title": "Workflow runs on macOS runners (10x cost multiplier)",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Cost",
+      "Pillar": "CostOptimization",
+      "Detail": "Workflow release.yml triggers macOS-latest weekly with no clear platform-specific need.",
+      "EntityType": "Workflow",
+      "EntityId": "github://martinopedal/azure-analyzer/.github/workflows/release.yml",
+      "Remediation": "Move to ubuntu-latest unless macOS is required.",
+      "RuleId": "ghab-cost-002"
+    },
+    {
+      "Title": "Workflow billing within budget",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Cost",
+      "Pillar": "CostOptimization",
+      "Detail": "lint.yml uses <0.1 GB-hours per month.",
+      "EntityType": "Workflow",
+      "EntityId": "github://martinopedal/azure-analyzer/.github/workflows/lint.yml",
+      "Remediation": "",
+      "RuleId": "ghab-cost-info-001"
+    }
+  ]
+}

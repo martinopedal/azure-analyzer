@@ -1,0 +1,43 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "identity-graph-expansion",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Group nesting expands to 412 effective members",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "IAM",
+      "Pillar": "Security",
+      "Detail": "Transitive expansion of group g-platform-admins reveals 412 effective principals.",
+      "EntityType": "User",
+      "EntityId": "objectId:dddddddd-4444-5555-6666-777777777777",
+      "Remediation": "Flatten group nesting and audit membership.",
+      "RuleId": "ige-grp-001"
+    },
+    {
+      "Title": "Service principal inherits Owner via group nesting",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "IAM",
+      "Pillar": "Security",
+      "Detail": "SPN inherits Owner via 3-level group nesting on rg-prod.",
+      "EntityType": "ServicePrincipal",
+      "EntityId": "objectId:eeeeeeee-5555-6666-7777-888888888888",
+      "Remediation": "Replace inherited Owner with scoped role.",
+      "RuleId": "ige-spn-002"
+    },
+    {
+      "Title": "User has no transitive privileged role",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "IAM",
+      "Pillar": "Security",
+      "Detail": "Graph expansion confirms no privileged role inherited.",
+      "EntityType": "User",
+      "EntityId": "objectId:ffffffff-6666-7777-8888-999999999999",
+      "Remediation": "",
+      "RuleId": "ige-usr-001"
+    }
+  ]
+}

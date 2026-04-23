@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "prowler",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Network security group allows 0.0.0.0/0 on port 22",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Category": "Network",
+      "Pillar": "Security",
+      "Detail": "prowler check network_nsg_inbound_ssh_open: NSG nsg-frontend permits any:22.",
+      "ResourceId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-frontend",
+      "Remediation": "Restrict source to corp CIDR or use Azure Bastion.",
+      "RuleId": "prowler-nsg-ssh-open"
+    },
+    {
+      "Title": "Storage account TLS minimum below 1.2",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Encryption",
+      "Pillar": "Security",
+      "Detail": "prowler check storage_min_tls_1_2: account uses TLS1_0.",
+      "ResourceId": "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-data/providers/Microsoft.Storage/storageAccounts/legacyacct",
+      "Remediation": "Set minimumTlsVersion to TLS1_2.",
+      "RuleId": "prowler-storage-tls"
+    },
+    {
+      "Title": "Subscription has Defender for Cloud enabled",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Compliance",
+      "Pillar": "Security",
+      "Detail": "prowler check defender_enabled passed.",
+      "ResourceId": "/subscriptions/33333333-3333-3333-3333-333333333333",
+      "Remediation": "",
+      "RuleId": "prowler-defender-enabled"
+    }
+  ]
+}
