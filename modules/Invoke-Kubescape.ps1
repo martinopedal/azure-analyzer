@@ -109,6 +109,17 @@ if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
 $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
@@ -412,8 +423,14 @@ foreach ($cluster in $clusters) {
         $ksArgs = @('scan', '--format', 'json', '--output', $rawFile, '--format-version', 'v2')
         if ($contextForScan) { $ksArgs += @('--kube-context', $contextForScan) }
         if ($Namespace)      { $ksArgs += @('--include-namespaces', $Namespace) }
-        & kubescape @ksArgs 2>&1 | Out-Null
-        $scanExit = $LASTEXITCODE
+        $ksResult = Invoke-WithTimeout -Command 'kubescape' -Arguments $ksArgs -TimeoutSec 300
+        if ($ksResult.ExitCode -eq -1) {
+            Write-Warning "kubescape timed out after 300 seconds for cluster $($cluster.name)"
+            $failed++
+            continue
+        }
+        if ($ksResult.Output) { Write-Verbose "kubescape output: $($ksResult.Output)" }
+        $scanExit = $ksResult.ExitCode
 
         if ((Test-Path $rawFile) -and ((Get-Item $rawFile).Length -gt 0)) {
             $raw = Get-Content $rawFile -Raw | ConvertFrom-Json -Depth 30

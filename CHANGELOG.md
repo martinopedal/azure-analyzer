@@ -8,6 +8,7 @@
 ### Changed
 
 - **ASCII banner redesign (#964):** Replaced single-line merged figlet banner with two-block Standard figlet layout — "AZURE" (Cyan) on top, "ANALYZER" (Yellow) below. Both words clearly readable, ASCII-only (7-bit safe), under 80 chars wide. Console-only; no report impact.
+- **Timeout standardization (#974):** Wrapped external CLI calls in 7 wrappers (Gitleaks, Trivy, Zizmor, Prowler, Powerpipe, CopilotTriage, Kubescape) with `Invoke-WithTimeout` (300s hard kill). Previously only 8 of 15 CLI wrappers enforced timeouts — a hung scanner could block the entire assessment run. Added CON-006 ratchet test to enforce the invariant going forward.
 ### Added
 - **FixtureMode** (`-FixtureMode`): Run the full normalizer and reporting pipeline against fixture data in `tests/fixtures/` without Azure credentials. Skips auth checks, prerequisite installs, and all live API calls. Produces real `results.json`, `entities.json`, and HTML/Markdown reports. Use `-FixturePath <dir>` to supply custom fixtures. (#926)
 - **FixtureMode integration tests**: 14 Pester tests covering default/custom fixture paths, invalid path handling, `-IncludeTools` filtering, and output artifact verification.

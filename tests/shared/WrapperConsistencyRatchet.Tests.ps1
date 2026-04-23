@@ -139,6 +139,35 @@ See modules/shared/Errors.ps1 for the full FindingError schema.
         }
     }
 
+    Context 'CON-006 - CLI wrappers use Invoke-WithTimeout for external process calls' {
+        # Wrappers that shell out to external CLIs (gitleaks, trivy, kubescape, etc.)
+        # MUST define or use Invoke-WithTimeout to enforce the 300s hard timeout.
+        # Wrappers that only call PowerShell modules (Az, Graph) are exempt.
+        # Scorecard uses Start-Job/Wait-Job with its own 300s timeout, which is equivalent.
+        $script:CliWrappers = @(
+            'Invoke-ADORepoSecrets.ps1',
+            'Invoke-AksKarpenterCost.ps1',
+            'Invoke-AksRightsizing.ps1',
+            'Invoke-AppInsights.ps1',
+            'Invoke-AzGovViz.ps1',
+            'Invoke-AzureQuotaReports.ps1',
+            'Invoke-CopilotTriage.ps1',
+            'Invoke-GhActionsBilling.ps1',
+            'Invoke-Gitleaks.ps1',
+            'Invoke-Infracost.ps1',
+            'Invoke-Kubescape.ps1',
+            'Invoke-Powerpipe.ps1',
+            'Invoke-Prowler.ps1',
+            'Invoke-Trivy.ps1',
+            'Invoke-Zizmor.ps1'
+        )
+        It '<_> defines or references Invoke-WithTimeout' -ForEach $script:CliWrappers {
+            $path = Join-Path $script:WrapperRoot $_
+            $text = Get-Content -LiteralPath $path -Raw
+            $text | Should -Match 'Invoke-WithTimeout' -Because "CLI wrapper $_ must use Invoke-WithTimeout for the 300s hard timeout on external processes"
+        }
+    }
+
     Context 'Sinks - raw throw "..." ratchet (use New-FindingError instead)' {
         It '<_> raw-throw count matches sink baseline' -ForEach $script:SinkNames {
             $path     = Join-Path $script:SinkRoot $_

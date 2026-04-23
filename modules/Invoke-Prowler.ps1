@@ -18,6 +18,17 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
 
 function Get-ObjProp {
     param([object]$Obj, [string]$Name, [object]$Default = $null)
@@ -119,7 +130,20 @@ if (-not (Test-Path $OutputPath)) {
 $toolVersion = Get-ProwlerVersion
 
 try {
-    $null = prowler azure --subscription-id $SubscriptionId --output-formats json --output-directory $OutputPath --output-filename "prowler-$SubscriptionId" 2>&1
+    $prowlerArgs = @('azure', '--subscription-id', $SubscriptionId, '--output-formats', 'json', '--output-directory', $OutputPath, '--output-filename', "prowler-$SubscriptionId")
+    $execResult = Invoke-WithTimeout -Command 'prowler' -Arguments $prowlerArgs -TimeoutSec 300
+    if ($execResult.ExitCode -eq -1) {
+        Write-Warning 'prowler timed out after 300 seconds'
+        return [PSCustomObject]@{
+            Source        = 'prowler'
+            SchemaVersion = '1.0'
+            Status        = 'Failed'
+            Message       = 'prowler timed out after 300 seconds'
+            ToolVersion   = $toolVersion
+            Findings      = @()
+        }
+    }
+    if ($execResult.Output) { Write-Verbose "prowler output: $($execResult.Output)" }
 
     $jsonFiles = Get-ChildItem -Path $OutputPath -Filter '*.json' -File -ErrorAction SilentlyContinue
     $rawChecks = [System.Collections.Generic.List[object]]::new()

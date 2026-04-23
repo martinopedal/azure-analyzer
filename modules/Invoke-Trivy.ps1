@@ -49,6 +49,17 @@ if (Test-Path $remoteClonePath) { . $remoteClonePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
 
 # Minimum trivy version known to produce reliable JSON output
 $script:MinTrivyVersion = [version]'0.50.0'
@@ -290,13 +301,21 @@ try {
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-report-$([guid]::NewGuid().ToString('N')).json"
 
     try {
-        & trivy $ScanType --format json --scanners vuln,misconfig --output $reportFile $RepoPath 2>&1 | ForEach-Object {
-            if ($_ -is [System.Management.Automation.ErrorRecord]) {
-                Write-Verbose "trivy stderr: $_"
+        $trivyArgs = @($ScanType, '--format', 'json', '--scanners', 'vuln,misconfig', '--output', $reportFile, $RepoPath)
+        $execResult = Invoke-WithTimeout -Command 'trivy' -Arguments $trivyArgs -TimeoutSec 300
+        if ($execResult.ExitCode -eq -1) {
+            Write-Warning 'trivy timed out after 300 seconds'
+            return [PSCustomObject]@{
+                Source        = 'trivy'
+                SchemaVersion = '1.0'
+                Status        = 'Failed'
+                Message       = 'trivy timed out after 300 seconds'
+                Findings      = @()
             }
         }
+        if ($execResult.Output) { Write-Verbose "trivy output: $($execResult.Output)" }
 
-        $exitCode = $LASTEXITCODE
+        $exitCode = $execResult.ExitCode
 
         # Non-zero exit with no report = hard failure
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {

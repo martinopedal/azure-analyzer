@@ -15,6 +15,28 @@ param(
 )
 Set-StrictMode -Version Latest
 
+# Dot-source shared modules for Remove-Credentials, Invoke-WithTimeout
+$sharedDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'modules' 'shared'
+if (-not $sharedDir -or -not (Test-Path $sharedDir)) {
+    $sharedDir = Join-Path $PSScriptRoot 'shared'
+}
+$sanitizePath = Join-Path $sharedDir 'Sanitize.ps1'
+if (Test-Path $sanitizePath) { . $sanitizePath }
+if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
+    function Remove-Credentials { param([string]$Text) return $Text }
+}
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
+
 # --- Check 1: Python 3.10+ ---
 $py = $null
 try {
@@ -76,11 +98,14 @@ Write-Host '    will be sent to GitHub Copilot services for AI analysis.' -Foreg
 Write-Host ''
 Write-Host 'Running AI triage enrichment...' -ForegroundColor Magenta
 try {
-    & $py $scriptPath --input $InputPath --output $OutputPath 2>&1 | ForEach-Object {
-        Write-Host "  $_" -ForegroundColor DarkGray
+    $execResult = Invoke-WithTimeout -Command $py -Arguments @($scriptPath, '--input', $InputPath, '--output', $OutputPath) -TimeoutSec 300
+    if ($execResult.ExitCode -eq -1) {
+        Write-Warning 'AI triage: Python script timed out after 300 seconds. Skipping.'
+        return $null
     }
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "AI triage: Python script exited with code $LASTEXITCODE. Skipping."
+    if ($execResult.Output) { Write-Host "  $($execResult.Output)" -ForegroundColor DarkGray }
+    if ($execResult.ExitCode -ne 0) {
+        Write-Warning "AI triage: Python script exited with code $($execResult.ExitCode). Skipping."
         return $null
     }
     if (-not (Test-Path $OutputPath)) {

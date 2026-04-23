@@ -53,6 +53,17 @@ if (Test-Path $errorsPath) { . $errorsPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
 if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
     function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
 }
@@ -408,22 +419,20 @@ try {
             $gitleaksArgs += @('--config', $resolvedConfig.Path)
         }
 
-        $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
-        if ($useRetry) {
-            Invoke-WithRetry -ScriptBlock {
-                $stderrLines = & gitleaks @gitleaksArgs 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
-                if ($stderrLines) {
-                    Write-Verbose "gitleaks stderr: $($stderrLines -join '; ')"
-                }
-            }
-        } else {
-            $stderrLines = & gitleaks @gitleaksArgs 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
-            if ($stderrLines) {
-                Write-Verbose "gitleaks stderr: $($stderrLines -join '; ')"
+        $execResult = Invoke-WithTimeout -Command 'gitleaks' -Arguments $gitleaksArgs -TimeoutSec 300
+        if ($execResult.ExitCode -eq -1) {
+            Write-Warning 'gitleaks timed out after 300 seconds'
+            return [PSCustomObject]@{
+                Source        = 'gitleaks'
+                SchemaVersion = '1.0'
+                Status        = 'Failed'
+                Message       = 'gitleaks timed out after 300 seconds'
+                Findings      = @()
             }
         }
+        if ($execResult.Output) { Write-Verbose "gitleaks output: $($execResult.Output)" }
 
-        $exitCode = $LASTEXITCODE
+        $exitCode = $execResult.ExitCode
 
         # Validate: non-zero exit code with no report = hard failure
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {

@@ -57,6 +57,17 @@ if (Test-Path $remoteClonePath) { . $remoteClonePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
 
 function Test-ZizmorInstalled {
     $null -ne (Get-Command zizmor -ErrorAction SilentlyContinue)
@@ -293,30 +304,40 @@ try {
     $toolVersion = Get-ZizmorToolVersion
 
     # zizmor 1.x always writes JSON to stdout (the legacy --output flag was removed,
-    # which caused exit code 2 = clap argument parsing failure, see #768). Capture
-    # stdout via PowerShell redirection to a temp file. --no-exit-codes prevents
-    # finding-severity exit codes (11..14) from being misread as hard failures.
+    # which caused exit code 2 = clap argument parsing failure, see #768).
+    # Invoke-WithTimeout captures stdout; we write it to a temp report file.
+    # --no-exit-codes prevents finding-severity exit codes (11..14) from being
+    # misread as hard failures.
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "zizmor-report-$([guid]::NewGuid().ToString('N')).json"
-    $stderrFile = "$reportFile.err"
 
     try {
-        $invokeZizmor = {
-            & zizmor --format=json --no-exit-codes $scanPath 1>$reportFile 2>$stderrFile
+        $execResult = Invoke-WithTimeout -Command 'zizmor' -Arguments @('--format=json', '--no-exit-codes', $scanPath) -TimeoutSec 300
+        if ($execResult.ExitCode -eq -1) {
+            Write-Warning 'zizmor timed out after 300 seconds'
+            return [PSCustomObject]@{
+                Source        = 'zizmor'
+                SchemaVersion = '1.0'
+                Status        = 'Failed'
+                Message       = 'zizmor timed out after 300 seconds'
+                RunMode       = $effectiveRunMode
+                Findings      = @()
+            }
         }
-        $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
-        if ($useRetry) {
-            Invoke-WithRetry -ScriptBlock $invokeZizmor
+
+        $exitCode = $execResult.ExitCode
+
+        # Invoke-WithTimeout combines stdout (JSON array) and stderr.
+        # Extract the JSON array portion for the report file.
+        $rawOutput = $execResult.Output ?? ''
+        $jsonEnd = $rawOutput.LastIndexOf(']')
+        if ($jsonEnd -ge 0) {
+            Set-Content -Path $reportFile -Value $rawOutput.Substring(0, $jsonEnd + 1) -Encoding utf8
+            $stderrText = $rawOutput.Substring($jsonEnd + 1).Trim()
         } else {
-            & $invokeZizmor
+            Set-Content -Path $reportFile -Value $rawOutput -Encoding utf8
+            $stderrText = ''
         }
-
-        $exitCode = $LASTEXITCODE
-
-        $stderrText = ''
-        if (Test-Path $stderrFile) {
-            $stderrText = (Get-Content $stderrFile -Raw -ErrorAction SilentlyContinue) ?? ''
-            if ($stderrText) { Write-Verbose "zizmor stderr: $stderrText" }
-        }
+        if ($stderrText) { Write-Verbose "zizmor stderr: $stderrText" }
 
         $reportExists = Test-Path $reportFile
         $reportSize = if ($reportExists) { (Get-Item $reportFile).Length } else { 0 }
@@ -363,7 +384,6 @@ try {
         }
     } finally {
         Remove-Item $reportFile -Force -ErrorAction SilentlyContinue
-        Remove-Item $stderrFile -Force -ErrorAction SilentlyContinue
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()

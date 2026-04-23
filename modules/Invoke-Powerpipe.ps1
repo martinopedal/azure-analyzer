@@ -29,6 +29,17 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        return [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = (Remove-Credentials $output.Trim()) }
+    }
+}
 
 $errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
 if (Test-Path $errorsPath) { . $errorsPath }
@@ -142,17 +153,24 @@ try {
     $versionOut = (& powerpipe --version 2>&1 | Select-Object -First 1)
     $toolVersion = if ($versionOut) { [string]$versionOut } else { '' }
 
-    $rawOutput = & powerpipe benchmark run $Benchmark --output json 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $execResult = Invoke-WithTimeout -Command 'powerpipe' -Arguments @('benchmark', 'run', $Benchmark, '--output', 'json') -TimeoutSec 300
+    if ($execResult.ExitCode -eq -1) {
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:powerpipe' `
+            -Category 'TimeoutExceeded' `
+            -Reason 'powerpipe benchmark run timed out after 300 seconds.' `
+            -Remediation 'Retry or narrow the benchmark scope.'))
+    }
+    if ($execResult.ExitCode -ne 0) {
         throw (Format-FindingErrorMessage (New-FindingError `
             -Source 'wrapper:powerpipe' `
             -Category 'UnexpectedFailure' `
-            -Reason "powerpipe benchmark run failed (exit $LASTEXITCODE)." `
+            -Reason "powerpipe benchmark run failed (exit $($execResult.ExitCode))." `
             -Remediation 'Inspect powerpipe CLI output; ensure the benchmark mod is installed and credentials configured.' `
-            -Details (Remove-Credentials -Text ([string]$rawOutput))))
+            -Details (Remove-Credentials -Text ([string]$execResult.Output))))
     }
 
-    $parsed = $rawOutput | ConvertFrom-Json -Depth 100 -ErrorAction Stop
+    $parsed = $execResult.Output | ConvertFrom-Json -Depth 100 -ErrorAction Stop
     $findings = [System.Collections.Generic.List[object]]::new()
 
     if ($parsed.PSObject.Properties['findings'] -and $parsed.findings) {
