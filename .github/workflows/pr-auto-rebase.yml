@@ -70,7 +70,7 @@ jobs:
             echo "Found $count conflicting agent PR(s) eligible for auto-rebase."
 
   rebase:
-    name: Auto-rebase PR ${{ matrix.pr.number }}
+    name: "Auto-rebase PR #${{ matrix.pr.number }}"
     needs: enumerate
     if: needs.enumerate.outputs.count != '0' && needs.enumerate.outputs.count != ''
     runs-on: ubuntu-latest
