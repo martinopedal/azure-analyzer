@@ -65,6 +65,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
+- **Hardened Log Analytics sink errors**: sink failures now use structured `New-FindingError` messages with mandatory remediation and credential-safe details, and sink raw-throw regressions are ratcheted in tests.
 - **Uniform correlator dispatch**: `identity-correlator` now uses a thin `Invoke-*` wrapper entrypoint while keeping correlation logic in shared modules.
 - **Shared credential sanitization contract**: CI watchdog issue-body generation now reuses `modules/shared/Sanitize.ps1::Remove-Credentials` (no local sanitizer drift).
 - **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.
