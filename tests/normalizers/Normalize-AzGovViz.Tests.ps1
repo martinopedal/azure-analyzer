@@ -309,10 +309,12 @@ Describe 'Normalize-AzGovViz' {
 
             $exemptedFromEdge = @($edgeCollector | Where-Object { $_.Relation -eq 'ExemptedFrom' })
             $exemptedFromEdge.Count | Should -Be 1
+            $exemptedFromEdge[0].Source | Should -Be '00000000-0000-0000-0000-000000000001'
             $exemptedFromEdge[0].Target | Should -Be $assignmentLower
 
             $inheritsFromEdge = @($edgeCollector | Where-Object { $_.Relation -eq 'InheritsFrom' })
             $inheritsFromEdge.Count | Should -BeGreaterOrEqual 1
+            $inheritsFromEdge[0].Source | Should -Be '00000000-0000-0000-0000-000000000001'
             $inheritsFromEdge[0].Target | Should -Be $parentScopeLower
         }
     }
