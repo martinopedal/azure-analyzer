@@ -91,8 +91,12 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 |---|---|---|
 | **ADO Service Connections** | ADO Org | [`ado-connections.md`](docs/consumer/permissions/ado-connections.md) |
 | **ADO Pipeline Consumption** | ADO Org | [`ado-consumption.md`](docs/consumer/permissions/ado-consumption.md) |
+| **ADO Pipeline Consumption** | ADO Org | [`ado-consumption.md`](docs/consumer/permissions/ado-consumption.md) |
+| **ADO Pipeline Run Correlator** | ADO Org | [`ado-pipeline-correlator.md`](docs/consumer/permissions/ado-pipeline-correlator.md) |
 | **ADO Pipeline Run Correlator** | ADO Org | [`ado-pipeline-correlator.md`](docs/consumer/permissions/ado-pipeline-correlator.md) |
 | **ADO Pipeline Security** | ADO Org | [`ado-pipelines.md`](docs/consumer/permissions/ado-pipelines.md) |
+| **ADO Pipeline Security** | ADO Org | [`ado-pipelines.md`](docs/consumer/permissions/ado-pipelines.md) |
+| **ADO Repos Secret Scanning** | ADO Org | [`ado-repos-secrets.md`](docs/consumer/permissions/ado-repos-secrets.md) |
 | **ADO Repos Secret Scanning** | ADO Org | [`ado-repos-secrets.md`](docs/consumer/permissions/ado-repos-secrets.md) |
 
 ### Local CLI / IaC (no cloud permissions)
