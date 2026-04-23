@@ -5,6 +5,18 @@ Set-StrictMode -Version Latest
 BeforeAll {
     $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
     . (Join-Path $repoRoot 'modules\shared\MissingTool.ps1')
+    # Temporarily disable suppression for testing Write-MissingToolNotice behavior
+    $savedSuppress = $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS
+    $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $null
+}
+
+AfterAll {
+    # Restore previous suppression state
+    if ($null -ne $savedSuppress) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $savedSuppress
+    } else {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    }
 }
 
 Describe 'Write-MissingToolNotice' {
