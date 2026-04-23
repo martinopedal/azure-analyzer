@@ -29,10 +29,11 @@ function Invoke-WrapperWithHostCapture {
     $warningLikeInfoPattern = '^(?i:(WARNING:|##\[warning\]|Notice:))'
     $result = $null
     try {
-        # 3>&1 redirects warnings into the success stream so we can sift them
-        # out without re-emitting them to the host (which would still pollute
-        # the Pester transcript). The scriptblock's actual return value is the
-        # last non-warning emission.
+        # 3>&1 and 6>&1 redirect warning/information streams into success so we
+        # can sift warning records and warning-like information markers without
+        # re-emitting them to the host (which would still pollute the Pester
+        # transcript). The scriptblock's actual return value is the last
+        # non-warning-like emission.
         $merged = & {
             & $ScriptBlock
         } 3>&1 6>&1
