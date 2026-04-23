@@ -210,4 +210,38 @@ Describe 'Invoke-PRReviewGate shared helper' {
             $consensus.ReviewerVerdict | Should -Be 'COMMENTED'
         }
     }
+
+    Context 'Get-PullRequestFeedback tolerates sparse .user payloads (regression #584)' {
+        BeforeEach {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)] $Arguments)
+                $joined = [string]($Arguments -join ' ')
+                if ($joined -match '/pulls/584/reviews') {
+                    return '[[
+                        { "id": 9001, "state": "COMMENTED", "body": "ghost review", "submitted_at": "2026-04-23T03:00:00Z", "commit_id": "deadbeef" },
+                        { "id": 9002, "state": "APPROVED", "body": "null user", "submitted_at": "2026-04-23T03:01:00Z", "commit_id": "cafe", "user": null }
+                    ]]'
+                }
+                if ($joined -match '/pulls/584/comments') {
+                    return '[[
+                        { "id": 9101, "body": "no user property", "path": "x.ps1", "line": 1, "side": "RIGHT", "created_at": "2026-04-23T03:02:00Z" },
+                        { "id": 9102, "body": "user is null", "path": "y.ps1", "line": 2, "side": "RIGHT", "created_at": "2026-04-23T03:03:00Z", "user": null }
+                    ]]'
+                }
+                throw "Unexpected gh call: $joined"
+            }
+            . $script:ModulePath
+        }
+
+        It 'does not throw under StrictMode and falls back to unknown-reviewer' {
+            { Get-PRReviewFeedback -Repo 'martinopedal/azure-analyzer' -PRNumber 584 } | Should -Not -Throw
+            $feedback = Get-PRReviewFeedback -Repo 'martinopedal/azure-analyzer' -PRNumber 584
+            $feedback.Reviews.Count | Should -Be 2
+            $feedback.Reviews[0].Reviewer | Should -Be 'unknown-reviewer'
+            $feedback.Reviews[1].Reviewer | Should -Be 'unknown-reviewer'
+            $feedback.LineComments.Count | Should -Be 2
+            $feedback.LineComments[0].Reviewer | Should -Be 'unknown-reviewer'
+            $feedback.LineComments[1].Reviewer | Should -Be 'unknown-reviewer'
+        }
+    }
 }
