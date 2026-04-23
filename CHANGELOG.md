@@ -2,6 +2,12 @@
 
 All notable changes to azure-analyzer will be documented here.
 
+## [Unreleased]
+
+### Fixed
+
+* Remove 9 expired docs-restructure redirect stubs now that module version reached 1.1.0 (cleared `Check redirect stub deadline` failure that blocked all open PRs).
+
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 
