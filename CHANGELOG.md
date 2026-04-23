@@ -4,6 +4,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- fix(ci): CodeQL concurrency now per-ref instead of global, eliminating cross-branch cancellation thrash that left `Analyze (actions)` MISSING on rebased PRs.
+
 ### Added
 - test(e2e): wrapper coverage batch 5/5 for #745 — adds orchestrator-pipeline E2E tests for the six identity/governance tools (`identity-correlator`, `identity-graph-expansion`, `maester`, `gh-actions-billing`, `azgovviz`, `wara`) covering User, ServicePrincipal, Tenant, Workflow, Subscription and AzureResource entity types. New file `tests/e2e/Batch5-IdentityAndGovernance.E2E.Tests.ps1`. Tracker `docs/audits/e2e-wrapper-coverage-parity.json` graduated for the six new tools plus stale entries for `ado-connections`, `ado-pipelines`, `ado-consumption`, `ado-repos-secrets`, `ado-pipeline-correlator`, `bicep-iac`, `infracost`, `terraform-iac`. Closes the wrapper-coverage backfill series (#761, #762, #763, #765, this PR). Baseline preserved.
 - test(e2e): wrapper coverage batch 1/5 for #745 — adds orchestrator-pipeline E2E tests for `azqr`, `defender-for-cloud`, `prowler`, `finops`, and `azure-cost`. New file `tests/e2e/Batch1-AzureGovernance.E2E.Tests.ps1` feeds per-tool wrapper-output fixtures (`tests/e2e/fixtures/<tool>-e2e.json`) through `Invoke-E2EPipeline` and asserts results.json shape, entities.json v3.1 envelope, EntityType enum compliance, severity enum, HTML/MD render, and credential scrubbing of planted secrets. Tracker entries E2E-001, E2E-004, E2E-005, E2E-007, and E2E-009 graduated from `not-covered` to `covered`. 35 new tests, baseline preserved.
