@@ -292,46 +292,55 @@ try {
     $repoCoordinates = Get-ZizmorRepoCoordinates -RepositoryPath $RepoPath -RemoteUrl $RemoteUrl
     $toolVersion = Get-ZizmorToolVersion
 
-    # Write JSON to a temp file to keep stderr separate from the JSON stream
+    # zizmor 1.x always writes JSON to stdout (the legacy --output flag was removed,
+    # which caused exit code 2 = clap argument parsing failure, see #768). Capture
+    # stdout via PowerShell redirection to a temp file. --no-exit-codes prevents
+    # finding-severity exit codes (11..14) from being misread as hard failures.
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "zizmor-report-$([guid]::NewGuid().ToString('N')).json"
+    $stderrFile = "$reportFile.err"
 
     try {
+        $invokeZizmor = {
+            & zizmor --format=json --no-exit-codes $scanPath 1>$reportFile 2>$stderrFile
+        }
         $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
         if ($useRetry) {
-            Invoke-WithRetry -ScriptBlock {
-                & zizmor --format json --output $reportFile $scanPath 2>&1 | ForEach-Object {
-                    if ($_ -is [System.Management.Automation.ErrorRecord]) {
-                        Write-Verbose "zizmor stderr: $_"
-                    }
-                }
-            }
+            Invoke-WithRetry -ScriptBlock $invokeZizmor
         } else {
-            & zizmor --format json --output $reportFile $scanPath 2>&1 | ForEach-Object {
-                if ($_ -is [System.Management.Automation.ErrorRecord]) {
-                    Write-Verbose "zizmor stderr: $_"
-                }
-            }
+            & $invokeZizmor
         }
 
         $exitCode = $LASTEXITCODE
 
-        # Non-zero exit with no report = hard failure
-        if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {
-            Write-Warning (Remove-Credentials "zizmor exited with code $exitCode and produced no report")
+        $stderrText = ''
+        if (Test-Path $stderrFile) {
+            $stderrText = (Get-Content $stderrFile -Raw -ErrorAction SilentlyContinue) ?? ''
+            if ($stderrText) { Write-Verbose "zizmor stderr: $stderrText" }
+        }
+
+        $reportExists = Test-Path $reportFile
+        $reportSize = if ($reportExists) { (Get-Item $reportFile).Length } else { 0 }
+
+        # Non-zero exit with no report content = hard failure.
+        if ($exitCode -ne 0 -and $reportSize -le 0) {
+            $sanitizedErr = Remove-Credentials ([string]$stderrText).Trim()
+            $msg = "zizmor exited with code $exitCode and produced no report"
+            if ($sanitizedErr) { $msg = "$msg`: $sanitizedErr" }
+            Write-Warning (Remove-Credentials $msg)
             return [PSCustomObject]@{
                 Source   = 'zizmor'
                 SchemaVersion = '1.0'
                 Status   = 'Failed'
-                Message  = Remove-Credentials "zizmor exited with code $exitCode and produced no report"
+                Message  = Remove-Credentials $msg
                 Findings = @()
                 RunMode  = $effectiveRunMode
             }
         }
 
         $json = $null
-        if (Test-Path $reportFile) {
+        if ($reportExists -and $reportSize -gt 0) {
             $jsonText = Get-Content $reportFile -Raw -ErrorAction SilentlyContinue
-            if ($jsonText) {
+            if ($jsonText -and $jsonText.Trim()) {
                 try {
                     $json = $jsonText | ConvertFrom-Json -ErrorAction Stop
                 } catch {
@@ -346,15 +355,15 @@ try {
                     }
                 }
             } else {
-                # Empty report file — no findings
                 $json = @()
             }
-        } elseif ($exitCode -eq 0) {
-            # exit 0 but no report file — zizmor found nothing
+        } else {
+            # exit 0 with empty/no stdout — zizmor found nothing
             $json = @()
         }
     } finally {
         Remove-Item $reportFile -Force -ErrorAction SilentlyContinue
+        Remove-Item $stderrFile -Force -ErrorAction SilentlyContinue
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
