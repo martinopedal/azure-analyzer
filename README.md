@@ -68,13 +68,13 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Mandatory scanner-param prompts (#426)**: when a scanner is selected but its mandatory parameter is missing, `Read-MandatoryScannerParam` resolves it via env var (`AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `ADO_ORG`, `GITHUB_REPOSITORY`, `AZUREANALYZER_REPO_PATH`) or interactive prompt. CI / `-NonInteractive` runs skip the scanner with a sanitized warning instead of failing late inside the underlying tool.
 - **Safer dry-runs for side-effecting wrappers**: `Invoke-Falco` and elevated `Invoke-AksKarpenterCost` now support `-WhatIf`/`-Confirm` (`SupportsShouldProcess`) before cluster install/elevated kubectl actions.
 - **ADO consumption parameter consistency**: `Invoke-AdoConsumption` now uses canonical `-AdoOrg` / `-AdoProject` names, with legacy `-Organization` / `-Project` aliases retained for backward compatibility.
-- **Opt-in LLM triage** scaffold: defaults to 3-model rubberduck consensus, supports explicit `-SingleModel` opt-out, and applies credential sanitization on prompt + response paths.
+- **Opt-in LLM triage** scaffold: defaults to 3-model rubberduck consensus, discovers your available Copilot models at runtime (`gh copilot models list`), supports `-TriageModel Auto|Explicit:<model-id>` plus explicit `-SingleModel` opt-out, and applies credential sanitization on prompt + response paths.
 
 </details>
 
 <details><summary><b>Tool catalog (36 enabled + 1 opt-in)</b></summary>
 
-See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md).
+See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md). The catalog documents each tool's `scope` axis (`subscription`, `managementGroup`, `tenant`, `repository`, `ado`, or `workspace`), which maps directly to the `-SubscriptionId` / `-ManagementGroupId` / `-TenantId` / `-RepoPath` (or `-RemoteUrl`) / `-AdoOrg` / `-WorkspaceResourceId` parameters on `Invoke-AzureAnalyzer.ps1`.
 
 </details>
 
