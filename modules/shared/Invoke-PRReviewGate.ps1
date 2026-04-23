@@ -128,12 +128,24 @@ function Invoke-GhApiPaged {
             -Details $lastError))
     }
 
-    $text = Remove-Credentials $text
+    # NOTE: Do NOT run Remove-Credentials on raw JSON text here.
+    # Greedy regex patterns (e.g. Password=[^;]+) can match inside
+    # diff_hunk string values and consume past the closing JSON quote,
+    # producing "Unterminated string" parse errors. Individual fields
+    # are sanitized after parsing in Get-PRReviewFeedback instead.
     if ([string]::IsNullOrWhiteSpace($text)) {
         return @()
     }
 
-    $pages = @($text | ConvertFrom-Json -ErrorAction Stop)
+    try {
+        $pages = @($text | ConvertFrom-Json -ErrorAction Stop)
+    } catch {
+        # Fallback: strip diff_hunk values that may contain characters
+        # breaking JSON structure, then retry parsing.
+        $stripped = [regex]::Replace($text, '"diff_hunk"\s*:\s*"(?:[^"\\]|\\.)*"', '"diff_hunk":""')
+        $pages = @($stripped | ConvertFrom-Json -ErrorAction Stop)
+    }
+
     $items = [System.Collections.Generic.List[object]]::new()
     foreach ($page in $pages) {
         foreach ($item in @($page)) {
