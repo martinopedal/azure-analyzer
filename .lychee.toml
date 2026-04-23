@@ -34,6 +34,8 @@ exclude = [
   "^https://keda\\.sh",
   # release-please compare link for v1.1.0 references non-existent v1.0.0 tag (first release)
   "^https://github\\.com/martinopedal/azure-analyzer/compare/v1\\.0\\.0",
+  # release-please compare link for v1.1.1 references not-yet-created v1.1.1 tag during release PR window
+  "^https://github\\.com/martinopedal/azure-analyzer/compare/v1\\.1\\.0\\.\\.\\.v1\\.1\\.1",
   # Loopback / placeholder hosts
   "^https?://(localhost|127\\.|0\\.0\\.0\\.0|example\\.(com|org|net))",
   "^file:///.*?/\\.copilot/skills/humanizer/url$",
