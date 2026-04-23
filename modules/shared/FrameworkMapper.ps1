@@ -257,6 +257,9 @@ function Get-FrameworkCoverage {
         if (-not $f.PSObject.Properties['Frameworks']) { continue }
         if (-not $f.Frameworks) { continue }
         foreach ($block in $f.Frameworks) {
+        $frameworksProp = $f.PSObject.Properties['Frameworks']
+        if (-not $frameworksProp -or -not $frameworksProp.Value) { continue }
+        foreach ($block in @($frameworksProp.Value)) {
             if (-not $touched.ContainsKey($block.framework)) { $touched[$block.framework] = @{} }
             foreach ($ctl in $block.controls) { $touched[$block.framework][$ctl] = $true }
         }

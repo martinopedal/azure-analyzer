@@ -72,6 +72,15 @@ Describe 'FrameworkMapper' {
         }
     }
 
+    It 'Get-FrameworkCoverage ignores findings without Frameworks property' {
+        $findings = @(
+            [pscustomobject]@{ Source = 'azqr'; Category = 'Security'; Controls = @() }
+            [pscustomobject]@{ Source = 'scorecard'; Category = 'Branch-Protection'; Frameworks = @(); Controls = @() }
+        )
+        foreach ($f in $findings) { Add-FrameworkMapping -Finding $f | Out-Null }
+        { Get-FrameworkCoverage -Findings $findings | Out-Null } | Should -Not -Throw
+    }
+
     Context 'WAF pillar coverage' {
         It 'classifies azqr Security as the Security pillar' {
             $f = [pscustomobject]@{
