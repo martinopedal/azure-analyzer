@@ -148,6 +148,56 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
     }
 }
 
+Describe 'Invoke-Zizmor: #768 zizmor 1.x exit-code handling' {
+    BeforeAll {
+        $global:ZizmorRawFixture768 = $script:RawFixture
+        $global:ZizmorCapturedArgs = $null
+        function global:zizmor {
+            param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Args)
+            if ($Args -contains '--version') {
+                $global:LASTEXITCODE = 0
+                return 'zizmor 1.8.0'
+            }
+            $global:ZizmorCapturedArgs = @($Args)
+            # Simulate zizmor 1.x: stdout JSON + non-zero severity exit code (e.g. 14).
+            # With --no-exit-codes the wrapper passes, so this asserts the wrapper
+            # never trips on a non-zero exit when stdout already has the report (#768).
+            $global:LASTEXITCODE = 14
+            return (Get-Content $global:ZizmorRawFixture768 -Raw)
+        }
+        function global:git {
+            $cmd = ($args -join ' ')
+            if ($cmd -match 'remote get-url origin') { return 'https://github.com/martinopedal/azure-analyzer.git' }
+            if ($cmd -match 'rev-parse HEAD')        { return '0123456789abcdef0123456789abcdef01234567' }
+            return ''
+        }
+    }
+
+    AfterAll {
+        Remove-Item Function:\global:zizmor -ErrorAction SilentlyContinue
+        Remove-Item Function:\global:git -ErrorAction SilentlyContinue
+        Remove-Variable -Name ZizmorRawFixture768 -Scope Global -ErrorAction SilentlyContinue
+        Remove-Variable -Name ZizmorCapturedArgs -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'passes --no-exit-codes and --format=json so zizmor 1.x does not exit 2 on findings (#768)' {
+        Mock Get-Command {
+            param($Name)
+            if ($Name -eq 'zizmor') { return [pscustomobject]@{ Name = 'zizmor' } }
+            if ($Name -eq 'git')    { return [pscustomobject]@{ Name = 'git' } }
+            return $null
+        } -ParameterFilter { $Name -in @('zizmor', 'git') }
+
+        $result = & $script:Wrapper -RepoPath $script:RepoRoot
+        $result.Status | Should -Be 'Success' -Because 'zizmor non-zero exit with a populated report must NOT be treated as failure (#768)'
+        @($result.Findings).Count | Should -BeGreaterThan 0
+
+        $argString = ($global:ZizmorCapturedArgs | ForEach-Object { [string]$_ }) -join ' '
+        $argString | Should -Match '--no-exit-codes' -Because 'wrapper must pass --no-exit-codes to suppress severity exit codes 11..14 (#768)'
+        $argString | Should -Match '--format=json' -Because 'wrapper must request JSON output explicitly (#768)'
+    }
+}
+
 Describe 'Invoke-Zizmor: E2E wrapper to normalizer (#660)' {
     BeforeAll {
         . $script:Normalizer
@@ -158,12 +208,11 @@ Describe 'Invoke-Zizmor: E2E wrapper to normalizer (#660)' {
                 $global:LASTEXITCODE = 0
                 return 'zizmor 1.8.0'
             }
-            $outputIndex = [Array]::IndexOf($Args, '--output')
-            if ($outputIndex -ge 0 -and ($outputIndex + 1) -lt $Args.Count) {
-                Copy-Item -Path $global:ZizmorE2EFixture -Destination ([string]$Args[$outputIndex + 1]) -Force
-            }
-            $global:LASTEXITCODE = 1
-            return $null
+            # zizmor 1.x writes JSON to stdout (#768). Wrapper redirects 1>$reportFile.
+            # Exit code is non-zero when severity-based exits are enabled, but the
+            # wrapper passes --no-exit-codes so 0 is the expected normal-path code.
+            $global:LASTEXITCODE = 0
+            return (Get-Content $global:ZizmorE2EFixture -Raw)
         }
     }
 

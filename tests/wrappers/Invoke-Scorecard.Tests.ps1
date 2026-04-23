@@ -99,3 +99,73 @@ Describe 'scorecard wrapper: GH_HOST handling' {
     }
 }
 
+Describe 'scorecard wrapper: #768 GITHUB_TOKEN handling' {
+    BeforeEach {
+        $script:OriginalAuthToken = $env:GITHUB_AUTH_TOKEN
+        $script:OriginalGitHubToken = $env:GITHUB_TOKEN
+    }
+
+    AfterEach {
+        Remove-Item Function:\global:scorecard -ErrorAction SilentlyContinue
+        Remove-Variable -Name seenAuthToken -Scope Global -ErrorAction SilentlyContinue
+        if ($null -eq $script:OriginalAuthToken) {
+            Remove-Item Env:\GITHUB_AUTH_TOKEN -ErrorAction SilentlyContinue
+        } else {
+            $env:GITHUB_AUTH_TOKEN = $script:OriginalAuthToken
+        }
+        if ($null -eq $script:OriginalGitHubToken) {
+            Remove-Item Env:\GITHUB_TOKEN -ErrorAction SilentlyContinue
+        } else {
+            $env:GITHUB_TOKEN = $script:OriginalGitHubToken
+        }
+    }
+
+    It 'short-circuits with Status=Skipped + MissingAuthToken when no token is set (#768)' {
+        Remove-Item Env:\GITHUB_AUTH_TOKEN -ErrorAction SilentlyContinue
+        Remove-Item Env:\GITHUB_TOKEN -ErrorAction SilentlyContinue
+
+        function global:scorecard {
+            param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)
+            throw 'scorecard CLI must NOT be invoked when no auth token is present (#768)'
+        }
+
+        $result = & $script:wrapper -Repository 'github.com/org/repo'
+        $result.Status | Should -Be 'Skipped'
+        $result.Message | Should -Match 'GITHUB_AUTH_TOKEN|GITHUB_TOKEN'
+        @($result.Findings).Count | Should -Be 0
+        @($result.Diagnostics) | Where-Object { $_.Code -eq 'MissingAuthToken' } | Should -Not -BeNullOrEmpty
+    }
+
+    It 'propagates GITHUB_TOKEN as GITHUB_AUTH_TOKEN into the scorecard call (#768)' {
+        Remove-Item Env:\GITHUB_AUTH_TOKEN -ErrorAction SilentlyContinue
+        $env:GITHUB_TOKEN = 'gh-token-from-actions'
+
+        function global:scorecard {
+            param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)
+            $global:seenAuthToken = $env:GITHUB_AUTH_TOKEN
+            if ($Args -contains '--version') { return 'scorecard version: v4.13.0' }
+            return $global:scorecardCliFixtureRaw
+        }
+
+        $result = & $script:wrapper -Repository 'github.com/org/repo'
+        $result.Status | Should -Be 'Success'
+        $global:seenAuthToken | Should -Be 'gh-token-from-actions' -Because 'wrapper must propagate GITHUB_TOKEN as GITHUB_AUTH_TOKEN so scorecard runs authenticated (#768)'
+    }
+
+    It 'prefers GITHUB_AUTH_TOKEN over GITHUB_TOKEN when both are set (#768)' {
+        $env:GITHUB_AUTH_TOKEN = 'native-scorecard-token'
+        $env:GITHUB_TOKEN = 'gh-token'
+
+        function global:scorecard {
+            param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)
+            $global:seenAuthToken = $env:GITHUB_AUTH_TOKEN
+            if ($Args -contains '--version') { return 'scorecard version: v4.13.0' }
+            return $global:scorecardCliFixtureRaw
+        }
+
+        $result = & $script:wrapper -Repository 'github.com/org/repo'
+        $result.Status | Should -Be 'Success'
+        $global:seenAuthToken | Should -Be 'native-scorecard-token'
+    }
+}
+
