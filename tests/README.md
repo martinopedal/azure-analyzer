@@ -6,7 +6,7 @@ Layout:
 - `tests/shared/` — shared-module unit tests (`modules/shared/*`).
 - `tests/wrappers/` — tool-wrapper unit tests (`modules/Invoke-*.ps1`).
 - `tests/normalizers/` — v1 -> v2 normalizer tests with fixtures under `tests/fixtures/`.
-- `tests/integration/` — cross-module smoke / integration.
+- `tests/integration/` — cross-module smoke / integration and runtime tool-availability tests.
 - `tests/workflows/` — static `.github/workflows/*.yml` invariant checks.
 
 ## Negative-path tests that exercise `Write-Warning`
@@ -48,3 +48,31 @@ Do NOT:
 - Remove `Write-Warning` from production code to make tests quieter — those
   warnings fire correctly for real users.
 - Let `WARNING:` lines accumulate in CI test output. Treat them as regressions.
+
+## LiveTool tier for wrapper tests
+
+Wrapper tests that depend on a live tool being installed (e.g. trivy, scorecard, gitleaks)
+use the `_LiveTool.Helper.ps1` module to skip gracefully when the tool is unavailable.
+
+### Usage
+
+In a wrapper test file (e.g. `tests/wrappers/Invoke-Trivy.Tests.ps1`):
+
+```powershell
+. (Join-Path $PSScriptRoot '_LiveTool.Helper.ps1')
+New-LiveToolSkipFilter -ToolName 'trivy'
+
+Describe 'Invoke-Trivy' {
+    It 'runs and produces findings' {
+        # Test is skipped unless trivy is installed or LIVE_TOOL_TESTS=1
+    }
+}
+```
+
+### Behavior
+
+- If the tool is installed, all tests run.
+- If the tool is NOT installed AND the `LIVE_TOOL_TESTS=1` environment variable is set,
+  all tests run (expected to be on a runner with tools pre-installed).
+- If the tool is NOT installed AND `LIVE_TOOL_TESTS` is not set, all tests are skipped
+  (default for local development without all optional tools).

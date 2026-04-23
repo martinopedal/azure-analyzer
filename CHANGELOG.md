@@ -5,6 +5,11 @@ All notable changes to azure-analyzer will be documented here.
 ## [Unreleased]
 
 ### Added
+- test(integration): restore runtime missing-tool contract test under `tests/integration/MissingTool.Runtime.Tests.ps1` to verify wrappers (Trivy, Scorecard, gitleaks) correctly dot-source `modules/shared/MissingTool.ps1` and emit Write-MissingToolNotice when tools are unavailable. Closes #596.
+- test(infrastructure): add LiveTool tier helper module `tests/wrappers/_LiveTool.Helper.ps1` with `New-LiveToolSkipFilter` function to gracefully skip wrapper tests when live tools are not installed unless `LIVE_TOOL_TESTS=1` environment variable is set. Enables split test tiers: unit (mock/fast) and integration (live/slow, opt-in). Closes #597. Documentation added to `tests/README.md`.
+- fix(wrapper): expose all 58 typed parameters from `Invoke-AzureAnalyzer.ps1` in the module wrapper function `AzureAnalyzer.psm1` Invoke-AzureAnalyzer to restore Get-Help parameter discoverability and tab-completion in PowerShell. Wrapper now forwards parameters via `@PSBoundParameters` and includes full comment-based help with all parameter descriptions. Fixes #676 (DQS-002).
+
+### Added
 - test(e2e): wrapper-level coverage for `bicep-iac` (#663), `infracost` (#664), and `terraform-iac` (#665). Three new files under `tests/wrappers/` (`Invoke-IaCBicep.E2E.Tests.ps1`, `Invoke-IaCTerraform.E2E.Tests.ps1`, `Invoke-Infracost.E2E.Tests.ps1`) exercise wrapper -> normalizer end-to-end through a mocked `Invoke-WithTimeout` (300s timeout invariant asserted), feeding the v1 envelope produced by the IaC adapter and Infracost wrapper into `Normalize-IaCBicep`, `Normalize-IaCTerraform`, and `Normalize-Infracost` and validating the resulting v2 `FindingRow` shape (SchemaVersion 2.2, canonical EntityId, Pillar, EvidenceUris, ToolVersion, Provenance.RunId). Shared, fully-synthetic fixtures live in `tests/fixtures/iac/` (`main.bicep`, `bicep-build-output.txt`, `main.tf`, `terraform-validate.json`, `trivy-config.json`, `infracost-breakdown.json`, plus a `README.md` describing each). Wrapper test suite now 430/430 green.
 
 ### Documentation
