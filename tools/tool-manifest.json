@@ -966,7 +966,7 @@
     },
     {
       "name": "identity-correlator",
-      "displayName": "Identity Correlator (Shared Module)",
+      "displayName": "Identity Correlator",
       "source": "identity-correlator",
       "provider": "graph",
       "scope": "tenant",

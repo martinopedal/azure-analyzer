@@ -73,7 +73,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 | Tool | Scope | Detail |
 |---|---|---|
-| **Identity Correlator (Shared Module)** | Tenant | [`identity-correlator.md`](docs/consumer/permissions/identity-correlator.md) |
+| **Identity Correlator** | Tenant | [`identity-correlator.md`](docs/consumer/permissions/identity-correlator.md) |
 | **Identity Graph Expansion** | Tenant | [`identity-graph-expansion.md`](docs/consumer/permissions/identity-graph-expansion.md) |
 
 ### GitHub
