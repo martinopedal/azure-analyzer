@@ -1,6 +1,6 @@
 @{
     RootModule            = 'AzureAnalyzer.psm1'
-    ModuleVersion         = '1.1.1' # x-release-please-version
+    ModuleVersion         = '1.1.2' # x-release-please-version
     GUID                  = '6d44ac09-67b5-4f66-9539-43707cd767fc'
     Author                = 'Martin Opedal'
     CompanyName           = 'Azure Community'

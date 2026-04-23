@@ -42,6 +42,50 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.1.2](https://github.com/martinopedal/azure-analyzer/compare/v1.1.1...v1.1.2) (2026-04-23)
+
+
+### Fixes
+
+* **ci:** cover all PR-triggered workflows in auto-approve bot gate ([#858](https://github.com/martinopedal/azure-analyzer/issues/858)) ([0dc2955](https://github.com/martinopedal/azure-analyzer/commit/0dc295585cb59e8cceb2287ed3e62e5f14cef97f))
+* **ci:** key watchdog concurrency group on workflow_run.id ([#862](https://github.com/martinopedal/azure-analyzer/issues/862)) ([#864](https://github.com/martinopedal/azure-analyzer/issues/864)) ([f1be314](https://github.com/martinopedal/azure-analyzer/commit/f1be3144baeaca8471756c7f0e2f23803457879f))
+* **ci:** make closes-link enforcement conditional for release and trusted bot actors ([#835](https://github.com/martinopedal/azure-analyzer/issues/835)) ([9041163](https://github.com/martinopedal/azure-analyzer/commit/9041163c5d16e8678c0da8205c4797dc9136e8f1))
+* **ci:** pin Pester to 5.7.1 across workflows to stop Invoke-Pester null returns ([#851](https://github.com/martinopedal/azure-analyzer/issues/851)) ([#873](https://github.com/martinopedal/azure-analyzer/issues/873)) ([c827151](https://github.com/martinopedal/azure-analyzer/commit/c827151db748d7fd700992e45725810f0410d1ba))
+* **ci:** step-level continue-on-error on live-tool-tests ([#861](https://github.com/martinopedal/azure-analyzer/issues/861)) ([#867](https://github.com/martinopedal/azure-analyzer/issues/867)) ([2e53f17](https://github.com/martinopedal/azure-analyzer/commit/2e53f172568146b3478384823c206ef7098fbeb8))
+* **ci:** surface gh graphql stderr + per-thread tolerance in auto-resolve ([#843](https://github.com/martinopedal/azure-analyzer/issues/843)) ([#871](https://github.com/martinopedal/azure-analyzer/issues/871)) ([682ffee](https://github.com/martinopedal/azure-analyzer/commit/682ffee55f955b240af8c80cf8b427b8efb64cbc))
+* **security:** pin New-FindingError single-definition contract ([#529](https://github.com/martinopedal/azure-analyzer/issues/529)) ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
+* stop Remove-Credentials corrupting JSON before parse in PR Review Gate ([#842](https://github.com/martinopedal/azure-analyzer/issues/842)) ([#876](https://github.com/martinopedal/azure-analyzer/issues/876)) ([8aa2796](https://github.com/martinopedal/azure-analyzer/commit/8aa2796ad9a9ca8904bce083aa7c61d67dc6a6ae))
+* **wrappers:** enforce non-null Findings contract in Gitleaks/Trivy, fix LiveTool scorecard probe, and resolve main-branch merge conflict ([#841](https://github.com/martinopedal/azure-analyzer/issues/841)) ([1254398](https://github.com/martinopedal/azure-analyzer/commit/125439848fed0a5fbf0a502cae2f723c39c1a2ff))
+
+
+### Documentation
+
+* backfill CHANGELOG citations + tooling (closes [#629](https://github.com/martinopedal/azure-analyzer/issues/629)) ([#875](https://github.com/martinopedal/azure-analyzer/issues/875)) ([4733182](https://github.com/martinopedal/azure-analyzer/commit/47331829b744c5d62edf2d935d100f37d2e79d81))
+* **decisions:** sentinel PR [#821](https://github.com/martinopedal/azure-analyzer/issues/821) mandate audit + comment-by-comment ([#869](https://github.com/martinopedal/azure-analyzer/issues/869)) ([0a3209f](https://github.com/martinopedal/azure-analyzer/commit/0a3209f115db294cf34b023ddda485addd9de318))
+* **forge:** history + decision for PR [#826](https://github.com/martinopedal/azure-analyzer/issues/826) LiveTool Findings fix ([#872](https://github.com/martinopedal/azure-analyzer/issues/872)) ([3c9d2e8](https://github.com/martinopedal/azure-analyzer/commit/3c9d2e8ba1ddaad43ec046fdb231e1cb1439fdb0))
+* **sage:** inbox + history for PR [#841](https://github.com/martinopedal/azure-analyzer/issues/841) (Gitleaks/Trivy Findings contract) ([#904](https://github.com/martinopedal/azure-analyzer/issues/904)) ([3044050](https://github.com/martinopedal/azure-analyzer/commit/304405027a90445340bc703239cd3b37f037ab7f))
+* **squad:** record PR [#858](https://github.com/martinopedal/azure-analyzer/issues/858) supersedes PR [#837](https://github.com/martinopedal/azure-analyzer/issues/837) ([#866](https://github.com/martinopedal/azure-analyzer/issues/866)) ([16a095e](https://github.com/martinopedal/azure-analyzer/commit/16a095e338214c25045bef46f7e2a7b7f21b736d))
+* **squad:** record PR [#858](https://github.com/martinopedal/azure-analyzer/issues/858) supersedes PR [#837](https://github.com/martinopedal/azure-analyzer/issues/837) ([#868](https://github.com/martinopedal/azure-analyzer/issues/868)) ([c48097b](https://github.com/martinopedal/azure-analyzer/commit/c48097b5ff0f06b59070332c60917052e9f2b865))
+
+
+### Chores
+
+* **squad:** forge PR [#835](https://github.com/martinopedal/azure-analyzer/issues/835) history + decisions inbox ([#870](https://github.com/martinopedal/azure-analyzer/issues/870)) ([dc09746](https://github.com/martinopedal/azure-analyzer/commit/dc0974672a51b048912fc37ee31f844696de7ce2))
+* **squad:** sage PR [#823](https://github.com/martinopedal/azure-analyzer/issues/823) history + decisions inbox ([#886](https://github.com/martinopedal/azure-analyzer/issues/886)) ([7486f28](https://github.com/martinopedal/azure-analyzer/commit/7486f28198137191d8547c95e74d74b71e825bcf))
+* **squad:** sage PR [#829](https://github.com/martinopedal/azure-analyzer/issues/829) expanded-mandate inbox entry ([#865](https://github.com/martinopedal/azure-analyzer/issues/865)) ([2dfd735](https://github.com/martinopedal/azure-analyzer/commit/2dfd7355c7f72c6845c9f61441cb3984941e1349))
+* **wrappers:** CON-003 raw throw migration + CON-004 SupportsShouldProcess ([#626](https://github.com/martinopedal/azure-analyzer/issues/626) [#627](https://github.com/martinopedal/azure-analyzer/issues/627)) ([#823](https://github.com/martinopedal/azure-analyzer/issues/823)) ([16bfdb5](https://github.com/martinopedal/azure-analyzer/commit/16bfdb5f474d2a7c6ba303975ac170e6c5d42434))
+
+
+### CI
+
+* harden LiveTool smoke contracts against masked warning paths ([#826](https://github.com/martinopedal/azure-analyzer/issues/826)) ([e6667ec](https://github.com/martinopedal/azure-analyzer/commit/e6667ec21e7bcd5c6ada7d1d456c4e2ed5ab4497))
+* pre-flight rate-limit wait for CodeQL analyze + retry-once fallback ([#874](https://github.com/martinopedal/azure-analyzer/issues/874)) ([4ee380c](https://github.com/martinopedal/azure-analyzer/commit/4ee380ca4e9b15762e55d3e86f9698a93d13e7ff))
+
+
+### Tests
+
+* add back-to-back meta-test for test isolation ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#887](https://github.com/martinopedal/azure-analyzer/issues/887)) ([1b971d0](https://github.com/martinopedal/azure-analyzer/commit/1b971d011f0840956230e7731fe84688e44186ce))
+
 ## [1.1.1](https://github.com/martinopedal/azure-analyzer/compare/v1.1.0...v1.1.1) (2026-04-23)
 
 
