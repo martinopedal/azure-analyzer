@@ -1,9 +1,8 @@
 # AttackPathRenderer.ps1
 #
-# Track A (attack-path visualizer) renderer module — SCAFFOLD ONLY.
+# Track A (attack-path visualizer) renderer module.
 #
-# Function bodies are intentionally empty. Implementation is blocked on
-# Foundation PR #435, which lands:
+# Foundation PR #435 has landed:
 #   * the six new EdgeRelations enum values in modules/shared/Schema.ps1
 #   * the optional -EdgeCollector normalizer parameter contract
 #   * cytoscape.js + cytoscape-dagre vendor files under assets/vendor/
@@ -87,7 +86,6 @@ function New-AttackPathModel {
         budget (Tier 1 default 2500). Returns nodes/edges plus a budget block
         and a truncated flag.
 
-        Body intentionally empty — waits on Foundation #435.
     .PARAMETER Entities
         Entity collection from EntityStore (v3).
     .PARAMETER Findings
@@ -309,8 +307,6 @@ function ConvertTo-AttackPathDataIsland {
     .DESCRIPTION
         Wraps the model produced by New-AttackPathModel in the schema envelope
         consumed by the in-browser cytoscape renderer.
-
-        Body intentionally empty — waits on Foundation #435.
     #>
     [CmdletBinding()]
     [OutputType([string])]
@@ -328,8 +324,6 @@ function Get-AttackPathBudgetReport {
     .DESCRIPTION
         Returns a hashtable with Requested / Allocated / Truncated, used by the
         canvas controller to coordinate with Track B (#430) and Track C (#434).
-
-        Body intentionally empty — waits on Foundation #435.
     #>
     [CmdletBinding()]
     param(
