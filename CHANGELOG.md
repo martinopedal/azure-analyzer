@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
+
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll across test suite (#746).
 
