@@ -78,6 +78,15 @@ Describe 'lychee retry + cache configuration' {
     It 'workflow wraps lychee in nick-fields/retry' {
         $script:WorkflowText | Should -Match 'nick-fields/retry@[0-9a-f]{40}'
     }
+
+    It 'workflow clears lychee cache between retry attempts' {
+        $script:WorkflowText | Should -Match 'on_retry_command:\s*rm -rf \.lycheecache'
+    }
+
+    It 'workflow passes GitHub token to lychee for GitHub URL reliability' {
+        $script:WorkflowText | Should -Match 'GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}'
+        $script:WorkflowText | Should -Match '--github-token\s+"\$GITHUB_TOKEN"'
+    }
 }
 
 Describe 'em-dash policy gate' {
