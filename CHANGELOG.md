@@ -4,6 +4,7 @@
 ### Fixed
 - Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
+- Refined `AutoApproveBotRuns.Tests.ps1` allow-list guard: the invariant now locks down the `trusted=(...)` array body itself (no `${{ ... }}` substitutions, no `github.event` references) instead of forbidding every mention of `github.event.pull_request.user`. The ACTOR lookup on the `pull_request_target` fallback path needs `pull_request.user.login` as a key compared against the hard-coded list; that use is safe and no longer trips the guard.
 
 # Changelog
 

@@ -58,8 +58,20 @@ Describe 'Auto-approve bot workflow runs' {
         $script:WorkflowText | Should -Match 'copilot-swe-agent\[bot\]'
         $script:WorkflowText | Should -Match 'dependabot\[bot\]'
         $script:WorkflowText | Should -Match 'martinopedal'
-        $script:WorkflowText | Should -Not -Match 'github\.event\.pull_request\.user'
         $script:WorkflowText | Should -Not -Match 'workflow_dispatch'
+
+        # The trusted=(...) array must contain only string literals; no
+        # ${{ ... }} expression substitutions that could inject PR-sourced
+        # values into the allow-list itself. ACTOR lookup (outside this
+        # array) may still reference pull_request.user.login because that
+        # value is only used as a KEY compared against this hard-coded list.
+        $trustedArrayMatch = [regex]::Match(
+            $script:WorkflowText,
+            '(?s)trusted=\((?<body>.*?)\)'
+        )
+        $trustedArrayMatch.Success | Should -BeTrue -Because 'workflow must declare a bash trusted=(...) array'
+        $trustedArrayMatch.Groups['body'].Value | Should -Not -Match '\$\{\{' -Because 'allow-list entries must be string literals, not expression substitutions'
+        $trustedArrayMatch.Groups['body'].Value | Should -Not -Match 'github\.event' -Because 'allow-list entries must not reference event payload fields'
     }
 
     It 'gates approval on action_required status before calling approve' {
