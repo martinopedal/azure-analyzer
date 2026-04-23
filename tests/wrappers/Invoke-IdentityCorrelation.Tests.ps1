@@ -5,10 +5,14 @@ $ErrorActionPreference = 'Stop'
 BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
-    . (Join-Path $script:RepoRoot 'modules' 'shared' 'IdentityCorrelator.ps1')
+    . (Join-Path $script:RepoRoot 'modules' 'Invoke-IdentityCorrelator.ps1')
 }
 
 Describe 'Invoke-IdentityCorrelation: error paths' {
+    It 'loads Invoke-IdentityCorrelation via the wrapper entrypoint script' {
+        Get-Command -Name 'Invoke-IdentityCorrelation' -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+    }
+
     Context 'when EntityStore is empty' {
         BeforeAll {
             $emptyStore = @()
@@ -38,4 +42,3 @@ Describe 'Invoke-IdentityCorrelation: error paths' {
         }
     }
 }
-
