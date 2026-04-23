@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Changed
+- Removed pr-auto-resolve-threads.yml; thread resolution is now part of the Copilot SWE agent's PR-completion contract (#604). See `docs/operations/copilot-thread-resolution.md` for the new agent-self-resolve contract. The `modules/shared/Resolve-PRReviewThreads.ps1` helper is retained because it is still consumed by `.github/workflows/pr-advisory-gate.yml` and `modules/shared/Get-CopilotReviewFindings.ps1`.
+
 ### Fixed
 - fix(ci): grant `pull-requests: write` and `issues: write` to the `release_please` job in `.github/workflows/release.yml` so release-please can create its release PR and apply labels. The job was running with the workflow's default `contents: write` only, causing release-please v17.3.0 to fail with `Resource not accessible by integration` on PR creation. Permissions are scoped at both the workflow and job level for defense in depth (#734).
 

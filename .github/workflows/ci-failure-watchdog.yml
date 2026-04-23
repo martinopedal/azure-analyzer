@@ -23,7 +23,6 @@ on:
       - "Stub deadline check"           # stale-stub deadline enforcement
       - "PR Review Gate"                # blocking rubber-duck gate (#108)
       - "PR Advisory Gate"              # advisory rubber-duck gate (#109)
-      - "PR Auto-Resolve Review Threads" # comment-triage automation
       - "Copilot Agent PR Review"       # auto-requests Copilot review (#156)
       - "Squad Heartbeat (Ralph)"       # squad dispatch loop
       - "Squad Triage"                  # issue triage automation

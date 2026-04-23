@@ -25,7 +25,6 @@ on:
       - "Copilot Agent PR Review"
       - "PR Advisory Gate"
       - "PR Review Gate"
-      - "PR Auto-Resolve Review Threads"
       - "CI failure watchdog"
       - "Bicep Build"
       - "ALZ queries drift check"

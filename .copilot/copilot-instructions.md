@@ -20,7 +20,7 @@ When ANY squad / bot PR is opened, marked ready_for_review, or synchronized, the
 
 When a PR gets `CHANGES_REQUESTED`, or when Copilot/human review comments are added, the `pr-review-gate.yml` workflow triggers automatically. It ingests PR reviews/comments, builds a 3-model triage bundle (Claude premium + GPT codex + Goldeneye), writes the consensus plan to `.squad/decisions/inbox/`, and posts a PR summary comment with ownership and next actions. Reviewer Rejection Lockout is automatic, the rejected PR author agent is mechanically locked out from doing the revision in that gate cycle, and the consensus must name a different revision owner.
 
-When a revision agent pushes a fix commit, the `pr-auto-resolve-threads.yml` workflow runs (on `pull_request_target` synchronize / `pull_request_review` events, with a fork-skip guard) and calls `modules/shared/Resolve-PRReviewThreads.ps1`. For every unresolved review thread on the PR, it checks whether commits added AFTER the thread was created modified the same file at an overlapping line range. If yes, the thread is resolved via the `resolveReviewThread` GraphQL mutation and a short reply is posted on the thread linking the addressing commit SHA. Threads the new commits did NOT touch stay open, and the reviewer decides. Disable repo-wide via the `SQUAD_AUTO_RESOLVE_THREADS=0` repo variable.
+When a revision agent pushes a fix commit, review thread resolution is owned by the Copilot SWE agent itself as part of its PR-completion contract: the agent calls `resolveReviewThread` on threads it has addressed via a code change, posts a justification reply (without resolving) on threads it disagrees with, and batches all thread updates into a single PR-update cycle. The standalone `pr-auto-resolve-threads.yml` workflow was removed in favor of this agent-self-resolve model (see `docs/operations/copilot-thread-resolution.md` and #604). The `modules/shared/Resolve-PRReviewThreads.ps1` helper remains in tree because it is still consumed by `pr-advisory-gate.yml` and `Get-CopilotReviewFindings.ps1`.
 
 ## Frontier Model Roster (strict, no exceptions)
 
@@ -105,7 +105,7 @@ Copilot review comments and inline suggestions are not advice, they are work ite
 
 5. **Re-gate on the diff** - re-run the 3-model gate against the new commit. Same pass criteria as the standard review gate (no `[blocker]` or `[correctness]` from any reviewer; 2-of-3 APPROVE).
 
-6. **Reply on every Copilot thread** - either with the addressing commit SHA, or with the multi-model rejection justification. No Copilot thread may be left without an explicit reply. The `pr-auto-resolve-threads.yml` workflow resolves threads where the new commit touched the same lines, but the author is still responsible for the textual reply on rejections.
+6. **Reply on every Copilot thread** - either with the addressing commit SHA, or with the multi-model rejection justification. No Copilot thread may be left without an explicit reply. Per `docs/operations/copilot-thread-resolution.md` (#604), the Copilot SWE agent is responsible for calling `resolveReviewThread` on threads it has addressed and for leaving the textual reply on every thread (resolved or rejected). There is no longer an automation backstop; unresolved threads stay visible in the PR review tab until the agent (or a human) closes them.
 
 The Cloud Agent PR Review contract in `.squad/ceremonies.md` is the authoritative version of this loop for cloud-agent-authored PRs. The same loop applies to all PRs in this repo, regardless of author.
 

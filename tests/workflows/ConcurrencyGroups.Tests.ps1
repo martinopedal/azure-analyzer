@@ -28,8 +28,7 @@ Describe 'Workflow concurrency contract' {
             'stub-deadline-check.yml',
             'copilot-agent-pr-review.yml',
             'pr-review-gate.yml',
-            'pr-advisory-gate.yml',
-            'pr-auto-resolve-threads.yml'
+            'pr-advisory-gate.yml'
         ) | ForEach-Object { @{ Name = $_; Path = (Join-Path $script:WorkflowDir $_) } }
     }
 
