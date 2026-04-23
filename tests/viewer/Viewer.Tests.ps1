@@ -144,7 +144,7 @@ Describe 'viewer lifecycle' {
         { Start-AzureAnalyzerViewer -OutputPath $TestDrive -Port 4283 } | Should -Throw -ExpectedMessage '*already in use*'
     }
 
-    It 'starts a Pode-backed job, wires /api/health, /auth and / routes, and waits for readiness' {
+    It 'starts a Pode-backed job, wires /api/health, /api/triage, /auth and / routes, and waits for readiness' {
         Mock Get-Command {
             [pscustomobject]@{ Name = 'Start-PodeServer'; CommandType = 'Function' }
         } -ParameterFilter { $Name -eq 'Start-PodeServer' }
@@ -167,11 +167,13 @@ Describe 'viewer lifecycle' {
         $result.HealthUrl | Should -Be 'http://127.0.0.1:4281/api/health'
         $result.AuthUrl | Should -Match '^http://127\.0\.0\.1:4281/auth\?t=[0-9a-f]{32}$'
         $script:CapturedStartJobScript | Should -Match '/api/health'
+        $script:CapturedStartJobScript | Should -Match '/api/triage'
         $script:CapturedStartJobScript | Should -Match "Path '/auth'"
         # /api/health must validate Host header (DNS-rebinding guard).
         $script:CapturedStartJobScript | Should -Match 'invalid_host'
         # / must accept either the cookie or the header.
         $script:CapturedStartJobScript | Should -Match 'Test-ViewerSessionAuth'
+        $script:CapturedStartJobScript | Should -Match 'triage-panel'
     }
 
     It 'stops and clears active viewer job state' {

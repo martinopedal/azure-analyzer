@@ -94,13 +94,11 @@ If any prerequisite is missing when `-EnableAiTriage` is passed, the tool warns 
 
 ## Model selection
 
-The script discovers available models at runtime via `list_models()` and selects from a preferred list:
+The triage scaffold now resolves models from your own Copilot subscription at runtime:
 
-| Preference | Model | Notes |
-|----------|-------|-------|
-| 1st choice | `gpt-4.1` | Cost-effective, good at structured JSON |
-| 2nd choice | `claude-sonnet-4` | Strong reasoning fallback |
-| 3rd choice | `gpt-5-mini` | Lightweight last-resort |
+- Tier detection: `gh copilot status` (or explicit `-CopilotTier Pro|Business|Enterprise`)
+- Available roster: `gh copilot models list`
+- Selection mode: `-TriageModel Auto|Explicit:<model-id>`
 
-If none of the preferred models are available (model names may change as the SDK evolves), the script falls back to whatever models `list_models()` returns. Each model is retried up to 3 times with exponential backoff before trying the next.
-
+Default behavior is **rubberduck** (best available trio by ranking + provider diversity).  
+Use `-SingleModel` to explicitly opt out.
