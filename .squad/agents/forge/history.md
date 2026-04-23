@@ -49,6 +49,8 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Importing a `.psd1` should not dot-source script entry points that execute immediately. For `AzureAnalyzer.psm1`, export wrapper functions that invoke root scripts on demand, and limit import-time dot-sourcing to pure helper modules.
 - PSGallery readiness is manifest-driven: replace placeholder GUIDs before publication and populate `PrivateData.PSData` with `Tags`, `ProjectUri`, `LicenseUri`, and `ReleaseNotes` so the package page is navigable and discoverable.
 
+- 2026-04-24 — Bot gate solution (#938): GITHUB_TOKEN in PR-creating or branch-pushing workflows causes two problems: (1) first-time-contributor approval gate blocks bot PR workflow runs, (2) anti-recursion guard prevents downstream CI from triggering. Fix: use GitHub App token (actions/create-github-app-token) for any workflow that creates PRs or pushes to PR branches. Read-only downstream workflows don't need App tokens. copilot-swe-agent[bot] PRs are residual (external product, not fixable via workflow). PR #956.
+
 ### 2026-04-20T15:18:09Z: CI-failure batch #260/#261/#262/#264
 
 - Triage complete: all four issues were categorized stale or transient and closed with rationale comments.
