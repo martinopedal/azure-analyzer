@@ -61,7 +61,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Changed
 - add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
-
+### Security
+- Consolidate New-FindingError to single canonical definition; ensure Details always passes through Remove-Credentials sanitization (#529). Adds `modules/shared/FunctionCollision.ps1` (AST-based duplicate-function detector for the `modules/shared/` tree; ignores guarded fallback shims and nested helpers, fails closed on parse errors) and `tests/shared/Errors.Regression529.Tests.ps1` (12 regression tests pinning single-definition, deterministic load-order resolution, sanitization of AccountKey/SAS/Bearer secrets, Category enum enforcement, and the collision detector contract). Pins the shared-module dot-source order in `AzureAnalyzer.psm1` via `Sort-Object FullName` so the post-#671 canonical-wins invariant is filesystem-agnostic.
+### Added
+- test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll (or matching cleanup lifecycle blocks) across test suite and tighten the isolation guard coverage for wrapper env suppression patterns (#746).
 - Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
