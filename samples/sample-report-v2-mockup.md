@@ -124,7 +124,7 @@ Legend: 🔴 Critical, 🟠 High, 🟡 Medium, 🟢 Low, ⚪ Info
 | 5 | 🟠 High | Consumption-DurationRegression | Cost Optimization | ado-consumption | 1 |
 | 6 | 🟡 Medium | AKS.RIGHT.001 | Cost Optimization | aks-rightsizing | 1 |
 | 7 | 🟡 Medium | APPINSIGHTS.P95.REGRESSION | Performance Efficiency | appinsights | 1 |
-| 8 | 🟡 Medium | FINOPS.APPSERVICE.IDLE | Cost Optimization | finops-signals | 1 |
+| 8 | 🟡 Medium | FINOPS.APPSERVICE.IDLE | Cost Optimization | finops | 1 |
 | 9 | 🟡 Medium | GHA-BILLING-BUDGET | Cost Optimization | gh-actions-billing | 1 |
 | 10 | 🟡 Medium | SENT-COV-T1190 | Security | sentinel-coverage | 1 |
 
@@ -153,7 +153,7 @@ Top 30 findings from this run. The [interactive HTML report](sample-report-v2-mo
 | 4 | 🟠 | `C-0057` | Privileged container in payments namespace | CIS · NSA · MITRE ATT&CK | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments` | prod-payments | kubescape | Open |
 | 5 | 🟠 | `ADO.CORR.SECRET` | Secret-bearing commit executed in pipeline payments-ci [build:8201 secret:secret-9] | - | `ado://contoso/payments/pipeline/55` | prod-payments | ado-pipeline-correlator | Open |
 | 6 | 🟡 | `AKS.RIGHT.001` | AKS node pool over-provisioned | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-aks-prod/providers/microsoft.containerservice/managedclusters/aks-prod-payments` | prod-payments | aks-rightsizing | Open |
-| 7 | 🟡 | `FINOPS.APPSERVICE.IDLE` | Idle App Service Plan spend exceeds threshold | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod` | prod-payments | finops-signals | Open |
+| 7 | 🟡 | `FINOPS.APPSERVICE.IDLE` | Idle App Service Plan spend exceeds threshold | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.web/serverfarms/asp-payments-prod` | prod-payments | finops | Open |
 | 8 | 🟡 | `GHA-BILLING-BUDGET` | Runner minute spend trend exceeds weekly budget | SOC2 | `github.com/contoso/payments-api` | prod-payments | gh-actions-billing | Open |
 | 9 | 🟡 | `APPINSIGHTS.P95.REGRESSION` | API p95 latency regressed by 38% | WAF | `/subscriptions/11111111-1111-1111-1111-111111111111/resourcegroups/rg-payments-app/providers/microsoft.insights/components/payments-api-ai` | prod-payments | appinsights | Open |
 | 10 | 🟡 | `SENT-COV-T1190` | MITRE tactic coverage gap for Initial Access | MITRE ATT&CK · NIST 800-53 | `/subscriptions/22222222-2222-2222-2222-222222222222/resourcegroups/rg-sec/providers/microsoft.operationalinsights/workspaces/law-sec-01` | prod-identity | sentinel-coverage | Open |
@@ -169,7 +169,7 @@ Top 30 findings from this run. The [interactive HTML report](sample-report-v2-mo
 | 5 | ADO Pipeline Run Correlator | Security | High | Medium | - | - | [Open](https://dev.azure.com/contoso/payments/_build/results?buildId=8201&view=results) |
 | 6 | AKS Rightsizing (Container Insights utilization) | Cost Optimization | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/aks/resize-node-pool) |
 | 7 | Application Insights Performance Signals | Performance Efficiency | Medium | Medium | WAF | - | [Open](https://learn.microsoft.com/azure/azure-monitor/app/failures-performance-transactions) |
-| 8 | finops-signals | Cost Optimization | Medium | Low | WAF | - | [Open](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
+| 8 | finops | Cost Optimization | Medium | Low | WAF | - | [Open](https://learn.microsoft.com/azure/cost-management-billing/costs/cost-analysis-common-uses) |
 | 9 | Microsoft Sentinel (Coverage / Posture) | Security | Medium | Medium | MITRE ATT&CK · NIST 800-53 | Initial Access, T1190 | [Open](https://learn.microsoft.com/azure/sentinel/detect-threats-custom) |
 | 10 | GitHub Actions Billing | Cost Optimization | Medium | Low | SOC2 | - | [Open](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions) |
 
