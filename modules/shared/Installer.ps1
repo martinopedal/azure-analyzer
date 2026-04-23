@@ -175,7 +175,12 @@ function Get-FileHash256 {
     #>
     param ([Parameter(Mandatory)][string] $Path)
     if (-not (Test-Path $Path)) {
-        throw "File not found for hash computation: $Path"
+        $err = New-InstallerError -Tool 'Get-FileHash256' -Kind 'none' `
+            -Category 'NotFound' `
+            -Reason "File not found for hash computation: $Path" `
+            -Remediation 'Verify the file path; if downloaded, re-run the install step that produced it.'
+        Write-InstallerError -Err $err
+        throw "[installer] $($err.Tool) ($($err.Kind)/$($err.Category)): $($err.Reason)"
     }
     $hash = (Get-FileHash -Path $Path -Algorithm SHA256).Hash
     return $hash.ToLowerInvariant()
