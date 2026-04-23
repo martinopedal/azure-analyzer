@@ -51,6 +51,8 @@ Describe 'Workflow concurrency contract' {
 
         $content = Get-Content -Path $Path -Raw
 
-        $content | Should -Match '(?ms)^concurrency:\s*\r?\n\s+group:\s+\S+' -Because "$Name concurrency block must set a ``group:`` expression"
+        # Allow YAML comment lines and blank lines between `concurrency:` and `group:`,
+        # matching the pattern introduced by #771 which interleaves explanatory comments.
+        $content | Should -Match '(?ms)^concurrency:\s*\r?\n(?:\s*(?:#[^\r\n]*)?\r?\n)*\s+group:\s+\S+' -Because "$Name concurrency block must set a ``group:`` expression"
     }
 }

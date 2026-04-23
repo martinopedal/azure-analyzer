@@ -416,6 +416,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 
+- fix(test): tolerate YAML comment lines between `concurrency:` and `group:` keys in `tests/workflows/ConcurrencyGroups.Tests.ps1`. PR #771 added explanatory comments inside the `concurrency:` block of `.github/workflows/codeql.yml`, breaking the prior strict regex (`^concurrency:\s*\r?\n\s+group:`) across the Test (ubuntu/macos/windows) matrix on every PR rebased after #771 merged. Updated regex now allows interleaved comment / blank lines while still requiring both keys.
 - fix(ci): CodeQL concurrency now per-ref instead of global, eliminating cross-branch cancellation thrash that left `Analyze (actions)` MISSING on rebased PRs.
 
 ### Added
