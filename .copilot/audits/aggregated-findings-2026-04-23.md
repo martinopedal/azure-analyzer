@@ -1,4 +1,4 @@
-# Aggregated Post-Sprint Audit Findings — 2026-04-23
+# Aggregated Post-Sprint Audit Findings  -  2026-04-23
 
 This is the input for the 3-model trio rubberduck. Each finding from the five audit reports is included verbatim or summarized.
 
@@ -6,7 +6,7 @@ This is the input for the 3-model trio rubberduck. Each finding from the five au
 ---
 ## Source: post-sprint-security-2026-04-23.md
 
-# Post-Sprint Security Audit — 2026-04-23
+# Post-Sprint Security Audit  -  2026-04-23
 
 **Branch:** `fix/codeql-global-concurrency-v2`
 **Baseline:** `origin/main` @ `5760012`
@@ -34,8 +34,8 @@ No hardcoded production secrets, HTTP bypasses, or host allow-list violations we
 
 | ID | Severity | Location (file:line) | Description | Evidence | Remediation |
 |----|----------|----------------------|-------------|----------|-------------|
-| SEC-001 | Low | `modules\Invoke-Infracost.ps1:296` | Raw Infracost CLI JSON (`$jsonText`, sourced from `$exec.Output` on L262) is persisted to `infracost-breakdown.json` without passing through `Remove-Credentials`. Other writes and log paths in this same module correctly sanitize (version output, error messages, parse failures). Infracost output normally contains Terraform resource attributes — which, if a consumer's HCL hardcodes secrets (a known anti-pattern), would be written to disk un-redacted. | `Set-Content -LiteralPath $breakdownPath -Value $jsonText -Encoding utf8NoBOM -Force` with no `Remove-Credentials` wrapper. Introduced in sprint via PRs #271 / #378 / #472. | Wrap the value: `Set-Content -LiteralPath $breakdownPath -Value (Remove-Credentials $jsonText) -Encoding utf8NoBOM -Force`. Add a regression test in `tests/wrappers/Invoke-Infracost.Tests.ps1` modeled on the `Invoke-AzureQuotaReports` scrub test (ghp_ fake in fixture → asserted absent on disk). |
-| SEC-002 | Info | `tools\Watch-GithubActions.ps1:23-33` | Local `Sanitize-Text` helper duplicates a narrower subset of the shared `Remove-Credentials` regex set (covers only `ghp_`, `github_pat_`, bearer, `password=`, `token=`). The sole on-disk write in this file (L336) already routes through the shared `Remove-Credentials`, so no secrets leak today. Flagged only to prevent future drift if new writers are added that use the local helper. | Local regex set misses `ghs_`, `gho_`, `sk-`, `AKIA`, `xoxb-`, JWT `eyJ`, Azure connection strings, SAS tokens — all of which are covered by `modules\shared\Sanitize.ps1::Remove-Credentials`. | Delete `Sanitize-Text` and replace remaining internal calls with `Remove-Credentials`, or dot-source `modules\shared\Sanitize.ps1` and re-export. Enforce via a Pester guard: grep `tools/**` for locally-defined `function Sanitize-Text` and fail. |
+| SEC-001 | Low | `modules\Invoke-Infracost.ps1:296` | Raw Infracost CLI JSON (`$jsonText`, sourced from `$exec.Output` on L262) is persisted to `infracost-breakdown.json` without passing through `Remove-Credentials`. Other writes and log paths in this same module correctly sanitize (version output, error messages, parse failures). Infracost output normally contains Terraform resource attributes  -  which, if a consumer's HCL hardcodes secrets (a known anti-pattern), would be written to disk un-redacted. | `Set-Content -LiteralPath $breakdownPath -Value $jsonText -Encoding utf8NoBOM -Force` with no `Remove-Credentials` wrapper. Introduced in sprint via PRs #271 / #378 / #472. | Wrap the value: `Set-Content -LiteralPath $breakdownPath -Value (Remove-Credentials $jsonText) -Encoding utf8NoBOM -Force`. Add a regression test in `tests/wrappers/Invoke-Infracost.Tests.ps1` modeled on the `Invoke-AzureQuotaReports` scrub test (ghp_ fake in fixture → asserted absent on disk). |
+| SEC-002 | Info | `tools\Watch-GithubActions.ps1:23-33` | Local `Sanitize-Text` helper duplicates a narrower subset of the shared `Remove-Credentials` regex set (covers only `ghp_`, `github_pat_`, bearer, `password=`, `token=`). The sole on-disk write in this file (L336) already routes through the shared `Remove-Credentials`, so no secrets leak today. Flagged only to prevent future drift if new writers are added that use the local helper. | Local regex set misses `ghs_`, `gho_`, `sk-`, `AKIA`, `xoxb-`, JWT `eyJ`, Azure connection strings, SAS tokens  -  all of which are covered by `modules\shared\Sanitize.ps1::Remove-Credentials`. | Delete `Sanitize-Text` and replace remaining internal calls with `Remove-Credentials`, or dot-source `modules\shared\Sanitize.ps1` and re-export. Enforce via a Pester guard: grep `tools/**` for locally-defined `function Sanitize-Text` and fail. |
 
 ---
 
@@ -45,9 +45,9 @@ No hardcoded production secrets, HTTP bypasses, or host allow-list violations we
 Regex scans for `sk-*`, `ghp_*`, `ghs_*`, `gho_*`, `github_pat_*`, `AKIA*`, `xox[bopas]-*`, `eyJ*`, `pattern-*` across `*.ps1 / *.psm1 / *.psd1 / *.json / *.yml / *.md` outside `tests/` and `output*/` returned **zero** production hits. All matches are confined to test fixtures (`tests/e2e/`, `tests/triage/`, `tests/shared/`, `tests/fixtures/`, `tests/wrappers/`, `tests/scripts/`) and are clearly `FAKE`-prefixed fixtures used to validate `Remove-Credentials`. Documentation hits in `docs/consumer/ai-triage.md` and `modules\Invoke-CopilotTriage.ps1` reference token *prefixes* (e.g. `ghs_`), not secrets.
 
 ### 2. HTTP-only URL bypasses
-- No `Invoke-WebRequest` / `Invoke-RestMethod` targets `http://` in production code (only `tests/shared/Retry.Tests.ps1` uses `http://example.com` as a retry harness target — expected).
+- No `Invoke-WebRequest` / `Invoke-RestMethod` targets `http://` in production code (only `tests/shared/Retry.Tests.ps1` uses `http://example.com` as a retry harness target  -  expected).
 - No `git clone http://…`, `curl http://…`, or `wget http://…` anywhere in PowerShell sources.
-- The only `http://` occurrences in `modules/` are: SVG XML namespace declarations (`ExecDashboardRender.ps1`), a doc comment in `ReportVerification.ps1`, and the local viewer bind address (`127.0.0.1` / `$BindAddress` via `Viewer.ps1`) — none are outbound fetch URLs.
+- The only `http://` occurrences in `modules/` are: SVG XML namespace declarations (`ExecDashboardRender.ps1`), a doc comment in `ReportVerification.ps1`, and the local viewer bind address (`127.0.0.1` / `$BindAddress` via `Viewer.ps1`)  -  none are outbound fetch URLs.
 
 ### 3. Host allow-list
 - `tools\tool-manifest.json` contains **zero** `install.method = gitclone` entries, so `RemoteClone.ps1`'s allow-list surface is not extended by the manifest.
@@ -56,16 +56,16 @@ Regex scans for `sk-*`, `ghp_*`, `ghs_*`, `gho_*`, `github_pat_*`, `AKIA*`, `xox
 ### 4. Disk-write sanitization (Remove-Credentials coverage)
 Reviewed all 73 `Set-Content` / `Add-Content` / `Out-File` / `[IO.File]::WriteAll*` call sites in non-test production code. Every site that persists tool output or findings passes through `Remove-Credentials`, including (sprint-added or sprint-modified):
 
-- `Invoke-AzureAnalyzer.ps1` — `results.json` (L1342), `entities.json` (L1374), `portfolio.json` (L1412), `tool-status.json` (L1502), `triage.json` (L1570), `run-metadata.json` (L1708), `errors.json` (L1843).
-- `modules\Invoke-ADORepoSecrets.ps1:745` (new in sprint, PR #182) — `$payload = Remove-Credentials …` before write.
-- `modules\shared\EntityStore.ps1:569-578` — spill files sanitized (belt-and-suspenders: `Remove-Credentials` invoked twice).
-- `modules\shared\MultiTenantOrchestrator.ps1:386-389` — both JSON and HTML summary sanitized.
+- `Invoke-AzureAnalyzer.ps1`  -  `results.json` (L1342), `entities.json` (L1374), `portfolio.json` (L1412), `tool-status.json` (L1502), `triage.json` (L1570), `run-metadata.json` (L1708), `errors.json` (L1843).
+- `modules\Invoke-ADORepoSecrets.ps1:745` (new in sprint, PR #182)  -  `$payload = Remove-Credentials …` before write.
+- `modules\shared\EntityStore.ps1:569-578`  -  spill files sanitized (belt-and-suspenders: `Remove-Credentials` invoked twice).
+- `modules\shared\MultiTenantOrchestrator.ps1:386-389`  -  both JSON and HTML summary sanitized.
 - `modules\shared\RubberDuckChain.ps1:271`, `modules\shared\Checkpoint.ps1:188`, `modules\reports\New-DriftReport.ps1:81,140`.
 - Per-tool raw outputs in `Invoke-AzureCost.ps1`, `Invoke-AppInsights.ps1`, `Invoke-DefenderForCloud.ps1`, `Invoke-AzureLoadTesting.ps1`, `Invoke-AksRightsizing.ps1`, `Invoke-AksKarpenterCost.ps1`, `Invoke-FinOpsSignals.ps1`, `Invoke-SentinelCoverage.ps1`, `Invoke-SentinelIncidents.ps1`, `Invoke-KubeBench.ps1`, `Invoke-AzureQuotaReports.ps1`.
-- `tools\Watch-GithubActions.ps1:335` (new in sprint, PR #111) — state file sanitized before write.
+- `tools\Watch-GithubActions.ps1:335` (new in sprint, PR #111)  -  state file sanitized before write.
 - Reporters `New-HtmlReport.ps1:1017`, `New-MdReport.ps1:594`, and `New-ExecDashboard.ps1:57` (via `ExecDashboardRender.ps1:880` returning `Remove-Credentials $html`).
 
-Non-findings writes (confirmed safe by content type, not secret-bearing): `tools\Generate-SBOM.ps1:267` (SBOM metadata), `tools\Update-ToolPins.ps1:172,223` (manifest + release JSON — already HTTPS-fetched and structurally typed), `scripts\audit-tool-fields.ps1:151` (tool field metadata), `modules\shared\KubeAuth.ps1:154` (kubeconfig round-trip, user-supplied path), `modules\shared\ReportManifest.ps1:296` (manifest: paths, timings, features — no raw tool output), `modules\shared\ScanState.ps1:176` (resume-state metadata), `modules\shared\RunHistory.ps1:124` (run index), `modules\shared\ReportDelta.ps1:329` (delta index), `modules\shared\Invoke-PR*.ps1` (`$safe*` variables already sanitized upstream — naming convention enforced).
+Non-findings writes (confirmed safe by content type, not secret-bearing): `tools\Generate-SBOM.ps1:267` (SBOM metadata), `tools\Update-ToolPins.ps1:172,223` (manifest + release JSON  -  already HTTPS-fetched and structurally typed), `scripts\audit-tool-fields.ps1:151` (tool field metadata), `modules\shared\KubeAuth.ps1:154` (kubeconfig round-trip, user-supplied path), `modules\shared\ReportManifest.ps1:296` (manifest: paths, timings, features  -  no raw tool output), `modules\shared\ScanState.ps1:176` (resume-state metadata), `modules\shared\RunHistory.ps1:124` (run index), `modules\shared\ReportDelta.ps1:329` (delta index), `modules\shared\Invoke-PR*.ps1` (`$safe*` variables already sanitized upstream  -  naming convention enforced).
 
 ### 5. Viewer session token (`Viewer.ps1:1806`)
 `session-token.txt` is intentionally written as the authentication token for the local viewer. Directory is locked down (`chmod 700` on POSIX, ACL with owner-only `FullControl` on Windows) and `umask 077` is set on POSIX before write. This is the documented behavior and not a regression.
@@ -118,13 +118,13 @@ git --no-pager log --since=2026-04-15 origin/main --oneline -- <path>
 ```
 
 ### Scope boundaries
-Pre-existing files untouched during the sprint (e.g. `scripts\arachne-watcher.ps1`) are out of scope even where they contain weaker local sanitizers — they represent inherited risk, not sprint-introduced regressions. All findings above are confirmed sprint-introduced via `git log --since=2026-04-15`.
+Pre-existing files untouched during the sprint (e.g. `scripts\arachne-watcher.ps1`) are out of scope even where they contain weaker local sanitizers  -  they represent inherited risk, not sprint-introduced regressions. All findings above are confirmed sprint-introduced via `git log --since=2026-04-15`.
 
 
 ---
 ## Source: post-sprint-consistency-2026-04-23.md
 
-# Post-sprint consistency audit — 2026-04-23
+# Post-sprint consistency audit  -  2026-04-23
 
 Audit of `modules/Invoke-*.ps1` wrappers against the consistency invariants
 established by **PR #521** ("chore(consistency): enforce uniform
@@ -137,8 +137,8 @@ PR #501.
 - **`[CmdletBinding()]` coverage:** 36 / 36 ✅ (Cat 7 invariant).
 - **REST → retry coverage:** 11 / 11 wrappers that call
   `Invoke-RestMethod` / `Invoke-AzRestMethod` also invoke `Invoke-WithRetry`
-  ✅ (Cat 10 invariant — zero violations, matches the ratchet expectation).
-- **Raw `throw` ratchet:** 40 raw throws across 17 wrappers — **exact match**
+  ✅ (Cat 10 invariant  -  zero violations, matches the ratchet expectation).
+- **Raw `throw` ratchet:** 40 raw throws across 17 wrappers  -  **exact match**
   to the baseline locked in
   `tests/shared/WrapperConsistencyRatchet.Tests.ps1` (Cat 11).
 - **Manifest registration:** 36 / 36 wrappers registered in
@@ -152,7 +152,7 @@ PR #501.
 
 | Category | Count | Severity range |
 | --- | --- | --- |
-| Parameter naming drift (canonical set not yet enforced) | 2 | Low – Medium |
+| Parameter naming drift (canonical set not yet enforced) | 2 | Low  -  Medium |
 | Error-handling debt (raw throw vs `New-FindingError`) | 1 | Medium |
 | Manifest / wrapper alignment | 1 | Info |
 | Scope-driven param shape (documented exceptions) | 1 | Info |
@@ -168,9 +168,9 @@ ratchet (Cat 7 / Cat 10 / Cat 11) are green.
 | --- | --- | --- | --- | --- | --- | --- |
 | CON-001 | Medium | `Invoke-AdoConsumption.ps1` | Uniform ADO parameter names (`AdoOrg` / `AdoProject` / `AdoPat`) | `param()` block | Signature: `Organization, Project, DaysBack, MonthlyBudgetUsd, AdoPat`. Every other ADO wrapper (`ADOPipelineCorrelator`, `ADOPipelineSecurity`, `ADORepoSecrets`, `ADOServiceConnections`) uses `AdoOrg, AdoProject, AdoPat`. | Rename `Organization`→`AdoOrg`, `Project`→`AdoProject` (keep aliases via `[Alias('Organization','Project')]` for one release to avoid breaking callers), update `Invoke-AzureAnalyzer.ps1` forwarding and tests. |
 | CON-002 | Low | Repo-scoped wrappers (group) | Uniform repo-input parameter name | `param()` blocks of `Invoke-IaCBicep`, `Invoke-IaCTerraform`, `Invoke-Gitleaks` (use `RepoPath`); `Invoke-Infracost`, `Invoke-PSRule` (use `Path`); `Invoke-Trivy` (uses `ScanPath`); `Invoke-Scorecard`, `Invoke-Zizmor` (use `Repository`) | Four distinct names for "the repo to scan". Blocks cross-wrapper orchestration and confuses the manifest-driven runner. | Converge on `RepoPath` (local fs) + `RemoteUrl` (HTTPS clone). Add `[Alias]` for legacy names. Update `RemoteClone.ps1` call sites accordingly. |
-| CON-003 | Medium | 17 wrappers grandfathered by `$RawThrowBaseline` | Error exits must use `New-FindingError` (sweep #2 Cat 11 target end-state) | See list below — baseline is locked but **not** yet zeroed | 40 raw `throw "..."` strings remain (matches baseline exactly — no regression). Only `Invoke-ADORepoSecrets.ps1` has completed the migration; `Invoke-AzureQuotaReports.ps1` and `Invoke-KubeBench.ps1` source `Errors.ps1` but still leak raw throws. | Incrementally convert per-file, drop the entry in `$RawThrowBaseline` each time a wrapper reaches zero, per the ratchet's remediation hint. Priority order recommended: `Falco` (4), `KubeBench` (4), `Kubescape` (4), `DefenderForCloud` (3), `Gitleaks` (3), `AksKarpenter/Rightsizing` (3 each). |
+| CON-003 | Medium | 17 wrappers grandfathered by `$RawThrowBaseline` | Error exits must use `New-FindingError` (sweep #2 Cat 11 target end-state) | See list below  -  baseline is locked but **not** yet zeroed | 40 raw `throw "..."` strings remain (matches baseline exactly  -  no regression). Only `Invoke-ADORepoSecrets.ps1` has completed the migration; `Invoke-AzureQuotaReports.ps1` and `Invoke-KubeBench.ps1` source `Errors.ps1` but still leak raw throws. | Incrementally convert per-file, drop the entry in `$RawThrowBaseline` each time a wrapper reaches zero, per the ratchet's remediation hint. Priority order recommended: `Falco` (4), `KubeBench` (4), `Kubescape` (4), `DefenderForCloud` (3), `Gitleaks` (3), `AksKarpenter/Rightsizing` (3 each). |
 | CON-004 | Low | Side-effecting wrappers | `SupportsShouldProcess` / `-WhatIf` surface | `Invoke-Falco.ps1` (`-InstallFalco`, `-UninstallFalco`), `Invoke-AksKarpenterCost.ps1` (`-EnableElevatedRbac`) | No wrapper sets `[CmdletBinding(SupportsShouldProcess = $true)]`. Users cannot dry-run cluster-mutating flows. PR #521 did not require this; flagged as a drift from the prompt's "typical invariants" list. | Add `SupportsShouldProcess` + `ConfirmImpact='High'` to the two identified wrappers and gate the kubectl apply/install paths behind `$PSCmdlet.ShouldProcess(...)`. |
-| CON-005 | Info | `tools/tool-manifest.json` entry `identity-correlator` | Every manifest tool should map to an `Invoke-*.ps1` wrapper | `tools/tool-manifest.json` | Entry exists with `normalizer = Normalize-IdentityCorrelation` but no wrapper file — the logic lives in `modules/shared/IdentityCorrelator.ps1` and is consumed by other wrappers. | Either (a) rename the entry to signal "shared module, not wrapper" (e.g. `kind: shared`) or (b) extract a thin `Invoke-IdentityCorrelator.ps1` wrapper so the manifest schema is uniform. |
+| CON-005 | Info | `tools/tool-manifest.json` entry `identity-correlator` | Every manifest tool should map to an `Invoke-*.ps1` wrapper | `tools/tool-manifest.json` | Entry exists with `normalizer = Normalize-IdentityCorrelation` but no wrapper file  -  the logic lives in `modules/shared/IdentityCorrelator.ps1` and is consumed by other wrappers. | Either (a) rename the entry to signal "shared module, not wrapper" (e.g. `kind: shared`) or (b) extract a thin `Invoke-IdentityCorrelator.ps1` wrapper so the manifest schema is uniform. |
 | CON-006 | Info | `Invoke-CopilotTriage.ps1` | Wrapper-to-normalizer 1:1 mapping | `modules/normalizers/` | No `Normalize-CopilotTriage.ps1`; no `Sanitize.ps1` / `Schema.ps1` imports. Manifest entry has `enabled: false`. | Acceptable today (disabled). If/when this wrapper is enabled, ship the normalizer + test + sanitize import in the same PR. |
 
 ### Raw-throw inventory (backing CON-003)
@@ -204,7 +204,7 @@ No regression since PR #521 was merged.
 
 ## Clean wrappers (no deviations detected)
 
-These wrappers meet every audited invariant — `[CmdletBinding()]`, REST-through-retry
+These wrappers meet every audited invariant  -  `[CmdletBinding()]`, REST-through-retry
 if any, zero raw throws, canonical param shape for their scope, manifest entry,
 and a normalizer + test file:
 
@@ -217,9 +217,9 @@ and a normalizer + test file:
 - `Invoke-AzureQuotaReports.ps1`
 - `Invoke-IaCBicep.ps1` *(subject to CON-002 naming drift, not wrapper-internal)*
 - `Invoke-IaCTerraform.ps1` *(ditto CON-002)*
-- `Invoke-IdentityGraphExpansion.ps1` *(empty `param()` — scope-driven, acceptable per PR #521 audit table)*
+- `Invoke-IdentityGraphExpansion.ps1` *(empty `param()`  -  scope-driven, acceptable per PR #521 audit table)*
 - `Invoke-Infracost.ps1`
-- `Invoke-Maester.ps1` *(empty `param()` — scope-driven)*
+- `Invoke-Maester.ps1` *(empty `param()`  -  scope-driven)*
 - `Invoke-Prowler.ps1`
 - `Invoke-PSRule.ps1`
 - `Invoke-Trivy.ps1`
@@ -233,7 +233,7 @@ and a normalizer + test file:
    raw-throw baseline in `tests/shared/WrapperConsistencyRatchet.Tests.ps1`.
 2. **Enumerated wrappers** with `Get-ChildItem modules\Invoke-*.ps1`
    (36 files).
-3. **Static scan** — one pass per wrapper, computing:
+3. **Static scan**  -  one pass per wrapper, computing:
    - `[CmdletBinding(` match → Cat 7.
    - Counts of `Invoke-RestMethod | Invoke-AzRestMethod | Search-AzGraph` vs
      `Invoke-WithRetry` → Cat 10.
@@ -243,15 +243,15 @@ and a normalizer + test file:
      `New-FindingRow | SchemaVersion` imports.
    - `git.exe` / `gh <verb>` external-call occurrences and whether
      adjacent `Invoke-WithRetry` blocks exist.
-4. **Parameter extraction** — depth-tracked parse of the
+4. **Parameter extraction**  -  depth-tracked parse of the
    `[CmdletBinding(...)] param(...)` block to list each wrapper's public
    parameters; diffed against the canonical set
    (`SubscriptionId | TenantId | OutputPath | AdoOrg | AdoProject | AdoPat | RepoPath | RemoteUrl`)
    expected from PR #521's audit table.
-5. **Manifest cross-check** — parsed `tools/tool-manifest.json` and joined
+5. **Manifest cross-check**  -  parsed `tools/tool-manifest.json` and joined
    `name` / `normalizer` fields against the wrapper file list and against
    `modules/normalizers/*.ps1` + `tests/normalizers/*.Tests.ps1`.
-6. **Finding severity** — Critical/High reserved for broken invariants
+6. **Finding severity**  -  Critical/High reserved for broken invariants
    (none found); Medium for user-facing / consumer-visible drift that blocks
    future refactors (CON-001, CON-003); Low for cosmetic / opt-in drift
    (CON-002, CON-004); Info for manifest-schema nits (CON-005, CON-006).
@@ -261,7 +261,7 @@ and a normalizer + test file:
 - The ratchet uses text-based regexes; dynamically constructed `throw` calls
   (e.g. `throw $errMsg`) are not counted and could hide real issues. Spot
   check: `rg "^\s*throw\s+\$" modules\Invoke-*.ps1` found no variable-only
-  throws — confirmed clean.
+  throws  -  confirmed clean.
 - Parameter-shape comparison is textual; aliases declared via `[Alias()]`
   were inspected for CON-001 / CON-002 suggestions but not used to mask
   drift.
@@ -656,17 +656,17 @@ _(Full list above: 254 entries. Severity High because the sprint explicitly clos
 
 ## Section 4 -- em-dash hits (DOC-006, Low)
 
-**Method:** `Get-ChildItem -Path . -Filter *.md -File | Select-String -Pattern "—"` (root-level only; full-repo recursive count is **1,981** and captured as a separate backlog item).
+**Method:** `Get-ChildItem -Path . -Filter *.md -File | Select-String -Pattern " - "` (root-level only; full-repo recursive count is **1,981** and captured as a separate backlog item).
 
 | File | Line | Context |
 |---|---|---|
 | CHANGELOG.md | 8 | - chore(tests): Tier 4 conversion of the 5 `tests/wrappers/Invoke-Gitleaks.Tests.ps1` "when gitleaks CLI is missing" con... |
 | CHANGELOG.md | 24 | - chore(consistency-sweep): CI transcript hygiene (sweep #3 category 12, #472). Adds `tests/_Bootstrap.Tests.ps1` which ... |
-| PERMISSIONS.md | 157 | None of these flags grant additional permissions — they purely affect launch-surface and log verbosity. |
-| README.md | 90 | - `AZURE_ANALYZER_NO_BANNER=1` — suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`... |
-| README.md | 91 | - `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` — silence `<tool> is not installed. Skipping...` notices from every ... |
-| README.md | 92 | - `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) — tells wrappers they were launched ... |
-| README.md | 93 | - `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) — comma-separated CSV of tools the user named v... |
+| PERMISSIONS.md | 157 | None of these flags grant additional permissions  -  they purely affect launch-surface and log verbosity. |
+| README.md | 90 | - `AZURE_ANALYZER_NO_BANNER=1`  -  suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`... |
+| README.md | 91 | - `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1`  -  silence `<tool> is not installed. Skipping...` notices from every ... |
+| README.md | 92 | - `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`)  -  tells wrappers they were launched ... |
+| README.md | 93 | - `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically)  -  comma-separated CSV of tools the user named v... |
 
 **Recommendation:** mechanical sweep -- replace every `\u2014` with `--` across the repo. Consider a pre-commit hook or CI gate (`rg '\u2014' -g '*.md' --quiet`) to prevent regression. Priority is Low for root docs only; the 1,981-hit full-repo sweep can be batched into a single housekeeping PR.
 
@@ -691,7 +691,7 @@ _(Full list above: 254 entries. Severity High because the sprint explicitly clos
 ---
 ## Source: post-sprint-pester-2026-04-23.md
 
-# Post-Sprint Pester Baseline Audit — 2026-04-23
+# Post-Sprint Pester Baseline Audit  -  2026-04-23
 
 ## Executive Summary
 
@@ -700,15 +700,15 @@ _(Full list above: 254 entries. Severity High because the sprint explicitly clos
 | Passed | **2160** | ≥ 1780 | ✅ +380 over baseline |
 | Failed | **0** | == 0 | ✅ |
 | Skipped | **36** | ≤ 36 | ✅ at new ceiling (raised from 35 via PES-001 resolution) |
-| Inconclusive | 0 | — | — |
-| NotRun | 0 | — | — |
-| Tests discovered | 2196 (180 files) | — | — |
-| Wall-clock (Pester) | 297.06 s | — | — |
+| Inconclusive | 0 |  -  |  -  |
+| NotRun | 0 |  -  |  -  |
+| Tests discovered | 2196 (180 files) |  -  |  -  |
+| Wall-clock (Pester) | 297.06 s |  -  |  -  |
 
-**Verdict: `BASELINE-DRIFT`** — zero test failures and Passed comfortably exceeds the 1780 floor, but the Skipped counter is one over the 35 placeholder budget. All 36 skips are *intentional* `-Skip` scaffolds tied to in-flight feature tracks (Tracks B/C, Foundation PR #435, hygiene gate); the drift is a budget-management issue, not a regression. No `PES-001`-class test-fail findings were generated.
+**Verdict: `BASELINE-DRIFT`**  -  zero test failures and Passed comfortably exceeds the 1780 floor, but the Skipped counter is one over the 35 placeholder budget. All 36 skips are *intentional* `-Skip` scaffolds tied to in-flight feature tracks (Tracks B/C, Foundation PR #435, hygiene gate); the drift is a budget-management issue, not a regression. No `PES-001`-class test-fail findings were generated.
 
 > Run command: `Invoke-Pester -Path .\tests -CI -Output Detailed`
-> Env overrides applied to suppress interactive `Read-MandatoryScannerParam` prompts: `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ANALYZER_NONINTERACTIVE=1`, `CI=true`. Without these, `tests/Invoke-AzureAnalyzer.MgPath.Tests.ps1` blocks on `Read-Host` for `-TenantId` (observed during initial run; not a test failure but a CI-env hygiene note — see Findings).
+> Env overrides applied to suppress interactive `Read-MandatoryScannerParam` prompts: `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ANALYZER_NONINTERACTIVE=1`, `CI=true`. Without these, `tests/Invoke-AzureAnalyzer.MgPath.Tests.ps1` blocks on `Read-Host` for `-TenantId` (observed during initial run; not a test failure but a CI-env hygiene note  -  see Findings).
 
 ## Failing Tests
 
@@ -716,7 +716,7 @@ _None._ The suite is green on the `Failed == 0` axis.
 
 | ID | File | Test name | Error (first 5 lines) | Probable root cause |
 |---|---|---|---|---|
-| — | — | — | — | — |
+|  -  |  -  |  -  |  -  |  -  |
 
 ## Unexpected / Over-Budget Skips (Skipped = 36, baseline ≤ 36 after PES-001 resolution)
 
@@ -730,7 +730,7 @@ All 36 skips originate from **four** test files, every entry uses an explicit `-
 | 4 | scores < 0.50 and falls back to AzAdvertizer only | `tests/policy/AlzMatcher.Tests.ps1` | Track C scaffold (#431). |
 | 5 | Off mode skips computation entirely | `tests/policy/AlzMatcher.Tests.ps1` | Track C scaffold (#431). |
 | 6 | Force mode activates regardless of score | `tests/policy/AlzMatcher.Tests.ps1` | Track C scaffold (#431). |
-| 7 | builds a Cytoscape model honouring the 2500-edge canvas budget | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435 — pending 16 new EdgeRelations. |
+| 7 | builds a Cytoscape model honouring the 2500-edge canvas budget | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435  -  pending 16 new EdgeRelations. |
 | 8 | emits truncated=false when edge count is under budget | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435. |
 | 9 | returns a top-N severity-ranked seed subgraph | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435. |
 | 10 | expands one hop on node-click within 250 ms | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435. |
@@ -769,7 +769,7 @@ All 36 skips originate from **four** test files, every entry uses an explicit `-
 | `tests/policy/AlzMatcher.Tests.ps1` | 5 | Track C (#431) |
 | `tests/ci/TranscriptHygiene.Tests.ps1` | 1 | Env-gated hygiene gate |
 
-## Duration Breakdown — Top 10 Slowest Test Files
+## Duration Breakdown  -  Top 10 Slowest Test Files
 
 | Rank | File | Total seconds |
 |---|---|---|
@@ -800,7 +800,7 @@ All 36 skips originate from **four** test files, every entry uses an explicit `-
 
 - ✅ Failed == 0 (baseline met)
 - ✅ Passed (2160) ≥ 1780 (baseline met, +380)
-- ❌ Skipped (36) > 35 (baseline breached by 1; non-regression — placeholder budget overrun)
+- ❌ Skipped (36) > 35 (baseline breached by 1; non-regression  -  placeholder budget overrun)
 
 No production defects, no test failures, no silent skips. Drift is procedural: bump the placeholder ceiling or drain one Track B/C scaffold.
 
@@ -808,7 +808,7 @@ No production defects, no test failures, no silent skips. Drift is procedural: b
 ---
 ## Source: post-sprint-e2e-2026-04-23.md
 
-# Post-Sprint E2E Audit — 2026-04-23
+# Post-Sprint E2E Audit  -  2026-04-23
 
 - **Harness:** `tests/e2e/Invoke-AzureAnalyzer.E2E.Tests.ps1` (PR #536, merged as `8fb7f19`)
 - **Invocation:** `Invoke-Pester -Path .\tests\e2e -CI -Output Detailed`
@@ -849,43 +849,43 @@ GitHub repo / Tenant-MG) is **3 / 3**.
 
 | Tool | Scope | Provider | Enabled | Covered by E2E harness | Test name | Result |
 |---|---|---|---|---|---|---|
-| azqr | subscription | azure | Y | N | — | — |
-| kubescape | subscription | azure | Y | N | — | — |
-| kube-bench | subscription | azure | Y | N | — | — |
-| defender-for-cloud | subscription | azure | Y | N | — | — |
-| prowler | subscription | azure | Y | N | — | — |
-| falco | subscription | azure | Y | N | — | — |
-| azure-cost | subscription | azure | Y | N | — | — |
-| azure-quota | subscription | azure | Y | N | — | — |
-| finops | subscription | azure | Y | N | — | — |
-| appinsights | subscription | azure | Y | N | — | — |
-| loadtesting | subscription | azure | Y | N | — | — |
-| aks-rightsizing | subscription | azure | Y | N | — | — |
-| aks-karpenter-cost | subscription | azure | Y | N | — | — |
-| psrule | subscription | azure | Y | N | — | — |
-| powerpipe | subscription | azure | Y | N | — | — |
-| azgovviz | managementGroup | azure | Y | N | — | — |
-| alz-queries | managementGroup | azure | Y | N | — | — |
-| wara | subscription | azure | Y | N | — | — |
-| maester | tenant | microsoft365 | Y | N (synthetic source `e2e-maester` only) | — | — |
-| scorecard | repository | github | Y | N | — | — |
-| gh-actions-billing | repository | github | Y | N | — | — |
-| ado-connections | ado | ado | Y | N | — | — |
-| ado-pipelines | ado | ado | Y | N | — | — |
-| ado-consumption | ado | ado | Y | N | — | — |
-| ado-repos-secrets | ado | ado | Y | N | — | — |
-| ado-pipeline-correlator | ado | ado | Y | N | — | — |
-| identity-correlator | tenant | graph | Y | N | — | — |
-| identity-graph-expansion | tenant | graph | Y | N | — | — |
-| zizmor | repository | cli | Y | N | — | — |
-| gitleaks | repository | cli | Y | N | — | — |
-| trivy | repository | cli | Y | N | — | — |
-| bicep-iac | repository | cli | Y | N | — | — |
-| infracost | repository | cli | Y | N | — | — |
-| terraform-iac | repository | cli | Y | N | — | — |
-| sentinel-incidents | workspace | azure | Y | N | — | — |
-| sentinel-coverage | workspace | azure | Y | N | — | — |
-| copilot-triage | repository | cli | N | N (disabled in manifest) | — | — |
+| azqr | subscription | azure | Y | N |  -  |  -  |
+| kubescape | subscription | azure | Y | N |  -  |  -  |
+| kube-bench | subscription | azure | Y | N |  -  |  -  |
+| defender-for-cloud | subscription | azure | Y | N |  -  |  -  |
+| prowler | subscription | azure | Y | N |  -  |  -  |
+| falco | subscription | azure | Y | N |  -  |  -  |
+| azure-cost | subscription | azure | Y | N |  -  |  -  |
+| azure-quota | subscription | azure | Y | N |  -  |  -  |
+| finops | subscription | azure | Y | N |  -  |  -  |
+| appinsights | subscription | azure | Y | N |  -  |  -  |
+| loadtesting | subscription | azure | Y | N |  -  |  -  |
+| aks-rightsizing | subscription | azure | Y | N |  -  |  -  |
+| aks-karpenter-cost | subscription | azure | Y | N |  -  |  -  |
+| psrule | subscription | azure | Y | N |  -  |  -  |
+| powerpipe | subscription | azure | Y | N |  -  |  -  |
+| azgovviz | managementGroup | azure | Y | N |  -  |  -  |
+| alz-queries | managementGroup | azure | Y | N |  -  |  -  |
+| wara | subscription | azure | Y | N |  -  |  -  |
+| maester | tenant | microsoft365 | Y | N (synthetic source `e2e-maester` only) |  -  |  -  |
+| scorecard | repository | github | Y | N |  -  |  -  |
+| gh-actions-billing | repository | github | Y | N |  -  |  -  |
+| ado-connections | ado | ado | Y | N |  -  |  -  |
+| ado-pipelines | ado | ado | Y | N |  -  |  -  |
+| ado-consumption | ado | ado | Y | N |  -  |  -  |
+| ado-repos-secrets | ado | ado | Y | N |  -  |  -  |
+| ado-pipeline-correlator | ado | ado | Y | N |  -  |  -  |
+| identity-correlator | tenant | graph | Y | N |  -  |  -  |
+| identity-graph-expansion | tenant | graph | Y | N |  -  |  -  |
+| zizmor | repository | cli | Y | N |  -  |  -  |
+| gitleaks | repository | cli | Y | N |  -  |  -  |
+| trivy | repository | cli | Y | N |  -  |  -  |
+| bicep-iac | repository | cli | Y | N |  -  |  -  |
+| infracost | repository | cli | Y | N |  -  |  -  |
+| terraform-iac | repository | cli | Y | N |  -  |  -  |
+| sentinel-incidents | workspace | azure | Y | N |  -  |  -  |
+| sentinel-coverage | workspace | azure | Y | N |  -  |  -  |
+| copilot-triage | repository | cli | N | N (disabled in manifest) |  -  |  -  |
 
 ### Pipeline tests executed (all green)
 
@@ -918,9 +918,9 @@ None. **0 / 20** tests failed.
 
 | ID | Tool | Error | Probable cause |
 |---|---|---|---|
-| — | — | — | — |
+|  -  |  -  |  -  |  -  |
 
-## Gaps — tools in manifest, not in harness
+## Gaps  -  tools in manifest, not in harness
 
 Every enabled tool in the manifest is a gap for per-wrapper E2E execution. The
 harness validates shared downstream invariants only; it does not invoke wrappers

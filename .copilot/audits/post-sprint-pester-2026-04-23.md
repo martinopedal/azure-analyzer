@@ -1,4 +1,4 @@
-# Post-Sprint Pester Baseline Audit — 2026-04-23
+# Post-Sprint Pester Baseline Audit  -  2026-04-23
 
 ## Executive Summary
 
@@ -7,15 +7,15 @@
 | Passed | **2160** | ≥ 1780 | ✅ +380 over baseline |
 | Failed | **0** | == 0 | ✅ |
 | Skipped | **36** | ≤ 36 | ✅ at new ceiling (raised from 35; see Resolution below) |
-| Inconclusive | 0 | — | — |
-| NotRun | 0 | — | — |
-| Tests discovered | 2196 (180 files) | — | — |
-| Wall-clock (Pester) | 297.06 s | — | — |
+| Inconclusive | 0 |  -  |  -  |
+| NotRun | 0 |  -  |  -  |
+| Tests discovered | 2196 (180 files) |  -  |  -  |
+| Wall-clock (Pester) | 297.06 s |  -  |  -  |
 
-**Verdict: `BASELINE-DRIFT`** — zero test failures and Passed comfortably exceeds the 1780 floor, but the Skipped counter is one over the 35 placeholder budget. All 36 skips are *intentional* `-Skip` scaffolds tied to in-flight feature tracks (Tracks B/C, Foundation PR #435, hygiene gate); the drift is a budget-management issue, not a regression. No `PES-001`-class test-fail findings were generated.
+**Verdict: `BASELINE-DRIFT`**  -  zero test failures and Passed comfortably exceeds the 1780 floor, but the Skipped counter is one over the 35 placeholder budget. All 36 skips are *intentional* `-Skip` scaffolds tied to in-flight feature tracks (Tracks B/C, Foundation PR #435, hygiene gate); the drift is a budget-management issue, not a regression. No `PES-001`-class test-fail findings were generated.
 
 > Run command: `Invoke-Pester -Path .\tests -CI -Output Detailed`
-> Env overrides applied to suppress interactive `Read-MandatoryScannerParam` prompts: `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ANALYZER_NONINTERACTIVE=1`, `CI=true`. Without these, `tests/Invoke-AzureAnalyzer.MgPath.Tests.ps1` blocks on `Read-Host` for `-TenantId` (observed during initial run; not a test failure but a CI-env hygiene note — see Findings).
+> Env overrides applied to suppress interactive `Read-MandatoryScannerParam` prompts: `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ANALYZER_NONINTERACTIVE=1`, `CI=true`. Without these, `tests/Invoke-AzureAnalyzer.MgPath.Tests.ps1` blocks on `Read-Host` for `-TenantId` (observed during initial run; not a test failure but a CI-env hygiene note  -  see Findings).
 
 ## Failing Tests
 
@@ -23,7 +23,7 @@ _None._ The suite is green on the `Failed == 0` axis.
 
 | ID | File | Test name | Error (first 5 lines) | Probable root cause |
 |---|---|---|---|---|
-| — | — | — | — | — |
+|  -  |  -  |  -  |  -  |  -  |
 
 ## Unexpected / Over-Budget Skips (Skipped = 36, baseline ≤ 36 after PES-001 resolution)
 
@@ -37,7 +37,7 @@ All 36 skips originate from **four** test files, every entry uses an explicit `-
 | 4 | scores < 0.50 and falls back to AzAdvertizer only | `tests/policy/AlzMatcher.Tests.ps1` | Track C scaffold (#431). |
 | 5 | Off mode skips computation entirely | `tests/policy/AlzMatcher.Tests.ps1` | Track C scaffold (#431). |
 | 6 | Force mode activates regardless of score | `tests/policy/AlzMatcher.Tests.ps1` | Track C scaffold (#431). |
-| 7 | builds a Cytoscape model honouring the 2500-edge canvas budget | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435 — pending 16 new EdgeRelations. |
+| 7 | builds a Cytoscape model honouring the 2500-edge canvas budget | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435  -  pending 16 new EdgeRelations. |
 | 8 | emits truncated=false when edge count is under budget | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435. |
 | 9 | returns a top-N severity-ranked seed subgraph | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435. |
 | 10 | expands one hop on node-click within 250 ms | `tests/renderers/AttackPath.Tests.ps1` | Foundation PR #435. |
@@ -76,7 +76,7 @@ All 36 skips originate from **four** test files, every entry uses an explicit `-
 | `tests/policy/AlzMatcher.Tests.ps1` | 5 | Track C (#431) |
 | `tests/ci/TranscriptHygiene.Tests.ps1` | 1 | Env-gated hygiene gate |
 
-## Duration Breakdown — Top 10 Slowest Test Files
+## Duration Breakdown  -  Top 10 Slowest Test Files
 
 | Rank | File | Total seconds |
 |---|---|---|
@@ -107,10 +107,10 @@ All 36 skips originate from **four** test files, every entry uses an explicit `-
 
 - ✅ Failed == 0 (baseline met)
 - ✅ Passed (2160) ≥ 1780 (baseline met, +380)
-- ✅ Skipped (36) ≤ 36 (ceiling raised from 35 → 36 via PES-001 resolution; non-regression — placeholder budget bumped to match the in-flight Track B scaffold)
+- ✅ Skipped (36) ≤ 36 (ceiling raised from 35 → 36 via PES-001 resolution; non-regression  -  placeholder budget bumped to match the in-flight Track B scaffold)
 
 No production defects, no test failures, no silent skips.
 
 ## Resolution (PES-001)
 
-Approach (b) selected: documented Skipped ceiling raised **35 → 36**. The +1 entry lives in `tests/renderers/ResilienceMap.Tests.ps1` (Track B #429), which is still in flight, so the placeholder is genuinely needed and approach (a) — deletion or implementation — is not yet possible. The ceiling will drop back as Track B (#429), Track C (#431), Foundation #435, and #432b land and drain their respective scaffolds. CI's hardcoded gate in `.github/workflows/ci.yml` enforces `MinPassed` only (not skip count), so no workflow change is required. CHANGELOG entry recorded under `[1.2.0 - Unreleased] / Changed`.
+Approach (b) selected: documented Skipped ceiling raised **35 → 36**. The +1 entry lives in `tests/renderers/ResilienceMap.Tests.ps1` (Track B #429), which is still in flight, so the placeholder is genuinely needed and approach (a)  -  deletion or implementation  -  is not yet possible. The ceiling will drop back as Track B (#429), Track C (#431), Foundation #435, and #432b land and drain their respective scaffolds. CI's hardcoded gate in `.github/workflows/ci.yml` enforces `MinPassed` only (not skip count), so no workflow change is required. CHANGELOG entry recorded under `[1.2.0 - Unreleased] / Changed`.
