@@ -147,6 +147,29 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - Generators with hardcoded defaults breed confusion. New structure makes defaults explicit in script documentation and maintainer checklists.
 - Orphaned stubs with redirect deadlines create maintenance overhead. Delete or consolidate, not redirect with deadline tracking.
 - ETL and field mapping deserve their own reference page (not scattered across CHANGELOG, README, ARCHITECTURE, tool pages). One stop for "what raw field -> what v2 slot" questions.
+
+### SampleDrift Deep Investigation 2026-04-24
+
+**Root cause analysis (Martin's three questions):**
+
+1. **Non-deterministic renderer?** YES — three independent non-determinism sources:
+   - `@{}` hashtable key enumeration varies across process invocations (.NET hash seed randomization)
+   - `Sort-Object Value -Descending` without tiebreaker for entity-type bars
+   - `entities.json` sidecar pickup from `samples/` directory adding variable entity counts
+   Root cause latent since entity bars introduced in PR #408; masked because same-process hash seeds are stable.
+
+2. **Fragile test?** NO — raw string comparison is intentional (drift canary). The test already handled timestamps and CRLF. BUT the test had an isolation bug: it ran the renderer with `samples/sample-findings-v2.json` as input, allowing the renderer to discover `samples/entities.json` sidecar file. Fix: copy findings to isolated temp dir so renderer has exactly one input.
+
+3. **Missing fixture update?** Partially — PR #723 changed renderer without regenerating. But the deeper issue was latent non-determinism that only manifests across process boundaries.
+
+**Fix applied (PR #961, already merged):**
+- 11 hashtables → `[ordered]@{}` for deterministic JSON serialization
+- Alphabetical tiebreaker on entity-type bar sort
+- `.ContainsKey()` → `.Contains()` for OrderedDictionary compat
+- Test isolation: findings copied to temp dir, no sidecar pickup
+- SKILL.md: decision tree + non-determinism audit checklist + 5-run cross-process verification protocol
+
+**Operational learning:** Never mix `[IO.File]::WriteAllText()` and the Copilot `edit` tool on the same file — they race on Windows NTFS. Use one mechanism exclusively per file per session.
 - Parameter reference page (orchestrator-params.md) should group params by scenario (subscription scan, repo scan, multi-tenant, CI/CD, etc.) and collapse advanced params. Consumers find their scenario, maintainers find exhaustive reference.
 
 ## Decisions logged
