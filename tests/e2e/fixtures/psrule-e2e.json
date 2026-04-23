@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "psrule",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Azure.AKS.AutoUpgrade rule failed",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "WAF Reliability",
+      "Pillar": "Reliability",
+      "Detail": "PSRule for Azure: cluster has autoUpgradeProfile.upgradeChannel = none.",
+      "ResourceId": "/subscriptions/cccccccc-2222-3333-4444-555555555555/resourceGroups/rg-aks/providers/Microsoft.ContainerService/managedClusters/contoso-aks",
+      "Remediation": "Set upgradeChannel to 'stable' or 'patch'.",
+      "RuleId": "psrule-Azure.AKS.AutoUpgrade"
+    },
+    {
+      "Title": "Azure.Storage.MinTLS rule failed",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "WAF Security",
+      "Pillar": "Security",
+      "Detail": "Storage account allows TLS 1.0; PSRule v1.36 baseline requires TLS 1.2.",
+      "ResourceId": "/subscriptions/cccccccc-2222-3333-4444-555555555555/resourceGroups/rg-data/providers/Microsoft.Storage/storageAccounts/legacy01",
+      "Remediation": "Set minimumTlsVersion = TLS1_2.",
+      "RuleId": "psrule-Azure.Storage.MinTLS"
+    },
+    {
+      "Title": "Azure.AppService.HTTPS rule passed",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "WAF Security",
+      "Pillar": "Security",
+      "Detail": "HTTPS-only enforced.",
+      "ResourceId": "/subscriptions/cccccccc-2222-3333-4444-555555555555/resourceGroups/rg-web/providers/Microsoft.Web/sites/contoso-app",
+      "Remediation": "",
+      "RuleId": "psrule-Azure.AppService.HTTPS"
+    }
+  ]
+}
