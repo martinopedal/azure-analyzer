@@ -25,7 +25,7 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([scriptblock]$ScriptBlock) & $ScriptBlock }
 }
 if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
-    function New-FindingError { param([string]$Reason, [string]$Category) return @{ Reason = $Reason; Category = $Category } }
+    function New-FindingError { param([string]$Source, [string]$Reason, [string]$Category) return @{ Source = $Source; Reason = $Reason; Category = $Category } }
 }
 if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
     function Format-FindingErrorMessage { param($Err) return "$($Err.Reason)" }
@@ -42,17 +42,17 @@ function Test-LogAnalyticsEndpoint {
     )
 
     if ($DceEndpoint -notmatch '^https://') {
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "DceEndpoint must use HTTPS. Received: $DceEndpoint" -Category 'ConfigurationError'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "DceEndpoint must use HTTPS. Received: $DceEndpoint" -Category 'ConfigurationError'))
     }
 
     try {
         $uri = [System.Uri]$DceEndpoint
     } catch {
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "DceEndpoint is not a valid URI: $DceEndpoint" -Category 'ConfigurationError'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "DceEndpoint is not a valid URI: $DceEndpoint" -Category 'ConfigurationError'))
     }
 
     if ($uri.Scheme -ne 'https') {
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "DceEndpoint must use HTTPS. Received scheme: $($uri.Scheme)" -Category 'ConfigurationError'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "DceEndpoint must use HTTPS. Received scheme: $($uri.Scheme)" -Category 'ConfigurationError'))
     }
 }
 
@@ -64,14 +64,14 @@ function Read-EntitiesFromJson {
     )
 
     if (-not (Test-Path $EntitiesJson)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "EntitiesJson file not found: $EntitiesJson" -Category 'IOFailure'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "EntitiesJson file not found: $EntitiesJson" -Category 'IOFailure'))
     }
 
     try {
         $parsed = Get-Content -Path $EntitiesJson -Raw | ConvertFrom-Json -ErrorAction Stop
     } catch {
         $msg = Remove-Credentials "$_"
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "Failed to parse entities JSON: $msg" -Category 'IOFailure'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "Failed to parse entities JSON: $msg" -Category 'IOFailure'))
     }
 
     # Issue #187 / B3: entities.json envelope went from bare array (v3.0) to
@@ -91,12 +91,12 @@ function Get-LogAnalyticsAccessToken {
         $token = Get-AzAccessToken -ResourceUrl 'https://monitor.azure.com/' -ErrorAction Stop
     } catch {
         $msg = Remove-Credentials "$_"
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "Failed to acquire Azure Monitor token via Get-AzAccessToken: $msg" -Category 'AuthenticationFailed'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "Failed to acquire Azure Monitor token via Get-AzAccessToken: $msg" -Category 'AuthenticationFailed'))
     }
 
     $resolvedToken = if ($token.PSObject.Properties['Token']) { [string]$token.Token } else { '' }
     if ([string]::IsNullOrWhiteSpace($resolvedToken)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Reason "Get-AzAccessToken returned an empty token." -Category 'AuthenticationFailed'))
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "Get-AzAccessToken returned an empty token." -Category 'AuthenticationFailed'))
     }
 
     return $resolvedToken
@@ -238,7 +238,7 @@ function New-LogAnalyticsBatches {
         $recordJson = $record | ConvertTo-Json -Depth 30 -Compress
         $recordBytes = [System.Text.Encoding]::UTF8.GetByteCount($recordJson)
         if ($recordBytes -gt $script:MaxIngestionBodyBytes) {
-            throw (Format-FindingErrorMessage (New-FindingError -Reason "A single record exceeds the $($script:MaxIngestionBodyBytes) byte Logs Ingestion limit." -Category 'ConfigurationError'))
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "A single record exceeds the $($script:MaxIngestionBodyBytes) byte Logs Ingestion limit." -Category 'ConfigurationError'))
         }
 
         $commaBytes = if ($currentBatch.Count -gt 0) { 1 } else { 0 }
@@ -284,9 +284,9 @@ function Invoke-LogAnalyticsIngestion {
         [string] $DryRunOutputPath
     )
 
-    if ([string]::IsNullOrWhiteSpace($DceEndpoint)) { throw (Format-FindingErrorMessage (New-FindingError -Reason "DceEndpoint is required." -Category 'InvalidParameter')) }
-    if ([string]::IsNullOrWhiteSpace($DcrImmutableId)) { throw (Format-FindingErrorMessage (New-FindingError -Reason "DcrImmutableId is required." -Category 'InvalidParameter')) }
-    if ([string]::IsNullOrWhiteSpace($StreamName)) { throw (Format-FindingErrorMessage (New-FindingError -Reason "StreamName is required." -Category 'InvalidParameter')) }
+    if ([string]::IsNullOrWhiteSpace($DceEndpoint)) { throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "DceEndpoint is required." -Category 'InvalidParameter')) }
+    if ([string]::IsNullOrWhiteSpace($DcrImmutableId)) { throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "DcrImmutableId is required." -Category 'InvalidParameter')) }
+    if ([string]::IsNullOrWhiteSpace($StreamName)) { throw (Format-FindingErrorMessage (New-FindingError -Source 'sink:log-analytics' -Reason "StreamName is required." -Category 'InvalidParameter')) }
 
     Test-LogAnalyticsEndpoint -DceEndpoint $DceEndpoint
     $endpoint = $DceEndpoint.TrimEnd('/')
