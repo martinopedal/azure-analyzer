@@ -2,6 +2,9 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# See tests/wrappers/Invoke-AlzQueries.Tests.ps1 header -- single-file run guard.
+$env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
+
 BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')

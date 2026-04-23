@@ -51,6 +51,85 @@
 
 Set-StrictMode -Version Latest
 
+# ---------------------------------------------------------------------------
+# Class A tool inventory (#472, sweep #5).
+#
+# Every tool whose wrapper calls Write-MissingToolNotice. Enumerated by grep
+# over modules/Invoke-*.ps1 looking for `Write-MissingToolNotice -Tool '...'`
+# plus the underlying Get-Command / Get-Module -ListAvailable check site.
+#
+# Keep this list in sync with the wrappers. Adding a new wrapper that gates
+# on a new CLI / module means appending the name here AND adding a
+# tests/ci/TranscriptHygiene.Tests.ps1 spot-check is NOT required, but the
+# ratchet test WILL fail in CI if a new leak slips through.
+# ---------------------------------------------------------------------------
+$script:ClassAToolInventory = @{
+    CliTools = @(
+        'azqr',
+        'bicep',
+        'gitleaks',
+        'infracost',
+        'powerpipe',
+        'prowler',
+        'scorecard',
+        'terraform',
+        'trivy',
+        'zizmor'
+    )
+    PsModules = @(
+        'Az.ResourceGraph',
+        'Maester',
+        'Microsoft.Graph.Users',
+        'PSRule',
+        'PSRule.Rules.Azure',
+        'WARA'
+    )
+    ScriptFiles = @(
+        'AzGovVizParallel.ps1'
+    )
+}
+
+function Get-ClassAToolInventory {
+    <#
+    .SYNOPSIS
+        Return a deep-copy snapshot of the Class A tool inventory.
+    .DESCRIPTION
+        Hands out a fresh hashtable so callers cannot accidentally mutate the
+        shared script-scoped source of truth.
+    #>
+    [CmdletBinding()]
+    param()
+
+    @{
+        CliTools    = @($script:ClassAToolInventory.CliTools)
+        PsModules   = @($script:ClassAToolInventory.PsModules)
+        ScriptFiles = @($script:ClassAToolInventory.ScriptFiles)
+    }
+}
+
+function Enable-MissingToolWarningSuppression {
+    <#
+    .SYNOPSIS
+        Belt-and-suspenders guarantor that AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS
+        is set for the lifetime of a single wrapper test file.
+    .DESCRIPTION
+        tests/_Bootstrap.Tests.ps1 sets the flag when the full Pester suite runs,
+        but single-file invocations (`Invoke-Pester -Path tests/wrappers/Invoke-PSRule.Tests.ps1`)
+        do not discover the bootstrap file. Call this from a BeforeAll to
+        guarantee every Class A warning path downgrades to Write-Verbose even
+        in isolation. Returns a scriptblock that restores prior state.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $prior = [Environment]::GetEnvironmentVariable('AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS', 'Process')
+    [Environment]::SetEnvironmentVariable('AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS', '1', 'Process')
+
+    return {
+        [Environment]::SetEnvironmentVariable('AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS', $prior, 'Process')
+    }.GetNewClosure()
+}
+
 function Enable-WrapperWarningSuppression {
     <#
     .SYNOPSIS
