@@ -56,7 +56,8 @@ if (-not $pat) {
         Status   = 'Skipped'
         Message  = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 # Build auth header: Basic base64(:$pat)
@@ -332,7 +333,8 @@ try {
                 Status   = 'Success'
                 Message  = "No projects found in organization '$AdoOrg'."
                 Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
     }
 
@@ -378,5 +380,6 @@ try {
         Status   = 'Failed'
         Message  = $errMsg
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

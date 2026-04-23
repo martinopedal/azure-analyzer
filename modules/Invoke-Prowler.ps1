@@ -109,7 +109,8 @@ if (-not (Test-ProwlerInstalled)) {
         Message       = 'prowler not installed'
         ToolVersion   = ''
         Findings      = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 if (-not (Test-Path $OutputPath)) {
@@ -231,5 +232,6 @@ try {
         Message       = Remove-Credentials -Text ([string]$_)
         ToolVersion   = $toolVersion
         Findings      = @()
-    }
+    }    Errors   = @()
+$3
 }

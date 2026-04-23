@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Added
+
+- **CON-005 ratchet**: New wrapper envelope contract test in WrapperConsistencyRatchet.Tests.ps1 enforces that ALL 37 wrappers emit Errors = @() field alongside Findings on every code path (#907).
+
 ### Fixed
 
 - **CI watchdog**: No longer opens ci-failure issues for advisory workflows (CI / E2E / Scheduled scan). These workflows are monitored for observability but do NOT escalate to backlog noise because they are not required branch-protection checks. Required checks (Analyze, links, lint) still escalate as ci-failure issues. Implements Track A from `.squad/decisions/inbox/rca-drift-sonnet.md`.

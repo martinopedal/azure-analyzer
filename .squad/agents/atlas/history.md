@@ -205,6 +205,34 @@ Reorganized `queries/` runtime catalogs into per-tool subfolders matching their 
 ### Wrapper-glob ownership stays invisible to grep
 
 Reinforced the lesson from the orphan-query audit: `Invoke-FinOpsSignals.ps1` reads its catalogs via a directory glob (`Get-ChildItem -Filter 'finops-*.json'`), so a literal-filename grep returns zero hits. Per-tool subfolders make this ownership visible in the tree, which is the durable fix.
+## 2026-04-23 - Sample regeneration framework (Issue #906 → PR #924)
+
+**Deliverable:** Sample regeneration framework with drift detection.
+
+**Scope:**
+- ✅ Created `scripts/Regenerate-Samples.ps1` — regenerates `samples/` from fixtures against current FindingRow v2.2 schema + renderers (HTML/MD)
+- ✅ Created `tests/fixtures/synthetic-multi-tool.json` — multi-tool fixture covering 5 tools (azqr, prowler, maester, gitleaks, trivy) across Azure/Entra/GitHub scopes
+- ✅ Regenerated `sample-findings-v2.json` (v2.2 FindingRow array), `sample-entities.json` (v3 entity store), `sample-report-v2-mockup.html`, `sample-report-v2-mockup.md`
+- ✅ Created `samples/PROVENANCE.md` — fixture → output mapping + repro command documentation
+- ✅ Created `tests/samples/SampleDrift.Tests.ps1` — drift-detection canary that re-renders HTML/MD and diffs against committed outputs; runs in CI to catch renderer changes without sample updates
+
+**Motivation:** Per Sage B3 + GPT-5.4 breadth audit dimension #7: outdated `samples/` broke operator demos. Sample reports must reflect current schema (FindingRow v2.2 + EntityStore v3) and renderer output (HTML/MD/Exec dashboard).
+
+**Key challenges:**
+1. File persistence across branch switches — resolved by atomic creation + commit in single PowerShell invocation
+2. Synthetic fixture design — 5 tools covering multiple scopes (Azure/Entra/GitHub) with realistic findings
+3. Drift test normalization — strip timestamps before diff to avoid false positives
+
+**PR:** https://github.com/martinopedal/azure-analyzer/pull/924  
+**Issue:** https://github.com/martinopedal/azure-analyzer/issues/906  
+**Commit:** 2d4f346
+
+**Learnings:**
+- Tool file creation doesn't persist across interactive branch switches — must commit changes in same invocation that creates them
+- Synthetic fixtures should demonstrate v2.2 schema additions (Pillar, Impact, Effort, Frameworks)  
+- Drift tests need timestamp normalization to avoid false failures on identical content with different generation times
+- Git's `index.lock` issues require atomic operations or explicit serialization of git commands
+
 ## 2026-04-22 - Issue #299 Schema 2.2 additive bump (PR #343, merged at 97b8277)
 
 Foundational schema work. Bumped New-FindingRow to Schema 2.2: 13 new optional fields with zero-value defaults (Frameworks, Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets, EvidenceUris, BaselineTags, ScoreDelta, MitreTactics, MitreTechniques, EntityRefs, ToolVersion). Two new union-merge helpers (Merge-FrameworksUnion, Merge-BaselineTagsUnion) in EntityStore.ps1. Backward-compatible: existing callers get the same row shape plus zero-value new fields.

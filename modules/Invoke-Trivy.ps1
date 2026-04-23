@@ -268,7 +268,8 @@ try {
                 Source = 'trivy'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
@@ -277,7 +278,8 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
         $cleanupClone = $cloneInfo.Cleanup
         $RepoPath = $cloneInfo.Path
@@ -307,7 +309,8 @@ try {
                 Status   = 'Failed'
                 Message  = (Remove-Credentials "trivy exited with code $exitCode and produced no report")
                 Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
 
         $json = $null
@@ -324,7 +327,8 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials -Text "Report JSON parse failed: $([string]$_)"
                         Findings = @()
-                    }
+                    }    Errors   = @()
+$3
                 }
             }
         }
@@ -546,7 +550,8 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }finally {
     if ($cleanupClone) {
         try { & $cleanupClone } catch { Write-Verbose "trivy clone cleanup failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))" }

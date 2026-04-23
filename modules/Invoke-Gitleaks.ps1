@@ -355,7 +355,8 @@ if (-not (Test-GitleaksInstalled)) {
         Status   = 'Skipped'
         Message  = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $resolvedConfig = $null
@@ -374,7 +375,8 @@ try {
                 Source = 'gitleaks'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
         if (-not $cloneInfo) {
@@ -383,7 +385,8 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
         $cleanupClone = $cloneInfo.Cleanup
         $RepoPath = $cloneInfo.Path
@@ -434,7 +437,8 @@ try {
                 Status   = 'Failed'
                 Message  = Remove-Credentials "gitleaks exited with code $exitCode and produced no report"
                 Findings = @()
-            }
+            }    Errors   = @()
+$3
         }
 
         $json = @()
@@ -451,7 +455,8 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
-                    }
+                    }    Errors   = @()
+$3
                 }
             }
         } elseif ($exitCode -eq 0) {
@@ -627,7 +632,8 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 } finally {
     if ($cleanupClone) {
         try { & $cleanupClone } catch { Write-Verbose "gitleaks clone cleanup failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))" }

@@ -656,7 +656,8 @@ if (-not $azGovVizScript) {
         Status   = 'Skipped'
         Message  = 'AzGovVizParallel.ps1 not found'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 if (-not (Test-Path $OutputPath)) {
@@ -719,5 +720,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

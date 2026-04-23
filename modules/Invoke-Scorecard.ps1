@@ -412,5 +412,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

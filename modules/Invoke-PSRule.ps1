@@ -110,7 +110,8 @@ if (-not (Test-PSRuleInstalled)) {
         Status   = 'Skipped'
         Message  = 'PSRule.Rules.Azure not installed'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 try {
@@ -212,5 +213,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

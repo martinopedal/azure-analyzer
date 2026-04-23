@@ -701,7 +701,8 @@ if (-not $pat) {
         Status   = 'Skipped'
         Message  = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $pair = ":$pat"
@@ -724,7 +725,8 @@ try {
             Status   = 'Success'
             Message  = "No projects found in organization '$AdoOrg'."
             Findings = @()
-        }
+        }    Errors   = @()
+$3
     }
 
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -927,5 +929,6 @@ try {
         Status   = 'Failed'
         Message  = $msg
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }

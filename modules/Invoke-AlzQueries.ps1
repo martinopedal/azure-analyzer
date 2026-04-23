@@ -64,7 +64,8 @@ if (-not (Get-Module -Name Az.ResourceGraph -ListAvailable -ErrorAction Silently
         Status   = 'Skipped'
         Message  = 'Az.ResourceGraph not installed'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 Import-Module Az.ResourceGraph -ErrorAction SilentlyContinue
@@ -78,7 +79,8 @@ if (-not (Test-Path $QueriesFile)) {
         Status   = 'Skipped'
         Message  = 'Query file not found'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $data = Get-Content $QueriesFile -Raw | ConvertFrom-Json -ErrorAction Stop
@@ -98,7 +100,8 @@ if ($queryable.Count -eq 0) {
         Status   = 'Skipped'
         Message  = 'No queryable items found'
         Findings = @()
-    }
+    }    Errors   = @()
+$3
 }
 
 $graphParams = @{}
