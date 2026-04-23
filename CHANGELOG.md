@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Fixed
+- fix(ci): grant `pull-requests: write` and `issues: write` to the `release_please` job in `.github/workflows/release.yml` so release-please can create its release PR and apply labels. The job was running with the workflow's default `contents: write` only, causing release-please v17.3.0 to fail with `Resource not accessible by integration` on PR creation. Permissions are scoped at both the workflow and job level for defense in depth (#734).
+
 ### Added
 - test(e2e): wrapper-level coverage for `bicep-iac` (#663), `infracost` (#664), and `terraform-iac` (#665). Three new files under `tests/wrappers/` (`Invoke-IaCBicep.E2E.Tests.ps1`, `Invoke-IaCTerraform.E2E.Tests.ps1`, `Invoke-Infracost.E2E.Tests.ps1`) exercise wrapper -> normalizer end-to-end through a mocked `Invoke-WithTimeout` (300s timeout invariant asserted), feeding the v1 envelope produced by the IaC adapter and Infracost wrapper into `Normalize-IaCBicep`, `Normalize-IaCTerraform`, and `Normalize-Infracost` and validating the resulting v2 `FindingRow` shape (SchemaVersion 2.2, canonical EntityId, Pillar, EvidenceUris, ToolVersion, Provenance.RunId). Shared, fully-synthetic fixtures live in `tests/fixtures/iac/` (`main.bicep`, `bicep-build-output.txt`, `main.tf`, `terraform-validate.json`, `trivy-config.json`, `infracost-breakdown.json`, plus a `README.md` describing each). Wrapper test suite now 430/430 green.
 

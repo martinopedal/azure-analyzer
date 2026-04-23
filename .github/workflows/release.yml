@@ -23,6 +23,8 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   release_please:
@@ -30,6 +32,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Run release-please (manifest mode)
         uses: googleapis/release-please-action@8b8fd2cc23b2e18957157a9d923d75aa0c6f6ad5 # v4
