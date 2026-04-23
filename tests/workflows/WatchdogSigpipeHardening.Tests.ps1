@@ -7,9 +7,11 @@ Describe 'CI failure watchdog SIGPIPE hardening' {
     }
 
     It 'uses here-strings for watchdog log truncation and grep extraction' {
-        $script:WorkflowText | Should -Match 'failed_log_head="\$\(head -n 500 <<< "\$failed_log_raw"\)"'
-        $script:WorkflowText | Should -Match 'grep -qE ''HTTP 403\|rate limit exceeded'' <<< "\$failed_log_raw"'
-        $script:WorkflowText | Should -Match 'grep -Eim1 ''##\\\[error\\\]\|::error::'' <<< "\$failed_log_head"'
+        $script:WorkflowText | Should -Match 'head -n 500 <<<\s*"\$failed_log_raw"'
+        $script:WorkflowText | Should -Match 'grep -qE ''HTTP 403\|rate limit exceeded'' <<<\s*"\$failed_log_raw"'
+        $script:WorkflowText | Should -Match '##\\\[error\\\]\|::error::'' <<<\s*"\$failed_log_head"'
+        $script:WorkflowText | Should -Match 'error\|failed\|fatal\)\(:\|\[\[:space:\]\]\)'' <<<\s*"\$failed_log_head"'
+        $script:WorkflowText | Should -Match 'Exception\|Traceback\|exit code \[1-9\]\|exited with code\)'' <<<\s*"\$failed_log_head"'
     }
 
     It 'does not use printf|head or printf|grep pipelines in the watchdog extractor path' {
