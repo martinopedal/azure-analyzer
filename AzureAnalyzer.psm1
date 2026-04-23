@@ -137,7 +137,9 @@ function Invoke-AzureAnalyzer {
         [switch] $Show,
         [ValidateRange(1, 65535)]
         [int] $ViewerPort = 4280,
-        [switch] $NoBanner
+        [switch] $NoBanner,
+        [switch] $FixtureMode,
+        [string] $FixturePath
     )
 
     $scriptPath = Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1'
