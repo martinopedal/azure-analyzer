@@ -165,6 +165,40 @@ Describe 'LLM triage model selection (#433)' {
             }
         }
 
+        It 'supports -SingleModel when roster has fewer than three models' {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)
+                $cmd = ($Args -join ' ')
+                $global:LASTEXITCODE = 0
+                if ($cmd -eq 'copilot models list --json id') { return '[{"id":"gpt-5-mini"},{"id":"gpt-4.1"}]' }
+                throw "unexpected gh call: $cmd"
+            }
+            try {
+                $result = Invoke-CopilotTriage -Findings @([pscustomobject]@{ Id = 'f1'; Title = 'x' }) -CopilotTier Pro -SingleModel
+                $result.Mode | Should -Be 'SingleModel'
+                $result.SelectedModels.Count | Should -Be 1
+            } finally {
+                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'selects rubberduck trio when exactly three models are available' {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)
+                $cmd = ($Args -join ' ')
+                $global:LASTEXITCODE = 0
+                if ($cmd -eq 'copilot models list --json id') { return '[{"id":"claude-sonnet-4.6"},{"id":"gpt-5.2"},{"id":"gemini-3-pro-preview"}]' }
+                throw "unexpected gh call: $cmd"
+            }
+            try {
+                $result = Invoke-CopilotTriage -Findings @([pscustomobject]@{ Id = 'f1'; Title = 'x' }) -CopilotTier Business
+                $result.Mode | Should -Be 'Rubberduck'
+                $result.SelectedModels.Count | Should -Be 3
+            } finally {
+                Remove-Item Function:\global:gh -ErrorAction SilentlyContinue
+            }
+        }
+
         It 'emits versioned schema with FallbackChain and GeneratedAt' {
             function global:gh {
                 param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)

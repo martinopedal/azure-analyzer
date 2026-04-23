@@ -145,6 +145,7 @@ function Get-AvailableModelsFromCopilotPlan {
 
     $discovered = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     $listJson = ''
+    $discoveryError = ''
     try {
         $listJson = (& gh copilot models list --json id 2>$null | Out-String)
         if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($listJson)) {
@@ -156,27 +157,15 @@ function Get-AvailableModelsFromCopilotPlan {
             }
         }
     } catch {
+        $discoveryError = [string]$_.Exception.Message
         $listJson = ''
-    }
-
-    if ($discovered.Count -eq 0) {
-        try {
-            $listText = (& gh copilot models list 2>$null | Out-String)
-            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($listText)) {
-                foreach ($m in [regex]::Matches($listText, '(?im)\b[a-z0-9]+(?:[-.][a-z0-9]+)+\b')) {
-                    $token = [string]$m.Value
-                    if (-not [string]::IsNullOrWhiteSpace($token)) { [void]$discovered.Add($token) }
-                }
-            }
-        } catch {
-            # handled by empty discovered-set guard below
-        }
     }
 
     if ($discovered.Count -eq 0) {
         throw (New-TriageError -Category 'ModelDiscoveryFailed' `
             -Reason 'Unable to discover available Copilot models from "gh copilot models list".' `
-            -Remediation 'Upgrade GitHub CLI with Copilot extension support, ensure you are signed in, and retry.')
+            -Remediation 'Upgrade GitHub CLI with Copilot extension support, ensure you are signed in, and retry.' `
+            -Details $discoveryError)
     }
 
     return @($discovered | Sort-Object)
@@ -335,8 +324,6 @@ function Invoke-CopilotTriage {
         [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
         [string] $TriageModel = 'Auto',
 
-        [string] $ExplicitModel,
-
         [switch] $SingleModel,
 
         [string] $RankingPath = (Join-Path $PSScriptRoot '..' '..' '..' 'config' 'triage-model-ranking.json'),
@@ -352,10 +339,6 @@ function Invoke-CopilotTriage {
             -Remediation 'Restore config/triage-model-ranking.json from source control.')
     }
     $rankingTable = Get-Content -LiteralPath $RankingPath -Raw -Encoding utf8 | ConvertFrom-Json -Depth 10
-
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitModel)) {
-        $TriageModel = "Explicit:$ExplicitModel"
-    }
 
     $availableModels = if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
         @(Get-AvailableModelsFromCopilotPlan -CopilotTier $CopilotTier)

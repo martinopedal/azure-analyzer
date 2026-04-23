@@ -29,6 +29,7 @@ if (-not (Get-Variable -Scope Script -Name AzureAnalyzerViewerState -ErrorAction
 }
 
 $script:MaxViewerEntityIdLength = 512
+$script:ViewerTriageResponseMaxLength = 1000
 $script:ViewerStartupTimeoutSeconds = 10
 $script:ViewerHealthPollIntervalMs = 200
 
@@ -473,7 +474,9 @@ function Start-AzureAnalyzerViewer {
                         $mode = if ($triage.PSObject.Properties['Mode']) { [string]$triage.Mode } else { 'Unknown' }
                         $models = if ($triage.PSObject.Properties['SelectedModels']) { (@($triage.SelectedModels) -join ', ') } else { '' }
                         $response = if ($triage.PSObject.Properties['Response']) { [string]$triage.Response } else { '' }
-                        if ($response.Length -gt 1000) { $response = $response.Substring(0, 1000) + '...[TRUNCATED]' }
+                        if ($response.Length -gt $script:ViewerTriageResponseMaxLength) {
+                            $response = $response.Substring(0, $script:ViewerTriageResponseMaxLength) + '...[TRUNCATED]'
+                        }
                         $safeMode = (Remove-Credentials $mode).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
                         $safeModels = (Remove-Credentials $models).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
                         $safeResponse = (Remove-Credentials $response).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
