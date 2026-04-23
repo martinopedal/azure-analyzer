@@ -26,6 +26,7 @@ function Invoke-WrapperWithHostCapture {
     )
 
     $warningBuffer = [System.Collections.Generic.List[string]]::new()
+    $warningLikeInfoPattern = '^(?i:(WARNING:|##\[warning\]|Notice:))'
     $result = $null
     try {
         # 3>&1 redirects warnings into the success stream so we can sift them
@@ -34,11 +35,16 @@ function Invoke-WrapperWithHostCapture {
         # last non-warning emission.
         $merged = & {
             & $ScriptBlock
-        } 3>&1
+        } 3>&1 6>&1
 
         foreach ($item in @($merged)) {
             if ($item -is [System.Management.Automation.WarningRecord]) {
                 $warningBuffer.Add([string]$item.Message)
+            } elseif ($item -is [System.Management.Automation.InformationRecord]) {
+                $message = [string]$item.MessageData
+                if ($message -match $warningLikeInfoPattern) {
+                    $warningBuffer.Add($message)
+                }
             } else {
                 $result = $item
             }

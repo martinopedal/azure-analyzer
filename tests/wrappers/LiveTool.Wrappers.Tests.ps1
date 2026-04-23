@@ -30,10 +30,13 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
 
             $capture = Invoke-WrapperWithHostCapture -ScriptBlock { & $script:GitleaksWrapper -RepoPath $repoPath }
             $result = $capture.Result
+            $capture.Error | Should -BeNullOrEmpty
             $result | Should -Not -BeNullOrEmpty
             $result.Source | Should -Be 'gitleaks'
             $result.SchemaVersion | Should -Be '1.0'
             $result.Status | Should -Be 'Success'
+            $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
+            $result.Findings | Should -Not -BeNullOrEmpty
             @($result.Findings).Count | Should -BeGreaterOrEqual 0
             @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
         } finally {
@@ -51,10 +54,13 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
 
             $capture = Invoke-WrapperWithHostCapture -ScriptBlock { & $script:TrivyWrapper -ScanPath $tempRoot -ScanType 'fs' }
             $result = $capture.Result
+            $capture.Error | Should -BeNullOrEmpty
             $result | Should -Not -BeNullOrEmpty
             $result.Source | Should -Be 'trivy'
             $result.SchemaVersion | Should -Be '1.0'
             $result.Status | Should -Be 'Success'
+            $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
+            $result.Findings | Should -Not -BeNullOrEmpty
             @($result.Findings).Count | Should -BeGreaterOrEqual 0
             @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
         } finally {
@@ -67,10 +73,13 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
     It 'runs Invoke-Zizmor with the real CLI binary' -Skip:(-not (Get-Command zizmor -ErrorAction SilentlyContinue)) {
         $capture = Invoke-WrapperWithHostCapture -ScriptBlock { & $script:ZizmorWrapper -Repository $script:RepoRoot }
         $result = $capture.Result
+        $capture.Error | Should -BeNullOrEmpty
         $result | Should -Not -BeNullOrEmpty
         $result.Source | Should -Be 'zizmor'
         $result.SchemaVersion | Should -Be '1.0'
         $result.Status | Should -Be 'Success' -Because 'zizmor must not exit non-zero on a well-formed repo (see #768)'
+        $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
+        $result.Findings | Should -Not -BeNullOrEmpty
         @($result.Findings).Count | Should -BeGreaterOrEqual 0
         @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
     }
@@ -83,15 +92,19 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
         $hasToken = [bool]($env:GITHUB_AUTH_TOKEN -or $env:GITHUB_TOKEN)
         $capture = Invoke-WrapperWithHostCapture -ScriptBlock { & $script:ScorecardWrapper -Repository 'github.com/martinopedal/azure-analyzer' }
         $result = $capture.Result
+        $capture.Error | Should -BeNullOrEmpty
         $result | Should -Not -BeNullOrEmpty
         $result.Source | Should -Be 'scorecard'
         $result.SchemaVersion | Should -Be '1.0'
         if ($hasToken) {
             $result.Status | Should -Be 'Success'
+            $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
+            $result.Findings | Should -Not -BeNullOrEmpty
             @($result.Findings).Count | Should -BeGreaterOrEqual 0
         } else {
             $result.Status | Should -Be 'Skipped'
             $result.Message | Should -Match 'GITHUB_AUTH_TOKEN|GITHUB_TOKEN'
+            @($result.Findings).Count | Should -Be 0
         }
         @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
     }
