@@ -39,12 +39,13 @@ function Invoke-AzAdvertizerLookup {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $PolicyId,
-        [string] $CatalogPath = (Get-PolicyCatalogPath -Leaf 'azadvertizer-catalog.json')
+        [string] $CatalogPath = (Get-PolicyCatalogPath -Leaf 'azadvertizer-catalog.json'),
+        [object] $Catalog
     )
 
     if ([string]::IsNullOrWhiteSpace($PolicyId)) { return $null }
-    $catalog = Import-PolicyCatalog -Path $CatalogPath -Name 'AzAdvertizer'
-    return ($catalog.entries | Where-Object { [string]$_.policyId -ieq [string]$PolicyId } | Select-Object -First 1)
+    if (-not $Catalog) { $Catalog = Import-PolicyCatalog -Path $CatalogPath -Name 'AzAdvertizer' }
+    return ($Catalog.entries | Where-Object { [string]$_.policyId -ieq [string]$PolicyId } | Select-Object -First 1)
 }
 
 function Get-PolicySuggestionsForFinding {
@@ -59,6 +60,12 @@ function Get-PolicySuggestionsForFinding {
         Maximum number of suggestions to return. Default 3.
     .PARAMETER AlzActivation
         Full | Partial | Fallback. Controls whether ALZ-source entries are returned.
+    .PARAMETER Map
+        Optional preloaded finding-to-policy map object (skips disk read + JSON parse).
+    .PARAMETER AlzCatalog
+        Optional preloaded ALZ policy catalog object (skips disk read + JSON parse).
+    .PARAMETER AzAdvertizerCatalog
+        Optional preloaded AzAdvertizer policy catalog object (skips disk read + JSON parse).
     .OUTPUTS
         Array of PSCustomObject { PolicyId, DisplayName, Source, ScopeHint, Url, Pill }.
     #>
@@ -67,11 +74,14 @@ function Get-PolicySuggestionsForFinding {
         [Parameter(Mandatory)] [object] $Finding,
         [string] $MapPath,
         [int] $MaxSuggestions = 3,
-        [ValidateSet('Full','Partial','Fallback')] [string] $AlzActivation = 'Fallback'
+        [ValidateSet('Full','Partial','Fallback')] [string] $AlzActivation = 'Fallback',
+        [object] $Map,
+        [object] $AlzCatalog,
+        [object] $AzAdvertizerCatalog
     )
     if ($MaxSuggestions -lt 1) { return @() }
 
-    $map = Import-FindingToPolicyMap -MapPath $MapPath
+    if (-not $Map) { $Map = Import-FindingToPolicyMap -MapPath $MapPath }
     $findingType = ''
     foreach ($candidateProp in 'FindingType', 'findingType', 'Type', 'Category') {
         if ($Finding.PSObject.Properties[$candidateProp] -and -not [string]::IsNullOrWhiteSpace([string]$Finding.$candidateProp)) {
@@ -81,7 +91,7 @@ function Get-PolicySuggestionsForFinding {
     }
     if ([string]::IsNullOrWhiteSpace($findingType)) { return @() }
 
-    $entry = @($map.entries | Where-Object { [string]$_.findingType -ieq $findingType } | Select-Object -First 1)
+    $entry = @($Map.entries | Where-Object { [string]$_.findingType -ieq $findingType } | Select-Object -First 1)
     if (-not $entry) { return @() }
 
     $allowAlz = $AlzActivation -in @('Full', 'Partial')
@@ -97,7 +107,9 @@ function Get-PolicySuggestionsForFinding {
             Select-Object -First $MaxSuggestions
     )
 
-    $alzCatalog = Import-PolicyCatalog -Path (Get-PolicyCatalogPath -Leaf 'alz-policy-catalog.json') -Name 'ALZ'
+    if (-not $AlzCatalog) {
+        $AlzCatalog = Import-PolicyCatalog -Path (Get-PolicyCatalogPath -Leaf 'alz-policy-catalog.json') -Name 'ALZ'
+    }
 
     $rows = [System.Collections.Generic.List[object]]::new()
     foreach ($s in $suggestions) {
@@ -107,13 +119,17 @@ function Get-PolicySuggestionsForFinding {
         $scopeHint = [string]$s.scopeHint
         $url = ''
         if ($source -eq 'AzAdvertizer') {
-            $catalogHit = Invoke-AzAdvertizerLookup -PolicyId $policyId
+            $catalogHit = if ($AzAdvertizerCatalog) {
+                Invoke-AzAdvertizerLookup -PolicyId $policyId -Catalog $AzAdvertizerCatalog
+            } else {
+                Invoke-AzAdvertizerLookup -PolicyId $policyId
+            }
             if ($catalogHit) {
                 if (-not [string]::IsNullOrWhiteSpace([string]$catalogHit.displayName)) { $displayName = [string]$catalogHit.displayName }
                 $url = [string]$catalogHit.url
             }
         } elseif ($source -eq 'ALZ') {
-            $catalogHit = @($alzCatalog.entries | Where-Object { [string]$_.policyId -ieq $policyId } | Select-Object -First 1)
+            $catalogHit = @($AlzCatalog.entries | Where-Object { [string]$_.policyId -ieq $policyId } | Select-Object -First 1)
             if ($catalogHit) {
                 if (-not [string]::IsNullOrWhiteSpace([string]$catalogHit.displayName)) { $displayName = [string]$catalogHit.displayName }
                 $url = [string]$catalogHit.url
