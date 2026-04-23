@@ -87,12 +87,10 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
                 $global:LASTEXITCODE = 0
                 return 'zizmor 1.8.0'
             }
-            $outputIndex = [Array]::IndexOf($Args, '--output')
-            if ($outputIndex -ge 0 -and ($outputIndex + 1) -lt $Args.Count) {
-                Copy-Item -Path $global:ZizmorRawFixture -Destination ([string]$Args[$outputIndex + 1]) -Force
-            }
-            $global:LASTEXITCODE = 1
-            return $null
+            # zizmor 1.x writes JSON to stdout — return raw fixture content so the
+            # wrapper's stdout redirection (`1>$reportFile`) captures it to disk.
+            $global:LASTEXITCODE = 0
+            return (Get-Content $global:ZizmorRawFixture -Raw)
         }
     }
 

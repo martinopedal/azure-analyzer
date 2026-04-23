@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "sentinel-coverage",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "MITRE ATT&CK tactic Initial Access has zero analytics rules",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Detection Coverage",
+      "Pillar": "Security",
+      "Detail": "Workspace law-soc has 0 enabled rules covering TA0001 (Initial Access).",
+      "ResourceId": "/subscriptions/eeeeeeee-1111-2222-3333-444444444444/resourceGroups/rg-soc/providers/Microsoft.OperationalInsights/workspaces/law-soc",
+      "Remediation": "Enable Microsoft 365 Defender phishing detection templates.",
+      "RuleId": "sentinel-coverage-initial-access"
+    },
+    {
+      "Title": "Defender for Cloud connector disabled",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Connector",
+      "Pillar": "Security",
+      "Detail": "Sentinel data connector 'AzureSecurityCenter' is disabled on workspace law-soc.",
+      "ResourceId": "/subscriptions/eeeeeeee-1111-2222-3333-444444444444/resourceGroups/rg-soc/providers/Microsoft.OperationalInsights/workspaces/law-soc/providers/Microsoft.SecurityInsights/dataConnectors/AzureSecurityCenter",
+      "Remediation": "Enable the Defender for Cloud connector in Sentinel.",
+      "RuleId": "sentinel-connector-mdc-off"
+    },
+    {
+      "Title": "Defender for Endpoint connector active",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Connector",
+      "Pillar": "Security",
+      "Detail": "MDE connector enabled with bi-directional sync.",
+      "ResourceId": "/subscriptions/eeeeeeee-1111-2222-3333-444444444444/resourceGroups/rg-soc/providers/Microsoft.OperationalInsights/workspaces/law-soc/providers/Microsoft.SecurityInsights/dataConnectors/MicrosoftDefenderAdvancedThreatProtection",
+      "Remediation": "",
+      "RuleId": "sentinel-connector-mde-ok"
+    }
+  ]
+}

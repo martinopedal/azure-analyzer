@@ -220,9 +220,30 @@ if (-not (Test-ScorecardInstalled)) {
     }
 }
 
-# Warn if no GitHub auth token is set (authenticated requests get higher rate limits)
-if (-not $env:GITHUB_AUTH_TOKEN -and -not $env:GITHUB_TOKEN) {
-    Write-Warning "Neither GITHUB_AUTH_TOKEN nor GITHUB_TOKEN is set. Scorecard will use unauthenticated requests (lower rate limits)."
+# #768: scorecard requires a GitHub token for meaningful results (rate-limited
+# unauthenticated calls produce noisy/incomplete data). If no token is present,
+# return Status=Skipped with a clear remediation message rather than running
+# degraded. We accept both GITHUB_AUTH_TOKEN (scorecard's native variable) and
+# GITHUB_TOKEN (the GitHub Actions / gh-cli convention), mirroring the resolution
+# order used by RemoteClone.ps1.
+$resolvedAuthToken = if ($env:GITHUB_AUTH_TOKEN) { $env:GITHUB_AUTH_TOKEN } elseif ($env:GITHUB_TOKEN) { $env:GITHUB_TOKEN } else { '' }
+if (-not $resolvedAuthToken) {
+    $skipMessage = 'scorecard requires a GitHub auth token. Set GITHUB_AUTH_TOKEN or GITHUB_TOKEN (e.g. `gh auth token`) and retry.'
+    Write-Verbose $skipMessage
+    return [PSCustomObject]@{
+        Source        = 'scorecard'
+        SchemaVersion = '1.0'
+        Status        = 'Skipped'
+        Message       = $skipMessage
+        Findings      = @()
+        Diagnostics   = @(
+            [PSCustomObject]@{
+                Code    = 'MissingAuthToken'
+                Tool    = 'scorecard'
+                Message = $skipMessage
+            }
+        )
+    }
 }
 
 try {
@@ -243,10 +264,13 @@ try {
         $scCmd = Get-Command scorecard -ErrorAction SilentlyContinue
         if ($scCmd -and $scCmd.CommandType -eq 'Application') {
             $scorecardJob = Start-Job -ScriptBlock {
-                param($repo, $ghHost)
+                param($repo, $ghHost, $authToken)
                 if ($ghHost) { $env:GH_HOST = $ghHost }
+                # #768: scorecard reads GITHUB_AUTH_TOKEN; propagate the resolved token
+                # into the job environment (jobs do not inherit env automatically).
+                if ($authToken) { $env:GITHUB_AUTH_TOKEN = $authToken }
                 scorecard --repo=$repo --format=json 2>&1
-            } -ArgumentList $Repository, $GitHubHost
+            } -ArgumentList $Repository, $GitHubHost, $resolvedAuthToken
             if (Wait-Job -Job $scorecardJob -Timeout 300) {
                 $rawOutput = Receive-Job -Job $scorecardJob
             } else {
@@ -256,7 +280,19 @@ try {
             }
             Remove-Job -Job $scorecardJob -Force -ErrorAction SilentlyContinue
         } else {
-            $rawOutput = scorecard --repo=$Repository --format=json 2>&1
+            # In-process mock path: ensure GITHUB_AUTH_TOKEN is set so the wrapper's
+            # contract (#768) is observable from tests too.
+            $originalAuthToken = $env:GITHUB_AUTH_TOKEN
+            try {
+                if (-not $env:GITHUB_AUTH_TOKEN) { $env:GITHUB_AUTH_TOKEN = $resolvedAuthToken }
+                $rawOutput = scorecard --repo=$Repository --format=json 2>&1
+            } finally {
+                if ($null -eq $originalAuthToken) {
+                    Remove-Item Env:\GITHUB_AUTH_TOKEN -ErrorAction SilentlyContinue
+                } else {
+                    $env:GITHUB_AUTH_TOKEN = $originalAuthToken
+                }
+            }
         }
         $json = $rawOutput | Out-String | ConvertFrom-Json -ErrorAction Stop
     } finally {
