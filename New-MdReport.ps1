@@ -139,6 +139,9 @@ if (-not (Test-Path $InputPath)) {
 }
 
 $findings = @(Get-Content -Path $InputPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+if ($findings.Count -eq 1 -and $findings[0] -and $findings[0].PSObject.Properties['Findings']) {
+    $findings = @($findings[0].Findings)
+}
 $runDir = Split-Path $InputPath -Parent
 
 $entities = @()
