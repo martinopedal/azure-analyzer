@@ -242,3 +242,12 @@
 - **Branch force-pushes by concurrent cloud agents** - another agent rewrote the branch with a different commit structure that happened to include my fixes. Always re-fetch before merge decisions.
 - **`continue-on-error: true` hygiene contract** - `tests/workflows/WorkflowHygiene.Tests.ps1` requires each occurrence preceded by `# tracked: martinopedal/azure-analyzer#604` on the immediately-previous non-blank line.
 - **Copilot review thread resolution via GraphQL** - use `gh api graphql -f query=<mutation> -f id=<thread_id>` with `resolveReviewThread(input:{threadId:$id})` to batch-close threads programmatically.
+
+### 2026-04-23 - Drove PR #841 to merge (Gitleaks/Trivy non-null Findings contract, Closes #840)
+- Contract: wrappers MUST emit `Findings = @($findings)` on every return path. Single objects and empty results both collapse to `$null` without the `@(...)` wrapper.
+- Test idiom that actually catches this: `,$result.Findings | Should -Not -Be $null` (comma operator) + `@($result.Findings).Count | Should -Be 0`. A plain `$result.Findings | Should -Not -Be $null` passes on `@()` because empty arrays collapse through the pipeline.
+- LiveTool scorecard probe fixed: `scorecard --version` (unsupported) -> `scorecard version`.
+- Main advanced 5+ times during review. Each rebase risked regressing the `WorkflowHygiene.Tests.ps1` contract (`continue-on-error: true` must be preceded by `# tracked: martinopedal/azure-analyzer#604`). Noted: every re-merge after a CI-heavy PR lands needs a hygiene test re-run, not just wrapper tests.
+- Auto-resolve bot force-pushes cloud-agent PR branches asynchronously; local state desyncs silently. `git fetch origin <branch>` before any action is mandatory.
+- Only required check is `Analyze (actions)`. Stale `Test (*)` failures in `statusCheckRollup` from pre-fix SHAs are cosmetic and do not block merge.
+- Merge commit: `1254398`. Issue #840 auto-closed. Inbox decision at `.squad/decisions/inbox/sage-pr841-2026-04-23.md`.
