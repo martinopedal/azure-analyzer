@@ -7,6 +7,9 @@ All notable changes to azure-analyzer will be documented here.
 ### Documentation
 - docs: post-cascade refresh across README, PERMISSIONS, CONTRIBUTING (cloud-agent edition), `.github/copilot-instructions.md`, reference index counts, and regenerated manifest-driven sample reports/catalog checks.
 
+### Changed
+- add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
+
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll across test suite (#746).
 
