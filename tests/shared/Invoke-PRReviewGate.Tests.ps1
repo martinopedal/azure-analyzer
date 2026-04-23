@@ -252,6 +252,36 @@ Describe 'Invoke-PRReviewGate shared helper' {
         }
     }
 
+    Context 'Invoke-GhApiPaged survives credential-like patterns inside diff_hunk (regression #842)' {
+        # Reproduces the CI failure where Remove-Credentials ran on raw JSON
+        # text before ConvertFrom-Json. Greedy regex patterns like
+        # Password=[^;]+ consumed past the closing " of diff_hunk values,
+        # producing "Unterminated string" parse errors.
+        BeforeEach {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)] $Arguments)
+                $joined = [string]($Arguments -join ' ')
+                if ($joined -match '/pulls/842/reviews') {
+                    return '[[{ "id": 8420, "state": "COMMENTED", "body": "lgtm", "submitted_at": "2026-04-23T15:00:00Z", "commit_id": "abc123", "user": { "login": "reviewer" } }]]'
+                }
+                if ($joined -match '/pulls/842/comments') {
+                    # diff_hunk deliberately contains Password=... which would
+                    # have been corrupted by Remove-Credentials before parsing.
+                    return '[[{ "id": 8421, "body": "fix creds", "path": "config.ps1", "line": 5, "side": "RIGHT", "created_at": "2026-04-23T15:01:00Z", "user": { "login": "copilot-pull-request-reviewer[bot]" }, "diff_hunk": "@@ -1,3 +1,3 @@\n-Password=OldSecret123\n+Password=$env:VAULT_SECRET", "pull_request_review_id": 8420 }]]'
+                }
+                throw "Unexpected gh call: $joined"
+            }
+            . $script:ModulePath
+        }
+
+        It 'parses line comments whose diff_hunk contains credential-like patterns' {
+            $feedback = Get-PRReviewFeedback -PRNumber 842 -Repo 'martinopedal/azure-analyzer'
+            $feedback.LineComments.Count | Should -Be 1
+            $feedback.LineComments[0].Body | Should -Be 'fix creds'
+            $feedback.LineComments[0].Path | Should -Be 'config.ps1'
+        }
+    }
+
     Context 'Get-PullRequestFeedback tolerates sparse .user payloads (regression #584)' {
         BeforeEach {
             function global:gh {
