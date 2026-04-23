@@ -191,3 +191,10 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - **Pattern:** SHA-pinned `actions/create-github-app-token` generates a 1-hour token from App credentials stored as repo secrets (`RELEASE_APP_ID`, `RELEASE_APP_PRIVATE_KEY`). This is the recommended pattern over PATs for any automation that needs to create PRs that trigger CI.
 - **Scope:** Only the `release_please` job was modified. The `publish` job still uses `GITHUB_TOKEN` (appropriate since it doesn't create PRs).
 - **Setup required:** Issue #954 documents one-time manual steps to create the GitHub App and install it on the repo.
+### SampleDrift Deterministic Fix 2026-04-24
+
+- **Task:** Fix SampleDrift HTML fixture test failing on all CI platforms across all open PRs
+- **Root cause:** PowerShell @{} hashtables have non-deterministic key enumeration across processes due to .NET hash seed randomization. HTML report used regular hashtables for heatmap JSON serialization and entity-type bar chart sorting with ties.
+- **Fix:** Converted 10 hashtables to [ordered]@{} for stable JSON, added alphabetical tiebreaker to entity sort, replaced .ContainsKey() with .Contains() for OrderedDictionary compat.
+- **PR:** #958
+- **Learning:** Any PowerShell hashtable that feeds into ConvertTo-Json or .GetEnumerator() for HTML output MUST use [ordered]@{} to guarantee deterministic output across process invocations. Regular @{} is only safe for internal lookups within the same process.
