@@ -19,6 +19,7 @@
 - **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
 - **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
 - **CI watchdog dedup race**: Implemented 24h coalesce window with pre-create reconciliation to prevent duplicate ci-failure issues. Watchdog now queries for existing open issues BEFORE creating new ones, with exponential backoff retry (3 attempts, 2^n seconds) on gh API calls. Fixes race condition that allowed ~30 duplicate issues (#877-#903) to be created before post-create dedup sweep ran. Closes #908.
+- **Closes link bot bypass**: Verified that `closes-link-required.yml` already exempts trusted automation bots (release-please[bot], dependabot[bot], github-actions[bot], copilot-swe-agent[bot], Copilot) from the "Closes #N" requirement, added in PR #835. Closes #910.
 
 ### Added
 
