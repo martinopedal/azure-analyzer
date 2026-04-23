@@ -50,8 +50,16 @@ jobs:
   triage-failure:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Concurrency (tracked: #862):
+    # The group MUST be keyed off `github.event.workflow_run.id` so each
+    # triggering workflow-run gets its own slot. A constant `ci-failure-watchdog`
+    # group caused GitHub to cancel ~72% of runs (23/32 sample) because
+    # `cancel-in-progress: false` still drops a previously-queued run when a
+    # third run arrives (only one running + one pending allowed per group).
+    # The triage step is hash-idempotent (sha256 of workflow+error line), so
+    # parallel triage runs cannot open duplicate ci-failure issues.
     concurrency:
-      group: ci-failure-watchdog
+      group: ci-failure-watchdog-${{ github.event.workflow_run.id }}
       cancel-in-progress: false
     steps:
       - name: Skip non-failure or self-triggered runs
