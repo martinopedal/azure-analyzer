@@ -3,6 +3,7 @@
 
 Describe 'Check-StubDeadline' {
     BeforeAll {
+        $script:_origLastExit = $global:LASTEXITCODE
         $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $script:ScriptPath = Join-Path $script:RepoRoot 'scripts\Check-StubDeadline.ps1'
         $script:NewStubFixture = {
@@ -94,4 +95,8 @@ Describe 'Check-StubDeadline' {
     AfterAll {
         $global:LASTEXITCODE = 0
     }
+}
+
+AfterAll {
+    $global:LASTEXITCODE = $script:_origLastExit
 }

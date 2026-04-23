@@ -8,6 +8,10 @@ BeforeAll {
     $script:Token = 'Bearer eyJhbGciOiJIUzI1NiJ9.fake_payload.fake_sig'
 }
 
+AfterAll {
+    Remove-Variable -Name WrappersSanitizeCallCount -Scope Global -ErrorAction SilentlyContinue
+}
+
 Describe 'Wrapper raw output disk-write sanitization' {
     It 'sanitizes Invoke-AzureCost raw JSON output' {
         $wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-AzureCost.ps1'

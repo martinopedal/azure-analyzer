@@ -14,6 +14,7 @@ All notable changes to azure-analyzer will be documented here.
 
 - Fix zizmor exit code 2 handling and pass GITHUB_TOKEN to scorecard in live runs (#768).
 - Address 4 Copilot review concerns from #721 (#767).
+- Restore env/global state in BeforeAll/AfterAll across test suite (#746).
 * Remove 9 expired docs-restructure redirect stubs now that module version reached 1.1.0 (cleared `Check redirect stub deadline` failure that blocked all open PRs).
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)

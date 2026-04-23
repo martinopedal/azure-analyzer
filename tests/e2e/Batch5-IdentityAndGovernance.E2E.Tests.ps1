@@ -31,7 +31,8 @@ BeforeDiscovery {
 
 BeforeAll {
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
-    $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
+    $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS = if ($null -eq $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS) { '__unset__' } else { $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS }
+$env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
     Get-Module AzureAnalyzer -ErrorAction SilentlyContinue | Remove-Module -Force -ErrorAction SilentlyContinue
     Import-Module (Join-Path $script:RepoRoot 'AzureAnalyzer.psd1') -Force
@@ -159,4 +160,13 @@ Describe 'E2E batch 5 (#745): <_.Name>' -ForEach $script:Tools {
             -Files @($script:Result.ResultsFile, $script:Result.EntitiesFile, $script:Result.HtmlFile, $script:Result.MdFile) `
             -PlantedLiterals $script:PlantedLiterals
     }
+}
+
+AfterAll {
+    if ($env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -eq '__unset__') {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    } elseif ($null -ne $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS
+    }
+    Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }

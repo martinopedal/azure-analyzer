@@ -33,6 +33,7 @@ AfterAll {
     } else {
         $env:CI = $script:savedCi
     }
+    Remove-Variable -Name normalizeInvocation -Scope Global -ErrorAction SilentlyContinue
 }
 
 Describe 'Invoke-AzureAnalyzer management-group path backfill' {

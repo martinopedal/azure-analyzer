@@ -144,7 +144,7 @@ Describe 'Read-InstallConfig' {
     BeforeAll {
         $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
         $manifest = Get-Content (Join-Path $repoRoot 'tools\tool-manifest.json') -Raw | ConvertFrom-Json
-        $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+        $tempDir = [System.IO.Path]::GetTempPath()
         $testDir = Join-Path $tempDir "installconfig-tests-$(New-Guid)"
         $null = New-Item -ItemType Directory -Path $testDir -Force
     }

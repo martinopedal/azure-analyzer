@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 # error paths plus a thinner inline success path are already covered by
 # Invoke-Infracost.Tests.ps1; this file extends coverage to the wrapper
 # -> normalizer hand-off using the shared tests/fixtures/iac fixture.
+$env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS = if ($null -eq $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS) { '__unset__' } else { $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS }
 $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
 BeforeAll {
@@ -166,4 +167,13 @@ Describe 'Invoke-Infracost: E2E wrapper -> normalizer (#664)' {
             @($runIds).Count | Should -Be 1
         }
     }
+}
+
+AfterAll {
+    if ($env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -eq '__unset__') {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    } elseif ($null -ne $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS
+    }
+    Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }

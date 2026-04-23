@@ -5,6 +5,16 @@ Describe 'Update-ToolPins' {
     BeforeAll {
         $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $script:ScriptPath = Join-Path $script:RepoRoot 'tools\Update-ToolPins.ps1'
+        $script:_origGitCalls = Get-Variable -Name GitCalls -Scope Global -ErrorAction SilentlyContinue
+        $script:_origGhCalls = Get-Variable -Name GhCalls -Scope Global -ErrorAction SilentlyContinue
+        $script:_origLastExit = $global:LASTEXITCODE
+    }
+
+    AfterAll {
+        Remove-Variable -Name GitCalls, GhCalls -Scope Global -ErrorAction SilentlyContinue
+        if ($script:_origGitCalls) { Set-Variable -Name GitCalls -Scope Global -Value $script:_origGitCalls.Value }
+        if ($script:_origGhCalls)  { Set-Variable -Name GhCalls  -Scope Global -Value $script:_origGhCalls.Value }
+        $global:LASTEXITCODE = $script:_origLastExit
     }
 
     It 'script file exists' {
@@ -90,6 +100,5 @@ Describe 'Update-ToolPins' {
         $global:GitCalls | Should -Contain 'checkout -B chore/bump-scorecard-1.1.0 origin/chore/bump-scorecard-1.1.0'
         $global:GitCalls | Should -Contain 'reset --hard origin/main'
         ($global:GitCalls | Where-Object { $_ -eq 'checkout -b chore/bump-scorecard-1.1.0' }).Count | Should -Be 0
-        Remove-Variable -Name GitCalls, GhCalls -Scope Global -ErrorAction SilentlyContinue
     }
 }

@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 # shape. The wrapper script's error paths are already covered by
 # Invoke-IaCTerraform.Tests.ps1; this file extends coverage to the success
 # path and the wrapper -> normalizer hand-off.
+$env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS = if ($null -eq $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS) { '__unset__' } else { $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS }
 $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
 BeforeAll {
@@ -160,4 +161,13 @@ Describe 'Invoke-IaCTerraform: E2E wrapper -> normalizer (#665)' {
             @($runIds).Count | Should -Be 1
         }
     }
+}
+
+AfterAll {
+    if ($env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -eq '__unset__') {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    } elseif ($null -ne $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS
+    }
+    Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }

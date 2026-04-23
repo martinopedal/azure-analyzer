@@ -4,6 +4,7 @@
 Describe 'Generate-ToolCatalog' {
 
     BeforeAll {
+        $script:_origLastExit = $global:LASTEXITCODE
         $script:RepoRoot       = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
         $script:ScriptPath     = Join-Path $script:RepoRoot 'scripts\Generate-ToolCatalog.ps1'
         $script:ManifestPath   = Join-Path $script:RepoRoot 'tools\tool-manifest.json'
@@ -150,4 +151,8 @@ Describe 'Generate-ToolCatalog' {
     AfterAll {
         $global:LASTEXITCODE = 0
     }
+}
+
+AfterAll {
+    $global:LASTEXITCODE = $script:_origLastExit
 }
