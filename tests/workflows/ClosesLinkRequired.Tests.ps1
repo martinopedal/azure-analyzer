@@ -20,13 +20,13 @@ Describe 'closes-link-required workflow contract' {
 
     It 'exempts expected bot authors' {
         foreach ($author in @('github-actions[bot]', 'dependabot[bot]', 'copilot-swe-agent[bot]', 'copilot-swe-agent')) {
-            $script:WorkflowText | Should -Match ([regex]::Escape($author))
+            $script:WorkflowText | Should -CMatch ([regex]::Escape($author))
         }
     }
 
     It 'does not include ambiguous copilot actor aliases' {
-        $script:WorkflowText | Should -Not -Match "'Copilot'"
-        $script:WorkflowText | Should -Not -Match "'copilot\[bot\]'"
+        $script:WorkflowText | Should -Not -CMatch "'Copilot'"
+        $script:WorkflowText | Should -Not -CMatch "'copilot\[bot\]'"
     }
 
     It 'still enforces Closes/Fixes/Resolves or N/A for non-exempt PRs' {
