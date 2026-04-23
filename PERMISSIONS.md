@@ -14,6 +14,7 @@ The HTML remediation-snippet null-guard report fix only changes rendering behavi
 Phase 0 foundation report architecture metadata, report-manifest output, and vendoring verification stubs add no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
 The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only and introduces no Azure, Graph, GitHub, or Azure DevOps permissions.
 Optional Copilot triage makes GitHub Copilot API calls (for model-plan discovery and triage generation) only when users explicitly enable AI triage; this does not require Azure/Graph write permissions.
+Release automation (release-please, GitHub Releases, and PSGallery publication) introduces repository automation and package feed credentials (`GITHUB_TOKEN`, `PSGALLERY_API_KEY`) only; it does not require any additional Azure, Microsoft Graph, GitHub repository-content write scopes for runtime scanners, or Azure DevOps read scope changes.
 
 ## Permission domains at a glance
 

@@ -12,6 +12,17 @@ This is a solo-maintained repository. Contributions are welcome but the maintain
 4. Sign off your commit: `git commit -s -m "feat: describe your change"`
 5. Open a pull request against `main`
 
+## Conventional commits for releases
+
+Release automation uses conventional commits to determine semantic version bumps:
+
+- `feat!` or `BREAKING CHANGE:` => major
+- `feat` => minor
+- `fix` / `perf` => patch
+- `docs` / `chore` / `ci` / `test` / `refactor` => release notes only
+
+See [docs/RELEASING.md](docs/RELEASING.md) for the full release contract.
+
 ## Adding a new tool
 
 Adding a new assessment tool requires three components:

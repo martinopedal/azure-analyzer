@@ -21,6 +21,17 @@
 
 ## Quickest start
 
+### From PSGallery
+
+```powershell
+Install-Module AzureAnalyzer -Scope CurrentUser
+Import-Module AzureAnalyzer
+Connect-AzAccount -TenantId "<tenant-id>"
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
+```
+
+### From source checkout
+
 ```powershell
 git clone https://github.com/martinopedal/azure-analyzer.git && cd azure-analyzer
 Import-Module .\AzureAnalyzer.psd1
