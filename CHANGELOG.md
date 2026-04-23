@@ -14,6 +14,10 @@ All notable changes to azure-analyzer will be documented here.
 - test(e2e): add E2E wrapper coverage for the five ADO-family tools -- ado-connections (#653), ado-pipelines (#654), ado-consumption (#655), ado-repos-secrets (#656), ado-pipeline-correlator (#657). 34 new tests in `tests/e2e/ADO-Wrappers.E2E.Tests.ps1` feed realistic wrapper-output fixtures through the full pipeline (FindingRow, EntityStore, results.json, entities.json, HTML/MD reports, credential scrub). Fixtures live in `tests/fixtures/ado/`.
 
 ### Fixed
+### Added
+- feat(attack-path): implemented Track A renderer functions (`New-AttackPathModel`, `ConvertTo-AttackPathDataIsland`, `Get-AttackPathBudgetReport`) with tier-aware hydration metadata, six-relation edge filtering (TriggeredBy, AuthenticatesAs, DeploysTo, UsesSecret, HasFederatedCredential, Declares), Tier 1 shared edge-budget capping, and finding-to-entity pivot map generation. Replaced AttackPath Pester placeholders with active tests across Tier 1-4 and shared-budget behavior while keeping the single #432b-dependent case skipped.
+
+### Fixed
 - fix(sink): pass `-Source 'sink:log-analytics'` to all 11 `New-FindingError` calls in `modules/sinks/Send-FindingsToLogAnalytics.ps1` so the canonical `New-FindingError` from `modules/shared/Errors.ps1` (which makes `-Source` mandatory) accepts them. The local fallback shim was masking the real signature in unit tests; under integration the real fn won and every error path threw "missing mandatory parameter Source". Also widened the inline shim signature to accept `-Source` for parity.
 - fix(test): point `tests/scripts/Generate-ToolCatalog.Tests.ps1` at `docs/reference/tool-catalog{,-contributor}.md` (the actual generator output paths). Was reading stale `docs/consumer/` and `docs/contributor/` legacy mirrors and reporting projection drift on every run.
 - fix(ci): annotate `live-tool-tests` `continue-on-error: true` with the required `# tracked: martinopedal/azure-analyzer#604` marker so `tests/workflows/WorkflowHygiene.Tests.ps1` passes.
