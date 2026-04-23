@@ -4,6 +4,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [1.2.0 - Unreleased]
 
+### Documentation
+- docs(release-blocker): generate tool-catalog.md and permissions-index.md (#528) -- Adds top-level navigation hubs at `docs/tool-catalog.md` (references detailed catalogs) and `docs/permissions-index.md` (quick-lookup table of all tools sorted by name with required scope and permission links). Release blocker resolved.
+
 ### Fixed
 - fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545, reported by external user)
 - Guard sparse `.user` payloads in `modules/shared/Invoke-PRReviewGate.ps1` (lines 151, 163) so PR Review Gate no longer crashes under StrictMode when GitHub REST returns a review or line-comment object without a `user` property (ghost/deleted user or sparse bot comment). `-and` short-circuit was insufficient because StrictMode raises before logical evaluation; switched to `PSObject.Properties['user']` presence checks matching the existing pattern at lines 165/170. Added regression test in `tests/shared/Invoke-PRReviewGate.Tests.ps1` (sparse-user Context, 12/12 green). Closes #584.
