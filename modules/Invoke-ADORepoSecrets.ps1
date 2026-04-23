@@ -101,7 +101,7 @@ function Resolve-AdoEndpoint {
         if ($uriHost -eq 'dev.azure.com') {
             $segments = @($orgUri.AbsolutePath.Trim('/').Split('/', [System.StringSplitOptions]::RemoveEmptyEntries))
             $orgFromUrl = if ($segments.Count -gt 0) { $segments[0] } else { $Org }
-            if (-not $orgFromUrl) { throw 'AdoOrganizationUrl is missing organization segment.' }
+            if (-not $orgFromUrl) { Write-Error 'AdoOrganizationUrl is missing organization segment.' -ErrorAction Stop }
             return [PSCustomObject]@{
                 Deployment = 'Cloud'
                 BaseUrl = "https://dev.azure.com/$([uri]::EscapeDataString($orgFromUrl))"

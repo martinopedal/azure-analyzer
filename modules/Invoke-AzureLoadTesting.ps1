@@ -40,6 +40,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'loadtesting'
@@ -64,7 +78,7 @@ try {
 }
 try {
     $ctx = Get-AzContext -ErrorAction Stop
-    if (-not $ctx) { throw 'No Az context' }
+    if (-not $ctx) { Write-Error 'No Az context' -ErrorAction Stop }
 } catch {
     $result.Status  = 'Skipped'
     $result.Message = 'Not signed in. Run Connect-AzAccount first.'
@@ -87,7 +101,14 @@ function Invoke-LoadTestingGetPaged {
             Invoke-AzRestMethod -Method GET -Uri $next -ErrorAction Stop
         }
         if (-not $resp -or $resp.StatusCode -ge 400) {
-            throw "Load Testing REST call failed (HTTP $($resp.StatusCode)): $($resp.Content)"
+            $statusCode = if ($resp) { $resp.StatusCode } else { 'null' }
+            $content    = if ($resp) { [string]$resp.Content } else { 'No response' }
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:loadtesting' `
+                -Category 'TransientFailure' `
+                -Reason "Load Testing REST call failed (HTTP ${statusCode})." `
+                -Remediation 'Verify Load Testing Reader role on the resource and retry.' `
+                -Details (Remove-Credentials -Text $content)))
         }
 
         $payload = $resp.Content | ConvertFrom-Json -Depth 30

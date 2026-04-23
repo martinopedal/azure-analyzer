@@ -41,6 +41,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 function Test-ScorecardInstalled {
     $null -ne (Get-Command scorecard -ErrorAction SilentlyContinue)
 }
@@ -276,7 +290,11 @@ try {
             } else {
                 Stop-Job -Job $scorecardJob -ErrorAction SilentlyContinue
                 Remove-Job -Job $scorecardJob -Force -ErrorAction SilentlyContinue
-                throw "scorecard CLI timed out after 300 seconds for repo $Repository"
+                throw (Format-FindingErrorMessage (New-FindingError `
+                    -Source 'wrapper:scorecard' `
+                    -Category 'TimeoutExceeded' `
+                    -Reason "scorecard CLI timed out after 300 seconds for repo $(Remove-Credentials -Text ([string]$Repository))." `
+                    -Remediation 'Retry on a smaller repo scope or increase the scorecard timeout.'))
             }
             Remove-Job -Job $scorecardJob -Force -ErrorAction SilentlyContinue
         } else {

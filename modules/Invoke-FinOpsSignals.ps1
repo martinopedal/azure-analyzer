@@ -32,6 +32,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 function Invoke-SearchAzGraphAllResults {
     param (
         [Parameter(Mandatory)]
@@ -113,7 +127,12 @@ function Get-CostMap {
     }
 
     if (-not $resp -or $resp.StatusCode -ge 400) {
-        throw "Cost Management query failed with status $($resp.StatusCode)."
+        $statusCode = if ($resp) { $resp.StatusCode } else { 'null' }
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:finops-signals' `
+            -Category 'TransientFailure' `
+            -Reason "Cost Management query failed with status ${statusCode}." `
+            -Remediation 'Retry; ensure Cost Management Reader role on the scope.'))
     }
 
     $body = $resp.Content | ConvertFrom-Json -Depth 20
@@ -132,7 +151,11 @@ function Get-CostMap {
     $costIndex = [array]::IndexOf($columnNames, 'PreTaxCost')
     if ($costIndex -lt 0) { $costIndex = [array]::IndexOf($columnNames, 'Cost') }
     if ($resourceIdIndex -lt 0 -or $costIndex -lt 0) {
-        throw "Cost Management response missing expected ResourceId/Cost columns."
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:finops-signals' `
+            -Category 'UnexpectedFailure' `
+            -Reason 'Cost Management response missing expected ResourceId/Cost columns.' `
+            -Remediation 'Inspect the Cost Management query schema; the API response shape may have changed.'))
     }
 
     $rows = @()
@@ -258,7 +281,7 @@ if (-not (Get-Module -ListAvailable -Name Az.CostManagement)) {
 
 try {
     $ctx = Get-AzContext -ErrorAction Stop
-    if (-not $ctx) { throw 'No Az context' }
+    if (-not $ctx) { Write-Error 'No Az context' -ErrorAction Stop }
 } catch {
     $result.Status  = 'Skipped'
     $result.Message = 'Not signed in. Run Connect-AzAccount first.'

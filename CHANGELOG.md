@@ -1,11 +1,21 @@
 ## Unreleased
 
+### Changed
+
+- chore(wrappers): CON-003 raw throw migration - replace raw `throw "..."` with `New-FindingError` + `Format-FindingErrorMessage` across all remaining wrappers; `RawThrowBaseline` in `tests/shared/WrapperConsistencyRatchet.Tests.ps1` is now empty so any new raw throw fails fast (#626).
+- chore(wrappers): CON-004 SupportsShouldProcess ratchet - lock in `[CmdletBinding(SupportsShouldProcess=$true)]` plus `$PSCmdlet.ShouldProcess` gating on side-effecting wrappers (`Invoke-Falco`, `Invoke-AksKarpenterCost`) via a new CON-004 assertion in `WrapperConsistencyRatchet.Tests.ps1` (#627).
+
 ### Fixed
-- Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
+
+- Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient - fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
 - `ci-failure-watchdog.yml` concurrency group is now keyed on `github.event.workflow_run.id` so each triggering workflow-run gets its own slot (#862). The previous constant `ci-failure-watchdog` group caused GitHub to cancel ~72% of queued runs (23/32 sample). Triage remains hash-idempotent so parallel runs are safe.
 - `live-tool-tests` job in `.github/workflows/ci.yml` now sets `continue-on-error: true` at the STEP level on both the live-binary install step and the Pester test step (#861). Job-level guard alone kept the workflow green but left the job card rendered red on PR pages, teaching reviewers to ignore CI. With step-level guards, the non-blocking LiveTool tier reports as green unless a required contract regresses.
 - Auto-approve trusted bot runs now covers the full set of PR-triggered workflows (Closes Link Required, E2E, Issue Resolution Verify, PR Auto-Rebase Conflicts, PR Auto-Rerun On Push, Squad Heartbeat). Previously these workflows wedged in `action_required` on bot-authored PRs because they were absent from the `workflow_run.workflows` filter, forcing manual approval of every run.
+- `Invoke-GhActionsBilling` now keeps sanitized CLI output only in `Details` (not duplicated in `Reason`) so error messages remain short and transient hints (HTTP 429) still work with `Invoke-WithRetry`.
+- `Invoke-Powerpipe` now emits CLI diagnostics via `Write-Verbose` before throwing so `-Verbose` users retain sanitized output even though `Format-FindingErrorMessage` does not include `Details` in the single-line message.
+- Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
+- CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
 
 # Changelog
 
@@ -56,26 +66,23 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
+<<<<<<< HEAD
+=======
 ## [Unreleased]
 
-### Documentation
-- docs: post-cascade refresh across README, PERMISSIONS, CONTRIBUTING (cloud-agent edition), `.github/copilot-instructions.md`, reference index counts, and regenerated manifest-driven sample reports/catalog checks.
-- docs(samples): reconcile Markdown/HTML/mockup sample reports - unify tool count to 37 and posture grade to `F (0/100)` across `samples/sample-report.md` and `samples/sample-report.html`; populate tool-versions table in HTML sample to match Markdown; canonicalize tool id `finops` (was `finops-signals`) in `samples/sample-report-v2-mockup.md`; drop hardcoded enabled/opt-in counts from `docs/reference/README.md` quick-links description so it does not drift with manifest.
-
 ### Changed
-- add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
-### Security
-- Consolidate New-FindingError to single canonical definition; ensure Details always passes through Remove-Credentials sanitization (#529). Adds `modules/shared/FunctionCollision.ps1` (AST-based duplicate-function detector for the `modules/shared/` tree; ignores guarded fallback shims and nested helpers, fails closed on parse errors) and `tests/shared/Errors.Regression529.Tests.ps1` (12 regression tests pinning single-definition, deterministic load-order resolution, sanitization of AccountKey/SAS/Bearer secrets, Category enum enforcement, and the collision detector contract). Pins the shared-module dot-source order in `AzureAnalyzer.psm1` via `Sort-Object FullName` so the post-#671 canonical-wins invariant is filesystem-agnostic.
-### Added
-- test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
-### Fixed
-- Restore env/global state in BeforeAll/AfterAll across test suite (#746).
-- Tightened live wrapper smoke assertions to require clean success diagnostics, deterministic findings/skip behavior, and no unannotated warning markers (`WARNING:`, `##[warning]`, `Notice:`).
-- LiveTool smoke `Findings` assertion now uses the comma operator (`,$result.Findings`) to prevent empty arrays from collapsing the Should pipeline and being mis-reported as `$null` (#770). Scorecard skip branch also re-asserts non-null empty collection to catch `@($null).Count == 1` masking a regression.
-- `Invoke-WrapperWithHostCapture` now re-emits non-warning-like `Write-Information` output via `Write-Information` instead of silently dropping it, preserving debug context in Pester transcripts.
-- Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
-- Markdown Check `links (lychee)` now scans only changed Markdown files on PRs (keeping full-corpus scans on schedule/manual runs) to reduce repeated PR flake/rate-limit failures while still surfacing real link rot.
 
+- chore(wrappers): CON-003 raw throw migration - replace raw `throw "..."` with `New-FindingError` + `Format-FindingErrorMessage` across all remaining wrappers; `RawThrowBaseline` in `tests/shared/WrapperConsistencyRatchet.Tests.ps1` is now empty so any new raw throw fails fast (#626).
+- chore(wrappers): CON-004 SupportsShouldProcess ratchet - lock in `[CmdletBinding(SupportsShouldProcess=$true)]` plus `$PSCmdlet.ShouldProcess` gating on side-effecting wrappers (`Invoke-Falco`, `Invoke-AksKarpenterCost`) via a new CON-004 assertion in `WrapperConsistencyRatchet.Tests.ps1` (#627).
+
+### Fixed
+
+- `Invoke-GhActionsBilling` now keeps sanitized CLI output only in `Details` (not duplicated in `Reason`) so error messages remain short and transient hints (HTTP 429) still work with `Invoke-WithRetry`.
+- `Invoke-Powerpipe` now emits CLI diagnostics via `Write-Verbose` before throwing so `-Verbose` users retain sanitized output even though `Format-FindingErrorMessage` does not include `Details` in the single-line message.
+- Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
+- CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
+
+>>>>>>> 51e8d57 (fix(wrappers): address all PR #823 Copilot review threads)
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 
