@@ -84,8 +84,17 @@ jobs:
       - name: Resolve addressed review threads
         # Uses the GitHub App installation token (minted above) so that
         # `resolveReviewThread` succeeds even on Copilot Code Review threads.
-        # The previous bot-vs-bot FORBIDDEN failure mode no longer applies, so
-        # we surface failures as job errors rather than swallowing them.
+        # Per-thread tolerance lives in the resolver itself (#843): tolerable
+        # GraphQL classifications (AlreadyResolved, Outdated, NotFound,
+        # Forbidden, Transient) are logged and skipped. Only Fatal auth /
+        # schema / unknown errors bubble up as Status=Failed.
+        #
+        # Step-level continue-on-error (#843): auto-resolve is a
+        # non-required convenience automation. Even after per-thread
+        # tolerance, a genuine network outage on the graphql endpoint must
+        # not paint every PR red on a non-required check and train the
+        # squad to ignore CI signal.
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}

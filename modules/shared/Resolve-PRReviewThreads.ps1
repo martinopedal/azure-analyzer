@@ -59,6 +59,15 @@ function Resolve-RepoOwnerName {
 function Invoke-GhGraphQl {
     <#
         Thin wrapper around `gh api graphql`. Returns a parsed PSObject.
+
+        Stderr visibility contract (#843):
+        When `gh api graphql` exits non-zero we emit the UNSANITIZED stderr
+        to the Actions log as a `::debug::` annotation BEFORE running
+        Remove-Credentials. GitHub Actions auto-masks registered secrets in
+        `::debug::` output, so tokens remain redacted while the underlying
+        error payload (FORBIDDEN / NOT_FOUND / RESOLVED / rate-limit JSON)
+        becomes visible to maintainers debugging auto-resolve failures.
+        The thrown finding-error message still carries the sanitized copy.
     #>
     [CmdletBinding()]
     param(
@@ -85,17 +94,88 @@ function Invoke-GhGraphQl {
         if ($exitCodeVar) { $exitCode = [int]$exitCodeVar.Value }
         $innerText = ($stdout | Out-String)
         if ($exitCode -ne 0) {
-            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
-                -Category 'UnexpectedFailure' `
-                -Reason 'gh api graphql failed.' `
-                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope.' `
-                -Details (Remove-Credentials $innerText)))
+            # #843: surface the raw stderr as a debug annotation BEFORE we
+            # sanitize / throw. GitHub Actions masks registered secrets in
+            # ::debug:: output automatically, so this does not leak tokens.
+            # Without this, the classifier loses the signal it needs to
+            # decide RESOLVED / OUTDATED / FORBIDDEN / NOT_FOUND.
+            $debugLine = ($innerText -replace "`r?`n", ' ⏎ ')
+            Write-Host "::debug::gh api graphql exit=$exitCode raw=$debugLine"
+            # #843: the classifier (and Invoke-WithRetry's transient-message
+            # scan) MUST be able to see the upstream error vocabulary
+            # (FORBIDDEN / NOT_FOUND / HTTP 503 / rate limit). Format-
+            # FindingErrorMessage drops Details from its rendered string, so
+            # we throw a plain exception whose .Message IS the sanitized
+            # stderr payload. The ::debug:: annotation above preserves the
+            # raw (still token-masked) stderr for maintainers.
+            $sanitized = Remove-Credentials $innerText
+            throw [System.Exception]::new("gh api graphql failed (exit=$exitCode): $sanitized")
         }
         $innerText
     }
 
     if ([string]::IsNullOrWhiteSpace($text)) { return $null }
     $text | ConvertFrom-Json -ErrorAction Stop
+}
+
+function ConvertTo-ThreadResolveClassification {
+    <#
+        Classify a `resolveReviewThread` failure message (#843).
+
+        Returns one of:
+          - 'AlreadyResolved' : thread is already resolved; idempotent skip
+          - 'Outdated'        : thread attached to an outdated diff; skip
+          - 'NotFound'        : thread id unknown (rebase / force-push / deletion); skip
+          - 'Forbidden'       : mutation refused (bot-vs-bot fallback, app scope drift); warn + skip
+          - 'Transient'       : rate-limit / 5xx / network glitch; warn + skip (retry handled upstream)
+          - 'Fatal'           : anything else (auth, schema, unknown); bubble up
+
+        The classifier scans the raw gh stderr / exception message for the
+        upstream GitHub GraphQL error vocabulary.
+    #>
+    [CmdletBinding()]
+    param(
+        [AllowNull()][AllowEmptyString()]
+        [string] $Message
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Message)) { return 'Fatal' }
+
+    # Normalize for case-insensitive substring matching.
+    $m = $Message
+
+    # Already-resolved: GitHub returns either an explicit "already resolved"
+    # string or the mutation succeeds idempotently with isResolved=true.
+    if ($m -match '(?i)already\s+resolved' -or
+        $m -match '(?i)thread\s+is\s+resolved' -or
+        $m -match '(?i)"isResolved"\s*:\s*true') {
+        return 'AlreadyResolved'
+    }
+
+    if ($m -match '(?i)\bOUTDATED\b' -or $m -match '(?i)outdated\s+(?:diff|thread|line)') {
+        return 'Outdated'
+    }
+
+    if ($m -match '(?i)\bNOT_FOUND\b' -or
+        $m -match '(?i)could\s+not\s+resolve\s+to\s+a\s+node' -or
+        ($m -match '(?i)resource\s+not\s+accessible' -and $m -match '(?i)thread')) {
+        return 'NotFound'
+    }
+
+    if ($m -match '(?i)\bFORBIDDEN\b' -or $m -match '(?i)HTTP\s*403') {
+        return 'Forbidden'
+    }
+
+    if ($m -match '(?i)\brate\s*limit' -or
+        $m -match '(?i)HTTP\s*(?:429|5\d\d)' -or
+        $m -match '(?i)\btimeout\b' -or
+        $m -match '(?i)\bEOF\b' -or
+        $m -match '(?i)connection\s+(?:reset|refused|closed)' -or
+        $m -match '(?i)broken\s+pipe') {
+        return 'Transient'
+    }
+
+    return 'Fatal'
 }
 
 function Get-PRReviewThreads {
@@ -384,6 +464,19 @@ function Test-ThreadAddressedByCommits {
 }
 
 function Resolve-ReviewThread {
+    <#
+        Attempt to resolve a single review thread via the GraphQL
+        `resolveReviewThread` mutation.
+
+        Returns a PSCustomObject with:
+          Resolved       [bool]    true when the thread is resolved server-side (or DryRun)
+          Classification [string]  one of: Resolved | AlreadyResolved | Outdated |
+                                            NotFound | Forbidden | Transient | Fatal
+          Message        [string]  sanitized failure message ('' on success)
+
+        Only 'Fatal' classifications should bubble up as job-level failures;
+        every other classification is a tolerable per-thread skip (#843).
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string] $ThreadId,
@@ -392,7 +485,11 @@ function Resolve-ReviewThread {
 
     if ($DryRun) {
         Write-Verbose "DryRun: would resolve thread $ThreadId"
-        return $true
+        return [PSCustomObject]@{
+            Resolved       = $true
+            Classification = 'Resolved'
+            Message        = ''
+        }
     }
 
     $mutation = @'
@@ -402,8 +499,36 @@ mutation($threadId: ID!) {
   }
 }
 '@
-    $resp = Invoke-GhGraphQl -Query $mutation -Fields @{ threadId = $ThreadId }
-    [bool]($resp -and $resp.data.resolveReviewThread.thread.isResolved)
+    try {
+        $resp = Invoke-GhGraphQl -Query $mutation -Fields @{ threadId = $ThreadId }
+        $resolved = [bool]($resp -and $resp.data.resolveReviewThread.thread.isResolved)
+        if ($resolved) {
+            return [PSCustomObject]@{
+                Resolved       = $true
+                Classification = 'Resolved'
+                Message        = ''
+            }
+        }
+        # Mutation returned without an isResolved=true payload. Treat as
+        # AlreadyResolved (idempotent) if the response mentions resolution,
+        # otherwise Fatal so the caller can surface it.
+        $respText = if ($resp) { ($resp | ConvertTo-Json -Depth 4 -Compress) } else { '' }
+        $classification = ConvertTo-ThreadResolveClassification -Message $respText
+        return [PSCustomObject]@{
+            Resolved       = $false
+            Classification = $classification
+            Message        = (Remove-Credentials $respText)
+        }
+    } catch {
+        $rawMsg = [string]$_.Exception.Message
+        $classification = ConvertTo-ThreadResolveClassification -Message $rawMsg
+        $sanitized = Remove-Credentials $rawMsg
+        return [PSCustomObject]@{
+            Resolved       = $false
+            Classification = $classification
+            Message        = $sanitized
+        }
+    }
 }
 
 function Add-ResolutionReply {
@@ -465,6 +590,7 @@ function Invoke-AutoResolveThreads {
             Status            = 'Disabled'
             ResolvedThreadIds = @()
             SkippedThreadIds  = @()
+            ToleratedFailures = @()
             ErrorMessage      = $null
         }
     }
@@ -478,6 +604,7 @@ function Invoke-AutoResolveThreads {
                 Status            = 'NoOpenThreads'
                 ResolvedThreadIds = @()
                 SkippedThreadIds  = @()
+                ToleratedFailures = @()
                 ErrorMessage      = $null
             }
         }
@@ -487,6 +614,7 @@ function Invoke-AutoResolveThreads {
 
         $resolved = [System.Collections.Generic.List[string]]::new()
         $skipped = [System.Collections.Generic.List[string]]::new()
+        $tolerated = [System.Collections.Generic.List[pscustomobject]]::new()
 
         foreach ($thread in $open) {
             $threadDt = [System.DateTimeOffset]::Parse($thread.CreatedAt, `
@@ -507,9 +635,37 @@ function Invoke-AutoResolveThreads {
                 continue
             }
 
-            $ok = Resolve-ReviewThread -ThreadId $thread.Id -DryRun:$DryRun
-            if (-not $ok) {
+            # #843: per-thread tolerance. Resolve-ReviewThread now returns a
+            # classified result; tolerable classifications (AlreadyResolved,
+            # Outdated, NotFound, Forbidden, Transient) are logged and the
+            # thread moves to SkippedThreadIds. Only 'Fatal' aborts the loop.
+            $attempt = Resolve-ReviewThread -ThreadId $thread.Id -DryRun:$DryRun
+            $skipReason = $null
+            switch ($attempt.Classification) {
+                'Resolved'        { break }
+                'AlreadyResolved' { $skipReason = 'AlreadyResolved'; break }
+                'Outdated'        { $skipReason = 'Outdated'; break }
+                'NotFound'        { $skipReason = 'NotFound'; break }
+                'Forbidden'       { $skipReason = 'Forbidden'; break }
+                'Transient'       { $skipReason = 'Transient'; break }
+                default {
+                    # 'Fatal' — propagate. This path is for auth / schema /
+                    # unrecognised errors that an operator must investigate.
+                    throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Resolve-PRReviewThreads' `
+                        -Category 'UnexpectedFailure' `
+                        -Reason "Fatal GraphQL error resolving thread $($thread.Id)." `
+                        -Remediation 'Inspect the ::debug:: gh api graphql annotation on the failing run; verify app token scope.' `
+                        -Details $attempt.Message))
+                }
+            }
+            if ($skipReason) {
+                if ($skipReason -in @('Forbidden','Transient')) {
+                    Write-Warning "auto-resolve skip thread=$($thread.Id) reason=$skipReason msg=$($attempt.Message)"
+                } else {
+                    Write-Host "::notice::auto-resolve skip thread=$($thread.Id) reason=$skipReason"
+                }
                 $skipped.Add($thread.Id) | Out-Null
+                $tolerated.Add([pscustomobject]@{ Id = $thread.Id; Reason = $skipReason }) | Out-Null
                 continue
             }
 
@@ -540,10 +696,11 @@ function Invoke-AutoResolveThreads {
         }
 
         [PSCustomObject]@{
-            Status            = 'Success'
-            ResolvedThreadIds = @($resolved)
-            SkippedThreadIds  = @($skipped)
-            ErrorMessage      = $null
+            Status               = 'Success'
+            ResolvedThreadIds    = @($resolved)
+            SkippedThreadIds     = @($skipped)
+            ToleratedFailures    = @($tolerated)
+            ErrorMessage         = $null
         }
     } catch {
         $msg = Remove-Credentials ([string]$_.Exception.Message)
@@ -552,6 +709,7 @@ function Invoke-AutoResolveThreads {
             Status            = 'Failed'
             ResolvedThreadIds = @()
             SkippedThreadIds  = @()
+            ToleratedFailures = @()
             ErrorMessage      = $msg
         }
     }

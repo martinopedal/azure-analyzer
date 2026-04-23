@@ -7,6 +7,12 @@
 
 ### Fixed
 - Pester engine pinned to `-RequiredVersion 5.7.1` across `ci.yml`, `e2e.yml`, and `release.yml` (#851). `-MinimumVersion 5.0` previously let Install-Module pull Pester 6.x once it stabilises; Pester 6 has a breaking `[PesterConfiguration]` surface and has been observed returning `$null` from `Invoke-Pester -PassThru`, surfacing as the cross-OS null-result failures in #844 / #849 / #851 / #856. The Test job also now dumps the loaded Pester version/path on null-result for triage, and a new `tests/workflows/PesterVersionPin.Tests.ps1` guard fails fast if any workflow reintroduces `-MinimumVersion` on a Pester Install/Import call or drifts off the canonical pin.
+
+- fix(wrappers): ensure `Invoke-Gitleaks` and `Invoke-Trivy` always return `Findings` as a non-null array (`@()`/`@($findings)`) across success, skipped, and failed paths; update LiveTool CI install probe to use `scorecard version` (#840).
+- Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient - fixes recurring auto-resolve-review-threads job flakes.
+- CodeQL `Analyze (actions)` now survives shared-installation API rate-limit waves. A pre-flight step reads `/rate_limit`, and if `core.remaining < 500` waits for `reset` (capped at 20 min, well inside the 30-min job timeout). A second, retry-on-failure step does the same check before re-running analyze once. Fixes the recurring rolling rate-limit noise seen on #864/#866/#869/#871 (and the "everything red" wave across the board), where analyze failed mid-run with `API rate limit exceeded for installation` — an environmental issue, not a code defect.
+- Retry classifier now treats `gh api graphql` EOF / network errors(EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
+- `pr-auto-resolve-threads` job no longer paints every PR red when a single review thread fails to resolve (#843). Three changes: (1) `Invoke-GhGraphQl` emits raw `gh` stderr via `::debug::` BEFORE `Remove-Credentials` so maintainers can see FORBIDDEN / NOT_FOUND / rate-limit signals in Actions logs; (2) `Resolve-ReviewThread` now classifies failures (AlreadyResolved / Outdated / NotFound / Forbidden / Transient / Fatal) and the loop only aborts on Fatal, moving tolerable failures to `SkippedThreadIds` + new `ToleratedFailures`; (3) step-level `continue-on-error: true` on the Resolve step so even a genuine outage on graphql.github.com does not train reviewers to ignore CI signal on a non-required check.
 - Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
 - `ci-failure-watchdog.yml` concurrency group is now keyed on `github.event.workflow_run.id` so each triggering workflow-run gets its own slot (#862). The previous constant `ci-failure-watchdog` group caused GitHub to cancel ~72% of queued runs (23/32 sample). Triage remains hash-idempotent so parallel runs are safe.
@@ -69,7 +75,6 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
-<<<<<<< ours
 ## [Unreleased]
 
 ### Changed
@@ -80,8 +85,6 @@ All notable changes to azure-analyzer will be documented here.
 - `Invoke-Powerpipe` now emits CLI diagnostics via `Write-Verbose` before throwing so `-Verbose` users retain sanitized output even though `Format-FindingErrorMessage` does not include `Details` in the single-line message.
 - Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
 - CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
-=======
->>>>>>> theirs
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 
