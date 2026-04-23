@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "zizmor",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Workflow has expression-injection sink",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Workflow Injection",
+      "Pillar": "Security",
+      "Detail": "zizmor rule template-injection: .github/workflows/ci.yml line 42 interpolates github.event.issue.title into a run script.",
+      "RepoId": "https://github.com/contoso/devtools",
+      "Remediation": "Move untrusted input to env: and use $VAR in the run script.",
+      "RuleId": "zizmor-template-injection"
+    },
+    {
+      "Title": "Action used by tag, not SHA",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Supply Chain",
+      "Pillar": "Security",
+      "Detail": "actions/checkout@v4 referenced by tag instead of SHA in 3 workflows.",
+      "RepoId": "https://github.com/contoso/devtools",
+      "Remediation": "Pin to SHA per repo SHA-pinning policy.",
+      "RuleId": "zizmor-unpinned-uses"
+    },
+    {
+      "Title": "No dangerous-trigger usage",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Workflow Hygiene",
+      "Pillar": "Security",
+      "Detail": "No pull_request_target with checkout of head ref.",
+      "RepoId": "https://github.com/contoso/devtools",
+      "Remediation": "",
+      "RuleId": "zizmor-pr-target-clean"
+    }
+  ]
+}

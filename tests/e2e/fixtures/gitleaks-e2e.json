@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "gitleaks",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "AWS access key leaked in commit history",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Category": "Secret",
+      "Pillar": "Security",
+      "Detail": "gitleaks rule aws-access-token matched in src/legacy/uploader.py at commit 9a3f.",
+      "RepoId": "https://github.com/contoso/data-pipeline",
+      "Remediation": "Rotate the leaked credential and rewrite history with git-filter-repo.",
+      "RuleId": "gitleaks-aws-access-token"
+    },
+    {
+      "Title": "Generic API key in .env.example",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Secret",
+      "Pillar": "Security",
+      "Detail": "gitleaks rule generic-api-key flagged 32-char string at .env.example:14.",
+      "RepoId": "https://github.com/contoso/data-pipeline",
+      "Remediation": "Replace with placeholder PUT_KEY_HERE.",
+      "RuleId": "gitleaks-generic-api-key"
+    },
+    {
+      "Title": "No secrets in last 30 days of commits",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Secret",
+      "Pillar": "Security",
+      "Detail": "Recent history clean.",
+      "RepoId": "https://github.com/contoso/data-pipeline",
+      "Remediation": "",
+      "RuleId": "gitleaks-recent-clean"
+    }
+  ]
+}

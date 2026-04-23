@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "kubescape",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "C-0017 Immutable container filesystem",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "NSA-CISA",
+      "Pillar": "Security",
+      "Detail": "12 deployments allow writable container filesystem.",
+      "RepoId": "https://github.com/contoso/k8s-manifests",
+      "Remediation": "Set securityContext.readOnlyRootFilesystem = true.",
+      "RuleId": "kubescape-C-0017"
+    },
+    {
+      "Title": "C-0009 Resource policies not enforced",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "MITRE",
+      "Pillar": "Security",
+      "Detail": "8 namespaces lack ResourceQuota; risk of resource exhaustion.",
+      "RepoId": "https://github.com/contoso/k8s-manifests",
+      "Remediation": "Apply ResourceQuota objects per namespace.",
+      "RuleId": "kubescape-C-0009"
+    },
+    {
+      "Title": "C-0001 Forbidden container registries",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "NSA-CISA",
+      "Pillar": "Security",
+      "Detail": "All images pulled from contoso.azurecr.io (allow-listed).",
+      "RepoId": "https://github.com/contoso/k8s-manifests",
+      "Remediation": "",
+      "RuleId": "kubescape-C-0001"
+    }
+  ]
+}

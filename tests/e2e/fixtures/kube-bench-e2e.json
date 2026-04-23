@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "kube-bench",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "CIS 5.1.3 Minimize wildcard use in Roles and ClusterRoles",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "CIS Benchmark",
+      "Pillar": "Security",
+      "Detail": "kube-bench check 5.1.3 FAIL on cluster contoso-aks: 4 ClusterRoles use '*' verbs.",
+      "RepoId": "https://github.com/contoso/aks-platform",
+      "Remediation": "Replace wildcards with explicit verbs.",
+      "RuleId": "kube-bench-5.1.3"
+    },
+    {
+      "Title": "CIS 1.2.16 Ensure --request-timeout flag is appropriately set",
+      "Severity": "Low",
+      "Compliant": false,
+      "Category": "CIS Benchmark",
+      "Pillar": "Security",
+      "Detail": "API server --request-timeout default (60s) flagged by 1.2.16.",
+      "RepoId": "https://github.com/contoso/aks-platform",
+      "Remediation": "Document accepted risk; AKS-managed control plane.",
+      "RuleId": "kube-bench-1.2.16"
+    },
+    {
+      "Title": "CIS 5.7.2 Ensure that the seccomp profile is set",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "CIS Benchmark",
+      "Pillar": "Security",
+      "Detail": "All workloads opt-in to RuntimeDefault seccomp.",
+      "RepoId": "https://github.com/contoso/aks-platform",
+      "Remediation": "",
+      "RuleId": "kube-bench-5.7.2"
+    }
+  ]
+}
