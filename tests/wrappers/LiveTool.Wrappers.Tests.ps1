@@ -36,7 +36,7 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
             $result.SchemaVersion | Should -Be '1.0'
             $result.Status | Should -Be 'Success'
             $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
-            $result.Findings | Should -Not -Be $null -Because 'wrappers must return a deterministic findings collection (possibly empty)'
+            $result.Findings | Should -Not -BeNullOrEmpty
             @($result.Findings).Count | Should -BeGreaterOrEqual 0
             @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
         } finally {
@@ -60,7 +60,7 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
             $result.SchemaVersion | Should -Be '1.0'
             $result.Status | Should -Be 'Success'
             $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
-            $result.Findings | Should -Not -Be $null -Because 'wrappers must return a deterministic findings collection (possibly empty)'
+            $result.Findings | Should -Not -BeNullOrEmpty
             @($result.Findings).Count | Should -BeGreaterOrEqual 0
             @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
         } finally {
@@ -79,7 +79,7 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
         $result.SchemaVersion | Should -Be '1.0'
         $result.Status | Should -Be 'Success' -Because 'zizmor must not exit non-zero on a well-formed repo (see #768)'
         $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
-        $result.Findings | Should -Not -Be $null -Because 'wrappers must return a deterministic findings collection (possibly empty)'
+        $result.Findings | Should -Not -BeNullOrEmpty
         @($result.Findings).Count | Should -BeGreaterOrEqual 0
         @($capture.Warnings) | Should -BeNullOrEmpty -Because 'live wrappers must not emit WARNING: lines (see #770)'
     }
@@ -99,7 +99,7 @@ Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
         if ($hasToken) {
             $result.Status | Should -Be 'Success'
             $result.Message | Should -BeNullOrEmpty -Because 'live wrapper success must not carry non-zero exit diagnostics'
-            $result.Findings | Should -Not -Be $null -Because 'wrappers must return a deterministic findings collection (possibly empty)'
+            $result.Findings | Should -Not -BeNullOrEmpty
             @($result.Findings).Count | Should -BeGreaterOrEqual 0
         } else {
             $result.Status | Should -Be 'Skipped'
