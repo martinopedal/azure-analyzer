@@ -14,6 +14,10 @@ All notable changes to azure-analyzer will be documented here.
 - test(e2e): add E2E wrapper coverage for the five ADO-family tools -- ado-connections (#653), ado-pipelines (#654), ado-consumption (#655), ado-repos-secrets (#656), ado-pipeline-correlator (#657). 34 new tests in `tests/e2e/ADO-Wrappers.E2E.Tests.ps1` feed realistic wrapper-output fixtures through the full pipeline (FindingRow, EntityStore, results.json, entities.json, HTML/MD reports, credential scrub). Fixtures live in `tests/fixtures/ado/`.
 
 ### Fixed
+- chore(sweep): migrate Send-FindingsToLogAnalytics raw `throw` calls to `New-FindingError` for structured error handling (closes #669)
+- chore(sweep): deduplicate CHANGELOG.md `## [Unreleased]` headers by consolidating duplicate section into primary Unreleased section (closes #670)
+- chore(sweep): raise Invoke-Infracost external-process timeout from 60s to 300s safety cap aligned with Invoke-WithTimeout convention (closes #672)
+- chore(sweep): alphabetize tools/tool-manifest.json `.tools[]` by `name` ascending (closes #674)
 - chore(CON-004): add `SupportsShouldProcess` + `ConfirmImpact='High'` to `Invoke-Falco` and `Invoke-AksKarpenterCost`, and gate Falco install/elevated kubectl execution behind `ShouldProcess` so `-WhatIf` dry-runs skip side effects.
 - fix(ci): scope the Markdown Check em-dash PR gate to policy-owned Markdown paths by excluding ephemeral agent-state trees (`.copilot/audits/`, `.copilot/status/`, `.copilot/session-state/`, `.squad/decisions/inbox/`, `.atlas-stash/`). This unblocks ephemeral agent telemetry docs while keeping enforcement on repository docs. Closes #687.
 - chore(sweep): migrate Send-FindingsToLogAnalytics raw `throw` calls to `New-FindingError` for structured error handling (closes #669)

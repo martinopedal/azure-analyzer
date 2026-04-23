@@ -138,6 +138,81 @@
       ]
     },
     {
+      "name": "ado-consumption",
+      "displayName": "ADO Pipeline Consumption",
+      "source": "ado-consumption",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-AdoConsumption",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AdoConsumption.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "DaysBack",
+        "MonthlyBudgetUsd",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5e35b1",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "Azure CAF",
+        "SOC2"
+      ]
+    },
+    {
+      "name": "ado-pipeline-correlator",
+      "displayName": "ADO Pipeline Run Correlator",
+      "source": "ado-pipeline-correlator",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOPipelineCorrelator",
+      "invokeMethod": "script",
+      "type": "correlator",
+      "script": "modules/Invoke-ADOPipelineCorrelator.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat",
+        "SecretsFindingsPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#00838f",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
+    },
+    {
       "name": "ado-pipeline-correlator",
       "displayName": "ADO Pipeline Run Correlator",
       "source": "ado-pipeline-correlator",
@@ -200,6 +275,83 @@
       "enabled": true,
       "report": {
         "color": "#006064",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "ado-pipelines",
+      "displayName": "ADO Pipeline Security",
+      "source": "ado-pipelines",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOPipelineSecurity",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADOPipelineSecurity.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#006064",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "ado-repos-secrets",
+      "displayName": "ADO Repos Secret Scanning",
+      "source": "ado-repos-secrets",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADORepoSecrets",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADORepoSecrets.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat",
+        "AdoOrganizationUrl",
+        "AdoServerUrl",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ad1457",
         "phase": 2
       },
       "install": {
@@ -962,158 +1114,6 @@
         "NIST 800-53",
         "SOC2",
         "PCI-DSS"
-      ]
-    },
-    {
-      "name": "ado-pipelines",
-      "displayName": "ADO Pipeline Security",
-      "source": "ado-pipelines",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADOPipelineSecurity",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-ADOPipelineSecurity.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "AdoPat"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#006064",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2",
-        "PCI-DSS"
-      ]
-    },
-    {
-      "name": "ado-consumption",
-      "displayName": "ADO Pipeline Consumption",
-      "source": "ado-consumption",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-AdoConsumption",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AdoConsumption.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "DaysBack",
-        "MonthlyBudgetUsd",
-        "AdoPat"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#5e35b1",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "Azure CAF",
-        "SOC2"
-      ]
-    },
-    {
-      "name": "ado-repos-secrets",
-      "displayName": "ADO Repos Secret Scanning",
-      "source": "ado-repos-secrets",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADORepoSecrets",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-ADORepoSecrets.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "AdoPat",
-        "AdoOrganizationUrl",
-        "AdoServerUrl",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#ad1457",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2",
-        "PCI-DSS"
-      ]
-    },
-    {
-      "name": "ado-pipeline-correlator",
-      "displayName": "ADO Pipeline Run Correlator",
-      "source": "ado-pipeline-correlator",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADOPipelineCorrelator",
-      "invokeMethod": "script",
-      "type": "correlator",
-      "script": "modules/Invoke-ADOPipelineCorrelator.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "AdoPat",
-        "SecretsFindingsPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#00838f",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2"
       ]
     },
     {
