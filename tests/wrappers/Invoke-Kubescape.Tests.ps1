@@ -48,12 +48,12 @@ Describe 'Invoke-Kubescape: kubeconfig param surface (#240)' {
     It 'rejects a non-existent kubeconfig path with a clear error' {
         $bogus = Join-Path ([System.IO.Path]::GetTempPath()) "kubescape-doesnotexist-$([guid]::NewGuid()).yaml"
         { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath $bogus } |
-            Should -Throw -ExpectedMessage '*does not exist*'
+            Should -Throw -ExpectedMessage '*wrapper:kubescape*NotFound*does not exist*'
     }
 
     It 'rejects URL-style kubeconfig values (no remote fetch)' {
         { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kubeconfig' } |
-            Should -Throw -ExpectedMessage '*URLs are not accepted*'
+            Should -Throw -ExpectedMessage '*wrapper:kubescape*InvalidParameter*URLs are not accepted*'
     }
 
     It 'accepts an existing kubeconfig file (skips on missing kubectl, no AKS discovery)' {
@@ -156,4 +156,3 @@ Describe 'Invoke-Kubescape: Schema 2.2 ETL projection (#306)' {
         $first.BaselineTags | Should -Contain 'cis'
     }
 }
-

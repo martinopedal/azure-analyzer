@@ -222,4 +222,5 @@ Describe 'Invoke-AksRightsizing' {
         $result.Status | Should -Be 'Failed'
         $result.Message | Should -Match 'workspace'
     }
+
 }
