@@ -29,6 +29,7 @@ if (-not (Get-Variable -Scope Script -Name AzureAnalyzerViewerState -ErrorAction
 }
 
 $script:MaxViewerEntityIdLength = 512
+$script:ViewerTriageResponseMaxLength = 1000
 $script:ViewerStartupTimeoutSeconds = 10
 $script:ViewerHealthPollIntervalMs = 200
 
@@ -371,13 +372,14 @@ function Start-AzureAnalyzerViewer {
 
     $findingsPath = Join-Path $OutputPath 'results.json'
     $entitiesPath = Join-Path $OutputPath 'entities.json'
+    $triagePath = Join-Path $OutputPath 'triage.json'
     $arch = Resolve-ViewerArchitecture -FindingsPath $findingsPath -EntitiesPath $entitiesPath
     $token = [Guid]::NewGuid().ToString('N')
     $modulePath = $PSCommandPath
     $archJson = $arch | ConvertTo-Json -Depth 8 -Compress
 
     $viewerJob = Start-Job -Name "azure-analyzer-viewer-$Port" -ScriptBlock {
-        param ($ModulePath, $BindAddress, $Port, $Token, $ArchitectureJson)
+        param ($ModulePath, $BindAddress, $Port, $Token, $ArchitectureJson, $TriagePath)
         Set-StrictMode -Version Latest
         $ErrorActionPreference = 'Stop'
         . $ModulePath
@@ -421,6 +423,40 @@ function Start-AzureAnalyzerViewer {
                 Move-PodeResponseUrl -Url '/'
             }
 
+            Add-PodeRoute -Method Get -Path '/api/triage' -ScriptBlock {
+                $hostHeader = [string]$WebEvent.Request.Headers['Host']
+                if (-not (Test-HostHeader -HostHeader $hostHeader -Port $using:Port)) {
+                    Set-PodeResponseStatus -Code 400
+                    Write-PodeJsonResponse -Value @{ error = 'invalid_host' }
+                    return
+                }
+                $originHeader = [string]$WebEvent.Request.Headers['Origin']
+                if (-not (Test-OriginHeader -Origin $originHeader -Port $using:Port)) {
+                    Set-PodeResponseStatus -Code 403
+                    Write-PodeJsonResponse -Value @{ error = 'invalid_origin' }
+                    return
+                }
+                $cookieHeader = [string]$WebEvent.Request.Headers['Cookie']
+                $tokenHeader = [string]$WebEvent.Request.Headers['X-Session-Token']
+                if (-not (Test-ViewerSessionAuth -CookieHeader $cookieHeader -TokenHeader $tokenHeader -ExpectedToken $using:Token)) {
+                    Set-PodeResponseStatus -Code 403
+                    Write-PodeJsonResponse -Value @{ error = 'invalid_token' }
+                    return
+                }
+                $payload = $null
+                if (Test-Path -LiteralPath $using:TriagePath) {
+                    try {
+                        $payload = Get-Content -LiteralPath $using:TriagePath -Raw -Encoding utf8 | ConvertFrom-Json -Depth 20
+                    } catch {
+                        $payload = [pscustomobject]@{ error = 'triage_parse_failed' }
+                    }
+                }
+                Write-PodeJsonResponse -StatusCode 200 -Value @{
+                    hasTriage = ($null -ne $payload)
+                    triage    = $payload
+                }
+            }
+
             Add-PodeRoute -Method Get -Path '/' -ScriptBlock {
                 $hostHeader = [string]$WebEvent.Request.Headers['Host']
                 if (-not (Test-HostHeader -HostHeader $hostHeader -Port $using:Port)) {
@@ -444,17 +480,36 @@ function Start-AzureAnalyzerViewer {
                     return
                 }
 
+                $triageHtml = "<p>No triage data for this run.</p>"
+                if (Test-Path -LiteralPath $using:TriagePath) {
+                    try {
+                        $triage = Get-Content -LiteralPath $using:TriagePath -Raw -Encoding utf8 | ConvertFrom-Json -Depth 20
+                        $mode = if ($triage.PSObject.Properties['Mode']) { [string]$triage.Mode } else { 'Unknown' }
+                        $models = if ($triage.PSObject.Properties['SelectedModels']) { (@($triage.SelectedModels) -join ', ') } else { '' }
+                        $response = if ($triage.PSObject.Properties['Response']) { [string]$triage.Response } else { '' }
+                        if ($response.Length -gt $script:ViewerTriageResponseMaxLength) {
+                            $response = $response.Substring(0, $script:ViewerTriageResponseMaxLength) + '...[TRUNCATED]'
+                        }
+                        $safeMode = (Remove-Credentials $mode).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
+                        $safeModels = (Remove-Credentials $models).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
+                        $safeResponse = (Remove-Credentials $response).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;')
+                        $triageHtml = "<p><strong>Mode:</strong> $safeMode<br><strong>Models:</strong> $safeModels</p><pre>$safeResponse</pre>"
+                    } catch {
+                        $triageHtml = '<p>Triage output present but could not be parsed.</p>'
+                    }
+                }
+
                 $html = @"
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>azure-analyzer viewer</title></head>
-<body><h1>azure-analyzer findings viewer</h1><p>Tier: $($using:architecture.Tier)</p></body>
+<body><h1>azure-analyzer findings viewer</h1><p>Tier: $($using:architecture.Tier)</p><section id='triage-panel'><h2>Triage</h2>$triageHtml</section></body>
 </html>
 "@
                 Write-PodeHtmlResponse -Value $html
             }
         }
-    } -ArgumentList $modulePath, $BindAddress, $Port, $token, $archJson
+    } -ArgumentList $modulePath, $BindAddress, $Port, $token, $archJson, $triagePath
 
     if ($viewerJob -is [System.Management.Automation.Job]) {
         $deadline = [datetime]::UtcNow.AddSeconds($script:ViewerStartupTimeoutSeconds)
