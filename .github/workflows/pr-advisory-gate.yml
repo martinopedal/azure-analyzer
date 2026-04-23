@@ -44,6 +44,11 @@ jobs:
       && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # justified: gate is non-blocking by design (advisory only, see #109).
+    # Job-level continue-on-error ensures any uncaught failure inside the
+    # gate never red-checks a PR. The rubberduck-gate commit status is
+    # posted separately by the final step and defaults to success on empty
+    # gate-state, so PR mergeability is not affected by gate exceptions.
     continue-on-error: true
     steps:
       - name: Checkout base ref (trusted gate script)

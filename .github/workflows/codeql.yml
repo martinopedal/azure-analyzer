@@ -10,6 +10,11 @@ on:
     - cron: "30 1 * * 0"
   workflow_dispatch:
 
+# Top-level least-privilege default. The analyze job overrides with the
+# narrower scopes it actually needs (security-events: write, actions: read).
+permissions:
+  contents: read
+
 concurrency:
   group: codeql-actions-global
   cancel-in-progress: false

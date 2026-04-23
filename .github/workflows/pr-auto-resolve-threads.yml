@@ -20,6 +20,11 @@ on:
   pull_request_review:
     types: [submitted, edited]
 
+# Top-level least-privilege default. The auto-resolve job overrides with the
+# narrower scopes it actually needs (pull-requests: write).
+permissions:
+  contents: read
+
 concurrency:
   group: pr-auto-resolve-${{ github.event.pull_request.number }}
   cancel-in-progress: true
