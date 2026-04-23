@@ -137,11 +137,15 @@ $result = [ordered]@{
 # ---------------------------------------------------------------------------
 # Opt-in elevated RBAC tier
 # ---------------------------------------------------------------------------
+$allowElevatedOps = $EnableElevatedRbac.IsPresent
 if ($EnableElevatedRbac.IsPresent) {
-    if (Get-Command Set-RbacTier -ErrorAction SilentlyContinue) {
-        Set-RbacTier -Tier 'ClusterUser'
+    $allowElevatedOps = -not $WhatIfPreference
+    if ($allowElevatedOps) {
+        if (Get-Command Set-RbacTier -ErrorAction SilentlyContinue) {
+            Set-RbacTier -Tier 'ClusterUser'
+        }
+        $result.RbacTier = 'ClusterUser'
     }
-    $result.RbacTier = 'ClusterUser'
 }
 
 # ---------------------------------------------------------------------------
@@ -571,7 +575,7 @@ Perf
         }
 
         # ----- Elevated-tier Karpenter findings (gated) -----
-        if (-not $EnableElevatedRbac.IsPresent) { continue }
+        if (-not $allowElevatedOps) { continue }
 
         # Honor -WhatIf / ShouldProcess: skip ALL side-effecting calls
         # (kubectl invocations + Initialize-KubeAuth) when running in WhatIf

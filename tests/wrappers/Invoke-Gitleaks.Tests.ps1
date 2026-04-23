@@ -9,6 +9,8 @@ BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Gitleaks.ps1'
+    $script:Normalizer = Join-Path $script:RepoRoot 'modules' 'normalizers' 'Normalize-Gitleaks.ps1'
+    $script:CliFixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'gitleaks-cli-report.json'
 }
 Describe 'Invoke-Gitleaks' {
     # Contract tests for the "missing tool" path. Previously gated by
@@ -175,5 +177,63 @@ useDefault = true
             $first.ToolVersion | Should -Be '8.24.2'
             @($first.RemediationSnippets).Count | Should -BeGreaterThan 1
         }
+    }
+}
+
+Describe 'Invoke-Gitleaks: E2E wrapper to normalizer (#661)' {
+    BeforeAll {
+        . $script:Normalizer
+        $global:GitleaksCliFixturePath = $script:CliFixture
+    }
+
+    BeforeEach {
+        $global:CapturedGitleaksArgs = @()
+        function global:gitleaks {
+            param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
+            if (@($Args).Count -eq 1 -and $Args[0] -eq 'version') {
+                $global:LASTEXITCODE = 0
+                return 'gitleaks version 8.24.2'
+            }
+
+            $global:CapturedGitleaksArgs = @($Args)
+            $reportPathIndex = [Array]::IndexOf($Args, '--report-path')
+            if ($reportPathIndex -ge 0 -and ($reportPathIndex + 1) -lt $Args.Count) {
+                Copy-Item -Path $global:GitleaksCliFixturePath -Destination $Args[$reportPathIndex + 1] -Force
+            }
+            $global:LASTEXITCODE = 0
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:\global:gitleaks -ErrorAction SilentlyContinue
+        Remove-Variable -Name CapturedGitleaksArgs -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        Remove-Variable -Name GitleaksCliFixturePath -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'emits a v1 envelope and normalizes into valid FindingRows' {
+        Mock Get-Command {
+            param($Name)
+            if ($Name -eq 'gitleaks') { return [pscustomobject]@{ Name = 'gitleaks' } }
+            if ($Name -eq 'git') { return [pscustomobject]@{ Name = 'git' } }
+            return $null
+        } -ParameterFilter { $Name -eq 'gitleaks' -or $Name -eq 'git' }
+
+        $result = & $script:Wrapper -RepoPath $script:RepoRoot
+        $result.Status | Should -Be 'Success'
+        $result.SchemaVersion | Should -Be '1.0'
+        $global:CapturedGitleaksArgs | Should -Contain '--report-path'
+        @($result.Findings).Count | Should -BeGreaterThan 0
+
+        $rows = Normalize-Gitleaks -ToolResult $result
+        @($rows).Count | Should -Be (@($result.Findings).Count)
+        $first = @($rows)[0]
+        $first | Should -Not -BeNullOrEmpty
+        $first.SchemaVersion | Should -Be '2.2'
+        $first.Source | Should -Be 'gitleaks'
+        $first.EntityType | Should -Be 'Repository'
+        $first.Provenance.RunId | Should -Not -BeNullOrEmpty
     }
 }

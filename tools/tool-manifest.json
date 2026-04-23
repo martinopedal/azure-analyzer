@@ -110,10 +110,10 @@
       "type": "collector",
       "script": "modules/Invoke-AdoConsumption.ps1",
       "requiredParams": [
-        "Organization"
+        "AdoOrg"
       ],
       "optionalParams": [
-        "Project",
+        "AdoProject",
         "DaysBack",
         "MonthlyBudgetUsd",
         "AdoPat"
