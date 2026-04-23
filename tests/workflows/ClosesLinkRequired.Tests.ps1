@@ -24,6 +24,11 @@ Describe 'closes-link-required workflow contract' {
         }
     }
 
+    It 'does not include ambiguous copilot actor aliases' {
+        $script:WorkflowText | Should -Not -Match "'Copilot'"
+        $script:WorkflowText | Should -Not -Match "'copilot\[bot\]'"
+    }
+
     It 'still enforces Closes/Fixes/Resolves or N/A for non-exempt PRs' {
         $script:WorkflowText | Should -Match "PR body must contain a 'Closes #N' \(or Fixes/Resolves\) link, or an explicit 'N/A' justification"
     }

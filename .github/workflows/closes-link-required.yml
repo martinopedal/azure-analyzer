@@ -35,19 +35,17 @@ jobs:
               return;
             }
 
-            const headRef = pr.head && pr.head.ref ? pr.head.ref : '';
+            const headRef = pr.head?.ref ?? '';
             if (/^release-please--/.test(headRef)) {
               core.info(`Skipping closes check - release-please branch '${headRef}' detected.`);
               return;
             }
 
-            const author = pr.user && pr.user.login ? pr.user.login : '';
+            const author = pr.user?.login ?? '';
             const skipAuthors = new Set([
               'dependabot[bot]',
               'copilot-swe-agent[bot]',
               'copilot-swe-agent',
-              'Copilot',
-              'copilot[bot]',
               'github-actions[bot]',
             ]);
             if (skipAuthors.has(author)) {
