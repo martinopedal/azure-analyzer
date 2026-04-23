@@ -211,6 +211,47 @@ Describe 'Invoke-PRReviewGate shared helper' {
         }
     }
 
+    Context 'End-to-end DryRun gate without model responses (regression #507)' {
+        # Reproduces the workflow scenario at SHA 0ce933a where the gate ran on
+        # a `pull_request_review_comment` event with no model response artifacts
+        # available. Failed with: "Cannot bind argument to parameter 'Response'
+        # because it is null." Fixes #517 (null-safe responses) + #584 (sparse
+        # user payloads) jointly resolve this; this test locks in the chained
+        # path end-to-end.
+        BeforeEach {
+            $script:OriginalResponsesEnv = $env:PR_REVIEW_GATE_RESPONSES_JSON
+            $env:PR_REVIEW_GATE_RESPONSES_JSON = $null
+        }
+
+        AfterEach {
+            $env:PR_REVIEW_GATE_RESPONSES_JSON = $script:OriginalResponsesEnv
+        }
+
+        It 'returns Status=Success when responses env is unset and reviews include sparse .user' {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)] $Arguments)
+                $joined = [string]($Arguments -join ' ')
+                if ($joined -match '/pulls/507/reviews') {
+                    return '[[
+                        { "id": 5070, "state": "COMMENTED", "body": "no user", "submitted_at": "2026-04-22T22:00:00Z", "commit_id": "0ce933a" }
+                    ]]'
+                }
+                if ($joined -match '/pulls/507/comments') {
+                    return '[[
+                        { "id": 5071, "body": "missing user", "path": "README.md", "line": 1, "side": "RIGHT", "created_at": "2026-04-22T22:00:01Z" }
+                    ]]'
+                }
+                throw "Unexpected gh call: $joined"
+            }
+            . $script:ModulePath
+
+            $result = Invoke-PRReviewGate -PRNumber 507 -Repo 'martinopedal/azure-analyzer' `
+                -OutputPath (Join-Path $TestDrive 'inbox') -PRAuthorAgent 'martinopedal' -DryRun
+            $result.Status | Should -Be 'Success'
+            $result.Consensus.RecommendedRevisionOwner | Should -Not -Be 'martinopedal'
+        }
+    }
+
     Context 'Get-PullRequestFeedback tolerates sparse .user payloads (regression #584)' {
         BeforeEach {
             function global:gh {
