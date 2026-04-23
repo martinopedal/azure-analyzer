@@ -66,7 +66,7 @@ These workflows support repo development and the AI squad workflow. They're not 
 |---|---|---|
 | `codeql.yml` | Push / PR / weekly | CodeQL static analysis (SHA-pinned) |
 | `docs-check.yml` | PR | Enforces docs updates with code changes (non-final stacked PR parts titled `(PR-x of y)` are skipped) |
-| `markdown-link-check.yml` | PR (`*.md` path filter) / weekly | Checks markdown links via `.lychee.toml` and reports failures in job summary |
+| `markdown-check.yml` | PR (`*.md` path filter) / weekly | Runs markdown lint, lychee link checks (PR = changed markdown only, schedule = full corpus), and em-dash policy checks |
 | `pr-review-gate.yml` | `pull_request_review` + `_comment` | Ingests review feedback, writes consensus plan to `.squad/decisions/inbox/`, posts gate summary |
 | `ci-failure-watchdog.yml` | `workflow_run` on failure | Deduplicated CI failure issue (hash = workflow + first error line) |
 | `squad-heartbeat.yml` | Cron | Automated triage and CI gate via Ralph |
@@ -78,6 +78,6 @@ These workflows support repo development and the AI squad workflow. They're not 
 
 Set `SQUAD_WATCH_CI=1` to opt into the local polling helper (`tools/Watch-GithubActions.ps1`) that applies the same dedup loop outside GitHub Actions.
 
-To run markdown link checks locally: `lychee --config .lychee.toml './**/*.md'`
+To run markdown link checks locally for full-corpus parity: `lychee --config .lychee.toml './**/*.md'`
 
 The `.squad/` directory contains AI team infrastructure for automated triage and development. It is **not** part of the tool itself and is excluded from archive downloads.
