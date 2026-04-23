@@ -148,7 +148,7 @@ function Get-PRReviewFeedback {
     $lineCommentsRaw = Invoke-GhApiPaged -Endpoint "$basePath/comments"
 
     $reviews = foreach ($review in $reviewsRaw) {
-        $reviewer = if ($review.user -and $review.user.login) { [string]$review.user.login } else { 'unknown-reviewer' }
+        $reviewer = if ($review.PSObject.Properties['user'] -and $review.user -and $review.user.PSObject.Properties['login'] -and $review.user.login) { [string]$review.user.login } else { 'unknown-reviewer' }
         [PSCustomObject]@{
             Id          = [string]$review.id
             Reviewer    = $reviewer
@@ -160,7 +160,7 @@ function Get-PRReviewFeedback {
     }
 
     $lineComments = foreach ($comment in $lineCommentsRaw) {
-        $reviewer = if ($comment.user -and $comment.user.login) { [string]$comment.user.login } else { 'unknown-reviewer' }
+        $reviewer = if ($comment.PSObject.Properties['user'] -and $comment.user -and $comment.user.PSObject.Properties['login'] -and $comment.user.login) { [string]$comment.user.login } else { 'unknown-reviewer' }
         $inReplyToId = $null
         if ($comment.PSObject.Properties['in_reply_to_id']) {
             $inReplyToId = [string]$comment.in_reply_to_id
