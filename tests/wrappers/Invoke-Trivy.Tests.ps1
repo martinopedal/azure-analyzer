@@ -112,6 +112,8 @@ Describe 'Invoke-Trivy: Schema 2.2 enrichment' {
     It 'emits one finding per CVE and misconfiguration with 2.2 fields present' {
         $result = & $script:Wrapper -RepoPath '.'
         $result.Status | Should -Be 'Success'
+        $result.PSObject.Properties['Findings'] | Should -Not -BeNullOrEmpty
+        ($null -eq $result.PSObject.Properties['Findings'].Value) | Should -BeFalse
         @($result.Findings).Count | Should -Be 2
 
         $vuln = @($result.Findings | Where-Object { $_.Title -match 'CVE-2023-12345' })[0]

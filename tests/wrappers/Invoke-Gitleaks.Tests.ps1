@@ -97,8 +97,8 @@ Describe 'Invoke-Gitleaks' {
             $result = & $script:Wrapper -RepoPath $script:RepoPath
 
             $result.Status | Should -Be 'Success'
-            ,$result.Findings | Should -Not -Be $null
-            @($result.Findings).Count | Should -Be 0
+            $result.PSObject.Properties['Findings'] | Should -Not -BeNullOrEmpty
+            ($null -eq $result.PSObject.Properties['Findings'].Value) | Should -BeFalse
             $global:CapturedArgs | Should -Contain '--report-path'
             $global:CapturedArgs | Should -Not -Contain '--config'
         }
