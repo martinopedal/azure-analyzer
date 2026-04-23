@@ -18,6 +18,7 @@
 - **Markdown report** for Git commit workflows.
 - **Entity store** (JSON) with deduplicated cross-tool findings.
 - **Optional local findings viewer scaffold** (`-Show`) that starts on `127.0.0.1` with a session token and health probe.
+- **Script help switch**: `./Invoke-AzureAnalyzer.ps1 -Help` now loads and prints full help text without requiring runtime module initialization.
 
 ## Quickest start
 

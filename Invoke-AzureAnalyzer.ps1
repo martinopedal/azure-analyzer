@@ -88,6 +88,7 @@
 #>
 [CmdletBinding()]
 param (
+    [switch] $Help,
     [string] $SubscriptionId,
     [string] $ManagementGroupId,
     [string] $TenantId,
@@ -157,6 +158,11 @@ param (
     [int] $ViewerPort = 4280,
     [switch] $NoBanner
 )
+
+if ($Help) {
+    Get-Help -Name $PSCommandPath -Full
+    return
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
