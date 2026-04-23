@@ -55,6 +55,9 @@
 .PARAMETER EnableAiTriage
     When set, enriches non-compliant findings via GitHub Copilot SDK with priority
     ranking, risk context, and remediation steps. Requires a GitHub Copilot license.
+.PARAMETER AlzReferenceMode
+    Controls ALZ reference matching mode for policy recommendations:
+    Auto (default), Force, or Off.
 .PARAMETER SinkLogAnalytics
     When set, sends findings and entities to Azure Monitor Logs Ingestion API using
     stream mapping from -LogAnalyticsConfig.
@@ -153,6 +156,8 @@ param (
     [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
     [string] $TriageModel = 'Auto',
     [switch] $SingleModel,
+    [ValidateSet('Auto','Force','Off')]
+    [string] $AlzReferenceMode = 'Auto',
     [switch] $SinkLogAnalytics,
     [string] $LogAnalyticsConfig,
     [ValidateRange(1, 365)]
@@ -1419,7 +1424,12 @@ try {
                 -VerificationResults $verification `
                 -AutoUpgrades @() `
                 -Timings ([pscustomobject]@{}) `
-                -Features @()
+                -Features @() `
+                -Policy ([pscustomobject]@{
+                        alz = [pscustomobject]@{
+                            mode = $AlzReferenceMode
+                        }
+                    })
         } catch {
             Write-Warning (Remove-Credentials "Failed to write report-manifest.json: $_")
         }

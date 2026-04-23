@@ -59,6 +59,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Schema 2.2 metadata**: Frameworks, Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets, EvidenceUris, BaselineTags, MitreTactics, MitreTechniques, EntityRefs, ToolVersion.
 - **Phase 0 foundation contract**: report architecture is selected with explicit thresholds and headroom, `output/report-manifest.json` captures picker and verification metadata, and normalizers can contribute edges through optional EdgeCollector introspection without breaking legacy signatures.
 - **Attack-path renderer (Track A)**: `AttackPathRenderer` now emits a tier-aware Cytoscape model/data-island with a shared edge budget report, finding pivot map, and hydration hints for Tier 1-4.
+- **Policy enforcement track (Track C)**: ALZ hierarchy fuzzy-match scoring (Round 2 weights), vendored AzAdvertizer + ALZ catalog lookups, AzGovViz policy-edge emission (`PolicyAssignedTo`, `PolicyEnforces`, `ExemptedFrom`, `InheritsFrom`), and policy metadata in `report-manifest.json` (`policy.alz.mode`). Use `-AlzReferenceMode {Auto|Force|Off}` to control ALZ suggestion activation.
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "repository": "https://github.com/Azure/Enterprise-Scale",
+    "commit": "6773a7b9c9aef6c2c13a3d33996fa7d32a9268dc",
+    "sha": "6773a7b9c9aef6c2c13a3d33996fa7d32a9268dc",
+    "vintage": "2026-04-23"
+  },
+  "entries": [
+    {
+      "policyId": "Deny-Storage-PublicAccess",
+      "displayName": "ALZ: Deny storage accounts with public access",
+      "url": "https://github.com/Azure/Enterprise-Scale/tree/main/src/resources/Microsoft.Authorization/policyDefinitions"
+    },
+    {
+      "policyId": "Deploy-Sql-TDE",
+      "displayName": "ALZ: Deploy TDE on SQL databases",
+      "url": "https://github.com/Azure/Enterprise-Scale/tree/main/src/resources/Microsoft.Authorization/policyDefinitions"
+    },
+    {
+      "policyId": "Deny-MgmtPorts-From-Internet",
+      "displayName": "ALZ: Deny management ports open from the internet",
+      "url": "https://github.com/Azure/Enterprise-Scale/tree/main/src/resources/Microsoft.Authorization/policyDefinitions"
+    }
+  ]
+}

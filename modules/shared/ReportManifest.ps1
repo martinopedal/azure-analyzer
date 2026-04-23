@@ -257,7 +257,8 @@ function New-ReportManifest {
         [object] $VerificationResults = [pscustomobject]@{},
         [object[]] $AutoUpgrades = @(),
         [object] $Timings = [pscustomobject]@{},
-        [object[]] $Features = @()
+        [object[]] $Features = @(),
+        [object] $Policy = $null
     )
 
     $degradations = @(
@@ -282,6 +283,7 @@ function New-ReportManifest {
         Timings             = if ($Timings) { $Timings } else { [pscustomobject]@{} }
         Features            = @($Features)
         Degradations        = @($degradations)
+        Policy              = if ($Policy) { $Policy } else { $null }
     }
 
     $json = $manifest | ConvertTo-Json -Depth 30

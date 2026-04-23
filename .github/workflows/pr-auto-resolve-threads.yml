@@ -20,8 +20,9 @@ on:
   pull_request_review:
     types: [submitted, edited]
 
-# Top-level least-privilege default. The auto-resolve job overrides with the
-# narrower scopes it actually needs (pull-requests: write).
+# Top-level least-privilege default. The auto-resolve job uses a GitHub App
+# installation token (minted in-job) for the actual write operations, so the
+# default GITHUB_TOKEN stays read-only.
 permissions:
   contents: read
 
@@ -37,11 +38,10 @@ jobs:
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    # Job-scope permissions (Hawkeye-C5): resolveReviewThread GraphQL mutation
-    # requires pull-requests:write on the token. Keep at job scope to avoid
-    # broadening the whole workflow surface.
+    # The default GITHUB_TOKEN only needs read access -- write scope is
+    # carried by the GitHub App installation token minted in the
+    # `app-token` step (pull_requests:write granted at install time).
     permissions:
-      pull-requests: write
       contents: read
     timeout-minutes: 10
     steps:
@@ -50,6 +50,22 @@ jobs:
         # so we run the trusted base-ref copy of Resolve-PRReviewThreads.ps1,
         # never the PR head's (potentially malicious) version.
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Mint GitHub App installation token
+        # The default GITHUB_TOKEN cannot resolve review threads it did not
+        # author (e.g. Copilot Code Review threads): GraphQL returns
+        # FORBIDDEN on `resolveReviewThread` for bot-vs-bot resolution.
+        # We mint an installation token from the `azure-analyzer-thread-resolver`
+        # GitHub App, which is treated as a first-class actor with
+        # pull_requests:write and bypasses the bot-on-bot block.
+        # See docs/operations/copilot-thread-resolution.md for the runbook.
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v1
+        with:
+          app-id: ${{ secrets.RESOLVE_THREADS_APP_ID }}
+          private-key: ${{ secrets.RESOLVE_THREADS_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
 
       - name: Install PowerShell
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
@@ -66,15 +82,13 @@ jobs:
             fi
 
       - name: Resolve addressed review threads
-        # Belt-and-braces: GitHub's GraphQL `resolveReviewThread` rejects
-        # bot-vs-bot resolution (e.g., GHA bot trying to resolve a Copilot
-        # Code Review thread) with FORBIDDEN even when `pull-requests: write`
-        # is granted. That is a platform limit, not a fixable perms issue, so
-        # we treat it as non-fatal and never red-check the PR on it.
-        # tracked: martinopedal/azure-analyzer#604 - hotfix-debt
-        continue-on-error: true
+        # Uses the GitHub App installation token (minted above) so that
+        # `resolveReviewThread` succeeds even on Copilot Code Review threads.
+        # The previous bot-vs-bot FORBIDDEN failure mode no longer applies, so
+        # we surface failures as job errors rather than swallowing them.
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
           SQUAD_AUTO_RESOLVE_THREADS: ${{ vars.SQUAD_AUTO_RESOLVE_THREADS || '1' }}
