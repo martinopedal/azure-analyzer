@@ -46,6 +46,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - `Invoke-Pester -Path .\tests -CI`: full Pester suite (baseline 842+ green).
 - `Invoke-Pester -Path .\tests\wrappers -Tag 'LiveTool' -CI`: optional live-CLI wrapper smoke tier (gitleaks, trivy, zizmor, scorecard) that exercises real binaries when present.
 - `Invoke-Pester -Path .\tests\e2e -Output Detailed`: end-to-end harness that drives `Invoke-AzureAnalyzer`'s output pipeline (FindingRow -> EntityStore -> `results.json` + `entities.json` -> HTML + Markdown reports) across three surfaces (Azure subscription, GitHub repo, Tenant / management-group) with synthetic fixtures under `tests/e2e/fixtures/`. Runs in CI via [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) on windows-latest, ubuntu-latest, and macos-latest (8-minute timeout per leg). Asserts v1 / v3.1 schema shapes, tier selection across PureJson / EmbeddedSqlite / SidecarSqlite, `Invoke-RemoteRepoClone` host allow-list, and credential-scrub for planted `ghp_*` / `xoxb-*` / `AKIA*` / `pat-*` literals.
+- `Invoke-Pester -Path .\tests\wrappers\MissingToolRuntime.Tests.ps1`: cross-platform runtime coverage for missing-tool behavior in `Invoke-Trivy`, `Invoke-Kubescape`, and `Invoke-Scorecard` using a PATH-stripped child pwsh harness that captures stdout/stderr/warnings and asserts clean skipped v1 envelopes with `MissingTool` diagnostics.
 
 ---
 
