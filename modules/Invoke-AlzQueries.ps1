@@ -67,6 +67,7 @@ if (-not (Get-Module -Name Az.ResourceGraph -ListAvailable -ErrorAction Silently
         Status   = 'Skipped'
         Message  = 'Az.ResourceGraph not installed'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -81,6 +82,7 @@ if (-not (Test-Path $QueriesFile)) {
         Status   = 'Skipped'
         Message  = 'Query file not found'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -101,6 +103,7 @@ if ($queryable.Count -eq 0) {
         Status   = 'Skipped'
         Message  = 'No queryable items found'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -182,5 +185,6 @@ return [PSCustomObject]@{
     ToolVersion = $toolVersion
     Status   = 'Success'
     Message  = ''
-    Findings = $findings.ToArray()
+    Findings = @($findings.ToArray())
+    Errors   = @()
 }

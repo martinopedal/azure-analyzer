@@ -138,6 +138,7 @@ if (-not (Test-PowerpipeInstalled)) {
         Message       = 'powerpipe not installed'
         ToolVersion   = ''
         Findings      = @()
+        Errors   = @()
     }
 }
 
@@ -182,6 +183,7 @@ try {
         ToolVersion   = $toolVersion
         Subscription  = $SubscriptionId
         Findings      = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "powerpipe scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -192,5 +194,6 @@ try {
         Message       = (Remove-Credentials -Text ([string]$_))
         ToolVersion   = ''
         Findings      = @()
+        Errors   = @()
     }
 }

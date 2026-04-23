@@ -659,6 +659,7 @@ if (-not $azGovVizScript) {
         Status   = 'Skipped'
         Message  = 'AzGovVizParallel.ps1 not found'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -714,6 +715,7 @@ try {
         Status   = 'Success'
         Message  = ''
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "AzGovViz run failed: $(Remove-Credentials -Text ([string]$_))"
@@ -722,5 +724,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }

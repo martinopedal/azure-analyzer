@@ -516,6 +516,7 @@ if (-not $pat) {
         Status = 'Skipped'
         Message = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -527,6 +528,7 @@ if (-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
         Status = 'Skipped'
         Message = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -768,6 +770,7 @@ try {
         Status = $status
         Message = $message
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     $errMsg = Remove-Credentials "$($_.Exception.Message)"
@@ -776,5 +779,6 @@ try {
         Status = 'Failed'
         Message = $errMsg
         Findings = @()
+        Errors   = @()
     }
 }

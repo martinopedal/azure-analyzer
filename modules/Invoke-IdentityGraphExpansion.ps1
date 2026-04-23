@@ -560,6 +560,7 @@ function Invoke-IdentityGraphExpansion {
         RunId            = $runId
         ToolVersion      = $wrapperToolVersion
         Findings         = @($findings)
+        Errors   = @()
         Edges            = @($edges)
         ExpansionSummary = $expansionSummary
     }

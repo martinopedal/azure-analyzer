@@ -72,17 +72,34 @@ Describe 'Per-wrapper envelope contract' {
             ($hasDotSource -or $hasStub) | Should -BeTrue -Because "$_ must import or define New-WrapperEnvelope"
         }
 
-        It 'has a fallback stub for New-WrapperEnvelope' {
+        It 'every PSCustomObject envelope with Findings also has Errors field' {
             $path = Join-Path $script:WrapperRoot $_
             $text = Get-Content -LiteralPath $path -Raw
-            $text | Should -Match 'function New-WrapperEnvelope' -Because "$_ must have a fallback stub"
+            $blocks = [regex]::Matches($text, '\[PSCustomObject\]@\{[^}]+\}')
+            $missing = @()
+            foreach ($block in $blocks) {
+                $bt = $block.Value
+                if ($bt -match 'Findings\s*=' -and $bt -notmatch 'Errors\s*=') {
+                    $ln = ($text.Substring(0, $block.Index) -split "`n").Count
+                    $missing += $ln
+                }
+            }
+            $missing.Count | Should -Be 0 -Because "$_ has envelope(s) at line(s) $($missing -join ', ') with Findings but no Errors"
         }
 
-        It 'uses New-WrapperEnvelope on at least one error/skip path' {
+        It 'wraps Findings in @() on success paths' {
             $path = Join-Path $script:WrapperRoot $_
             $text = Get-Content -LiteralPath $path -Raw
-            $callCount = ([regex]::Matches($text, 'New-WrapperEnvelope\s+-Source')).Count
-            $callCount | Should -BeGreaterThan 0 -Because "$_ must call New-WrapperEnvelope on at least one error/skip path"
+            $bareMatches = [regex]::Matches($text, 'Findings\s*=\s*\$[a-zA-Z]')
+            $violations = @()
+            foreach ($m in $bareMatches) {
+                $ln = ($text.Substring(0, $m.Index) -split "`n").Count
+                $line = ($text -split "`n")[$ln - 1].Trim()
+                if ($line -notmatch 'Findings\s*=\s*@\(') {
+                    $violations += "line $ln"
+                }
+            }
+            $violations.Count | Should -Be 0 -Because "$_ has bare Findings at $($violations -join ', ') without @() wrapping"
         }
     }
 }

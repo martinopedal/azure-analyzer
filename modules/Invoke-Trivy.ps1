@@ -240,6 +240,7 @@ if (-not (Test-TrivyInstalled)) {
         Status   = 'Skipped'
         Message  = 'trivy CLI not installed. Download from https://github.com/aquasecurity/trivy/releases'
         Findings = @()
+        Errors   = @()
         Diagnostics = @(
             [PSCustomObject]@{
                 Code    = 'MissingTool'
@@ -271,6 +272,7 @@ try {
                 Source = 'trivy'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                Errors   = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
@@ -280,6 +282,7 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                Errors   = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -310,6 +313,7 @@ try {
                 Status   = 'Failed'
                 Message  = (Remove-Credentials "trivy exited with code $exitCode and produced no report")
                 Findings = @()
+                Errors   = @()
             }
         }
 
@@ -327,6 +331,7 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials -Text "Report JSON parse failed: $([string]$_)"
                         Findings = @()
+                        Errors   = @()
                     }
                 }
             }
@@ -540,6 +545,7 @@ try {
         Status   = 'Success'
         Message  = ''
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "Trivy scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -549,6 +555,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }finally {
     if ($cleanupClone) {

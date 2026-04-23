@@ -112,6 +112,7 @@ if (-not (Test-ProwlerInstalled)) {
         Message       = 'prowler not installed'
         ToolVersion   = ''
         Findings      = @()
+        Errors   = @()
     }
 }
 
@@ -224,6 +225,7 @@ try {
         Message       = ''
         ToolVersion   = $toolVersion
         Findings      = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "prowler scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -234,5 +236,6 @@ try {
         Message       = Remove-Credentials -Text ([string]$_)
         ToolVersion   = $toolVersion
         Findings      = @()
+        Errors   = @()
     }
 }

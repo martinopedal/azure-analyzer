@@ -358,6 +358,7 @@ if (-not (Test-GitleaksInstalled)) {
         Status   = 'Skipped'
         Message  = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -377,6 +378,7 @@ try {
                 Source = 'gitleaks'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                Errors   = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
@@ -386,6 +388,7 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                Errors   = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -437,6 +440,7 @@ try {
                 Status   = 'Failed'
                 Message  = Remove-Credentials "gitleaks exited with code $exitCode and produced no report"
                 Findings = @()
+                Errors   = @()
             }
         }
 
@@ -454,6 +458,7 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
+                        Errors   = @()
                     }
                 }
             }
@@ -621,6 +626,7 @@ try {
         RepositoryUrl = $repositoryMeta.RepositoryUrl
         ToolVersion = $toolVersion
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning (Remove-Credentials "gitleaks scan failed: $_")
@@ -630,6 +636,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
+        Errors   = @()
     }
 } finally {
     if ($cleanupClone) {

@@ -331,6 +331,6 @@ return [PSCustomObject]@{
     Message       = ''
     TenantId      = [string]$mgContext.TenantId
     ToolVersion   = $toolVersion
-    Findings      = $findings
+    Findings      = @($findings)
     Errors        = @()
 }

@@ -227,6 +227,7 @@ if (-not (Test-ScorecardInstalled)) {
         Status   = 'Skipped'
         Message  = 'scorecard CLI not installed. Download from https://github.com/ossf/scorecard/releases'
         Findings = @()
+        Errors   = @()
         Diagnostics = @(
             [PSCustomObject]@{
                 Code    = 'MissingTool'
@@ -253,6 +254,7 @@ if (-not $resolvedAuthToken) {
         Status        = 'Skipped'
         Message       = $skipMessage
         Findings      = @()
+        Errors   = @()
         Diagnostics   = @(
             [PSCustomObject]@{
                 Code    = 'MissingAuthToken'
@@ -405,7 +407,8 @@ try {
         SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
-        Findings = $findings
+        Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "Scorecard scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -415,5 +418,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }

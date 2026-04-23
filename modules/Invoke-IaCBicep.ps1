@@ -97,6 +97,7 @@ if (-not (Get-Command bicep -ErrorAction SilentlyContinue)) {
         Status   = 'Skipped'
         Message  = 'bicep CLI not installed. Install from https://learn.microsoft.com/azure/azure-resource-manager/bicep/install'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -118,6 +119,7 @@ try {
                 Source = 'bicep-iac'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                Errors   = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
@@ -127,6 +129,7 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                Errors   = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -141,6 +144,7 @@ try {
             Source = 'bicep-iac'
             SchemaVersion = '1.0'; Status = 'Failed'
             Message = "Repository path not found: $Repository"; Findings = @()
+            Errors   = @()
         }
     }
 
@@ -153,6 +157,7 @@ try {
             SchemaVersion = '1.0'; Status = 'Failed'
             Message = 'IaCAdapters module not loaded. Ensure modules/iac/IaCAdapters.ps1 is present.'
             Findings = @()
+            Errors   = @()
         }
     }
 
@@ -201,6 +206,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 } finally {
     if ($cleanupClone) {

@@ -219,6 +219,7 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Status   = 'Skipped'
         Message  = 'gh CLI not installed. Install GitHub CLI and authenticate with gh auth login.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -447,6 +448,7 @@ try {
         Status   = 'Success'
         Message  = Remove-Credentials "Scanned $($repos.Count) repo(s); produced $($findings.Count) GitHub Actions cost finding(s)."
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     $msg = Remove-Credentials ([string]$_.Exception.Message)
@@ -456,5 +458,6 @@ try {
         Status   = 'Failed'
         Message  = $msg
         Findings = @()
+        Errors   = @()
     }
 }

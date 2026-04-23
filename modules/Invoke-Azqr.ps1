@@ -136,6 +136,7 @@ if (-not (Test-AzqrInstalled)) {
         Status   = 'Skipped'
         Message  = 'azqr not installed'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -201,7 +202,8 @@ try {
         Status   = 'Success'
         Message  = ''
         ToolVersion = $toolVersion
-        Findings = $findings
+        Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "azqr scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -211,5 +213,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }

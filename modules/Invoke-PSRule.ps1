@@ -113,6 +113,7 @@ if (-not (Test-PSRuleInstalled)) {
         Status   = 'Skipped'
         Message  = 'PSRule.Rules.Azure not installed'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -132,7 +133,7 @@ try {
 
     $results = Invoke-PSRule @invokeParams -ErrorAction Stop
 
-    $findings = $results | ForEach-Object {
+    $findings = @($results) | ForEach-Object {
         $info = $_.Info
         $ruleName = if ($_.PSObject.Properties['RuleName'] -and $_.RuleName) { [string]$_.RuleName } else { '' }
         $ruleId = if ($_.PSObject.Properties['RuleId'] -and $_.RuleId) { [string]$_.RuleId } elseif ($ruleName) { $ruleName } else { '' }
@@ -207,6 +208,7 @@ try {
         Status   = 'Success'
         Message  = ''
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "PSRule scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -215,5 +217,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }
