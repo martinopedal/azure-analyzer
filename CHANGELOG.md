@@ -9,6 +9,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll across test suite (#746).
+- CI: exempt `Copilot`/`copilot` PR authors in closes-link-required and add a `pull_request_target` fallback in auto-approve-bot-runs so trusted bot PR checks do not stall in `action_required`.
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 

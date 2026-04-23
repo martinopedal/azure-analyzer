@@ -30,6 +30,8 @@ on:
       - "Bicep Build"
       - "ALZ queries drift check"
     types: [requested]
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   actions: write
@@ -50,16 +52,49 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-          ACTOR: ${{ github.event.workflow_run.actor.login }}
-          TRIGGERING_ACTOR: ${{ github.event.workflow_run.triggering_actor.login }}
-          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+          ACTOR: ${{ github.event.workflow_run.actor.login || github.event.pull_request.user.login || '' }}
+          TRIGGERING_ACTOR: ${{ github.event.workflow_run.triggering_actor.login || github.triggering_actor || '' }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name || 'pull_request_target-fallback' }}
         with:
           max_attempts: 3
           timeout_minutes: 5
           retry_wait_seconds: 15
           command: |
             set -euo pipefail
+
+            approve_run() {
+              local run_id="$1"
+              local workflow_label="$2"
+              local run_state status conclusion
+              run_state="$(gh api "repos/${REPO}/actions/runs/${run_id}" --jq '{status: .status, conclusion: .conclusion}')"
+              status="$(printf '%s' "$run_state" | jq -r '.status')"
+              conclusion="$(printf '%s' "$run_state" | jq -r '.conclusion')"
+              echo "Run ${run_id} (workflow='${workflow_label}') status=${status} conclusion=${conclusion}"
+
+              if [ "$status" != "action_required" ] && [ "$conclusion" != "action_required" ]; then
+                echo "Run ${run_id} is not gated on approval. Skipping."
+                return 0
+              fi
+
+              echo "Approving run ${run_id} for trusted actor '${ACTOR}'."
+              if ! gh api -X POST "repos/${REPO}/actions/runs/${run_id}/approve" >approve.out 2>&1; then
+                echo "Approve call failed:"
+                cat approve.out
+                # A 403/422 here is expected when the run was already approved by a
+                # parallel invocation. Treat that as success.
+                if grep -Eq "already|action is not required" approve.out; then
+                  echo "Run already approved (or no longer waiting). Treating as success."
+                  return 0
+                fi
+                return 1
+              fi
+              echo "Approved."
+            }
 
             # Hard-coded allow-list. Adding to this list is a code change that
             # goes through review + the rubber-duck gate. Do NOT source from
@@ -85,29 +120,31 @@ jobs:
               echo "Actor '$ACTOR' (triggering: '$TRIGGERING_ACTOR') not in trusted allow-list. No approval issued."
               exit 0
             fi
-  
-            # Only approve runs that are actually waiting on the action_required
-            # gate. Pulling fresh state avoids racing the run lifecycle.
-            run_state="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}" --jq '{status: .status, conclusion: .conclusion}')"
-            status="$(printf '%s' "$run_state" | jq -r '.status')"
-            conclusion="$(printf '%s' "$run_state" | jq -r '.conclusion')"
-            echo "Run ${RUN_ID} (workflow='${WORKFLOW_NAME}') status=${status} conclusion=${conclusion}"
-  
-            if [ "$status" != "action_required" ] && [ "$conclusion" != "action_required" ]; then
-              echo "Run is not gated on approval. Nothing to do."
+
+            if [ "$EVENT_NAME" = "workflow_run" ]; then
+              approve_run "$RUN_ID" "$WORKFLOW_NAME"
               exit 0
             fi
-  
-            echo "Approving run ${RUN_ID} for trusted actor '${ACTOR}'."
-            if ! gh api -X POST "repos/${REPO}/actions/runs/${RUN_ID}/approve" >approve.out 2>&1; then
-              echo "Approve call failed:"
-              cat approve.out
-              # A 403 here is expected when the run was already approved by a
-              # parallel invocation. Treat that as success.
-              if grep -q "already" approve.out; then
-                echo "Run already approved by another invocation. Treating as success."
-                exit 0
-              fi
-              exit 1
+
+            if [ "$EVENT_NAME" != "pull_request_target" ]; then
+              echo "Unsupported event '${EVENT_NAME}'. Nothing to do."
+              exit 0
             fi
-            echo "Approved."
+
+            if [ -z "${PR_NUMBER}" ] || [ -z "${HEAD_REF}" ] || [ -z "${HEAD_SHA}" ]; then
+              echo "pull_request_target payload missing PR identifiers. Nothing to do."
+              exit 0
+            fi
+
+            mapfile -t run_ids < <(
+              gh api "repos/${REPO}/actions/runs?event=pull_request&branch=${HEAD_REF}&per_page=100" \
+                --jq ".workflow_runs[] | select((.status == \"action_required\" or .conclusion == \"action_required\") and .head_sha == \"${HEAD_SHA}\" and ([.pull_requests[].number] | index(${PR_NUMBER}))) | .id"
+            )
+            if [ "${#run_ids[@]}" -eq 0 ]; then
+              echo "No action_required pull_request runs found for PR #${PR_NUMBER} at ${HEAD_SHA}."
+              exit 0
+            fi
+
+            for run_id in "${run_ids[@]}"; do
+              approve_run "${run_id}" "pull_request_target-fallback"
+            done

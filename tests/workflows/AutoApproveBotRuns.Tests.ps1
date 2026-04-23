@@ -25,11 +25,16 @@ Describe 'Auto-approve bot workflow runs' {
         Test-Path $script:WorkflowPath | Should -BeTrue
     }
 
-    It 'triggers only on workflow_run requested events' {
-        $script:OnBlock.Keys | Should -HaveCount 1
+    It 'triggers on workflow_run requested and pull_request_target fallback events' {
+        $script:OnBlock.Keys | Should -HaveCount 2
         $script:OnBlock.ContainsKey('workflow_run') | Should -BeTrue
+        $script:OnBlock.ContainsKey('pull_request_target') | Should -BeTrue
         @($script:OnBlock['workflow_run']['types']) | Should -Contain 'requested'
         @($script:OnBlock['workflow_run']['types']).Count | Should -Be 1
+        @($script:OnBlock['pull_request_target']['types']) | Should -Contain 'opened'
+        @($script:OnBlock['pull_request_target']['types']) | Should -Contain 'synchronize'
+        @($script:OnBlock['pull_request_target']['types']) | Should -Contain 'reopened'
+        @($script:OnBlock['pull_request_target']['types']) | Should -Contain 'ready_for_review'
     }
 
     It 'declares minimal permissions (actions:write only beyond read)' {
@@ -60,6 +65,12 @@ Describe 'Auto-approve bot workflow runs' {
     It 'gates approval on action_required status before calling approve' {
         $script:WorkflowText | Should -Match 'action_required'
         $script:WorkflowText | Should -Match '/approve'
+    }
+
+    It 'has pull_request_target fallback that scans and approves gated PR runs by head SHA' {
+        $script:WorkflowText | Should -Match 'event=pull_request'
+        $script:WorkflowText | Should -Match 'head_sha'
+        $script:WorkflowText | Should -Match 'pull_request_target-fallback'
     }
 
     It 'watches the critical squad workflows' {
