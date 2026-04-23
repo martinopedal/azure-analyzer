@@ -45,6 +45,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'azure-cost'
@@ -66,7 +80,7 @@ Import-Module Az.Accounts -ErrorAction SilentlyContinue
 
 try {
     $ctx = Get-AzContext -ErrorAction Stop
-    if (-not $ctx) { throw 'No Az context' }
+    if (-not $ctx) { Write-Error 'No Az context' -ErrorAction Stop }
 } catch {
     $result.Status  = 'Skipped'
     $result.Message = 'Not signed in. Run Connect-AzAccount first.'
@@ -100,7 +114,12 @@ try {
                 $result.Message = "Consumption API returned $($resp.StatusCode) — no cost data for this subscription."
                 return [pscustomobject]$result
             }
-            throw "Consumption API returned status $($resp.StatusCode): $($resp.Content)"
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:azure-cost' `
+                -Category 'TransientFailure' `
+                -Reason "Consumption API returned status $($resp.StatusCode)." `
+                -Remediation 'Retry; verify subscription scope and Consumption / Cost Management Reader role.' `
+                -Details (Remove-Credentials -Text ([string]$resp.Content))))
         }
         $body = $resp.Content | ConvertFrom-Json -Depth 20
         if ($body.value) {

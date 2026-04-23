@@ -30,6 +30,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 function Test-PowerpipeInstalled {
     return $null -ne (Get-Command powerpipe -ErrorAction SilentlyContinue)
 }
@@ -130,7 +144,12 @@ try {
 
     $rawOutput = & powerpipe benchmark run $Benchmark --output json 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "powerpipe benchmark run failed (exit $LASTEXITCODE): $rawOutput"
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:powerpipe' `
+            -Category 'UnexpectedFailure' `
+            -Reason "powerpipe benchmark run failed (exit $LASTEXITCODE)." `
+            -Remediation 'Inspect powerpipe CLI output; ensure the benchmark mod is installed and credentials configured.' `
+            -Details (Remove-Credentials -Text ([string]$rawOutput))))
     }
 
     $parsed = $rawOutput | ConvertFrom-Json -Depth 100 -ErrorAction Stop

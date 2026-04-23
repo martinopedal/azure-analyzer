@@ -37,6 +37,19 @@ $ErrorActionPreference = 'Stop'
 $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
+$errorsPath = Join-Path $sharedDir 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
 $installerPath = Join-Path $sharedDir 'Installer.ps1'
 if (Test-Path $installerPath) { . $installerPath }
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
@@ -56,7 +69,21 @@ function Invoke-GhApi {
     Invoke-WithRetry -ScriptBlock {
         $result = Invoke-WithTimeout -Command 'gh' -Arguments @('api', $Endpoint) -TimeoutSec 300
         if ($result.ExitCode -ne 0) {
-            throw "gh api $Endpoint failed: $($result.Output)"
+            $sanitizedOutput = Remove-Credentials -Text ([string]$result.Output)
+            $reason = "gh api $Endpoint failed (exit $($result.ExitCode))"
+            # Keep transient hints (HTTP 429, rate limit) in Reason so Invoke-WithRetry can classify,
+            # but don't embed the full CLI output here - that goes in Details only.
+            if ($sanitizedOutput -match '\b(408|429|503|504)\b') {
+                $reason += "; HTTP $($Matches[1])"
+            } elseif ($sanitizedOutput -match '(?i)(rate limit|throttl|timed out|timeout|service unavailable|temporarily unavailable)') {
+                $reason += '; transient response'
+            }
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:gh-actions-billing' `
+                -Category 'UnexpectedFailure' `
+                -Reason $reason `
+                -Remediation 'Verify gh auth status and that the endpoint is correct.' `
+                -Details $sanitizedOutput))
         }
         $text = [string]$result.Output
         if ([string]::IsNullOrWhiteSpace($text)) {
