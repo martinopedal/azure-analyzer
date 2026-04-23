@@ -30,7 +30,13 @@ Describe 'LLM triage sanitization (#433)' {
     }
 
     It 'enforces end-to-end sanitization in Invoke-CopilotTriage output fields' {
-        function global:gh { throw 'unsupported command' }
+        function global:gh {
+            param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Args)
+            $cmd = ($Args -join ' ')
+            $global:LASTEXITCODE = 0
+            if ($cmd -eq 'copilot models list --json id') { return '[{"id":"claude-sonnet-4.6"},{"id":"gpt-5.2"},{"id":"gemini-3-pro-preview"}]' }
+            throw "unexpected gh call: $cmd"
+        }
         try {
             $secret = 'ghp_123456789012345678901234567890123456'
             $finding = [pscustomobject]@{

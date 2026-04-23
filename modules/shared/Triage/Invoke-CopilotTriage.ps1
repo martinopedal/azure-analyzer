@@ -6,16 +6,6 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..' 'Schema.ps1')
 . (Join-Path $PSScriptRoot '..' 'Retry.ps1')
 
-# Frontier-only triage roster (per .copilot Frontier Fallback Chain).
-# Non-frontier models (sonnet, haiku, mini, gpt-4.1, gpt-5.2, gemini, opus-4.6)
-# are explicitly excluded. All three tiers below MUST stay frontier-only.
-$script:TierModelRosters = @{
-    Pro        = @('claude-opus-4.7', 'gpt-5.4', 'goldeneye')
-    Business   = @('claude-opus-4.7', 'claude-opus-4.6-1m', 'gpt-5.4', 'gpt-5.3-codex', 'goldeneye')
-    Enterprise = @('claude-opus-4.7', 'claude-opus-4.6-1m', 'gpt-5.4', 'gpt-5.3-codex', 'goldeneye')
-}
-$script:KnownTriageModels = @($script:TierModelRosters.Values | ForEach-Object { $_ } | Select-Object -Unique)
-
 # Schema version for the structured triage output object.
 $script:TriageSchemaVersion = '1.0'
 
@@ -112,10 +102,9 @@ function Get-AvailableModelsFromCopilotPlan {
         Resolves available Copilot models for triage.
     .DESCRIPTION
         Discovery order is:
-        1) parse `gh copilot status` for model ids
-        2) fallback to `-CopilotTier`
-        3) fallback to `AZURE_ANALYZER_COPILOT_TIER`
-        Throws when no tier can be resolved and no models are discoverable.
+        1) resolve tier from `gh copilot status` unless -CopilotTier is provided
+        2) enumerate available models from `gh copilot models list`
+        Throws when tier or model discovery cannot be resolved.
     .OUTPUTS
         String[] model ids available for the resolved plan/tier.
     #>
@@ -125,58 +114,72 @@ function Get-AvailableModelsFromCopilotPlan {
         [string] $CopilotTier
     )
 
-    $detectedTier = ''
+    $resolvedTier = ''
+    if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
+        $resolvedTier = $CopilotTier
+    }
+
     $statusText = ''
-    try {
-        $statusText = (& gh copilot status 2>$null | Out-String)
-        if ($LASTEXITCODE -ne 0) {
+    if ([string]::IsNullOrWhiteSpace($resolvedTier)) {
+        try {
+            $statusText = (& gh copilot status 2>$null | Out-String)
+            if ($LASTEXITCODE -ne 0) {
+                $statusText = ''
+            }
+        } catch {
             $statusText = ''
         }
-    } catch {
-        $statusText = ''
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($statusText)) {
-        $tierMatch = [regex]::Match($statusText, '(?im)\b(Pro|Business|Enterprise)\b')
-        if ($tierMatch.Success) {
-            $detectedTier = $tierMatch.Groups[1].Value
-        }
-
-        $discovered = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-        foreach ($m in [regex]::Matches($statusText, '(?i)\b[a-z0-9]+(?:[-.][a-z0-9]+)+\b')) {
-            $token = [string]$m.Value
-            if ($script:KnownTriageModels -contains $token) {
-                [void]$discovered.Add($token)
+        if (-not [string]::IsNullOrWhiteSpace($statusText)) {
+            $tierMatch = [regex]::Match($statusText, '(?im)\b(Pro|Business|Enterprise)\b')
+            if ($tierMatch.Success) {
+                $resolvedTier = $tierMatch.Groups[1].Value
             }
         }
-        if ($discovered.Count -gt 0) {
-            return @($discovered | Sort-Object)
-        }
-    }
-
-    $resolvedTier = if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
-        $CopilotTier
-    } elseif (-not [string]::IsNullOrWhiteSpace($detectedTier)) {
-        $detectedTier
-    } elseif (-not [string]::IsNullOrWhiteSpace($env:AZURE_ANALYZER_COPILOT_TIER)) {
-        [string]$env:AZURE_ANALYZER_COPILOT_TIER
-    } else {
-        ''
     }
 
     if ([string]::IsNullOrWhiteSpace($resolvedTier)) {
         throw (New-TriageError -Category 'TierUnresolved' `
             -Reason 'Unable to resolve Copilot tier from "gh copilot status".' `
-            -Remediation 'Provide -CopilotTier (Pro|Business|Enterprise) or set AZURE_ANALYZER_COPILOT_TIER.')
+            -Remediation 'Provide -CopilotTier (Pro|Business|Enterprise) when gh CLI cannot report Copilot status.')
     }
 
-    if (-not $script:TierModelRosters.ContainsKey($resolvedTier)) {
-        throw (New-TriageError -Category 'TierUnsupported' `
-            -Reason "Unsupported Copilot tier '$resolvedTier'." `
-            -Remediation 'Expected Pro, Business, or Enterprise.')
+    $discovered = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $listJson = ''
+    try {
+        $listJson = (& gh copilot models list --json id 2>$null | Out-String)
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($listJson)) {
+            foreach ($m in @($listJson | ConvertFrom-Json -Depth 5)) {
+                if ($m -and $m.PSObject.Properties['id']) {
+                    $id = [string]$m.id
+                    if (-not [string]::IsNullOrWhiteSpace($id)) { [void]$discovered.Add($id) }
+                }
+            }
+        }
+    } catch {
+        $listJson = ''
     }
 
-    return @($script:TierModelRosters[$resolvedTier])
+    if ($discovered.Count -eq 0) {
+        try {
+            $listText = (& gh copilot models list 2>$null | Out-String)
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($listText)) {
+                foreach ($m in [regex]::Matches($listText, '(?im)\b[a-z0-9]+(?:[-.][a-z0-9]+)+\b')) {
+                    $token = [string]$m.Value
+                    if (-not [string]::IsNullOrWhiteSpace($token)) { [void]$discovered.Add($token) }
+                }
+            }
+        } catch {
+            # handled by empty discovered-set guard below
+        }
+    }
+
+    if ($discovered.Count -eq 0) {
+        throw (New-TriageError -Category 'ModelDiscoveryFailed' `
+            -Reason 'Unable to discover available Copilot models from "gh copilot models list".' `
+            -Remediation 'Upgrade GitHub CLI with Copilot extension support, ensure you are signed in, and retry.')
+    }
+
+    return @($discovered | Sort-Object)
 }
 
 function Select-TriageTrio {
@@ -216,7 +219,7 @@ function Select-TriageTrio {
     if ($candidates.Count -eq 0) {
         throw (New-TriageError -Category 'NoRankedModels' `
             -Reason 'No available models matched config/triage-model-ranking.json.' `
-            -Remediation 'Ensure your tier roster lists at least one frontier model present in the ranking config.')
+            -Remediation 'Ensure config/triage-model-ranking.json includes at least one model from your Copilot roster.')
     }
 
     if ($candidates.Count -lt 3) {
@@ -250,7 +253,7 @@ function Get-FrontierFallbackChain {
     <#
     .SYNOPSIS
         Return the rank-ordered fallback walk for a given roster, intersected
-        with the ranking config (frontier-only).
+        with the ranking config.
     #>
     [CmdletBinding()]
     param(
@@ -267,7 +270,7 @@ function Get-FrontierFallbackChain {
 function Invoke-ModelWithFallback {
     <#
     .SYNOPSIS
-        Invoke an LLM scriptblock walking the Frontier Fallback Chain on
+        Invoke an LLM scriptblock walking the rank-ordered fallback chain on
         transient failures. Each individual call is wrapped in Invoke-WithRetry
         for jittered backoff retries against transient HTTP categories.
     #>
@@ -287,7 +290,7 @@ function Invoke-ModelWithFallback {
         }
     }
     throw (New-TriageError -Category 'AllModelsFailed' `
-        -Reason 'Every model in the frontier fallback chain failed.' `
+        -Reason 'Every model in the fallback chain failed.' `
         -Remediation 'Inspect Verbose output, check Copilot quota, or rerun later.' `
         -Details ([string]$lastErr))
 }
@@ -329,6 +332,9 @@ function Invoke-CopilotTriage {
         [ValidateSet('Pro', 'Business', 'Enterprise')]
         [string] $CopilotTier,
 
+        [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
+        [string] $TriageModel = 'Auto',
+
         [string] $ExplicitModel,
 
         [switch] $SingleModel,
@@ -347,21 +353,40 @@ function Invoke-CopilotTriage {
     }
     $rankingTable = Get-Content -LiteralPath $RankingPath -Raw -Encoding utf8 | ConvertFrom-Json -Depth 10
 
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitModel)) {
+        $TriageModel = "Explicit:$ExplicitModel"
+    }
+
     $availableModels = if (-not [string]::IsNullOrWhiteSpace($CopilotTier)) {
         @(Get-AvailableModelsFromCopilotPlan -CopilotTier $CopilotTier)
     } else {
         @(Get-AvailableModelsFromCopilotPlan)
     }
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitModel) -and $availableModels -notcontains $ExplicitModel) {
+
+    $explicitSelection = ''
+    if ($TriageModel -match '^(?i)Explicit:(.+)$') {
+        $explicitSelection = [string]$Matches[1].Trim()
+        if ([string]::IsNullOrWhiteSpace($explicitSelection)) {
+            throw (New-TriageError -Category 'ExplicitModelInvalid' `
+                -Reason 'TriageModel Explicit: value is empty.' `
+                -Remediation 'Use -TriageModel Auto or -TriageModel Explicit:<model-id>.')
+        }
+    } elseif ($TriageModel -notmatch '^(?i)Auto$') {
+        throw (New-TriageError -Category 'TriageModelInvalid' `
+            -Reason "Unsupported TriageModel '$TriageModel'." `
+            -Remediation 'Use -TriageModel Auto or -TriageModel Explicit:<model-id>.')
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($explicitSelection) -and $availableModels -notcontains $explicitSelection) {
         $list = ($availableModels -join ', ')
         throw (New-TriageError -Category 'ExplicitModelUnavailable' `
-            -Reason "Explicit model '$ExplicitModel' is not available for this Copilot tier." `
-            -Remediation "Choose one of: $list, or omit -ExplicitModel.")
+            -Reason "Explicit model '$explicitSelection' is not available for this Copilot roster." `
+            -Remediation "Choose one of: $list, or use -TriageModel Auto.")
     }
 
     $selected = @()
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitModel)) {
-        $selected = @($ExplicitModel)
+    if (-not [string]::IsNullOrWhiteSpace($explicitSelection)) {
+        $selected = @($explicitSelection)
     } elseif ($SingleModel) {
         Write-Warning 'Single-model mode enabled: opting out of default rubberduck consensus.'
         $selected = @((Select-TriageTrio -AvailableModels $availableModels -RankingTable $rankingTable)[0])

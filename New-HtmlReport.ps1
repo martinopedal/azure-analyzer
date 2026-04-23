@@ -394,6 +394,36 @@ $topRisks = @(
 $topRecommendationLimit = [math]::Max(1, $TopRecommendationsCount)
 $topRecs = @($topRisks | Select-Object -First $topRecommendationLimit)
 
+$triagePanelHtml = "<div class='card'><p style='margin:0;color:var(--txtf)'>No AI triage output for this run.</p></div>"
+if (-not [string]::IsNullOrWhiteSpace($TriagePath) -and (Test-Path -LiteralPath $TriagePath)) {
+    try {
+        $triage = Get-Content -LiteralPath $TriagePath -Raw -Encoding utf8 | ConvertFrom-Json -Depth 20
+        $triageMode = if ($triage.PSObject.Properties['Mode']) { [string]$triage.Mode } else { 'Unknown' }
+        $selectedModels = if ($triage.PSObject.Properties['SelectedModels']) { @($triage.SelectedModels) } else { @() }
+        $fallbackChain = if ($triage.PSObject.Properties['FallbackChain']) { @($triage.FallbackChain) } else { @() }
+        $generatedAt = if ($triage.PSObject.Properties['GeneratedAt']) { [string]$triage.GeneratedAt } else { '' }
+        $response = if ($triage.PSObject.Properties['Response']) { [string]$triage.Response } else { '' }
+        $prompt = if ($triage.PSObject.Properties['Prompt']) { [string]$triage.Prompt } else { '' }
+        if ($prompt.Length -gt 2000) { $prompt = $prompt.Substring(0, 2000) + '...[TRUNCATED]' }
+
+        $triagePanelHtml = @"
+<div class='card'>
+  <p style='margin:0 0 10px'><strong>Mode:</strong> $(HE $triageMode) &nbsp; <strong>Generated:</strong> $(HE $generatedAt)</p>
+  <p style='margin:0 0 10px'><strong>Selected models:</strong> $(HE ($selectedModels -join ', '))</p>
+  <p style='margin:0 0 10px'><strong>Fallback chain:</strong> $(HE ($fallbackChain -join ' -> '))</p>
+  <h3 style='margin:12px 0 8px'>Triage narrative</h3>
+  <pre style='margin:0 0 10px;white-space:pre-wrap'>$(HE $response)</pre>
+  <details>
+    <summary>Prompt payload preview</summary>
+    <pre style='margin-top:8px;white-space:pre-wrap'>$(HE $prompt)</pre>
+  </details>
+</div>
+"@
+    } catch {
+        Write-Warning (Remove-Credentials "Could not parse triage output: $_")
+    }
+}
+
 $pillarSummary = @(
     $nonPass | Group-Object -Property Domain | Sort-Object Count -Descending | ForEach-Object {
         [pscustomobject]@{
@@ -812,7 +842,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
-<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
+<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#triage'>Triage</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
 <main id='main'>
 <section class='sec' id='overview'>
   <h2>Overview <span class='badge'>executive summary</span></h2>
@@ -826,6 +856,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <div class='card'><h3 style='margin-bottom:10px'>Top recommendations</h3><div id='topRecs'>$topRecsHtml</div></div>
   </div>
 </section>
+<section class='sec' id='triage'><h2>Triage <span class='badge'>AI-assisted</span></h2>$triagePanelHtml</section>
 <section class='sec' id='coverage'><h2>Tool coverage <span class='badge'>$(@($manifestTools).Count) registered</span></h2><div id='covRoot'>$($coverageHtml -join "`n")</div></section>
 <section class='sec' id='heatmap'>
   <h2>Heatmap <span class='badge'>control density</span></h2>
@@ -1017,4 +1048,3 @@ renderHeatmap();
 $sanitizedHtml = Remove-Credentials $html
 Set-Content -Path $OutputPath -Value $sanitizedHtml -Encoding UTF8
 Write-Host "HTML report written to: $OutputPath"
-

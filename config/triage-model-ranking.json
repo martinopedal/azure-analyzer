@@ -1,15 +1,26 @@
 {
   "_header": {
     "schemaVersion": "1.1",
-    "lastReviewed": "2026-04-21",
+    "lastReviewed": "2026-04-23",
     "reviewCadence": "quarterly",
-    "notes": "Frontier-only capability ranking for end-user LLM triage trio composition. Non-frontier models (sonnet, haiku, mini, gpt-4.1, gpt-5.2, gemini, opus-4.6) are explicitly excluded by the .copilot Frontier Fallback Chain policy."
+    "notes": "Capability ranking for end-user LLM triage trio composition. Selection is applied to the runtime model roster discovered from gh copilot models list."
   },
   "rankings": [
-    { "model": "claude-opus-4.7",   "tier": "premium",  "rank": 100, "provider": "anthropic", "notes": "Frontier reasoning, primary rubberduck anchor" },
-    { "model": "claude-opus-4.6-1m","tier": "premium",  "rank": 95,  "provider": "anthropic", "notes": "1M-context fallback for large finding sets" },
-    { "model": "gpt-5.4",           "tier": "balanced", "rank": 90,  "provider": "openai",    "notes": "Provider-diversity counterweight to Opus" },
-    { "model": "gpt-5.3-codex",     "tier": "balanced", "rank": 85,  "provider": "openai",    "notes": "Code-heavy triage, IaC remediation" },
-    { "model": "goldeneye",         "tier": "fast",     "rank": 80,  "provider": "microsoft", "notes": "Internal frontier; last-resort fallback" }
+    { "model": "claude-opus-4.7",        "tier": "premium",  "rank": 110, "provider": "anthropic", "notes": "Highest-quality reasoning when available" },
+    { "model": "claude-opus-4.6-1m",     "tier": "premium",  "rank": 108, "provider": "anthropic", "notes": "Large-context high-fidelity fallback" },
+    { "model": "claude-opus-4.6",        "tier": "premium",  "rank": 106, "provider": "anthropic", "notes": "Enterprise premium option" },
+    { "model": "claude-sonnet-4.6",      "tier": "balanced", "rank": 103, "provider": "anthropic", "notes": "Business-tier strong reasoning" },
+    { "model": "claude-sonnet-4.5",      "tier": "balanced", "rank": 100, "provider": "anthropic", "notes": "Pro-tier default strong model" },
+    { "model": "claude-haiku-4.5",       "tier": "fast",     "rank": 88,  "provider": "anthropic", "notes": "Fast fallback in constrained rosters" },
+    { "model": "gpt-5.4",                "tier": "premium",  "rank": 107, "provider": "openai",    "notes": "Top OpenAI option when available" },
+    { "model": "gpt-5.3-codex",          "tier": "premium",  "rank": 104, "provider": "openai",    "notes": "Strong remediation/code-heavy planner" },
+    { "model": "gpt-5.2-codex",          "tier": "premium",  "rank": 103, "provider": "openai",    "notes": "Enterprise codex-capable option" },
+    { "model": "gpt-5.2",                "tier": "balanced", "rank": 99,  "provider": "openai",    "notes": "Business-tier general reasoning" },
+    { "model": "gpt-5.1-codex-max",      "tier": "premium",  "rank": 100, "provider": "openai",    "notes": "Enterprise codex-max option" },
+    { "model": "gpt-5.1",                "tier": "balanced", "rank": 96,  "provider": "openai",    "notes": "Business-tier fallback" },
+    { "model": "gpt-5-mini",             "tier": "fast",     "rank": 86,  "provider": "openai",    "notes": "Cost-effective Pro fallback" },
+    { "model": "gpt-4.1",                "tier": "legacy",   "rank": 82,  "provider": "openai",    "notes": "Legacy compatibility fallback" },
+    { "model": "gemini-3-pro-preview",   "tier": "balanced", "rank": 101, "provider": "google",    "notes": "Business/Enterprise provider diversity option" },
+    { "model": "goldeneye",              "tier": "internal", "rank": 90,  "provider": "microsoft", "notes": "Included for environments where available in user roster" }
   ]
 }
