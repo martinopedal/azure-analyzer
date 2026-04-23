@@ -49,6 +49,7 @@ jobs:
     # gate never red-checks a PR. The rubberduck-gate commit status is
     # posted separately by the final step and defaults to success on empty
     # gate-state, so PR mergeability is not affected by gate exceptions.
+    # tracked: martinopedal/azure-analyzer#604 - hotfix-debt
     continue-on-error: true
     steps:
       - name: Checkout base ref (trusted gate script)
@@ -79,6 +80,7 @@ jobs:
         # we never want this step to fail the PR. Step 6 still posts the
         # rubberduck-gate commit status and defaults to success on empty
         # gate-state.
+        # tracked: martinopedal/azure-analyzer#604 - hotfix-debt
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

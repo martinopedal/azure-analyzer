@@ -71,6 +71,7 @@ jobs:
         # Code Review thread) with FORBIDDEN even when `pull-requests: write`
         # is granted. That is a platform limit, not a fixable perms issue, so
         # we treat it as non-fatal and never red-check the PR on it.
+        # tracked: martinopedal/azure-analyzer#604 - hotfix-debt
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

@@ -113,4 +113,18 @@ Describe 'Workflow hygiene sweep' {
                 Should -BeTrue -Because "$Name must declare a minimal permissions block (C5 hygiene)"
         }
     }
+
+    Context 'continue-on-error hotfix debt is explicitly tracked' {
+        It '<Name> tags each continue-on-error: true with tracking issue #604' -ForEach $WorkflowCases {
+            $lines = Get-Content -Path $FullName
+            for ($i = 0; $i -lt $lines.Count; $i++) {
+                if ($lines[$i] -notmatch '^\s*continue-on-error:\s*true\s*$') { continue }
+
+                $j = $i - 1
+                while ($j -ge 0 -and [string]::IsNullOrWhiteSpace($lines[$j])) { $j-- }
+                $markerLine = if ($j -ge 0) { $lines[$j] } else { '' }
+                $markerLine | Should -Match '^\s*#\s*tracked:\s*martinopedal/azure-analyzer#604\b' -Because "$Name must mark continue-on-error:true at line $($i + 1) as tracked hotfix debt (#604)"
+            }
+        }
+    }
 }
