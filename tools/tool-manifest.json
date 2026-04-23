@@ -29,6 +29,431 @@
   },
   "tools": [
     {
+      "name": "ado-connections",
+      "displayName": "ADO Service Connections",
+      "source": "ado-connections",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOConnections",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADOServiceConnections.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#0078d4",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "ado-consumption",
+      "displayName": "ADO Pipeline Consumption",
+      "source": "ado-consumption",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-AdoConsumption",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AdoConsumption.ps1",
+      "requiredParams": [
+        "Organization"
+      ],
+      "optionalParams": [
+        "Project",
+        "DaysBack",
+        "MonthlyBudgetUsd",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5e35b1",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "Azure CAF",
+        "SOC2"
+      ]
+    },
+    {
+      "name": "ado-pipeline-correlator",
+      "displayName": "ADO Pipeline Run Correlator",
+      "source": "ado-pipeline-correlator",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOPipelineCorrelator",
+      "invokeMethod": "script",
+      "type": "correlator",
+      "script": "modules/Invoke-ADOPipelineCorrelator.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat",
+        "SecretsFindingsPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#00838f",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
+    },
+    {
+      "name": "ado-pipelines",
+      "displayName": "ADO Pipeline Security",
+      "source": "ado-pipelines",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADOPipelineSecurity",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADOPipelineSecurity.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#006064",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "ado-repos-secrets",
+      "displayName": "ADO Repos Secret Scanning",
+      "source": "ado-repos-secrets",
+      "provider": "ado",
+      "scope": "ado",
+      "normalizer": "Normalize-ADORepoSecrets",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ADORepoSecrets.ps1",
+      "requiredParams": [
+        "AdoOrg"
+      ],
+      "optionalParams": [
+        "AdoProject",
+        "AdoPat",
+        "AdoOrganizationUrl",
+        "AdoServerUrl",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ad1457",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "aks-karpenter-cost",
+      "displayName": "AKS Karpenter Cost (consolidation + node utilization)",
+      "source": "aks-karpenter-cost",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AksKarpenterCost",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AksKarpenterCost.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ResourceGroup",
+        "ClusterName",
+        "LogAnalyticsWorkspaceId",
+        "LookbackDays",
+        "KubeconfigPath",
+        "KubeContext",
+        "Namespace",
+        "KubeAuthMode",
+        "KubeloginServerId",
+        "KubeloginClientId",
+        "KubeloginTenantId",
+        "WorkloadIdentityClientId",
+        "WorkloadIdentityTenantId",
+        "WorkloadIdentityServiceAccountToken",
+        "EnableElevatedRbac",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "label": "AKS Karpenter Cost",
+        "color": "#00695c",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts",
+          "Az.ResourceGraph",
+          "Az.OperationalInsights"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "aks-rightsizing",
+      "displayName": "AKS Rightsizing (Container Insights utilization)",
+      "source": "aks-rightsizing",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AksRightsizing",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AksRightsizing.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ResourceGroup",
+        "ClusterName",
+        "LogAnalyticsWorkspaceId",
+        "LookbackDays",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "label": "AKS Rightsizing",
+        "color": "#2e7d32",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts",
+          "Az.ResourceGraph",
+          "Az.OperationalInsights"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "alz-queries",
+      "displayName": "ALZ Resource Graph Queries",
+      "source": "alz-queries",
+      "provider": "azure",
+      "scope": "managementGroup",
+      "normalizer": "Normalize-AlzQueries",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AlzQueries.ps1",
+      "requiredParams": [
+        "SubscriptionId",
+        "ManagementGroupId"
+      ],
+      "optionalParams": [
+        "QueriesFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#e65100",
+        "phase": 1
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.ResourceGraph"
+        ]
+      },
+      "upstream": {
+        "repo": "martinopedal/alz-graph-queries",
+        "releaseApi": "https://api.github.com/repos/martinopedal/alz-graph-queries/commits/main",
+        "pinType": "sha",
+        "currentPin": "HEAD"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "appinsights",
+      "displayName": "Application Insights Performance Signals",
+      "source": "appinsights",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AppInsights",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AppInsights.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ResourceGroup",
+        "AppInsightsName",
+        "TimeRangeHours",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "label": "App Insights",
+        "color": "#00838f",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts",
+          "Az.ApplicationInsights",
+          "Az.Monitor"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF"
+      ]
+    },
+    {
+      "name": "azgovviz",
+      "displayName": "AzGovViz",
+      "source": "azgovviz",
+      "provider": "azure",
+      "scope": "managementGroup",
+      "normalizer": "Normalize-AzGovViz",
+      "invokeMethod": "script",
+      "comment": "Auto-cloned into tools/AzGovViz/ on first run if missing.",
+      "type": "collector",
+      "script": "modules/Invoke-AzGovViz.ps1",
+      "requiredParams": [
+        "ManagementGroupId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#00838f",
+        "phase": 1
+      },
+      "install": {
+        "kind": "gitclone",
+        "repo": "https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting",
+        "target": "tools/AzGovViz",
+        "probe": "AzGovVizParallel.ps1"
+      },
+      "upstream": {
+        "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
+        "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
+        "pinType": "sha",
+        "currentPin": "HEAD"
+      },
+      "frameworks": [
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
       "name": "azqr",
       "displayName": "Azure Quick Review",
       "source": "azqr",
@@ -95,282 +520,6 @@
       "frameworks": [
         "Azure WAF",
         "Azure CAF"
-      ]
-    },
-    {
-      "name": "kubescape",
-      "displayName": "Kubescape (AKS runtime posture)",
-      "source": "kubescape",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-Kubescape",
-      "invokeMethod": "script",
-      "type": "scanner",
-      "script": "modules/Invoke-Kubescape.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "required_inputs": [
-        {
-          "name": "SubscriptionId",
-          "type": "guid",
-          "prompt": "Enter the Azure subscription ID to scan with kubescape",
-          "envVar": "AZURE_SUBSCRIPTION_ID",
-          "example": "00000000-0000-0000-0000-000000000000",
-          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
-          "conditional": {
-            "param": "ManagementGroupId",
-            "equals": ""
-          }
-        }
-      ],
-      "optionalParams": [
-        "ClusterArmIds",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#7b1fa2",
-        "phase": 6
-      },
-      "install": {
-        "kind": "cli",
-        "command": "kubescape",
-        "preferredManagers": [
-          "winget",
-          "brew"
-        ],
-        "windows": {
-          "manager": "winget",
-          "package": "ARMO.kubescape"
-        },
-        "macos": {
-          "manager": "brew",
-          "package": "kubescape"
-        },
-        "linux": {
-          "manager": "script",
-          "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh"
-        }
-      },
-      "upstream": {
-        "repo": "kubescape/kubescape",
-        "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
-        "pinType": "version",
-        "currentPin": "v3"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53"
-      ]
-    },
-    {
-      "name": "kube-bench",
-      "displayName": "kube-bench (AKS node-level CIS compliance)",
-      "source": "kube-bench",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-KubeBench",
-      "invokeMethod": "script",
-      "type": "scanner",
-      "script": "modules/Invoke-KubeBench.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "ClusterArmIds",
-        "OutputPath",
-        "JobTimeoutSeconds",
-        "KubeBenchImage"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#5e35b1",
-        "phase": 6
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "CIS Azure"
-      ]
-    },
-    {
-      "name": "defender-for-cloud",
-      "displayName": "Microsoft Defender for Cloud",
-      "source": "defender-for-cloud",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-DefenderForCloud",
-      "invokeMethod": "script",
-      "type": "enrichment",
-      "script": "modules/Invoke-DefenderForCloud.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#0078d4",
-        "phase": 4
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts"
-        ]
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
-        "Azure WAF",
-        "Azure CAF",
-        "SOC2",
-        "PCI-DSS"
-      ]
-    },
-    {
-      "name": "prowler",
-      "displayName": "Prowler (Azure security posture)",
-      "source": "prowler",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-Prowler",
-      "invokeMethod": "script",
-      "type": "scanner",
-      "script": "modules/Invoke-Prowler.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "required_inputs": [
-        {
-          "name": "SubscriptionId",
-          "type": "guid",
-          "prompt": "Enter the Azure subscription ID to scan with prowler",
-          "envVar": "AZURE_SUBSCRIPTION_ID",
-          "example": "00000000-0000-0000-0000-000000000000",
-          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
-          "conditional": {
-            "param": "ManagementGroupId",
-            "equals": ""
-          }
-        }
-      ],
-      "optionalParams": [
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#1f2937",
-        "phase": 4
-      },
-      "install": {
-        "kind": "cli",
-        "command": "prowler",
-        "preferredManagers": [
-          "brew",
-          "pipx"
-        ],
-        "windows": {
-          "pipx": "prowler"
-        },
-        "macos": {
-          "brew": "prowler"
-        },
-        "linux": {
-          "pipx": "prowler"
-        }
-      },
-      "upstream": {
-        "repo": "prowler-cloud/prowler",
-        "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
-        "pinType": "cli-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
-        "ISO27001",
-        "PCI-DSS",
-        "HIPAA",
-        "SOC2",
-        "MITRE",
-        "GDPR",
-        "FedRAMP"
-      ]
-    },
-    {
-      "name": "falco",
-      "displayName": "Falco (AKS runtime anomaly detection)",
-      "source": "falco",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-Falco",
-      "invokeMethod": "script",
-      "type": "scanner",
-      "script": "modules/Invoke-Falco.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "ClusterArmIds",
-        "InstallFalco",
-        "UninstallFalco",
-        "CaptureMinutes"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#ef6c00",
-        "phase": 6
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.ResourceGraph"
-        ],
-        "comment": "Query mode uses Az.ResourceGraph; -InstallFalco opt-in mode also requires helm and kubectl on PATH."
-      },
-      "upstream": {
-        "repo": "falcosecurity/falco",
-        "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
-        "pinType": "cli-version",
-        "currentPin": "0.42.0"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53"
       ]
     },
     {
@@ -459,6 +608,181 @@
       ]
     },
     {
+      "name": "bicep-iac",
+      "displayName": "Bicep IaC Validation",
+      "source": "bicep-iac",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-IaCBicep",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-IaCBicep.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "RepoPath",
+        "RemoteUrl"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#0d47a1",
+        "phase": 7
+      },
+      "install": {
+        "kind": "cli",
+        "command": "bicep",
+        "windows": {
+          "winget": "Microsoft.Bicep"
+        },
+        "macos": {
+          "brew": "bicep"
+        },
+        "linux": {
+          "url": "https://github.com/Azure/bicep/releases/latest",
+          "note": "No package manager available for Linux; download the binary from the releases page and place on PATH. See https://learn.microsoft.com/azure/azure-resource-manager/bicep/install#linux"
+        }
+      },
+      "upstream": {
+        "repo": "Azure/bicep",
+        "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "copilot-triage",
+      "displayName": "Copilot AI Triage",
+      "source": "copilot-triage",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": null,
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/shared/Triage/Invoke-CopilotTriage.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "InputPath",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#6a1b9a",
+        "phase": 8
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch.",
+      "frameworks": []
+    },
+    {
+      "name": "defender-for-cloud",
+      "displayName": "Microsoft Defender for Cloud",
+      "source": "defender-for-cloud",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-DefenderForCloud",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-DefenderForCloud.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#0078d4",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "falco",
+      "displayName": "Falco (AKS runtime anomaly detection)",
+      "source": "falco",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Falco",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-Falco.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ClusterArmIds",
+        "InstallFalco",
+        "UninstallFalco",
+        "CaptureMinutes"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ef6c00",
+        "phase": 6
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.ResourceGraph"
+        ],
+        "comment": "Query mode uses Az.ResourceGraph; -InstallFalco opt-in mode also requires helm and kubectl on PATH."
+      },
+      "upstream": {
+        "repo": "falcosecurity/falco",
+        "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "0.42.0"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53"
+      ]
+    },
+    {
       "name": "finops",
       "displayName": "FinOps Signals (Idle Resource Detection)",
       "source": "finops",
@@ -497,533 +821,6 @@
       "frameworks": [
         "Azure WAF",
         "Azure CAF"
-      ]
-    },
-    {
-      "name": "appinsights",
-      "displayName": "Application Insights Performance Signals",
-      "source": "appinsights",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-AppInsights",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AppInsights.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "ResourceGroup",
-        "AppInsightsName",
-        "TimeRangeHours",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "label": "App Insights",
-        "color": "#00838f",
-        "phase": 4
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts",
-          "Az.ApplicationInsights",
-          "Az.Monitor"
-        ]
-      },
-      "frameworks": [
-        "Azure WAF"
-      ]
-    },
-    {
-      "name": "loadtesting",
-      "displayName": "Azure Load Testing (Failed and Regressed Runs)",
-      "source": "loadtesting",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-AzureLoadTesting",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AzureLoadTesting.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "ResourceGroup",
-        "LoadTestResourceName",
-        "DaysBack",
-        "RegressionThresholdPercent",
-        "IncludeHealthyRuns",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "label": "Load Testing",
-        "color": "#00695c",
-        "phase": 4
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts",
-          "Az.LoadTesting"
-        ]
-      },
-      "frameworks": [
-        "Azure WAF"
-      ]
-    },
-    {
-      "name": "aks-rightsizing",
-      "displayName": "AKS Rightsizing (Container Insights utilization)",
-      "source": "aks-rightsizing",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-AksRightsizing",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AksRightsizing.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "ResourceGroup",
-        "ClusterName",
-        "LogAnalyticsWorkspaceId",
-        "LookbackDays",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "label": "AKS Rightsizing",
-        "color": "#2e7d32",
-        "phase": 4
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts",
-          "Az.ResourceGraph",
-          "Az.OperationalInsights"
-        ]
-      },
-      "frameworks": [
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "aks-karpenter-cost",
-      "displayName": "AKS Karpenter Cost (consolidation + node utilization)",
-      "source": "aks-karpenter-cost",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-AksKarpenterCost",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AksKarpenterCost.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "ResourceGroup",
-        "ClusterName",
-        "LogAnalyticsWorkspaceId",
-        "LookbackDays",
-        "KubeconfigPath",
-        "KubeContext",
-        "Namespace",
-        "KubeAuthMode",
-        "KubeloginServerId",
-        "KubeloginClientId",
-        "KubeloginTenantId",
-        "WorkloadIdentityClientId",
-        "WorkloadIdentityTenantId",
-        "WorkloadIdentityServiceAccountToken",
-        "EnableElevatedRbac",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "label": "AKS Karpenter Cost",
-        "color": "#00695c",
-        "phase": 4
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts",
-          "Az.ResourceGraph",
-          "Az.OperationalInsights"
-        ]
-      },
-      "frameworks": [
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "psrule",
-      "displayName": "PSRule for Azure",
-      "source": "psrule",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-PSRule",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-PSRule.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "Path"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#6a1b9a",
-        "phase": 1
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "PSRule",
-          "PSRule.Rules.Azure"
-        ]
-      },
-      "upstream": {
-        "repo": "microsoft/PSRule.Rules.Azure",
-        "releaseApi": "https://api.github.com/repos/microsoft/PSRule.Rules.Azure/releases/latest",
-        "pinType": "psmodule-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "powerpipe",
-      "displayName": "Powerpipe Compliance Benchmarks",
-      "source": "powerpipe",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-Powerpipe",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-Powerpipe.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "Benchmark"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#455a64",
-        "phase": 1
-      },
-      "install": {
-        "kind": "cli",
-        "command": "powerpipe",
-        "preferredManagers": [
-          "winget",
-          "brew"
-        ],
-        "windows": {
-          "manager": "winget",
-          "package": "Turbot.Powerpipe"
-        },
-        "macos": {
-          "manager": "brew",
-          "package": "turbot/tap/powerpipe"
-        },
-        "linux": {
-          "url": "https://powerpipe.io/downloads"
-        }
-      },
-      "upstream": {
-        "repo": "turbot/powerpipe",
-        "releaseApi": "https://api.github.com/repos/turbot/powerpipe/releases/latest",
-        "pinType": "cli-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
-        "PCI-DSS",
-        "SOC2"
-      ]
-    },
-    {
-      "name": "azgovviz",
-      "displayName": "AzGovViz",
-      "source": "azgovviz",
-      "provider": "azure",
-      "scope": "managementGroup",
-      "normalizer": "Normalize-AzGovViz",
-      "invokeMethod": "script",
-      "comment": "Auto-cloned into tools/AzGovViz/ on first run if missing.",
-      "type": "collector",
-      "script": "modules/Invoke-AzGovViz.ps1",
-      "requiredParams": [
-        "ManagementGroupId"
-      ],
-      "optionalParams": [
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#00838f",
-        "phase": 1
-      },
-      "install": {
-        "kind": "gitclone",
-        "repo": "https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting",
-        "target": "tools/AzGovViz",
-        "probe": "AzGovVizParallel.ps1"
-      },
-      "upstream": {
-        "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
-        "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
-        "pinType": "sha",
-        "currentPin": "HEAD"
-      },
-      "frameworks": [
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "alz-queries",
-      "displayName": "ALZ Resource Graph Queries",
-      "source": "alz-queries",
-      "provider": "azure",
-      "scope": "managementGroup",
-      "normalizer": "Normalize-AlzQueries",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AlzQueries.ps1",
-      "requiredParams": [
-        "SubscriptionId",
-        "ManagementGroupId"
-      ],
-      "optionalParams": [
-        "QueriesFile"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#e65100",
-        "phase": 1
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.ResourceGraph"
-        ]
-      },
-      "upstream": {
-        "repo": "martinopedal/alz-graph-queries",
-        "releaseApi": "https://api.github.com/repos/martinopedal/alz-graph-queries/commits/main",
-        "pinType": "sha",
-        "currentPin": "HEAD"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "wara",
-      "displayName": "Well-Architected Reliability Assessment",
-      "source": "wara",
-      "provider": "azure",
-      "scope": "subscription",
-      "normalizer": "Normalize-WARA",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-WARA.ps1",
-      "requiredParams": [
-        "SubscriptionId"
-      ],
-      "optionalParams": [
-        "TenantId",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#2e7d32",
-        "phase": 1
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "WARA"
-        ]
-      },
-      "upstream": {
-        "repo": "Azure/Azure-Proactive-Resiliency-Library-v2",
-        "releaseApi": "https://api.github.com/repos/Azure/Azure-Proactive-Resiliency-Library-v2/releases/latest",
-        "pinType": "psmodule-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "maester",
-      "displayName": "Maester",
-      "source": "maester",
-      "provider": "microsoft365",
-      "scope": "tenant",
-      "normalizer": "Normalize-Maester",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-Maester.ps1",
-      "requiredParams": [],
-      "optionalParams": [],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#7b1fa2",
-        "phase": 1
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Maester"
-        ]
-      },
-      "upstream": {
-        "repo": "maester365/maester",
-        "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
-        "pinType": "psmodule-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2",
-        "PCI-DSS"
-      ]
-    },
-    {
-      "name": "scorecard",
-      "displayName": "OpenSSF Scorecard",
-      "source": "scorecard",
-      "provider": "github",
-      "scope": "repository",
-      "normalizer": "Normalize-Scorecard",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-Scorecard.ps1",
-      "requiredParams": [
-        "Repository"
-      ],
-      "optionalParams": [
-        "Threshold"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#ff6f00",
-        "phase": 1
-      },
-      "install": {
-        "kind": "cli",
-        "command": "scorecard",
-        "preferredManagers": [
-          "winget",
-          "brew"
-        ],
-        "windows": {
-          "winget": "ossf.scorecard"
-        },
-        "macos": {
-          "brew": "scorecard"
-        },
-        "linux": {
-          "url": "https://github.com/ossf/scorecard/releases/latest"
-        }
-      },
-      "upstream": {
-        "repo": "ossf/scorecard",
-        "releaseApi": "https://api.github.com/repos/ossf/scorecard/releases/latest",
-        "pinType": "cli-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2"
       ]
     },
     {
@@ -1078,21 +875,20 @@
       ]
     },
     {
-      "name": "ado-connections",
-      "displayName": "ADO Service Connections",
-      "source": "ado-connections",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADOConnections",
+      "name": "gitleaks",
+      "displayName": "gitleaks (Secrets Scanner)",
+      "source": "gitleaks",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Gitleaks",
       "invokeMethod": "script",
       "type": "collector",
-      "script": "modules/Invoke-ADOServiceConnections.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
+      "script": "modules/Invoke-Gitleaks.ps1",
+      "requiredParams": [],
+      "required_inputs": [],
       "optionalParams": [
-        "AdoProject",
-        "AdoPat"
+        "RepoPath",
+        "NoGit"
       ],
       "requiredPermissionTier": 0,
       "platforms": [
@@ -1102,168 +898,36 @@
       ],
       "enabled": true,
       "report": {
-        "color": "#0078d4",
-        "phase": 2
+        "color": "#c62828",
+        "phase": 3
       },
       "install": {
-        "kind": "none"
+        "kind": "cli",
+        "command": "gitleaks",
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "winget": "gitleaks.gitleaks"
+        },
+        "macos": {
+          "brew": "gitleaks"
+        },
+        "linux": {
+          "url": "https://github.com/gitleaks/gitleaks/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "gitleaks/gitleaks",
+        "releaseApi": "https://api.github.com/repos/gitleaks/gitleaks/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       },
       "frameworks": [
         "NIST 800-53",
         "SOC2",
         "PCI-DSS"
-      ]
-    },
-    {
-      "name": "ado-pipelines",
-      "displayName": "ADO Pipeline Security",
-      "source": "ado-pipelines",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADOPipelineSecurity",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-ADOPipelineSecurity.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "AdoPat"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#006064",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2",
-        "PCI-DSS"
-      ]
-    },
-    {
-      "name": "ado-consumption",
-      "displayName": "ADO Pipeline Consumption",
-      "source": "ado-consumption",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-AdoConsumption",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-AdoConsumption.ps1",
-      "requiredParams": [
-        "Organization"
-      ],
-      "optionalParams": [
-        "Project",
-        "DaysBack",
-        "MonthlyBudgetUsd",
-        "AdoPat"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#5e35b1",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "Azure CAF",
-        "SOC2"
-      ]
-    },
-    {
-      "name": "ado-repos-secrets",
-      "displayName": "ADO Repos Secret Scanning",
-      "source": "ado-repos-secrets",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADORepoSecrets",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-ADORepoSecrets.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "AdoPat",
-        "AdoOrganizationUrl",
-        "AdoServerUrl",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#ad1457",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2",
-        "PCI-DSS"
-      ]
-    },
-    {
-      "name": "ado-pipeline-correlator",
-      "displayName": "ADO Pipeline Run Correlator",
-      "source": "ado-pipeline-correlator",
-      "provider": "ado",
-      "scope": "ado",
-      "normalizer": "Normalize-ADOPipelineCorrelator",
-      "invokeMethod": "script",
-      "type": "correlator",
-      "script": "modules/Invoke-ADOPipelineCorrelator.ps1",
-      "requiredParams": [
-        "AdoOrg"
-      ],
-      "optionalParams": [
-        "AdoProject",
-        "AdoPat",
-        "SecretsFindingsPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#00838f",
-        "phase": 2
-      },
-      "install": {
-        "kind": "none"
-      },
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2"
       ]
     },
     {
@@ -1352,20 +1016,21 @@
       ]
     },
     {
-      "name": "zizmor",
-      "displayName": "zizmor (Actions YAML Scanner)",
-      "source": "zizmor",
+      "name": "infracost",
+      "displayName": "Infracost IaC Cost Estimation",
+      "source": "infracost",
       "provider": "cli",
       "scope": "repository",
-      "normalizer": "Normalize-Zizmor",
+      "normalizer": "Normalize-Infracost",
       "invokeMethod": "script",
       "type": "collector",
-      "script": "modules/Invoke-Zizmor.ps1",
+      "script": "modules/Invoke-Infracost.ps1",
       "requiredParams": [],
-      "required_inputs": [],
       "optionalParams": [
+        "Path",
         "Repository",
-        "WorkflowPath"
+        "RemoteUrl",
+        "RepoPath"
       ],
       "requiredPermissionTier": 0,
       "platforms": [
@@ -1375,29 +1040,460 @@
       ],
       "enabled": true,
       "report": {
-        "color": "#ad1457",
-        "phase": 3
+        "color": "#2e7d32",
+        "phase": 7
       },
       "install": {
         "kind": "cli",
-        "command": "zizmor",
+        "command": "infracost",
         "preferredManagers": [
-          "pipx",
+          "winget",
           "brew"
         ],
         "windows": {
-          "pipx": "zizmor"
+          "winget": "Infracost.Infracost"
         },
         "macos": {
-          "brew": "zizmor"
+          "brew": "infracost"
         },
         "linux": {
-          "pipx": "zizmor"
+          "url": "https://www.infracost.io/docs/"
         }
       },
       "upstream": {
-        "repo": "woodruffw/zizmor",
-        "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
+        "repo": "infracost/infracost",
+        "releaseApi": "https://api.github.com/repos/infracost/infracost/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "kube-bench",
+      "displayName": "kube-bench (AKS node-level CIS compliance)",
+      "source": "kube-bench",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-KubeBench",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-KubeBench.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ClusterArmIds",
+        "OutputPath",
+        "JobTimeoutSeconds",
+        "KubeBenchImage"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5e35b1",
+        "phase": 6
+      },
+      "install": {
+        "kind": "none"
+      },
+      "frameworks": [
+        "CIS Azure"
+      ]
+    },
+    {
+      "name": "kubescape",
+      "displayName": "Kubescape (AKS runtime posture)",
+      "source": "kubescape",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Kubescape",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-Kubescape.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "required_inputs": [
+        {
+          "name": "SubscriptionId",
+          "type": "guid",
+          "prompt": "Enter the Azure subscription ID to scan with kubescape",
+          "envVar": "AZURE_SUBSCRIPTION_ID",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
+        }
+      ],
+      "optionalParams": [
+        "ClusterArmIds",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#7b1fa2",
+        "phase": 6
+      },
+      "install": {
+        "kind": "cli",
+        "command": "kubescape",
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "manager": "winget",
+          "package": "ARMO.kubescape"
+        },
+        "macos": {
+          "manager": "brew",
+          "package": "kubescape"
+        },
+        "linux": {
+          "manager": "script",
+          "url": "https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh"
+        }
+      },
+      "upstream": {
+        "repo": "kubescape/kubescape",
+        "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
+        "pinType": "version",
+        "currentPin": "v3"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "loadtesting",
+      "displayName": "Azure Load Testing (Failed and Regressed Runs)",
+      "source": "loadtesting",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-AzureLoadTesting",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-AzureLoadTesting.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "ResourceGroup",
+        "LoadTestResourceName",
+        "DaysBack",
+        "RegressionThresholdPercent",
+        "IncludeHealthyRuns",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "label": "Load Testing",
+        "color": "#00695c",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts",
+          "Az.LoadTesting"
+        ]
+      },
+      "frameworks": [
+        "Azure WAF"
+      ]
+    },
+    {
+      "name": "maester",
+      "displayName": "Maester",
+      "source": "maester",
+      "provider": "microsoft365",
+      "scope": "tenant",
+      "normalizer": "Normalize-Maester",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Maester.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#7b1fa2",
+        "phase": 1
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Maester"
+        ]
+      },
+      "upstream": {
+        "repo": "maester365/maester",
+        "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
+        "pinType": "psmodule-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "powerpipe",
+      "displayName": "Powerpipe Compliance Benchmarks",
+      "source": "powerpipe",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Powerpipe",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Powerpipe.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "Benchmark"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#455a64",
+        "phase": 1
+      },
+      "install": {
+        "kind": "cli",
+        "command": "powerpipe",
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "manager": "winget",
+          "package": "Turbot.Powerpipe"
+        },
+        "macos": {
+          "manager": "brew",
+          "package": "turbot/tap/powerpipe"
+        },
+        "linux": {
+          "url": "https://powerpipe.io/downloads"
+        }
+      },
+      "upstream": {
+        "repo": "turbot/powerpipe",
+        "releaseApi": "https://api.github.com/repos/turbot/powerpipe/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "PCI-DSS",
+        "SOC2"
+      ]
+    },
+    {
+      "name": "prowler",
+      "displayName": "Prowler (Azure security posture)",
+      "source": "prowler",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-Prowler",
+      "invokeMethod": "script",
+      "type": "scanner",
+      "script": "modules/Invoke-Prowler.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "required_inputs": [
+        {
+          "name": "SubscriptionId",
+          "type": "guid",
+          "prompt": "Enter the Azure subscription ID to scan with prowler",
+          "envVar": "AZURE_SUBSCRIPTION_ID",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "validator": "^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$",
+          "conditional": {
+            "param": "ManagementGroupId",
+            "equals": ""
+          }
+        }
+      ],
+      "optionalParams": [
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#1f2937",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "prowler",
+        "preferredManagers": [
+          "brew",
+          "pipx"
+        ],
+        "windows": {
+          "pipx": "prowler"
+        },
+        "macos": {
+          "brew": "prowler"
+        },
+        "linux": {
+          "pipx": "prowler"
+        }
+      },
+      "upstream": {
+        "repo": "prowler-cloud/prowler",
+        "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "ISO27001",
+        "PCI-DSS",
+        "HIPAA",
+        "SOC2",
+        "MITRE",
+        "GDPR",
+        "FedRAMP"
+      ]
+    },
+    {
+      "name": "psrule",
+      "displayName": "PSRule for Azure",
+      "source": "psrule",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-PSRule",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-PSRule.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "Path"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#6a1b9a",
+        "phase": 1
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "PSRule",
+          "PSRule.Rules.Azure"
+        ]
+      },
+      "upstream": {
+        "repo": "microsoft/PSRule.Rules.Azure",
+        "releaseApi": "https://api.github.com/repos/microsoft/PSRule.Rules.Azure/releases/latest",
+        "pinType": "psmodule-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "CIS Azure",
+        "NIST 800-53",
+        "Azure WAF",
+        "Azure CAF"
+      ]
+    },
+    {
+      "name": "scorecard",
+      "displayName": "OpenSSF Scorecard",
+      "source": "scorecard",
+      "provider": "github",
+      "scope": "repository",
+      "normalizer": "Normalize-Scorecard",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Scorecard.ps1",
+      "requiredParams": [
+        "Repository"
+      ],
+      "optionalParams": [
+        "Threshold"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ff6f00",
+        "phase": 1
+      },
+      "install": {
+        "kind": "cli",
+        "command": "scorecard",
+        "preferredManagers": [
+          "winget",
+          "brew"
+        ],
+        "windows": {
+          "winget": "ossf.scorecard"
+        },
+        "macos": {
+          "brew": "scorecard"
+        },
+        "linux": {
+          "url": "https://github.com/ossf/scorecard/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "ossf/scorecard",
+        "releaseApi": "https://api.github.com/repos/ossf/scorecard/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
       },
@@ -1407,20 +1503,21 @@
       ]
     },
     {
-      "name": "gitleaks",
-      "displayName": "gitleaks (Secrets Scanner)",
-      "source": "gitleaks",
-      "provider": "cli",
-      "scope": "repository",
-      "normalizer": "Normalize-Gitleaks",
+      "name": "sentinel-coverage",
+      "displayName": "Microsoft Sentinel (Coverage / Posture)",
+      "source": "sentinel-coverage",
+      "provider": "azure",
+      "scope": "workspace",
+      "normalizer": "Normalize-SentinelCoverage",
       "invokeMethod": "script",
       "type": "collector",
-      "script": "modules/Invoke-Gitleaks.ps1",
-      "requiredParams": [],
-      "required_inputs": [],
+      "script": "modules/Invoke-SentinelCoverage.ps1",
+      "requiredParams": [
+        "WorkspaceResourceId"
+      ],
       "optionalParams": [
-        "RepoPath",
-        "NoGit"
+        "LookbackDays",
+        "OutputPath"
       ],
       "requiredPermissionTier": 0,
       "platforms": [
@@ -1430,36 +1527,112 @@
       ],
       "enabled": true,
       "report": {
-        "color": "#c62828",
-        "phase": 3
+        "color": "#3949ab",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "comment": "Surfaces Sentinel detection posture (analytic rules, watchlists, connectors, hunting queries) via Microsoft.SecurityInsights REST. Read-only; pairs with sentinel-incidents.",
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS",
+        "Azure WAF"
+      ]
+    },
+    {
+      "name": "sentinel-incidents",
+      "displayName": "Microsoft Sentinel (Active Incidents)",
+      "source": "sentinel-incidents",
+      "provider": "azure",
+      "scope": "workspace",
+      "normalizer": "Normalize-SentinelIncidents",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-SentinelIncidents.ps1",
+      "requiredParams": [
+        "WorkspaceResourceId"
+      ],
+      "optionalParams": [
+        "LookbackDays",
+        "OutputPath"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#0078d4",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
+      ]
+    },
+    {
+      "name": "terraform-iac",
+      "displayName": "Terraform IaC Validation",
+      "source": "terraform-iac",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-IaCTerraform",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-IaCTerraform.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "RepoPath",
+        "RemoteUrl"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#5c4ee5",
+        "phase": 7
       },
       "install": {
         "kind": "cli",
-        "command": "gitleaks",
-        "preferredManagers": [
-          "winget",
-          "brew"
-        ],
+        "command": "terraform",
         "windows": {
-          "winget": "gitleaks.gitleaks"
+          "winget": "Hashicorp.Terraform"
         },
         "macos": {
-          "brew": "gitleaks"
+          "brew": "terraform"
         },
         "linux": {
-          "url": "https://github.com/gitleaks/gitleaks/releases/latest"
+          "url": "https://developer.hashicorp.com/terraform/install"
         }
       },
       "upstream": {
-        "repo": "gitleaks/gitleaks",
-        "releaseApi": "https://api.github.com/repos/gitleaks/gitleaks/releases/latest",
+        "repo": "hashicorp/terraform",
+        "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
         "currentPin": "latest"
       },
       "frameworks": [
+        "CIS Azure",
         "NIST 800-53",
-        "SOC2",
-        "PCI-DSS"
+        "Azure WAF",
+        "Azure CAF"
       ]
     },
     {
@@ -1518,74 +1691,21 @@
       ]
     },
     {
-      "name": "bicep-iac",
-      "displayName": "Bicep IaC Validation",
-      "source": "bicep-iac",
-      "provider": "cli",
-      "scope": "repository",
-      "normalizer": "Normalize-IaCBicep",
+      "name": "wara",
+      "displayName": "Well-Architected Reliability Assessment",
+      "source": "wara",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-WARA",
       "invokeMethod": "script",
       "type": "collector",
-      "script": "modules/Invoke-IaCBicep.ps1",
-      "requiredParams": [],
-      "optionalParams": [
-        "RepoPath",
-        "RemoteUrl"
+      "script": "modules/Invoke-WARA.ps1",
+      "requiredParams": [
+        "SubscriptionId"
       ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#0d47a1",
-        "phase": 7
-      },
-      "install": {
-        "kind": "cli",
-        "command": "bicep",
-        "windows": {
-          "winget": "Microsoft.Bicep"
-        },
-        "macos": {
-          "brew": "bicep"
-        },
-        "linux": {
-          "url": "https://github.com/Azure/bicep/releases/latest",
-          "note": "No package manager available for Linux; download the binary from the releases page and place on PATH. See https://learn.microsoft.com/azure/azure-resource-manager/bicep/install#linux"
-        }
-      },
-      "upstream": {
-        "repo": "Azure/bicep",
-        "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
-        "pinType": "cli-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
-        "Azure WAF",
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "infracost",
-      "displayName": "Infracost IaC Cost Estimation",
-      "source": "infracost",
-      "provider": "cli",
-      "scope": "repository",
-      "normalizer": "Normalize-Infracost",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-Infracost.ps1",
-      "requiredParams": [],
       "optionalParams": [
-        "Path",
-        "Repository",
-        "RemoteUrl",
-        "RepoPath"
+        "TenantId",
+        "OutputPath"
       ],
       "requiredPermissionTier": 0,
       "platforms": [
@@ -1596,103 +1716,40 @@
       "enabled": true,
       "report": {
         "color": "#2e7d32",
-        "phase": 7
+        "phase": 1
       },
       "install": {
-        "kind": "cli",
-        "command": "infracost",
-        "preferredManagers": [
-          "winget",
-          "brew"
-        ],
-        "windows": {
-          "winget": "Infracost.Infracost"
-        },
-        "macos": {
-          "brew": "infracost"
-        },
-        "linux": {
-          "url": "https://www.infracost.io/docs/"
-        }
+        "kind": "psmodule",
+        "modules": [
+          "WARA"
+        ]
       },
       "upstream": {
-        "repo": "infracost/infracost",
-        "releaseApi": "https://api.github.com/repos/infracost/infracost/releases/latest",
-        "pinType": "cli-version",
+        "repo": "Azure/Azure-Proactive-Resiliency-Library-v2",
+        "releaseApi": "https://api.github.com/repos/Azure/Azure-Proactive-Resiliency-Library-v2/releases/latest",
+        "pinType": "psmodule-version",
         "currentPin": "latest"
       },
       "frameworks": [
-        "Azure CAF"
-      ]
-    },
-    {
-      "name": "terraform-iac",
-      "displayName": "Terraform IaC Validation",
-      "source": "terraform-iac",
-      "provider": "cli",
-      "scope": "repository",
-      "normalizer": "Normalize-IaCTerraform",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-IaCTerraform.ps1",
-      "requiredParams": [],
-      "optionalParams": [
-        "RepoPath",
-        "RemoteUrl"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#5c4ee5",
-        "phase": 7
-      },
-      "install": {
-        "kind": "cli",
-        "command": "terraform",
-        "windows": {
-          "winget": "Hashicorp.Terraform"
-        },
-        "macos": {
-          "brew": "terraform"
-        },
-        "linux": {
-          "url": "https://developer.hashicorp.com/terraform/install"
-        }
-      },
-      "upstream": {
-        "repo": "hashicorp/terraform",
-        "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
-        "pinType": "cli-version",
-        "currentPin": "latest"
-      },
-      "frameworks": [
-        "CIS Azure",
-        "NIST 800-53",
         "Azure WAF",
         "Azure CAF"
       ]
     },
     {
-      "name": "sentinel-incidents",
-      "displayName": "Microsoft Sentinel (Active Incidents)",
-      "source": "sentinel-incidents",
-      "provider": "azure",
-      "scope": "workspace",
-      "normalizer": "Normalize-SentinelIncidents",
+      "name": "zizmor",
+      "displayName": "zizmor (Actions YAML Scanner)",
+      "source": "zizmor",
+      "provider": "cli",
+      "scope": "repository",
+      "normalizer": "Normalize-Zizmor",
       "invokeMethod": "script",
-      "type": "enrichment",
-      "script": "modules/Invoke-SentinelIncidents.ps1",
-      "requiredParams": [
-        "WorkspaceResourceId"
-      ],
+      "type": "collector",
+      "script": "modules/Invoke-Zizmor.ps1",
+      "requiredParams": [],
+      "required_inputs": [],
       "optionalParams": [
-        "LookbackDays",
-        "OutputPath"
+        "Repository",
+        "WorkflowPath"
       ],
       "requiredPermissionTier": 0,
       "platforms": [
@@ -1702,93 +1759,36 @@
       ],
       "enabled": true,
       "report": {
-        "color": "#0078d4",
-        "phase": 4
+        "color": "#ad1457",
+        "phase": 3
       },
       "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts"
-        ]
+        "kind": "cli",
+        "command": "zizmor",
+        "preferredManagers": [
+          "pipx",
+          "brew"
+        ],
+        "windows": {
+          "pipx": "zizmor"
+        },
+        "macos": {
+          "brew": "zizmor"
+        },
+        "linux": {
+          "pipx": "zizmor"
+        }
+      },
+      "upstream": {
+        "repo": "woodruffw/zizmor",
+        "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
       },
       "frameworks": [
         "NIST 800-53",
         "SOC2"
       ]
-    },
-    {
-      "name": "sentinel-coverage",
-      "displayName": "Microsoft Sentinel (Coverage / Posture)",
-      "source": "sentinel-coverage",
-      "provider": "azure",
-      "scope": "workspace",
-      "normalizer": "Normalize-SentinelCoverage",
-      "invokeMethod": "script",
-      "type": "collector",
-      "script": "modules/Invoke-SentinelCoverage.ps1",
-      "requiredParams": [
-        "WorkspaceResourceId"
-      ],
-      "optionalParams": [
-        "LookbackDays",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": true,
-      "report": {
-        "color": "#3949ab",
-        "phase": 4
-      },
-      "install": {
-        "kind": "psmodule",
-        "modules": [
-          "Az.Accounts"
-        ]
-      },
-      "comment": "Surfaces Sentinel detection posture (analytic rules, watchlists, connectors, hunting queries) via Microsoft.SecurityInsights REST. Read-only; pairs with sentinel-incidents.",
-      "frameworks": [
-        "NIST 800-53",
-        "SOC2",
-        "PCI-DSS",
-        "Azure WAF"
-      ]
-    },
-    {
-      "name": "copilot-triage",
-      "displayName": "Copilot AI Triage",
-      "source": "copilot-triage",
-      "provider": "cli",
-      "scope": "repository",
-      "normalizer": null,
-      "invokeMethod": "script",
-      "type": "enrichment",
-      "script": "modules/shared/Triage/Invoke-CopilotTriage.ps1",
-      "requiredParams": [],
-      "optionalParams": [
-        "InputPath",
-        "OutputPath"
-      ],
-      "requiredPermissionTier": 0,
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "enabled": false,
-      "report": {
-        "color": "#6a1b9a",
-        "phase": 8
-      },
-      "install": {
-        "kind": "none"
-      },
-      "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch.",
-      "frameworks": []
     }
   ],
   "prerequisites": [
