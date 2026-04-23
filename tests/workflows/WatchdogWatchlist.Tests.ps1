@@ -1,10 +1,12 @@
 #Requires -Version 7.4
 <#
-Asserts every workflow name in ci-failure-watchdog.yml's `workflows:` allow-
-list resolves to a real `name:` field in some .github/workflows/*.yml file.
-This is the regression guard against the #111 / #154 phantom-failure pattern
-where a typo in the watchlist silently breaks failure triage for that
-workflow.
+Asserts every workflow name in ci-failure-watchdog.yml's `env.WATCHLIST`
+allow-list resolves to a real `name:` field in some .github/workflows/*.yml file.
+This is the regression guard against phantom-failure patterns where a typo in
+the watchlist silently breaks failure triage for that workflow.
+
+After PR #944, the watchlist moved from `workflow_run.workflows` to
+`env.WATCHLIST` (multiline string) to support the schedule trigger model.
 #>
 
 BeforeAll {
@@ -28,13 +30,14 @@ BeforeAll {
     }
 
     $watchdog = ConvertFrom-Yaml (Get-Content -Raw $script:WatchdogPath)
-    # Extract WATCHLIST from env: block (multiline string)
+    # After PR #944, the watchlist moved from `workflow_run.workflows` to `env.WATCHLIST`
+    # because the trigger changed from workflow_run to schedule.
     $watchlistRaw = $watchdog['env']['WATCHLIST']
-    $script:Watchlist = @($watchlistRaw -split "`n" | Where-Object { $_ -match '\S' } | ForEach-Object { $_.Trim() })
+    $script:Watchlist = @($watchlistRaw -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
 }
 
 Describe 'CI failure watchdog watchlist' {
-    It 'declares a non-empty WATCHLIST env var (regression guard for #111)' {
+    It 'declares a non-empty WATCHLIST env var (PR #944 schedule model)' {
         $script:Watchlist.Count | Should -BeGreaterThan 0
     }
 

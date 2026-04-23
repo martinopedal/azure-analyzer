@@ -1,13 +1,14 @@
 #Requires -Version 7.0
 <#
-Regression guard for #862. The `ci-failure-watchdog.yml` `triage-failure` job
-MUST key its concurrency group off `github.event.workflow_run.id` (or another
-per-triggering-run identifier). A constant group name causes GitHub to cancel
-queued runs when a third run arrives (only one running + one pending allowed
-per group, regardless of `cancel-in-progress`). The triage step is already
-hash-idempotent, so parallel runs are safe.
+Validates concurrency model for ci-failure-watchdog.yml. After PR #944, the
+watchdog uses a schedule trigger (every 15 min) instead of workflow_run.
+With schedule, a constant concurrency group is CORRECT and SAFE because:
+1. The triage logic is hash-idempotent (SHA256 dedup prevents duplicate issues).
+2. The 15-min interval keeps queue pressure low.
+3. GitHub's default group behavior (one running + one pending) is sufficient.
 
-Before this fix, 23 of 32 recent watchdog runs were cancelled.
+This replaced the old #862 regression guard which required workflow_run.id
+suffixes to prevent cascade cancellations when Copilot-actor triggered runs.
 #>
 
 BeforeAll {
@@ -15,7 +16,7 @@ BeforeAll {
     $script:WorkflowText = Get-Content -Raw $script:WorkflowPath
 }
 
-Describe 'CI failure watchdog concurrency (regression for #862)' {
+Describe 'CI failure watchdog concurrency (post-PR #944 schedule model)' {
     It 'workflow file exists' {
         Test-Path $script:WorkflowPath | Should -BeTrue
     }
@@ -24,19 +25,20 @@ Describe 'CI failure watchdog concurrency (regression for #862)' {
         $script:WorkflowText | Should -Match '(?ms)triage-failure:.*?\n\s+concurrency:'
     }
 
-    It 'keys the concurrency group on workflow_run.id (no constant group)' {
-        # The group expression must reference workflow_run.id so each
-        # triggering run gets its own slot. A constant group like
-        # `group: ci-failure-watchdog\n` (no interpolation) is the regression.
-        $script:WorkflowText | Should -Match 'group:\s+ci-failure-watchdog-\$\{\{\s*github\.event\.workflow_run\.id\s*\}\}'
+    It 'uses a constant ci-failure-watchdog concurrency group (schedule-safe)' {
+        # With schedule trigger + hash-idempotent triage, a constant group is
+        # safe and correct. The 15-min interval + GitHub's queue model (1 run
+        # + 1 pending) prevents runaway queues. This is the EXPECTED pattern.
+        $script:WorkflowText | Should -Match '(?m)^\s+group:\s+ci-failure-watchdog\s*$'
     }
 
-    It 'does NOT use a constant `ci-failure-watchdog` group without suffix' {
-        # Guard against someone re-introducing the self-cancelling constant.
-        $script:WorkflowText | Should -Not -Match '(?m)^\s+group:\s+ci-failure-watchdog\s*$'
+    It 'does NOT use workflow_run.id suffix (schedule trigger has no run context)' {
+        # The schedule trigger does not provide github.event.workflow_run, so
+        # the old per-run group suffix pattern is invalid for this trigger.
+        $script:WorkflowText | Should -Not -Match 'workflow_run\.id'
     }
 
-    It 'keeps cancel-in-progress: false to preserve triage per run' {
-        $script:WorkflowText | Should -Match '(?ms)group:\s+ci-failure-watchdog-\$\{\{\s*github\.event\.workflow_run\.id\s*\}\}\s*\r?\n\s+cancel-in-progress:\s+false'
+    It 'keeps cancel-in-progress: false to preserve any overlapping scans' {
+        $script:WorkflowText | Should -Match '(?ms)group:\s+ci-failure-watchdog\s*\r?\n\s+cancel-in-progress:\s+false'
     }
 }
