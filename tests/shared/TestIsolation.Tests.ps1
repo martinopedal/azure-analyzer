@@ -85,7 +85,7 @@ Describe 'Test isolation guard (#746)' -Tag 'isolation' {
             # Find $global:Name = ... writes that aren't LASTEXITCODE (which
             # is auto-managed by pwsh after every external command).
             $writes = [regex]::Matches($code, '\$global:([A-Za-z_][A-Za-z0-9_]*)\s*=')
-            $nonExitWrites = @($writes | Where-Object { $_.Groups[1].Value -cne 'LASTEXITCODE' })
+            $nonExitWrites = @($writes | Where-Object { $_.Groups[1].Value -ne 'LASTEXITCODE' })
             if ($nonExitWrites.Count -eq 0) { continue }
 
             $hasAfterBlock =

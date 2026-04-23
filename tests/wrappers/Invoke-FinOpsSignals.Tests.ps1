@@ -89,7 +89,7 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
 
     Context 'with snapshot query and custom threshold' {
         BeforeAll {
-            $script:OriginalCapturedQueryFile = $env:FINOPS_TEST_CAPTURED_QUERY_FILE
+            $script:TestPriorCapturedQueryFile = $env:FINOPS_TEST_CAPTURED_QUERY_FILE
             $script:SnapshotQuery = Join-Path $script:RepoRoot 'queries' 'finops' 'finops-ungoverned-snapshots.json'
             Mock Get-Module { [PSCustomObject]@{ Name = 'Az.Mock' } }
             Mock Import-Module {}
@@ -127,10 +127,10 @@ Describe 'Invoke-FinOpsSignals: wrapper behavior' {
         }
 
         AfterAll {
-            if ($null -eq $script:OriginalCapturedQueryFile) {
+            if ($null -eq $script:TestPriorCapturedQueryFile) {
                 Remove-Item Env:\FINOPS_TEST_CAPTURED_QUERY_FILE -ErrorAction SilentlyContinue
             } else {
-                $env:FINOPS_TEST_CAPTURED_QUERY_FILE = $script:OriginalCapturedQueryFile
+                $env:FINOPS_TEST_CAPTURED_QUERY_FILE = $script:TestPriorCapturedQueryFile
             }
         }
 
