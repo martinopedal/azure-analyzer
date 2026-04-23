@@ -28,7 +28,7 @@ Describe 'Invoke-AdoConsumption' {
 
     Context 'when PAT is missing' {
         It 'returns Skipped' {
-            $result = & $script:Wrapper -Organization 'contoso'
+            $result = & $script:Wrapper -AdoOrg 'contoso'
             $result.Status | Should -Be 'Skipped'
             @($result.Findings).Count | Should -Be 0
         }
@@ -66,7 +66,7 @@ Describe 'Invoke-AdoConsumption' {
                 }
                 throw "Unexpected URI: $Uri"
             }
-            $result = & $script:Wrapper -Organization 'contoso' -DaysBack 30
+            $result = & $script:Wrapper -AdoOrg 'contoso' -DaysBack 30
         }
 
         AfterAll {
@@ -119,7 +119,7 @@ Describe 'Invoke-AdoConsumption' {
                 }
                 throw "Unexpected URI: $Uri"
             }
-            $result = & $script:Wrapper -Organization 'contoso'
+            $result = & $script:Wrapper -AdoOrg 'contoso'
         }
 
         AfterAll {

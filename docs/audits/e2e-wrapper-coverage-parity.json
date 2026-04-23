@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Tracking matrix for wrapper-level E2E coverage parity across enabled tools.",
+  "entries": [
+    {
+      "id": "E2E-001",
+      "tool": "azqr",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-002",
+      "tool": "kubescape",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-003",
+      "tool": "kube-bench",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-004",
+      "tool": "defender-for-cloud",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-005",
+      "tool": "prowler",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-006",
+      "tool": "falco",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-007",
+      "tool": "azure-cost",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-008",
+      "tool": "azure-quota",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-009",
+      "tool": "finops",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-010",
+      "tool": "appinsights",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-011",
+      "tool": "loadtesting",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-012",
+      "tool": "aks-rightsizing",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-013",
+      "tool": "aks-karpenter-cost",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-014",
+      "tool": "psrule",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-015",
+      "tool": "powerpipe",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-016",
+      "tool": "azgovviz",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-017",
+      "tool": "alz-queries",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-018",
+      "tool": "wara",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-019",
+      "tool": "maester",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-020",
+      "tool": "scorecard",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-021",
+      "tool": "gh-actions-billing",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-022",
+      "tool": "ado-connections",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-023",
+      "tool": "ado-pipelines",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-024",
+      "tool": "ado-consumption",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-025",
+      "tool": "ado-repos-secrets",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-026",
+      "tool": "ado-pipeline-correlator",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-027",
+      "tool": "identity-correlator",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-028",
+      "tool": "identity-graph-expansion",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-029",
+      "tool": "zizmor",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-030",
+      "tool": "gitleaks",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-031",
+      "tool": "trivy",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-032",
+      "tool": "bicep-iac",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-033",
+      "tool": "infracost",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-034",
+      "tool": "terraform-iac",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-035",
+      "tool": "sentinel-incidents",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-036",
+      "tool": "sentinel-coverage",
+      "status": "not-covered"
+    }
+  ]
+}

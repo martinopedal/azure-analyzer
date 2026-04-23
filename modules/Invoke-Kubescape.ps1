@@ -109,6 +109,25 @@ if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+$missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
+if (Test-Path $missingToolPath) { . $missingToolPath }
+if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
+    function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
+}
+
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
 
 $kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
 if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
@@ -121,6 +140,7 @@ $result = [ordered]@{
     Status        = 'Success'
     Message       = ''
     Findings      = @()
+    Diagnostics   = @()
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
@@ -144,28 +164,37 @@ Assert-KubeAuthMode `
 $resolvedKubeconfig = $null
 if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
     if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
-        throw "Invalid -KubeconfigPath: value is empty."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kubescape' -Category 'InvalidParameter' -Reason 'Invalid -KubeconfigPath: value is empty.' -Remediation 'Provide a non-empty local file path via -KubeconfigPath.'))
     }
     if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
-        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kubescape' -Category 'InvalidParameter' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path." -Remediation 'Use a local kubeconfig file path, not a URL.'))
     }
     if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
-        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kubescape' -Category 'NotFound' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist." -Remediation 'Provide an existing kubeconfig file path via -KubeconfigPath.'))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
 } elseif ($kubeconfigModeRequested) {
     # -KubeContext supplied but no -KubeconfigPath: fall back to env / default.
     $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
     if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        throw "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kubescape' -Category 'NotFound' -Reason "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG." -Remediation 'Set -KubeconfigPath or ensure $env:KUBECONFIG points to an existing kubeconfig file.'))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
 }
 
 # --- Tool prereqs ---
 if (-not (Get-Command kubescape -ErrorAction SilentlyContinue)) {
+    $missingMessage = 'kubescape is not installed. Skipping Kubescape scan. Install via: winget install ARMO.kubescape  |  brew install kubescape  |  curl -s https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh | /bin/bash'
+    Write-MissingToolNotice -Tool 'kubescape' -Message $missingMessage
     $result.Status  = 'Skipped'
     $result.Message = 'kubescape CLI not installed. Install via: winget install ARMO.kubescape  |  brew install kubescape  |  curl -s https://raw.githubusercontent.com/kubescape/kubescape/master/install.sh | /bin/bash'
+    $result.Diagnostics = @(
+        [PSCustomObject]@{
+            Code    = 'MissingTool'
+            Tool    = 'kubescape'
+            Message = $missingMessage
+        }
+    )
     return [pscustomobject]$result
 }
 if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {

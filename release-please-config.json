@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-v-in-tag": true,
+  "changelog-path": "CHANGELOG.md",
+  "packages": {
+    ".": {
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "AzureAnalyzer.psd1"
+        }
+      ],
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance"
+        },
+        {
+          "type": "deps",
+          "section": "Dependencies"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation"
+        },
+        {
+          "type": "chore",
+          "section": "Chores"
+        },
+        {
+          "type": "ci",
+          "section": "CI"
+        },
+        {
+          "type": "test",
+          "section": "Tests"
+        },
+        {
+          "type": "refactor",
+          "section": "Refactors"
+        }
+      ]
+    }
+  }
+}

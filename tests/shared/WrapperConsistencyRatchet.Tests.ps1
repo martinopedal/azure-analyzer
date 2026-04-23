@@ -34,19 +34,12 @@ BeforeAll {
     # `catch { throw "..." }`) strings allowed per wrapper. Any change
     # in either direction fails the test, forcing a conscious update.
     $script:RawThrowBaseline = @{
-        'Invoke-AksKarpenterCost.ps1'  = 3
-        'Invoke-AksRightsizing.ps1'    = 3
         'Invoke-AppInsights.ps1'       = 2
         'Invoke-AzGovViz.ps1'          = 1
         'Invoke-AzureCost.ps1'         = 1
         'Invoke-AzureLoadTesting.ps1'  = 1
-        'Invoke-DefenderForCloud.ps1'  = 3
-        'Invoke-Falco.ps1'             = 4
         'Invoke-FinOpsSignals.ps1'     = 2
         'Invoke-GhActionsBilling.ps1'  = 1
-        'Invoke-Gitleaks.ps1'          = 3
-        'Invoke-KubeBench.ps1'         = 4
-        'Invoke-Kubescape.ps1'         = 4
         'Invoke-Powerpipe.ps1'         = 1
         'Invoke-Scorecard.ps1'         = 1
         'Invoke-SentinelCoverage.ps1'  = 1

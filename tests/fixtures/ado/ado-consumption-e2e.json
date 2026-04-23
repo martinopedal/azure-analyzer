@@ -1,0 +1,97 @@
+{
+  "Source": "ado-consumption",
+  "Status": "Success",
+  "Message": "Scanned 2 project(s), produced 3 consumption finding(s).",
+  "ToolVersion": "2.58.0",
+  "Findings": [
+    {
+      "Id": "cons-share-1",
+      "RuleId": "Consumption-MinuteShareHigh",
+      "Category": "Cost",
+      "Title": "Project 'payments' consumes 72% of org runner minutes",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Project consumes a disproportionate share of hosted runner minutes relative to other projects.",
+      "Remediation": "Investigate self-hosted agents or pipeline caching to reduce hosted-minute burn.",
+      "ResourceId": "ado://contoso/payments",
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build",
+      "Pillar": "Cost Optimization",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build?view=results&_a=analytics",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_build",
+        "https://dev.azure.com/contoso/payments/_build?definitionId=12&view=results&_a=analytics"
+      ],
+      "BaselineTags": [
+        "Consumption-MinuteShareHigh",
+        "ProjectTier:Tier1"
+      ],
+      "EntityRefs": [
+        "AdoOrg/contoso",
+        "AdoProject/contoso/payments",
+        "AdoPipeline/contoso/payments/12"
+      ],
+      "ToolVersion": "2.58.0"
+    },
+    {
+      "Id": "cons-duration-1",
+      "RuleId": "Consumption-DurationRegression",
+      "Category": "Cost",
+      "Title": "Pipeline duration regression in 'payments-ci'",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Average duration increased by 47.5% compared to baseline window.",
+      "Remediation": "Investigate recent changes that may have slowed build performance.",
+      "ResourceId": "ado://contoso/payments",
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build",
+      "Pillar": "Cost Optimization",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "ScoreDelta": 47.5,
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build?view=results&_a=analytics",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_build",
+        "https://dev.azure.com/contoso/payments/_build?definitionId=12&view=results&_a=analytics"
+      ],
+      "BaselineTags": [
+        "Consumption-DurationRegression",
+        "ProjectTier:Tier1"
+      ],
+      "EntityRefs": [
+        "AdoOrg/contoso",
+        "AdoProject/contoso/payments",
+        "AdoPipeline/contoso/payments/12"
+      ]
+    },
+    {
+      "Id": "cons-fail-1",
+      "RuleId": "Consumption-FailRateHigh",
+      "Category": "Cost",
+      "Title": "High failure rate in 'payments' pipelines",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Failure rate of 50% exceeds the 30% threshold over the past 30 days.",
+      "Remediation": "Fix flaky or failing pipeline jobs to reduce wasted compute.",
+      "ResourceId": "ado://contoso/payments",
+      "LearnMoreUrl": "https://dev.azure.com/contoso/payments/_build",
+      "Pillar": "Operational Excellence",
+      "Impact": "High",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build?view=results&_a=analytics",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_build",
+        "https://dev.azure.com/contoso/payments/_build?definitionId=12&view=results&_a=analytics"
+      ],
+      "BaselineTags": [
+        "Consumption-FailRateHigh",
+        "ProjectTier:Tier1"
+      ],
+      "EntityRefs": [
+        "AdoOrg/contoso",
+        "AdoProject/contoso/payments",
+        "AdoPipeline/contoso/payments/12"
+      ]
+    }
+  ]
+}

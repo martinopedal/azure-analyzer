@@ -21,6 +21,17 @@
 
 ## Quickest start
 
+### From PSGallery
+
+```powershell
+Install-Module AzureAnalyzer -Scope CurrentUser
+Import-Module AzureAnalyzer
+Connect-AzAccount -TenantId "<tenant-id>"
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
+```
+
+### From source checkout
+
 ```powershell
 git clone https://github.com/martinopedal/azure-analyzer.git && cd azure-analyzer
 Import-Module .\AzureAnalyzer.psd1
@@ -33,7 +44,10 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 ## Testing
 
 - `Invoke-Pester -Path .\tests -CI`: full Pester suite (baseline 842+ green).
+- `Invoke-Pester -Path .\tests\wrappers -Tag 'LiveTool' -CI`: optional live-CLI wrapper smoke tier (gitleaks, trivy, zizmor, scorecard) that exercises real binaries when present.
 - `Invoke-Pester -Path .\tests\e2e -Output Detailed`: end-to-end harness that drives `Invoke-AzureAnalyzer`'s output pipeline (FindingRow -> EntityStore -> `results.json` + `entities.json` -> HTML + Markdown reports) across three surfaces (Azure subscription, GitHub repo, Tenant / management-group) with synthetic fixtures under `tests/e2e/fixtures/`. Runs in CI via [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) on windows-latest, ubuntu-latest, and macos-latest (8-minute timeout per leg). Asserts v1 / v3.1 schema shapes, tier selection across PureJson / EmbeddedSqlite / SidecarSqlite, `Invoke-RemoteRepoClone` host allow-list, and credential-scrub for planted `ghp_*` / `xoxb-*` / `AKIA*` / `pat-*` literals.
+- `Invoke-Pester -Path .\tests\wrappers\MissingToolRuntime.Tests.ps1`: cross-platform runtime coverage for missing-tool behavior in `Invoke-Trivy`, `Invoke-Kubescape`, and `Invoke-Scorecard` using a PATH-stripped child pwsh harness that captures stdout/stderr/warnings and asserts clean skipped v1 envelopes with `MissingTool` diagnostics.
+- `Invoke-Pester -Path .\tests\e2e\WrapperCoverageParity.Tests.ps1 -CI`: validates the umbrella E2E wrapper coverage tracker (`docs/audits/e2e-wrapper-coverage-parity.json`) stays in lockstep with enabled tools in `tools/tool-manifest.json`.
 
 ---
 
@@ -45,8 +59,14 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
+- **Uniform correlator dispatch**: `identity-correlator` now uses a thin `Invoke-*` wrapper entrypoint while keeping correlation logic in shared modules.
+- **Shared credential sanitization contract**: CI watchdog issue-body generation now reuses `modules/shared/Sanitize.ps1::Remove-Credentials` (no local sanitizer drift).
 - **Pre-flight required-input resolution**: required tool inputs are collected before dispatch using `CLI > environment > prompt > fail-fast` with non-interactive safety.
+- **Consistent wrapper error exits**: Falco, KubeBench, Kubescape, DefenderForCloud, Gitleaks, AksKarpenterCost, and AksRightsizing now emit structured `New-FindingError`/`Format-FindingErrorMessage` throws instead of raw throw strings.
+- **Repo input consistency**: repo-scoped wrappers now use `-RepoPath` (local) and `-RemoteUrl` (remote) as canonical inputs, with legacy aliases preserved for compatibility.
 - **Mandatory scanner-param prompts (#426)**: when a scanner is selected but its mandatory parameter is missing, `Read-MandatoryScannerParam` resolves it via env var (`AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `ADO_ORG`, `GITHUB_REPOSITORY`, `AZUREANALYZER_REPO_PATH`) or interactive prompt. CI / `-NonInteractive` runs skip the scanner with a sanitized warning instead of failing late inside the underlying tool.
+- **Safer dry-runs for side-effecting wrappers**: `Invoke-Falco` and elevated `Invoke-AksKarpenterCost` now support `-WhatIf`/`-Confirm` (`SupportsShouldProcess`) before cluster install/elevated kubectl actions.
+- **ADO consumption parameter consistency**: `Invoke-AdoConsumption` now uses canonical `-AdoOrg` / `-AdoProject` names, with legacy `-Organization` / `-Project` aliases retained for backward compatibility.
 - **Opt-in LLM triage** scaffold: defaults to 3-model rubberduck consensus, supports explicit `-SingleModel` opt-out, and applies credential sanitization on prompt + response paths.
 
 </details>
@@ -73,15 +93,20 @@ See [docs/reference/orchestrator-params.md](docs/reference/orchestrator-params.m
 
 See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood, and design proposals belong under [docs/design/](docs/design/).
 
+CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates. The watchdog log-truncation/extraction path uses here-strings (`<<<`) for `head`/`grep` calls to avoid SIGPIPE aborts under `set -euo pipefail`.
+Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
+
 CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates.
 
 CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
+
+Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
 
 </details>
 
 <details><summary><b>Environment variables</b></summary>azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:
 
-- `AZURE_ANALYZER_NO_BANNER=1` — suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`.
-- `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` — silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
-- `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) — tells wrappers they were launched by the orchestrator, not standalone.
-- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) — comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.</details>
+- `AZURE_ANALYZER_NO_BANNER=1` -- suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`.
+- `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` -- silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
+- `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) -- tells wrappers they were launched by the orchestrator, not standalone.
+- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) -- comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.</details>

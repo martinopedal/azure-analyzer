@@ -10,14 +10,16 @@
 
     JSON output is written to a temp file (--output) to avoid stderr/stdout
     mixing. The temp file is cleaned up in a finally block.
-.PARAMETER Repository
+.PARAMETER RepoPath
     Path to the repository root to scan. Required.
+    Legacy alias: -Repository.
 .PARAMETER WorkflowPath
     Relative path to the workflows directory. Defaults to .github/workflows.
 #>
 [CmdletBinding()]
 param (
-    [string] $Repository,
+    [Alias('Repository')]
+    [string] $RepoPath,
 
     [string] $WorkflowPath = '.github/workflows',
 
@@ -237,7 +239,7 @@ if (-not (Test-ZizmorInstalled)) {
 }
 
 # Remote-first: if -RemoteUrl provided, clone it and scan the clone path.
-# Otherwise fall back to local -Repository.
+# Otherwise fall back to local -RepoPath.
 $cloneInfo = $null
 $cleanupClone = $null
 try {
@@ -262,18 +264,18 @@ try {
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
-        $Repository = $cloneInfo.Path
+        $RepoPath = $cloneInfo.Path
     }
 
-    if (-not $Repository) {
+    if (-not $RepoPath) {
         return [PSCustomObject]@{
             Source = 'zizmor'
             SchemaVersion = '1.0'; Status = 'Skipped'
-            Message = 'No -RemoteUrl or -Repository provided'; Findings = @()
+            Message = 'No -RemoteUrl or -RepoPath provided'; Findings = @()
             RunMode = $effectiveRunMode
         }
     }
-    $scanPath = Join-Path $Repository $WorkflowPath
+    $scanPath = Join-Path $RepoPath $WorkflowPath
     if (-not (Test-Path $scanPath)) {
         Write-Warning "Workflow path not found: $scanPath"
         return [PSCustomObject]@{
@@ -287,7 +289,7 @@ try {
     }
 
     Write-Verbose "Running zizmor for workflow path $scanPath"
-    $repoCoordinates = Get-ZizmorRepoCoordinates -RepositoryPath $Repository -RemoteUrl $RemoteUrl
+    $repoCoordinates = Get-ZizmorRepoCoordinates -RepositoryPath $RepoPath -RemoteUrl $RemoteUrl
     $toolVersion = Get-ZizmorToolVersion
 
     # Write JSON to a temp file to keep stderr separate from the JSON stream

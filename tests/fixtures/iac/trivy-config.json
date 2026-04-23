@@ -1,0 +1,44 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "tests/fixtures/iac",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "main.tf",
+      "Class": "config",
+      "Type": "terraform",
+      "MisconfSummary": { "Successes": 8, "Failures": 1, "Exceptions": 0 },
+      "Misconfigurations": [
+        {
+          "Type": "Terraform Security Check",
+          "ID": "AVD-AZU-0011",
+          "AVDID": "AVD-AZU-0011",
+          "Title": "Storage account uses an insecure TLS version",
+          "Description": "Azure Storage accounts should require a minimum TLS version of TLS 1.2 to protect data in transit.",
+          "Message": "Storage account 'example' does not set a minimum TLS version.",
+          "Namespace": "builtin.azure.storage.azure0011",
+          "Query": "data.builtin.azure.storage.azure0011.deny",
+          "Resolution": "Set min_tls_version to 'TLS1_2'.",
+          "Severity": "HIGH",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/azure/storage/avd-azu-0011",
+          "References": [
+            "https://avd.aquasec.com/misconfig/azure/storage/avd-azu-0011"
+          ],
+          "Status": "Fail",
+          "CauseMetadata": {
+            "Resource": "azurerm_storage_account.example",
+            "Provider": "azurerm",
+            "Service": "storage",
+            "StartLine": 17,
+            "EndLine": 23,
+            "Code": {
+              "Lines": [
+                { "Number": 17, "Content": "resource \"azurerm_storage_account\" \"example\" {", "IsCause": true, "FirstCause": true, "LastCause": false }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "version": "0.2",
+  "currency": "USD",
+  "projects": [
+    {
+      "name": "iac/terraform/main",
+      "displayName": "main",
+      "metadata": { "path": "iac/terraform/main", "type": "terraform_dir", "vcsRepoUrl": "https://github.com/contoso/iac" },
+      "pastBreakdown": {
+        "totalMonthlyCost": "612.50",
+        "totalHourlyCost": "0.8390"
+      },
+      "breakdown": {
+        "totalMonthlyCost": "874.20",
+        "totalHourlyCost": "1.1975",
+        "resources": [
+          {
+            "name": "azurerm_kubernetes_cluster.aks",
+            "resourceType": "azurerm_kubernetes_cluster",
+            "monthlyCost": "612.30",
+            "currency": "USD"
+          },
+          {
+            "name": "azurerm_storage_account.example",
+            "resourceType": "azurerm_storage_account",
+            "monthlyCost": "261.90",
+            "currency": "USD"
+          }
+        ]
+      },
+      "diff": {
+        "totalMonthlyCost": "261.70",
+        "totalHourlyCost": "0.3585"
+      },
+      "summary": {
+        "totalDetectedResources": 2,
+        "totalSupportedResources": 2,
+        "totalUnsupportedResources": 0,
+        "totalUsageBasedResources": 0,
+        "totalNoPriceResources": 0
+      }
+    }
+  ],
+  "totalHourlyCost": "1.1975",
+  "totalMonthlyCost": "874.20",
+  "pastTotalHourlyCost": "0.8390",
+  "pastTotalMonthlyCost": "612.50",
+  "diffTotalMonthlyCost": "261.70",
+  "diffTotalHourlyCost": "0.3585"
+}

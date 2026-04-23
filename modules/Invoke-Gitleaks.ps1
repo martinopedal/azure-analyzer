@@ -47,9 +47,22 @@ $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
+$errorsPath = Join-Path $sharedDir 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
 
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
+}
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
 }
 
 function Test-GitleaksInstalled {
@@ -316,15 +329,15 @@ function Resolve-GitleaksConfig {
     }
 
     if ($ConfigPath -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
-        throw "Gitleaks config path must be a local file path. URLs are not allowed: '$ConfigPath'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:gitleaks' -Category 'InvalidParameter' -Reason "Gitleaks config path must be a local file path. URLs are not allowed: '$ConfigPath'" -Remediation 'Provide a local .toml file path via -GitleaksConfigPath.'))
     }
 
     if ([System.IO.Path]::GetExtension($ConfigPath).ToLowerInvariant() -ne '.toml') {
-        throw "Gitleaks config path must point to a .toml file: '$ConfigPath'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:gitleaks' -Category 'InvalidParameter' -Reason "Gitleaks config path must point to a .toml file: '$ConfigPath'" -Remediation 'Use a gitleaks TOML config file for -GitleaksConfigPath.'))
     }
 
     if (-not (Test-Path -Path $ConfigPath -PathType Leaf)) {
-        throw "Gitleaks config file not found: '$ConfigPath'"
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:gitleaks' -Category 'NotFound' -Reason "Gitleaks config file not found: '$ConfigPath'" -Remediation 'Verify the -GitleaksConfigPath value resolves to an existing file.'))
     }
 
     $resolvedConfigPath = Resolve-Path -Path $ConfigPath -ErrorAction Stop | Select-Object -ExpandProperty Path

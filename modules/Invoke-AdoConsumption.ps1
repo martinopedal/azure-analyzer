@@ -6,9 +6,9 @@
     Collects build run duration and reliability signals from Azure DevOps REST APIs.
     Emits v1 findings for project share of org runner minutes, duration regression,
     and failed build rate.
-.PARAMETER Organization
+.PARAMETER AdoOrg
     Azure DevOps organization name.
-.PARAMETER Project
+.PARAMETER AdoProject
     Optional project filter. When omitted, all projects in the organization are scanned.
 .PARAMETER DaysBack
     Lookback window in days. Defaults to 30.
@@ -20,12 +20,12 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory)]
-    [Alias('AdoOrg')]
+    [Alias('Organization')]
     [ValidateNotNullOrEmpty()]
-    [string] $Organization,
+    [string] $AdoOrg,
 
-    [Alias('AdoProject')]
-    [string] $Project,
+    [Alias('Project')]
+    [string] $AdoProject,
 
     [ValidateRange(1, 365)]
     [int] $DaysBack = 30,
@@ -207,17 +207,17 @@ try {
     $sinceUtc = (Get-Date).ToUniversalTime().AddDays(-1 * $DaysBack)
     $toolVersion = Get-AdoToolVersion
     $projects = @()
-    if ($Project) {
-        $projects = @([PSCustomObject]@{ name = $Project })
+    if ($AdoProject) {
+        $projects = @([PSCustomObject]@{ name = $AdoProject })
     } else {
-        $projects = @(Get-AdoProjects -Org $Organization -Headers $headers)
+        $projects = @(Get-AdoProjects -Org $AdoOrg -Headers $headers)
     }
 
     if ($projects.Count -eq 0) {
         return [PSCustomObject]@{
             Source   = 'ado-consumption'
             Status   = 'Success'
-            Message  = "No projects found in organization '$Organization'."
+            Message  = "No projects found in organization '$AdoOrg'."
             Findings = @()
         }
     }
@@ -226,7 +226,7 @@ try {
     foreach ($projectObj in $projects) {
         $projectName = if ($projectObj.PSObject.Properties['name'] -and $projectObj.name) { [string]$projectObj.name } else { '' }
         if (-not $projectName) { continue }
-        $builds = @(Get-ProjectBuilds -Org $Organization -ProjectName $projectName -SinceUtc $sinceUtc -Headers $headers)
+        $builds = @(Get-ProjectBuilds -Org $AdoOrg -ProjectName $projectName -SinceUtc $sinceUtc -Headers $headers)
 
         $minutes = [System.Collections.Generic.List[double]]::new()
         $failed = 0
@@ -264,7 +264,7 @@ try {
                 $definitionId = [string]$build.definitionId
             }
             if (-not [string]::IsNullOrWhiteSpace($definitionId) -and $pipelineDefinitionIds.Add($definitionId)) {
-                $pipelineEvidenceUris.Add("https://dev.azure.com/$Organization/$projectName/_build?definitionId=$definitionId&view=results&_a=analytics") | Out-Null
+                $pipelineEvidenceUris.Add("https://dev.azure.com/$AdoOrg/$projectName/_build?definitionId=$definitionId&view=results&_a=analytics") | Out-Null
             }
         }
 
@@ -291,19 +291,19 @@ try {
     $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     foreach ($stat in $projectStats) {
-        $projectId = "ado://$($Organization.ToLowerInvariant())/$($stat.Project.ToLowerInvariant())"
-        $projectDashboard = "https://dev.azure.com/$Organization/$($stat.Project)/_build"
-        $projectAnalytics = "https://dev.azure.com/$Organization/$($stat.Project)/_build?view=results&_a=analytics"
+        $projectId = "ado://$($AdoOrg.ToLowerInvariant())/$($stat.Project.ToLowerInvariant())"
+        $projectDashboard = "https://dev.azure.com/$AdoOrg/$($stat.Project)/_build"
+        $projectAnalytics = "https://dev.azure.com/$AdoOrg/$($stat.Project)/_build?view=results&_a=analytics"
         $learnMore = $projectDashboard
         $sharePercent = if ($orgTotalMinutes -gt 0) { [math]::Round((100.0 * $stat.TotalMinutes / $orgTotalMinutes), 2) } else { 0.0 }
         $projectTier = Resolve-ProjectTier -SharePercent $sharePercent
         $baseEvidenceUris = @($projectDashboard, $projectAnalytics) + @($stat.PipelineEvidenceUris)
         $entityRefs = [System.Collections.Generic.List[string]]::new()
-        $entityRefs.Add("AdoOrg/$Organization") | Out-Null
-        $entityRefs.Add("AdoProject/$Organization/$($stat.Project)") | Out-Null
+        $entityRefs.Add("AdoOrg/$AdoOrg") | Out-Null
+        $entityRefs.Add("AdoProject/$AdoOrg/$($stat.Project)") | Out-Null
         foreach ($definitionId in @($stat.DefinitionIds)) {
             if ([string]::IsNullOrWhiteSpace([string]$definitionId)) { continue }
-            $entityRefs.Add("AdoPipeline/$Organization/$($stat.Project)/$definitionId") | Out-Null
+            $entityRefs.Add("AdoPipeline/$AdoOrg/$($stat.Project)/$definitionId") | Out-Null
         }
 
         if ($sharePercent -ge 40) {
@@ -436,3 +436,4 @@ try {
         Findings = @()
     }
 }
+

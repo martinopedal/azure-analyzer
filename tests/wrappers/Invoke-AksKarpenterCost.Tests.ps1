@@ -116,6 +116,11 @@ Describe 'Invoke-AksKarpenterCost' {
     }
 
     Context 'Reader-only tier (default; -EnableElevatedRbac NOT set)' {
+        It 'declares WhatIf common parameter for ShouldProcess support' {
+            $cmd = Get-Command -Name $script:Wrapper
+            $cmd.Parameters.Keys | Should -Contain 'WhatIf'
+        }
+
         It 'emits cost rollup + idle node findings and never invokes kubectl' {
             $result = & $script:Wrapper -SubscriptionId $script:SubId -LookbackDays 7
             $result.Status   | Should -Be 'Success'
@@ -180,11 +185,24 @@ Describe 'Invoke-AksKarpenterCost' {
     }
 
     Context 'Elevated tier (-EnableElevatedRbac)' {
+        It 'skips kubectl + kube-auth side effects when -WhatIf is set' {
+            $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
+            Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8
+            try {
+                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube -WhatIf
+                $result.Status | Should -BeIn @('Success', 'PartialSuccess')
+                $global:KubectlCalls  | Should -Be 0
+                $global:KubeAuthCalls | Should -Be 0
+            } finally {
+                Remove-Item -LiteralPath $tmpKube -ErrorAction SilentlyContinue
+            }
+        }
+
         It 'invokes kubectl and emits Karpenter findings' {
             $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
             Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8
             try {
-                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube
+                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube -Confirm:$false
                 $result.Status   | Should -BeIn @('Success', 'PartialSuccess')
                 $result.RbacTier | Should -Be 'ClusterUser'
                 @($result.Findings | Where-Object { $_.RuleId -eq 'karpenter.consolidation-disabled' }).Count | Should -Be 1
@@ -203,7 +221,7 @@ Describe 'Invoke-AksKarpenterCost' {
             $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
             Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8
             try {
-                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube
+                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube -Confirm:$false
                 foreach ($f in $result.Findings) {
                     $f.RbacTier | Should -Be 'ClusterUser'
                 }
@@ -221,11 +239,34 @@ Describe 'Invoke-AksKarpenterCost' {
             $global:KubeAuthCalls | Should -Be 0
         }
 
-        It 'detects only the un-consolidated provisioner from the kubectl fixture' {
+        It 'surfaces FindingError-formatted kubectl failures from the elevated branch' {
+            function global:Invoke-WithTimeout {
+                param([string] $Command, [string[]] $Arguments, [int] $TimeoutSec)
+                if ($Command -eq 'kubectl' -and ($Arguments -join ' ') -match 'version') {
+                    return [PSCustomObject]@{
+                        ExitCode = 0
+                        Output   = "clientVersion:`n  gitVersion: v1.31.0"
+                    }
+                }
+                return [PSCustomObject]@{ ExitCode = 2; Output = 'forbidden: cannot list provisioners' }
+            }
+
             $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
             Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8
             try {
                 $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube
+                $result.Status | Should -BeIn @('PartialSuccess', 'Failed')
+                $result.Message | Should -Match '\[wrapper:aks-karpenter-cost\] UnexpectedFailure'
+            } finally {
+                Remove-Item -LiteralPath $tmpKube -ErrorAction SilentlyContinue
+            }
+        }
+
+        It 'detects only the un-consolidated provisioner from the kubectl fixture' {
+            $tmpKube = Join-Path ([System.IO.Path]::GetTempPath()) ("aa-test-kube-{0}.yaml" -f ([guid]::NewGuid().ToString('N')))
+            Set-Content -Path $tmpKube -Value 'apiVersion: v1' -Encoding UTF8
+            try {
+                $result = & $script:Wrapper -SubscriptionId $script:SubId -EnableElevatedRbac -KubeconfigPath $tmpKube -Confirm:$false
                 # Fixture has provisioner 'default' (no consolidation, no limits) and 'spot' (both set).
                 $consolidationFindings = @($result.Findings | Where-Object { $_.RuleId -eq 'karpenter.consolidation-disabled' })
                 $consolidationFindings.Count               | Should -Be 1

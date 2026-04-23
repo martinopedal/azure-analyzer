@@ -542,5 +542,5 @@ if ($MyInvocation.InvocationName -ne '.') {
     }
     $result = Invoke-AutoResolveThreads -PRNumber $PRNumber -Repo $Repo -DryRun:$DryRun
     $result | ConvertTo-Json -Depth 5
-    if ($result.Status -eq 'Failed') { exit 1 }
+    if ($result.Status -eq 'Failed') { throw $result.ErrorMessage }
 }

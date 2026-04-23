@@ -109,21 +109,31 @@ jobs:
           # Detect GitHub API rate-limit errors (HTTP 403). If the watchdog
           # reporter itself is rate-limited, abort triage to prevent
           # false-positive ci-failure issues (see #548-583, root-cause tracked separately).
-          if printf '%s' "$failed_log_raw" | grep -q 'HTTP 403|rate limit exceeded'; then
+          if grep -q 'HTTP 403|rate limit exceeded' <<<"$failed_log_raw"; then
+          if grep -qE 'HTTP 403|rate limit exceeded' <<< "$failed_log_raw"; then
             echo "GitHub API rate-limit detected (HTTP 403) -- suppressing false-positive ci-failure issue."
             echo "Root-cause fix for reporter rate-limiting is tracked separately."
             exit 0
           fi
           
-          failed_log_head="$(printf '%s\n' "$failed_log_raw" | head -n 500)"
+          failed_log_head="$(head -n 500 <<<"$failed_log_raw")"
 
           # Prefer explicit Actions annotations first, then broader fallback patterns.
-          first_error_line="$(printf '%s\n' "$failed_log_head" | grep -Eim1 '##\[error\]|::error::' || true)"
+          first_error_line="$(grep -Eim1 '##\[error\]|::error::' <<<"$failed_log_head" || true)"
           if [ -z "${first_error_line}" ]; then
-            first_error_line="$(printf '%s\n' "$failed_log_head" | grep -Eim1 '(^|[^[:alpha:]])(error|failed|fatal)(:|[[:space:]])' || true)"
+            first_error_line="$(grep -Eim1 '(^|[^[:alpha:]])(error|failed|fatal)(:|[[:space:]])' <<<"$failed_log_head" || true)"
           fi
           if [ -z "${first_error_line}" ]; then
-            first_error_line="$(printf '%s\n' "$failed_log_head" | grep -Eim1 '(Exception|Traceback|exit code [1-9]|exited with code)' || true)"
+            first_error_line="$(grep -Eim1 '(Exception|Traceback|exit code [1-9]|exited with code)' <<<"$failed_log_head" || true)"
+          failed_log_head="$(head -n 500 <<< "$failed_log_raw")"
+
+          # Prefer explicit Actions annotations first, then broader fallback patterns.
+          first_error_line="$(grep -Eim1 '##\[error\]|::error::' <<< "$failed_log_head" || true)"
+          if [ -z "${first_error_line}" ]; then
+            first_error_line="$(grep -Eim1 '(^|[^[:alpha:]])(error|failed|fatal)(:|[[:space:]])' <<< "$failed_log_head" || true)"
+          fi
+          if [ -z "${first_error_line}" ]; then
+            first_error_line="$(grep -Eim1 '(Exception|Traceback|exit code [1-9]|exited with code)' <<< "$failed_log_head" || true)"
           fi
           if [ -z "${first_error_line}" ]; then
             first_error_line="No explicit error line found in failed log output."
@@ -245,4 +255,3 @@ jobs:
               gh issue close "$existing" --repo "$REPO" --comment "No phantom runs in last 7 days -- closing." || true
             fi
           fi
-

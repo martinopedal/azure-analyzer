@@ -9,6 +9,7 @@
     Never throws — designed for graceful degradation in the orchestrator.
 .PARAMETER Repository
     The repository to scan (e.g., "github.com/martinopedal/azure-analyzer").
+    Aliases: Repo, RepoUrl
 .PARAMETER Threshold
     Minimum score (0-10) to consider a check compliant. Default is 7.
 .PARAMETER GitHubHost
@@ -19,6 +20,7 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory)]
+    [Alias('Repo', 'RepoUrl')]
     [ValidateNotNullOrEmpty()]
     [string] $Repository,
 
@@ -200,13 +202,21 @@ function Get-ScorecardRemediationSnippets {
 }
 
 if (-not (Test-ScorecardInstalled)) {
-    Write-MissingToolNotice -Tool 'scorecard' -Message "scorecard is not installed. Skipping Scorecard scan. Install from https://github.com/ossf/scorecard/releases"
+    $missingMessage = "scorecard is not installed. Skipping Scorecard scan. Install from https://github.com/ossf/scorecard/releases"
+    Write-MissingToolNotice -Tool 'scorecard' -Message $missingMessage
     return [PSCustomObject]@{
         Source   = 'scorecard'
         SchemaVersion = '1.0'
         Status   = 'Skipped'
         Message  = 'scorecard CLI not installed. Download from https://github.com/ossf/scorecard/releases'
         Findings = @()
+        Diagnostics = @(
+            [PSCustomObject]@{
+                Code    = 'MissingTool'
+                Tool    = 'scorecard'
+                Message = $missingMessage
+            }
+        )
     }
 }
 

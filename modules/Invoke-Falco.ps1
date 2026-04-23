@@ -49,7 +49,7 @@
     Federated identity args. Path-or-value token; sets
     AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_FEDERATED_TOKEN_FILE.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
@@ -82,6 +82,20 @@ $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
+}
+
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
 }
 
 $kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
@@ -118,19 +132,19 @@ Assert-KubeAuthMode `
 $resolvedKubeconfig = $null
 if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
     if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
-        throw "Invalid -KubeconfigPath: value is empty."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason 'Invalid -KubeconfigPath: value is empty.' -Remediation 'Provide a non-empty local file path via -KubeconfigPath.'))
     }
     if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
-        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path." -Remediation 'Use a local kubeconfig file path, not a URL.'))
     }
     if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
-        throw "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'NotFound' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist." -Remediation 'Provide an existing kubeconfig file path via -KubeconfigPath.'))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
 } elseif ($kubeconfigModeRequested) {
     $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
     if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        throw "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG."
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'NotFound' -Reason "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG." -Remediation 'Set -KubeconfigPath or ensure $env:KUBECONFIG points to an existing kubeconfig file.'))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
 }
@@ -463,6 +477,10 @@ foreach ($cluster in $clusters) {
     }
     $authPrep = $null
     try {
+        if (-not $PSCmdlet.ShouldProcess([string]$cluster.name, 'Install Falco via Helm and collect daemonset logs')) {
+            continue
+        }
+
         if (-not $isKubeconfigMode) {
             & az aks get-credentials --subscription $SubscriptionId --resource-group $cluster.resourceGroup --name $cluster.name --file $tmpKubeconfig --context $ctx --overwrite-existing --only-show-errors 2>&1 | Out-Null
             if ($LASTEXITCODE -ne 0) { $failed++; continue }
@@ -559,9 +577,11 @@ foreach ($cluster in $clusters) {
         }
 
         if ($UninstallFalco) {
-            $uninstallArgs = @('uninstall', 'falco', '-n', $Namespace)
-            if ($ctx) { $uninstallArgs += @('--kube-context', $ctx) }
-            & helm @uninstallArgs 2>&1 | Out-Null
+            if ($PSCmdlet.ShouldProcess([string]$cluster.name, 'Uninstall Falco Helm release')) {
+                $uninstallArgs = @('uninstall', 'falco', '-n', $Namespace)
+                if ($ctx) { $uninstallArgs += @('--kube-context', $ctx) }
+                & helm @uninstallArgs 2>&1 | Out-Null
+            }
         }
         $scanned++
     } catch {

@@ -1,0 +1,2 @@
+infra/main.bicep(8,9) : Error BCP062: The referenced declaration with name "storageAccountNameInvalid" is not valid.
+infra/main.bicep(11,5) : Warning BCP036: The property "sku" expected a value of type "SkuName" but the provided value is of type "string". Apply the "Standard_GRS" SKU for cross-region redundancy.

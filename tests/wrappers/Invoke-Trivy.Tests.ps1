@@ -67,7 +67,7 @@ Describe 'Invoke-Trivy: Schema 2.2 enrichment' {
     }
 
     It 'emits one finding per CVE and misconfiguration with 2.2 fields present' {
-        $result = & $script:Wrapper -ScanPath '.'
+        $result = & $script:Wrapper -RepoPath '.'
         $result.Status | Should -Be 'Success'
         @($result.Findings).Count | Should -Be 2
 
@@ -84,5 +84,9 @@ Describe 'Invoke-Trivy: Schema 2.2 enrichment' {
         $vuln.RemediationSnippets[0].after | Should -Be 'openssl:1.1.1w'
         $vuln.BaselineTags | Should -Contain 'CIS-DI-5.1'
     }
-}
 
+    It 'supports legacy -ScanPath alias' {
+        $result = & $script:Wrapper -ScanPath '.'
+        $result.Status | Should -Be 'Success'
+    }
+}

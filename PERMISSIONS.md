@@ -3,17 +3,22 @@
 ## Core principle
 
 Azure-analyzer is **read-first**. Every collector targets the minimum scope it needs and never writes to the cloud surface it scans. The single optional **write** path is the Log Analytics sink (`-SinkLogAnalytics`), which requires `Monitoring Metrics Publisher` on the target Data Collection Rule. Phase 0 v3 core modules (Schema, Canonicalize, EntityStore, tool manifest) introduce no new permissions or scopes. Report UX improvements such as the collapsible findings tree also add no new scopes. AzGovViz remains read-only and uses Reader at the tenant root management-group scope. kube-bench Schema 2.2 ETL enrichment adds benchmark metadata only and does not change required RBAC.
+CI watchdog sanitizer unification (SEC-002) routes through shared `Remove-Credentials` only and introduces no new Azure, Graph, GitHub, or Azure DevOps permissions.
 Maester Schema 2.2 ETL enrichment adds finding metadata only (framework tags, evidence links, remediation snippets, MITRE references, entity refs, tool version) and does not add new Microsoft Graph scopes.
 Identity Correlator Schema 2.2 ETL enrichment adds attack-path metadata only (framework tags, MITRE mappings, Entra deep links, remediation snippets, evidence URIs, entity refs, tool version) and does not add new Microsoft Graph scopes.
+Identity Correlator manifest dispatch now routes through a thin `Invoke-IdentityCorrelator.ps1` wrapper (with shared-module logic unchanged), and this introduces no new Graph or Azure permissions.
 The ado-connections Schema 2.2 auth posture enrichment adds metadata only and does not require any new Azure DevOps PAT scopes.
 The gitleaks Schema 2.2 ETL enrichment adds metadata only (framework mapping, evidence links, remediation snippets, baseline tags, and tool version) and does not introduce any new permissions.
 The zizmor Schema 2.2 ETL enrichment only adds metadata fields and does not introduce new GitHub or Azure permissions.
+Repo-input parameter convergence (`RepoPath` + `RemoteUrl` with legacy aliases) is naming-only and does not introduce any new Azure, Graph, GitHub, or Azure DevOps permissions.
 The falco Schema 2.2 ETL enrichment adds runtime metadata only (CIS framework mapping, MITRE tags, evidence links, and tool version) and does not introduce any new Azure RBAC requirements.
 The alz-queries Schema 2.2 ETL enrichment adds ALZ governance metadata only (framework tags, pillar mapping, source deep links, evidence URIs, baseline tags, and tool version) and does not change required Azure Reader scope.
 The HTML remediation-snippet null-guard report fix only changes rendering behavior and does not introduce any new permissions.
 Phase 0 foundation report architecture metadata, report-manifest output, and vendoring verification stubs add no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
 The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only and introduces no Azure, Graph, GitHub, or Azure DevOps permissions.
 Optional Copilot triage makes GitHub Copilot API calls (for model-plan discovery and triage generation) only when users explicitly enable AI triage; this does not require Azure/Graph write permissions.
+Release automation (release-please, GitHub Releases, and PSGallery publication) introduces repository automation and package feed credentials (`GITHUB_TOKEN`, `PSGALLERY_API_KEY`) only; it does not require any additional Azure, Microsoft Graph, GitHub repository-content write scopes for runtime scanners, or Azure DevOps read scope changes.
+Manifest ordering enforcement (`tools/tool-manifest.json` alphabetical-by-name + `tests/manifest/Manifest.Sorted.Tests.ps1`) is test-only hygiene and introduces no new scopes.
 
 ## Permission domains at a glance
 
@@ -67,7 +72,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 | Tool | Scope | Detail |
 |---|---|---|
-| **Identity Correlator** | Tenant | [`identity-correlator.md`](docs/consumer/permissions/identity-correlator.md) |
+| **Identity Correlator (Shared Module)** | Tenant | [`identity-correlator.md`](docs/consumer/permissions/identity-correlator.md) |
 | **Identity Graph Expansion** | Tenant | [`identity-graph-expansion.md`](docs/consumer/permissions/identity-graph-expansion.md) |
 
 ### GitHub
@@ -164,7 +169,7 @@ azure-analyzer requires no special environment variables to run, but honours a s
 | `AZURE_ANALYZER_ORCHESTRATED=1` | Set automatically by `Invoke-AzureAnalyzer.ps1` for the duration of a run. Wrappers use it to distinguish orchestrated runs from standalone invocation. Do not set manually. |
 | `AZURE_ANALYZER_EXPLICIT_TOOLS=<csv>` | Set automatically by `Invoke-AzureAnalyzer.ps1` to the comma-separated list of tools the user named via `-IncludeTools`. Empty when no filter was passed. Do not set manually. |
 
-None of these flags grant additional permissions — they purely affect launch-surface and log verbosity.
+None of these flags grant additional permissions -- they purely affect launch-surface and log verbosity.
 
 ## See also
 

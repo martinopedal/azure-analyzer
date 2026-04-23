@@ -1,0 +1,153 @@
+{
+  "Source": "ado-pipelines",
+  "Status": "Success",
+  "Message": "Scanned 1 project(s), produced 5 pipeline security finding(s).",
+  "Findings": [
+    {
+      "Source": "ado-pipelines",
+      "ResourceId": "ado://contoso/payments/pipeline/101",
+      "Category": "Pipeline Definition",
+      "RuleId": "Branch-Unprotected",
+      "Title": "Pipeline 'payments-prod' allows broad branch triggers",
+      "Compliant": false,
+      "Severity": "Low",
+      "Detail": "The definition appears to be production-facing but its CI trigger has no explicit branch filters.",
+      "Remediation": "Restrict CI triggers to protected branches only.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/pipeline-triggers",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Low",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_build/definition?definitionId=101",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_apis/build/definitions/101?api-version=7.1",
+        "https://auditservice.dev.azure.com/contoso/_apis/audit/auditlog?api-version=7.1-preview.1"
+      ],
+      "EntityRefs": [
+        "contoso/payments/VariableGroup/15",
+        "contoso/payments/ServiceConnection/Azure-Prod"
+      ],
+      "ToolVersion": "1.0.0",
+      "SchemaVersion": "1.0",
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "AssetType": "BuildDefinition",
+      "AssetId": "101",
+      "AssetName": "payments-prod"
+    },
+    {
+      "Source": "ado-pipelines",
+      "ResourceId": "ado://contoso/payments/pipeline/release-77",
+      "Category": "Release Definition",
+      "RuleId": "Approval-Missing-Production",
+      "Title": "Release definition 'Payments Release' has production stages without approvals",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Production stages without approval evidence: Production.",
+      "Remediation": "Add pre-deployment approvals before production release stages.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/release/approvals/",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_release?definitionId=77",
+      "EvidenceUris": [
+        "https://vsrm.dev.azure.com/contoso/payments/_apis/release/definitions/77?api-version=7.1",
+        "https://auditservice.dev.azure.com/contoso/_apis/audit/auditlog?api-version=7.1-preview.1"
+      ],
+      "EntityRefs": [
+        "contoso/payments/Environment/Production",
+        "contoso/payments/ServiceConnection/Azure-Prod"
+      ],
+      "ToolVersion": "1.0.0",
+      "SchemaVersion": "1.0",
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "AssetType": "ReleaseDefinition",
+      "AssetId": "77",
+      "AssetName": "Payments Release"
+    },
+    {
+      "Source": "ado-pipelines",
+      "ResourceId": "ado://contoso/payments/variablegroup/prod-shared",
+      "Category": "Variable Group",
+      "RuleId": "Secret-InVariable",
+      "Title": "Variable group 'prod-shared' contains plaintext sensitive variables",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "Variable names marked as non-secret: ApiToken. Values were intentionally omitted.",
+      "Remediation": "Convert these variables to secret variables or link the group to Azure Key Vault.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/variable-groups",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_library?itemType=VariableGroups&view=VariableGroupView&variableGroupId=15",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_apis/distributedtask/variablegroups/15?api-version=7.1-preview.2",
+        "https://auditservice.dev.azure.com/contoso/_apis/audit/auditlog?api-version=7.1-preview.1"
+      ],
+      "ToolVersion": "1.0.0",
+      "SchemaVersion": "1.0",
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "AssetType": "VariableGroup",
+      "AssetId": "15",
+      "AssetName": "prod-shared"
+    },
+    {
+      "Source": "ado-pipelines",
+      "ResourceId": "ado://contoso/payments/environment/prod-eastus",
+      "Category": "Environment",
+      "RuleId": "Approval-Missing-Production",
+      "Title": "Environment 'prod-eastus' has no approval checks",
+      "Compliant": false,
+      "Severity": "High",
+      "Detail": "No approval, branch control, or other environment checks were returned for this production-like environment.",
+      "Remediation": "Configure environment approvals or checks before allowing production deployments.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops",
+      "Pillar": "Security",
+      "Impact": "High",
+      "Effort": "Medium",
+      "DeepLinkUrl": "https://dev.azure.com/contoso/payments/_environments/9",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/payments/_apis/distributedtask/environments/9?api-version=7.1-preview.1",
+        "https://auditservice.dev.azure.com/contoso/_apis/audit/auditlog?api-version=7.1-preview.1"
+      ],
+      "ToolVersion": "1.0.0",
+      "SchemaVersion": "1.0",
+      "AdoOrg": "contoso",
+      "AdoProject": "payments",
+      "AssetType": "Environment",
+      "AssetId": "9",
+      "AssetName": "prod-eastus"
+    },
+    {
+      "Source": "ado-pipelines",
+      "ResourceId": "ado://contoso/shared/serviceconnection/azure-prod",
+      "Category": "Service Connection Usage",
+      "RuleId": "ServiceConnection-OverReuse",
+      "Title": "Service connection 'Azure-Prod' is reused across multiple pipeline assets",
+      "Compliant": false,
+      "Severity": "Medium",
+      "Detail": "Referenced by 3 assets: payments|pipeline|payments-prod; payments|release|Payments Release/Production; ops|pipeline|ops-prod",
+      "Remediation": "Review whether this identity is over-scoped or should be split by environment or application boundary.",
+      "LearnMoreUrl": "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints",
+      "Pillar": "Security",
+      "Impact": "Medium",
+      "Effort": "Medium",
+      "EvidenceUris": [
+        "https://dev.azure.com/contoso/shared/_apis/serviceendpoint/endpoints/Azure-Prod?api-version=7.1-preview.4",
+        "https://auditservice.dev.azure.com/contoso/_apis/audit/auditlog?api-version=7.1-preview.1"
+      ],
+      "EntityRefs": [
+        "payments/BuildDefinition/payments-prod",
+        "payments/ReleaseDefinition/Payments Release"
+      ],
+      "ToolVersion": "1.0.0",
+      "SchemaVersion": "1.0",
+      "AdoOrg": "contoso",
+      "AdoProject": "shared",
+      "AssetType": "ServiceConnection",
+      "AssetId": "Azure-Prod",
+      "AssetName": "Azure-Prod"
+    }
+  ]
+}

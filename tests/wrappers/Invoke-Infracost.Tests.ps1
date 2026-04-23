@@ -34,7 +34,7 @@ Describe 'Invoke-Infracost: error paths' {
     Context 'when scan path does not exist' {
         BeforeAll {
             Mock Get-Command { return @{ Name = 'infracost' } } -ParameterFilter { $Name -eq 'infracost' }
-            $result = & $script:Wrapper -Path 'C:\does-not-exist\infracost'
+            $result = & $script:Wrapper -RepoPath 'C:\does-not-exist\infracost'
         }
 
         It 'returns Status = Failed' {
@@ -109,7 +109,7 @@ Describe 'Invoke-Infracost: success path' {
                 }
             }
 
-            $result = & $script:Wrapper -Path $scanPath
+            $result = & $script:Wrapper -RepoPath $scanPath
         }
 
         AfterAll {
@@ -138,6 +138,11 @@ Describe 'Invoke-Infracost: success path' {
             $finding.EvidenceUris.Count | Should -BeGreaterThan 0
             $finding.RemediationSnippets.Count | Should -BeGreaterThan 0
             $finding.DiffMonthlyCost | Should -Be 42.5
+        }
+
+        It 'supports legacy -Path alias' {
+            $result = & $script:Wrapper -Path $scanPath
+            $result.Status | Should -Be 'Success'
         }
     }
 }

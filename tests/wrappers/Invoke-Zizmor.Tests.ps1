@@ -63,8 +63,8 @@ Describe 'Invoke-Zizmor: -Since hint (#94 R1)' {
         $result.PSObject.Properties['RunMode'] | Should -Not -BeNullOrEmpty
     }
 
-    It 'tags RunMode=Incremental on the No-Repository skipped path when -Since is set' {
-        # Force the CLI-present branch but fail Repository validation,
+    It 'tags RunMode=Incremental on the No-RepoPath skipped path when -Since is set' {
+        # Force the CLI-present branch but fail RepoPath validation,
         # exercising the wrapper path that sets RunMode from $effectiveRunMode.
         Mock Get-Command {
             param($Name)
@@ -109,7 +109,7 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
             return $null
         } -ParameterFilter { $Name -eq 'zizmor' -or $Name -eq 'git' }
 
-        $result = & $script:Wrapper -Repository $script:RepoRoot
+        $result = & $script:Wrapper -RepoPath $script:RepoRoot
         $result.Status | Should -Be 'Success'
         $result.ToolVersion | Should -Be 'zizmor 1.8.0'
         @($result.Findings).Count | Should -Be 2
@@ -133,5 +133,9 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
         $unpinned.Effort | Should -Be 'Medium'
         @($unpinned.MitreTechniques) | Should -Contain 'T1195.001'
     }
-}
 
+    It 'supports legacy -Repository alias' {
+        $paramInfo = (Get-Command $script:Wrapper).Parameters
+        $paramInfo['RepoPath'].Aliases | Should -Contain 'Repository'
+    }
+}
