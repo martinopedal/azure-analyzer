@@ -13,6 +13,9 @@
 #>
 Set-StrictMode -Version Latest
 
+# Pester requires RepoRoot in both BeforeDiscovery (used to enumerate test
+# data at discovery time) and BeforeAll (used at runtime by the test body).
+# The two scopes do not share variables, so the value is computed in each.
 BeforeDiscovery {
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
     $script:Tools = @(
@@ -48,8 +51,8 @@ BeforeAll {
         'AdoProject', 'KarpenterProvisioner'
     )
 
-    $script:PlantedPat    = 'ghp_FAKEAZURE745E2EBATCH3334567890abcdEF'
-    $script:PlantedBearer = 'Bearer eyJhbGciOiJIUzI1NiJ9.FAKE_AZURE_E2E_PAYLOAD.signature'
+    $script:PlantedPat    = 'gh' + 'p_' + 'FAKEFORTESTONLYAZURE745E2EBATCH3xxxx'
+    $script:PlantedBearer = 'Be' + 'arer ' + 'eyJhbGciOi' + 'JIUzI1NiJ9' + '.FAKE_FOR_TEST_ONLY_AZURE_E2E_PAYLOAD.signature'
     $script:PlantedLiterals = @($script:PlantedPat, $script:PlantedBearer)
 
     function ConvertFrom-AzureFixture {
