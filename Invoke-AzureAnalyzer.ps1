@@ -80,6 +80,15 @@
     Suppresses the ASCII startup banner. The banner is also suppressed when
     the AZUREANALYZER_NO_BANNER environment variable is set. Color codes in
     the banner are skipped when NO_COLOR is set (per https://no-color.org/).
+.PARAMETER FixtureMode
+    Runs the normalizer and reporting pipeline against fixture data in
+    tests/fixtures/ instead of calling live Azure/GitHub/ADO wrappers.
+    Skips Azure auth, prerequisite checks, and all live API calls. Produces
+    real results.json, entities.json, and HTML/MD reports. Useful for
+    contributors and CI environments without cloud credentials.
+.PARAMETER FixturePath
+    Directory containing fixture files when running in -FixtureMode.
+    Defaults to tests/fixtures/ under the repo root.
 .EXAMPLE
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "00000000-0000-0000-0000-000000000000"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -ManagementGroupId "my-mg"
@@ -88,6 +97,7 @@
     .\Invoke-AzureAnalyzer.ps1 -AdoOrg "contoso" -AdoProject "my-project"
     .\Invoke-AzureAnalyzer.ps1 -RepoPath "C:\repos\my-app"
     .\Invoke-AzureAnalyzer.ps1 -SubscriptionId "..." -SentinelWorkspaceId "/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/..."
+    .\Invoke-AzureAnalyzer.ps1 -FixtureMode -OutputPath .\output-fixture
 #>
 [CmdletBinding()]
 param (
@@ -167,7 +177,9 @@ param (
     [switch] $Show,
     [ValidateRange(1, 65535)]
     [int] $ViewerPort = 4280,
-    [switch] $NoBanner
+    [switch] $NoBanner,
+    [switch] $FixtureMode,
+    [string] $FixturePath
 )
 
 if ($Help) {
@@ -253,6 +265,239 @@ if (Test-Path $sinkModulePath) { . $sinkModulePath }
 # Read tool manifest
 # ---------------------------------------------------------------------------
 $manifest = Get-Content (Join-Path $PSScriptRoot 'tools' 'tool-manifest.json') -Raw | ConvertFrom-Json
+
+$manifest = Get-Content (Join-Path $PSScriptRoot 'tools' 'tool-manifest.json') -Raw | ConvertFrom-Json
+
+# ---------------------------------------------------------------------------
+# FixtureMode (#926): bypass all live infra, feed normalizers from fixture
+# files, produce real output artifacts. Must run BEFORE scope validation.
+# ---------------------------------------------------------------------------
+if ($FixtureMode) {
+    if (-not $FixturePath) {
+        $FixturePath = Join-Path $PSScriptRoot 'tests' 'fixtures'
+    }
+    if (-not (Test-Path $FixturePath)) {
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'NotFound' `
+            -Reason "Fixture directory not found: $FixturePath" `
+            -Remediation 'Pass -FixturePath <dir> or ensure tests/fixtures/ exists.'))
+    }
+
+    # Fixture filename exceptions (tool name differs from fixture file prefix)
+    $fixtureNameOverrides = @{
+        'bicep-iac'    = 'iac-bicep'
+        'terraform-iac' = 'iac-terraform'
+    }
+
+    Write-Host "`n=== Fixture Mode ===" -ForegroundColor Magenta
+    Write-Host "  Source: $FixturePath" -ForegroundColor DarkGray
+
+    # Tool selection reuses -IncludeTools / -ExcludeTools
+    $validToolsFM = @($manifest.tools | ForEach-Object { $_.name })
+    if ($IncludeTools -and $ExcludeTools) {
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'InvalidParameter' `
+            -Reason 'Cannot use both -IncludeTools and -ExcludeTools.' `
+            -Remediation 'Pass one or the other.'))
+    }
+    function ShouldRunToolFM { param ([string]$ToolName)
+        if ($IncludeTools) { return $ToolName -in $IncludeTools }
+        if ($ExcludeTools) { return $ToolName -notin $ExcludeTools }
+        return $true
+    }
+
+    # Dot-source normalizers
+    $normalizersDirFM = Join-Path $PSScriptRoot 'modules' 'normalizers'
+    foreach ($toolDef in $manifest.tools) {
+        if (-not $toolDef.normalizer) { continue }
+        $normPathFM = Join-Path $normalizersDirFM "$($toolDef.normalizer).ps1"
+        if (Test-Path $normPathFM) { . $normPathFM }
+    }
+
+    # Build synthetic parallelResults from fixture files
+    $storeFM       = [EntityStore]::new(50000, $OutputPath)
+    $allResultsFM  = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $toolStatusFM  = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $toolErrorsFM  = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $normalizerEdgeCollectorFM = [System.Collections.Generic.List[psobject]]::new()
+    $fixtureHits   = 0
+
+    foreach ($toolDef in $manifest.tools) {
+        if (-not $toolDef.enabled) { continue }
+        if (-not (ShouldRunToolFM $toolDef.name)) { continue }
+        if ($toolDef.type -eq 'correlator') { continue }
+        if (-not $toolDef.normalizer) { continue }
+
+        $fixturePrefix = if ($fixtureNameOverrides.ContainsKey($toolDef.name)) {
+            $fixtureNameOverrides[$toolDef.name]
+        } else {
+            $toolDef.name
+        }
+        $fixtureFP = Join-Path $FixturePath "$fixturePrefix-output.json"
+
+        if (-not (Test-Path $fixtureFP)) {
+            Write-Host "  SKIP $($toolDef.name) (no fixture: $fixturePrefix-output.json)" -ForegroundColor DarkGray
+            $toolStatusFM.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Skipped'; Message = 'No fixture file'; Findings = 0 })
+            continue
+        }
+
+        # Load fixture as wrapper envelope
+        try {
+            $fixtureData = Get-Content $fixtureFP -Raw | ConvertFrom-Json
+        } catch {
+            Write-Warning "  SKIP $($toolDef.name) (fixture parse error: $_)"
+            $toolStatusFM.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Failed'; Message = "Fixture parse error: $_"; Findings = 0 })
+            continue
+        }
+
+        # Run normalizer
+        $normFuncFM = $toolDef.normalizer
+        $v3FM = @()
+        if (Get-Command $normFuncFM -ErrorAction SilentlyContinue) {
+            try {
+                $normCmdFM = Get-Command $normFuncFM -ErrorAction SilentlyContinue
+                $normParamsFM = @{ ToolResult = $fixtureData }
+                if ($normCmdFM -and (@($normCmdFM.Parameters.Keys) -contains 'EdgeCollector')) {
+                    $normParamsFM['EdgeCollector'] = $normalizerEdgeCollectorFM
+                }
+                $v3FM = @(& $normFuncFM @normParamsFM)
+            } catch {
+                Write-Warning "  Normalizer $normFuncFM failed for $($toolDef.name): $_"
+                $v3FM = @()
+            }
+        }
+
+        # Feed into EntityStore
+        foreach ($finding in $v3FM) {
+            if (-not $finding) { continue }
+            try {
+                if (Get-Command Add-FrameworkMapping -ErrorAction SilentlyContinue) {
+                    $null = Add-FrameworkMapping -Finding $finding -FilterFramework $Framework
+                }
+                $storeFM.AddFinding($finding)
+            } catch {
+                Write-Warning (Remove-Credentials "EntityStore.AddFinding failed for $($toolDef.name): $_")
+            }
+        }
+
+        # Build v1-compatible flat findings
+        foreach ($f in $v3FM) {
+            $allResultsFM.Add([PSCustomObject]@{
+                Id           = $f.Id
+                Source       = $f.Source
+                Category     = if ($f.PSObject.Properties['Category'] -and $f.Category) { $f.Category } else { '' }
+                Title        = $f.Title
+                Severity     = if ($f.PSObject.Properties['Severity'] -and $f.Severity) { $f.Severity } else { 'Info' }
+                Compliant    = $f.Compliant
+                Detail       = if ($f.PSObject.Properties['Detail'] -and $f.Detail) { $f.Detail } else { '' }
+                Remediation  = if ($f.PSObject.Properties['Remediation'] -and $f.Remediation) { $f.Remediation } else { '' }
+                ResourceId   = if ($f.PSObject.Properties['ResourceId'] -and $f.ResourceId) { $f.ResourceId } else { '' }
+                LearnMoreUrl = if ($f.PSObject.Properties['LearnMoreUrl'] -and $f.LearnMoreUrl) { $f.LearnMoreUrl } else { '' }
+                EntityId     = if ($f.PSObject.Properties['EntityId']) { $f.EntityId } else { '' }
+                EntityType   = if ($f.PSObject.Properties['EntityType']) { $f.EntityType } else { '' }
+                Platform     = if ($f.PSObject.Properties['Platform']) { $f.Platform } else { '' }
+                SubscriptionId = if ($f.PSObject.Properties['SubscriptionId']) { $f.SubscriptionId } else { '' }
+                SubscriptionName = if ($f.PSObject.Properties['SubscriptionName']) { $f.SubscriptionName } else { '' }
+                ResourceGroup = if ($f.PSObject.Properties['ResourceGroup']) { $f.ResourceGroup } else { '' }
+                ManagementGroupPath = if ($f.PSObject.Properties['ManagementGroupPath']) { $f.ManagementGroupPath } else { @() }
+                Confidence   = if ($f.PSObject.Properties['Confidence']) { $f.Confidence } else { '' }
+                EvidenceCount = if ($f.PSObject.Properties['EvidenceCount']) { $f.EvidenceCount } else { 0 }
+                MissingDimensions = if ($f.PSObject.Properties['MissingDimensions']) { $f.MissingDimensions } else { @() }
+                Frameworks   = if ($f.PSObject.Properties['Frameworks'] -and $f.Frameworks) { $f.Frameworks } else { @() }
+                Controls     = if ($f.PSObject.Properties['Controls'] -and $f.Controls) { $f.Controls } else { @() }
+            })
+        }
+
+        $fixtureHits++
+        Write-Host "  OK   $($toolDef.name): $($v3FM.Count) findings from fixture" -ForegroundColor Green
+        $toolStatusFM.Add([PSCustomObject]@{ Tool = $toolDef.name; Status = 'Success'; Message = "Fixture mode"; Findings = $v3FM.Count })
+    }
+
+    Write-Host "`n  $fixtureHits tool(s) loaded from fixtures, $($allResultsFM.Count) total findings" -ForegroundColor Cyan
+
+    # --- Write output (mirrors main pipeline write block) ---
+    try {
+        if (-not (Test-Path $OutputPath)) {
+            $null = New-Item -ItemType Directory -Path $OutputPath -Force
+        }
+
+        $outputFileFM = Join-Path $OutputPath 'results.json'
+        $resultsJsonFM = if ($allResultsFM.Count -eq 0) { '[]' } else { $allResultsFM | ConvertTo-Json -Depth 5 }
+        Set-Content -Path $outputFileFM -Value (Remove-Credentials $resultsJsonFM) -Encoding UTF8
+
+        $entitiesFileFM = Join-Path $OutputPath 'entities.json'
+        $entitiesFM = Export-Entities -Store $storeFM
+        if ($null -eq $entitiesFM) { $entitiesFM = @() }
+        foreach ($edge in @($normalizerEdgeCollectorFM)) {
+            if (-not $edge) { continue }
+            try { $storeFM.AddEdge([pscustomobject]$edge) } catch { }
+        }
+        $edgesFM = @()
+        if (Get-Command Export-Edges -ErrorAction SilentlyContinue) {
+            $edgesFM = @(Export-Edges -Store $storeFM)
+        }
+        $entitiesPayloadFM = [PSCustomObject]@{
+            SchemaVersion = '3.1'
+            Entities      = @($entitiesFM)
+            Edges         = $edgesFM
+        }
+        $entitiesJsonFM = $entitiesPayloadFM | ConvertTo-Json -Depth 30
+        Set-Content -Path $entitiesFileFM -Value (Remove-Credentials $entitiesJsonFM) -Encoding UTF8
+
+        $statusFileFM = Join-Path $OutputPath 'tool-status.json'
+        $statusJsonFM = $toolStatusFM | ConvertTo-Json -Depth 3
+        Set-Content -Path $statusFileFM -Value (Remove-Credentials $statusJsonFM) -Encoding UTF8
+
+        $storeFM.CleanupSpillFiles()
+    } catch {
+        Write-Error (Remove-Credentials "Failed to write output to ${OutputPath}: $_")
+        exit 1
+    }
+
+    # Generate reports
+    $htmlReportFM = Join-Path $OutputPath 'report.html'
+    $mdReportFM   = Join-Path $OutputPath 'report.md'
+
+    try {
+        & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFileFM -OutputPath $htmlReportFM
+    } catch {
+        Write-Warning (Remove-Credentials "HTML report generation failed: $_")
+    }
+    try {
+        & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFileFM -OutputPath $mdReportFM
+    } catch {
+        Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
+    }
+
+    try {
+        $dashboardFM = Join-Path $OutputPath 'dashboard.html'
+        & "$PSScriptRoot\New-ExecDashboard.ps1" -InputPath $outputFileFM -OutputPath $dashboardFM
+    } catch {
+        Write-Warning (Remove-Credentials "Executive dashboard generation failed: $_")
+    }
+
+    # Summary
+    $criticalFM = @($allResultsFM | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count
+    $highFM     = @($allResultsFM | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
+    $mediumFM   = @($allResultsFM | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
+    $lowFM      = @($allResultsFM | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
+
+    Write-Host "`n=== Fixture Mode Summary ===" -ForegroundColor Cyan
+    Write-Host "  Total findings: $($allResultsFM.Count)"
+    Write-Host "  Non-compliant - Critical: $criticalFM  High: $highFM  Medium: $mediumFM  Low: $lowFM" -ForegroundColor Yellow
+    Write-Host "  Output: $outputFileFM" -ForegroundColor Green
+    if (Test-Path $entitiesFileFM) {
+        Write-Host "  Entities: $entitiesFileFM" -ForegroundColor Green
+    }
+    if (Test-Path $htmlReportFM) {
+        Write-Host "  HTML Report: $htmlReportFM" -ForegroundColor Green
+    }
+    if (Test-Path $mdReportFM) {
+        Write-Host "  MD Report: $mdReportFM" -ForegroundColor Green
+    }
+
+    exit 0
+}
 
 # ---------------------------------------------------------------------------
 # Incremental defaults (#94): auto-resolve baseline when -Incremental is set.

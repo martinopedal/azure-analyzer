@@ -4,6 +4,9 @@
 
 - Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
 - **Bot gate unification (#938):** Extend GitHub App token pattern to `tool-auto-update.yml` and `pr-auto-rebase.yml`. PRs created by tool-auto-update and rebase force-pushes now use the same App token (`RELEASE_APP_ID`) as release-please, bypassing the first-time-contributor approval gate and the `GITHUB_TOKEN` anti-recursion guard that previously prevented downstream CI from triggering on bot activity
+### Added
+- **FixtureMode** (`-FixtureMode`): Run the full normalizer and reporting pipeline against fixture data in `tests/fixtures/` without Azure credentials. Skips auth checks, prerequisite installs, and all live API calls. Produces real `results.json`, `entities.json`, and HTML/Markdown reports. Use `-FixturePath <dir>` to supply custom fixtures. (#926)
+- **FixtureMode integration tests**: 14 Pester tests covering default/custom fixture paths, invalid path handling, `-IncludeTools` filtering, and output artifact verification.
 
 ### Fixed
 
@@ -171,10 +174,7 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
-<<<<<<< HEAD
-=======
 <<<<<<< ours
->>>>>>> b9c57ea (fix(copilot-review): resolve CHANGELOG merge conflict + fix issue references)
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 
