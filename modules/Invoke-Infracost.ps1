@@ -293,7 +293,8 @@ try {
     $breakdownPath = Join-Path $Path 'infracost-breakdown.json'
     $breakdownUri = ''
     try {
-        Set-Content -LiteralPath $breakdownPath -Value $jsonText -Encoding utf8NoBOM -Force
+        $sanitizedJsonText = Remove-Credentials -Text $jsonText
+        Set-Content -LiteralPath $breakdownPath -Value $sanitizedJsonText -Encoding utf8NoBOM -Force
         $resolvedBreakdownPath = (Resolve-Path -LiteralPath $breakdownPath -ErrorAction Stop).Path
         $breakdownUri = "file:///$($resolvedBreakdownPath -replace '\\','/')"
     } catch {
