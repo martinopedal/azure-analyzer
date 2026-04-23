@@ -28,14 +28,13 @@ BeforeAll {
     }
 
     $watchdog = ConvertFrom-Yaml (Get-Content -Raw $script:WatchdogPath)
-    # In powershell-yaml, the `on:` key is parsed to True (boolean) because
-    # YAML 1.1 treats `on` as truthy. Defend against both spellings.
-    $onBlock = if ($watchdog.ContainsKey('on')) { $watchdog['on'] } else { $watchdog[$true] }
-    $script:Watchlist = @($onBlock['workflow_run']['workflows'])
+    # Extract WATCHLIST from env: block (multiline string)
+    $watchlistRaw = $watchdog['env']['WATCHLIST']
+    $script:Watchlist = @($watchlistRaw -split "`n" | Where-Object { $_ -match '\S' } | ForEach-Object { $_.Trim() })
 }
 
 Describe 'CI failure watchdog watchlist' {
-    It 'declares a non-empty workflows: trigger key (regression guard for #111)' {
+    It 'declares a non-empty WATCHLIST env var (regression guard for #111)' {
         $script:Watchlist.Count | Should -BeGreaterThan 0
     }
 
