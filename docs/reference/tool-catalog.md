@@ -33,7 +33,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `finops` | FinOps Signals (Idle Resource Detection) | subscription | azure | Azure WAF, Azure CAF | FinOps signals: idle / orphaned resources that drive avoidable spend. | - |
 | `gh-actions-billing` | GitHub Actions Billing | repository | github | Azure CAF, SOC2 | GitHub Actions billing and runner-minute telemetry for CI/CD cost optimization. | [docs](./permissions/gh-actions-billing.md) |
 | `gitleaks` | gitleaks (Secrets Scanner) | repository | cli | NIST 800-53, SOC2, PCI-DSS | Secret scanning across local or remote git repositories. | [docs](./gitleaks-pattern-tuning.md) |
-| `identity-correlator` | Identity Correlator (Shared Module) | tenant | graph | NIST 800-53, SOC2, PCI-DSS | Correlates Entra identities, role assignments, and resource ownership. | - |
+| `identity-correlator` | Identity Correlator | tenant | graph | NIST 800-53, SOC2, PCI-DSS | Correlates Entra identities, role assignments, and resource ownership. | - |
 | `identity-graph-expansion` | Identity Graph Expansion | tenant | graph | NIST 800-53, SOC2 | Expands the identity graph: cross-tenant B2B + service-principal-to-resource edges. | - |
 | `infracost` | Infracost IaC Cost Estimation | repository | cli | Azure CAF | Pre-deploy cost estimate for Terraform and Bicep resources. | - |
 | `kube-bench` | kube-bench (AKS node-level CIS compliance) | subscription | azure | CIS Azure | CIS Kubernetes benchmark for AKS node hardening. | - |
