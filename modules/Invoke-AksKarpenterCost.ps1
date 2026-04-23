@@ -137,11 +137,16 @@ $result = [ordered]@{
 # ---------------------------------------------------------------------------
 # Opt-in elevated RBAC tier
 # ---------------------------------------------------------------------------
+$allowElevatedOps = $EnableElevatedRbac.IsPresent
 if ($EnableElevatedRbac.IsPresent) {
-    if (Get-Command Set-RbacTier -ErrorAction SilentlyContinue) {
-        Set-RbacTier -Tier 'ClusterUser'
+    $elevatedTarget = if (-not [string]::IsNullOrWhiteSpace($ClusterName)) { $ClusterName } elseif (-not [string]::IsNullOrWhiteSpace($ResourceGroup)) { $ResourceGroup } else { $SubscriptionId }
+    $allowElevatedOps = $PSCmdlet.ShouldProcess($elevatedTarget, 'Initialize kube auth and run kubectl Karpenter inspection')
+    if ($allowElevatedOps) {
+        if (Get-Command Set-RbacTier -ErrorAction SilentlyContinue) {
+            Set-RbacTier -Tier 'ClusterUser'
+        }
+        $result.RbacTier = 'ClusterUser'
     }
-    $result.RbacTier = 'ClusterUser'
 }
 
 # ---------------------------------------------------------------------------
@@ -571,7 +576,7 @@ Perf
         }
 
         # ----- Elevated-tier Karpenter findings (gated) -----
-        if (-not $EnableElevatedRbac.IsPresent) { continue }
+        if (-not $allowElevatedOps) { continue }
 
         # Honor -WhatIf / ShouldProcess: skip ALL side-effecting calls
         # (kubectl invocations + Initialize-KubeAuth) when running in WhatIf

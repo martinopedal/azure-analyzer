@@ -14,107 +14,107 @@
     },
     {
       "id": "E2E-003",
-      "tool": "ado-pipeline-correlator",
-      "status": "covered"
-    },
-    {
-      "id": "E2E-004",
-      "tool": "ado-pipelines",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-005",
-      "tool": "ado-repos-secrets",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-006",
-      "tool": "aks-karpenter-cost",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-007",
-      "tool": "aks-rightsizing",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-008",
-      "tool": "alz-queries",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-009",
-      "tool": "appinsights",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-010",
-      "tool": "azgovviz",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-011",
-      "tool": "azqr",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-012",
-      "tool": "azure-cost",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-013",
-      "tool": "azure-quota",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-014",
-      "tool": "bicep-iac",
-      "status": "covered"
-    },
-    {
-      "id": "E2E-015",
-      "tool": "defender-for-cloud",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-016",
-      "tool": "falco",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-017",
-      "tool": "finops",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-018",
-      "tool": "gh-actions-billing",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-019",
-      "tool": "gitleaks",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-020",
-      "tool": "ado-pipelines",
-      "status": "not-covered"
-    },
-    {
-      "id": "E2E-021",
       "tool": "ado-consumption",
       "status": "not-covered"
     },
     {
-      "id": "E2E-022",
+      "id": "E2E-004",
+      "tool": "ado-pipeline-correlator",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-005",
+      "tool": "ado-pipeline-correlator",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-006",
+      "tool": "ado-pipelines",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-007",
+      "tool": "ado-pipelines",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-008",
       "tool": "ado-repos-secrets",
       "status": "not-covered"
     },
     {
+      "id": "E2E-009",
+      "tool": "ado-repos-secrets",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-010",
+      "tool": "aks-karpenter-cost",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-011",
+      "tool": "aks-rightsizing",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-012",
+      "tool": "alz-queries",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-013",
+      "tool": "appinsights",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-014",
+      "tool": "azgovviz",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-015",
+      "tool": "azqr",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-016",
+      "tool": "azure-cost",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-017",
+      "tool": "azure-quota",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-018",
+      "tool": "bicep-iac",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-019",
+      "tool": "defender-for-cloud",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-020",
+      "tool": "falco",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-021",
+      "tool": "finops",
+      "status": "not-covered"
+    },
+    {
+      "id": "E2E-022",
+      "tool": "gh-actions-billing",
+      "status": "not-covered"
+    },
+    {
       "id": "E2E-023",
-      "tool": "ado-pipeline-correlator",
+      "tool": "gitleaks",
       "status": "not-covered"
     },
     {
