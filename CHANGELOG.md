@@ -4,10 +4,11 @@
 
 <<<<<<< HEAD
 - **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
-
-### Added
-
 - **CON-005 ratchet**: New wrapper envelope contract test in WrapperConsistencyRatchet.Tests.ps1 enforces that ALL 37 wrappers emit Errors = @() field alongside Findings on every code path (#907).
+
+### Removed
+
+- **Dead workflow**: Removed `.github/workflows/auto-approve-bot-runs.yml` — used fork-PR-only `/actions/runs/{id}/approve` endpoint that returned HTTP 403 on all in-repo bot PRs, created cascade of stuck `action_required` runs when it gated itself.
 
 ### Fixed
 
