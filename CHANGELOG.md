@@ -24,6 +24,24 @@
 
 All notable changes to azure-analyzer will be documented here.
 
+### Chores
+
+* forge PR #835 history + decisions inbox ([#870](https://github.com/martinopedal/azure-analyzer/issues/870)) ([dc09746](https://github.com/martinopedal/azure-analyzer/commit/dc0974672a51b048912fc37ee31f844696de7ce2))
+
+
+### CI
+
+* harden LiveTool smoke contracts against masked warning paths ([#826](https://github.com/martinopedal/azure-analyzer/issues/826)) ([e6667ec](https://github.com/martinopedal/azure-analyzer/commit/e6667ec21e7bcd5c6ada7d1d456c4e2ed5ab4497))
+
+
+### Fixes
+
+* step-level continue-on-error on live-tool-tests ([#867](https://github.com/martinopedal/azure-analyzer/issues/867)) ([2e53f17](https://github.com/martinopedal/azure-analyzer/commit/2e53f172568146b3478384823c206ef7098fbeb8))
+* make closes-link enforcement conditional for release and trusted bot actors ([#835](https://github.com/martinopedal/azure-analyzer/issues/835)) ([9041163](https://github.com/martinopedal/azure-analyzer/commit/9041163c5d16e8678c0da8205c4797dc9136e8f1))
+* cover all PR-triggered workflows in auto-approve bot gate ([#858](https://github.com/martinopedal/azure-analyzer/issues/858)) ([0dc2955](https://github.com/martinopedal/azure-analyzer/commit/0dc295585cb59e8cceb2287ed3e62e5f14cef97f))
+* pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
+
+
 ## [1.1.1](https://github.com/martinopedal/azure-analyzer/compare/v1.1.0...v1.1.1) (2026-04-23)
 
 
@@ -47,6 +65,7 @@ All notable changes to azure-analyzer will be documented here.
 * post-cascade refresh (README/PERMISSIONS/catalog/samples/copilot-instructions) + merge conflict resolution ([#829](https://github.com/martinopedal/azure-analyzer/issues/829)) ([04176e9](https://github.com/martinopedal/azure-analyzer/commit/04176e935b5b4ab27f1cf88c72d60bffde042b80))
 
 
+* Add kube-bench AKS node-level CIS scanner (Phase 6) with normalizer + docs ([#78](https://github.com/martinopedal/azure-analyzer/issues/78)) ([4c63f05](https://github.com/martinopedal/azure-analyzer/commit/4c63f05ca71c35394626dc81c8cb963f380e8346))
 ### Chores
 
 * **errors:** replace raw throws with rich error builders in shared/orchestrator code ([#743](https://github.com/martinopedal/azure-analyzer/issues/743)) ([#819](https://github.com/martinopedal/azure-analyzer/issues/819)) ([086122f](https://github.com/martinopedal/azure-analyzer/commit/086122f72b64348252d5192d136deb8dc474af4d))
@@ -54,11 +73,20 @@ All notable changes to azure-analyzer will be documented here.
 * **wrappers:** add CmdletBinding + SupportsShouldProcess hardening (Phase 2 PR1) ([#759](https://github.com/martinopedal/azure-analyzer/issues/759)) ([3d18302](https://github.com/martinopedal/azure-analyzer/commit/3d18302f897bf2ead781d563ba2a6420e50e3be4))
 
 
+* post-cascade consistency pass (1.1.1) ([#825](https://github.com/martinopedal/azure-analyzer/issues/825)) ([74f6c2b](https://github.com/martinopedal/azure-analyzer/commit/74f6c2b19d069d244d662cfbee097b4fd1929127))
+* release 1.1.0 ([#755](https://github.com/martinopedal/azure-analyzer/issues/755)) ([819a8ce](https://github.com/martinopedal/azure-analyzer/commit/819a8ce56c2ebdc7f3880fbf8936170a04d42d21))
+* Implement Track A attack-path renderer and activate scaffold tests ([#722](https://github.com/martinopedal/azure-analyzer/issues/722)) ([dd2a0c5](https://github.com/martinopedal/azure-analyzer/commit/dd2a0c5d906ccb0ffe52d513c0306d919a0da562))
+* log #318 orphan-query triage (PR #327) ([#329](https://github.com/martinopedal/azure-analyzer/issues/329)) ([fd3f23f](https://github.com/martinopedal/azure-analyzer/commit/fd3f23f6923fca26d6f960f4aa85f996fceb4c78))
+* triage 7 orphan query JSON files ([#327](https://github.com/martinopedal/azure-analyzer/issues/327)) ([9c6ab7d](https://github.com/martinopedal/azure-analyzer/commit/9c6ab7d7c1f0aff798a6767eb6ae8ee29d29ee2d))
+* post-merge orchestration for Dependabot batch #288-#292 ([#294](https://github.com/martinopedal/azure-analyzer/issues/294)) ([f602747](https://github.com/martinopedal/azure-analyzer/commit/f602747810a3ef498c1537850ce59c254e2a960a))
+* Merge watchdog root-cause orchestration logs and inbox decisions ([#155](https://github.com/martinopedal/azure-analyzer/issues/155)) ([91bd08f](https://github.com/martinopedal/azure-analyzer/commit/91bd08f4292734458e3268403bab994e934c8e13))
+* Add ADO auth compatibility and cross-dimensional identity risk findings ([#80](https://github.com/martinopedal/azure-analyzer/issues/80)) ([78cc269](https://github.com/martinopedal/azure-analyzer/commit/78cc269921e371355d59a2c1bdc472017977b849))
 ### CI
 
 * hotfix closes-link skipAuthors + lychee unreleased-tag exclude ([#839](https://github.com/martinopedal/azure-analyzer/issues/839)) ([5e01281](https://github.com/martinopedal/azure-analyzer/commit/5e0128189e82d05a3a5412f079c19efd23f3d19d))
 
 
+* Normalize LiveTool wrapper Findings to deterministic arrays and unblock PR workflow execution ([#847](https://github.com/martinopedal/azure-analyzer/issues/847)) ([f6541f4](https://github.com/martinopedal/azure-analyzer/commit/f6541f402fbf89d3c60de656eb191d0e729fec1a))
 ### Tests
 
 * **e2e:** add wrapper coverage for IaC tools ([#663](https://github.com/martinopedal/azure-analyzer/issues/663) [#664](https://github.com/martinopedal/azure-analyzer/issues/664) [#665](https://github.com/martinopedal/azure-analyzer/issues/665)) ([#788](https://github.com/martinopedal/azure-analyzer/issues/788)) ([a8aaca5](https://github.com/martinopedal/azure-analyzer/commit/a8aaca5f2bffb78fa48374b95a43e4fb8ddf9b06))
@@ -69,6 +97,12 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
+<<<<<<< ours
+<<<<<<< HEAD
+=======
+### Features
+
+* implement resilience map renderer contract and replace scaffold skips ([#720](https://github.com/martinopedal/azure-analyzer/issues/720)) ([e692936](https://github.com/martinopedal/azure-analyzer/commit/e6929366f6e1a1aef4600b051e765ebb0816cea3))
 ## [Unreleased]
 
 ### Changed
