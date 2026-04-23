@@ -23,7 +23,7 @@ Quoting #604 verbatim:
 > `permissions: pull-requests: write`. Behavior is inconsistent: succeeded on
 > PR #481's batch of 17 threads, FORBIDDEN elsewhere.
 
-#604 listed three options:
+Issue #604 listed three options:
 
 1. Dedicated GitHub App token (`RESOLVE_THREADS_TOKEN` secret) with
    `pull_requests:write` issued to a non-bot identity.
