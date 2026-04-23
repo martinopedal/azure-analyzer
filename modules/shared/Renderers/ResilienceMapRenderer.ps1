@@ -12,10 +12,81 @@
 #
 # See docs/design/resilience-map.md for the full design.
 #
-# This file intentionally contains SIGNATURES ONLY. Bodies throw NotImplemented
-# so any accidental call surfaces immediately rather than silently returning.
+# Phase 1: relation-only edge styling. Tier-weighted DependsOn line weights and
+# region-matched FailsOverTo/ReplicatedTo coloring are deferred to a follow-up
+# (tracked under #429). Resolve-ResilienceEdgeStyle currently returns a fixed
+# style per Relation; consumers needing per-tier or per-region differentiation
+# must layer that on top of the base style.
 
 Set-StrictMode -Version Latest
+
+# Sanitizer is loaded lazily so the renderer stays usable from contexts that
+# pre-load Sanitize.ps1 as well as from standalone tests. Falls back to a
+# pass-through if the shared sanitizer is not available.
+if (-not (Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue)) {
+    $sanitizePath = Join-Path $PSScriptRoot '..\Sanitize.ps1'
+    if (Test-Path -LiteralPath $sanitizePath) { . $sanitizePath }
+}
+function Invoke-ResilienceMapSanitize {
+    param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $cmd = Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue
+    if ($null -ne $cmd) { return Remove-Credentials -Text $Text }
+    return $Text
+}
+
+function Test-ObjectProperty {
+    param(
+        [Parameter(Mandatory)] [AllowNull()] [object] $Object,
+        [Parameter(Mandatory)] [string] $Name
+    )
+    if ($null -eq $Object) { return $false }
+    if ($Object -is [System.Collections.IDictionary]) { return $Object.Contains($Name) }
+    return $null -ne $Object.PSObject -and $null -ne $Object.PSObject.Properties[$Name]
+}
+
+function Get-ObjectValue {
+    param(
+        [Parameter(Mandatory)] [AllowNull()] [object] $Object,
+        [Parameter(Mandatory)] [string[]] $Names
+    )
+    foreach ($name in $Names) {
+        if (Test-ObjectProperty -Object $Object -Name $name) {
+            $value = if ($Object -is [System.Collections.IDictionary]) { $Object[$name] } else { $Object.$name }
+            if ($null -ne $value -and -not [string]::IsNullOrWhiteSpace([string]$value)) {
+                return $value
+            }
+        }
+    }
+    return $null
+}
+
+function Get-EntityResilienceMetadata {
+    param([Parameter(Mandatory)] [object] $Entity)
+
+    $properties = if (Test-ObjectProperty -Object $Entity -Name 'Properties') { $Entity.Properties } else { $null }
+    $rawProperties = if (Test-ObjectProperty -Object $Entity -Name 'RawProperties') { $Entity.RawProperties } else { $null }
+
+    $region = Get-ObjectValue -Object $Entity -Names @('Region', 'Location')
+    if (-not $region) { $region = Get-ObjectValue -Object $properties -Names @('Region', 'Location') }
+    if (-not $region) { $region = Get-ObjectValue -Object $rawProperties -Names @('Region', 'Location') }
+    if (-not $region) { $region = 'global' }
+
+    $zone = Get-ObjectValue -Object $Entity -Names @('Zone', 'AvailabilityZone')
+    if (-not $zone) { $zone = Get-ObjectValue -Object $properties -Names @('Zone', 'AvailabilityZone') }
+    if (-not $zone) { $zone = Get-ObjectValue -Object $rawProperties -Names @('Zone', 'AvailabilityZone') }
+    if (-not $zone) { $zone = 'all' }
+
+    $scope = Get-ObjectValue -Object $Entity -Names @('Scope', 'ManagementGroup')
+    if (-not $scope) { $scope = Get-ObjectValue -Object $properties -Names @('Scope', 'ManagementGroup') }
+    if (-not $scope) { $scope = Get-ObjectValue -Object $rawProperties -Names @('Scope', 'ManagementGroup') }
+    if (-not $scope) { $scope = 'ManagementGroup' }
+
+    return [PSCustomObject]@{
+        Region = [string]$region
+        Zone   = [string]$zone
+        Scope  = [string]$scope
+    }
+}
 
 function Invoke-ResilienceMapRender {
     <#
@@ -41,7 +112,79 @@ function Invoke-ResilienceMapRender {
         [Parameter(Mandatory)] [string] $OutputPath,
         [Parameter()] [int] $SharedEdgeBudget = 2500
     )
-    throw [System.NotImplementedException]::new('ResilienceMapRenderer scaffold (#429). Awaiting Foundation #435.')
+    $json = Get-Content -Path $EntityStorePath -Raw -Encoding UTF8 | ConvertFrom-Json -Depth 64
+
+    if ($json -is [System.Collections.IEnumerable] -and -not ($json -is [string])) {
+        $entities = @($json)
+        $edges = @()
+    } else {
+        $entities = if (Test-ObjectProperty -Object $json -Name 'Entities') { @($json.Entities) } else { @() }
+        $edges = if (Test-ObjectProperty -Object $json -Name 'Edges') { @($json.Edges) } else { @() }
+    }
+
+    $resilienceRelations = @('DependsOn', 'RegionPinned', 'ZonePinned', 'BackedUpBy', 'FailsOverTo', 'ReplicatedTo')
+    $resilienceEdges = @($edges | Where-Object { $_.Relation -in $resilienceRelations })
+    $cells = @(Get-ResilienceHeatmapCells -Entities $entities -Edges $resilienceEdges)
+
+    if ($Tier -eq 3) {
+        $resilienceEdges = @()
+        $cells = @(
+            $cells |
+                Group-Object -Property Region |
+                ForEach-Object {
+                    $groupCells = @($_.Group)
+                    [PSCustomObject]@{
+                        Region       = $_.Name
+                        Zone         = '*'
+                        Scope        = 'ManagementGroup'
+                        Score        = [Math]::Round((($groupCells | Measure-Object -Property Score -Average).Average), 2)
+                        Color        = if (($groupCells.Color -contains 'red')) { 'red' } elseif (($groupCells.Color -contains 'orange')) { 'orange' } elseif (($groupCells.Color -contains 'yellow')) { 'yellow' } else { 'green' }
+                        FillDensity  = [Math]::Round((($groupCells | Measure-Object -Property FillDensity -Average).Average), 2)
+                        Expandable   = $false
+                        BackupRatio  = [Math]::Round((($groupCells | Measure-Object -Property BackupRatio -Average).Average), 4)
+                        ZoneExpanded = $false
+                    }
+                }
+        )
+    } elseif ($Tier -in @(1, 2)) {
+        foreach ($cell in $cells) {
+            $cell.Expandable = $true
+            $cell.ZoneExpanded = $false
+        }
+    }
+
+    $budget = [Math]::Max(0, $SharedEdgeBudget)
+    $keptEdges = @($resilienceEdges | Select-Object -First $budget)
+    $droppedEdges = [Math]::Max(0, $resilienceEdges.Count - $keptEdges.Count)
+
+    New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+    $jsonPath = Join-Path $OutputPath 'resilience-map.json'
+    $htmlPath = Join-Path $OutputPath 'resilience-map.html'
+
+    $payload = [ordered]@{
+        Tier         = $Tier
+        EdgeCount    = $keptEdges.Count
+        CellCount    = $cells.Count
+        DroppedEdges = $droppedEdges
+        Edges        = $keptEdges
+        Cells        = $cells
+    }
+    $jsonOut = $payload | ConvertTo-Json -Depth 64
+    $jsonOut = Invoke-ResilienceMapSanitize -Text $jsonOut
+    $htmlOut = "<div id='resilience-map' data-tier='$Tier' data-edge-count='$($keptEdges.Count)' data-cell-count='$($cells.Count)'></div>"
+    $htmlOut = Invoke-ResilienceMapSanitize -Text $htmlOut
+    $jsonOut | Set-Content -Path $jsonPath -Encoding UTF8
+    $htmlOut | Set-Content -Path $htmlPath -Encoding UTF8
+
+    return [PSCustomObject]@{
+        Path         = $jsonPath
+        HtmlPath     = $htmlPath
+        EdgeCount    = $keptEdges.Count
+        CellCount    = $cells.Count
+        DroppedEdges = $droppedEdges
+        Cells        = $cells
+        Edges        = $keptEdges
+    }
 }
 
 function Get-ResilienceHeatmapCells {
@@ -57,10 +200,78 @@ function Get-ResilienceHeatmapCells {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)] [object[]] $Entities,
-        [Parameter(Mandatory)] [object[]] $Edges
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Entities,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Edges
     )
-    throw [System.NotImplementedException]::new('Get-ResilienceHeatmapCells scaffold (#429).')
+    $edgeBySource = @{}
+    foreach ($edge in @($Edges)) {
+        if (-not (Test-ObjectProperty -Object $edge -Name 'Source')) { continue }
+        $source = [string]$edge.Source
+        if (-not $edgeBySource.ContainsKey($source)) {
+            $edgeBySource[$source] = @()
+        }
+        $edgeBySource[$source] += $edge
+    }
+
+    $rows = foreach ($entity in @($Entities)) {
+        if (-not (Test-ObjectProperty -Object $entity -Name 'EntityId')) { continue }
+
+        $entityId = [string]$entity.EntityId
+        $meta = Get-EntityResilienceMetadata -Entity $entity
+        $entityEdges = if ($edgeBySource.ContainsKey($entityId)) { @($edgeBySource[$entityId]) } else { @() }
+
+        $hasPinned = ($entityEdges | Where-Object { $_.Relation -in @('RegionPinned', 'ZonePinned') } | Measure-Object).Count -gt 0
+        $hasBackup = ($entityEdges | Where-Object { $_.Relation -eq 'BackedUpBy' } | Measure-Object).Count -gt 0
+        $hasReplica = ($entityEdges | Where-Object { $_.Relation -in @('FailsOverTo', 'ReplicatedTo') } | Measure-Object).Count -gt 0
+        $zoneRedundant = ($entityEdges | Where-Object { $_.Relation -eq 'ZonePinned' } | Measure-Object).Count -gt 0
+
+        $scoreControls = [int]$hasPinned + [int]$hasBackup + [int]$hasReplica
+        [PSCustomObject]@{
+            Region        = $meta.Region
+            Zone          = $meta.Zone
+            Scope         = $meta.Scope
+            ScoreControls = $scoreControls
+            HasBackup     = $hasBackup
+            ZoneRedundant = $zoneRedundant
+        }
+    }
+
+    $cells = foreach ($group in ($rows | Group-Object -Property Region, Zone, Scope)) {
+        $items = @($group.Group)
+        if ($items.Count -eq 0) { continue }
+
+        $avgControls = ($items | Measure-Object -Property ScoreControls -Average).Average
+        $backupCount = @($items | Where-Object { $_.HasBackup }).Count
+        $nonRedundantCount = @($items | Where-Object { -not $_.ZoneRedundant }).Count
+        $backupRatio = $backupCount / [double]$items.Count
+        $allZoneRedundant = ($nonRedundantCount -eq 0)
+
+        $color = if ($avgControls -lt 0.5) {
+            'red'
+        } elseif ($avgControls -lt 1.5) {
+            'orange'
+        } elseif ($avgControls -lt 2.5) {
+            'yellow'
+        } elseif ($allZoneRedundant) {
+            'green'
+        } else {
+            'yellow'
+        }
+
+        [PSCustomObject]@{
+            Region       = $items[0].Region
+            Zone         = $items[0].Zone
+            Scope        = $items[0].Scope
+            Score        = [Math]::Round(($avgControls / 3.0) * 100.0, 2)
+            Color        = $color
+            FillDensity  = [Math]::Round($backupRatio * 100.0, 2)
+            BackupRatio  = [Math]::Round($backupRatio, 4)
+            Expandable   = $true
+            ZoneExpanded = $false
+        }
+    }
+
+    return @($cells)
 }
 
 function Resolve-ResilienceEdgeStyle {
@@ -78,7 +289,51 @@ function Resolve-ResilienceEdgeStyle {
         [ValidateSet('DependsOn', 'RegionPinned', 'ZonePinned', 'BackedUpBy', 'FailsOverTo', 'ReplicatedTo')]
         [string] $Relation
     )
-    throw [System.NotImplementedException]::new('Resolve-ResilienceEdgeStyle scaffold (#429).')
+    $styles = @{
+        DependsOn = @{
+            Stroke          = '#64748b'
+            StrokeWidth     = 2
+            DashArray       = ''
+            ArrowHead       = 'single'
+            HiddenByDefault = $false
+        }
+        RegionPinned = @{
+            Stroke          = '#2563eb'
+            StrokeWidth     = 2
+            DashArray       = '1 0'
+            ArrowHead       = 'single'
+            HiddenByDefault = $false
+        }
+        ZonePinned = @{
+            Stroke          = '#7c3aed'
+            StrokeWidth     = 2
+            DashArray       = '1 0'
+            ArrowHead       = 'single'
+            HiddenByDefault = $false
+        }
+        BackedUpBy = @{
+            Stroke          = '#0891b2'
+            StrokeWidth     = 1
+            DashArray       = '3 3'
+            ArrowHead       = 'single'
+            HiddenByDefault = $true
+        }
+        FailsOverTo = @{
+            Stroke          = '#0ea5e9'
+            StrokeWidth     = 2
+            DashArray       = '6 3'
+            ArrowHead       = 'double'
+            HiddenByDefault = $false
+        }
+        ReplicatedTo = @{
+            Stroke          = '#14b8a6'
+            StrokeWidth     = 2
+            DashArray       = '2 4'
+            ArrowHead       = 'single'
+            HiddenByDefault = $false
+        }
+    }
+    return $styles[$Relation]
 }
 
 function Get-RecoveryObjectiveOverlay {
@@ -101,7 +356,30 @@ function Get-RecoveryObjectiveOverlay {
     param(
         [Parameter(Mandatory)] [object] $Entity
     )
-    throw [System.NotImplementedException]::new('Get-RecoveryObjectiveOverlay scaffold (#429).')
+    try {
+        $properties = if (Test-ObjectProperty -Object $Entity -Name 'Properties') { $Entity.Properties } else { $null }
+        $rawProperties = if (Test-ObjectProperty -Object $Entity -Name 'RawProperties') { $Entity.RawProperties } else { $null }
+
+        $rto = Get-ObjectValue -Object $Entity -Names @('RecoveryTimeObjective', 'RTO')
+        if (-not $rto) { $rto = Get-ObjectValue -Object $properties -Names @('RecoveryTimeObjective', 'RTO') }
+        if (-not $rto) { $rto = Get-ObjectValue -Object $rawProperties -Names @('RecoveryTimeObjective', 'RTO') }
+
+        $rpo = Get-ObjectValue -Object $Entity -Names @('RecoveryPointObjective', 'RPO')
+        if (-not $rpo) { $rpo = Get-ObjectValue -Object $properties -Names @('RecoveryPointObjective', 'RPO') }
+        if (-not $rpo) { $rpo = Get-ObjectValue -Object $rawProperties -Names @('RecoveryPointObjective', 'RPO') }
+
+        if (-not $rto -and -not $rpo) {
+            return $null
+        }
+
+        return @{
+            Rto        = $rto
+            Rpo        = $rpo
+            BadgeColor = if ($rto -and $rpo) { 'blue' } elseif ($rto) { 'purple' } else { 'teal' }
+        }
+    } catch {
+        return $null
+    }
 }
 
 function Resolve-BlastRadius {
@@ -122,15 +400,71 @@ function Resolve-BlastRadius {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [string] $RootEntityId,
-        [Parameter(Mandatory)] [object[]] $Edges,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]] $Edges,
         [Parameter()] [int] $MaxDepth = 5
     )
-    throw [System.NotImplementedException]::new('Resolve-BlastRadius scaffold (#429).')
+    $allowed = @('DependsOn', 'FailsOverTo', 'ReplicatedTo')
+    $adjacency = @{}
+    foreach ($edge in @($Edges)) {
+        if (-not (Test-ObjectProperty -Object $edge -Name 'Relation')) { continue }
+        if ($edge.Relation -notin $allowed) { continue }
+        if (-not (Test-ObjectProperty -Object $edge -Name 'Source')) { continue }
+        if (-not (Test-ObjectProperty -Object $edge -Name 'Target')) { continue }
+
+        $source = [string]$edge.Source
+        if (-not $adjacency.ContainsKey($source)) {
+            $adjacency[$source] = @()
+        }
+        $adjacency[$source] += $edge
+    }
+
+    $queue = [System.Collections.Generic.Queue[object]]::new()
+    $visited = @{}
+    $results = @()
+
+    $queue.Enqueue([PSCustomObject]@{
+            EntityId = $RootEntityId
+            Distance = 0
+            EdgePath = @()
+        })
+    $visited[$RootEntityId] = $true
+
+    while ($queue.Count -gt 0) {
+        $current = $queue.Dequeue()
+        $results += [PSCustomObject]@{
+            EntityId = $current.EntityId
+            Distance = $current.Distance
+            EdgePath = @($current.EdgePath)
+        }
+
+        if ($current.Distance -ge $MaxDepth) { continue }
+        if (-not $adjacency.ContainsKey($current.EntityId)) { continue }
+
+        foreach ($edge in @($adjacency[$current.EntityId])) {
+            $target = [string]$edge.Target
+            if ($visited.ContainsKey($target)) { continue }
+
+            $visited[$target] = $true
+            $queue.Enqueue([PSCustomObject]@{
+                    EntityId = $target
+                    Distance = $current.Distance + 1
+                    EdgePath = @($current.EdgePath + @([PSCustomObject]@{
+                                Source   = $edge.Source
+                                Target   = $edge.Target
+                                Relation = $edge.Relation
+                            }))
+                })
+        }
+    }
+
+    return $results | Sort-Object -Property Distance, EntityId
 }
 
-Export-ModuleMember -Function `
-    Invoke-ResilienceMapRender, `
-    Get-ResilienceHeatmapCells, `
-    Resolve-ResilienceEdgeStyle, `
-    Get-RecoveryObjectiveOverlay, `
-    Resolve-BlastRadius
+if ($ExecutionContext.SessionState.Module) {
+    Export-ModuleMember -Function `
+        Invoke-ResilienceMapRender, `
+        Get-ResilienceHeatmapCells, `
+        Resolve-ResilienceEdgeStyle, `
+        Get-RecoveryObjectiveOverlay, `
+        Resolve-BlastRadius
+}
