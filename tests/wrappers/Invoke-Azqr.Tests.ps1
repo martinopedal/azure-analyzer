@@ -3,12 +3,22 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # See tests/wrappers/Invoke-AlzQueries.Tests.ps1 header -- single-file run guard.
+$env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS = if ($null -eq $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS) { '__unset__' } else { $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS }
 $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
 BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Azqr.ps1'
+}
+
+AfterAll {
+    if ($env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -eq '__unset__') {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    } else {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS
+    }
+    Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }
 
 Describe 'Invoke-Azqr' {
@@ -99,4 +109,3 @@ Describe 'Invoke-Azqr' {
         }
     }
 }
-
