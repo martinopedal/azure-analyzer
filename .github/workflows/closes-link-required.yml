@@ -46,6 +46,7 @@ jobs:
               'dependabot[bot]',
               'copilot-swe-agent[bot]',
               'copilot-swe-agent',
+              'Copilot',
               'github-actions[bot]',
             ]);
             if (skipAuthors.has(author)) {
