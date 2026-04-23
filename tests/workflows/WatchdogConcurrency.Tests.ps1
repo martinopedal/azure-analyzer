@@ -1,4 +1,4 @@
-#Requires -Version 7.4
+#Requires -Version 7.0
 <#
 Regression guard for #862. The `ci-failure-watchdog.yml` `triage-failure` job
 MUST key its concurrency group off `github.event.workflow_run.id` (or another
