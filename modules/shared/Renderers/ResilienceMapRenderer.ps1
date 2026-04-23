@@ -12,10 +12,27 @@
 #
 # See docs/design/resilience-map.md for the full design.
 #
-# This file intentionally contains SIGNATURES ONLY. Bodies throw NotImplemented
-# so any accidental call surfaces immediately rather than silently returning.
+# Phase 1: relation-only edge styling. Tier-weighted DependsOn line weights and
+# region-matched FailsOverTo/ReplicatedTo coloring are deferred to a follow-up
+# (tracked under #429). Resolve-ResilienceEdgeStyle currently returns a fixed
+# style per Relation; consumers needing per-tier or per-region differentiation
+# must layer that on top of the base style.
 
 Set-StrictMode -Version Latest
+
+# Sanitizer is loaded lazily so the renderer stays usable from contexts that
+# pre-load Sanitize.ps1 as well as from standalone tests. Falls back to a
+# pass-through if the shared sanitizer is not available.
+if (-not (Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue)) {
+    $sanitizePath = Join-Path $PSScriptRoot '..\Sanitize.ps1'
+    if (Test-Path -LiteralPath $sanitizePath) { . $sanitizePath }
+}
+function Invoke-ResilienceMapSanitize {
+    param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Text)
+    $cmd = Get-Command -Name Remove-Credentials -ErrorAction SilentlyContinue
+    if ($null -ne $cmd) { return Remove-Credentials -Text $Text }
+    return $Text
+}
 
 function Test-ObjectProperty {
     param(
@@ -152,8 +169,12 @@ function Invoke-ResilienceMapRender {
         Edges        = $keptEdges
         Cells        = $cells
     }
-    $payload | ConvertTo-Json -Depth 64 | Set-Content -Path $jsonPath -Encoding UTF8
-    "<div id='resilience-map' data-tier='$Tier' data-edge-count='$($keptEdges.Count)' data-cell-count='$($cells.Count)'></div>" | Set-Content -Path $htmlPath -Encoding UTF8
+    $jsonOut = $payload | ConvertTo-Json -Depth 64
+    $jsonOut = Invoke-ResilienceMapSanitize -Text $jsonOut
+    $htmlOut = "<div id='resilience-map' data-tier='$Tier' data-edge-count='$($keptEdges.Count)' data-cell-count='$($cells.Count)'></div>"
+    $htmlOut = Invoke-ResilienceMapSanitize -Text $htmlOut
+    $jsonOut | Set-Content -Path $jsonPath -Encoding UTF8
+    $htmlOut | Set-Content -Path $htmlPath -Encoding UTF8
 
     return [PSCustomObject]@{
         Path         = $jsonPath
