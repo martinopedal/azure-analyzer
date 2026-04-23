@@ -33,6 +33,7 @@ BeforeAll {
     # because Pester evaluates BeforeDiscovery and BeforeAll in separate scopes;
     # the BeforeDiscovery binding is not visible inside BeforeAll/It blocks at run time.
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+    $script:_origSuppressMissingTools = $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS
     $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
     Get-Module AzureAnalyzer -ErrorAction SilentlyContinue | Remove-Module -Force -ErrorAction SilentlyContinue
@@ -104,6 +105,14 @@ BeforeAll {
             ) )
         }
         return $rows
+    }
+}
+
+AfterAll {
+    if ($null -ne $script:_origSuppressMissingTools) {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $script:_origSuppressMissingTools
+    } else {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
     }
 }
 
