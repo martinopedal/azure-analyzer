@@ -15,6 +15,7 @@ The falco Schema 2.2 ETL enrichment adds runtime metadata only (CIS framework ma
 The alz-queries Schema 2.2 ETL enrichment adds ALZ governance metadata only (framework tags, pillar mapping, source deep links, evidence URIs, baseline tags, and tool version) and does not change required Azure Reader scope.
 The HTML remediation-snippet null-guard report fix only changes rendering behavior and does not introduce any new permissions.
 Phase 0 foundation report architecture metadata, report-manifest output, and vendoring verification stubs add no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
+Attack-path renderer implementation (`AttackPathRenderer.ps1`) is report-side transformation only and introduces no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
 The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only and introduces no Azure, Graph, GitHub, or Azure DevOps permissions.
 Optional Copilot triage makes GitHub Copilot API calls (for model-plan discovery and triage generation) only when users explicitly enable AI triage; this does not require Azure/Graph write permissions.
 Release automation (release-please, GitHub Releases, and PSGallery publication) introduces repository automation and package feed credentials (`GITHUB_TOKEN`, `PSGALLERY_API_KEY`) only; it does not require any additional Azure, Microsoft Graph, GitHub repository-content write scopes for runtime scanners, or Azure DevOps read scope changes.
