@@ -19,9 +19,13 @@ $ModuleRoot = $PSScriptRoot
 # Dot-source shared helper modules only
 # Wrapper/normalizer/report scripts are invoked by the orchestrator and not loaded at import time
 $sharedModulePath = Join-Path $ModuleRoot 'modules\shared'
-Get-ChildItem -Path $sharedModulePath -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-    . $_.FullName
-}
+# Sort by FullName so load order is deterministic across OSes/filesystems.
+# This pins the #529 security invariant: if two shared files define the same
+# function, the winner must be predictable (Errors.ps1 wins over Schema.ps1
+# alphabetically). FunctionCollision.ps1 still fails-closed on duplicates.
+Get-ChildItem -Path $sharedModulePath -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object -Property FullName |
+    ForEach-Object { . $_.FullName }
 
 # Import public functions from root level
 # These are exported in the manifest as FunctionsToExport

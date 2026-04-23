@@ -1,4 +1,3 @@
-
 ## Unreleased
 
 ### Fixed
@@ -9,6 +8,51 @@
 
 All notable changes to azure-analyzer will be documented here.
 
+## [1.1.1](https://github.com/martinopedal/azure-analyzer/compare/v1.1.0...v1.1.1) (2026-04-23)
+
+
+### Fixes
+
+* **ci:** harden Markdown Check lychee retries for transient GitHub link failures ([#831](https://github.com/martinopedal/azure-analyzer/issues/831)) ([54f0cf8](https://github.com/martinopedal/azure-analyzer/commit/54f0cf88ad8ca0141a28c310a08ed5b1dd8ec9bf))
+* **ci:** remove 9 expired redirect stubs at 1.1.0 to unblock CI ([#778](https://github.com/martinopedal/azure-analyzer/issues/778)) ([b82ddd4](https://github.com/martinopedal/azure-analyzer/commit/b82ddd44983fc63b645f955454ebbc8b6db4a3b2))
+* **ci:** stabilize Markdown Check lychee with PR-scoped link validation ([#834](https://github.com/martinopedal/azure-analyzer/issues/834)) ([5c65de1](https://github.com/martinopedal/azure-analyzer/commit/5c65de1199762be36e08d5a991faf054fed289d1))
+* **ci:** treat gh graphql EOF as transient + silence trivy version advisories ([#850](https://github.com/martinopedal/azure-analyzer/issues/850)) ([dfef6db](https://github.com/martinopedal/azure-analyzer/commit/dfef6dbcf2ffbb58e0b694d975412cbc5c37fd04))
+* **policy:** address 4 PR [#721](https://github.com/martinopedal/azure-analyzer/issues/721) Copilot review concerns ([#767](https://github.com/martinopedal/azure-analyzer/issues/767)) ([#783](https://github.com/martinopedal/azure-analyzer/issues/783)) ([b977d2e](https://github.com/martinopedal/azure-analyzer/commit/b977d2e321b1d594a0c2cf5bd5d984ed92da4c4c))
+* **test:** tolerate YAML comments between concurrency: and group: keys ([#775](https://github.com/martinopedal/azure-analyzer/issues/775)) ([0134dc3](https://github.com/martinopedal/azure-analyzer/commit/0134dc3765e1eb35df41d5a8f6591a9854391b7f))
+* **wrappers,tests:** tighten LiveTool assertions + zizmor/scorecard hotfix ([#772](https://github.com/martinopedal/azure-analyzer/issues/772)) ([f06fbe9](https://github.com/martinopedal/azure-analyzer/commit/f06fbe9fbedaadaf5003b5aef7c9a51d301af943))
+* **wrappers:** add [#768](https://github.com/martinopedal/azure-analyzer/issues/768) regression tests for zizmor exit-code + scorecard token ([#817](https://github.com/martinopedal/azure-analyzer/issues/817)) ([c4c1a45](https://github.com/martinopedal/azure-analyzer/commit/c4c1a45bae143f82a7ad9ddbdbfb2e400a5a6fdc))
+
+
+### Documentation
+
+* **changelog:** reset Unreleased after 1.1.1 release notes ([#789](https://github.com/martinopedal/azure-analyzer/issues/789)) ([#822](https://github.com/martinopedal/azure-analyzer/issues/822)) ([3d721db](https://github.com/martinopedal/azure-analyzer/commit/3d721db5d956489e8f5be28e6c5dff56a59ca045))
+* complete CHANGELOG.md backfill of 128 recent PR citations ([#764](https://github.com/martinopedal/azure-analyzer/issues/764)) ([dee2d4c](https://github.com/martinopedal/azure-analyzer/commit/dee2d4cca134ca96062ac3d740b0b6fdb470299c))
+* **design:** RFC for [#433](https://github.com/martinopedal/azure-analyzer/issues/433) LLM-driven triage (Track E) ([#757](https://github.com/martinopedal/azure-analyzer/issues/757)) ([17db7eb](https://github.com/martinopedal/azure-analyzer/commit/17db7eb71386ace9a0545136469fe3f6018144da))
+* post-cascade refresh (README/PERMISSIONS/catalog/samples/copilot-instructions) + merge conflict resolution ([#829](https://github.com/martinopedal/azure-analyzer/issues/829)) ([04176e9](https://github.com/martinopedal/azure-analyzer/commit/04176e935b5b4ab27f1cf88c72d60bffde042b80))
+
+
+### Chores
+
+* **errors:** replace raw throws with rich error builders in shared/orchestrator code ([#743](https://github.com/martinopedal/azure-analyzer/issues/743)) ([#819](https://github.com/martinopedal/azure-analyzer/issues/819)) ([086122f](https://github.com/martinopedal/azure-analyzer/commit/086122f72b64348252d5192d136deb8dc474af4d))
+* **squad:** sage PR [#829](https://github.com/martinopedal/azure-analyzer/issues/829) history + decisions inbox ([#860](https://github.com/martinopedal/azure-analyzer/issues/860)) ([0388b75](https://github.com/martinopedal/azure-analyzer/commit/0388b750b9fb3e962c511da58e0d4f7dacb11f50))
+* **wrappers:** add CmdletBinding + SupportsShouldProcess hardening (Phase 2 PR1) ([#759](https://github.com/martinopedal/azure-analyzer/issues/759)) ([3d18302](https://github.com/martinopedal/azure-analyzer/commit/3d18302f897bf2ead781d563ba2a6420e50e3be4))
+
+
+### CI
+
+* hotfix closes-link skipAuthors + lychee unreleased-tag exclude ([#839](https://github.com/martinopedal/azure-analyzer/issues/839)) ([5e01281](https://github.com/martinopedal/azure-analyzer/commit/5e0128189e82d05a3a5412f079c19efd23f3d19d))
+
+
+### Tests
+
+* **e2e:** add wrapper coverage for IaC tools ([#663](https://github.com/martinopedal/azure-analyzer/issues/663) [#664](https://github.com/martinopedal/azure-analyzer/issues/664) [#665](https://github.com/martinopedal/azure-analyzer/issues/665)) ([#788](https://github.com/martinopedal/azure-analyzer/issues/788)) ([a8aaca5](https://github.com/martinopedal/azure-analyzer/commit/a8aaca5f2bffb78fa48374b95a43e4fb8ddf9b06))
+* **e2e:** add wrapper coverage for zizmor + gitleaks + trivy ([#660](https://github.com/martinopedal/azure-analyzer/issues/660) [#661](https://github.com/martinopedal/azure-analyzer/issues/661) [#662](https://github.com/martinopedal/azure-analyzer/issues/662)) ([#737](https://github.com/martinopedal/azure-analyzer/issues/737)) ([8020c77](https://github.com/martinopedal/azure-analyzer/commit/8020c77c103255353d99b356d0d236092ee55416))
+* **e2e:** wrapper coverage batch 2/5 for [#745](https://github.com/martinopedal/azure-analyzer/issues/745) (appinsights, loadtesting, azure-quota, sentinel-incidents, sentinel-coverage) ([#762](https://github.com/martinopedal/azure-analyzer/issues/762)) ([94a1e34](https://github.com/martinopedal/azure-analyzer/commit/94a1e34634f5a82ac8a483174f06e7c675cbe7b2))
+* **e2e:** wrapper coverage batch 3/5 (aks-rightsizing, aks-karpenter-cost, psrule, powerpipe, alz-queries) ([#763](https://github.com/martinopedal/azure-analyzer/issues/763)) ([dcb581e](https://github.com/martinopedal/azure-analyzer/commit/dcb581e8f37408fd07fc8d7013f7e64f986a69ff))
+* **e2e:** wrapper coverage batch 4/5 (scorecard, gitleaks, trivy, zizmor, kubescape, kube-bench, falco) ([#765](https://github.com/martinopedal/azure-analyzer/issues/765)) ([d2e7fd4](https://github.com/martinopedal/azure-analyzer/commit/d2e7fd4dc02e09adb04969cb82df5a7ad1cb8ada))
+* **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
+* **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
+
 ## [Unreleased]
 
 ### Documentation
@@ -17,7 +61,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Changed
 - add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
-
+### Security
+- Consolidate New-FindingError to single canonical definition; ensure Details always passes through Remove-Credentials sanitization (#529). Adds `modules/shared/FunctionCollision.ps1` (AST-based duplicate-function detector for the `modules/shared/` tree; ignores guarded fallback shims and nested helpers, fails closed on parse errors) and `tests/shared/Errors.Regression529.Tests.ps1` (12 regression tests pinning single-definition, deterministic load-order resolution, sanitization of AccountKey/SAS/Bearer secrets, Category enum enforcement, and the collision detector contract). Pins the shared-module dot-source order in `AzureAnalyzer.psm1` via `Sort-Object FullName` so the post-#671 canonical-wins invariant is filesystem-agnostic.
+### Added
+- test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll (or matching cleanup lifecycle blocks) across test suite and tighten the isolation guard coverage for wrapper env suppression patterns (#746).
 - fix(ci): make `Closes Link Required` tolerant for release-please branches, `skip-closes-check` labeled PRs, and trusted bot-authored PRs while still enforcing closes/fixes links for regular PRs.
