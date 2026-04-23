@@ -3,11 +3,11 @@
 Pester 5 test suite for azure-analyzer. Run with `Invoke-Pester -Path .\tests -CI`.
 
 Layout:
-- `tests/shared/` — shared-module unit tests (`modules/shared/*`).
-- `tests/wrappers/` — tool-wrapper unit tests (`modules/Invoke-*.ps1`).
-- `tests/normalizers/` — v1 -> v2 normalizer tests with fixtures under `tests/fixtures/`.
-- `tests/integration/` — cross-module smoke / integration and runtime tool-availability tests.
-- `tests/workflows/` — static `.github/workflows/*.yml` invariant checks.
+- `tests/shared/` - shared-module unit tests (`modules/shared/*`).
+- `tests/wrappers/` - tool-wrapper unit tests (`modules/Invoke-*.ps1`).
+- `tests/normalizers/` - v1 -> v2 normalizer tests with fixtures under `tests/fixtures/`.
+- `tests/integration/` - cross-module smoke / integration and runtime tool-availability tests.
+- `tests/workflows/` - static `.github/workflows/*.yml` invariant checks.
 
 ## Negative-path tests that exercise `Write-Warning`
 
