@@ -111,6 +111,11 @@ function Invoke-AzureAnalyzer {
         [ValidateRange(1, 365)]
         [int] $SentinelLookbackDays = 30,
         [switch] $EnableAiTriage,
+        [ValidateSet('Pro', 'Business', 'Enterprise')]
+        [string] $CopilotTier,
+        [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
+        [string] $TriageModel = 'Auto',
+        [switch] $SingleModel,
         [switch] $SinkLogAnalytics,
         [string] $LogAnalyticsConfig,
         [ValidateRange(1, 365)]
