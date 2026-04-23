@@ -4,7 +4,7 @@
 
 - **CI watchdog**: No longer opens ci-failure issues for advisory workflows (CI / E2E / Scheduled scan). These workflows are monitored for observability but do NOT escalate to backlog noise because they are not required branch-protection checks. Required checks (Analyze, links, lint) still escalate as ci-failure issues. Implements Track A from `.squad/decisions/inbox/rca-drift-sonnet.md`.
 - **CI watchdog**: Convert ci-failure-watchdog from `workflow_run:` trigger to 15-min `schedule:` trigger to eliminate Copilot-actor cascading `action_required` gate. When the upstream workflow's actor is the synthetic Copilot user (Coding Agent), the GitHub first-contributor approval gate fires on the cascading watchdog run, leaving stuck runs in the queue. The auto-approve workflow was deleted in PR #937 because the `/approve` API is fork-PR-only. The watchdog now polls failed runs via gh api every 15 minutes with allow-list filtering and hash-idempotent triage.
-- **Pester bootstrap**: Fixed SampleDrift.Tests.ps1 syntax error (literal `');'` breaking PowerShell parser) that caused ParameterBindingException on all PR test runs, blocking 8 PRs. The stream-6 (Information) warning-pattern detection in Capture-WrapperHostOutput.ps1 was already fixed in commit abd951e. Closes #913 #916 #920 #921 #923 #929.
+- **Pester bootstrap**: Fixed SampleDrift.Tests.ps1 syntax error (literal `');'` breaking PowerShell parser) that caused ParameterBindingException on all PR test runs, blocking 8 PRs. The stream-6 (Information) warning-pattern detection in Capture-WrapperHostOutput.ps1 was already fixed in commit abd951e. Related to #913, #916, #920, #921, #923, and #929.
 - **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
 - **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
 
@@ -161,22 +161,6 @@ All notable changes to azure-analyzer will be documented here.
 * **isolation:** harden state cleanup guard and close wrapper env leaks ([#828](https://github.com/martinopedal/azure-analyzer/issues/828)) ([91982d9](https://github.com/martinopedal/azure-analyzer/commit/91982d95f3d0bc58054ef7aa6daf831567b11587))
 * **isolation:** restore env/global state in BeforeAll/AfterAll ([#746](https://github.com/martinopedal/azure-analyzer/issues/746)) ([#790](https://github.com/martinopedal/azure-analyzer/issues/790)) ([bef60bd](https://github.com/martinopedal/azure-analyzer/commit/bef60bdea1a3cdc6cf048613c97c3431df16e0ad))
 
-<<<<<<< ours
-<<<<<<< HEAD
-=======
-### Features
-
-* implement resilience map renderer contract and replace scaffold skips ([#720](https://github.com/martinopedal/azure-analyzer/issues/720)) ([e692936](https://github.com/martinopedal/azure-analyzer/commit/e6929366f6e1a1aef4600b051e765ebb0816cea3))
-## [Unreleased]
-
-### Changed
-- chore(wrappers): CON-003 raw throw migration - replace raw `throw "..."` with `New-FindingError` + `Format-FindingErrorMessage` across all remaining wrappers; `RawThrowBaseline` in `tests/shared/WrapperConsistencyRatchet.Tests.ps1` is now empty so any new raw throw fails fast (#626).
-- chore(wrappers): CON-004 SupportsShouldProcess ratchet - lock in `[CmdletBinding(SupportsShouldProcess=$true)]` plus `$PSCmdlet.ShouldProcess` gating on side-effecting wrappers (`Invoke-Falco`, `Invoke-AksKarpenterCost`) via a new CON-004 assertion in `WrapperConsistencyRatchet.Tests.ps1` (#627).
-### Fixed
-- `Invoke-GhActionsBilling` now keeps sanitized CLI output only in `Details` (not duplicated in `Reason`) so error messages remain short and transient hints (HTTP 429) still work with `Invoke-WithRetry`.
-- `Invoke-Powerpipe` now emits CLI diagnostics via `Write-Verbose` before throwing so `-Verbose` users retain sanitized output even though `Format-FindingErrorMessage` does not include `Details` in the single-line message.
-- Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
-- CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
 
