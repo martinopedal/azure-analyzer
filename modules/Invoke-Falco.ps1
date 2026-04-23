@@ -49,7 +49,7 @@
     Federated identity args. Path-or-value token; sets
     AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_FEDERATED_TOKEN_FILE.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
@@ -463,6 +463,10 @@ foreach ($cluster in $clusters) {
     }
     $authPrep = $null
     try {
+        if (-not $PSCmdlet.ShouldProcess([string]$cluster.name, 'Install Falco via Helm and collect daemonset logs')) {
+            continue
+        }
+
         if (-not $isKubeconfigMode) {
             & az aks get-credentials --subscription $SubscriptionId --resource-group $cluster.resourceGroup --name $cluster.name --file $tmpKubeconfig --context $ctx --overwrite-existing --only-show-errors 2>&1 | Out-Null
             if ($LASTEXITCODE -ne 0) { $failed++; continue }
@@ -559,9 +563,11 @@ foreach ($cluster in $clusters) {
         }
 
         if ($UninstallFalco) {
-            $uninstallArgs = @('uninstall', 'falco', '-n', $Namespace)
-            if ($ctx) { $uninstallArgs += @('--kube-context', $ctx) }
-            & helm @uninstallArgs 2>&1 | Out-Null
+            if ($PSCmdlet.ShouldProcess([string]$cluster.name, 'Uninstall Falco Helm release')) {
+                $uninstallArgs = @('uninstall', 'falco', '-n', $Namespace)
+                if ($ctx) { $uninstallArgs += @('--kube-context', $ctx) }
+                & helm @uninstallArgs 2>&1 | Out-Null
+            }
         }
         $scanned++
     } catch {

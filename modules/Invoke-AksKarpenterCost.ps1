@@ -30,7 +30,7 @@
       * Retry, Sanitize, Installer (Invoke-WithTimeout)
       * RbacTier      (the per-wrapper opt-in mechanism shipped in this PR)
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -575,6 +575,9 @@ Perf
 
         if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
             $workspaceErrors.Add("Cluster $($cluster.name): -KubeconfigPath required when -EnableElevatedRbac is set.") | Out-Null
+            continue
+        }
+        if (-not $PSCmdlet.ShouldProcess([string]$cluster.name, 'Initialize kube auth and run kubectl Karpenter inspection')) {
             continue
         }
         if ($kubectlVersion -eq 'unknown') {

@@ -8,6 +8,7 @@ All notable changes to azure-analyzer will be documented here.
 - docs(release-blocker): generate tool-catalog.md and permissions-index.md (#528) -- Adds top-level navigation hubs at `docs/tool-catalog.md` (references detailed catalogs) and `docs/permissions-index.md` (quick-lookup table of all tools sorted by name with required scope and permission links). Release blocker resolved.
 
 ### Fixed
+- chore(CON-004): add `SupportsShouldProcess` + `ConfirmImpact='High'` to `Invoke-Falco` and `Invoke-AksKarpenterCost`, and gate Falco install/elevated kubectl execution behind `ShouldProcess` so `-WhatIf` dry-runs skip side effects.
 - fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545, reported by external user)
 - Silence Frameworks property warning noise in FrameworkMapper.ps1 Get-FrameworkCoverage by adding PSObject.Properties presence check before dereferencing $f.Frameworks (line 257). Prevents warning on every run for findings lacking the property. Closes #586.
 - Harden watchdog printf|head pipes against SIGPIPE by replacing `printf '%s\n' "$var" | head -n N` patterns with here-string redirects `head -n 500 <<<"$var"` and `grep -Eim1 <<<"$var"` in .github/workflows/ci-failure-watchdog.yml (lines 112, 118, 121, 123, 126). Eliminates SIGPIPE propagation under set -euo pipefail when head closes stdin early. Follow-up to #526. Closes #587.
