@@ -108,7 +108,7 @@ Describe 'Shared function collision detector (regression #529)' {
     }
 
     It 'flags duplicate function names inside unguarded if blocks' {
-        $tmpDir = Join-Path $TestDrive ("aa-unguarded-" + [guid]::NewGuid())
+        $tmpDir = Join-Path $TestDrive ("collision-test-unguarded-" + [guid]::NewGuid())
         New-Item -ItemType Directory -Path $tmpDir | Out-Null
         'function Foo-Conditional { 1 }' | Set-Content -Path (Join-Path $tmpDir 'A.ps1')
         'if ($true) { function Foo-Conditional { 2 } }' |

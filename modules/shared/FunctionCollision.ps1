@@ -17,6 +17,7 @@ function Test-AzureAnalyzerSharedFunctionCollisions {
     [CmdletBinding()]
     param ([Parameter(Mandatory)] [System.IO.FileInfo[]] $Files)
 
+    # Returns true when Node is nested under Ancestor in the AST parent chain.
     function Test-IsAstDescendant {
         param(
             [Parameter(Mandatory)] $Node,
@@ -30,6 +31,8 @@ function Test-AzureAnalyzerSharedFunctionCollisions {
         return $false
     }
 
+    # True only for fallback shims of the shape:
+    # if (-not (Get-Command <same-function-name> ...)) { function <same-function-name> { ... } }
     function Test-IsGuardedFallbackShim {
         param(
             [Parameter(Mandatory)] [System.Management.Automation.Language.IfStatementAst] $IfAst,
@@ -42,6 +45,8 @@ function Test-AzureAnalyzerSharedFunctionCollisions {
             if (-not (Test-IsAstDescendant -Node $FunctionAst -Ancestor $blockAst)) { continue }
 
             $conditionText = $conditionAst.Extent.Text
+            # Match `-not (Get-Command FunctionName ...)` with flexible spacing.
+            # Keep name matching permissive to mirror parser-accepted function names.
             if ($conditionText -notmatch '^\s*-not\s*\(\s*Get-Command\s+([A-Za-z0-9_-]+)\b') { continue }
 
             if ($matches[1] -ieq $FunctionAst.Name) { return $true }
