@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "bicep-iac",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Storage account allows public blob access in main.bicep",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Security",
+      "Pillar": "Security",
+      "Detail": "bicep-iac rule BCP-ST-001 flagged allowBlobPublicAccess=true on storageAccount resource at infra/main.bicep:42.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "Set properties.allowBlobPublicAccess to false in main.bicep.",
+      "RuleId": "bicep-iac-st-001"
+    },
+    {
+      "Title": "Key vault soft-delete disabled in module",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Reliability",
+      "Pillar": "Reliability",
+      "Detail": "bicep-iac rule BCP-KV-002 flagged soft-delete off on Key Vault module at infra/modules/keyvault.bicep:18.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "Set enableSoftDelete to true on the Key Vault module.",
+      "RuleId": "bicep-iac-kv-002"
+    },
+    {
+      "Title": "App Service enforces HTTPS-only",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Security",
+      "Pillar": "Security",
+      "Detail": "bicep-iac rule BCP-APP-001 verified httpsOnly=true on Microsoft.Web/sites resource at infra/main.bicep:118.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "",
+      "RuleId": "bicep-iac-app-001"
+    }
+  ]
+}

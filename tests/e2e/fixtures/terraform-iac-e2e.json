@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "terraform-iac",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Storage account permits public network access in main.tf",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Security",
+      "Pillar": "Security",
+      "Detail": "terraform-iac rule TF-ST-001 flagged public_network_access_enabled=true on azurerm_storage_account at infra/main.tf:54.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "Set public_network_access_enabled = false on the storage account.",
+      "RuleId": "terraform-iac-st-001"
+    },
+    {
+      "Title": "Network security group allows 0.0.0.0/0 on port 22",
+      "Severity": "Critical",
+      "Compliant": false,
+      "Category": "Security",
+      "Pillar": "Security",
+      "Detail": "terraform-iac rule TF-NSG-001 flagged inbound SSH from any source on azurerm_network_security_rule at infra/network.tf:88.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "Restrict source_address_prefix to a known CIDR or use Azure Bastion.",
+      "RuleId": "terraform-iac-nsg-001"
+    },
+    {
+      "Title": "Resource tags applied across all resources",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Governance",
+      "Pillar": "OperationalExcellence",
+      "Detail": "terraform-iac rule TF-TAG-001 verified mandatory tags (env, cost-center, owner) on every resource.",
+      "RepoId": "https://github.com/contoso/azure-iac",
+      "Remediation": "",
+      "RuleId": "terraform-iac-tag-001"
+    }
+  ]
+}
