@@ -1,4 +1,15 @@
-> ⚠️ **MAINTENANCE WINDOW** — main is undergoing a coordinated PR/issue cleanup sweep. Expect rapid commits and short-lived branch churn while open PRs land. Banner removed when the board is clear. (See open PRs and 'squad' issues.)
+```
+    _     ______   _ ____  _____
+   / \   |__  / | | |  _ \| ____|
+  / _ \    / /| | | | |_) |  _|
+ / ___ \  / /_| |_| |  _ <| |___
+/_/   \_\/____|\___|_| \_\_____|
+    _    _   _    _    _  __   ____________ ____
+   / \  | \ | |  / \  | | \ \ / /__  / ____|  _ \
+  / _ \ |  \| | / _ \ | |  \ V /  / /|  _| | |_) |
+ / ___ \| |\  |/ ___ \| |___| |  / /_| |___|  _ <
+/_/   \_\_| \_/_/   \_\_____|_| /____|_____|_| \_\
+```
 
 # azure-analyzer
 
@@ -53,18 +64,6 @@ Produces real `results.json`, `entities.json`, HTML and Markdown reports from fi
 
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
 
-## Testing
-
-- `Invoke-Pester -Path .\tests -CI`: full Pester suite (baseline is enforced by `tests/workflows/PesterBaselineGuard.Tests.ps1` and grows over time).
-- `Invoke-Pester -Path .\tests\wrappers -CI`: wrapper contract suite, including E2E wrapper-to-normalizer coverage for zizmor, gitleaks, and trivy.
-- `Invoke-Pester -Path .\tests\wrappers -Tag 'LiveTool' -CI`: optional live-CLI wrapper smoke tier (gitleaks, trivy, zizmor, scorecard) that exercises real binaries when present and enforces deterministic v1 envelopes (`Findings` is always an array).
-- `Invoke-Pester -Path .\tests\e2e -Output Detailed`: end-to-end harness that drives `Invoke-AzureAnalyzer`'s output pipeline (FindingRow -> EntityStore -> `results.json` + `entities.json` -> HTML + Markdown reports) across three surfaces (Azure subscription, GitHub repo, Tenant / management-group) with synthetic fixtures under `tests/e2e/fixtures/`. Runs in CI via [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) on windows-latest, ubuntu-latest, and macos-latest (8-minute timeout per leg). Asserts v1 / v3.1 schema shapes, tier selection across PureJson / EmbeddedSqlite / SidecarSqlite, `Invoke-RemoteRepoClone` host allow-list, and credential-scrub for planted `ghp_*` / `xoxb-*` / `AKIA*` / `pat-*` literals.
-- `Invoke-Pester -Path .\tests\wrappers\MissingToolRuntime.Tests.ps1`: cross-platform runtime coverage for missing-tool behavior in `Invoke-Trivy`, `Invoke-Kubescape`, and `Invoke-Scorecard` using a PATH-stripped child pwsh harness that captures stdout/stderr/warnings and asserts clean skipped v1 envelopes with `MissingTool` diagnostics.
-- `Invoke-Pester -Path .\tests\e2e\WrapperCoverageParity.Tests.ps1 -CI`: validates the umbrella E2E wrapper coverage tracker (`docs/audits/e2e-wrapper-coverage-parity.json`) stays in lockstep with enabled tools in `tools/tool-manifest.json`.
-- `Invoke-Pester -Path .\tests\shared\TestIsolation.Tests.ps1 -CI`: guard rail for cross-file state leaks. Fails when test files mutate `$env:*` / `$global:*` without matching lifecycle cleanup (`AfterAll`/`AfterEach` or inline `finally`) and restore operations, or when tests fall back to literal `'/tmp'` instead of `[System.IO.Path]::GetTempPath()`.
-
----
-
 <details open><summary><b>Feature highlights</b></summary>
 
 - **36 tools** (+ 1 opt-in) across Azure (azqr, PSRule, Powerpipe, AzGovViz, Prowler, Defender for Cloud, ...), Entra (Maester, Identity Correlator, ...), GitHub (gitleaks, Trivy, Scorecard, zizmor), and Azure DevOps (pipeline security, service connections, repos).
@@ -107,24 +106,38 @@ After `Import-Module .\AzureAnalyzer.psd1`, `Invoke-AzureAnalyzer` now exposes t
 
 </details>
 
-<details><summary><b>For contributors and maintainers</b></summary>
+<details><summary><b>Environment variables</b></summary>
 
-See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood, and design proposals belong under [docs/design/](docs/design/).
-
-CI maintainers: the daily CI Health Digest reconciles triage status from both `ci-failure` issue bodies and their follow-up comments, so repeated `still failing` run URLs are not reported as untriaged duplicates. The watchdog log-truncation/extraction path uses here-strings (`<<<`) for `head`/`grep` calls to avoid SIGPIPE aborts under `set -euo pipefail`.
-Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
-
-CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
-
-Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
-
-Markdown Check hardening: the `links (lychee)` job now scopes PR runs to changed Markdown files (while scheduled/manual runs still scan the full corpus), clears `.lycheecache` between retry attempts, and passes `GITHUB_TOKEN` to reduce transient GitHub/rate-limit flakes.
-
-</details>
-
-<details><summary><b>Environment variables</b></summary>azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:
+azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:
 
 - `AZURE_ANALYZER_NO_BANNER=1` -- suppress the ASCII banner. Also auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`.
 - `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` -- silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
 - `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) -- tells wrappers they were launched by the orchestrator, not standalone.
-- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) -- comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.</details>
+- `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) -- comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.
+
+</details>
+
+---
+
+## Contributing
+
+See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend the orchestrator, or contribute documentation. The [architecture docs](docs/architecture/) cover how azure-analyzer works under the hood, and design proposals belong under [docs/design/](docs/design/).
+
+### Testing
+
+- `Invoke-Pester -Path .\tests -CI`: full Pester suite (baseline is enforced by `tests/workflows/PesterBaselineGuard.Tests.ps1` and grows over time).
+- `Invoke-Pester -Path .\tests\wrappers -CI`: wrapper contract suite, including E2E wrapper-to-normalizer coverage for zizmor, gitleaks, and trivy.
+- `Invoke-Pester -Path .\tests\wrappers -Tag 'LiveTool' -CI`: optional live-CLI wrapper smoke tier (gitleaks, trivy, zizmor, scorecard) that exercises real binaries when present and enforces deterministic v1 envelopes (`Findings` is always an array).
+- `Invoke-Pester -Path .\tests\e2e -Output Detailed`: end-to-end harness that drives `Invoke-AzureAnalyzer`'s output pipeline (FindingRow → EntityStore → `results.json` + `entities.json` → HTML + Markdown reports) across three surfaces (Azure subscription, GitHub repo, Tenant / management-group) with synthetic fixtures under `tests/e2e/fixtures/`.
+- `Invoke-Pester -Path .\tests\wrappers\MissingToolRuntime.Tests.ps1`: cross-platform runtime coverage for missing-tool behavior in `Invoke-Trivy`, `Invoke-Kubescape`, and `Invoke-Scorecard`.
+- `Invoke-Pester -Path .\tests\e2e\WrapperCoverageParity.Tests.ps1 -CI`: validates E2E wrapper coverage tracker stays in lockstep with `tools/tool-manifest.json`.
+- `Invoke-Pester -Path .\tests\shared\TestIsolation.Tests.ps1 -CI`: guard rail for cross-file state leaks.
+
+### CI notes
+
+- **Required status check:** `Analyze (actions)` — the only check enforced in branch protection. PowerShell is not scanned by CodeQL (no supported extractor); Actions scanning covers workflow injection risks.
+- **`Auto-Rebase` and `Rerun-Failed-Checks` skip on non-agent branches:** The `PR Auto-Rebase Conflicts` and `PR Auto-Rerun On Push` workflows only trigger on agent-owned branch prefixes (`squad/`, `copilot/`, `fix/`, `feat/`, `ci/`, `docs/`). If you push from a branch without one of these prefixes, the workflows will show as skipped — this is expected behavior, not a failure.
+- Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
+- CodeQL (`Analyze (actions)`) uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
+- Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
+- Markdown Check hardening: the `links (lychee)` job scopes PR runs to changed Markdown files (scheduled/manual runs still scan the full corpus), clears `.lycheecache` between retry attempts, and passes `GITHUB_TOKEN` to reduce transient GitHub/rate-limit flakes.
