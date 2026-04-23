@@ -84,7 +84,9 @@ Describe 'PR Auto-Rerun On Push workflow' {
 
     It 'is registered on the ci-failure-watchdog watchlist' {
         $watchdog = ConvertFrom-Yaml (Get-Content -Raw (Join-Path $script:WorkflowsDir 'ci-failure-watchdog.yml'))
-        $onBlock = if ($watchdog.ContainsKey('on')) { $watchdog['on'] } else { $watchdog[$true] }
-        @($onBlock['workflow_run']['workflows']) | Should -Contain $script:WorkflowName
+        # After PR #944, the watchlist moved from `workflow_run.workflows` to `env.WATCHLIST`
+        $watchlistRaw = $watchdog['env']['WATCHLIST']
+        $watchlist = @($watchlistRaw -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+        $watchlist | Should -Contain $script:WorkflowName
     }
 }

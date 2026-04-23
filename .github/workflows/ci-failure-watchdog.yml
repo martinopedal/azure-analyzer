@@ -114,6 +114,17 @@ jobs:
               continue
             fi
 
+            # Advisory-workflow filter: failures here are observable in run logs but do
+            # NOT open ci-failure issues, because these workflows are not required checks
+            # in branch protection. Required checks (Analyze, links, lint) still escalate.
+            case "$WORKFLOW_NAME" in
+              "CI"|"E2E"|"Scheduled scan")
+                echo "Advisory workflow ($WORKFLOW_NAME) failed — logged but no issue created."
+                echo "Run URL: ${RUN_URL:-unknown}"
+                exit 0
+                ;;
+            esac
+
             # Skip if workflow is the watchdog itself (self-trigger guard)
             if [ "$WORKFLOW_NAME" = "CI failure watchdog" ]; then
               continue
