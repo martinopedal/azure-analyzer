@@ -5,9 +5,43 @@ BeforeAll {
     . (Join-Path $script:RepoRoot 'modules\shared\Schema.ps1')
     . (Join-Path $script:RepoRoot 'modules\shared\WorkerPool.ps1')
     . (Join-Path $script:RepoRoot 'modules\normalizers\Normalize-Azqr.ps1')
+
+    # PES-002: keep the suite hermetic. The orchestrator calls
+    # Read-MandatoryScannerParam for -TenantId when an Azure provider tool runs;
+    # without these guards the test blocks on Read-Host in interactive shells.
+    $script:savedTenantId       = $env:AZURE_TENANT_ID
+    $script:savedSubscriptionId = $env:AZURE_SUBSCRIPTION_ID
+    $script:savedCi             = $env:CI
+    $env:AZURE_TENANT_ID       = '00000000-0000-0000-0000-000000000000'
+    $env:AZURE_SUBSCRIPTION_ID = '00000000-0000-0000-0000-000000000000'
+    $env:CI                    = 'true'
+}
+
+AfterAll {
+    if ($null -eq $script:savedTenantId) {
+        Remove-Item Env:AZURE_TENANT_ID -ErrorAction SilentlyContinue
+    } else {
+        $env:AZURE_TENANT_ID = $script:savedTenantId
+    }
+    if ($null -eq $script:savedSubscriptionId) {
+        Remove-Item Env:AZURE_SUBSCRIPTION_ID -ErrorAction SilentlyContinue
+    } else {
+        $env:AZURE_SUBSCRIPTION_ID = $script:savedSubscriptionId
+    }
+    if ($null -eq $script:savedCi) {
+        Remove-Item Env:CI -ErrorAction SilentlyContinue
+    } else {
+        $env:CI = $script:savedCi
+    }
 }
 
 Describe 'Invoke-AzureAnalyzer management-group path backfill' {
+    BeforeAll {
+        # PES-002: belt-and-suspenders - if anything still tries to prompt,
+        # fail loud rather than hang the suite.
+        Mock Read-Host { throw 'PES-002: Read-Host should not be reached during MgPath tests' }
+    }
+
     It 'preserves repeated management-group display names when stamping findings during an MG scan' {
         $scriptPath = Join-Path $script:RepoRoot 'Invoke-AzureAnalyzer.ps1'
         $outputPath = Join-Path $script:RepoRoot 'output-test\mg-path'
