@@ -118,4 +118,23 @@ Describe 'Shared function collision detector (regression #529)' {
         $collisions.Count | Should -Be 1
         $collisions[0].Key | Should -Be 'Foo-Conditional'
     }
+
+    It 'fails closed (throws) when a shared file cannot be parsed' {
+        $tmpDir = Join-Path $TestDrive ("aa-parse-" + [guid]::NewGuid())
+        New-Item -ItemType Directory -Path $tmpDir | Out-Null
+        'function Foo-Valid { 1 }' | Set-Content -Path (Join-Path $tmpDir 'A.ps1')
+        # Deliberately broken: unclosed brace.
+        'function Foo-Broken {' | Set-Content -Path (Join-Path $tmpDir 'B.ps1')
+        $files = @(Get-ChildItem $tmpDir -Filter '*.ps1')
+        { Test-AzureAnalyzerSharedFunctionCollisions -Files $files -WarningAction SilentlyContinue } |
+            Should -Throw -ExpectedMessage '*failed to parse shared file*'
+    }
+}
+
+Describe 'AzureAnalyzer.psm1 deterministic shared-module load order (regression #529)' {
+    It 'sorts modules/shared dot-source targets by FullName' {
+        $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..' '..')
+        $psm1 = Get-Content (Join-Path $repoRoot 'AzureAnalyzer.psm1') -Raw
+        $psm1 | Should -Match 'Get-ChildItem[^\n]*\$sharedModulePath[\s\S]*?Sort-Object[^\n]*FullName'
+    }
 }

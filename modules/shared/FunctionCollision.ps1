@@ -2,10 +2,11 @@
 # modules/shared/ tree. Companion to Errors.ps1.
 #
 # Background (#529 / #671): AzureAnalyzer.psm1 dot-sources every *.ps1 under
-# modules/shared/ in ASCII order, so two files defining the same top-level
-# function will silently shadow each other. The original incident: a stub
-# `function New-FindingError` in Schema.ps1 overrode the canonical sanitizing
-# version in Errors.ps1, bypassing Remove-Credentials on Reason / Remediation.
+# modules/shared/ (now sorted by FullName for a deterministic load order),
+# so two files defining the same top-level function will silently shadow each
+# other. The original incident: a stub `function New-FindingError` in
+# Schema.ps1 overrode the canonical sanitizing version in Errors.ps1,
+# bypassing Remove-Credentials on Reason / Remediation.
 #
 # This helper walks each file's AST and reports any function name defined more
 # than once across files, IGNORING:
@@ -60,6 +61,19 @@ function Test-AzureAnalyzerSharedFunctionCollisions {
         $tokens = $null; $errors = $null
         $ast = [System.Management.Automation.Language.Parser]::ParseFile(
             $f.FullName, [ref]$tokens, [ref]$errors)
+        # Fail closed: if a shared file becomes unparseable we must NOT silently
+        # skip it — that would let a duplicate definition slip past this guard.
+        if ($errors -and $errors.Count -gt 0) {
+            $parseMessages = @($errors | ForEach-Object {
+                    if ($_.Extent) {
+                        '{0} (line {1}, column {2})' -f $_.Message, $_.Extent.StartLineNumber, $_.Extent.StartColumnNumber
+                    } else {
+                        $_.Message
+                    }
+                })
+            throw ("AzureAnalyzer: failed to parse shared file '{0}' while checking function collisions: {1}" -f `
+                    $f.FullName, ($parseMessages -join '; '))
+        }
         if ($null -eq $ast) { continue }
         $funcs = $ast.FindAll({ param($n)
             $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)
