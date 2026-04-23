@@ -27,7 +27,9 @@ $ErrorActionPreference = 'Stop'
 $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
-
+
+. (Join-Path $sharedDir 'New-WrapperEnvelope.ps1')
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 function Resolve-AdoPat {
     param ([string]$Explicit)
     if ($Explicit) { return $Explicit }
@@ -197,6 +199,7 @@ if (-not $SecretsFindingsPath -or -not (Test-Path $SecretsFindingsPath)) {
         Status = 'Skipped'
         Message = 'No secret findings file provided for pipeline correlation.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -214,6 +217,7 @@ try {
         Status = 'Failed'
         Message = (Remove-Credentials "Failed to read secret findings: $($_.Exception.Message)")
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -223,6 +227,7 @@ if ($secrets.Count -eq 0) {
         Status = 'Skipped'
         Message = 'No secret findings available for correlation.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -233,6 +238,7 @@ if (-not $pat) {
         Status = 'Skipped'
         Message = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -405,4 +411,5 @@ return [PSCustomObject]@{
     Status = $status
     Message = $message
     Findings = @($findings)
+    Errors   = @()
 }

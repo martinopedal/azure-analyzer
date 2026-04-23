@@ -1,4 +1,4 @@
-﻿#Requires -Version 7.4
+#Requires -Version 7.4
 <#
 .SYNOPSIS
     Azure DevOps repository secret scanner.
@@ -52,7 +52,9 @@ $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
 . (Join-Path $sharedDir 'Errors.ps1')
-. (Join-Path $sharedDir 'RemoteClone.ps1')
+. (Join-Path $sharedDir 'RemoteClone.ps1')
+. (Join-Path $sharedDir 'New-WrapperEnvelope.ps1')
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 $installerPath = Join-Path $sharedDir 'Installer.ps1'
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) -and (Test-Path $installerPath)) {
     . $installerPath
@@ -514,6 +516,7 @@ if (-not $pat) {
         Status = 'Skipped'
         Message = 'No ADO PAT provided. Set -AdoPat/-AdoPatToken, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -525,6 +528,7 @@ if (-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
         Status = 'Skipped'
         Message = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -766,6 +770,7 @@ try {
         Status = $status
         Message = $message
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     $errMsg = Remove-Credentials "$($_.Exception.Message)"
@@ -774,5 +779,6 @@ try {
         Status = 'Failed'
         Message = $errMsg
         Findings = @()
+        Errors   = @()
     }
 }

@@ -29,7 +29,10 @@ $ErrorActionPreference = 'Stop'
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
-if (Test-Path $missingToolPath) { . $missingToolPath }
+if (Test-Path $missingToolPath) { . $missingToolPath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
     function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
 }
@@ -119,14 +122,14 @@ function Get-WaraWorkbookMetadata {
 $waraModule = @(Get-Module -ListAvailable -Name WARA | Sort-Object Version -Descending | Select-Object -First 1)
 if (-not $waraModule) {
     Write-MissingToolNotice -Tool 'wara' -Message "WARA module not found. Install with: Install-Module WARA -Scope CurrentUser"
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'WARA module not installed. Run: Install-Module WARA -Scope CurrentUser'; Findings = @(); Errors = @() }
 }
 $toolVersion = [string]$waraModule[0].Version
 
 Import-Module WARA -ErrorAction SilentlyContinue
 if (-not (Get-Command Start-WARACollector -ErrorAction SilentlyContinue)) {
     Write-MissingToolNotice -Tool 'wara' -Message "WARA module loaded but Start-WARACollector not found. Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Skipped'; Message = 'Could not install WARA module'; Findings = @(); Errors = @() }
 }
 
 # Resolve tenant
@@ -136,7 +139,7 @@ if (-not $TenantId) {
     $TenantId = if ($null -ne $ctx -and $null -ne $ctx.Tenant) { $ctx.Tenant.Id } else { $null }
     if (-not $TenantId) {
         Write-Warning "No TenantId provided and no Az context found. Returning empty result."
-        return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No TenantId and no Az context'; Findings = @() }
+        return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No TenantId and no Az context'; Findings = @(); Errors = @() }
     }
 }
 
@@ -157,7 +160,7 @@ try {
 } catch {
     Pop-Location
     Write-Warning "WARA collector failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @(); Errors = @() }
 }
 
 # Find the newest JSON output file
@@ -167,7 +170,7 @@ $jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA_File_*.json" |
 
 if (-not $jsonFile) {
     Write-Warning "WARA collector ran but no output JSON found in $OutputPath."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @(); Errors = @() }
 }
 
 # Parse findings
@@ -175,7 +178,7 @@ try {
     $raw = Get-Content $jsonFile.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
 } catch {
     Write-Warning "Could not parse WARA JSON: $(Remove-Credentials -Text ([string]$_))"
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @() }
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @(); Errors = @() }
 }
 
 $xlsxFile = Get-ChildItem -Path $OutputPath -Filter "Expert-Analysis-*.xlsx" |
@@ -309,4 +312,4 @@ foreach ($rec in $recommendations) {
     }
 }
 
-return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; ToolVersion = $toolVersion; Status = 'Success'; Message = ''; Findings = $findings }
+return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; ToolVersion = $toolVersion; Status = 'Success'; Message = ''; Findings = @($findings); Errors = @() }

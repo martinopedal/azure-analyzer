@@ -15,6 +15,10 @@ param(
 )
 Set-StrictMode -Version Latest
 
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
+
 # --- Check 1: Python 3.10+ ---
 $py = $null
 try {
@@ -33,7 +37,7 @@ if (-not $py) {
 }
 if (-not $py) {
     Write-Warning 'AI triage requires Python 3.10+. Skipping.'
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Skipped' -Message 'Python 3.10+ not available'
 }
 
 # --- Check 2: github-copilot-sdk installed ---
@@ -42,7 +46,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw }
 } catch {
     Write-Warning 'AI triage requires github-copilot-sdk. Install with: pip install github-copilot-sdk. Skipping.'
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Skipped' -Message 'github-copilot-sdk not installed'
 }
 
 # --- Check 3: Copilot token available ---
@@ -51,22 +55,22 @@ if (-not $tk) { $tk = $env:GH_TOKEN }
 if (-not $tk) { $tk = $env:GITHUB_TOKEN }
 if (-not $tk) {
     Write-Warning "AI triage requires a GitHub Copilot license. Set COPILOT_GITHUB_TOKEN with a PAT that has the 'copilot' scope. Skipping."
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Skipped' -Message 'No Copilot token'
 }
 if ($tk.StartsWith('ghs_')) {
     Write-Warning "AI triage does not support GitHub Actions tokens (ghs_). Use a PAT with the 'copilot' scope. Skipping."
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Skipped' -Message 'GitHub Actions tokens not supported'
 }
 
 # --- Validate inputs ---
 if (-not (Test-Path $InputPath)) {
     Write-Warning "AI triage: input file not found — $InputPath. Skipping."
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Skipped' -Message 'Input file not found'
 }
 $scriptPath = Join-Path $PSScriptRoot 'Invoke-CopilotTriage.py'
 if (-not (Test-Path $scriptPath)) {
     Write-Warning 'AI triage: Python script not found. Skipping.'
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Skipped' -Message 'Python script not found'
 }
 
 # --- Run triage ---
@@ -81,16 +85,16 @@ try {
     }
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "AI triage: Python script exited with code $LASTEXITCODE. Skipping."
-        return $null
+        return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message "Python script exited with non-zero"
     }
     if (-not (Test-Path $OutputPath)) {
         Write-Warning 'AI triage: triage.json was not created. Skipping.'
-        return $null
+        return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message 'triage.json not created'
     }
     $triage = Get-Content $OutputPath -Raw | ConvertFrom-Json -ErrorAction Stop
     Write-Host "AI triage complete — enriched findings written to $OutputPath" -ForegroundColor Green
     return $triage
 } catch {
     Write-Warning "AI triage: unexpected error — $_. Skipping."
-    return $null
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message "Unexpected error: $_"
 }

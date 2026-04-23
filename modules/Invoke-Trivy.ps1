@@ -45,7 +45,10 @@ $missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
-
+
+$envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -237,6 +240,7 @@ if (-not (Test-TrivyInstalled)) {
         Status   = 'Skipped'
         Message  = 'trivy CLI not installed. Download from https://github.com/aquasecurity/trivy/releases'
         Findings = @()
+        Errors   = @()
         Diagnostics = @(
             [PSCustomObject]@{
                 Code    = 'MissingTool'
@@ -268,6 +272,7 @@ try {
                 Source = 'trivy'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                Errors   = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
@@ -277,6 +282,7 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                Errors   = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -307,6 +313,7 @@ try {
                 Status   = 'Failed'
                 Message  = (Remove-Credentials "trivy exited with code $exitCode and produced no report")
                 Findings = @()
+                Errors   = @()
             }
         }
 
@@ -324,6 +331,7 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials -Text "Report JSON parse failed: $([string]$_)"
                         Findings = @()
+                        Errors   = @()
                     }
                 }
             }
@@ -537,6 +545,7 @@ try {
         Status   = 'Success'
         Message  = ''
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "Trivy scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -546,6 +555,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }finally {
     if ($cleanupClone) {

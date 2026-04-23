@@ -49,7 +49,10 @@ $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
 $errorsPath = Join-Path $sharedDir 'Errors.ps1'
 if (Test-Path $errorsPath) { . $errorsPath }
-
+
+$envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -355,6 +358,7 @@ if (-not (Test-GitleaksInstalled)) {
         Status   = 'Skipped'
         Message  = 'gitleaks CLI not installed. Install from https://github.com/gitleaks/gitleaks/releases'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -374,6 +378,7 @@ try {
                 Source = 'gitleaks'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                Errors   = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl
@@ -383,6 +388,7 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                Errors   = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -434,6 +440,7 @@ try {
                 Status   = 'Failed'
                 Message  = Remove-Credentials "gitleaks exited with code $exitCode and produced no report"
                 Findings = @()
+                Errors   = @()
             }
         }
 
@@ -451,6 +458,7 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
+                        Errors   = @()
                     }
                 }
             }
@@ -618,6 +626,7 @@ try {
         RepositoryUrl = $repositoryMeta.RepositoryUrl
         ToolVersion = $toolVersion
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning (Remove-Credentials "gitleaks scan failed: $_")
@@ -627,6 +636,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
+        Errors   = @()
     }
 } finally {
     if ($cleanupClone) {

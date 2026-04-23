@@ -36,7 +36,9 @@ $ErrorActionPreference = 'Stop'
 
 $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
-. (Join-Path $sharedDir 'Sanitize.ps1')
+. (Join-Path $sharedDir 'Sanitize.ps1')
+. (Join-Path $sharedDir 'New-WrapperEnvelope.ps1')
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 $errorsPath = Join-Path $sharedDir 'Errors.ps1'
 if (Test-Path $errorsPath) { . $errorsPath }
 if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
@@ -217,6 +219,7 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Status   = 'Skipped'
         Message  = 'gh CLI not installed. Install GitHub CLI and authenticate with gh auth login.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -445,6 +448,7 @@ try {
         Status   = 'Success'
         Message  = Remove-Credentials "Scanned $($repos.Count) repo(s); produced $($findings.Count) GitHub Actions cost finding(s)."
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     $msg = Remove-Credentials ([string]$_.Exception.Message)
@@ -454,5 +458,6 @@ try {
         Status   = 'Failed'
         Message  = $msg
         Findings = @()
+        Errors   = @()
     }
 }

@@ -30,7 +30,10 @@ $ErrorActionPreference = 'Stop'
 $sanitizePath = Join-Path $PSScriptRoot 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
-if (Test-Path $missingToolPath) { . $missingToolPath }
+if (Test-Path $missingToolPath) { . $missingToolPath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -110,6 +113,7 @@ if (-not (Test-PSRuleInstalled)) {
         Status   = 'Skipped'
         Message  = 'PSRule.Rules.Azure not installed'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -129,7 +133,7 @@ try {
 
     $results = Invoke-PSRule @invokeParams -ErrorAction Stop
 
-    $findings = $results | ForEach-Object {
+    $findings = @($results) | ForEach-Object {
         $info = $_.Info
         $ruleName = if ($_.PSObject.Properties['RuleName'] -and $_.RuleName) { [string]$_.RuleName } else { '' }
         $ruleId = if ($_.PSObject.Properties['RuleId'] -and $_.RuleId) { [string]$_.RuleId } elseif ($ruleName) { $ruleName } else { '' }
@@ -204,6 +208,7 @@ try {
         Status   = 'Success'
         Message  = ''
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "PSRule scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -212,5 +217,6 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials -Text ([string]$_)
         Findings = @()
+        Errors   = @()
     }
 }

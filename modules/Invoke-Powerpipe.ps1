@@ -31,7 +31,10 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
 }
 
 $errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
-if (Test-Path $errorsPath) { . $errorsPath }
+if (Test-Path $errorsPath) { . $errorsPath }
+$envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
     function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
 }
@@ -135,6 +138,7 @@ if (-not (Test-PowerpipeInstalled)) {
         Message       = 'powerpipe not installed'
         ToolVersion   = ''
         Findings      = @()
+        Errors   = @()
     }
 }
 
@@ -179,6 +183,7 @@ try {
         ToolVersion   = $toolVersion
         Subscription  = $SubscriptionId
         Findings      = @($findings)
+        Errors   = @()
     }
 } catch {
     Write-Warning "powerpipe scan failed: $(Remove-Credentials -Text ([string]$_))"
@@ -189,5 +194,6 @@ try {
         Message       = (Remove-Credentials -Text ([string]$_))
         ToolVersion   = ''
         Findings      = @()
+        Errors   = @()
     }
 }

@@ -45,7 +45,10 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
-if (Test-Path $remoteClonePath) { . $remoteClonePath }
+if (Test-Path $remoteClonePath) { . $remoteClonePath }
+$envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 $installerPath = Join-Path $sharedDir 'Installer.ps1'
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue) -and (Test-Path $installerPath)) {
     . $installerPath
@@ -190,6 +193,7 @@ if (-not (Test-InfracostInstalled)) {
         Status        = 'Skipped'
         Message       = 'infracost CLI not installed. Install from https://www.infracost.io/docs/'
         Findings      = @()
+        Errors   = @()
     }
 }
 
@@ -205,6 +209,7 @@ try {
                 Status        = 'Failed'
                 Message       = 'RemoteClone helper unavailable'
                 Findings      = @()
+                Errors   = @()
             }
         }
         $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl -TimeoutSec 300
@@ -215,6 +220,7 @@ try {
                 Status        = 'Failed'
                 Message       = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings      = @()
+                Errors   = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
@@ -228,6 +234,7 @@ try {
             Status        = 'Failed'
             Message       = "Path not found: $RepoPath"
             Findings      = @()
+            Errors   = @()
         }
     }
 
@@ -240,6 +247,7 @@ try {
             Status        = 'Skipped'
             Message       = 'No Terraform or Bicep files found under scan path.'
             Findings      = @()
+            Errors   = @()
         }
     }
 
@@ -256,6 +264,7 @@ try {
             Status        = 'Failed'
             Message       = "infracost breakdown failed (exit code $($exec.ExitCode)): $safeOutput"
             Findings      = @()
+            Errors   = @()
         }
     }
 
@@ -267,6 +276,7 @@ try {
             Status        = 'Failed'
             Message       = 'infracost output did not contain a JSON object.'
             Findings      = @()
+            Errors   = @()
         }
     }
 
@@ -280,6 +290,7 @@ try {
             Status        = 'Failed'
             Message       = Remove-Credentials "Failed to parse infracost JSON: $($_.Exception.Message)"
             Findings      = @()
+            Errors   = @()
         }
     }
 
@@ -427,6 +438,7 @@ try {
         Status        = 'Failed'
         Message       = Remove-Credentials -Text ([string]$_.Exception.Message)
         Findings      = @()
+        Errors   = @()
     }
 } finally {
     if ($cleanupClone) {

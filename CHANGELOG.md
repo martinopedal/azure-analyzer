@@ -4,17 +4,13 @@
 
 - Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
 - **Bot gate unification (#938):** Extend GitHub App token pattern to `tool-auto-update.yml` and `pr-auto-rebase.yml`. PRs created by tool-auto-update and rebase force-pushes now use the same App token (`RELEASE_APP_ID`) as release-please, bypassing the first-time-contributor approval gate and the `GITHUB_TOKEN` anti-recursion guard that previously prevented downstream CI from triggering on bot activity
-
-### Changed
-
-- **ASCII banner redesign (#964):** Replaced single-line merged figlet banner with two-block Standard figlet layout — "AZURE" (Cyan) on top, "ANALYZER" (Yellow) below. Both words clearly readable, ASCII-only (7-bit safe), under 80 chars wide. Console-only; no report impact.
 ### Added
 - **FixtureMode** (`-FixtureMode`): Run the full normalizer and reporting pipeline against fixture data in `tests/fixtures/` without Azure credentials. Skips auth checks, prerequisite installs, and all live API calls. Produces real `results.json`, `entities.json`, and HTML/Markdown reports. Use `-FixturePath <dir>` to supply custom fixtures. (#926)
 - **FixtureMode integration tests**: 14 Pester tests covering default/custom fixture paths, invalid path handling, `-IncludeTools` filtering, and output artifact verification.
 
 ### Fixed
 
-- **Backfill-ChangelogCitations null guard:** `Get-VersionForCommit` now returns 'Unreleased' early when `$SortedBoundaries` is null or empty, fixing `PropertyNotFoundException` on `.Count` in CI. Caller wraps pipeline output in `@()` to guarantee array type.
+- **Backfill-ChangelogCitations null guard:** `Get-VersionForCommit` now returns 'Unreleased' early when `$SortedBoundaries` is null or empty, fixing `PropertyNotFoundException` on `.Count` in CI. Caller also wraps pipeline output in `@()` to guarantee array type.
 - **HTML report determinism**: Entity-type bar chart and heatmap JSON had non-deterministic ordering across process invocations due to PowerShell `@{}` hashtable key randomization. Converted 11 hashtables feeding `ConvertTo-Json` to `[ordered]@{}`, added alphabetical tiebreaker to entity-type sort, replaced `.ContainsKey()` with `.Contains()` for `OrderedDictionary` compat. Regenerated SampleDrift fixture. Root cause existed since entity bars were introduced; exposed by SampleDrift drift canary.
 - **DocsCheck tests**: Added missing Pester assertions for `docs/design` path and other documentation path patterns (`copilot/audits`, `.squad/decisions`, `.squad/ceremonies.md`, root-level docs). PR #941 added `docs/design` to the docs-check workflow but the test file was not updated. Fixes M4 from 24h CI audit. Closes #945, #943, #942, #939, #936, #935, #934, #933.
 - **Shared helper**: Converted `modules/shared/New-WrapperEnvelope.ps1` from standalone script (with top-level `param()`) to pure function definition. Eliminates phantom object emission when dot-sourced, fixing Invoke-Maester double-return (M1) and Errors.Regression529 child-process crash (M3). (#907)

@@ -53,7 +53,10 @@ $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
-
+
+$envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
+if (Test-Path $envelopePath) { . $envelopePath }
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param ([string]$Text) return $Text }
 }
@@ -234,6 +237,7 @@ if (-not (Test-ZizmorInstalled)) {
         Status   = 'Skipped'
         Message  = 'zizmor CLI not installed. Install from https://github.com/woodruffw/zizmor/releases or: pip install zizmor'
         Findings = @()
+        Errors   = @()
         RunMode  = 'Full'
     }
 }
@@ -250,6 +254,7 @@ try {
                 Source = 'zizmor'
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = 'RemoteClone helper unavailable'; Findings = @()
+                Errors   = @()
                 RunMode = $effectiveRunMode
             }
         }
@@ -260,6 +265,7 @@ try {
                 SchemaVersion = '1.0'; Status = 'Failed'
                 Message = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings = @()
+                Errors   = @()
                 RunMode = $effectiveRunMode
             }
         }
@@ -272,6 +278,7 @@ try {
             Source = 'zizmor'
             SchemaVersion = '1.0'; Status = 'Skipped'
             Message = 'No -RemoteUrl or -RepoPath provided'; Findings = @()
+            Errors   = @()
             RunMode = $effectiveRunMode
         }
     }
@@ -284,6 +291,7 @@ try {
             Status   = 'Skipped'
             Message  = "Workflow path not found: $scanPath"
             Findings = @()
+            Errors   = @()
             RunMode  = $effectiveRunMode
         }
     }
@@ -333,6 +341,7 @@ try {
                 Status   = 'Failed'
                 Message  = Remove-Credentials $msg
                 Findings = @()
+                Errors   = @()
                 RunMode  = $effectiveRunMode
             }
         }
@@ -351,6 +360,7 @@ try {
                         Status   = 'Failed'
                         Message  = Remove-Credentials "Report JSON parse failed: $_"
                         Findings = @()
+                        Errors   = @()
                         RunMode  = $effectiveRunMode
                     }
                 }
@@ -508,7 +518,8 @@ try {
         SchemaVersion = '1.0'
         Status   = 'Success'
         Message  = ''
-        Findings = $findings
+        Findings = @($findings)
+        Errors   = @()
         ToolVersion = $toolVersion
         RunMode  = $effectiveRunMode
         SinceUtc = if ($null -ne $Since) { ([datetime]$Since).ToUniversalTime().ToString('o') } else { $null }
@@ -521,6 +532,7 @@ try {
         Status   = 'Failed'
         Message  = Remove-Credentials "$_"
         Findings = @()
+        Errors   = @()
         RunMode  = $effectiveRunMode
     }
 } finally {

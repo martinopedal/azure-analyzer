@@ -42,7 +42,9 @@ $ErrorActionPreference = 'Stop'
 $sharedDir = Join-Path $PSScriptRoot 'shared'
 . (Join-Path $sharedDir 'Retry.ps1')
 . (Join-Path $sharedDir 'Sanitize.ps1')
-
+
+. (Join-Path $sharedDir 'New-WrapperEnvelope.ps1')
+if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 function Resolve-AdoPat {
     param ([string]$Explicit)
     if ($Explicit) { return $Explicit }
@@ -195,6 +197,7 @@ if (-not $pat) {
         Status   = 'Skipped'
         Message  = 'No ADO PAT provided. Set -AdoPat, ADO_PAT_TOKEN, AZURE_DEVOPS_EXT_PAT, or AZ_DEVOPS_PAT.'
         Findings = @()
+        Errors   = @()
     }
 }
 
@@ -219,6 +222,7 @@ try {
             Status   = 'Success'
             Message  = "No projects found in organization '$AdoOrg'."
             Findings = @()
+            Errors   = @()
         }
     }
 
@@ -425,6 +429,7 @@ try {
         Message  = Remove-Credentials "Scanned $($projectStats.Count) project(s); produced $($findings.Count) ADO consumption finding(s)."
         ToolVersion = $toolVersion
         Findings = @($findings)
+        Errors   = @()
     }
 } catch {
     $msg = Remove-Credentials ([string]$_.Exception.Message)
@@ -434,6 +439,7 @@ try {
         Status   = 'Failed'
         Message  = $msg
         Findings = @()
+        Errors   = @()
     }
 }
 

@@ -51,6 +51,8 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 
 - 2026-04-24 — Bot gate solution (#938): GITHUB_TOKEN in PR-creating or branch-pushing workflows causes two problems: (1) first-time-contributor approval gate blocks bot PR workflow runs, (2) anti-recursion guard prevents downstream CI from triggering. Fix: use GitHub App token (actions/create-github-app-token) for any workflow that creates PRs or pushes to PR branches. Read-only downstream workflows don't need App tokens. copilot-swe-agent[bot] PRs are residual (external product, not fixable via workflow). PR #956.
 
+- 2026-04-25 — Envelope contract completion (#907): Automated regex-based PSCustomObject scanning missed two patterns: (1) semicolon-separated property lines where `Findings = @()` was mid-line, not at line start, and (2) bare `Findings = $findings` on success paths (7 wrappers). Lesson: static-analysis ratchet tests (Cat 12/13 in WrapperConsistencyRatchet) are the ground truth — automated fixers are insufficient without test enforcement. PR #976.
+
 ### 2026-04-20T15:18:09Z: CI-failure batch #260/#261/#262/#264
 
 - Triage complete: all four issues were categorized stale or transient and closed with rationale comments.
