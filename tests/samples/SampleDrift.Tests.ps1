@@ -1,5 +1,39 @@
 #Requires -Version 7.4
 Set-StrictMode -Version Latest
-BeforeAll { $repoRoot=Resolve-Path (Join-Path $PSScriptRoot '..\..'); $samplesDir=Join-Path $repoRoot samples; $tempDir=Join-Path $repoRoot output-test sample-drift; if(Test-Path $tempDir){Remove-Item $tempDir -Recurse -Force}; New-Item -Path $tempDir -ItemType Directory -Force|Out-Null }
-Describe 'samples/ drift detection' { It 'HTML report renders identically' { $committedFindings=Join-Path $samplesDir sample-findings-v2.json; $freshHtml=Join-Path $tempDir fresh-report.html; & (Join-Path $repoRoot New-HtmlReport.ps1) -InputPath $committedFindings -OutputPath $freshHtml -ErrorAction Stop; $freshHtml|Should -Exist; $committedHtml=Join-Path $samplesDir sample-report-v2-mockup.html; $committed=(Get-Content $committedHtml -Raw -Encoding UTF8) -replace 'Generated.*\d{4}-\d{2}-\d{2}','Generated TIMESTAMP'; $fresh=(Get-Content $freshHtml -Raw -Encoding UTF8) -replace 'Generated.*\d{4}-\d{2}-\d{2}','Generated TIMESTAMP'; $committed.Length|Should -Be $fresh.Length -Because 'renderer output changed' } }
-AfterAll { if(Test-Path $tempDir){Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue} }
+
+BeforeAll {
+    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..' '..')
+    $samplesDir = Join-Path $repoRoot 'samples'
+    $tempDir = Join-Path $repoRoot 'output-test' 'sample-drift'
+    
+    if (Test-Path $tempDir) {
+        Remove-Item $tempDir -Recurse -Force
+    }
+    New-Item -Path $tempDir -ItemType Directory -Force | Out-Null
+}
+
+Describe 'samples/drift detection' {
+    It 'HTML report renders identically' {
+        $committedFindings = Join-Path $samplesDir 'sample-findings-v2.json'
+        $freshHtml = Join-Path $tempDir 'fresh-report.html'
+        
+        & (Join-Path $repoRoot 'New-HtmlReport.ps1') `
+            -InputPath $committedFindings `
+            -OutputPath $freshHtml `
+            -ErrorAction Stop
+        
+        $freshHtml | Should -Exist
+        
+        $committedHtml = Join-Path $samplesDir 'sample-report-v2-mockup.html'
+        $committed = ((Get-Content $committedHtml -Raw -Encoding UTF8) -replace '\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC', 'TIMESTAMP') -replace "`r`n", "`n"
+        $fresh = ((Get-Content $freshHtml -Raw -Encoding UTF8) -replace '\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC', 'TIMESTAMP') -replace "`r`n", "`n"
+        
+        $fresh | Should -BeExactly $committed -Because 'renderer output changed'
+    }
+}
+
+AfterAll {
+    if (Test-Path $tempDir) {
+        Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
