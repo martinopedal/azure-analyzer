@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # See tests/wrappers/Invoke-AlzQueries.Tests.ps1 header -- single-file run guard.
+$env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS = if ($null -eq $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS) { '__unset__' } else { $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS }
 $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = '1'
 
 BeforeAll {
@@ -11,6 +12,15 @@ BeforeAll {
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Trivy.ps1'
     $script:Normalizer = Join-Path $script:RepoRoot 'modules' 'normalizers' 'Normalize-Trivy.ps1'
     $script:CliFixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'trivy-cli-report.json'
+}
+
+AfterAll {
+    if ($env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -eq '__unset__') {
+        Remove-Item Env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS -ErrorAction SilentlyContinue
+    } else {
+        $env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS = $env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS
+    }
+    Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }
 
 Describe 'Invoke-Trivy: error paths' {
@@ -39,6 +49,37 @@ Describe 'Invoke-Trivy: error paths' {
         It 'includes SchemaVersion 1.0 in the v1 envelope' {
             $result.SchemaVersion | Should -Be '1.0'
         }
+    }
+}
+
+Describe 'Invoke-Trivy: success contract' {
+    BeforeEach {
+        function global:trivy {
+            param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Args)
+            if ($Args.Count -gt 0 -and $Args[0] -eq '--version') {
+                $global:LASTEXITCODE = 0
+                return 'Version: 0.56.2'
+            }
+
+            $outputIndex = [array]::IndexOf($Args, '--output')
+            if ($outputIndex -lt 0 -or $outputIndex + 1 -ge $Args.Count) {
+                throw "Expected --output argument in trivy invocation. Args: $($Args -join ' ')"
+            }
+            Set-Content -Path $Args[$outputIndex + 1] -Value '{"Results":[]}' -Encoding UTF8
+            $global:LASTEXITCODE = 0
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:\global:trivy -ErrorAction SilentlyContinue
+    }
+
+    It 'returns non-null empty Findings on successful no-results scans' {
+        $result = & $script:Wrapper -RepoPath '.'
+
+        $result.Status | Should -Be 'Success'
+        ,$result.Findings | Should -Not -Be $null
+        @($result.Findings).Count | Should -Be 0
     }
 }
 

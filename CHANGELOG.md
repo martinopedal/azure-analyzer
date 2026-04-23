@@ -11,6 +11,10 @@ All notable changes to azure-analyzer will be documented here.
 
 ## [Unreleased]
 
+### Documentation
+- docs: post-cascade refresh across README, PERMISSIONS, CONTRIBUTING (cloud-agent edition), `.github/copilot-instructions.md`, reference index counts, and regenerated manifest-driven sample reports/catalog checks.
+- docs(samples): reconcile Markdown/HTML/mockup sample reports - unify tool count to 37 and posture grade to `F (0/100)` across `samples/sample-report.md` and `samples/sample-report.html`; populate tool-versions table in HTML sample to match Markdown; canonicalize tool id `finops` (was `finops-signals`) in `samples/sample-report-v2-mockup.md`; drop hardcoded enabled/opt-in counts from `docs/reference/README.md` quick-links description so it does not drift with manifest.
+
 ### Changed
 - add post-cascade final consistency audit summary for 1.1.1 in `docs/audits/2026-04-post-cascade.md`.
 ### Security
@@ -18,9 +22,10 @@ All notable changes to azure-analyzer will be documented here.
 ### Added
 - test(e2e): wrapper coverage for the three IaC tools - `bicep-iac` (#663), `infracost` (#664), `terraform-iac` (#665). New file `tests/e2e/Batch6-IaC.E2E.Tests.ps1` plus three deterministic fixtures under `tests/e2e/fixtures/` feed per-tool wrapper output through `Invoke-E2EPipeline`, asserting results.json shape, entities.json v3.1 envelope with at least one `Repository` entity (canonicalised via `ConvertTo-CanonicalEntityId`), EntityType enum compliance, severity enum, HTML/MD render, and credential-scrub of planted GitHub PAT + Bearer JWT. Backs the `covered` status already recorded in `docs/audits/e2e-wrapper-coverage-parity.json` (E2E-032/033/034). Baseline preserved.
 ### Fixed
-- Restore env/global state in BeforeAll/AfterAll across test suite (#746).
+- Restore env/global state in BeforeAll/AfterAll (or matching cleanup lifecycle blocks) across test suite and tighten the isolation guard coverage for wrapper env suppression patterns (#746).
 - Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
 - Markdown Check `links (lychee)` now scans only changed Markdown files on PRs (keeping full-corpus scans on schedule/manual runs) to reduce repeated PR flake/rate-limit failures while still surfacing real link rot.
+- LiveTool wrappers now always return `Findings` as an array (never `$null`) for gitleaks/trivy success paths, and CI uses `scorecard version` in LiveTool dependency verification (#846).
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
