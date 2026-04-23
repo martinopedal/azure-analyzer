@@ -10,6 +10,7 @@
 
 ### Added
 
+- **Module import regression gate**: New `tests/shared/ModuleImport.Tests.ps1` validates that `Import-Module ./AzureAnalyzer.psd1` completes without prompting for mandatory parameters in non-interactive mode. Adds 8 test cases covering prompt-free import, timeout gate (<10s), stderr cleanliness, exported function verification, and shared-module isolation. Prevents regression of E2E walkthrough P0-2 (module import hang). Closes #930.
 - **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
 - **CON-005 ratchet**: New wrapper envelope contract test in WrapperConsistencyRatchet.Tests.ps1 enforces that ALL 37 wrappers emit Errors = @() field alongside Findings on every code path (#907).
 - **Security ratchet**: New `tests/shared/JsonSanitizeOrderRatchet.Tests.ps1` prevents future regression of the JSON-sanitize-before-parse anti-pattern (PR #876 lesson). Scans all `modules/**/*.ps1` for `Remove-Credentials` piped to `ConvertFrom-Json` on the same variable. Baseline: 0 violations. Enforces parse-first, sanitize-after pattern for JSON outputs (#915).
