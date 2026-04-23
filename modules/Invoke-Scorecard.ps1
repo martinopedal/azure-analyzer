@@ -17,7 +17,7 @@
     Sets GH_HOST environment variable for the scorecard CLI call.
     When empty, defaults to github.com.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Parameter(Mandatory)]
     [Alias('Repo', 'RepoUrl')]

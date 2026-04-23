@@ -163,7 +163,11 @@ function New-CorrelatorInfoFinding {
 }
 
 function Get-AdoBuilds {
-    param ([string]$Org, [string]$Project, [hashtable]$Headers)
+    param (
+        [Parameter(Mandatory)][string]$Org,
+        [Parameter(Mandatory)][string]$Project,
+        [Parameter(Mandatory)][hashtable]$Headers
+    )
     $orgEnc = [uri]::EscapeDataString($Org)
     $projectEnc = [uri]::EscapeDataString($Project)
     $uri = "https://dev.azure.com/$orgEnc/$projectEnc/_apis/build/builds?api-version=7.1&`$top=200"
@@ -173,7 +177,12 @@ function Get-AdoBuilds {
 }
 
 function Get-AdoBuildLogs {
-    param ([string]$Org, [string]$Project, [string]$BuildId, [hashtable]$Headers)
+    param (
+        [Parameter(Mandatory)][string]$Org,
+        [Parameter(Mandatory)][string]$Project,
+        [Parameter(Mandatory)][string]$BuildId,
+        [Parameter(Mandatory)][hashtable]$Headers
+    )
     $orgEnc = [uri]::EscapeDataString($Org)
     $projectEnc = [uri]::EscapeDataString($Project)
     $uri = "https://dev.azure.com/$orgEnc/$projectEnc/_apis/build/builds/$BuildId/logs?api-version=7.1"

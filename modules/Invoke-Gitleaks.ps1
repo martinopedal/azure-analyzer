@@ -20,7 +20,7 @@
     Optional local path to a gitleaks TOML config file.
     When provided, the wrapper passes --config <path> to gitleaks.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [string] $RepoPath = '.',
 

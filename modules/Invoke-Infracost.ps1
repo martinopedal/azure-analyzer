@@ -22,7 +22,7 @@
 .PARAMETER RemoteUrl
     Remote HTTPS repository URL to clone and scan.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Alias('Path')]
     [string] $RepoPath = '.',
