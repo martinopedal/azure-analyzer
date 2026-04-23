@@ -52,29 +52,44 @@ function Write-AzureAnalyzerBanner {
 
     $useColor = -not $env:NO_COLOR
 
-    # ASCII-only banner: 7-bit safe so it renders identically in cmd.exe,
-    # PowerShell ISE, Windows Terminal, and pwsh on Linux/macOS.
-    $lines = @(
-        '    _                       _                _',
-        '   / \   _____   _ _ __ ___( )    _ _   __ _| |_   _ _______ _ __',
-        '  / _ \ |_  / | | | |__/ _ \_/   / _` | / _` | | | | |_  / _ \ |__|',
-        ' / ___ \ / /| |_| | | |  __/    | (_| || (_| | | |_| |/ /  __/ |',
-        '/_/   \_\___|\__,_|_|  \___|     \__,_| \__,_|_|\__, /___\___|_|',
-        "                                                |___/  v$Version"
+    # Two-block ASCII banner (Standard figlet font, 7-bit safe).
+    # AZURE rendered in Cyan, ANALYZER in Yellow for readability.
+    $azureLines = @(
+        '    _     ______   _ ____  _____'
+        '   / \   |__  / | | |  _ \| ____|'
+        '  / _ \    / /| | | | |_) |  _|'
+        ' / ___ \  / /_| |_| |  _ <| |___'
+        '/_/   \_\/____|\___|_| \_\_____|'
     )
 
+    $analyzerLines = @(
+        '    _    _   _    _    _  __   ____________ ____'
+        '   / \  | \ | |  / \  | | \ \ / /__  / ____|  _ \'
+        '  / _ \ |  \| | / _ \ | |  \ V /  / /|  _| | |_) |'
+        ' / ___ \| |\  |/ ___ \| |___| |  / /_| |___|  _ <'
+        '/_/   \_\_| \_/_/   \_\_____|_| /____|_____|_| \_\'
+    )
+
+    $versionLine = "                                          v$Version"
+
     if ($Writer) {
-        foreach ($line in $lines) { $Writer.WriteLine($line) }
+        foreach ($line in $azureLines) { $Writer.WriteLine($line) }
+        foreach ($line in $analyzerLines) { $Writer.WriteLine($line) }
+        $Writer.WriteLine($versionLine)
         return
     }
 
     if ($useColor) {
-        foreach ($line in $lines) {
+        foreach ($line in $azureLines) {
             Write-Host $line -ForegroundColor Cyan
         }
-    } else {
-        foreach ($line in $lines) {
-            Write-Host $line
+        foreach ($line in $analyzerLines) {
+            Write-Host $line -ForegroundColor Yellow
         }
+        Write-Host $versionLine -ForegroundColor DarkGray
+    } else {
+        foreach ($line in $azureLines) { Write-Host $line }
+        foreach ($line in $analyzerLines) { Write-Host $line }
+        Write-Host $versionLine
     }
 }

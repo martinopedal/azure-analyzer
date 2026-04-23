@@ -72,6 +72,7 @@ Describe 'Write-AzureAnalyzerBanner' {
             Remove-Item Env:NO_COLOR -ErrorAction SilentlyContinue
             Write-AzureAnalyzerBanner -Version '9.9.9'
             Should -Invoke Write-Host -Times 1 -ParameterFilter { $ForegroundColor -eq 'Cyan' }
+            Should -Invoke Write-Host -Times 1 -ParameterFilter { $ForegroundColor -eq 'Yellow' }
         } finally {
             if ($null -ne $prev) { $env:NO_COLOR = $prev }
         }

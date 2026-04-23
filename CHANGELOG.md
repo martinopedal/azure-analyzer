@@ -4,6 +4,10 @@
 
 - Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
 - **Bot gate unification (#938):** Extend GitHub App token pattern to `tool-auto-update.yml` and `pr-auto-rebase.yml`. PRs created by tool-auto-update and rebase force-pushes now use the same App token (`RELEASE_APP_ID`) as release-please, bypassing the first-time-contributor approval gate and the `GITHUB_TOKEN` anti-recursion guard that previously prevented downstream CI from triggering on bot activity
+
+### Changed
+
+- **ASCII banner redesign (#964):** Replaced single-line merged figlet banner with two-block Standard figlet layout — "AZURE" (Cyan) on top, "ANALYZER" (Yellow) below. Both words clearly readable, ASCII-only (7-bit safe), under 80 chars wide. Console-only; no report impact.
 ### Added
 - **FixtureMode** (`-FixtureMode`): Run the full normalizer and reporting pipeline against fixture data in `tests/fixtures/` without Azure credentials. Skips auth checks, prerequisite installs, and all live API calls. Produces real `results.json`, `entities.json`, and HTML/Markdown reports. Use `-FixturePath <dir>` to supply custom fixtures. (#926)
 - **FixtureMode integration tests**: 14 Pester tests covering default/custom fixture paths, invalid path handling, `-IncludeTools` filtering, and output artifact verification.
