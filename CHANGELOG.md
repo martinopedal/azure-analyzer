@@ -23,6 +23,7 @@ All notable changes to azure-analyzer will be documented here.
 - fix(ci): make `Closes Link Required` tolerant for release-please branches, `skip-closes-check` labeled PRs, and trusted bot-authored PRs while still enforcing closes/fixes links for regular PRs.
 - Markdown Check `links (lychee)` retry now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub URL failures.
 - Markdown Check `links (lychee)` now scans only changed Markdown files on PRs (keeping full-corpus scans on schedule/manual runs) to reduce repeated PR flake/rate-limit failures while still surfacing real link rot.
+- LiveTool wrappers now always return `Findings` as an array (never `$null`) for gitleaks/trivy success paths, and CI uses `scorecard version` in LiveTool dependency verification (#846).
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 

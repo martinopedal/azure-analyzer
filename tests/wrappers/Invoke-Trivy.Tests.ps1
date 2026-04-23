@@ -52,6 +52,37 @@ Describe 'Invoke-Trivy: error paths' {
     }
 }
 
+Describe 'Invoke-Trivy: success contract' {
+    BeforeEach {
+        function global:trivy {
+            param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Args)
+            if ($Args.Count -gt 0 -and $Args[0] -eq '--version') {
+                $global:LASTEXITCODE = 0
+                return 'Version: 0.56.2'
+            }
+
+            $outputIndex = [array]::IndexOf($Args, '--output')
+            if ($outputIndex -lt 0 -or $outputIndex + 1 -ge $Args.Count) {
+                throw "Expected --output argument in trivy invocation. Args: $($Args -join ' ')"
+            }
+            Set-Content -Path $Args[$outputIndex + 1] -Value '{"Results":[]}' -Encoding UTF8
+            $global:LASTEXITCODE = 0
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:\global:trivy -ErrorAction SilentlyContinue
+    }
+
+    It 'returns non-null empty Findings on successful no-results scans' {
+        $result = & $script:Wrapper -RepoPath '.'
+
+        $result.Status | Should -Be 'Success'
+        ,$result.Findings | Should -Not -Be $null
+        @($result.Findings).Count | Should -Be 0
+    }
+}
+
 Describe 'Invoke-Trivy: Schema 2.2 enrichment' {
     BeforeAll {
         $fixturePath = Join-Path $script:RepoRoot 'tests' 'fixtures' 'trivy-cli-report.json'

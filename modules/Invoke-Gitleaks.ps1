@@ -606,6 +606,8 @@ try {
         })
     }
 
+    if ($null -eq $findings) { $findings = @() }
+
     return [PSCustomObject]@{
         Source   = 'gitleaks'
         SchemaVersion = '1.0'
@@ -615,7 +617,7 @@ try {
         RepositoryEntityId = $repositoryMeta.EntityId
         RepositoryUrl = $repositoryMeta.RepositoryUrl
         ToolVersion = $toolVersion
-        Findings = $findings
+        Findings = @($findings)
     }
 } catch {
     Write-Warning (Remove-Credentials "gitleaks scan failed: $_")
