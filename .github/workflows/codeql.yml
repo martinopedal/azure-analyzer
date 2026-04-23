@@ -17,10 +17,10 @@ permissions:
   contents: read
 
 concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
   # Per-ref group so runs on different branches/PRs don't cancel each other.
   # cancel-in-progress=true: pushing a new commit to the same ref cancels the
   # previous in-flight CodeQL run (the new sha is what matters anyway).
-  group: codeql-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

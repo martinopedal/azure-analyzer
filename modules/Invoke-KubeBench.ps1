@@ -34,7 +34,7 @@
 .PARAMETER WorkloadIdentityClientId / WorkloadIdentityTenantId / WorkloadIdentityServiceAccountToken
     Federated identity args.
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param (
     [Parameter(Mandatory)] [string] $SubscriptionId,
     [string[]] $ClusterArmIds,
@@ -377,6 +377,9 @@ foreach ($cluster in $clusters) {
     $authPrep = $null
 
     try {
+        if (-not $PSCmdlet.ShouldProcess([string]$cluster.name, 'Apply kube-bench Job and collect logs')) {
+            continue
+        }
         if (-not $isKubeconfigMode) {
             $tmpKubeconfig = Join-Path ([System.IO.Path]::GetTempPath()) "kubeconfig-$context.yaml"
             $azArgs = @('aks', 'get-credentials',
