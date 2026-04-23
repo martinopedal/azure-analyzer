@@ -122,8 +122,8 @@ Describe 'Workflow hygiene sweep' {
 
                 $j = $i - 1
                 while ($j -ge 0 -and [string]::IsNullOrWhiteSpace($lines[$j])) { $j-- }
-                $j | Should -BeGreaterOrEqual 0 -Because "$Name has continue-on-error:true without a preceding marker comment"
-                $lines[$j] | Should -Match '^\s*#\s*tracked:\s*martinopedal/azure-analyzer#604\b' -Because "$Name must mark continue-on-error:true as tracked hotfix debt (#604)"
+                $markerLine = if ($j -ge 0) { $lines[$j] } else { '' }
+                $markerLine | Should -Match '^\s*#\s*tracked:\s*martinopedal/azure-analyzer#604\b' -Because "$Name must mark continue-on-error:true at line $($i + 1) as tracked hotfix debt (#604)"
             }
         }
     }
