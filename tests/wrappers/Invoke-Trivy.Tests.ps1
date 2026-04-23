@@ -9,6 +9,8 @@ BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Trivy.ps1'
+    $script:Normalizer = Join-Path $script:RepoRoot 'modules' 'normalizers' 'Normalize-Trivy.ps1'
+    $script:CliFixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'trivy-cli-report.json'
 }
 
 Describe 'Invoke-Trivy: error paths' {
@@ -88,5 +90,59 @@ Describe 'Invoke-Trivy: Schema 2.2 enrichment' {
     It 'supports legacy -ScanPath alias' {
         $result = & $script:Wrapper -ScanPath '.'
         $result.Status | Should -Be 'Success'
+    }
+}
+
+Describe 'Invoke-Trivy: E2E wrapper to normalizer (#662)' {
+    BeforeAll {
+        . $script:Normalizer
+        $global:TrivyE2EFixtureJson = Get-Content -Path $script:CliFixture -Raw
+    }
+
+    BeforeEach {
+        $global:CapturedTrivyArgs = @()
+        function global:trivy {
+            param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Args)
+            if ($Args.Count -gt 0 -and $Args[0] -eq '--version') {
+                $global:LASTEXITCODE = 0
+                return 'Version: 0.56.2'
+            }
+
+            $global:CapturedTrivyArgs = @($Args)
+            $outputIndex = [array]::IndexOf($Args, '--output')
+            if ($outputIndex -lt 0 -or $outputIndex + 1 -ge $Args.Count) {
+                throw "Expected --output argument in trivy invocation. Args: $($Args -join ' ')"
+            }
+            Set-Content -Path $Args[$outputIndex + 1] -Value $global:TrivyE2EFixtureJson -Encoding UTF8
+            $global:LASTEXITCODE = 0
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:\global:trivy -ErrorAction SilentlyContinue
+        Remove-Variable -Name CapturedTrivyArgs -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        Remove-Variable -Name TrivyE2EFixtureJson -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'emits a v1 envelope and normalizes into valid FindingRows' {
+        Mock Get-Command { return [pscustomobject]@{ Name = 'trivy' } } -ParameterFilter { $Name -eq 'trivy' }
+
+        $result = & $script:Wrapper -RepoPath '.'
+        $result.Status | Should -Be 'Success'
+        $result.SchemaVersion | Should -Be '1.0'
+        $global:CapturedTrivyArgs | Should -Contain '--output'
+        @($result.Findings).Count | Should -BeGreaterThan 0
+
+        $rows = Normalize-Trivy -ToolResult $result
+        @($rows).Count | Should -BeGreaterThan 0
+        $first = @($rows)[0]
+        $first | Should -Not -BeNullOrEmpty
+        $first.SchemaVersion | Should -Be '2.2'
+        $first.Source | Should -Be 'trivy'
+        $first.EntityType | Should -Be 'Repository'
+        $first.Provenance.RunId | Should -Not -BeNullOrEmpty
     }
 }

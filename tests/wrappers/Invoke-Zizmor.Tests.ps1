@@ -9,6 +9,7 @@ BeforeAll {
     $script:Here = Split-Path $PSCommandPath -Parent
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Zizmor.ps1'
+    $script:Normalizer = Join-Path $script:RepoRoot 'modules' 'normalizers' 'Normalize-Zizmor.ps1'
     $script:RawFixture = Join-Path $script:RepoRoot 'tests' 'fixtures' 'zizmor-raw-report.json'
 }
 
@@ -105,9 +106,8 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
         Mock Get-Command {
             param($Name)
             if ($Name -eq 'zizmor') { return [pscustomobject]@{ Name = 'zizmor' } }
-            if ($Name -eq 'git') { return [pscustomobject]@{ Name = 'git' } }
             return $null
-        } -ParameterFilter { $Name -eq 'zizmor' -or $Name -eq 'git' }
+        } -ParameterFilter { $Name -eq 'zizmor' }
 
         $result = & $script:Wrapper -RepoPath $script:RepoRoot
         $result.Status | Should -Be 'Success'
@@ -137,5 +137,52 @@ Describe 'Invoke-Zizmor: schema 2.2 precursor fields' {
     It 'supports legacy -Repository alias' {
         $paramInfo = (Get-Command $script:Wrapper).Parameters
         $paramInfo['RepoPath'].Aliases | Should -Contain 'Repository'
+    }
+}
+
+Describe 'Invoke-Zizmor: E2E wrapper to normalizer (#660)' {
+    BeforeAll {
+        . $script:Normalizer
+        $global:ZizmorE2EFixture = $script:RawFixture
+        function global:zizmor {
+            param([Parameter(ValueFromRemainingArguments = $true)][object[]]$Args)
+            if ($Args -contains '--version') {
+                $global:LASTEXITCODE = 0
+                return 'zizmor 1.8.0'
+            }
+            $outputIndex = [Array]::IndexOf($Args, '--output')
+            if ($outputIndex -ge 0 -and ($outputIndex + 1) -lt $Args.Count) {
+                Copy-Item -Path $global:ZizmorE2EFixture -Destination ([string]$Args[$outputIndex + 1]) -Force
+            }
+            $global:LASTEXITCODE = 1
+            return $null
+        }
+    }
+
+    AfterAll {
+        Remove-Item Function:\global:zizmor -ErrorAction SilentlyContinue
+        Remove-Variable -Name ZizmorE2EFixture -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'emits a v1 envelope and normalizes into valid FindingRows' {
+        Mock Get-Command {
+            param($Name)
+            if ($Name -eq 'zizmor') { return [pscustomobject]@{ Name = 'zizmor' } }
+            return $null
+        } -ParameterFilter { $Name -eq 'zizmor' }
+
+        $result = & $script:Wrapper -RepoPath $script:RepoRoot
+        $result.Status | Should -Be 'Success'
+        $result.SchemaVersion | Should -Be '1.0'
+        @($result.Findings).Count | Should -BeGreaterThan 0
+
+        $rows = Normalize-Zizmor -ToolResult $result
+        @($rows).Count | Should -Be (@($result.Findings).Count)
+        $first = @($rows)[0]
+        $first | Should -Not -BeNullOrEmpty
+        $first.SchemaVersion | Should -Be '2.2'
+        $first.Source | Should -Be 'zizmor'
+        $first.EntityType | Should -Be 'Workflow'
+        $first.Provenance.RunId | Should -Not -BeNullOrEmpty
     }
 }

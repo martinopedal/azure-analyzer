@@ -1,0 +1,27 @@
+[
+  {
+    "RuleID": "aws-access-key-id",
+    "Description": "AWS Access Key",
+    "File": ".github/workflows/deploy.yml",
+    "StartLine": 12,
+    "Commit": "1234567890abcdef1234567890abcdef12345678",
+    "Fingerprint": "1234567890abcdef1234567890abcdef12345678:.github/workflows/deploy.yml:aws-access-key-id:12",
+    "Tags": [
+      "secret",
+      "aws",
+      "key"
+    ]
+  },
+  {
+    "RuleID": "private-key",
+    "Description": "Private Key",
+    "File": "deploy/secrets.env",
+    "StartLine": 3,
+    "Commit": "fedcba0987654321fedcba0987654321fedcba09",
+    "Fingerprint": "fedcba0987654321fedcba0987654321fedcba09:deploy/secrets.env:private-key:3",
+    "Tags": [
+      "secret",
+      "key"
+    ]
+  }
+]
