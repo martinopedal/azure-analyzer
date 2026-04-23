@@ -9,6 +9,9 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545, reported by external user)
+- Silence Frameworks property warning noise in FrameworkMapper.ps1 Get-FrameworkCoverage by adding PSObject.Properties presence check before dereferencing $f.Frameworks (line 257). Prevents warning on every run for findings lacking the property. Closes #586.
+- Harden watchdog printf|head pipes against SIGPIPE by replacing `printf '%s\n' "$var" | head -n N` patterns with here-string redirects `head -n 500 <<<"$var"` and `grep -Eim1 <<<"$var"` in .github/workflows/ci-failure-watchdog.yml (lines 112, 118, 121, 123, 126). Eliminates SIGPIPE propagation under set -euo pipefail when head closes stdin early. Follow-up to #526. Closes #587.
+- Replace exit 1 with throw in modules/shared/Resolve-PRReviewThreads.ps1 (line 545) so workflow try/catch can catch FORBIDDEN errors from GitHub GraphQL resolveReviewThread bot-vs-bot limit and convert to warning annotation rather than error. Makes #487 non-fatal path fully reachable. Closes #588.
 - Guard sparse `.user` payloads in `modules/shared/Invoke-PRReviewGate.ps1` (lines 151, 163) so PR Review Gate no longer crashes under StrictMode when GitHub REST returns a review or line-comment object without a `user` property (ghost/deleted user or sparse bot comment). `-and` short-circuit was insufficient because StrictMode raises before logical evaluation; switched to `PSObject.Properties['user']` presence checks matching the existing pattern at lines 165/170. Added regression test in `tests/shared/Invoke-PRReviewGate.Tests.ps1` (sparse-user Context, 12/12 green). Closes #584.
 - Remove duplicate New-FindingError definition in modules/shared/Schema.ps1 that shadowed the canonical sanitizing version in Errors.ps1, restoring Remove-Credentials enforcement on Reason and Remediation fields. (closes #671)
 
