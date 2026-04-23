@@ -16,6 +16,10 @@ All notable changes to azure-analyzer will be documented here.
 ### Fixed
 - chore(CON-004): add `SupportsShouldProcess` + `ConfirmImpact='High'` to `Invoke-Falco` and `Invoke-AksKarpenterCost`, and gate Falco install/elevated kubectl execution behind `ShouldProcess` so `-WhatIf` dry-runs skip side effects.
 - fix(ci): scope the Markdown Check em-dash PR gate to policy-owned Markdown paths by excluding ephemeral agent-state trees (`.copilot/audits/`, `.copilot/status/`, `.copilot/session-state/`, `.squad/decisions/inbox/`, `.atlas-stash/`). This unblocks ephemeral agent telemetry docs while keeping enforcement on repository docs. Closes #687.
+- chore(sweep): migrate Send-FindingsToLogAnalytics raw `throw` calls to `New-FindingError` for structured error handling (closes #669)
+- chore(sweep): deduplicate CHANGELOG.md `## [Unreleased]` headers by consolidating duplicate section into primary Unreleased section (closes #670)
+- chore(sweep): raise Invoke-Infracost external-process timeout from 60s to 300s safety cap aligned with Invoke-WithTimeout convention (closes #672)
+- chore(sweep): alphabetize tools/tool-manifest.json `.tools[]` by `name` ascending (closes #674)
 - fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545, reported by external user)
 - Silence Frameworks property warning noise in FrameworkMapper.ps1 Get-FrameworkCoverage by adding PSObject.Properties presence check before dereferencing $f.Frameworks (line 257). Prevents warning on every run for findings lacking the property. Closes #586.
 - Harden watchdog printf|head pipes against SIGPIPE by replacing `printf '%s\n' "$var" | head -n N` patterns with here-string redirects `head -n 500 <<<"$var"` and `grep -Eim1 <<<"$var"` in .github/workflows/ci-failure-watchdog.yml (lines 112, 118, 121, 123, 126). Eliminates SIGPIPE propagation under set -euo pipefail when head closes stdin early. Follow-up to #526. Closes #587.
@@ -343,6 +347,84 @@ The documentation now leads with the consumer experience, keeps advanced operato
 - chore: enforce stub-deadline removal via `.squad/stub-deadlines.json` + `scripts/Check-StubDeadline.ps1` + `.github/workflows/stub-deadline-check.yml` + `tests/scripts/Check-StubDeadline.Tests.ps1` (closes #250)
 
 ### Fixed
+
+### Backfilled citations
+
+Pragmatic partial backfill of 69 PRs from the last 100 merged (coverage: PRs #689 to #411). Full historical backfill of all 254 PRs deferred to future doc-sweep to balance completeness vs maintenance overhead. These entries represent actual shipped work; full pull request descriptions are available on GitHub.
+
+- PR #689: fix(runtime): add -Help switch to Invoke-AzureAnalyzer (#545)
+- PR #686: fix(ci): pr-auto-rebase job name now evaluates matrix.pr.number expression (#534)
+- PR #684: fix(ci): guard sparse .user payloads in PR Review Gate (#584)
+- PR #683: fix(security): remove duplicate New-FindingError in Schema.ps1 (#671)
+- PR #682: chore(sweep): post-sprint 3-model rubberduck final report + 6 tech-debt issues
+- PR #680: docs(permissions): add copilot-triage to PERMISSIONS.md (DQS-003)
+- PR #679: fix(docs): repair broken README contributing link (DQS-001)
+- PR #609: chore(consistency): final sentinel sweep - silent-failure intent docs (cat 3 close-out)
+- PR #607: chore(ci): full workflow consistency sweep - permissions, retries, concurrency
+- PR #602: chore(consistency): exhaustive Class A tool-presence inventory (sweep #5)
+- PR #594: fix(ci): remove duplicate concurrency blocks breaking 5 workflows on main
+- PR #593: chore(consistency): zero-warning wrapper test baseline (sweep #4)
+- PR #590: fix: suppress rate-limit false-positives in ci-failure-watchdog
+- PR #589: fix(retry): eliminate Windows full-jitter sleep-count flake
+- PR #571: fix(ci): retry SARIF upload in CodeQL Analyze on installation rate-limit
+- PR #565: chore(consistency): CI transcript hygiene + mock-the-tool-presence pattern (sweep #3 cat 12)
+- PR #559: fix(ci): advisory-gate fails open on frontier-model infra failures
+- PR #555: fix(ci): body-first closes-link check to survive GitHub API rate-limit
+- PR #547: docs(audits): praxis backfill 2026-04-22 (#510 part-D)
+- PR #543: fix(docs): drop last broken link to lead-8h-close-plan (follow-up to #530)
+- PR #538: chore(tests): Tier 4 mock conversion for Invoke-Gitleaks missing-tool contract (-5 skipped, +5 passed)
+- PR #537: fix(verify): parse error on every merge + PS 7.4 native exit propagation
+- PR #536: test(e2e): end-to-end harness for Invoke-AzureAnalyzer with 3-surface coverage
+- PR #533: fix(verify): harden gh executor, expand sanitizer, same-repo filter (#527 follow-up)
+- PR #532: chore(tests): silence intentional negative-path warning noise
+- PR #527: feat(ci): issue-resolution verification + bug template repro block
+- PR #524: fix(ci): collapse lychee install+checksum+run into single retry block (follow-up to #493)
+- PR #521: chore(consistency): enforce uniform parameters/retry/error-quality across wrappers (sweep #2)
+- PR #520: fix: add AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS env var (#472)
+- PR #519: fix(ci): systemic retry-wrapping invariant across all workflows
+- PR #517: fix(review-gate): null-safe model response handling
+- PR #514: docs(audits): pester silent-skip false-green audit (zero hits)
+- PR #513: chore(ci): pester baseline floor=1597
+- PR #509: fix(retry): always Start-Sleep between retries to fix macOS Pester flake
+- PR #508: ci: mandatory Closes #N link on every code PR
+- PR #504: chore(squad): hunter all-fails sweep report 2026-04-22T23:55Z
+- PR #503: fix(ci): exempt tests/, .copilot/, samples/ from docs-check (closes #497, #502)
+- PR #500: fix(ci): wrap all network steps with nick-fields/retry for transient resilience
+- PR #498: feat(ci): auto-rebase agent PR branches with conflict auto-resolution
+- PR #496: test: cross-platform fix for MissingTool wrapper integration (#472)
+- PR #494: feat: prompt for mandatory scanner parameters (#426)
+- PR #492: feat(ci): auto-rerun failed PR checks on agent branch pushes
+- PR #489: feat: Phase 0 foundation -- schema + tier picker + edge-collector + fixtures (#435)
+- PR #486: docs(audit): tool output fidelity audit (#432a)
+- PR #481: design(track-f): auditor-driven report redesign architecture (#434)
+- PR #480: fix: silence missing-tool warnings when not explicitly requested (#472)
+- PR #474: fix(ci): repair Pester baseline comparison (#471)
+- PR #465: docs(audit): complete Track D tool-output audit skeleton for Azure/ADO/GitHub wave-1
+- PR #464: feat(preflight): enforce deterministic required-input resolution before tool execution
+- PR #459: fix(ci): recognize docs/design updates in Docs Check
+- PR #457: fix(ci): stop false ÔÇ£untriaged CI failuresÔÇØ in daily digest
+- PR #453: docs: refresh PERMISSIONS/README manifest consistency
+- PR #452: chore: publish open-issue label hygiene and staleness audit (2026-04-22)
+- PR #451: docs: link sample reports in README
+- PR #450: chore: drain decisions inbox (round 3)
+- PR #440: feat: attack-path visualizer (scaffold) (#428)
+- PR #436: feat: resilience map (scaffold) (#429)
+- PR #425: chore(squad): log #413 IaCFile ship + merge inbox
+- PR #424: docs(squad): sage learnings + decision for IaCFile EntityType (#413)
+- PR #423: feat(schema): add IaCFile EntityType for cross-tool dedup (#413)
+- PR #422: docs(squad): iris inbox + history note for PR #421
+- PR #421: chore(report): regenerate sample-report.md + verify generator path
+- PR #420: chore(squad): scribe sweep ÔÇö archive 17 inbox files into decisions.md post #418
+- PR #418: feat(report): v2 HTML generator foundations (PR1 of 3)
+- PR #417: chore(squad): merge sprint decisions inbox and log launch-ready state
+- PR #416: fix: prevent HTML report crash on null remediation snippets
+- PR #414: fix(terraform-iac): address post-merge review gaps
+- PR #412: chore(falco): upgrade Schema 2.2 ETL metadata
+- PR #411: chore: README and docs launch-readiness pass
+
+## [Unreleased - earlier entries]
+
+### Fixed (earlier)
 - **gitleaks false-success on failure**: Check `$LASTEXITCODE` after gitleaks runs. Non-zero exit with no report now returns Status='Failed'. Invalid report JSON also returns Failed instead of silently succeeding with empty findings.
 - **gitleaks writes raw secrets to disk in repo**: Report file is now written to `[System.IO.Path]::GetTempPath()` instead of inside the scanned repository. Secret/Match fields are stripped from parsed JSON before creating findings. Temp file is cleaned up in a finally block.
 - **gitleaks report contained plaintext secrets**: Added `--redact` flag to gitleaks CLI invocation so the report file never contains raw secret values. The existing Secret/Match field stripping is retained as defense-in-depth.
