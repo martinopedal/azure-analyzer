@@ -30,7 +30,7 @@
       * Retry, Sanitize, Installer (Invoke-WithTimeout)
       * RbacTier      (the per-wrapper opt-in mechanism shipped in this PR)
 #>
-[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
+[CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='Medium')]
 param (
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
@@ -572,6 +572,14 @@ Perf
 
         # ----- Elevated-tier Karpenter findings (gated) -----
         if (-not $EnableElevatedRbac.IsPresent) { continue }
+
+        # Honor -WhatIf / ShouldProcess: skip ALL side-effecting calls
+        # (kubectl invocations + Initialize-KubeAuth) when running in WhatIf
+        # mode. The reader-tier KQL findings above are already accumulated.
+        $shouldProcessTarget = "AKS cluster '$($cluster.name)' (elevated Karpenter inspection: kubectl + kube-auth)"
+        if (-not $PSCmdlet.ShouldProcess($shouldProcessTarget, 'Invoke kubectl + Initialize-KubeAuth')) {
+            continue
+        }
 
         if (Get-Command Assert-RbacTier -ErrorAction SilentlyContinue) {
             try { Assert-RbacTier -Required 'ClusterUser' -Capability 'Karpenter Provisioner inspection' -OptInFlag '-EnableElevatedRbac' }
