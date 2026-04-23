@@ -1,3 +1,10 @@
+
+## Unreleased
+
+### Fixed
+- Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
+- Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
+
 # Changelog
 
 All notable changes to azure-analyzer will be documented here.
