@@ -2,7 +2,7 @@
 
 Status: Draft
 Issue: #433. Epic: #427. Sibling tracks: #428 (attack-path), #429 (resilience),
-#430 (viewer), #431 (policy), #432 (tool fidelity).
+\#430 (viewer), #431 (policy), #432 (tool fidelity).
 
 > Round 3 reconciliation (issue #433 body) is AUTHORITATIVE. Any earlier model
 > matrix or tier-detection text is superseded by the reconciled sections.
