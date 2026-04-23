@@ -26,19 +26,32 @@ function Invoke-WrapperWithHostCapture {
     )
 
     $warningBuffer = [System.Collections.Generic.List[string]]::new()
+    $warningLikeInfoPattern = '^(?i:(WARNING:|##\[warning\]|Notice:))'
     $result = $null
     try {
-        # 3>&1 redirects warnings into the success stream so we can sift them
-        # out without re-emitting them to the host (which would still pollute
-        # the Pester transcript). The scriptblock's actual return value is the
-        # last non-warning emission.
+        # 3>&1 and 6>&1 redirect warning/information streams into success so we
+        # can sift warning records and warning-like information markers without
+        # re-emitting them to the host (which would still pollute the Pester
+        # transcript). The scriptblock's actual return value is the last
+        # non-warning-like emission.
         $merged = & {
             & $ScriptBlock
-        } 3>&1
+        } 3>&1 6>&1
 
         foreach ($item in @($merged)) {
             if ($item -is [System.Management.Automation.WarningRecord]) {
                 $warningBuffer.Add([string]$item.Message)
+            } elseif ($item -is [System.Management.Automation.InformationRecord]) {
+                $message = [string]$item.MessageData
+                if ($message -match $warningLikeInfoPattern) {
+                    $warningBuffer.Add($message)
+                } else {
+                    # Non-warning-like Write-Information output is preserved by
+                    # re-emitting to the Information stream so it remains visible
+                    # in Pester transcripts for debugging (addresses Copilot review
+                    # feedback on PR #826: do not silently drop info records).
+                    Write-Information -MessageData $message -InformationAction Continue
+                }
             } else {
                 $result = $item
             }
