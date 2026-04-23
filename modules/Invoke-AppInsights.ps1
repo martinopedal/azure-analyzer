@@ -36,6 +36,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 $installerPath = Join-Path $PSScriptRoot 'shared' 'Installer.ps1'
 if (Test-Path $installerPath) { . $installerPath }
 $timeoutCmd = Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue
@@ -75,7 +89,7 @@ try {
 
 try {
     $ctx = Get-AzContext -ErrorAction Stop
-    if (-not $ctx) { throw 'No Az context' }
+    if (-not $ctx) { Write-Error 'No Az context' -ErrorAction Stop }
 } catch {
     $result.Status = 'Skipped'
     $result.Message = 'Not signed in. Run Connect-AzAccount first.'
@@ -344,7 +358,11 @@ function Invoke-AppInsightsQuery {
             }
 
             if ([string]::IsNullOrWhiteSpace([string]$Resource.WorkspaceId)) {
-                throw "Resource '$($Resource.Name)' is missing WorkspaceId for Invoke-AzOperationalInsightsQuery fallback."
+                throw (Format-FindingErrorMessage (New-FindingError `
+                    -Source 'wrapper:appinsights' `
+                    -Category 'ConfigurationError' `
+                    -Reason "Resource '$($Resource.Name)' is missing WorkspaceId for Invoke-AzOperationalInsightsQuery fallback." `
+                    -Remediation 'Provide a Log Analytics WorkspaceId on the resource or skip the fallback path.'))
             }
             return Invoke-AzOperationalInsightsQuery -WorkspaceId $Resource.WorkspaceId -Query $QueryText -Timespan $QueryTimeSpan -ErrorAction Stop
         }
@@ -407,7 +425,14 @@ try {
         Invoke-AzRestMethod -Method GET -Uri $resourceUri -ErrorAction Stop
     }
     if (-not $discoveryResponse -or $discoveryResponse.StatusCode -ge 400) {
-        throw "App Insights discovery failed (HTTP $($discoveryResponse.StatusCode)): $($discoveryResponse.Content)"
+        $statusCode = if ($discoveryResponse) { $discoveryResponse.StatusCode } else { 'null' }
+        $content    = if ($discoveryResponse) { [string]$discoveryResponse.Content } else { 'No response' }
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:appinsights' `
+            -Category 'TransientFailure' `
+            -Reason "App Insights discovery failed (HTTP ${statusCode})." `
+            -Remediation 'Verify Reader access to the App Insights component and retry.' `
+            -Details (Remove-Credentials -Text $content)))
     }
     $payload = $discoveryResponse.Content | ConvertFrom-Json -Depth 30
     $resourceItems = if ($payload.PSObject.Properties['value']) { @($payload.value) } else { @($payload) }

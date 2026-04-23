@@ -73,6 +73,20 @@ if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
 
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 # --- API versions (Microsoft Learn, verified 2024) --------------------------
 # https://learn.microsoft.com/rest/api/securityinsights/alert-rules/list
 # https://learn.microsoft.com/rest/api/securityinsights/watchlists/list
@@ -112,7 +126,7 @@ Import-Module Az.Accounts -ErrorAction SilentlyContinue
 
 try {
     $ctx = Get-AzContext -ErrorAction Stop
-    if (-not $ctx) { throw 'No Az context' }
+    if (-not $ctx) { Write-Error 'No Az context' -ErrorAction Stop }
 } catch {
     $result.Status  = 'Skipped'
     $result.Message = 'Not signed in. Run Connect-AzAccount first.'
@@ -319,7 +333,12 @@ try {
         $resp = $paged.TerminalResponse
         $statusCode = if ($resp) { $resp.StatusCode } else { 'null' }
         $content    = if ($resp) { $resp.Content }    else { 'No response' }
-        throw "alertRules list returned HTTP ${statusCode}: $(Remove-Credentials -Text ([string]$content))"
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:sentinel-coverage' `
+            -Category 'TransientFailure' `
+            -Reason "alertRules list returned HTTP ${statusCode}." `
+            -Remediation 'Verify Microsoft Sentinel Reader role on the workspace and retry.' `
+            -Details (Remove-Credentials -Text ([string]$content))))
     }
 } catch {
     $result.Status  = 'Failed'

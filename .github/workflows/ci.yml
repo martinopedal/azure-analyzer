@@ -203,6 +203,7 @@ jobs:
         # checks page. Marking individual steps as continue-on-error makes
         # the job itself render green when only non-blocking LiveTool steps
         # fail, so reviewers can trust the red signal on the PR page.
+        # tracked: martinopedal/azure-analyzer#604
         continue-on-error: true
         shell: pwsh
         run: |
@@ -265,6 +266,7 @@ jobs:
         # CLI-install step above. Tagged non-blocking LiveTool tests must not
         # paint the job red on the PR page. Live-binary flakes and upstream
         # breaking changes are observed as neutral signal, not blocking.
+        # tracked: martinopedal/azure-analyzer#604
         continue-on-error: true
         shell: pwsh
         run: |

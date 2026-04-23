@@ -41,18 +41,11 @@ BeforeAll {
     # Grandfathered baseline: number of raw `throw "..."` (and inline
     # `catch { throw "..." }`) strings allowed per wrapper. Any change
     # in either direction fails the test, forcing a conscious update.
-    $script:RawThrowBaseline = @{
-        'Invoke-AppInsights.ps1'       = 2
-        'Invoke-AzGovViz.ps1'          = 1
-        'Invoke-AzureCost.ps1'         = 1
-        'Invoke-AzureLoadTesting.ps1'  = 1
-        'Invoke-FinOpsSignals.ps1'     = 2
-        'Invoke-GhActionsBilling.ps1'  = 1
-        'Invoke-Powerpipe.ps1'         = 1
-        'Invoke-Scorecard.ps1'         = 1
-        'Invoke-SentinelCoverage.ps1'  = 1
-        'Invoke-SentinelIncidents.ps1' = 1
-    }
+    # CON-003 (#626): all wrapper raw throws have been migrated to
+    # New-FindingError + Format-FindingErrorMessage. Baseline is now empty
+    # so any new raw throw fails fast. Re-add an entry only with explicit
+    # justification (e.g. bootstrap guard before Errors.ps1 is sourced).
+    $script:RawThrowBaseline = @{}
 
     $script:SinkRawThrowBaseline = @{
         # Bootstrap guard for missing modules/shared/Errors.ps1 - cannot use New-FindingError
@@ -63,9 +56,13 @@ BeforeAll {
     function Get-RawThrowCount {
         param ([Parameter(Mandatory)][string] $Path)
         $text = Get-Content -LiteralPath $Path -Raw
-        $top = ([regex]::Matches($text, "(?m)^\s*throw\s+[`"']")).Count
-        $inline = ([regex]::Matches($text, "catch\s*\{[^{}]*throw\s+[`"']")).Count
-        return $top + $inline
+        # Broad match: count any `throw "..."` or `throw '...'` anywhere in the file
+        # (top-of-line, inside catch blocks, or inline inside `if (...) { throw '...' }`).
+        # Previously this regex only matched throws at start-of-line plus one
+        # `catch { throw }` form, which allowed inline throws to slip past the ratchet.
+        # The negative lookbehind keeps us from matching identifiers that end in "throw"
+        # (there are none in the current codebase, but it future-proofs the check).
+        return ([regex]::Matches($text, "(?<![a-zA-Z0-9_\-])throw\s+[`"']")).Count
     }
 }
 
@@ -113,6 +110,32 @@ If the count went UP, replace the new throw with:
 
 See modules/shared/Errors.ps1 for the full FindingError schema.
 "@
+        }
+    }
+
+    Context 'CON-004 - side-effecting wrappers declare SupportsShouldProcess' {
+        # Wrappers that mutate cluster state (helm install/upgrade, kubectl apply)
+        # MUST declare [CmdletBinding(SupportsShouldProcess=$true)] and gate
+        # mutations behind $PSCmdlet.ShouldProcess(...). Add new entries here
+        # whenever a wrapper grows a side effect; remove only when the side
+        # effect is removed.
+        $script:SideEffectingWrappers = @(
+            'Invoke-Falco.ps1',
+            'Invoke-AksKarpenterCost.ps1'
+        )
+        It '<_> declares [CmdletBinding(SupportsShouldProcess)] and calls $PSCmdlet.ShouldProcess' -ForEach $script:SideEffectingWrappers {
+            $path = Join-Path $script:WrapperRoot $_
+            $text = Get-Content -LiteralPath $path -Raw
+            # Require SupportsShouldProcess to be enabled (bare switch or `=$true`).
+            # This regex explicitly rejects `SupportsShouldProcess=$false` or `=0`.
+            # The pattern matches:
+            # - `SupportsShouldProcess` followed by optional `=$true`
+            # - Must be followed by comma, closing paren, or another parameter
+            # - Must NOT be followed by `=$false` or `=0` or any falsy value
+            $text | Should -Match '\[CmdletBinding\([^\]]*SupportsShouldProcess\s*(?:=\s*\$true)?(?=\s*[,\)])' -Because "side-effecting wrapper $_ must opt into -WhatIf / -Confirm (SupportsShouldProcess enabled, not disabled)"
+            # Require an actual call to $PSCmdlet.ShouldProcess(...) - the trailing `(`
+            # prevents a bare mention inside a comment or string from satisfying the gate.
+            $text | Should -Match '\$PSCmdlet\.ShouldProcess\s*\(' -Because "side-effecting wrapper $_ must gate mutations behind a \$PSCmdlet.ShouldProcess(...) call"
         }
     }
 
