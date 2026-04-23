@@ -9,6 +9,7 @@
     Never throws — designed for graceful degradation in the orchestrator.
 .PARAMETER Repository
     The repository to scan (e.g., "github.com/martinopedal/azure-analyzer").
+    Aliases: Repo, RepoUrl
 .PARAMETER Threshold
     Minimum score (0-10) to consider a check compliant. Default is 7.
 .PARAMETER GitHubHost
@@ -19,6 +20,7 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory)]
+    [Alias('Repo', 'RepoUrl')]
     [ValidateNotNullOrEmpty()]
     [string] $Repository,
 

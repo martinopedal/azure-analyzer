@@ -16,14 +16,16 @@
 
     Security: All output passes through Remove-Credentials. Clones go through
     RemoteClone.ps1 (HTTPS-only, host allow-list).
-.PARAMETER RepoPath
+.PARAMETER Repository
     Path to the repository root containing .tf files. Defaults to '.'.
+    Aliases: Repo, RepoPath, Path '.'.
 .PARAMETER RemoteUrl
     Remote repository URL to clone and scan.
 #>
 [CmdletBinding()]
 param (
-    [string] $RepoPath = '.',
+    [Alias('Repo', 'RepoPath', 'Path')]
+    [string] $Repository = '.',
 
     [string] $RemoteUrl
 )
@@ -92,18 +94,18 @@ try {
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
-        $RepoPath = $cloneInfo.Path
+        $Repository = $cloneInfo.Path
     }
 
-    if (-not (Test-Path $RepoPath)) {
+    if (-not (Test-Path $Repository)) {
         return [PSCustomObject]@{
             Source = 'terraform-iac'
             SchemaVersion = '1.0'; Status = 'Failed'
-            Message = "Repository path not found: $RepoPath"; Findings = @()
+            Message = "Repository path not found: $Repository"; Findings = @()
         }
     }
 
-    Write-Verbose "Running Terraform IaC validation on '$RepoPath'"
+    Write-Verbose "Running Terraform IaC validation on '$Repository'"
 
     if (-not (Get-Command Invoke-IaCAdapter -ErrorAction SilentlyContinue)) {
         Write-Warning "IaCAdapters module not loaded. Terraform IaC validation cannot proceed."
@@ -115,7 +117,7 @@ try {
         }
     }
 
-    return Invoke-IaCAdapter -Flavour 'terraform' -RepoPath $RepoPath -SourceRepoUrl $RemoteUrl
+    return Invoke-IaCAdapter -Flavour 'terraform' -RepoPath $Repository -SourceRepoUrl $RemoteUrl
 } catch {
     Write-Warning "Terraform IaC validation failed: $(Remove-Credentials -Text ([string]$_))"
     return [PSCustomObject]@{
@@ -132,3 +134,4 @@ try {
         }
     }
 }
+
