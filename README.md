@@ -77,6 +77,8 @@ CI maintainers: the daily CI Health Digest reconciles triage status from both `c
 
 CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
 
+PR auto-resolve thread handling now requires a dedicated `RESOLVE_THREADS_TOKEN` secret (GitHub App `pull_requests:write`) to resolve Copilot/bot-owned review threads reliably; see [docs/operations/copilot-thread-resolution.md](docs/operations/copilot-thread-resolution.md).
+
 </details>
 
 <details><summary><b>Environment variables</b></summary>azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:

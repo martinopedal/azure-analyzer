@@ -14,6 +14,7 @@ The HTML remediation-snippet null-guard report fix only changes rendering behavi
 Phase 0 foundation report architecture metadata, report-manifest output, and vendoring verification stubs add no new Azure, Microsoft Graph, GitHub, or Azure DevOps permission requirements.
 The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only and introduces no Azure, Graph, GitHub, or Azure DevOps permissions.
 Optional Copilot triage makes GitHub Copilot API calls (for model-plan discovery and triage generation) only when users explicitly enable AI triage; this does not require Azure/Graph write permissions.
+PR thread auto-resolution workflow (`.github/workflows/pr-auto-resolve-threads.yml`) now requires a dedicated repository secret `RESOLVE_THREADS_TOKEN` backed by a write-capable GitHub App identity (`pull_requests:write`) to resolve bot-owned review threads; this does not change Azure/Graph/ADO scopes.
 
 ## Permission domains at a glance
 

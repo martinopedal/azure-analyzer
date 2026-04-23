@@ -40,6 +40,7 @@ Welcome to the azure-analyzer documentation hub. Choose your path below.
 - [Shared Infrastructure Modules](operators/shared-infrastructure.md)
 - [Security Invariants](operators/security-invariants.md)
 - [Continuous Control Patterns](operators/continuous-control.md)
+- [Copilot Thread Resolution Operations](operations/copilot-thread-resolution.md)
 
 ## Contributing
 
