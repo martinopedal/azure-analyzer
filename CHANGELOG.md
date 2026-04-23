@@ -9,6 +9,7 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Fixed
 - Restore env/global state in BeforeAll/AfterAll across test suite (#746).
+- fix(ci): make `Closes Link Required` tolerant for release-please branches, `skip-closes-check` labeled PRs, and trusted bot-authored PRs while still enforcing closes/fixes links for regular PRs.
 
 ## [1.1.0](https://github.com/martinopedal/azure-analyzer/compare/v1.0.0...v1.1.0) (2026-04-23)
 
