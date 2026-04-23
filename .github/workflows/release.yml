@@ -2,34 +2,57 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags:
       - 'v*.*.*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g., v1.2.3)'
+        description: 'Tag to publish (for manual first-release runs), for example v1.2.3'
         required: true
         type: string
+      publish_to_psgallery:
+        description: 'Publish to PSGallery after dry run'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  release:
-    name: Create Release with SBOM
+  release_please:
+    name: Release Please (main)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    steps:
+      - name: Run release-please (manifest mode)
+        uses: googleapis/release-please-action@8b8fd2cc23b2e18957157a9d923d75aa0c6f6ad5 # v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          command: manifest
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: Publish release artifacts
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
-      - name: Determine version
+      - name: Resolve release version
         id: version
         shell: pwsh
         run: |
@@ -38,80 +61,186 @@ jobs:
           } else {
             $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
           }
-          Write-Host "Release version: $tag"
+
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Tag must match v<major>.<minor>.<patch>, got '$tag'"
+          }
+
+          $version = $tag -replace '^v', ''
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Validate annotated + signed tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG='${{ steps.version.outputs.tag }}'
+          OBJECT_TYPE="$(git for-each-ref "refs/tags/${TAG}" --format='%(objecttype)')"
+          if [[ "${OBJECT_TYPE}" != "tag" ]]; then
+            echo "Tag ${TAG} must be an annotated tag (object type: ${OBJECT_TYPE:-missing})" >&2
+            exit 1
+          fi
+
+          TAG_OBJECT_SHA="$(git rev-parse "${TAG}^{tag}")"
+          TAG_CONTENT="$(git cat-file -p "${TAG_OBJECT_SHA}")"
+          if [[ "${TAG_CONTENT}" != *"-----BEGIN PGP SIGNATURE-----"* ]]; then
+            echo "Tag ${TAG} must be GPG-signed (PGP signature block missing)." >&2
+            exit 1
+          fi
+
+      - name: Install Pester
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            if (-not (Get-Module -ListAvailable -Name Pester)) {
+              Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -MinimumVersion 5.0
+            }
+
+      - name: Pester gate
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0 -Force
+          Invoke-Pester -Path ./tests -CI
+
+      - name: Build module package + release zip
+        id: package
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.version.outputs.tag }}'
+          $version = '${{ steps.version.outputs.version }}'
+
+          $stagingRoot = Join-Path $PWD 'release-staging'
+          $moduleRoot = Join-Path $stagingRoot 'AzureAnalyzer'
+          if (Test-Path $stagingRoot) { Remove-Item -Path $stagingRoot -Recurse -Force }
+          New-Item -ItemType Directory -Path $moduleRoot -Force | Out-Null
+
+          $copyPaths = @(
+            'AzureAnalyzer.psd1',
+            'AzureAnalyzer.psm1',
+            'Invoke-AzureAnalyzer.ps1',
+            'New-HtmlReport.ps1',
+            'New-MdReport.ps1',
+            'modules',
+            'queries',
+            'templates',
+            'scripts',
+            'tools/tool-manifest.json',
+            'LICENSE',
+            'CHANGELOG.md',
+            'README.md'
+          )
+
+          foreach ($path in $copyPaths) {
+            Copy-Item -Path $path -Destination (Join-Path $moduleRoot $path) -Recurse -Force
+          }
+
+          $outputDir = Join-Path $PWD 'output'
+          if (-not (Test-Path $outputDir)) { New-Item -ItemType Directory -Path $outputDir -Force | Out-Null }
+
+          $zipPath = Join-Path $outputDir ("AzureAnalyzer-$tag.zip")
+          if (Test-Path $zipPath) { Remove-Item -Path $zipPath -Force }
+          Compress-Archive -Path (Join-Path $moduleRoot '*') -DestinationPath $zipPath -CompressionLevel Optimal
+
+          "module_root=$moduleRoot" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "zip_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Generate SBOM
         shell: pwsh
         run: |
           ./tools/Generate-SBOM.ps1 -Verbose
-          
           if (-not (Test-Path output/sbom.json)) {
-            Write-Error "SBOM generation failed"
-            exit 1
+            throw 'SBOM generation failed: output/sbom.json missing.'
           }
-          
-          Write-Host "✓ SBOM generated at output/sbom.json" -ForegroundColor Green
 
-      - name: Validate SBOM
+      - name: Generate SHA256SUMS
+        id: checksums
         shell: pwsh
         run: |
-          $sbom = Get-Content output/sbom.json -Raw | ConvertFrom-Json
-          
-          if ($sbom.bomFormat -ne 'CycloneDX') {
-            Write-Error "Invalid SBOM format"
-            exit 1
-          }
-          
-          if ($sbom.specVersion -ne '1.5') {
-            Write-Error "Invalid SBOM spec version"
-            exit 1
-          }
-          
-          $componentCount = $sbom.components.Count
-          Write-Host "✓ SBOM validated: $componentCount components" -ForegroundColor Green
+          $zipPath = '${{ steps.package.outputs.zip_path }}'
+          $sbomPath = Join-Path $PWD 'output/sbom.json'
+          $sumPath = Join-Path $PWD 'output/SHA256SUMS.txt'
 
-      # no-retry: softprops/action-gh-release ships internal retry/backoff for
-      # the GitHub release + asset upload APIs. Wrapping in nick-fields/retry
-      # would restart the whole publish (re-uploading SBOM bytes) on every
-      # transient hiccup; the action handles that more carefully internally.
-      - name: Create Release
+          $zipHash = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLowerInvariant()
+          $sbomHash = (Get-FileHash -Algorithm SHA256 -Path $sbomPath).Hash.ToLowerInvariant()
+
+          @(
+            "$zipHash  $(Split-Path -Leaf $zipPath)",
+            "$sbomHash  sbom.json"
+          ) | Set-Content -Path $sumPath -Encoding UTF8
+
+          "sum_path=$sumPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Upload release build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ steps.version.outputs.tag }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            output/sbom.json
+            ${{ steps.checksums.outputs.sum_path }}
+          retention-days: 14
+
+      - name: Create GitHub release
+        if: github.event_name != 'workflow_dispatch'
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Release ${{ steps.version.outputs.tag }}
-          body: |
-            ## Release ${{ steps.version.outputs.tag }}
-            
-            ### 📦 Supply Chain Artifacts
-            
-            This release includes:
-            - **SBOM (Software Bill of Materials)**: `sbom.json` — CycloneDX 1.5 format
-            - Version-pinned dependencies with SHA-256 checksums (where available)
-            - Audit trail for all included tools and their upstream sources
-            
-            ### 📋 SBOM Details
-            
-            The SBOM lists all bundled assessment tools with:
-            - Exact versions
-            - SHA-256 checksums (for direct downloads)
-            - Package manager checksums (for winget/brew/pipx installs)
-            - Upstream repository URLs
-            - Pinning strategy per tool
-            
-            See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
           files: |
+            ${{ steps.package.outputs.zip_path }}
             output/sbom.json
-          draft: false
-          prerelease: false
+            ${{ steps.checksums.outputs.sum_path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Release summary
-        shell: pwsh
-        run: |
-          Write-Host "`n=== Release Summary ===" -ForegroundColor Cyan
-          Write-Host "Tag:       ${{ steps.version.outputs.tag }}" -ForegroundColor Yellow
-          Write-Host "SBOM:      output/sbom.json" -ForegroundColor Yellow
-          Write-Host "Artifacts: Attached to release" -ForegroundColor Yellow
-          Write-Host "Status:    ✓ Complete" -ForegroundColor Green
+      - name: PSGallery publish dry run
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            if (-not $env:PSGALLERY_API_KEY) {
+              throw 'PSGALLERY_API_KEY is required for release publishing.'
+            }
+            Publish-Module -Path '${{ steps.package.outputs.module_root }}' -NuGetApiKey $env:PSGALLERY_API_KEY -Repository PSGallery -WhatIf
+
+      - name: PSGallery publish
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_to_psgallery == true
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            Publish-Module -Path '${{ steps.package.outputs.module_root }}' -NuGetApiKey $env:PSGALLERY_API_KEY -Repository PSGallery
+
+      - name: PSGallery smoke test
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_to_psgallery == true
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            $moduleName = 'AzureAnalyzer'
+            $version = '${{ steps.version.outputs.version }}'
+            $null = Find-Module -Name $moduleName -Repository PSGallery -RequiredVersion $version -ErrorAction Stop
+            $downloadPath = Join-Path $PWD 'output/psgallery-smoke'
+            if (Test-Path $downloadPath) { Remove-Item -Path $downloadPath -Recurse -Force }
+            Save-Module -Name $moduleName -Repository PSGallery -RequiredVersion $version -Path $downloadPath -Force
+            if (-not (Test-Path (Join-Path $downloadPath $moduleName))) {
+              throw "Save-Module smoke test failed: $moduleName was not saved to $downloadPath"
+            }
