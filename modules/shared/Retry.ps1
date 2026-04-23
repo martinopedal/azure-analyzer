@@ -24,7 +24,9 @@ function Invoke-WithRetry {
             'throttl', 'rate limit', 'too many requests',
             'timed out', 'timeout', 'service unavailable',
             'temporarily unavailable', 'connection reset', 'temporary failure',
-            'could not resolve host', 'network is unreachable', 'tls handshake'
+            'could not resolve host', 'network is unreachable', 'tls handshake',
+            '\beof\b', 'unexpected end', 'connection refused', 'broken pipe',
+            'connection closed', 'no such host', 'i/o timeout'
         )
     )
 

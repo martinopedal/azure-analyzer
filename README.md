@@ -108,6 +108,8 @@ CodeQL (`Analyze (actions)`) now uses a global workflow concurrency queue to red
 
 Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
 
+Markdown Check hardening: the `links (lychee)` retry wrapper now clears `.lycheecache` between attempts and passes `GITHUB_TOKEN` to reduce transient GitHub 5xx / unauthenticated flake failures.
+
 </details>
 
 <details><summary><b>Environment variables</b></summary>azure-analyzer honours a small set of opt-in environment variables for CI / quiet-mode use:
