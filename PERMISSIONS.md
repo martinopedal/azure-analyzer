@@ -21,6 +21,7 @@ The findings viewer scaffold (`-Show`, loopback-only Pode host) is local-only an
 Optional Copilot triage makes GitHub Copilot API calls (including runtime model discovery via `gh copilot status` / `gh copilot models list` and triage generation) only when users explicitly enable AI triage; this does not require Azure/Graph write permissions.
 Release automation (release-please, GitHub Releases, and PSGallery publication) introduces repository automation and package feed credentials (`GITHUB_TOKEN`, `PSGALLERY_API_KEY`) only; it does not require any additional Azure, Microsoft Graph, GitHub repository-content write scopes for runtime scanners, or Azure DevOps read scope changes.
 Manifest ordering enforcement (`tools/tool-manifest.json` alphabetical-by-name + `tests/manifest/Manifest.Sorted.Tests.ps1`) is test-only hygiene and introduces no new scopes.
+Resilience map renderer implementation (Track B #429 follow-up) is report-layer logic over existing EntityStore data and introduces no new Azure, Graph, GitHub, or Azure DevOps permissions.
 
 ## Permission domains at a glance
 
