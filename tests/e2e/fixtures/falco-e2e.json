@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "falco",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Falco rule 'Terminal shell in container' fired",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Runtime Threat",
+      "Pillar": "Security",
+      "Detail": "Falco detected /bin/sh exec inside pod contoso-api-7d9f in namespace prod.",
+      "RepoId": "https://github.com/contoso/security-rules",
+      "Remediation": "Investigate; restrict kubectl exec via OPA policy.",
+      "RuleId": "falco-terminal-shell"
+    },
+    {
+      "Title": "Falco rule 'Write below etc' fired",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Runtime Threat",
+      "Pillar": "Security",
+      "Detail": "Pod write to /etc/passwd detected in worker-2.",
+      "RepoId": "https://github.com/contoso/security-rules",
+      "Remediation": "Quarantine pod and review image provenance.",
+      "RuleId": "falco-write-below-etc"
+    },
+    {
+      "Title": "Falco rule set up to date",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Hygiene",
+      "Pillar": "Security",
+      "Detail": "falco_rules.yaml synced from 0.38.1 ruleset 24h ago.",
+      "RepoId": "https://github.com/contoso/security-rules",
+      "Remediation": "",
+      "RuleId": "falco-rules-current"
+    }
+  ]
+}

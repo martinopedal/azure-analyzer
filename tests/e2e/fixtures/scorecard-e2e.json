@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "scorecard",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "Branch-Protection score 4/10",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Branch Protection",
+      "Pillar": "Security",
+      "Detail": "OSSF Scorecard reports default branch lacks required reviews and signed-commit enforcement.",
+      "RepoId": "https://github.com/contoso/payments-api",
+      "Remediation": "Enable required reviewers and signed-commits on default branch.",
+      "RuleId": "scorecard-branch-protection"
+    },
+    {
+      "Title": "Token-Permissions score 0/10",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Token Permissions",
+      "Pillar": "Security",
+      "Detail": "Workflows use default GITHUB_TOKEN with write-all permissions.",
+      "RepoId": "https://github.com/contoso/payments-api",
+      "Remediation": "Add 'permissions: contents: read' at workflow root and elevate per-job.",
+      "RuleId": "scorecard-token-permissions"
+    },
+    {
+      "Title": "Pinned-Dependencies score 9/10",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Supply Chain",
+      "Pillar": "Security",
+      "Detail": "97% of GH Actions dependencies pinned by SHA.",
+      "RepoId": "https://github.com/contoso/payments-api",
+      "Remediation": "",
+      "RuleId": "scorecard-pinned-deps"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "SchemaVersion": "1.0",
+  "Source": "trivy",
+  "Status": "Success",
+  "Findings": [
+    {
+      "Title": "CVE-2024-12345 (HIGH) in node:18-alpine base image",
+      "Severity": "High",
+      "Compliant": false,
+      "Category": "Vulnerability",
+      "Pillar": "Security",
+      "Detail": "Trivy detected libssl 3.0.10 vulnerable to CVE-2024-12345 in image contoso/api:1.4.2.",
+      "RepoId": "https://github.com/contoso/api",
+      "Remediation": "Upgrade base image to node:18.20-alpine.",
+      "RuleId": "trivy-CVE-2024-12345"
+    },
+    {
+      "Title": "Misconfiguration: Dockerfile runs as root",
+      "Severity": "Medium",
+      "Compliant": false,
+      "Category": "Misconfig",
+      "Pillar": "Security",
+      "Detail": "Dockerfile lacks USER directive; container starts as root.",
+      "RepoId": "https://github.com/contoso/api",
+      "Remediation": "Add 'USER nodeuser' before CMD.",
+      "RuleId": "trivy-DS002"
+    },
+    {
+      "Title": "No critical vulns in production manifest",
+      "Severity": "Info",
+      "Compliant": true,
+      "Category": "Vulnerability",
+      "Pillar": "Security",
+      "Detail": "0 CRITICAL findings in latest scan.",
+      "RepoId": "https://github.com/contoso/api",
+      "Remediation": "",
+      "RuleId": "trivy-no-critical"
+    }
+  ]
+}
