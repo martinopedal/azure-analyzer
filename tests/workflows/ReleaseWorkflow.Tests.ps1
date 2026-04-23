@@ -36,10 +36,19 @@ Describe 'Release automation workflow contract' {
         $psd1 = Get-Content -Path (Join-Path $script:RepoRoot 'AzureAnalyzer.psd1') -Raw
 
         $config.'release-type' | Should -Be 'simple'
-        $config.packages.PSObject.Properties.Name | Should -Contain '.'
+        $config.packages.PSObject.Properties.Name | Should -Contain '.' -Because "release-please manifest mode requires a root package entry named '.'"
         ($config.packages.'.'.'extra-files' | Where-Object { $_.path -eq 'AzureAnalyzer.psd1' }).Count | Should -BeGreaterThan 0
         $manifest.'.' | Should -Match '^\d+\.\d+\.\d+$'
         $psd1 | Should -Match "ModuleVersion\s*=\s*'\d+\.\d+\.\d+'\s*#\s*x-release-please-version"
+    }
+
+    It 'keeps release-please manifest version in sync with psd1 ModuleVersion' {
+        $manifest = Get-Content -Path $script:ManifestPath -Raw | ConvertFrom-Json
+        $psd1 = Get-Content -Path (Join-Path $script:RepoRoot 'AzureAnalyzer.psd1') -Raw
+
+        $match = [regex]::Match($psd1, "ModuleVersion\s*=\s*'(?<version>\d+\.\d+\.\d+)'\s*#\s*x-release-please-version")
+        $match.Success | Should -BeTrue
+        $manifest.'.' | Should -Be $match.Groups['version'].Value
     }
 
     It 'keeps release automation files em-dash free' {

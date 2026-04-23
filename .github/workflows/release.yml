@@ -44,13 +44,12 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Resolve release version
         id: version
@@ -76,15 +75,15 @@ jobs:
           set -euo pipefail
           TAG='${{ steps.version.outputs.tag }}'
           OBJECT_TYPE="$(git for-each-ref "refs/tags/${TAG}" --format='%(objecttype)')"
-          if [[ "${OBJECT_TYPE}" != "tag" ]]; then
+          if [[ "${OBJECT_TYPE}" == "tag" ]]; then
+            TAG_OBJECT_SHA="$(git rev-parse "${TAG}^{tag}")"
+            TAG_CONTENT="$(git cat-file -p "${TAG_OBJECT_SHA}")"
+            if [[ "${TAG_CONTENT}" != *"-----BEGIN PGP SIGNATURE-----"* ]]; then
+              echo "Tag ${TAG} must be GPG-signed (PGP signature block missing)." >&2
+              exit 1
+            fi
+          else
             echo "Tag ${TAG} must be an annotated tag (object type: ${OBJECT_TYPE:-missing})" >&2
-            exit 1
-          fi
-
-          TAG_OBJECT_SHA="$(git rev-parse "${TAG}^{tag}")"
-          TAG_CONTENT="$(git cat-file -p "${TAG_OBJECT_SHA}")"
-          if [[ "${TAG_CONTENT}" != *"-----BEGIN PGP SIGNATURE-----"* ]]; then
-            echo "Tag ${TAG} must be GPG-signed (PGP signature block missing)." >&2
             exit 1
           fi
 
@@ -114,9 +113,9 @@ jobs:
           $tag = '${{ steps.version.outputs.tag }}'
           $version = '${{ steps.version.outputs.version }}'
 
-          $stagingRoot = Join-Path $PWD 'release-staging'
-          $moduleRoot = Join-Path $stagingRoot 'AzureAnalyzer'
-          if (Test-Path $stagingRoot) { Remove-Item -Path $stagingRoot -Recurse -Force }
+          $releaseStagingRoot = Join-Path $PWD 'release-staging'
+          $moduleRoot = Join-Path $releaseStagingRoot 'AzureAnalyzer'
+          if (Test-Path $releaseStagingRoot) { Remove-Item -Path $releaseStagingRoot -Recurse -Force }
           New-Item -ItemType Directory -Path $moduleRoot -Force | Out-Null
 
           $copyPaths = @(
@@ -136,7 +135,12 @@ jobs:
           )
 
           foreach ($path in $copyPaths) {
-            Copy-Item -Path $path -Destination (Join-Path $moduleRoot $path) -Recurse -Force
+            $destinationPath = Join-Path $moduleRoot $path
+            $destinationParent = Split-Path -Path $destinationPath -Parent
+            if (-not (Test-Path $destinationParent)) {
+              New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+            }
+            Copy-Item -Path $path -Destination $destinationPath -Recurse -Force
           }
 
           $outputDir = Join-Path $PWD 'output'
@@ -165,12 +169,15 @@ jobs:
           $sbomPath = Join-Path $PWD 'output/sbom.json'
           $sumPath = Join-Path $PWD 'output/SHA256SUMS.txt'
 
+          if (-not (Test-Path $zipPath)) { throw "Zip artifact missing: $zipPath" }
+          if (-not (Test-Path $sbomPath)) { throw "SBOM artifact missing: $sbomPath" }
+
           $zipHash = (Get-FileHash -Algorithm SHA256 -Path $zipPath).Hash.ToLowerInvariant()
           $sbomHash = (Get-FileHash -Algorithm SHA256 -Path $sbomPath).Hash.ToLowerInvariant()
 
           @(
             "$zipHash  $(Split-Path -Leaf $zipPath)",
-            "$sbomHash  sbom.json"
+            "$sbomHash  $(Split-Path -Leaf $sbomPath)"
           ) | Set-Content -Path $sumPath -Encoding UTF8
 
           "sum_path=$sumPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -186,7 +193,7 @@ jobs:
           retention-days: 14
 
       - name: Create GitHub release
-        if: github.event_name != 'workflow_dispatch'
+        id: create_release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -201,6 +208,8 @@ jobs:
 
       - name: PSGallery publish dry run
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
         with:
           max_attempts: 3
           timeout_minutes: 10
@@ -214,8 +223,10 @@ jobs:
             Publish-Module -Path '${{ steps.package.outputs.module_root }}' -NuGetApiKey $env:PSGALLERY_API_KEY -Repository PSGallery -WhatIf
 
       - name: PSGallery publish
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_to_psgallery == true
+        if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish_to_psgallery == true) && steps.create_release.outcome == 'success'
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
         with:
           max_attempts: 3
           timeout_minutes: 10
@@ -226,8 +237,10 @@ jobs:
             Publish-Module -Path '${{ steps.package.outputs.module_root }}' -NuGetApiKey $env:PSGALLERY_API_KEY -Repository PSGallery
 
       - name: PSGallery smoke test
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish_to_psgallery == true
+        if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish_to_psgallery == true) && steps.create_release.outcome == 'success'
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
         with:
           max_attempts: 3
           timeout_minutes: 10
@@ -243,4 +256,12 @@ jobs:
             Save-Module -Name $moduleName -Repository PSGallery -RequiredVersion $version -Path $downloadPath -Force
             if (-not (Test-Path (Join-Path $downloadPath $moduleName))) {
               throw "Save-Module smoke test failed: $moduleName was not saved to $downloadPath"
+            }
+            $manifestPath = (Get-ChildItem -Path $downloadPath -Recurse -Filter 'AzureAnalyzer.psd1' | Select-Object -First 1 -ExpandProperty FullName)
+            if (-not $manifestPath) {
+              throw "Save-Module smoke test failed: AzureAnalyzer.psd1 not found under $downloadPath"
+            }
+            $savedManifest = Test-ModuleManifest -Path $manifestPath
+            if ($savedManifest.Version.ToString() -ne $version) {
+              throw "Saved module version mismatch. Expected $version, got $($savedManifest.Version)"
             }
