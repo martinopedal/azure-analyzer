@@ -4,6 +4,7 @@
 ### Fixed
 - Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
 - Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
+- Auto-approve trusted bot runs now covers the full set of PR-triggered workflows (Closes Link Required, E2E, Issue Resolution Verify, PR Auto-Rebase Conflicts, PR Auto-Rerun On Push, Squad Heartbeat). Previously these workflows wedged in `action_required` on bot-authored PRs because they were absent from the `workflow_run.workflows` filter, forcing manual approval of every run.
 
 # Changelog
 
