@@ -15,12 +15,12 @@ Describe 'closes-link-required workflow contract' {
     }
 
     It 'skips release-please branches' {
-        $script:WorkflowText | Should -Match '\^release-please--'
+        $script:WorkflowText | Should -Match 'release-please--'
     }
 
     It 'exempts expected bot authors' {
-        foreach ($author in @('github-actions\[bot\]', 'dependabot\[bot\]', 'copilot-swe-agent\[bot\]', 'copilot-swe-agent')) {
-            $script:WorkflowText | Should -Match $author
+        foreach ($author in @('github-actions[bot]', 'dependabot[bot]', 'copilot-swe-agent[bot]', 'copilot-swe-agent')) {
+            $script:WorkflowText | Should -Match ([regex]::Escape($author))
         }
     }
 

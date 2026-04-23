@@ -50,7 +50,7 @@ The check is skipped when:
 - the PR has the `skip-closes-check` label;
 - the PR head branch matches `release-please--*`;
 - the PR author is `github-actions[bot]`, `dependabot[bot]`, `copilot-swe-agent`, or `copilot-swe-agent[bot]`;
-- the PR is pure documentation-only (auto-detected in the workflow).
+- the PR is documentation-only per the workflow's built-in file-path detection rules.
 
 ## Review
 
