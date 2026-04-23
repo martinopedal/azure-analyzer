@@ -110,7 +110,7 @@ renderer skeleton only.
 - [ ] RTO/RPO overlay renders when present, absent gracefully when not.
 - [ ] Heatmap cell color and density match the composite-score table in 3.1.
 - [ ] Shared canvas budget honored: resilience yields edges (not cells) when over cap.
-- [ ] Pester baseline (842/842) preserved. New renderer tests added under `tests/renderers/`.
+- [ ] Pester baseline (≥1637 total, ≥1602 passed) preserved. New renderer tests added under `tests/renderers/`.
 - [ ] No edits to Schema.ps1, Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1, or tool-manifest.json
       in this PR (those land via Foundation #435 and per-tool follow-ups).
 

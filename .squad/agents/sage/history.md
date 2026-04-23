@@ -251,3 +251,16 @@
 - Auto-resolve bot force-pushes cloud-agent PR branches asynchronously; local state desyncs silently. `git fetch origin <branch>` before any action is mandatory.
 - Only required check is `Analyze (actions)`. Stale `Test (*)` failures in `statusCheckRollup` from pre-fix SHAs are cosmetic and do not block merge.
 - Merge commit: `1254398`. Issue #840 auto-closed. Inbox decision at `.squad/decisions/inbox/sage-pr841-2026-04-23.md`.
+### 2026-04-23 - Docs Audit (Complete)
+- **Mission:** Map every doc that's stale, contradictory, missing, or misaligned. Deliverable: .copilot/audits/sage-docs-audit-2026-04-23.md.
+- **Method:** Tool manifest cross-check (37 tools confirmed), PERMISSIONS scope audit (33/37 covered, IaC/opt-in omitted by design), CHANGELOG post-v1.1.1 (found 2 gaps + 1 duplicate), sample reports validation (v2/v3 schema verified), design docs alignment (Tracks A-E + Foundation live), template coherence (squad label routing active), 50-PR sweep for undocumented behaviors, maintenance banner readiness check.
+- **Key findings:** 
+  - ✓ COHERENT: Tool catalogs, PERMISSIONS, samples, design docs all in sync
+  - ⚠ 3 CHANGELOG issues (duplicate retry classifier entries, missing PR #858 auto-approve, missing PR #840 Findings contract docs)
+  - ⚠ 4 operator-facing undocumented behaviors: -AlzReferenceMode parameter (no docs), -SinkLogAnalytics write elevation (buried in PERMISSIONS only), -Show viewer scaffold (incomplete), Gitleaks/Trivy Findings array null-guard contract (not in wrapper guide)
+  - ⚠ 3 missing consumer guides: ALZ governance flow end-to-end, entity store deduplication contract, AI triage setup
+  - ⚠ 1 missing contributor docs: Pester 5.7.1 pinning requirement (PR #851)
+  - ✓ BANNER READY: Phase G can remove maintenance banner when v1.1.2 ships (board clear, CI stable, no blockers)
+- **Intake:** Recommended 10 PRs (1 P0 = 5min, 4 P1 = ~4 hours total, 5 P2 = backlog). Full prioritized table in audit report.
+- **Verdict:** FULLY COHERENT with actionable gaps (feature-docs omissions, not schema contradictions). Ready for Phase G.
+

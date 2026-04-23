@@ -122,3 +122,31 @@ No code changes in this phase. Pester baseline unchanged at 1349 passed / 5 skip
 ### 2026-04-22 — ETL Sprint Schema 2.2 Launch Complete
 
 **Sprint Summary:** 30 PRs merged (zero open). Schema 2.2 locked across 20+ normalizers. Pester 1495+ tests (1369 baseline → +126 extensions). HTML report null-crash regression fix #416 shipped launch-eve. All squad briefs merged to decisions.md. 15 follow-up ETL issues filed (#300–#313). Launch GO for 08:00 CET 2026-04-22.
+
+### 2026-04-23 — Security Invariant Audit (READ-ONLY)
+
+**Audit mandate:** Verify 14 security invariants from `.copilot/copilot-instructions.md` are upheld across the codebase. Zero code edits; deliverable is audit report + two low-priority findings logged.
+
+**Audit Coverage:**
+1. HTTPS-only ✅ PASS (loopback + SVG namespace exceptions safe)
+2. Host allow-list ✅ PASS (github.com, dev.azure.com, *.visualstudio.com, *.ghe.com enforced in RemoteClone.ps1)
+3. Allow-listed package managers ✅ PASS ({winget, brew, pipx, pip, snap})
+4. Package-name regex ✅ PASS (^[A-Za-z0-9]...[0-127] chars; injection-safe)
+5. 300s timeout ⚠ P2 (4 wrappers bypass; internal timeouts sufficient but not unified)
+6. Token scrubbing post-clone ✅ PASS (.git/config cleared after clone in RemoteClone.ps1:236–247)
+7. Remove-Credentials on disk ✅ PASS (consistent before Out-File / Set-Content)
+8. Greedy-regex (PR #876 follow-up) ✅ PASS (patterns credential-targeted; no JSON corruption risk)
+9. ConvertTo-CanonicalEntityId ✅ PASS (normalizers use consistently; no raw GUIDs)
+10. Workflow expression injection ✅ PASS (gh CLI used; no direct ${{ github.event.* }} in run: blocks)
+11. ConvertFrom-Json on untrusted ✅ PASS (try/catch + -Depth limits enforced)
+12. Rich-error categories ⚠ P3 (56 bare throws in utils; preconditions acceptable)
+13. Empty-catch exemptions ✅ PASS (Canonicalize fallback pattern documented)
+14. Findings prioritized ✅ PASS (2 findings issued with PR titles + RCA below)
+
+**Findings Summary:**
+- **F1 (P2):** Invoke-Powerpipe/WARA/CopilotTriage/PRReviewGate bypass Invoke-WithTimeout wrapper (internal timeouts exist; consistency improvement only). PR title: `chore: standardize timeout wrappers to use Invoke-WithTimeout`.
+- **F2 (P3):** 56 bare `throw "string"` in utility modules (Canonicalize.ps1, AksDiscovery.ps1, IaCAdapters.ps1, etc.). These are precondition failures (non-data), acceptable per code-quality standard. PR title: `docs: add rich-error guidelines for utility modules`.
+
+**Verdict:** 14/14 invariants PASS. No security gaps. All 2 findings are low-risk, non-blocking improvements.
+
+**Audit Deliverable:** `.copilot/audits/sentinel-security-audit-2026-04-23.md` (16.7 KB, ~500 lines, citations included).

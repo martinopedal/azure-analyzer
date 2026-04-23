@@ -181,7 +181,7 @@ at every tier:
 * **Tier 4:** Pode endpoint returns the subgraph in <1 s for a 100k-edge tenant
   and surfaces `truncated=true` when the cap is hit.
 
-Pester baseline must remain green at 842/842 + new renderer tests.
+Pester baseline must remain green (≥1637 total, ≥1602 passed) + new renderer tests.
 
 ## 8. Out of scope for this PR
 

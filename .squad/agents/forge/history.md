@@ -17,6 +17,22 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 
 ## Learnings
 
+### CI Permafix Audit 2026-04-23
+
+**Watchdog Dedup Hash Collision Pattern:** When a workflow fails with an identical error line (e.g., "Invoke-Pester returned null") across 30+ rapid runs, the dedup hash (SHA256 of workflow+error, truncated to 12 chars) *correctly* identifies them as the same root cause, but the issue-create call lacks exponential backoff on transient errors (429/503/timeout). Result: ~30 duplicate ci-failure issues opened before the post-create dedup sweep runs. **Fix:** Add exponential backoff to gh issue create, run dedup sweep *before* create (not after), implement rollup-issue pattern for >5 issues in 1 hour. This is a false-positive flood, not a dedup algorithm bug.
+
+**JSON Sanitization Order Matters:** Calling `Remove-Credentials` *before* `ConvertFrom-Json` corrupts JSON if the regex patterns match base64 segments in the JSON structure (e.g., JWT in a review body). The sanitizer cannot distinguish between a cred string and a legitimate base64 field. **Fix:** Sanitize *after* parsing so the JSON structure is known. This is now enforced in Invoke-PRReviewGate.ps1 post-commit 8aa2796.
+
+**Pester 6.x Silent Regression:** Pester 6.x (preview) `Invoke-Pester -PassThru` returns `$null` on some matrix OSes when the imported version does not match the harness's [PesterConfiguration] expectations. The failure is silent (no error, just $null). `-MinimumVersion 5.0` allows 6.x to be pulled; `-RequiredVersion 5.7.1` prevents it. Defensive: detect $null and log diagnostic (Pester version + path) for next triage. This pattern is now in ci.yml:70–79, release.yml:96–114, e2e.yml:40–56.
+
+**Exponential Backoff + Jitter Principle:** Transient API failures (429/503/timeout) should not be retried with fixed backoff—use exponential backoff (2^attempt) + jitter to avoid thundering herd. All external I/O in workflows already has this pattern (nick-fields/retry@v4.0.0, Invoke-WithRetry in Installer.ps1). The watchdog's triage-failure step is the exception and should be brought in line.
+
+**Rate-Limit Pre-Flight is Essential at Scale:** CodeQL analyze hits GitHub's installation-scoped rate-limit on high-traffic days (not per-repo limit, but shared across all workflows in the instance). A 15–20 minute pre-flight wait to check rate-limit state and sleep until reset is worth the latency trade-off because it prevents silent mid-job 429 errors. Cap the wait at 20 minutes so it doesn't exceed job timeout.
+
+**Token Scope Privilege Isolation:** Auto-rebase (contents: write) and auto-rerun (actions: write) are correctly separated. No workflow has `workflows: write` or `deployments: write`, preventing privilege escalation. Force-with-lease (not --force) prevents rebase wars. Dedup on run-id prevents double-dispatch. This is the correct isolation model.
+
+**CI-Honesty Contract:** "Green means green" requires all required checks to gate merge. Currently, docs/markdown/e2e/closes-link are advisory, so agent PRs can bypass them if a single check is ignored. Promoting these 5 to required ensures 6-pillar quality (reliability, docs, security, infra, hygiene, compliance) before merge. No code change needed—just flip `required` status in branch protection.
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 - 2026-04-21 — IaCFile EntityType (schema + EntityStore dedup contract) now available for IaC normalizers to use. Canonical ID: `iacfile:{repo-slug}:{relative-path}` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). Enables cross-tool file-level dedup when terraform-iac, Trivy, Checkov, and tfsec report findings on the same IaC file. Migration of terraform-iac normalizer from EntityType=Repository to IaCFile deferred to follow-up. PR #423 (SHA 5577bd77).
 - CI failure dedup key uses hash format `sha256("{workflow}|{first-error-line}")` truncated to 12 chars for stable issue-title matching.

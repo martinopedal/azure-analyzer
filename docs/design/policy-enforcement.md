@@ -158,7 +158,7 @@ modules/shared/Policy/
 
 - `tests/policy/AlzMatcher.Tests.ps1`: 3 worked-example fixtures from the algorithm doc, currently `-Skip` until catalog ingestion lands.
 - Renderer + AzAdvertizer lookup tests follow in the implementation PR.
-- Pester baseline (842/842) MUST remain green for this scaffold PR.
+- Pester baseline (≥1637 total, ≥1602 passed) MUST remain green for this scaffold PR.
 
 ## Security invariants
 
