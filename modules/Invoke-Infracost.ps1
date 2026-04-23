@@ -7,9 +7,9 @@
     wrapper envelope with one finding per resource estimate.
 
     Cloud-first behavior:
-    - `-Repository` clones a remote repo through RemoteClone.ps1 (HTTPS-only,
+    - `-RemoteUrl` clones a remote repo through RemoteClone.ps1 (HTTPS-only,
       host allow-list, token-safe cleanup).
-    - `-Path` scans a local directory (fallback mode).
+    - `-RepoPath` scans a local directory (fallback mode).
 
     Resilience and security:
     - Infracost CLI invocation is wrapped with Invoke-WithRetry.
@@ -17,17 +17,17 @@
     - Any surfaced message is passed through Remove-Credentials.
 
     Never throws -- designed for graceful degradation in the orchestrator.
-.PARAMETER Path
+.PARAMETER RepoPath
     Local directory containing Terraform/Bicep files. Defaults to current dir.
-.PARAMETER Repository
+.PARAMETER RemoteUrl
     Remote HTTPS repository URL to clone and scan.
 #>
 [CmdletBinding()]
 param (
-    [Alias('RepoPath')]
-    [string] $Path = '.',
-    [Alias('RemoteUrl')]
-    [string] $Repository
+    [Alias('Path')]
+    [string] $RepoPath = '.',
+    [Alias('Repository')]
+    [string] $RemoteUrl
 )
 
 Set-StrictMode -Version Latest
@@ -196,7 +196,7 @@ if (-not (Test-InfracostInstalled)) {
 $cloneInfo = $null
 $cleanupClone = $null
 try {
-    if ($Repository) {
+    if ($RemoteUrl) {
         if (-not (Get-Command Invoke-RemoteRepoClone -ErrorAction SilentlyContinue)) {
             Write-Warning "RemoteClone helper not loaded; cannot scan remote repository."
             return [PSCustomObject]@{
@@ -207,31 +207,31 @@ try {
                 Findings      = @()
             }
         }
-        $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $Repository -TimeoutSec 300
+        $cloneInfo = Invoke-RemoteRepoClone -RepoUrl $RemoteUrl -TimeoutSec 300
         if (-not $cloneInfo) {
             return [PSCustomObject]@{
                 Source        = 'infracost'
                 SchemaVersion = '1.0'
                 Status        = 'Failed'
-                Message       = "Remote clone failed or host not on allow-list: $Repository"
+                Message       = "Remote clone failed or host not on allow-list: $RemoteUrl"
                 Findings      = @()
             }
         }
         $cleanupClone = $cloneInfo.Cleanup
-        $Path = $cloneInfo.Path
+        $RepoPath = $cloneInfo.Path
     }
 
-    if (-not (Test-Path -LiteralPath $Path)) {
+    if (-not (Test-Path -LiteralPath $RepoPath)) {
         return [PSCustomObject]@{
             Source        = 'infracost'
             SchemaVersion = '1.0'
             Status        = 'Failed'
-            Message       = "Path not found: $Path"
+            Message       = "Path not found: $RepoPath"
             Findings      = @()
         }
     }
 
-    $iacFiles = @(Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue |
+    $iacFiles = @(Get-ChildItem -Path $RepoPath -Recurse -File -ErrorAction SilentlyContinue |
             Where-Object { $_.Extension -in @('.tf', '.bicep') })
     if ($iacFiles.Count -eq 0) {
         return [PSCustomObject]@{
@@ -243,7 +243,7 @@ try {
         }
     }
 
-    $args = @('breakdown', '--path', $Path, '--format', 'json', '--no-color')
+    $args = @('breakdown', '--path', $RepoPath, '--format', 'json', '--no-color')
     $exec = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 30 -ScriptBlock {
         Invoke-WithTimeout -Command 'infracost' -Arguments $args -TimeoutSec 300
     }
@@ -290,7 +290,7 @@ try {
         $toolVersion = ''
     }
 
-    $breakdownPath = Join-Path $Path 'infracost-breakdown.json'
+    $breakdownPath = Join-Path $RepoPath 'infracost-breakdown.json'
     $breakdownUri = ''
     try {
         $sanitizedJsonText = Remove-Credentials -Text $jsonText
@@ -310,7 +310,7 @@ try {
     foreach ($project in @($parsed.projects)) {
         if (-not $project) { continue }
         $projectName = if ($project.PSObject.Properties['name'] -and $project.name) { [string]$project.name } else { 'project' }
-        $projectPath = if ($project.PSObject.Properties['path'] -and $project.path) { [string]$project.path } else { [string]$Path }
+        $projectPath = if ($project.PSObject.Properties['path'] -and $project.path) { [string]$project.path } else { [string]$RepoPath }
         if (-not [string]::IsNullOrWhiteSpace($projectName)) {
             $summaryProjectNames.Add($projectName) | Out-Null
         }

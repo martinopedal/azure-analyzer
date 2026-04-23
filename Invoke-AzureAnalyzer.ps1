@@ -896,13 +896,16 @@ foreach ($toolDef in $manifest.tools) {
                     $params['RemoteUrl'] = $scanTargetUrl
                 }
                 if ($toolDef.name -eq 'trivy') {
-                    if (-not $scanTargetUrl -and $ScanPath) { $params['ScanPath'] = $ScanPath }
+                    if (-not $scanTargetUrl) {
+                        $localPath = if ($ScanPath) { $ScanPath } elseif ($RepoPath) { $RepoPath } else { $null }
+                        if ($localPath) { $params['RepoPath'] = $localPath }
+                    }
                     if (-not $scanTargetUrl -and $ScanType) { $params['ScanType'] = $ScanType }
                 }
                 if ($toolDef.name -eq 'zizmor') {
                     if (-not $scanTargetUrl) {
                         $localPath = if ($RepoPath) { $RepoPath } else { '.' }
-                        $params['Repository'] = $localPath
+                        $params['RepoPath'] = $localPath
                     }
                     if ($incrementalSinceMap.ContainsKey('zizmor')) {
                         $params['Since'] = $incrementalSinceMap['zizmor']
@@ -911,6 +914,9 @@ foreach ($toolDef in $manifest.tools) {
                 if ($toolDef.name -eq 'gitleaks') {
                     if (-not $scanTargetUrl -and $RepoPath) { $params['RepoPath'] = $RepoPath }
                     if ($GitleaksConfigPath) { $params['GitleaksConfigPath'] = $GitleaksConfigPath }
+                }
+                if ($toolDef.name -eq 'infracost') {
+                    if (-not $scanTargetUrl -and $RepoPath) { $params['RepoPath'] = $RepoPath }
                 }
                 $specName = "$($toolDef.name)|repo"
                 $toolSpecs.Add([PSCustomObject]@{

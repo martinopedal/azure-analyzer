@@ -59,14 +59,17 @@ Describe 'infracost wrapper: remote/local routing' {
     BeforeAll {
         $script:wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Infracost.ps1'
     }
-    It 'accepts -Repository parameter' {
+    It 'accepts -RemoteUrl parameter' {
         $paramInfo = (Get-Command $script:wrapper).Parameters
-        $paramInfo.ContainsKey('Repository') | Should -BeTrue
+        $paramInfo.ContainsKey('RemoteUrl') | Should -BeTrue
+    }
+    It 'keeps legacy -Repository alias' {
+        $paramInfo = (Get-Command $script:wrapper).Parameters
+        $paramInfo['RemoteUrl'].Aliases | Should -Contain 'Repository'
     }
     It 'rejects non-allow-listed remote URL' {
-        $result = & $script:wrapper -Repository 'https://evil.example.org/org/repo'
+        $result = & $script:wrapper -RemoteUrl 'https://evil.example.org/org/repo'
         $result.Source | Should -Be 'infracost'
         $result.Status | Should -Match 'Skipped|Failed'
     }
 }
-
