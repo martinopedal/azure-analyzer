@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Docs
+
+- **Post-sprint documentation sweep**: Removed maintenance window banner from README. Added ASCII startup banner code block. Reorganized README to lead with consumer-facing content (what the tool does, quickstart, sample reports, features) and moved contributor/testing/CI notes to a Contributing section at the end. Documented that `Auto-Rebase` and `Rerun-Failed-Checks` workflows skip on non-agent branches (expected behavior). Regenerated sample HTML and Markdown reports against current renderers.
+
 ### CI
 
 - Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
