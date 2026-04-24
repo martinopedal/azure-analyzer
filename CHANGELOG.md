@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fixed
+
+- **Timeout standardization (#974)**: Wrapped external CLI invocations in `Invoke-WithTimeout` (300s default) across 9 wrappers: Invoke-Gitleaks, Invoke-Trivy, Invoke-Zizmor, Invoke-Kubescape, Invoke-Powerpipe, Invoke-Prowler (600s), Invoke-Azqr, Invoke-Falco (helm/kubectl), and Invoke-KubeBench (kubectl apply/wait/logs). Enhanced shared `Invoke-WithTimeout` in `Installer.ps1` to return separate `Stdout`/`Stderr` properties alongside combined `Output` for tools that need stream separation (zizmor, powerpipe). Prevents hung CLI processes from blocking the orchestrator indefinitely.
+
 ### Docs
 
 - **Post-sprint documentation sweep**: Removed maintenance window banner from README. Added ASCII startup banner code block. Reorganized README to lead with consumer-facing content (what the tool does, quickstart, sample reports, features) and moved contributor/testing/CI notes to a Contributing section at the end. Documented that `Auto-Rebase` and `Rerun-Failed-Checks` workflows skip on non-agent branches (expected behavior). Regenerated sample HTML and Markdown reports against current renderers.

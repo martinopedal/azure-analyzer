@@ -291,13 +291,13 @@ function Invoke-WithTimeout {
         try { $proc.Kill($true) } catch {
             Write-Verbose ("Invoke-WithTimeout: Process.Kill after timeout failed (process likely already exited). Reason: {0}" -f $_.Exception.Message)
         }
-        return [PSCustomObject]@{ ExitCode = -1; Output = "Timed out after $TimeoutSec seconds" }
+        return [PSCustomObject]@{ ExitCode = -1; Output = "Timed out after $TimeoutSec seconds"; Stdout = ''; Stderr = "Timed out after $TimeoutSec seconds" }
     }
 
     $stdout = $stdoutTask.Result
     $stderr = $stderrTask.Result
     $combined = Remove-Credentials (($stdout + "`n" + $stderr).Trim())
-    return [PSCustomObject]@{ ExitCode = $proc.ExitCode; Output = $combined }
+    return [PSCustomObject]@{ ExitCode = $proc.ExitCode; Output = $combined; Stdout = Remove-Credentials $stdout; Stderr = Remove-Credentials $stderr }
 }
 
 function Install-PSModules {

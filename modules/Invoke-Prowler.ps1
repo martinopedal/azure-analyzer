@@ -21,6 +21,9 @@ if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { func
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 
 function Get-ObjProp {
     param([object]$Obj, [string]$Name, [object]$Default = $null)
@@ -123,7 +126,21 @@ if (-not (Test-Path $OutputPath)) {
 $toolVersion = Get-ProwlerVersion
 
 try {
-    $null = prowler azure --subscription-id $SubscriptionId --output-formats json --output-directory $OutputPath --output-filename "prowler-$SubscriptionId" 2>&1
+    $prowlerArgs = @('azure', '--subscription-id', $SubscriptionId, '--output-formats', 'json', '--output-directory', $OutputPath, '--output-filename', "prowler-$SubscriptionId")
+    $prowlerExec = Invoke-WithTimeout -Command 'prowler' -Arguments $prowlerArgs -TimeoutSec 600
+    if ($prowlerExec.Output) { Write-Verbose "prowler output: $($prowlerExec.Output)" }
+    if ([int]$prowlerExec.ExitCode -eq -1) {
+        Write-Warning 'prowler timed out after 600 seconds'
+        return [PSCustomObject]@{
+            Source        = 'prowler'
+            SchemaVersion = '1.0'
+            Status        = 'Failed'
+            Message       = 'prowler timed out after 600 seconds'
+            ToolVersion   = $toolVersion
+            Findings      = @()
+            Errors        = @()
+        }
+    }
 
     $jsonFiles = Get-ChildItem -Path $OutputPath -Filter '*.json' -File -ErrorAction SilentlyContinue
     $rawChecks = [System.Collections.Generic.List[object]]::new()

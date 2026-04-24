@@ -89,7 +89,10 @@ if (-not (Get-Command Write-FindingError -ErrorAction SilentlyContinue)) {
 
 $kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
 if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
-
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
+
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
@@ -450,31 +453,35 @@ spec:
         $kctxArgs = @()
         if ($context) { $kctxArgs += @('--context', $context) }
 
-        & kubectl @kctxArgs apply -f $jobManifest 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
+        $applyArgs = $kctxArgs + @('apply', '-f', $jobManifest)
+        $applyExec = Invoke-WithTimeout -Command 'kubectl' -Arguments $applyArgs -TimeoutSec 60
+        if ([int]$applyExec.ExitCode -ne 0) {
             $failed++
             continue
         }
         $jobApplied = $true
 
-        & kubectl @kctxArgs -n $Namespace wait --for=condition=complete "job/$jobName" --timeout="$($JobTimeoutSeconds)s" 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
+        $waitArgs = $kctxArgs + @('-n', $Namespace, 'wait', '--for=condition=complete', "job/$jobName", "--timeout=$($JobTimeoutSeconds)s")
+        $waitExec = Invoke-WithTimeout -Command 'kubectl' -Arguments $waitArgs -TimeoutSec ([int]$JobTimeoutSeconds + 30)
+        if ([int]$waitExec.ExitCode -ne 0) {
             Write-FindingError (New-FindingError -Source 'wrapper:kube-bench' `
                 -Category 'TimeoutExceeded' `
                 -Reason ("kubectl wait did not see job/{0} complete within {1}s on cluster {2} (context={3} namespace={4})." -f $jobName, $JobTimeoutSeconds, $cluster.name, $context, $Namespace) `
                 -Remediation 'Increase -JobTimeoutSeconds or check cluster scheduler health and node capacity.' `
-                -Details ("kubectl exit {0}" -f $LASTEXITCODE))
+                -Details ("kubectl exit {0}" -f [int]$waitExec.ExitCode))
             $failed++
             continue
         }
 
-        & kubectl @kctxArgs -n $Namespace logs "job/$jobName" 2>&1 | Set-Variable -Name kubeBenchLogs
-        if ($LASTEXITCODE -ne 0) {
+        $logsArgs = $kctxArgs + @('-n', $Namespace, 'logs', "job/$jobName")
+        $logsExec = Invoke-WithTimeout -Command 'kubectl' -Arguments $logsArgs -TimeoutSec 120
+        $kubeBenchLogs = $logsExec.Output
+        if ([int]$logsExec.ExitCode -ne 0) {
             Write-FindingError (New-FindingError -Source 'wrapper:kube-bench' `
                 -Category 'IOFailure' `
                 -Reason ("kubectl logs failed for job/{0} on cluster {1} (context={2} namespace={3})." -f $jobName, $cluster.name, $context, $Namespace) `
                 -Remediation 'Verify kubeconfig credentials, RBAC for pods/log in the namespace, and that the job pod has not been evicted.' `
-                -Details ("kubectl exit {0}" -f $LASTEXITCODE))
+                -Details ("kubectl exit {0}" -f [int]$logsExec.ExitCode))
             $failed++
             continue
         }

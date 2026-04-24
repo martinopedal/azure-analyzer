@@ -33,6 +33,9 @@ if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { func
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 
 function Test-AzqrInstalled {
     $null -ne (Get-Command azqr -ErrorAction SilentlyContinue)
@@ -41,7 +44,8 @@ function Test-AzqrInstalled {
 function Get-AzqrToolVersion {
     try {
         $rawVersion = azqr --version 2>&1
-        if ($LASTEXITCODE -ne 0) { return '' }
+        $exitCode = if (Test-Path variable:LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+        if ($exitCode -ne 0) { return '' }
         $versionText = if ($rawVersion -is [array]) { ($rawVersion -join ' ') } else { [string]$rawVersion }
         $match = [regex]::Match($versionText, '(\d+\.\d+\.\d+(?:[-+][A-Za-z0-9\.-]+)?)')
         if ($match.Success) { return $match.Groups[1].Value }
@@ -147,7 +151,20 @@ if (-not (Test-Path $OutputPath)) {
 try {
     Write-Verbose "Running azqr scan for subscription $SubscriptionId"
     $toolVersion = Get-AzqrToolVersion
-    $null = azqr scan --subscription-id $SubscriptionId --output-dir $OutputPath 2>&1
+    $azqrArgs = @('scan', '--subscription-id', $SubscriptionId, '--output-dir', $OutputPath)
+    $azqrExec = Invoke-WithTimeout -Command 'azqr' -Arguments $azqrArgs -TimeoutSec 300
+    if ($azqrExec.Output) { Write-Verbose "azqr output: $($azqrExec.Output)" }
+    if ([int]$azqrExec.ExitCode -eq -1) {
+        Write-Warning 'azqr timed out after 300 seconds'
+        return [PSCustomObject]@{
+            Source   = 'azqr'
+            SchemaVersion = '1.0'
+            Status   = 'Failed'
+            Message  = 'azqr timed out after 300 seconds'
+            Findings = @()
+            Errors   = @()
+        }
+    }
 
     $jsonFiles = Get-ChildItem -Path $OutputPath -Filter '*.json' -ErrorAction SilentlyContinue
     $findings = @()
