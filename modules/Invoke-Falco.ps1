@@ -104,6 +104,9 @@ if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 $result = [ordered]@{
     SchemaVersion = '1.0'
     Source        = 'falco'
@@ -514,15 +517,18 @@ foreach ($cluster in $clusters) {
                       '--namespace', $Namespace, '--create-namespace',
                       '--wait', '--timeout', '5m')
         if ($ctx) { $helmArgs += @('--kube-context', $ctx) }
-        & helm @helmArgs 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) { $failed++; continue }
+        $helmExec = Invoke-WithTimeout -Command 'helm' -Arguments $helmArgs -TimeoutSec 360
+        if ($helmExec.Output) { Write-Verbose "helm output: $($helmExec.Output)" }
+        if ([int]$helmExec.ExitCode -eq -1) { $failed++; continue }
+        if ([int]$helmExec.ExitCode -ne 0) { $failed++; continue }
 
         Start-Sleep -Seconds ($captureMinutes * 60)
         $logArgs = @()
         if ($ctx) { $logArgs += @('--context', $ctx) }
         $logArgs += @('-n', $Namespace, 'logs', 'daemonset/falco', '--since', "$($captureMinutes)m", '--tail', '5000')
-        $rawLogs = @(& kubectl @logArgs 2>&1)
-        if ($LASTEXITCODE -ne 0) {
+        $logExec = Invoke-WithTimeout -Command 'kubectl' -Arguments $logArgs -TimeoutSec 120
+        $rawLogs = @(($logExec.Output -split "`n"))
+        if ([int]$logExec.ExitCode -ne 0) {
             $failed++
             Write-Warning "Falco log collection failed for cluster $($cluster.name): $(Remove-Credentials -Text ([string]($rawLogs -join ' ')))"
             continue

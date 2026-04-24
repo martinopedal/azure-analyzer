@@ -49,6 +49,9 @@ $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
 $errorsPath = Join-Path $sharedDir 'Errors.ps1'
 if (Test-Path $errorsPath) { . $errorsPath }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $sharedDir 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 
 $envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
@@ -415,21 +418,20 @@ try {
         }
 
         $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
+        $invokeGitleaksScan = {
+            $script:gitleaksExec = Invoke-WithTimeout -Command 'gitleaks' -Arguments $gitleaksArgs -TimeoutSec 300
+            if ([int]$script:gitleaksExec.ExitCode -eq -1) {
+                throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:gitleaks' -Category 'TimeoutExceeded' -Reason 'gitleaks timed out after 300 seconds.' -Remediation 'Check repository size or increase timeout.' -Details ''))
+            }
+            if ($script:gitleaksExec.Output) { Write-Verbose "gitleaks output: $($script:gitleaksExec.Output)" }
+        }
         if ($useRetry) {
-            Invoke-WithRetry -ScriptBlock {
-                $stderrLines = & gitleaks @gitleaksArgs 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
-                if ($stderrLines) {
-                    Write-Verbose "gitleaks stderr: $($stderrLines -join '; ')"
-                }
-            }
+            Invoke-WithRetry -ScriptBlock $invokeGitleaksScan
         } else {
-            $stderrLines = & gitleaks @gitleaksArgs 2>&1 | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] }
-            if ($stderrLines) {
-                Write-Verbose "gitleaks stderr: $($stderrLines -join '; ')"
-            }
+            & $invokeGitleaksScan
         }
 
-        $exitCode = $LASTEXITCODE
+        $exitCode = [int]$script:gitleaksExec.ExitCode
 
         # Validate: non-zero exit code with no report = hard failure
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {

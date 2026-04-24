@@ -133,7 +133,10 @@ $kubeAuthPath = Join-Path $PSScriptRoot 'shared' 'KubeAuth.ps1'
 if (Test-Path $kubeAuthPath) { . $kubeAuthPath }
 $aksDiscoveryPath = Join-Path $PSScriptRoot 'shared' 'AksDiscovery.ps1'
 if (Test-Path $aksDiscoveryPath) { . $aksDiscoveryPath }
-
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
+
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
@@ -415,8 +418,9 @@ foreach ($cluster in $clusters) {
         $ksArgs = @('scan', '--format', 'json', '--output', $rawFile, '--format-version', 'v2')
         if ($contextForScan) { $ksArgs += @('--kube-context', $contextForScan) }
         if ($Namespace)      { $ksArgs += @('--include-namespaces', $Namespace) }
-        & kubescape @ksArgs 2>&1 | Out-Null
-        $scanExit = $LASTEXITCODE
+        $ksExec = Invoke-WithTimeout -Command 'kubescape' -Arguments $ksArgs -TimeoutSec 300
+        if ($ksExec.Output) { Write-Verbose "kubescape output: $($ksExec.Output)" }
+        $scanExit = [int]$ksExec.ExitCode
 
         if ((Test-Path $rawFile) -and ((Get-Item $rawFile).Length -gt 0)) {
             $raw = Get-Content $rawFile -Raw | ConvertFrom-Json -Depth 30

@@ -46,6 +46,9 @@ if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue))
         return $line
     }
 }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 
 function Test-PowerpipeInstalled {
     return $null -ne (Get-Command powerpipe -ErrorAction SilentlyContinue)
@@ -146,12 +149,21 @@ try {
     $versionOut = (& powerpipe --version 2>&1 | Select-Object -First 1)
     $toolVersion = if ($versionOut) { [string]$versionOut } else { '' }
 
-    $rawOutput = & powerpipe benchmark run $Benchmark --output json 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    $ppExec = Invoke-WithTimeout -Command 'powerpipe' -Arguments @('benchmark', 'run', $Benchmark, '--output', 'json') -TimeoutSec 300
+    $rawOutput = if ($ppExec.PSObject.Properties['Stdout'] -and $ppExec.Stdout) { $ppExec.Stdout } else { $ppExec.Output }
+    if ([int]$ppExec.ExitCode -eq -1) {
+        throw (Format-FindingErrorMessage (New-FindingError `
+            -Source 'wrapper:powerpipe' `
+            -Category 'TimeoutExceeded' `
+            -Reason "powerpipe benchmark run timed out after 300 seconds." `
+            -Remediation 'Inspect powerpipe CLI output; ensure the benchmark mod is installed and credentials configured.' `
+            -Details ''))
+    }
+    if ([int]$ppExec.ExitCode -ne 0) {
         throw (Format-FindingErrorMessage (New-FindingError `
             -Source 'wrapper:powerpipe' `
             -Category 'UnexpectedFailure' `
-            -Reason "powerpipe benchmark run failed (exit $LASTEXITCODE)." `
+            -Reason "powerpipe benchmark run failed (exit $([int]$ppExec.ExitCode))." `
             -Remediation 'Inspect powerpipe CLI output; ensure the benchmark mod is installed and credentials configured.' `
             -Details (Remove-Credentials -Text ([string]$rawOutput))))
     }

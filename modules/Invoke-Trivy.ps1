@@ -45,6 +45,9 @@ $missingToolPath = Join-Path $sharedDir 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $sharedDir 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 
 $envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
@@ -296,13 +299,23 @@ try {
     $reportFile = Join-Path ([System.IO.Path]::GetTempPath()) "trivy-report-$([guid]::NewGuid().ToString('N')).json"
 
     try {
-        & trivy $ScanType --format json --scanners vuln,misconfig --output $reportFile $RepoPath 2>&1 | ForEach-Object {
-            if ($_ -is [System.Management.Automation.ErrorRecord]) {
-                Write-Verbose "trivy stderr: $_"
+        $trivyArgs = @($ScanType, '--format', 'json', '--scanners', 'vuln,misconfig', '--output', $reportFile, $RepoPath)
+        $trivyExec = Invoke-WithTimeout -Command 'trivy' -Arguments $trivyArgs -TimeoutSec 300
+        if ($trivyExec.Output) { Write-Verbose "trivy output: $($trivyExec.Output)" }
+
+        $exitCode = [int]$trivyExec.ExitCode
+
+        if ($exitCode -eq -1) {
+            Write-Warning "trivy timed out after 300 seconds"
+            return [PSCustomObject]@{
+                Source   = 'trivy'
+                SchemaVersion = '1.0'
+                Status   = 'Failed'
+                Message  = 'trivy timed out after 300 seconds'
+                Findings = @()
+                Errors   = @()
             }
         }
-
-        $exitCode = $LASTEXITCODE
 
         # Non-zero exit with no report = hard failure
         if ($exitCode -ne 0 -and -not (Test-Path $reportFile)) {

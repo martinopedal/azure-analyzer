@@ -53,6 +53,9 @@ $retryPath = Join-Path $sharedDir 'Retry.ps1'
 if (Test-Path $retryPath) { . $retryPath }
 $remoteClonePath = Join-Path $sharedDir 'RemoteClone.ps1'
 if (Test-Path $remoteClonePath) { . $remoteClonePath }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection
+$cliTimeoutPath = Join-Path $sharedDir 'CliTimeout.ps1'
+if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
 
 $envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
@@ -308,17 +311,29 @@ try {
     $stderrFile = "$reportFile.err"
 
     try {
-        $invokeZizmor = {
-            & zizmor --format=json --no-exit-codes $scanPath 1>$reportFile 2>$stderrFile
+        $invokeZizmorScan = {
+            $script:zizmorExec = Invoke-WithTimeout -Command 'zizmor' -Arguments @('--format=json', '--no-exit-codes', $scanPath) -TimeoutSec 300
+            if ([int]$script:zizmorExec.ExitCode -eq -1) {
+                throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:zizmor' -Category 'TimeoutExceeded' -Reason 'zizmor timed out after 300 seconds.' -Remediation 'Check repository size or increase timeout.' -Details ''))
+            }
+            # Write stdout (JSON) to reportFile; stderr to stderrFile
+            if ($script:zizmorExec.PSObject.Properties['Stdout'] -and $script:zizmorExec.Stdout) {
+                $script:zizmorExec.Stdout | Set-Content -Path $reportFile -Encoding UTF8
+            } elseif ($script:zizmorExec.Output) {
+                $script:zizmorExec.Output | Set-Content -Path $reportFile -Encoding UTF8
+            }
+            if ($script:zizmorExec.PSObject.Properties['Stderr'] -and $script:zizmorExec.Stderr) {
+                $script:zizmorExec.Stderr | Set-Content -Path $stderrFile -Encoding UTF8
+            }
         }
         $useRetry = Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue
         if ($useRetry) {
-            Invoke-WithRetry -ScriptBlock $invokeZizmor
+            Invoke-WithRetry -ScriptBlock $invokeZizmorScan
         } else {
-            & $invokeZizmor
+            & $invokeZizmorScan
         }
 
-        $exitCode = $LASTEXITCODE
+        $exitCode = [int]$script:zizmorExec.ExitCode
 
         $stderrText = ''
         if (Test-Path $stderrFile) {
