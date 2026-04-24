@@ -32,6 +32,23 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.3.1](https://github.com/martinopedal/azure-analyzer/compare/v1.3.0...v1.3.1) (2026-04-24)
+
+
+### Fixes
+
+* address consistency audit findings (CHANGELOG, wrappers, banner, samples) ([#983](https://github.com/martinopedal/azure-analyzer/issues/983)) ([4292941](https://github.com/martinopedal/azure-analyzer/commit/42929413e7be4a5971884384eefccd8356e60338))
+
+
+### Documentation
+
+* post-sprint documentation sweep ([#980](https://github.com/martinopedal/azure-analyzer/issues/980)) ([e33a81c](https://github.com/martinopedal/azure-analyzer/commit/e33a81c17cfd35d9802195a11c87799584da0a92))
+
+
+### Chores
+
+* **wrappers:** standardize timeout handling via Invoke-WithTimeout ([#981](https://github.com/martinopedal/azure-analyzer/issues/981)) ([0a54c3b](https://github.com/martinopedal/azure-analyzer/commit/0a54c3b8abf5c01d1d9f43172459513aa455fa18)), closes [#974](https://github.com/martinopedal/azure-analyzer/issues/974)
+
 ## [1.3.0](https://github.com/martinopedal/azure-analyzer/compare/v1.2.0...v1.3.0) (2026-04-23)
 
 
