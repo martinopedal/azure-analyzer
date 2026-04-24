@@ -4,64 +4,11 @@
 
 - **Timeout standardization (#974)**: Wrapped external CLI invocations in `Invoke-WithTimeout` (300s default) across 9 wrappers: Invoke-Gitleaks, Invoke-Trivy, Invoke-Zizmor, Invoke-Kubescape, Invoke-Powerpipe, Invoke-Prowler (600s), Invoke-Azqr, Invoke-Falco (helm/kubectl), and Invoke-KubeBench (kubectl apply/wait/logs). Enhanced shared `Invoke-WithTimeout` in `Installer.ps1` to return separate `Stdout`/`Stderr` properties alongside combined `Output` for tools that need stream separation (zizmor, powerpipe). Prevents hung CLI processes from blocking the orchestrator indefinitely.
 
+- **Consistency audit fixes**: Wrapper validation throw→envelope migration for Invoke-Falco, Invoke-Kubescape, Invoke-KubeBench (return `New-WrapperEnvelope` instead of `throw` on KubeconfigPath / KubeAuthMode validation failures). Wrapped AlzQueries JSON parse in envelope-based error path. Fixed README `AZURE_ANALYZER_NO_BANNER` → `AZUREANALYZER_NO_BANNER` to match Banner.ps1. Added v2 mockup links to sample report references. Removed legacy banner line from orchestrator. Deduplicated CHANGELOG Unreleased section (items already shipped in v1.2.0 / v1.3.0).
+
 ### Docs
 
 - **Post-sprint documentation sweep**: Removed maintenance window banner from README. Added ASCII startup banner code block. Reorganized README to lead with consumer-facing content (what the tool does, quickstart, sample reports, features) and moved contributor/testing/CI notes to a Contributing section at the end. Documented that `Auto-Rebase` and `Rerun-Failed-Checks` workflows skip on non-agent branches (expected behavior). Regenerated sample HTML and Markdown reports against current renderers.
-
-### CI
-
-- Switch release-please from `GITHUB_TOKEN` to GitHub App token for proper CI trigger on release PRs
-- **Bot gate unification (#938):** Extend GitHub App token pattern to `tool-auto-update.yml` and `pr-auto-rebase.yml`. PRs created by tool-auto-update and rebase force-pushes now use the same App token (`RELEASE_APP_ID`) as release-please, bypassing the first-time-contributor approval gate and the `GITHUB_TOKEN` anti-recursion guard that previously prevented downstream CI from triggering on bot activity
-### Added
-- **FixtureMode** (`-FixtureMode`): Run the full normalizer and reporting pipeline against fixture data in `tests/fixtures/` without Azure credentials. Skips auth checks, prerequisite installs, and all live API calls. Produces real `results.json`, `entities.json`, and HTML/Markdown reports. Use `-FixturePath <dir>` to supply custom fixtures. (#926)
-- **FixtureMode integration tests**: 14 Pester tests covering default/custom fixture paths, invalid path handling, `-IncludeTools` filtering, and output artifact verification.
-
-### Fixed
-
-- **Backfill-ChangelogCitations null guard:** `Get-VersionForCommit` now returns 'Unreleased' early when `$SortedBoundaries` is null or empty, fixing `PropertyNotFoundException` on `.Count` in CI. Caller also wraps pipeline output in `@()` to guarantee array type.
-- **HTML report determinism**: Entity-type bar chart and heatmap JSON had non-deterministic ordering across process invocations due to PowerShell `@{}` hashtable key randomization. Converted 11 hashtables feeding `ConvertTo-Json` to `[ordered]@{}`, added alphabetical tiebreaker to entity-type sort, replaced `.ContainsKey()` with `.Contains()` for `OrderedDictionary` compat. Regenerated SampleDrift fixture. Root cause existed since entity bars were introduced; exposed by SampleDrift drift canary.
-- **DocsCheck tests**: Added missing Pester assertions for `docs/design` path and other documentation path patterns (`copilot/audits`, `.squad/decisions`, `.squad/ceremonies.md`, root-level docs). PR #941 added `docs/design` to the docs-check workflow but the test file was not updated. Fixes M4 from 24h CI audit. Closes #945, #943, #942, #939, #936, #935, #934, #933.
-- **Shared helper**: Converted `modules/shared/New-WrapperEnvelope.ps1` from standalone script (with top-level `param()`) to pure function definition. Eliminates phantom object emission when dot-sourced, fixing Invoke-Maester double-return (M1) and Errors.Regression529 child-process crash (M3). (#907)
-- **CI watchdog**:No longer opens ci-failure issues for advisory workflows (CI / E2E / Scheduled scan). These workflows are monitored for observability but do NOT escalate to backlog noise because they are not required branch-protection checks. Required checks (Analyze, links, lint) still escalate as ci-failure issues. Implements Track A from `.squad/decisions/inbox/rca-drift-sonnet.md`.
-- **CI watchdog**: Convert ci-failure-watchdog from `workflow_run:` trigger to 15-min `schedule:` trigger to eliminate Copilot-actor cascading `action_required` gate. When the upstream workflow's actor is the synthetic Copilot user (Coding Agent), the GitHub first-contributor approval gate fires on the cascading watchdog run, leaving stuck runs in the queue. The auto-approve workflow was deleted in PR #937 because the `/approve` API is fork-PR-only. The watchdog now polls failed runs via gh api every 15 minutes with allow-list filtering and hash-idempotent triage.
-- **Pester bootstrap**: Fixed SampleDrift.Tests.ps1 syntax error (literal `');'` breaking PowerShell parser) that caused ParameterBindingException on all PR test runs, blocking 8 PRs. Added cross-platform newline normalization (CRLF→LF) to eliminate false failures on macOS/Linux. Regenerated sample-report-v2-mockup.html to match current renderer output. The stream-6 (Information) warning-pattern detection in Capture-WrapperHostOutput.ps1 was already fixed in commit abd951e. Closes #913 #916 #920 #921 #923 #929.
-- **Markdown report**: Fixed `.Compliant` property error when processing v1 wrapper format. MD report now correctly unwraps the `Findings` array from wrapper objects, matching HTML report behavior. Fixes issue #925.
-- **Wrappers**: All 37 wrappers now emit non-null Errors array alongside Findings on every code path. Generalizes the v1 envelope contract introduced in PR #841 and #847. New shared helper modules/shared/New-WrapperEnvelope.ps1 provides canonical error/empty envelope for catch blocks and early-exit paths. (#907)
-- **CI watchdog dedup race**: Implemented 24h coalesce window with pre-create reconciliation to prevent duplicate ci-failure issues. Watchdog now queries for existing open issues BEFORE creating new ones, with exponential backoff retry (3 attempts, 2^n seconds) on gh API calls. Fixes race condition that allowed ~30 duplicate issues (#877-#903) to be created before post-create dedup sweep ran. Closes #908.
-- **Closes link bot bypass**: Verified that `closes-link-required.yml` already exempts trusted automation bots (release-please[bot], dependabot[bot], github-actions[bot], copilot-swe-agent[bot], Copilot) from the "Closes #N" requirement, added in PR #835. Closes #910.
-
-### Added
-
-- **Module import regression gate**: New `tests/shared/ModuleImport.Tests.ps1` validates that `Import-Module ./AzureAnalyzer.psd1` completes without prompting for mandatory parameters in non-interactive mode. Adds 8 test cases covering prompt-free import, timeout gate (<10s), stderr cleanliness, exported function verification, and shared-module isolation. Prevents regression of E2E walkthrough P0-2 (module import hang). Closes #930.
-- **Sample regeneration framework**: New scripts/Regenerate-Samples.ps1 regenerates samples/ from fixtures against current schema v2.2 + renderers. Added samples/PROVENANCE.md + tests/samples/SampleDrift.Tests.ps1 drift-detection canary (runs in CI). Closes #906.
-- **CON-005 ratchet**: New wrapper envelope contract test in WrapperConsistencyRatchet.Tests.ps1 enforces that ALL 37 wrappers emit Errors = @() field alongside Findings on every code path (#907).
-- **Security ratchet**: New `tests/shared/JsonSanitizeOrderRatchet.Tests.ps1` prevents future regression of the JSON-sanitize-before-parse anti-pattern (PR #876 lesson). Scans all `modules/**/*.ps1` for `Remove-Credentials` piped to `ConvertFrom-Json` on the same variable. Baseline: 0 violations. Enforces parse-first, sanitize-after pattern for JSON outputs (#915).
-- **B2 audit tracking**: Added `.copilot/audits/b2-low-risk-items-tracking.md` documenting Sentinel B2 audit low-risk findings (F1: timeout wrapper consistency P2, F2: rich-error preconditions P3) as acknowledged non-blocking improvements. No code changes required; both items have sufficient mitigation (#915).
-
-### Removed
-
-- **Dead workflow**: Removed `.github/workflows/auto-approve-bot-runs.yml` — used fork-PR-only `/actions/runs/{id}/approve` endpoint that returned HTTP 403 on all in-repo bot PRs, created cascade of stuck `action_required` runs when it gated itself.
-
-### Changed
-
-- chore(wrappers): CON-003 raw throw migration - replace raw `throw "..."` with `New-FindingError` + `Format-FindingErrorMessage` across all remaining wrappers; `RawThrowBaseline` in `tests/shared/WrapperConsistencyRatchet.Tests.ps1` is now empty so any new raw throw fails fast (#626).
-- chore(wrappers): CON-004 SupportsShouldProcess ratchet - lock in `[CmdletBinding(SupportsShouldProcess=$true)]` plus `$PSCmdlet.ShouldProcess` gating on side-effecting wrappers (`Invoke-Falco`, `Invoke-AksKarpenterCost`) via a new CON-004 assertion in `WrapperConsistencyRatchet.Tests.ps1` (#627).
-
-### Fixed
-- **Documentation coherence sweep**: Updated stale Pester baseline language (842 → ≥1637 total, ≥1602 passed) across PR template, design docs, and custom instructions to reflect current test floor per `.github/workflows/ci.yml:128-137`. Regenerated tool catalogs from manifest via `scripts/Generate-ToolCatalog.ps1`. Establishes truthful baseline for all operator-facing metrics (#909).
-- `Invoke-GhApiPaged` no longer runs `Remove-Credentials` on raw JSON text before parsing. Greedy regex patterns (e.g. `Password=[^;]+`) could match inside `diff_hunk` string values and consume past the closing `"` delimiter, producing "Unterminated string" `ConvertFrom-Json` errors that caused the PR Review Gate to exit 1. Individual fields are already sanitized after parsing. Added a `diff_hunk`-stripping fallback if JSON parsing still fails for any reason (#842).
-- Retry classifier now treats `gh api graphql` EOF / network errors (EOF, broken pipe, connection refused, i/o timeout) as transient — fixes recurring auto-resolve-review-threads job flakes.
-- Trivy wrapper version-detection advisories demoted from Write-Warning to Write-Verbose so LiveTool smoke contracts (no WARNING: lines) pass on runners with older trivy binaries.
-- `ci-failure-watchdog.yml` concurrency group is now keyed on `github.event.workflow_run.id` so each triggering workflow-run gets its own slot (#862). The previous constant `ci-failure-watchdog` group caused GitHub to cancel ~72% of queued runs (23/32 sample). Triage remains hash-idempotent so parallel runs are safe.
-- `live-tool-tests` job in `.github/workflows/ci.yml` now sets `continue-on-error: true` at the STEP level on both the live-binary install step and the Pester test step (#861). Job-level guard alone kept the workflow green but left the job card rendered red on PR pages, teaching reviewers to ignore CI. With step-level guards, the non-blocking LiveTool tier reports as green unless a required contract regresses.
-- Auto-approve trusted bot runs now covers the full set of PR-triggered workflows (Closes Link Required, E2E, Issue Resolution Verify, PR Auto-Rebase Conflicts, PR Auto-Rerun On Push, Squad Heartbeat). Previously these workflows wedged in `action_required` on bot-authored PRs because they were absent from the `workflow_run.workflows` filter, forcing manual approval of every run.
-- `Invoke-GhActionsBilling` now keeps sanitized CLI output only in `Details` (not duplicated in `Reason`) so error messages remain short and transient hints (HTTP 429) still work with `Invoke-WithRetry`.
-- `Invoke-Powerpipe` now emits CLI diagnostics via `Write-Verbose` before throwing so `-Verbose` users retain sanitized output even though `Format-FindingErrorMessage` does not include `Details` in the single-line message.
-- Wrapper fallback error shims now mirror full `modules/shared/Errors.ps1` behavior (Category validation, Remove-Credentials sanitization, TimestampUtc) so errors remain consistent/sanitized even when shared modules fail to load.
-- CON-004 ratchet test now strictly enforces `SupportsShouldProcess` enabled (rejects `=$false`) and requires an actual `$PSCmdlet.ShouldProcess(` invocation (not just a mention in a comment).
-
-### Tests
-- Add back-to-back meta-test in `tests/shared/TestIsolation.Tests.ps1` to detect cross-file state leaks. Runs a subset of the test suite twice in the same pwsh process and asserts identical PassedCount/FailedCount. Gated behind `$env:AZURE_ANALYZER_RUN_ISOLATION_META_TEST=1`. (Closes #746)
 
 # Changelog
 

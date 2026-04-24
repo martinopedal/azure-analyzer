@@ -98,14 +98,19 @@ if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 # Validate KubeAuthMode prerequisites up front so misconfigured invocations
 # fail before any cluster discovery / kubectl call. Default mode is a no-op.
-Assert-KubeAuthMode `
-    -Mode $KubeAuthMode `
-    -KubeloginServerId $KubeloginServerId `
-    -KubeloginClientId $KubeloginClientId `
-    -KubeloginTenantId $KubeloginTenantId `
-    -WorkloadIdentityClientId $WorkloadIdentityClientId `
-    -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
-    -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+try {
+    Assert-KubeAuthMode `
+        -Mode $KubeAuthMode `
+        -KubeloginServerId $KubeloginServerId `
+        -KubeloginClientId $KubeloginClientId `
+        -KubeloginTenantId $KubeloginTenantId `
+        -WorkloadIdentityClientId $WorkloadIdentityClientId `
+        -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+        -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+} catch {
+    $authErr = New-FindingError -Source 'wrapper:kube-bench' -Category 'InvalidParameter' -Reason (Remove-Credentials -Text "$_") -Remediation 'Check KubeAuthMode parameters.'
+    return (New-WrapperEnvelope -Source 'kube-bench' -Status 'Failed' -Message (Format-FindingErrorMessage $authErr) -FindingErrors @($authErr))
+}
 
 function ConvertFrom-KubeBenchLogJson {
     param([string]$Text)
@@ -273,19 +278,23 @@ $kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or 
 $resolvedKubeconfig = $null
 if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
     if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kube-bench' -Category 'InvalidParameter' -Reason 'Invalid -KubeconfigPath: value is empty.' -Remediation 'Provide a non-empty local file path via -KubeconfigPath.'))
+        $valErr = New-FindingError -Source 'wrapper:kube-bench' -Category 'InvalidParameter' -Reason 'Invalid -KubeconfigPath: value is empty.' -Remediation 'Provide a non-empty local file path via -KubeconfigPath.'
+        return (New-WrapperEnvelope -Source 'kube-bench' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kube-bench' -Category 'InvalidParameter' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path." -Remediation 'Use a local kubeconfig file path, not a URL.'))
+        $valErr = New-FindingError -Source 'wrapper:kube-bench' -Category 'InvalidParameter' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path." -Remediation 'Use a local kubeconfig file path, not a URL.'
+        return (New-WrapperEnvelope -Source 'kube-bench' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kube-bench' -Category 'NotFound' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist." -Remediation 'Provide an existing kubeconfig file path via -KubeconfigPath.'))
+        $valErr = New-FindingError -Source 'wrapper:kube-bench' -Category 'NotFound' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist." -Remediation 'Provide an existing kubeconfig file path via -KubeconfigPath.'
+        return (New-WrapperEnvelope -Source 'kube-bench' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
 } elseif ($kubeconfigModeRequested) {
     $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
     if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:kube-bench' -Category 'NotFound' -Reason "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG." -Remediation 'Set -KubeconfigPath or ensure $env:KUBECONFIG points to an existing kubeconfig file.'))
+        $valErr = New-FindingError -Source 'wrapper:kube-bench' -Category 'NotFound' -Reason "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG." -Remediation 'Set -KubeconfigPath or ensure $env:KUBECONFIG points to an existing kubeconfig file.'
+        return (New-WrapperEnvelope -Source 'kube-bench' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
 }

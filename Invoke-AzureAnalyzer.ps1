@@ -968,9 +968,6 @@ function Get-SeverityRank ([string]$Sev) {
 # ---------------------------------------------------------------------------
 # Build ToolSpecs from manifest
 # ---------------------------------------------------------------------------
-if (-not $env:AZURE_ANALYZER_NO_BANNER -and -not ($env:CI -eq 'true' -or $env:GITHUB_ACTIONS -eq 'true')) {
-    Write-Host "=== Azure Analyzer ===" -ForegroundColor Cyan
-}
 
 # ScriptBlock used by every ToolSpec — self-contained, runs in parallel runspace
 $runnerBlock = {
