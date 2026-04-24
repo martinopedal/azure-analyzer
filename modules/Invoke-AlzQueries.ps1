@@ -48,6 +48,12 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage { param([Parameter(Mandatory)]$FindingError) $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason; if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }; return $line }
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -86,7 +92,12 @@ if (-not (Test-Path $QueriesFile)) {
     }
 }
 
-$data = Get-Content $QueriesFile -Raw | ConvertFrom-Json -ErrorAction Stop
+try {
+    $data = Get-Content $QueriesFile -Raw | ConvertFrom-Json -ErrorAction Stop
+} catch {
+    $parseErr = New-FindingError -Source 'wrapper:alz-queries' -Category 'ParseError' -Reason "Failed to parse query file '$(Remove-Credentials -Text $QueriesFile)': $(Remove-Credentials -Text $_)" -Remediation 'Ensure the queries JSON file is valid JSON.'
+    return (New-WrapperEnvelope -Source 'alz-queries' -Status 'Failed' -Message (Format-FindingErrorMessage $parseErr) -FindingErrors @($parseErr))
+}
 $queryable = $data.queries | Where-Object { $_.queryable -eq $true -and $_.graph }
 $toolVersion = if ($data.PSObject.Properties['metadata'] -and $data.metadata -and $data.metadata.PSObject.Properties['version']) {
     [string]$data.metadata.version

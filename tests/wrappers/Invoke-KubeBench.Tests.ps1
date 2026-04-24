@@ -50,15 +50,19 @@ Describe 'Invoke-KubeBench: kubeconfig param surface (#240)' {
         $defaultNs | Should -Be 'kube-system'
     }
 
-    It 'rejects a non-existent kubeconfig path' {
+    It 'rejects a non-existent kubeconfig path with Failed envelope' {
         $bogus = Join-Path ([System.IO.Path]::GetTempPath()) "kb-doesnotexist-$([guid]::NewGuid()).yaml"
-        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath $bogus } |
-            Should -Throw -ExpectedMessage '*wrapper:kube-bench*NotFound*does not exist*'
+        $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath $bogus
+        $result.Status | Should -Be 'Failed'
+        $result.Source | Should -Be 'kube-bench'
+        $result.Message | Should -Match 'wrapper:kube-bench.*NotFound.*does not exist'
     }
 
-    It 'rejects URL-style kubeconfig values' {
-        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kc' } |
-            Should -Throw -ExpectedMessage '*wrapper:kube-bench*InvalidParameter*URLs are not accepted*'
+    It 'rejects URL-style kubeconfig values with Failed envelope' {
+        $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' -KubeconfigPath 'https://example.invalid/kc'
+        $result.Status | Should -Be 'Failed'
+        $result.Source | Should -Be 'kube-bench'
+        $result.Message | Should -Match 'wrapper:kube-bench.*InvalidParameter.*URLs are not accepted'
     }
 
     It 'defaults KubeBenchImage to a tagged aquasec image' {
@@ -94,17 +98,19 @@ Describe 'Invoke-KubeBench: KubeAuthMode param surface (#241/#242)' {
     It 'rejects KubeloginClientId without KubeloginTenantId (offline param surface)' {
         Mock Get-Command { return [pscustomobject]@{ Name = 'kubelogin' } } -ParameterFilter { $Name -eq 'kubelogin' }
         Mock Get-Command { return [pscustomobject]@{ Name = 'kubebench' } } -ParameterFilter { $Name -eq 'kubebench' }
-        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+        $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
               -KubeconfigPath $script:Fixture -KubeAuthMode 'Kubelogin' `
-              -KubeloginClientId '11111111-1111-1111-1111-111111111111' } |
-            Should -Throw -ExpectedMessage '*together*'
+              -KubeloginClientId '11111111-1111-1111-1111-111111111111'
+        $result.Status | Should -Be 'Failed'
+        $result.Message | Should -Match 'together'
     }
 
     It 'rejects KubeAuthMode=WorkloadIdentity when sub-params are absent' {
         Mock Get-Command { return [pscustomobject]@{ Name = 'kubelogin' } } -ParameterFilter { $Name -eq 'kubelogin' }
         Mock Get-Command { return [pscustomobject]@{ Name = 'kubebench' } } -ParameterFilter { $Name -eq 'kubebench' }
-        { & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
-              -KubeconfigPath $script:Fixture -KubeAuthMode 'WorkloadIdentity' } |
-            Should -Throw -ExpectedMessage '*WorkloadIdentity*requires*'
+        $result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000000' `
+              -KubeconfigPath $script:Fixture -KubeAuthMode 'WorkloadIdentity'
+        $result.Status | Should -Be 'Failed'
+        $result.Message | Should -Match 'WorkloadIdentity.*requires'
     }
 }

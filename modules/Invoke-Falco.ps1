@@ -127,30 +127,39 @@ $kubeconfigModeRequested = $PSBoundParameters.ContainsKey('KubeconfigPath') -or 
 # Falco install mode is the only path that touches the cluster, but we
 # validate regardless so misconfigured query-mode invocations also fail
 # fast (consistent contract across the three K8s wrappers).
-Assert-KubeAuthMode `
-    -Mode $KubeAuthMode `
-    -KubeloginServerId $KubeloginServerId `
-    -KubeloginClientId $KubeloginClientId `
-    -KubeloginTenantId $KubeloginTenantId `
-    -WorkloadIdentityClientId $WorkloadIdentityClientId `
-    -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
-    -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+try {
+    Assert-KubeAuthMode `
+        -Mode $KubeAuthMode `
+        -KubeloginServerId $KubeloginServerId `
+        -KubeloginClientId $KubeloginClientId `
+        -KubeloginTenantId $KubeloginTenantId `
+        -WorkloadIdentityClientId $WorkloadIdentityClientId `
+        -WorkloadIdentityTenantId $WorkloadIdentityTenantId `
+        -WorkloadIdentityServiceAccountToken $WorkloadIdentityServiceAccountToken
+} catch {
+    $authErr = New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason (Remove-Credentials -Text "$_") -Remediation 'Check KubeAuthMode parameters.'
+    return (New-WrapperEnvelope -Source 'falco' -Status 'Failed' -Message (Format-FindingErrorMessage $authErr) -FindingErrors @($authErr))
+}
 $resolvedKubeconfig = $null
 if ($PSBoundParameters.ContainsKey('KubeconfigPath')) {
     if ([string]::IsNullOrWhiteSpace($KubeconfigPath)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason 'Invalid -KubeconfigPath: value is empty.' -Remediation 'Provide a non-empty local file path via -KubeconfigPath.'))
+        $valErr = New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason 'Invalid -KubeconfigPath: value is empty.' -Remediation 'Provide a non-empty local file path via -KubeconfigPath.'
+        return (New-WrapperEnvelope -Source 'falco' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     if ($KubeconfigPath -match '^[a-z][a-z0-9+.-]*://') {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path." -Remediation 'Use a local kubeconfig file path, not a URL.'))
+        $valErr = New-FindingError -Source 'wrapper:falco' -Category 'InvalidParameter' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': URLs are not accepted; provide a local file path." -Remediation 'Use a local kubeconfig file path, not a URL.'
+        return (New-WrapperEnvelope -Source 'falco' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     if (-not (Test-Path -LiteralPath $KubeconfigPath -PathType Leaf)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'NotFound' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist." -Remediation 'Provide an existing kubeconfig file path via -KubeconfigPath.'))
+        $valErr = New-FindingError -Source 'wrapper:falco' -Category 'NotFound' -Reason "Invalid -KubeconfigPath '$(Remove-Credentials -Text $KubeconfigPath)': file does not exist." -Remediation 'Provide an existing kubeconfig file path via -KubeconfigPath.'
+        return (New-WrapperEnvelope -Source 'falco' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $KubeconfigPath).ProviderPath
 } elseif ($kubeconfigModeRequested) {
     $candidate = if ($env:KUBECONFIG) { $env:KUBECONFIG } else { Join-Path $HOME '.kube' 'config' }
     if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'wrapper:falco' -Category 'NotFound' -Reason "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG." -Remediation 'Set -KubeconfigPath or ensure $env:KUBECONFIG points to an existing kubeconfig file.'))
+        $valErr = New-FindingError -Source 'wrapper:falco' -Category 'NotFound' -Reason "Invalid kubeconfig: -KubeContext was supplied but no kubeconfig found at '$(Remove-Credentials -Text $candidate)'. Set -KubeconfigPath or `$env:KUBECONFIG." -Remediation 'Set -KubeconfigPath or ensure $env:KUBECONFIG points to an existing kubeconfig file.'
+        return (New-WrapperEnvelope -Source 'falco' -Status 'Failed' -Message (Format-FindingErrorMessage $valErr) -FindingErrors @($valErr))
     }
     $resolvedKubeconfig = (Resolve-Path -LiteralPath $candidate).ProviderPath
 }

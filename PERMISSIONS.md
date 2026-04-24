@@ -172,7 +172,7 @@ azure-analyzer requires no special environment variables to run, but honours a s
 
 | Variable | Effect |
 |----------|--------|
-| `AZURE_ANALYZER_NO_BANNER=1` | Suppress the ASCII banner. Auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`. |
+| `AZUREANALYZER_NO_BANNER=1` | Suppress the ASCII banner. Auto-suppressed when `CI=true` or `GITHUB_ACTIONS=true`. |
 | `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` | Silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (see [#472](https://github.com/martinopedal/azure-analyzer/issues/472)). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive). |
 | `AZURE_ANALYZER_ORCHESTRATED=1` | Set automatically by `Invoke-AzureAnalyzer.ps1` for the duration of a run. Wrappers use it to distinguish orchestrated runs from standalone invocation. Do not set manually. |
 | `AZURE_ANALYZER_EXPLICIT_TOOLS=<csv>` | Set automatically by `Invoke-AzureAnalyzer.ps1` to the comma-separated list of tools the user named via `-IncludeTools`. Empty when no filter was passed. Do not set manually. |
