@@ -1472,7 +1472,7 @@
         "repo": "microsoft/PSRule.Rules.Azure",
         "releaseApi": "https://api.github.com/repos/microsoft/PSRule.Rules.Azure/releases/latest",
         "pinType": "psmodule-version",
-        "currentPin": "latest"
+        "currentPin": "1.47.0"
       },
       "frameworks": [
         "CIS Azure",
