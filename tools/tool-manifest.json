@@ -1529,7 +1529,7 @@
         "repo": "ossf/scorecard",
         "releaseApi": "https://api.github.com/repos/ossf/scorecard/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "5.5.0"
       },
       "frameworks": [
         "NIST 800-53",
