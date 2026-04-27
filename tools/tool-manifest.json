@@ -809,7 +809,7 @@
         "repo": "falcosecurity/falco",
         "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.42.0"
+        "currentPin": "0.43.1"
       },
       "frameworks": [
         "CIS Azure",
