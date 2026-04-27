@@ -1420,7 +1420,7 @@
         "repo": "prowler-cloud/prowler",
         "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "5.24.4"
       },
       "frameworks": [
         "CIS Azure",
