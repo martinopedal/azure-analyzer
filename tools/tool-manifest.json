@@ -956,7 +956,7 @@
         "repo": "gitleaks/gitleaks",
         "releaseApi": "https://api.github.com/repos/gitleaks/gitleaks/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "8.30.1"
       },
       "frameworks": [
         "NIST 800-53",
