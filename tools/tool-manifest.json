@@ -1660,7 +1660,7 @@
         "repo": "hashicorp/terraform",
         "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "1.14.9"
       },
       "frameworks": [
         "CIS Azure",
