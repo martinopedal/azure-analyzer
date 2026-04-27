@@ -1207,7 +1207,7 @@
         "repo": "kubescape/kubescape",
         "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
         "pinType": "version",
-        "currentPin": "v3"
+        "currentPin": "4.0.5"
       },
       "frameworks": [
         "CIS Azure",
