@@ -1716,7 +1716,7 @@
         "repo": "aquasecurity/trivy",
         "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "0.70.0"
       },
       "frameworks": [
         "CIS Azure",
