@@ -1817,7 +1817,7 @@
         "repo": "woodruffw/zizmor",
         "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "1.24.1"
       },
       "frameworks": [
         "NIST 800-53",
