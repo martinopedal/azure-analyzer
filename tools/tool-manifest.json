@@ -685,7 +685,7 @@
         "repo": "Azure/bicep",
         "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "0.42.1"
       },
       "frameworks": [
         "CIS Azure",
