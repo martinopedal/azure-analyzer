@@ -62,15 +62,16 @@ Every agent session MUST follow this contract. No exceptions for "small" changes
 - ✅ If the session is exploratory / informational (no commits, no branch changes), explicitly say so in the final reply — do not silently exit.
 - ❌ Never end a session with "changes pushed" but no PR link. That is the primary failure mode this contract exists to prevent.
 
-### 2. Always check history before doing work
+### 2. Always audit CI and check all context before doing work
 
-Before writing code, editing files, or filing issues, the agent MUST review:
+Before writing code, editing files, or filing issues, the agent MUST complete **every** item below — in order. Skipping any step because the task feels small is a contract violation.
 
+- ✅ **CI audit (first)** — use `list_workflow_runs` (GitHub MCP) to get the last 10 runs on `main` (and on the working branch if it exists). For any run whose `conclusion` is not `success`, use `get_job_logs` / `get_workflow_run_logs` to read the failed-job output. Name the failure in plain prose before touching code. A failing `main` pipeline means the repo is already broken — starting new work on top of it races with the fix and wastes CI credits.
 - ✅ **Recent agent sessions** — read prior `report_progress` checklists / commit history on the working branch (`git log --oneline -20`) and on `origin/main` to avoid redoing or undoing recent work.
+- ✅ **Squad memory** — review all stored memories tagged to this repo. Verify each relevant memory against the current code before relying on it (memories can be obsolete). If a memory no longer matches reality, overwrite it with `store_memory` before proceeding.
 - ✅ **Open issues** — search for related `squad`-labelled issues so we don't duplicate filed work. Use `search_issues` / `list_issues` with the relevant keyword.
 - ✅ **Open PRs** — `list_pull_requests state=open` to detect a sibling PR that already addresses the same area; coordinate or rebase rather than racing.
 - ✅ **Copilot instructions** — re-read `.github/copilot-instructions.md` and `.copilot/copilot-instructions.md` at session start; conventions evolve and stale memory is not a defence.
-- ✅ **Stored memories** — verify any relevant memory against the current code before relying on it (memories can be obsolete).
 
 If history check reveals the work is already done, in flight, or rejected, **stop and report that finding** instead of producing a duplicate PR.
 

@@ -8,6 +8,8 @@
 
 ### Docs
 
+- **Agent session contract (CI audit + squad memory)**: Expanded "Always check history before doing work" step in `.github/copilot-instructions.md` to require a mandatory CI audit as the first action of every session: use `list_workflow_runs` + `get_job_logs` (GitHub MCP) to check the last 10 runs on `main` and the working branch, read failed-job logs for any non-success run, and name the failure before touching code. Added explicit **Squad memory** check (verify stored memories against current code; overwrite stale ones via `store_memory` before proceeding). Renamed section to "Always audit CI and check all context before doing work" to reflect the expanded scope.
+
 - **Agent session contract**: Added "Agent session contract — always open a PR, always check history first" section to `.github/copilot-instructions.md`. Every agent session that produces commits MUST call `create_pull_request` (draft OK) and surface the PR URL in the final reply — pushing via `report_progress` alone is no longer sufficient. Agents must also review recent session history, open issues, open PRs, and the copilot instructions before doing work.
 
 - **Post-sprint documentation sweep**: Removed maintenance window banner from README. Added ASCII startup banner code block. Reorganized README to lead with consumer-facing content (what the tool does, quickstart, sample reports, features) and moved contributor/testing/CI notes to a Contributing section at the end. Documented that `Auto-Rebase` and `Rerun-Failed-Checks` workflows skip on non-agent branches (expected behavior). Regenerated sample HTML and Markdown reports against current renderers.
