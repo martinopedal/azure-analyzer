@@ -8,6 +8,8 @@
 
 ### Docs
 
+- **Agent session contract**: Added "Agent session contract — always open a PR, always check history first" section to `.github/copilot-instructions.md`. Every agent session that produces commits MUST call `create_pull_request` (draft OK) and surface the PR URL in the final reply — pushing via `report_progress` alone is no longer sufficient. Agents must also review recent session history, open issues, open PRs, and the copilot instructions before doing work.
+
 - **Post-sprint documentation sweep**: Removed maintenance window banner from README. Added ASCII startup banner code block. Reorganized README to lead with consumer-facing content (what the tool does, quickstart, sample reports, features) and moved contributor/testing/CI notes to a Contributing section at the end. Documented that `Auto-Rebase` and `Rerun-Failed-Checks` workflows skip on non-agent branches (expected behavior). Regenerated sample HTML and Markdown reports against current renderers.
 
 # Changelog
