@@ -37,6 +37,42 @@ Describe 'Invoke-AdoConsumption' {
     Context 'consumption findings are emitted' {
         BeforeAll {
             $env:ADO_PAT_TOKEN = 'fake-token'
+
+            # Compute build times relative to "now" so the wrapper's midpoint
+            # bisection (sinceUtc = now - DaysBack; midpoint = sinceUtc + DaysBack/2)
+            # deterministically places the short builds in the first half and the
+            # long builds in the second half. Hardcoded calendar dates drift out of
+            # the window as wall-clock time advances.
+            $script:NowUtc = (Get-Date).ToUniversalTime()
+            $fmt = { param($d) $d.ToString("yyyy-MM-ddTHH:mm:ssZ") }
+            $paymentsFirstStart  = & $fmt $script:NowUtc.AddDays(-25)
+            $paymentsFirstFinish = & $fmt $script:NowUtc.AddDays(-25).AddMinutes(50)
+            $paymentsFirst2Start  = & $fmt $script:NowUtc.AddDays(-23)
+            $paymentsFirst2Finish = & $fmt $script:NowUtc.AddDays(-23).AddMinutes(40)
+            $paymentsSecondStart  = & $fmt $script:NowUtc.AddDays(-5)
+            $paymentsSecondFinish = & $fmt $script:NowUtc.AddDays(-5).AddMinutes(80)
+            $paymentsSecond2Start  = & $fmt $script:NowUtc.AddDays(-3)
+            $paymentsSecond2Finish = & $fmt $script:NowUtc.AddDays(-3).AddMinutes(70)
+            $identityStart  = & $fmt $script:NowUtc.AddDays(-22)
+            $identityFinish = & $fmt $script:NowUtc.AddDays(-22).AddMinutes(15)
+            $identity2Start  = & $fmt $script:NowUtc.AddDays(-21)
+            $identity2Finish = & $fmt $script:NowUtc.AddDays(-21).AddMinutes(12)
+
+            $paymentsBuilds = @"
+{"value":[
+  {"id":1,"startTime":"$paymentsFirstStart","finishTime":"$paymentsFirstFinish","result":"failed"},
+  {"id":2,"startTime":"$paymentsFirst2Start","finishTime":"$paymentsFirst2Finish","result":"succeeded"},
+  {"id":3,"startTime":"$paymentsSecondStart","finishTime":"$paymentsSecondFinish","result":"failed"},
+  {"id":4,"startTime":"$paymentsSecond2Start","finishTime":"$paymentsSecond2Finish","result":"succeeded"}
+]}
+"@
+            $identityBuilds = @"
+{"value":[
+  {"id":10,"startTime":"$identityStart","finishTime":"$identityFinish","result":"succeeded"},
+  {"id":11,"startTime":"$identity2Start","finishTime":"$identity2Finish","result":"succeeded"}
+]}
+"@
+
             Mock Invoke-WebRequest {
                 if ($Uri -match '_apis/projects') {
                     return [PSCustomObject]@{
@@ -45,24 +81,10 @@ Describe 'Invoke-AdoConsumption' {
                     }
                 }
                 if ($Uri -match 'payments/_apis/build/builds') {
-                    return [PSCustomObject]@{
-                        Content = '{"value":[
-                          {"id":1,"startTime":"2026-04-01T00:00:00Z","finishTime":"2026-04-01T00:50:00Z","result":"failed"},
-                          {"id":2,"startTime":"2026-04-03T00:00:00Z","finishTime":"2026-04-03T00:40:00Z","result":"succeeded"},
-                          {"id":3,"startTime":"2026-04-20T00:00:00Z","finishTime":"2026-04-20T01:20:00Z","result":"failed"},
-                          {"id":4,"startTime":"2026-04-21T00:00:00Z","finishTime":"2026-04-21T01:10:00Z","result":"succeeded"}
-                        ]}'
-                        Headers = @{}
-                    }
+                    return [PSCustomObject]@{ Content = $paymentsBuilds; Headers = @{} }
                 }
                 if ($Uri -match 'identity/_apis/build/builds') {
-                    return [PSCustomObject]@{
-                        Content = '{"value":[
-                          {"id":10,"startTime":"2026-04-04T00:00:00Z","finishTime":"2026-04-04T00:15:00Z","result":"succeeded"},
-                          {"id":11,"startTime":"2026-04-05T00:00:00Z","finishTime":"2026-04-05T00:12:00Z","result":"succeeded"}
-                        ]}'
-                        Headers = @{}
-                    }
+                    return [PSCustomObject]@{ Content = $identityBuilds; Headers = @{} }
                 }
                 throw "Unexpected URI: $Uri"
             }
