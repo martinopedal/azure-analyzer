@@ -51,6 +51,29 @@ Every PR that changes code, queries, or configuration MUST include a docs update
 ## GitHub-first principle
 Validate changes in GitHub Actions, not locally. Push, trigger workflow, check logs, iterate.
 
+## Agent session contract — always open a PR, always check history first
+
+Every agent session MUST follow this contract. No exceptions for "small" changes.
+
+### 1. Always open a PR (and surface the link)
+
+- ✅ When a session produces **any** commit, the agent MUST call `create_pull_request` (draft is fine) before ending the session — even if the user did not explicitly ask for one. Pushing the branch via `report_progress` alone is **not sufficient**: a branch with no PR is invisible in the dashboard and triggers no CI / Copilot review.
+- ✅ The final assistant reply MUST include the PR URL (`https://github.com/martinopedal/azure-analyzer/pull/<n>`) so the maintainer can click straight through. If `create_pull_request` reports an existing PR for the branch, surface that PR's URL instead.
+- ✅ If the session is exploratory / informational (no commits, no branch changes), explicitly say so in the final reply — do not silently exit.
+- ❌ Never end a session with "changes pushed" but no PR link. That is the primary failure mode this contract exists to prevent.
+
+### 2. Always check history before doing work
+
+Before writing code, editing files, or filing issues, the agent MUST review:
+
+- ✅ **Recent agent sessions** — read prior `report_progress` checklists / commit history on the working branch (`git log --oneline -20`) and on `origin/main` to avoid redoing or undoing recent work.
+- ✅ **Open issues** — search for related `squad`-labelled issues so we don't duplicate filed work. Use `search_issues` / `list_issues` with the relevant keyword.
+- ✅ **Open PRs** — `list_pull_requests state=open` to detect a sibling PR that already addresses the same area; coordinate or rebase rather than racing.
+- ✅ **Copilot instructions** — re-read `.github/copilot-instructions.md` and `.copilot/copilot-instructions.md` at session start; conventions evolve and stale memory is not a defence.
+- ✅ **Stored memories** — verify any relevant memory against the current code before relying on it (memories can be obsolete).
+
+If history check reveals the work is already done, in flight, or rejected, **stop and report that finding** instead of producing a duplicate PR.
+
 ## Cloud agent PR review contract
 
 When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `squad:copilot` issue:
