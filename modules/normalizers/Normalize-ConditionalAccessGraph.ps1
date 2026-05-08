@@ -12,10 +12,12 @@
         relationships between the ConditionalAccessPolicy and the User /
         Group / Application / NamedLocation entities it gates.
 
-    The normalizer returns a PSCustomObject envelope with both Findings
-    and Edges so the orchestrator (Invoke-AzureAnalyzer.ps1) can route
-    each into the EntityStore. This matches the correlator-envelope
-    shape established by Invoke-IdentityGraphExpansion.ps1.
+    The normalizer returns a flat array of v2 FindingRow objects. When
+    the caller passes -EdgeCollector, AppliesTo / Excludes edges for the
+    User / Group / Application / NamedLocation entities the policy gates
+    are appended to that list for the orchestrator to drain into the
+    EntityStore. This matches the flat-array + edge-collector contract
+    used by the rest of the graph-mapping family.
 
     Domain=IdentityGraph, Pillar=Identity.
 #>
@@ -44,7 +46,10 @@ function Get-PropertyValue {
 function Test-IsGuid {
     param ([string] $Value)
     if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
-    return ($Value -match '^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$')
+    # Use the framework parser so mixed-case / uppercase Graph IDs are
+    # accepted; a hand-rolled regex would reject valid GUIDs.
+    $g = [guid]::Empty
+    return [guid]::TryParse($Value, [ref]$g)
 }
 
 function ConvertTo-CaTargetEntity {
@@ -56,11 +61,14 @@ function ConvertTo-CaTargetEntity {
         Sentinels (All, None, GuestsOrExternalUsers) and non-GUID strings
         are filtered out so they do not produce malformed edges. Each
         category routes through ConvertTo-CanonicalEntityId so the IDs
-        match what the rest of the pipeline emits.
+        match what the rest of the pipeline emits. Role-template IDs are
+        recognised but not emitted as edges yet -- the schema does not
+        yet have a Role EntityType, and collapsing them onto User would
+        misclassify directory roles as users (see PR #1012 review).
     #>
     param (
         [Parameter(Mandatory)] [string] $Value,
-        [Parameter(Mandatory)] [ValidateSet('User','Group','Application','NamedLocation')]
+        [Parameter(Mandatory)] [ValidateSet('User','Group','Role','Application','NamedLocation')]
         [string] $Category
     )
     if ($script:CaSentinels -contains $Value) { return $null }
@@ -88,6 +96,13 @@ function ConvertTo-CaTargetEntity {
                 $lower = $Value.ToLowerInvariant()
                 return [PSCustomObject]@{ EntityId = "objectId:$lower"; EntityType = 'User'; Platform = 'Entra' }
             }
+            'Role' {
+                # Skip role-template IDs until the schema gains a Role
+                # EntityType. Collapsing onto User would misclassify
+                # directory roles (e.g. Global Administrator) as user
+                # principals and pollute the graph.
+                return $null
+            }
         }
     } catch {
         return $null
@@ -109,14 +124,14 @@ function New-CaPolicyEdges {
     $includeMap = [ordered]@{
         IncludeUsers  = 'User'
         IncludeGroups = 'Group'
-        IncludeRoles  = 'Group'
+        IncludeRoles  = 'Role'
         IncludeApps   = 'Application'
         IncludeLocs   = 'NamedLocation'
     }
     $excludeMap = [ordered]@{
         ExcludeUsers  = 'User'
         ExcludeGroups = 'Group'
-        ExcludeRoles  = 'Group'
+        ExcludeRoles  = 'Role'
         ExcludeApps   = 'Application'
         ExcludeLocs   = 'NamedLocation'
     }

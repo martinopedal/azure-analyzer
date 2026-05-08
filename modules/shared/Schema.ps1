@@ -499,11 +499,12 @@ function New-EntityStub {
             'KarpenterProvisioner',
             'ConditionalAccessPolicy',
             'NamedLocation',
-            'OnPremUser'
+            'OnPremUser',
+            'ExternalAsset'
         )]
         [string] $EntityType,
 
-        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC', 'OnPrem')]
+        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC', 'OnPrem', 'External')]
         [string] $Platform,
 
         [string] $DisplayName,
