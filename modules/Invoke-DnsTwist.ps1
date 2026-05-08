@@ -47,6 +47,8 @@ $envelopePath = Join-Path $sharedDir 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 $easmSeedPath = Join-Path $sharedDir 'EasmSeed.ps1'
 if (Test-Path $easmSeedPath) { . $easmSeedPath }
+$dnsTwistHelpersPath = Join-Path $sharedDir 'DnsTwistHelpers.ps1'
+if (Test-Path $dnsTwistHelpersPath) { . $dnsTwistHelpersPath }
 
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) {
     function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } }
@@ -58,9 +60,23 @@ if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
     function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
 }
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    # Fallback stub mirroring the real modules/shared/CliTimeout.ps1 signature
+    # (Command/Arguments/TimeoutSec) so the wrapper behaves the same when
+    # the shared helper is missing as when it's loaded.
     function Invoke-WithTimeout {
-        param ([scriptblock]$ScriptBlock, [int]$TimeoutSeconds = 300, [string]$OperationName = 'op')
-        return & $ScriptBlock
+        param (
+            [Parameter(Mandatory)][string]   $Command,
+            [Parameter(Mandatory)][string[]] $Arguments,
+            [int] $TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        $lastExit = if (Test-Path variable:LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+        return [PSCustomObject]@{
+            ExitCode = $lastExit
+            Output   = $output.Trim()
+            Stdout   = $output.Trim()
+            Stderr   = ''
+        }
     }
 }
 
@@ -81,66 +97,6 @@ function Get-DnsTwistVersion {
     }
 }
 
-function Get-DnsTwistFinding {
-    <#
-    .SYNOPSIS
-        Convert a single dnstwist record (already parsed from JSON) into a
-        v1 envelope finding. Pure function, easy to unit-test without dnstwist.
-    #>
-    param (
-        [Parameter(Mandatory)] [object] $Record,
-        [Parameter(Mandatory)] [string] $SeedDomain
-    )
-
-    $fuzzer = if ($Record.PSObject.Properties['fuzzer']) { [string]$Record.fuzzer } else { '' }
-    $domain = if ($Record.PSObject.Properties['domain']) { [string]$Record.domain } else { '' }
-    if ([string]::IsNullOrWhiteSpace($domain)) { return $null }
-
-    # Skip the synthetic "original*" record that dnstwist always emits as
-    # the first entry. It's the seed domain itself, not a typosquat.
-    if ($fuzzer -like 'original*') { return $null }
-
-    $hasA    = $Record.PSObject.Properties['dns_a']    -and @($Record.dns_a).Count    -gt 0
-    $hasMx   = $Record.PSObject.Properties['dns_mx']   -and @($Record.dns_mx).Count   -gt 0
-    $hasNs   = $Record.PSObject.Properties['dns_ns']   -and @($Record.dns_ns).Count   -gt 0
-    $hasAaaa = $Record.PSObject.Properties['dns_aaaa'] -and @($Record.dns_aaaa).Count -gt 0
-
-    # Severity rubric (per design doc 5.5):
-    #   - homoglyph / homograph variants resolving to A or MX: High
-    #     (highest phishing potential)
-    #   - any other registered + resolving variant: Medium
-    #   - registered but not resolving: Low
-    $registered = $hasA -or $hasMx -or $hasNs -or $hasAaaa
-    $severity = if (-not $registered) { 'Low' }
-                elseif ($fuzzer -match 'homoglyph|homograph') { 'High' }
-                else { 'Medium' }
-
-    $detailParts = [System.Collections.Generic.List[string]]::new()
-    $detailParts.Add(("Permutation '{0}' of seed '{1}' is registered." -f $fuzzer, $SeedDomain)) | Out-Null
-    if ($hasA)    { $detailParts.Add("A: $((@($Record.dns_a) -join ', '))") | Out-Null }
-    if ($hasMx)   { $detailParts.Add("MX: $((@($Record.dns_mx) -join ', '))") | Out-Null }
-    if ($hasNs)   { $detailParts.Add("NS: $((@($Record.dns_ns) -join ', '))") | Out-Null }
-
-    return [PSCustomObject]@{
-        Id           = "dnstwist:${SeedDomain}:${fuzzer}:${domain}"
-        RuleId       = "dnstwist-$fuzzer"
-        Title        = "Possible typosquat: $domain (variant of $SeedDomain)"
-        Category     = 'External Attack Surface'
-        Severity     = $severity
-        Compliant    = $false
-        Detail       = ($detailParts -join ' ')
-        Remediation  = 'Investigate ownership; consider defensive registration or takedown if malicious.'
-        ResourceId   = $domain
-        Pillar       = 'Exposure'
-        Impact       = if ($severity -eq 'High') { 'High' } else { 'Medium' }
-        Effort       = 'Medium'
-        DeepLinkUrl  = "https://dnstwist.it/?domain=$SeedDomain"
-        SeedDomain   = $SeedDomain
-        Permutation  = $domain
-        Fuzzer       = $fuzzer
-    }
-}
-
 function Invoke-DnsTwistOnDomain {
     <#
     .SYNOPSIS
@@ -155,21 +111,23 @@ function Invoke-DnsTwistOnDomain {
         [int] $TimeoutSeconds = 300
     )
 
-    $jsonText = Invoke-WithTimeout -OperationName "dnstwist:$Domain" -TimeoutSeconds $TimeoutSeconds -ScriptBlock {
-        # --registered: only return permutations whose DNS / HTTP record
-        # currently exists. --format json: machine-readable output.
-        # We deliberately avoid -w/--whois (rate-limited, slow, optional).
-        & dnstwist --format json --registered $using:Domain 2>&1
-    }
-    if ($LASTEXITCODE -ne 0) {
+    # --registered: only return permutations whose DNS / HTTP record
+    # currently exists. --format json: machine-readable output.
+    # We deliberately avoid -w/--whois (rate-limited, slow, optional).
+    $result = Invoke-WithTimeout `
+        -Command 'dnstwist' `
+        -Arguments @('--format','json','--registered',$Domain) `
+        -TimeoutSec $TimeoutSeconds
+
+    if ($result.ExitCode -ne 0) {
         # Use a typed exception (RuntimeException) instead of a raw throw
         # string so the wrapper-consistency ratchet (Cat 11) stays at 0.
         # The catch in the main loop converts this to a sanitised
         # FindingError attached to the v1 envelope.
         throw [System.Management.Automation.RuntimeException]::new(
-            ("dnstwist exited with code {0} for {1}" -f $LASTEXITCODE, $Domain))
+            ("dnstwist exited with code {0} for {1}: {2}" -f $result.ExitCode, $Domain, $result.Stderr))
     }
-    $text = if ($jsonText -is [array]) { ($jsonText -join "`n") } else { [string]$jsonText }
+    $text = [string]$result.Stdout
     if ([string]::IsNullOrWhiteSpace($text)) { return @() }
     return ($text | ConvertFrom-Json -ErrorAction Stop)
 }

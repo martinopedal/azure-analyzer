@@ -70,30 +70,11 @@ Describe 'Invoke-DnsTwist' {
 
 Describe 'Get-DnsTwistFinding (pure helper)' {
     BeforeAll {
-        # Re-source the wrapper so internal helpers are in scope. The
-        # wrapper top-level executes; we wrap the call in a guard that
-        # provides a missing-CLI mock so the body returns immediately.
-        Mock -CommandName Get-Command -MockWith { return $null } -ParameterFilter { $Name -eq 'dnstwist' } -ModuleName ''
-        # Helpers are at script scope inside the wrapper file. Dot-source
-        # only the helpers we need by re-defining them in this scope to
-        # avoid running the wrapper body. We replicate the exact severity
-        # rubric from the wrapper to ensure the rubric stays in sync.
-        function Get-DnsTwistFinding {
-            param ([Parameter(Mandatory)] [object] $Record, [Parameter(Mandatory)] [string] $SeedDomain)
-            $fuzzer = if ($Record.PSObject.Properties['fuzzer']) { [string]$Record.fuzzer } else { '' }
-            $domain = if ($Record.PSObject.Properties['domain']) { [string]$Record.domain } else { '' }
-            if ([string]::IsNullOrWhiteSpace($domain)) { return $null }
-            if ($fuzzer -like 'original*') { return $null }
-            $hasA    = $Record.PSObject.Properties['dns_a']    -and @($Record.dns_a).Count    -gt 0
-            $hasMx   = $Record.PSObject.Properties['dns_mx']   -and @($Record.dns_mx).Count   -gt 0
-            $hasNs   = $Record.PSObject.Properties['dns_ns']   -and @($Record.dns_ns).Count   -gt 0
-            $hasAaaa = $Record.PSObject.Properties['dns_aaaa'] -and @($Record.dns_aaaa).Count -gt 0
-            $registered = $hasA -or $hasMx -or $hasNs -or $hasAaaa
-            $severity = if (-not $registered) { 'Low' }
-                        elseif ($fuzzer -match 'homoglyph|homograph') { 'High' }
-                        else { 'Medium' }
-            return [PSCustomObject]@{ Severity = $severity; Fuzzer = $fuzzer; Domain = $domain }
-        }
+        # Dot-source the real implementation so the test exercises it
+        # directly. Re-declaring an inline copy would let the two drift
+        # apart silently; using the shared module keeps them in lockstep.
+        $helperPath = Join-Path $script:RepoRoot 'modules' 'shared' 'DnsTwistHelpers.ps1'
+        . $helperPath
     }
 
     It 'skips the original* synthetic record' {

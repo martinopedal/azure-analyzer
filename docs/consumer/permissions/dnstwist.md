@@ -6,7 +6,7 @@
 
 DNSTwist generates DNS permutations (typo, homoglyph, bitsquatting, hyphenation, insertion, omission, repetition, replacement, subdomain, transposition, vowel-swap, addition, tld-swap) for each domain in the EASM seed bundle and reports any permutation whose DNS or HTTP record is currently registered. This surfaces typosquats and brand-impersonation candidates against the customer's own domains.
 
-The wrapper is **passive-only**: it queries public DNS resolvers and HTTP banners, never the customer's Azure tenant. It runs against the EASM seed bundle built by `Get-EasmSeed` (operator `--EasmSeedFile` JSON merged with optional ARG / Entra augmentation supplied by the orchestrator).
+The wrapper is **passive-only**: it queries public DNS resolvers and HTTP banners, never the customer's Azure tenant. It runs against the EASM seed bundle built by `Get-EasmSeed` (operator `-EasmSeedFile` JSON merged with optional ARG / Entra augmentation supplied by the orchestrator).
 
 ## Required permissions
 

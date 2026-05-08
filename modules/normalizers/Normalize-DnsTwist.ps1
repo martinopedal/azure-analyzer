@@ -94,6 +94,32 @@ function Normalize-DnsTwist {
             }
         }
 
+        # Canonicalize the resolved EntityId so we don't leak casing /
+        # trailing-dot variants into the entity store. New-FindingRow
+        # itself does not canonicalize, so we must do it here.
+        try {
+            $canon = ConvertTo-CanonicalEntityId -RawId $entityRef.EntityId -EntityType $entityRef.EntityType
+            $entityRef = [PSCustomObject]@{
+                EntityId   = $canon.CanonicalId
+                EntityType = $canon.EntityType
+                Platform   = $canon.Platform
+                Confidence = $entityRef.Confidence
+                MatchedOn  = $entityRef.MatchedOn
+            }
+        } catch {
+            # If canonicalization rejects the ID (e.g. malformed AzureResource
+            # ARM ID from a misconfigured index), fall back to ExternalAsset
+            # rather than dropping the finding.
+            $fallbackId = if ($perm) { "host:$($perm.ToLowerInvariant().TrimEnd('.'))" } else { 'external:unknown' }
+            $entityRef = [PSCustomObject]@{
+                EntityId   = $fallbackId
+                EntityType = 'ExternalAsset'
+                Platform   = 'External'
+                Confidence = 'Unconfirmed'
+                MatchedOn  = 'fallback'
+            }
+        }
+
         $row = New-FindingRow -Id $findingId `
             -Source 'dnstwist' `
             -EntityId $entityRef.EntityId `

@@ -69,7 +69,7 @@ and Nuclei (out of scope; those are DAST, not EASM).
       discoverable via the existing ARG queries).
    2. Entra: verified domains via Microsoft Graph
       (`Domain.Read.All`, already in the manifest).
-   3. Operator-supplied `--EasmSeedFile` JSON:
+   3. Operator-supplied `-EasmSeedFile` JSON:
       `{ domains:[], ips:[], cidrs:[], asns:[] }`.
 
 ## 5. Architecture
@@ -83,8 +83,8 @@ satisfy `tests/manifest/Manifest.Sorted.Tests.ps1`.
 | Tool | scope | install.kind | enabled (initial) |
 | --- | --- | --- | --- |
 | amass | tenant | cli | false (R2) |
-| censys | tenant | psmodule | false (R3) |
-| defender-easm | subscription | none | false (R4) |
+| censys | tenant | none | false (R3) |
+| defender-easm | subscription | psmodule | false (R4) |
 | dnstwist | tenant | cli | true (worked example, R2) |
 | httpx | tenant | cli | false (R2) |
 | shodan | tenant | none | false (R3) |
