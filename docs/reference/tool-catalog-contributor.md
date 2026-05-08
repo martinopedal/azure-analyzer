@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 Full manifest projection: every wired tool with normalizer, invocation, install, report, and upstream metadata. For the consumer-friendly subset see [docs/consumer/tool-catalog.md](../consumer/tool-catalog.md). To onboard a new tool follow [adding-a-tool.md](./adding-a-tool.md).
 
-**Total tools registered:** 37.
+**Total tools registered:** 44.
 
 ## Registration matrix
 
@@ -22,18 +22,23 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `aks-karpenter-cost` | AKS Karpenter Cost (consolidation + node utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `aks-rightsizing` | AKS Rightsizing (Container Insights utilization) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `alz-queries` | ALZ Resource Graph Queries | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
+| `amass` | OWASP Amass (passive subdomain enum) | collector | easm | tenant | Disabled | 0 | windows, macos, linux | NIST 800-53 |
 | `appinsights` | Application Insights Performance Signals | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF |
 | `azgovviz` | AzGovViz | collector | azure | managementGroup | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `azqr` | Azure Quick Review | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `azure-cost` | Azure Cost (Consumption API) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure CAF |
 | `azure-quota` | Azure Quota Reports | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `bicep-iac` | Bicep IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
+| `censys` | Censys Search (cert transparency + host scan) | collector | easm | tenant | Disabled | 0 | windows, macos, linux | NIST 800-53 |
 | `copilot-triage` | Copilot AI Triage | enrichment | cli | repository | Disabled | 0 | windows, macos, linux | - |
+| `defender-easm` | Microsoft Defender EASM (workspace consumer) | enrichment | azure | subscription | Disabled | 0 | windows, macos, linux | MCSB, NIST 800-53 |
 | `defender-for-cloud` | Microsoft Defender for Cloud | enrichment | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF, SOC2, PCI-DSS |
+| `dnstwist` | DNSTwist (typosquat / homoglyph detection) | collector | easm | tenant | Enabled | 0 | windows, macos, linux | NIST 800-53 |
 | `falco` | Falco (AKS runtime anomaly detection) | scanner | azure | subscription | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53 |
 | `finops` | FinOps Signals (Idle Resource Detection) | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
 | `gh-actions-billing` | GitHub Actions Billing | collector | github | repository | Enabled | 0 | windows, macos, linux | Azure CAF, SOC2 |
 | `gitleaks` | gitleaks (Secrets Scanner) | collector | cli | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
+| `httpx` | httpx (ProjectDiscovery host probe) | collector | easm | tenant | Disabled | 0 | windows, macos, linux | NIST 800-53 |
 | `identity-correlator` | Identity Correlator | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS |
 | `identity-graph-expansion` | Identity Graph Expansion | correlator | graph | tenant | Enabled | 3 | windows, macos, linux | NIST 800-53, SOC2 |
 | `infracost` | Infracost IaC Cost Estimation | collector | cli | repository | Enabled | 0 | windows, macos, linux | Azure CAF |
@@ -47,6 +52,8 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `scorecard` | OpenSSF Scorecard | collector | github | repository | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
 | `sentinel-coverage` | Microsoft Sentinel (Coverage / Posture) | collector | azure | workspace | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2, PCI-DSS, Azure WAF |
 | `sentinel-incidents` | Microsoft Sentinel (Active Incidents) | enrichment | azure | workspace | Enabled | 0 | windows, macos, linux | NIST 800-53, SOC2 |
+| `shodan` | Shodan (internet-wide host/service scan) | collector | easm | tenant | Disabled | 0 | windows, macos, linux | NIST 800-53 |
+| `subfinder` | Subfinder (ProjectDiscovery passive subdomain enum) | collector | easm | tenant | Disabled | 0 | windows, macos, linux | NIST 800-53 |
 | `terraform-iac` | Terraform IaC Validation | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, Azure WAF, Azure CAF |
 | `trivy` | Trivy Vulnerability Scanner | collector | cli | repository | Enabled | 0 | windows, macos, linux | CIS Azure, NIST 800-53, PCI-DSS |
 | `wara` | Well-Architected Reliability Assessment | collector | azure | subscription | Enabled | 0 | windows, macos, linux | Azure WAF, Azure CAF |
@@ -64,18 +71,23 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `aks-karpenter-cost` | `Normalize-AksKarpenterCost` | script | `modules/Invoke-AksKarpenterCost.ps1` | SubscriptionId |
 | `aks-rightsizing` | `Normalize-AksRightsizing` | script | `modules/Invoke-AksRightsizing.ps1` | SubscriptionId |
 | `alz-queries` | `Normalize-AlzQueries` | script | `modules/Invoke-AlzQueries.ps1` | SubscriptionId, ManagementGroupId |
+| `amass` | `Normalize-Amass` | script | `modules/Invoke-Amass.ps1` | - |
 | `appinsights` | `Normalize-AppInsights` | script | `modules/Invoke-AppInsights.ps1` | SubscriptionId |
 | `azgovviz` | `Normalize-AzGovViz` | script | `modules/Invoke-AzGovViz.ps1` | ManagementGroupId |
 | `azqr` | `Normalize-Azqr` | script | `modules/Invoke-Azqr.ps1` | SubscriptionId |
 | `azure-cost` | `Normalize-AzureCost` | script | `modules/Invoke-AzureCost.ps1` | SubscriptionId |
 | `azure-quota` | `Normalize-AzureQuotaReports` | script | `modules/Invoke-AzureQuotaReports.ps1` | SubscriptionId |
 | `bicep-iac` | `Normalize-IaCBicep` | script | `modules/Invoke-IaCBicep.ps1` | - |
+| `censys` | `Normalize-Censys` | script | `modules/Invoke-Censys.ps1` | - |
 | `copilot-triage` | `` | script | `modules/shared/Triage/Invoke-CopilotTriage.ps1` | - |
+| `defender-easm` | `Normalize-DefenderEasm` | script | `modules/Invoke-DefenderEasm.ps1` | SubscriptionId |
 | `defender-for-cloud` | `Normalize-DefenderForCloud` | script | `modules/Invoke-DefenderForCloud.ps1` | SubscriptionId |
+| `dnstwist` | `Normalize-DnsTwist` | script | `modules/Invoke-DnsTwist.ps1` | - |
 | `falco` | `Normalize-Falco` | script | `modules/Invoke-Falco.ps1` | SubscriptionId |
 | `finops` | `Normalize-FinOpsSignals` | script | `modules/Invoke-FinOpsSignals.ps1` | SubscriptionId |
 | `gh-actions-billing` | `Normalize-GhActionsBilling` | script | `modules/Invoke-GhActionsBilling.ps1` | Org |
 | `gitleaks` | `Normalize-Gitleaks` | script | `modules/Invoke-Gitleaks.ps1` | - |
+| `httpx` | `Normalize-Httpx` | script | `modules/Invoke-Httpx.ps1` | - |
 | `identity-correlator` | `Normalize-IdentityCorrelation` | function | `modules/Invoke-IdentityCorrelator.ps1` | TenantId |
 | `identity-graph-expansion` | `Normalize-IdentityGraphExpansion` | function | `modules/Invoke-IdentityGraphExpansion.ps1` | TenantId |
 | `infracost` | `Normalize-Infracost` | script | `modules/Invoke-Infracost.ps1` | - |
@@ -89,6 +101,8 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `scorecard` | `Normalize-Scorecard` | script | `modules/Invoke-Scorecard.ps1` | Repository |
 | `sentinel-coverage` | `Normalize-SentinelCoverage` | script | `modules/Invoke-SentinelCoverage.ps1` | WorkspaceResourceId |
 | `sentinel-incidents` | `Normalize-SentinelIncidents` | script | `modules/Invoke-SentinelIncidents.ps1` | WorkspaceResourceId |
+| `shodan` | `Normalize-Shodan` | script | `modules/Invoke-Shodan.ps1` | - |
+| `subfinder` | `Normalize-Subfinder` | script | `modules/Invoke-Subfinder.ps1` | - |
 | `terraform-iac` | `Normalize-IaCTerraform` | script | `modules/Invoke-IaCTerraform.ps1` | - |
 | `trivy` | `Normalize-Trivy` | script | `modules/Invoke-Trivy.ps1` | - |
 | `wara` | `Normalize-WARA` | script | `modules/Invoke-WARA.ps1` | SubscriptionId |
@@ -105,19 +119,24 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `aks-karpenter-cost` | psmodule | n/a | `#00695c` | 4 |
 | `aks-rightsizing` | psmodule | n/a | `#2e7d32` | 4 |
-| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ fd04b20a7a67 | `#e65100` | 1 |
+| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ HEAD | `#e65100` | 1 |
+| `amass` | cli ("amass") | owasp-amass/amass @ latest | `#00838f` | 4 |
 | `appinsights` | psmodule | n/a | `#00838f` | 4 |
 | `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ 6a90d07a1416 | `#00838f` | 1 |
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |
 | `azure-quota` | cli ("az") | martinopedal/azure-quota-reports | `#455a64` | 4 |
 | `bicep-iac` | cli ("bicep") | Azure/bicep @ latest | `#0d47a1` | 7 |
+| `censys` | none | n/a | `#5c6bc0` | 4 |
 | `copilot-triage` | none | n/a | `#6a1b9a` | 8 |
+| `defender-easm` | psmodule | n/a | `#0078d4` | 4 |
 | `defender-for-cloud` | psmodule | n/a | `#0078d4` | 4 |
+| `dnstwist` | cli ("dnstwist") | elceef/dnstwist @ latest | `#ad1457` | 4 |
 | `falco` | psmodule | falcosecurity/falco @ 0.42.0 | `#ef6c00` | 6 |
 | `finops` | psmodule | n/a | `#00897b` | 4 |
 | `gh-actions-billing` | cli ("gh") | n/a | `#8e24aa` | 1 |
 | `gitleaks` | cli ("gitleaks") | gitleaks/gitleaks @ latest | `#c62828` | 3 |
+| `httpx` | cli ("httpx") | projectdiscovery/httpx @ latest | `#2e7d32` | 4 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |
 | `infracost` | cli ("infracost") | infracost/infracost @ latest | `#2e7d32` | 7 |
@@ -131,7 +150,9 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
-| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.2 | `#5c4ee5` | 7 |
+| `shodan` | none | n/a | `#d32f2f` | 4 |
+| `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ latest | `#00695c` | 4 |
+| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ latest | `#5c4ee5` | 7 |
 | `trivy` | cli ("trivy") | aquasecurity/trivy @ latest | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
 | `zizmor` | cli ("zizmor") | woodruffw/zizmor @ latest | `#ad1457` | 3 |

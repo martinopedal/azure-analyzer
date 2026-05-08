@@ -112,6 +112,12 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 | **Trivy Vulnerability Scanner** | Repository | [`trivy.md`](docs/consumer/permissions/trivy.md) |
 | **zizmor (Actions YAML Scanner)** | Repository | [`zizmor.md`](docs/consumer/permissions/zizmor.md) |
 
+### External Attack Surface (no cloud permissions)
+
+| Tool | Scope | Detail |
+|---|---|---|
+| **DNSTwist (typosquat / homoglyph detection)** | Tenant | [`dnstwist.md`](docs/consumer/permissions/dnstwist.md) |
+
 ### Cross-cutting topics
 
 | Topic | Detail |

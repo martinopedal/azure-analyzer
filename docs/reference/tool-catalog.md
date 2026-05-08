@@ -8,7 +8,7 @@ Manifest schema version: `2.2`
 
 This page lists every analyzer tool azure-analyzer can run, what it covers, what scope it targets, and where to find consumer-focused setup notes when one exists. For the full manifest fields (normalizer, install kind, upstream pin, report color/phase) see [docs/contributor/tool-catalog.md](../contributor/tool-catalog.md).
 
-**Total enabled:** 36. **Disabled / opt-in:** 1.
+**Total enabled:** 37. **Disabled / opt-in:** 7.
 
 ## Enabled by default
 
@@ -29,6 +29,7 @@ This page lists every analyzer tool azure-analyzer can run, what it covers, what
 | `azure-quota` | Azure Quota Reports | subscription | azure | Azure WAF, Azure CAF | Azure Quota Reports | - |
 | `bicep-iac` | Bicep IaC Validation | repository | cli | CIS Azure, NIST 800-53, Azure WAF, Azure CAF | Bicep IaC validation: lint, build, and best-practice checks. | - |
 | `defender-for-cloud` | Microsoft Defender for Cloud | subscription | azure | CIS Azure, NIST 800-53, Azure WAF, Azure CAF, SOC2, PCI-DSS | Pulls Microsoft Defender for Cloud Secure Score and active recommendations per subscription. | - |
+| `dnstwist` | DNSTwist (typosquat / homoglyph detection) | tenant | easm | NIST 800-53 | DNSTwist (typosquat / homoglyph detection) | - |
 | `falco` | Falco (AKS runtime anomaly detection) | subscription | azure | CIS Azure, NIST 800-53 | AKS runtime anomaly detection (syscall-level threat detection). | - |
 | `finops` | FinOps Signals (Idle Resource Detection) | subscription | azure | Azure WAF, Azure CAF | FinOps signals: idle / orphaned resources that drive avoidable spend. | - |
 | `gh-actions-billing` | GitHub Actions Billing | repository | github | Azure CAF, SOC2 | GitHub Actions billing and runner-minute telemetry for CI/CD cost optimization. | [docs](./permissions/gh-actions-billing.md) |
@@ -57,7 +58,13 @@ These tools are wired but turned off in the manifest. Enable them by setting `en
 
 | Name | Display name | Scope | Provider | Frameworks | What it does |
 |---|---|---|---|---|---|
+| `amass` | OWASP Amass (passive subdomain enum) | tenant | easm | NIST 800-53 | OWASP Amass (passive subdomain enum) |
+| `censys` | Censys Search (cert transparency + host scan) | tenant | easm | NIST 800-53 | Censys Search (cert transparency + host scan) |
 | `copilot-triage` | Copilot AI Triage | repository | cli | - | Optional Copilot-powered AI triage for finding prioritization (disabled by default). |
+| `defender-easm` | Microsoft Defender EASM (workspace consumer) | subscription | azure | MCSB, NIST 800-53 | Microsoft Defender EASM (workspace consumer) |
+| `httpx` | httpx (ProjectDiscovery host probe) | tenant | easm | NIST 800-53 | httpx (ProjectDiscovery host probe) |
+| `shodan` | Shodan (internet-wide host/service scan) | tenant | easm | NIST 800-53 | Shodan (internet-wide host/service scan) |
+| `subfinder` | Subfinder (ProjectDiscovery passive subdomain enum) | tenant | easm | NIST 800-53 | Subfinder (ProjectDiscovery passive subdomain enum) |
 
 ## Scope reference
 

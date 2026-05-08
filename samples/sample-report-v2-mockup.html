@@ -120,7 +120,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 <header role='banner'>
   <div class='hdr'>
     <div class='brand'><span>Azure Analyzer</span><span class='pill ghost'>v2</span></div>
-    <div class='kpi'><strong>2026-04-24 01:52 UTC</strong></div>
+    <div class='kpi'><strong>2026-05-08 07:01 UTC</strong></div>
     <div class='score'><div class='score-text'><span class='num'>D<span style='font-size:11px;color:var(--txtf);font-weight:500'> (0/100)</span></span><span class='lbl'>Posture</span></div></div>
     <div class='sev-strip' role='group' aria-label='Findings by severity'>
       <div class='sev-cnt sev-crit'><span class='n'>3</span><span class='l'>Crit</span></div>
@@ -129,7 +129,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       <div class='sev-cnt sev-low'><span class='n'>0</span><span class='l'>Low</span></div>
       <div class='sev-cnt sev-info'><span class='n'>0</span><span class='l'>Info</span></div>
     </div>
-    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>37</strong> tools</span><span class='kpi'><strong>3</strong> entities</span><span class='kpi'><strong>0%</strong> compliant</span></div>
+    <div class='kpis' aria-label='Scan KPIs'><span class='kpi'><strong>44</strong> tools</span><span class='kpi'><strong>3</strong> entities</span><span class='kpi'><strong>0%</strong> compliant</span></div>
     <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
@@ -139,7 +139,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <h2>Overview <span class='badge'>executive summary</span></h2>
   <div class='grid2'>
     <div class='card'>
-      <p><strong>Run summary</strong>: scanned <strong>5 findings</strong> across <strong>37 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>0%</strong>.</p>
+      <p><strong>Run summary</strong>: scanned <strong>5 findings</strong> across <strong>44 tools</strong> and <strong>3 entities</strong>. Overall compliance is <strong>0%</strong>.</p>
       <p>Critical and High findings are prioritized in top risks. Schema 2.2 fields render when present and are skipped when absent.</p>
       <h3 style='margin:14px 0 10px'>Pillar breakdown (non-pass)</h3>
       <div style='display:flex;flex-direction:column;gap:6px'><div class='pill-row'><span class='name'>EntraID</span><div class='bar'><i style='width:100%'></i></div><span class='cnt'>1</span></div>
@@ -176,7 +176,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   </div>
 </section>
 <section class='sec' id='triage'><h2>Triage <span class='badge'>AI-assisted</span></h2><div class='card'><p style='margin:0;color:var(--txtf)'>No AI triage output for this run.</p></div></section>
-<section class='sec' id='coverage'><h2>Tool coverage <span class='badge'>37 registered</span></h2><div id='covRoot'><div class='cov-group'>
+<section class='sec' id='coverage'><h2>Tool coverage <span class='badge'>44 registered</span></h2><div id='covRoot'><div class='cov-group'>
   <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
     <span class='chev'>▾</span>
     <h3>Azure DevOps · ado</h3>
@@ -268,7 +268,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
     <span class='chev'>▾</span>
     <h3>Azure · subscription</h3>
-    <span class='cnt'>16 tools</span>
+    <span class='cnt'>17 tools</span>
   </div>
   <div class='cov-grid'>
 <div class='tool disabled'>
@@ -380,6 +380,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>kubescape</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Microsoft Defender EASM (workspace consumer)</div>
+    <span class='scope'>subscription</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>defender-easm</span></div>
 </div>
 <div class='tool disabled'>
   <div class='top'>
@@ -538,6 +548,75 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
   <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
   <div class='meta'><span>0 findings</span><span class='mono'>zizmor</span></div>
+</div>
+  </div>
+</div>
+<div class='cov-group'>
+  <div class='cov-group-h' onclick='this.parentNode.classList.toggle("collapsed")'>
+    <span class='chev'>▾</span>
+    <h3>easm · tenant</h3>
+    <span class='cnt'>6 tools</span>
+  </div>
+  <div class='cov-grid'>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Censys Search (cert transparency + host scan)</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>censys</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>DNSTwist (typosquat / homoglyph detection)</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>dnstwist</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>httpx (ProjectDiscovery host probe)</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>httpx</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>OWASP Amass (passive subdomain enum)</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>amass</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Shodan (internet-wide host/service scan)</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>shodan</span></div>
+</div>
+<div class='tool disabled'>
+  <div class='top'>
+    <div class='ico'>●</div>
+    <div class='name'>Subfinder (ProjectDiscovery passive subdomain enum)</div>
+    <span class='scope'>tenant</span>
+  </div>
+  <div class='pass'><span>0% pass</span><div class='bar'><i style='width:0%'></i></div></div>
+  <div class='stack'><i style='width:100%;background:var(--surface-2)'></i></div>
+  <div class='meta'><span>0 findings</span><span class='mono'>subfinder</span></div>
 </div>
   </div>
 </div>
@@ -855,7 +934,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <div class='foot-actions'><button class='btn' onclick='window.print()'>Print</button><a class='btn' href='#overview'>Top</a></div>
   </div>
 </footer>
-<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"domain":{"rowLabel":"Control domain","rows":["EntraID","Identity","Secrets","Security","Vulnerabilities"],"cols":["00000000-0000-0000-0000-000000000001"],"cells":{"EntraID||00000000-0000-0000-0000-000000000001":0,"Identity||00000000-0000-0000-0000-000000000001":1,"Secrets||00000000-0000-0000-0000-000000000001":0,"Security||00000000-0000-0000-0000-000000000001":1,"Vulnerabilities||00000000-0000-0000-0000-000000000001":1}},"toolsev":{"rowLabel":"Tool","rows":["ado-connections","ado-consumption","ado-pipeline-correlator","ado-pipelines","ado-repos-secrets","aks-karpenter-cost","aks-rightsizing","alz-queries","appinsights","azgovviz","azqr","azure-cost","azure-quota","bicep-iac","copilot-triage","defender-for-cloud","falco","finops","gh-actions-billing","gitleaks","identity-correlator","identity-graph-expansion","infracost","kube-bench","kubescape","loadtesting","maester","powerpipe","prowler","psrule","scorecard","sentinel-coverage","sentinel-incidents","terraform-iac","trivy","wara","zizmor"],"cols":["crit","high","med","low","info"],"cells":{"ado-connections||crit":0,"ado-connections||high":0,"ado-connections||med":0,"ado-connections||low":0,"ado-connections||info":0,"ado-consumption||crit":0,"ado-consumption||high":0,"ado-consumption||med":0,"ado-consumption||low":0,"ado-consumption||info":0,"ado-pipeline-correlator||crit":0,"ado-pipeline-correlator||high":0,"ado-pipeline-correlator||med":0,"ado-pipeline-correlator||low":0,"ado-pipeline-correlator||info":0,"ado-pipelines||crit":0,"ado-pipelines||high":0,"ado-pipelines||med":0,"ado-pipelines||low":0,"ado-pipelines||info":0,"ado-repos-secrets||crit":0,"ado-repos-secrets||high":0,"ado-repos-secrets||med":0,"ado-repos-secrets||low":0,"ado-repos-secrets||info":0,"aks-karpenter-cost||crit":0,"aks-karpenter-cost||high":0,"aks-karpenter-cost||med":0,"aks-karpenter-cost||low":0,"aks-karpenter-cost||info":0,"aks-rightsizing||crit":0,"aks-rightsizing||high":0,"aks-rightsizing||med":0,"aks-rightsizing||low":0,"aks-rightsizing||info":0,"alz-queries||crit":0,"alz-queries||high":0,"alz-queries||med":0,"alz-queries||low":0,"alz-queries||info":0,"appinsights||crit":0,"appinsights||high":0,"appinsights||med":0,"appinsights||low":0,"appinsights||info":0,"azgovviz||crit":0,"azgovviz||high":0,"azgovviz||med":0,"azgovviz||low":0,"azgovviz||info":0,"azqr||crit":0,"azqr||high":1,"azqr||med":0,"azqr||low":0,"azqr||info":0,"azure-cost||crit":0,"azure-cost||high":0,"azure-cost||med":0,"azure-cost||low":0,"azure-cost||info":0,"azure-quota||crit":0,"azure-quota||high":0,"azure-quota||med":0,"azure-quota||low":0,"azure-quota||info":0,"bicep-iac||crit":0,"bicep-iac||high":0,"bicep-iac||med":0,"bicep-iac||low":0,"bicep-iac||info":0,"copilot-triage||crit":0,"copilot-triage||high":0,"copilot-triage||med":0,"copilot-triage||low":0,"copilot-triage||info":0,"defender-for-cloud||crit":0,"defender-for-cloud||high":0,"defender-for-cloud||med":0,"defender-for-cloud||low":0,"defender-for-cloud||info":0,"falco||crit":0,"falco||high":0,"falco||med":0,"falco||low":0,"falco||info":0,"finops||crit":0,"finops||high":0,"finops||med":0,"finops||low":0,"finops||info":0,"gh-actions-billing||crit":0,"gh-actions-billing||high":0,"gh-actions-billing||med":0,"gh-actions-billing||low":0,"gh-actions-billing||info":0,"gitleaks||crit":1,"gitleaks||high":0,"gitleaks||med":0,"gitleaks||low":0,"gitleaks||info":0,"identity-correlator||crit":0,"identity-correlator||high":0,"identity-correlator||med":0,"identity-correlator||low":0,"identity-correlator||info":0,"identity-graph-expansion||crit":0,"identity-graph-expansion||high":0,"identity-graph-expansion||med":0,"identity-graph-expansion||low":0,"identity-graph-expansion||info":0,"infracost||crit":0,"infracost||high":0,"infracost||med":0,"infracost||low":0,"infracost||info":0,"kube-bench||crit":0,"kube-bench||high":0,"kube-bench||med":0,"kube-bench||low":0,"kube-bench||info":0,"kubescape||crit":0,"kubescape||high":0,"kubescape||med":0,"kubescape||low":0,"kubescape||info":0,"loadtesting||crit":0,"loadtesting||high":0,"loadtesting||med":0,"loadtesting||low":0,"loadtesting||info":0,"maester||crit":0,"maester||high":1,"maester||med":0,"maester||low":0,"maester||info":0,"powerpipe||crit":0,"powerpipe||high":0,"powerpipe||med":0,"powerpipe||low":0,"powerpipe||info":0,"prowler||crit":1,"prowler||high":0,"prowler||med":0,"prowler||low":0,"prowler||info":0,"psrule||crit":0,"psrule||high":0,"psrule||med":0,"psrule||low":0,"psrule||info":0,"scorecard||crit":0,"scorecard||high":0,"scorecard||med":0,"scorecard||low":0,"scorecard||info":0,"sentinel-coverage||crit":0,"sentinel-coverage||high":0,"sentinel-coverage||med":0,"sentinel-coverage||low":0,"sentinel-coverage||info":0,"sentinel-incidents||crit":0,"sentinel-incidents||high":0,"sentinel-incidents||med":0,"sentinel-incidents||low":0,"sentinel-incidents||info":0,"terraform-iac||crit":0,"terraform-iac||high":0,"terraform-iac||med":0,"terraform-iac||low":0,"terraform-iac||info":0,"trivy||crit":1,"trivy||high":0,"trivy||med":0,"trivy||low":0,"trivy||info":0,"wara||crit":0,"wara||high":0,"wara||med":0,"wara||low":0,"wara||info":0,"zizmor||crit":0,"zizmor||high":0,"zizmor||med":0,"zizmor||low":0,"zizmor||info":0}},"fwsub":{"rowLabel":"Framework","rows":[],"cols":["00000000-0000-0000-0000-000000000001"],"cells":{}}},"toolLabels":{"ado-connections":"ADO Service Connections","ado-consumption":"ADO Pipeline Consumption","ado-pipeline-correlator":"ADO Pipeline Run Correlator","ado-pipelines":"ADO Pipeline Security","ado-repos-secrets":"ADO Repos Secret Scanning","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)","alz-queries":"ALZ Resource Graph Queries","appinsights":"Application Insights Performance Signals","azgovviz":"AzGovViz","azqr":"Azure Quick Review","azure-cost":"Azure Cost (Consumption API)","azure-quota":"Azure Quota Reports","bicep-iac":"Bicep IaC Validation","copilot-triage":"Copilot AI Triage","defender-for-cloud":"Microsoft Defender for Cloud","falco":"Falco (AKS runtime anomaly detection)","finops":"FinOps Signals (Idle Resource Detection)","gh-actions-billing":"GitHub Actions Billing","gitleaks":"gitleaks (Secrets Scanner)","identity-correlator":"Identity Correlator","identity-graph-expansion":"Identity Graph Expansion","infracost":"Infracost IaC Cost Estimation","kube-bench":"kube-bench (AKS node-level CIS compliance)","kubescape":"Kubescape (AKS runtime posture)","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","maester":"Maester","powerpipe":"Powerpipe Compliance Benchmarks","prowler":"Prowler (Azure security posture)","psrule":"PSRule for Azure","scorecard":"OpenSSF Scorecard","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","sentinel-incidents":"Microsoft Sentinel (Active Incidents)","terraform-iac":"Terraform IaC Validation","trivy":"Trivy Vulnerability Scanner","wara":"Well-Architected Reliability Assessment","zizmor":"zizmor (Actions YAML Scanner)"},"severityLabels":{"crit":"Critical","high":"High","med":"Medium","low":"Low","info":"Info"}}</script>
+<script type='application/json' id='hmModel'>{"defaultMode":"domain","hasSubscriptions":true,"matrices":{"domain":{"rowLabel":"Control domain","rows":["EntraID","Identity","Secrets","Security","Vulnerabilities"],"cols":["00000000-0000-0000-0000-000000000001"],"cells":{"EntraID||00000000-0000-0000-0000-000000000001":0,"Identity||00000000-0000-0000-0000-000000000001":1,"Secrets||00000000-0000-0000-0000-000000000001":0,"Security||00000000-0000-0000-0000-000000000001":1,"Vulnerabilities||00000000-0000-0000-0000-000000000001":1}},"toolsev":{"rowLabel":"Tool","rows":["ado-connections","ado-consumption","ado-pipeline-correlator","ado-pipelines","ado-repos-secrets","aks-karpenter-cost","aks-rightsizing","alz-queries","amass","appinsights","azgovviz","azqr","azure-cost","azure-quota","bicep-iac","censys","copilot-triage","defender-easm","defender-for-cloud","dnstwist","falco","finops","gh-actions-billing","gitleaks","httpx","identity-correlator","identity-graph-expansion","infracost","kube-bench","kubescape","loadtesting","maester","powerpipe","prowler","psrule","scorecard","sentinel-coverage","sentinel-incidents","shodan","subfinder","terraform-iac","trivy","wara","zizmor"],"cols":["crit","high","med","low","info"],"cells":{"ado-connections||crit":0,"ado-connections||high":0,"ado-connections||med":0,"ado-connections||low":0,"ado-connections||info":0,"ado-consumption||crit":0,"ado-consumption||high":0,"ado-consumption||med":0,"ado-consumption||low":0,"ado-consumption||info":0,"ado-pipeline-correlator||crit":0,"ado-pipeline-correlator||high":0,"ado-pipeline-correlator||med":0,"ado-pipeline-correlator||low":0,"ado-pipeline-correlator||info":0,"ado-pipelines||crit":0,"ado-pipelines||high":0,"ado-pipelines||med":0,"ado-pipelines||low":0,"ado-pipelines||info":0,"ado-repos-secrets||crit":0,"ado-repos-secrets||high":0,"ado-repos-secrets||med":0,"ado-repos-secrets||low":0,"ado-repos-secrets||info":0,"aks-karpenter-cost||crit":0,"aks-karpenter-cost||high":0,"aks-karpenter-cost||med":0,"aks-karpenter-cost||low":0,"aks-karpenter-cost||info":0,"aks-rightsizing||crit":0,"aks-rightsizing||high":0,"aks-rightsizing||med":0,"aks-rightsizing||low":0,"aks-rightsizing||info":0,"alz-queries||crit":0,"alz-queries||high":0,"alz-queries||med":0,"alz-queries||low":0,"alz-queries||info":0,"amass||crit":0,"amass||high":0,"amass||med":0,"amass||low":0,"amass||info":0,"appinsights||crit":0,"appinsights||high":0,"appinsights||med":0,"appinsights||low":0,"appinsights||info":0,"azgovviz||crit":0,"azgovviz||high":0,"azgovviz||med":0,"azgovviz||low":0,"azgovviz||info":0,"azqr||crit":0,"azqr||high":1,"azqr||med":0,"azqr||low":0,"azqr||info":0,"azure-cost||crit":0,"azure-cost||high":0,"azure-cost||med":0,"azure-cost||low":0,"azure-cost||info":0,"azure-quota||crit":0,"azure-quota||high":0,"azure-quota||med":0,"azure-quota||low":0,"azure-quota||info":0,"bicep-iac||crit":0,"bicep-iac||high":0,"bicep-iac||med":0,"bicep-iac||low":0,"bicep-iac||info":0,"censys||crit":0,"censys||high":0,"censys||med":0,"censys||low":0,"censys||info":0,"copilot-triage||crit":0,"copilot-triage||high":0,"copilot-triage||med":0,"copilot-triage||low":0,"copilot-triage||info":0,"defender-easm||crit":0,"defender-easm||high":0,"defender-easm||med":0,"defender-easm||low":0,"defender-easm||info":0,"defender-for-cloud||crit":0,"defender-for-cloud||high":0,"defender-for-cloud||med":0,"defender-for-cloud||low":0,"defender-for-cloud||info":0,"dnstwist||crit":0,"dnstwist||high":0,"dnstwist||med":0,"dnstwist||low":0,"dnstwist||info":0,"falco||crit":0,"falco||high":0,"falco||med":0,"falco||low":0,"falco||info":0,"finops||crit":0,"finops||high":0,"finops||med":0,"finops||low":0,"finops||info":0,"gh-actions-billing||crit":0,"gh-actions-billing||high":0,"gh-actions-billing||med":0,"gh-actions-billing||low":0,"gh-actions-billing||info":0,"gitleaks||crit":1,"gitleaks||high":0,"gitleaks||med":0,"gitleaks||low":0,"gitleaks||info":0,"httpx||crit":0,"httpx||high":0,"httpx||med":0,"httpx||low":0,"httpx||info":0,"identity-correlator||crit":0,"identity-correlator||high":0,"identity-correlator||med":0,"identity-correlator||low":0,"identity-correlator||info":0,"identity-graph-expansion||crit":0,"identity-graph-expansion||high":0,"identity-graph-expansion||med":0,"identity-graph-expansion||low":0,"identity-graph-expansion||info":0,"infracost||crit":0,"infracost||high":0,"infracost||med":0,"infracost||low":0,"infracost||info":0,"kube-bench||crit":0,"kube-bench||high":0,"kube-bench||med":0,"kube-bench||low":0,"kube-bench||info":0,"kubescape||crit":0,"kubescape||high":0,"kubescape||med":0,"kubescape||low":0,"kubescape||info":0,"loadtesting||crit":0,"loadtesting||high":0,"loadtesting||med":0,"loadtesting||low":0,"loadtesting||info":0,"maester||crit":0,"maester||high":1,"maester||med":0,"maester||low":0,"maester||info":0,"powerpipe||crit":0,"powerpipe||high":0,"powerpipe||med":0,"powerpipe||low":0,"powerpipe||info":0,"prowler||crit":1,"prowler||high":0,"prowler||med":0,"prowler||low":0,"prowler||info":0,"psrule||crit":0,"psrule||high":0,"psrule||med":0,"psrule||low":0,"psrule||info":0,"scorecard||crit":0,"scorecard||high":0,"scorecard||med":0,"scorecard||low":0,"scorecard||info":0,"sentinel-coverage||crit":0,"sentinel-coverage||high":0,"sentinel-coverage||med":0,"sentinel-coverage||low":0,"sentinel-coverage||info":0,"sentinel-incidents||crit":0,"sentinel-incidents||high":0,"sentinel-incidents||med":0,"sentinel-incidents||low":0,"sentinel-incidents||info":0,"shodan||crit":0,"shodan||high":0,"shodan||med":0,"shodan||low":0,"shodan||info":0,"subfinder||crit":0,"subfinder||high":0,"subfinder||med":0,"subfinder||low":0,"subfinder||info":0,"terraform-iac||crit":0,"terraform-iac||high":0,"terraform-iac||med":0,"terraform-iac||low":0,"terraform-iac||info":0,"trivy||crit":1,"trivy||high":0,"trivy||med":0,"trivy||low":0,"trivy||info":0,"wara||crit":0,"wara||high":0,"wara||med":0,"wara||low":0,"wara||info":0,"zizmor||crit":0,"zizmor||high":0,"zizmor||med":0,"zizmor||low":0,"zizmor||info":0}},"fwsub":{"rowLabel":"Framework","rows":[],"cols":["00000000-0000-0000-0000-000000000001"],"cells":{}}},"toolLabels":{"ado-connections":"ADO Service Connections","ado-consumption":"ADO Pipeline Consumption","ado-pipeline-correlator":"ADO Pipeline Run Correlator","ado-pipelines":"ADO Pipeline Security","ado-repos-secrets":"ADO Repos Secret Scanning","aks-karpenter-cost":"AKS Karpenter Cost (consolidation + node utilization)","aks-rightsizing":"AKS Rightsizing (Container Insights utilization)","alz-queries":"ALZ Resource Graph Queries","amass":"OWASP Amass (passive subdomain enum)","appinsights":"Application Insights Performance Signals","azgovviz":"AzGovViz","azqr":"Azure Quick Review","azure-cost":"Azure Cost (Consumption API)","azure-quota":"Azure Quota Reports","bicep-iac":"Bicep IaC Validation","censys":"Censys Search (cert transparency + host scan)","copilot-triage":"Copilot AI Triage","defender-easm":"Microsoft Defender EASM (workspace consumer)","defender-for-cloud":"Microsoft Defender for Cloud","dnstwist":"DNSTwist (typosquat / homoglyph detection)","falco":"Falco (AKS runtime anomaly detection)","finops":"FinOps Signals (Idle Resource Detection)","gh-actions-billing":"GitHub Actions Billing","gitleaks":"gitleaks (Secrets Scanner)","httpx":"httpx (ProjectDiscovery host probe)","identity-correlator":"Identity Correlator","identity-graph-expansion":"Identity Graph Expansion","infracost":"Infracost IaC Cost Estimation","kube-bench":"kube-bench (AKS node-level CIS compliance)","kubescape":"Kubescape (AKS runtime posture)","loadtesting":"Azure Load Testing (Failed and Regressed Runs)","maester":"Maester","powerpipe":"Powerpipe Compliance Benchmarks","prowler":"Prowler (Azure security posture)","psrule":"PSRule for Azure","scorecard":"OpenSSF Scorecard","sentinel-coverage":"Microsoft Sentinel (Coverage / Posture)","sentinel-incidents":"Microsoft Sentinel (Active Incidents)","shodan":"Shodan (internet-wide host/service scan)","subfinder":"Subfinder (ProjectDiscovery passive subdomain enum)","terraform-iac":"Terraform IaC Validation","trivy":"Trivy Vulnerability Scanner","wara":"Well-Architected Reliability Assessment","zizmor":"zizmor (Actions YAML Scanner)"},"severityLabels":{"crit":"Critical","high":"High","med":"Medium","low":"Low","info":"Info"}}</script>
 <script>
 (function(){
 'use strict';
