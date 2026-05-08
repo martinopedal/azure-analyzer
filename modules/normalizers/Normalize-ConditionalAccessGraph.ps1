@@ -151,24 +151,29 @@ function New-CaPolicyEdges {
 }
 
 function Normalize-ConditionalAccessGraph {
+    <#
+    .DESCRIPTION
+        Returns a flat array of v2 FindingRow objects. When the caller
+        passes -EdgeCollector (the orchestrator's
+        $normalizerEdgeCollectorFM list), AppliesTo / Excludes edges are
+        appended to it for the EntityStore drain. Test suites that want
+        the edge list back without supplying a collector should pass an
+        empty `[System.Collections.Generic.List[psobject]]::new()`.
+    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [PSCustomObject] $ToolResult
+        [PSCustomObject] $ToolResult,
+
+        [System.Collections.Generic.List[psobject]] $EdgeCollector
     )
 
     if (-not $ToolResult -or $ToolResult.Status -ne 'Success') {
-        return [PSCustomObject]@{
-            Source   = 'conditional-access-graph'
-            Status   = if ($ToolResult) { [string]$ToolResult.Status } else { 'Failed' }
-            Findings = @()
-            Edges    = @()
-        }
+        return @()
     }
 
     $runId = [guid]::NewGuid().ToString()
     $rows  = [System.Collections.Generic.List[PSCustomObject]]::new()
-    $edges = [System.Collections.Generic.List[PSCustomObject]]::new()
 
     $projections = @(Get-PropertyValue -Obj $ToolResult -Name 'Policies' -Default @())
     $rawFindings = @(Get-PropertyValue -Obj $ToolResult -Name 'Findings' -Default @())
@@ -234,14 +239,9 @@ function Normalize-ConditionalAccessGraph {
             continue
         }
         foreach ($e in (New-CaPolicyEdges -Projection $proj -PolicyEntityId $canon.CanonicalId)) {
-            $edges.Add($e) | Out-Null
+            if ($null -ne $EdgeCollector) { $EdgeCollector.Add($e) | Out-Null }
         }
     }
 
-    return [PSCustomObject]@{
-        Source   = 'conditional-access-graph'
-        Status   = 'Success'
-        Findings = @($rows)
-        Edges    = @($edges)
-    }
+    return @($rows)
 }

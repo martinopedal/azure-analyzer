@@ -21,7 +21,7 @@ AfterAll {
     Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }
 
-Describe 'Invoke-DnsTwist' {
+Describe 'Invoke-DnsTwist' -Tag 'AllowsWarning' {
 
     Context 'when dnstwist CLI is missing' {
         BeforeAll {

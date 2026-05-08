@@ -20,7 +20,7 @@ AfterAll {
     Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }
 
-Describe 'Invoke-ConditionalAccessGraph' {
+Describe 'Invoke-ConditionalAccessGraph' -Tag 'AllowsWarning' {
 
     Context 'when Microsoft.Graph is not connected and no PreFetchedData supplied' {
         BeforeAll {

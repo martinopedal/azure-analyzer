@@ -13,9 +13,9 @@ BeforeAll {
 
 Describe 'Normalize-ConditionalAccessGraph' {
     BeforeAll {
-        $script:Result = Normalize-ConditionalAccessGraph -ToolResult $script:Fixture
-        $script:Rows   = @($script:Result.Findings)
-        $script:Edges  = @($script:Result.Edges)
+        $script:EdgeBag = [System.Collections.Generic.List[psobject]]::new()
+        $script:Rows    = @(Normalize-ConditionalAccessGraph -ToolResult $script:Fixture -EdgeCollector $script:EdgeBag)
+        $script:Edges   = @($script:EdgeBag)
     }
 
     It 'returns one FindingRow per fixture finding' {
@@ -75,11 +75,9 @@ Describe 'Normalize-ConditionalAccessGraph' {
     }
 
     Context 'with non-Success input' {
-        It 'returns an envelope with empty Findings and Edges arrays' {
+        It 'returns an empty array when status is not Success' {
             $bad = [PSCustomObject]@{ Source='conditional-access-graph'; Status='Failed'; Findings=@(); Policies=@() }
-            $r = Normalize-ConditionalAccessGraph -ToolResult $bad
-            @($r.Findings).Count | Should -Be 0
-            @($r.Edges).Count    | Should -Be 0
+            @(Normalize-ConditionalAccessGraph -ToolResult $bad).Count | Should -Be 0
         }
     }
 }

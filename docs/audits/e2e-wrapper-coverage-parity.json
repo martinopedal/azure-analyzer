@@ -186,6 +186,11 @@
       "id": "E2E-037",
       "tool": "dnstwist",
       "status": "in-progress"
+    },
+    {
+      "id": "E2E-038",
+      "tool": "conditional-access-graph",
+      "status": "in-progress"
     }
   ]
 }
