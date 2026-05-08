@@ -229,7 +229,10 @@ function ConvertTo-CanonicalEntityId {
             'Tenant',
             'AdoProject',
             'KarpenterProvisioner',
-            'ExternalAsset'
+            'ExternalAsset',
+            'ConditionalAccessPolicy',
+            'NamedLocation',
+            'OnPremUser'
         )]
         [string] $EntityType,
 
@@ -311,6 +314,43 @@ function ConvertTo-CanonicalEntityId {
             elseif ($raw -match '^(?i:ip):(.+)$') { "ip:$($matches[1].Trim())" }
             else { $raw.ToLowerInvariant() }
         }
+        'ConditionalAccessPolicy' {
+            # Canonical form: cap:{lowercased-guid}. Accept bare GUID or
+            # cap:{guid}. Other shapes throw.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:cap):(?<id>[0-9a-f-]{36})$') {
+                "cap:$($matches['id'].ToLowerInvariant())"
+            } elseif ($raw -match $script:GuidPattern) {
+                "cap:$($raw.ToLowerInvariant())"
+            } else {
+                throw "ConditionalAccessPolicy IDs must be cap:{guid} or a GUID. Provided: '$RawId'."
+            }
+        }
+        'NamedLocation' {
+            # Canonical form: loc:{lowercased-guid}. Accept bare GUID or
+            # loc:{guid}. Other shapes throw.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:loc):(?<id>[0-9a-f-]{36})$') {
+                "loc:$($matches['id'].ToLowerInvariant())"
+            } elseif ($raw -match $script:GuidPattern) {
+                "loc:$($raw.ToLowerInvariant())"
+            } else {
+                throw "NamedLocation IDs must be loc:{guid} or a GUID. Provided: '$RawId'."
+            }
+        }
+        'OnPremUser' {
+            # On-prem AD shadow of an Entra user. Canonical form:
+            # onprem:user:{sid-lower}. Accept onprem:user:{sid} or a bare
+            # SID-shaped string ('S-1-5-21-...'). Anything else throws.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:onprem:user):(.+)$') {
+                "onprem:user:$($matches[1].ToLowerInvariant())"
+            } elseif ($raw -match '^(?i:S-1-5-21-)') {
+                "onprem:user:$($raw.ToLowerInvariant())"
+            } else {
+                throw "OnPremUser IDs must be onprem:user:{sid} or an AD SID (S-1-5-21-...). Provided: '$RawId'."
+            }
+        }
         'Tenant' {
             # Accept bare GUID or tenant:{guid} form; fall back to slugified string for synthetic IDs
             $raw = $RawId.Trim()
@@ -345,6 +385,9 @@ function ConvertTo-CanonicalEntityId {
         'AdoProject' { 'ADO' }
         'KarpenterProvisioner' { 'Azure' }
         'ExternalAsset' { 'External' }
+        'ConditionalAccessPolicy' { 'Entra' }
+        'NamedLocation' { 'Entra' }
+        'OnPremUser' { 'OnPrem' }
         default { 'Unknown' }
     }
 

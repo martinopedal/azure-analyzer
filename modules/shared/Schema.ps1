@@ -59,7 +59,14 @@ $script:EdgeRelations = @(
     'PolicyAssignedTo',         # PolicyAssignment -> Subscription|MG|ResourceGroup|Resource
     'PolicyEnforces',           # PolicyAssignment -> PolicyDefinition
     'ExemptedFrom',             # AzureResource -> PolicyAssignment
-    'InheritsFrom'              # ManagementGroup|Subscription -> ManagementGroup
+    'InheritsFrom',             # ManagementGroup|Subscription -> ManagementGroup
+    # --- Graph mapping family (R1, docs/design/graph-mapping-integration.md) ---
+    'AppliesTo',                # ConditionalAccessPolicy -> User|Group|Application|NamedLocation
+    'Excludes',                 # ConditionalAccessPolicy -> User|Group|Application|NamedLocation
+    'EligibleFor',              # User|ServicePrincipal -> AzureResource (PIM eligible role)
+    'ActiveAs',                 # User|ServicePrincipal -> AzureResource (PIM active assignment)
+    'EffectivePermission',      # ServicePrincipal|User -> Application (transitive grant)
+    'OnPremShadow'              # User -> OnPremUser (hybrid identity)
 )
 $script:EntityTypes = @(
     'AzureResource',
@@ -81,9 +88,13 @@ $script:EntityTypes = @(
     'Tenant',
     'AdoProject',
     'KarpenterProvisioner',
-    'ExternalAsset'
+    'ExternalAsset',
+    # --- Graph mapping family (R1, docs/design/graph-mapping-integration.md) ---
+    'ConditionalAccessPolicy',
+    'NamedLocation',
+    'OnPremUser'
 )
-$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC', 'External')
+$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC', 'External', 'OnPrem')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
 $script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -133,7 +144,10 @@ function Get-PlatformForEntityType {
             'Tenant',
             'AdoProject',
             'KarpenterProvisioner',
-            'ExternalAsset'
+            'ExternalAsset',
+            'ConditionalAccessPolicy',
+            'NamedLocation',
+            'OnPremUser'
         )]
         [string] $EntityType
     )
@@ -159,6 +173,9 @@ function Get-PlatformForEntityType {
         'ServiceConnection' { 'ADO' }
         'AdoProject' { 'ADO' }
         'ExternalAsset' { 'External' }
+        'ConditionalAccessPolicy' { 'Entra' }
+        'NamedLocation' { 'Entra' }
+        'OnPremUser' { 'OnPrem' }
         default { throw "Unknown EntityType '$EntityType'." }
     }
 }
@@ -479,11 +496,14 @@ function New-EntityStub {
             'Workflow',
             'Tenant',
             'AdoProject',
-            'KarpenterProvisioner'
+            'KarpenterProvisioner',
+            'ConditionalAccessPolicy',
+            'NamedLocation',
+            'OnPremUser'
         )]
         [string] $EntityType,
 
-        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC')]
+        [ValidateSet('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC', 'OnPrem')]
         [string] $Platform,
 
         [string] $DisplayName,

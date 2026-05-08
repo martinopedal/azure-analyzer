@@ -81,6 +81,7 @@ Per-tool permission detail lives under [`docs/consumer/permissions/`](docs/consu
 
 | Tool | Scope | Detail |
 |---|---|---|
+| **Conditional Access Policy Graph** | Tenant | [`conditional-access-graph.md`](docs/consumer/permissions/conditional-access-graph.md) |
 | **Identity Correlator** | Tenant | [`identity-correlator.md`](docs/consumer/permissions/identity-correlator.md) |
 | **Identity Graph Expansion** | Tenant | [`identity-graph-expansion.md`](docs/consumer/permissions/identity-graph-expansion.md) |
 

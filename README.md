@@ -32,6 +32,7 @@
 - **Entity store** (JSON) with deduplicated cross-tool findings.
 - **Resilience map renderer (Track B)** with tier-aware heatmap cells, edge-style resolution, blast-radius traversal, and graceful RTO/RPO overlay fallback.
 - **External Attack Surface Management (EASM, in flight)**: passive perimeter discovery from typosquats (DNSTwist) and, in follow-up PRs, subdomain enumeration (Amass / Subfinder), host probing (httpx), commercial scans (Shodan / Censys), and Microsoft Defender EASM workspace consumption. Findings correlate back to existing `AzureResource` entities or fall back to a new `ExternalAsset` bucket. See [`docs/design/easm-integration.md`](docs/design/easm-integration.md).
+- **Graph mapping (in flight)**: Conditional Access policy graph (R1, enabled) emits `ConditionalAccessPolicy` entities plus `AppliesTo` / `Excludes` edges to users, groups, applications, and named locations, alongside a five-rule risk rubric for disabled-covers-privileged, GA-excluded-from-MFA, report-only stagnation, oversized break-glass, and no-strong-control gaps. Pre-registered family for follow-up PRs: AzureHound, BloodHound CE, ROADrecon, GraphRunner, PIM eligibility / activation graph, Microsoft Entra Permissions Management, and Semperis Forest Druid. See [`docs/design/graph-mapping-integration.md`](docs/design/graph-mapping-integration.md).
 - **Optional local findings viewer scaffold** (`-Show`) that starts on `127.0.0.1` with a session token and health probe.
 
 ## Quickest start
