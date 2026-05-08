@@ -36,10 +36,21 @@ function Get-DnsTwistFinding {
     # the first entry. It's the seed domain itself, not a typosquat.
     if ($fuzzer -like 'original*') { return $null }
 
-    $hasA    = $Record.PSObject.Properties['dns_a']    -and @($Record.dns_a).Count    -gt 0
-    $hasMx   = $Record.PSObject.Properties['dns_mx']   -and @($Record.dns_mx).Count   -gt 0
-    $hasNs   = $Record.PSObject.Properties['dns_ns']   -and @($Record.dns_ns).Count   -gt 0
-    $hasAaaa = $Record.PSObject.Properties['dns_aaaa'] -and @($Record.dns_aaaa).Count -gt 0
+    # Robustly check for non-empty DNS record arrays. dnstwist sometimes
+    # emits dns_a/dns_mx as JSON null; in PowerShell @($null).Count is 1,
+    # so we must filter out null/empty entries before counting.
+    function script:Test-DnsRecordPresent {
+        param ($Record, [string] $Name)
+        if (-not $Record.PSObject.Properties[$Name]) { return $false }
+        $val = $Record.$Name
+        if ($null -eq $val) { return $false }
+        $items = @($val) | Where-Object { $null -ne $_ -and -not [string]::IsNullOrWhiteSpace([string]$_) }
+        return @($items).Count -gt 0
+    }
+    $hasA    = Test-DnsRecordPresent -Record $Record -Name 'dns_a'
+    $hasMx   = Test-DnsRecordPresent -Record $Record -Name 'dns_mx'
+    $hasNs   = Test-DnsRecordPresent -Record $Record -Name 'dns_ns'
+    $hasAaaa = Test-DnsRecordPresent -Record $Record -Name 'dns_aaaa'
 
     $registered = $hasA -or $hasMx -or $hasNs -or $hasAaaa
     $severity = if (-not $registered) { 'Low' }

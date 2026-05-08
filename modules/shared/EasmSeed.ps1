@@ -33,12 +33,21 @@ $ErrorActionPreference = 'Stop'
 # refuse anything we cannot safely pass to a CLI.
 $script:EasmDomainPattern = '^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9\-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$'
 $script:EasmIpv4Pattern   = '^(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)$'
-$script:EasmIpv6Pattern   = '^[0-9A-Fa-f:]{2,39}$'
 $script:EasmCidrPattern   = '^(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)/(?:3[0-2]|[12]?\d)$'
 $script:EasmAsnPattern    = '^(?:AS)?\d{1,10}$'
 
 function Test-EasmDomain { param ([string] $Value) return $Value -match $script:EasmDomainPattern }
-function Test-EasmIp     { param ([string] $Value) return ($Value -match $script:EasmIpv4Pattern) -or ($Value -match $script:EasmIpv6Pattern) }
+function Test-EasmIp {
+    param ([string] $Value)
+    # Use the framework parser for IP validation rather than a permissive
+    # regex. Accept both IPv4 and IPv6; reject anything else (including
+    # ambiguous strings like "deadbeef" or "::::" that would slip past a
+    # character-class regex).
+    $parsed = $null
+    if (-not [System.Net.IPAddress]::TryParse($Value, [ref]$parsed)) { return $false }
+    return ($parsed.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork) `
+        -or ($parsed.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6)
+}
 function Test-EasmCidr   { param ([string] $Value) return $Value -match $script:EasmCidrPattern }
 function Test-EasmAsn    { param ([string] $Value) return $Value -match $script:EasmAsnPattern }
 

@@ -178,7 +178,7 @@ try {
         } catch {
             $sanitisedReason = Remove-Credentials ([string]$_)
             $errors.Add((New-FindingError -Source 'wrapper:dnstwist' `
-                -Category 'ExecutionError' `
+                -Category 'UnexpectedFailure' `
                 -Reason "dnstwist failed for $domain" `
                 -Remediation 'Check stderr; verify dnstwist version >= 20210817.' `
                 -Details $sanitisedReason)) | Out-Null
@@ -198,7 +198,7 @@ try {
 } catch {
     $sanitised = Remove-Credentials ([string]$_)
     $err = New-FindingError -Source 'wrapper:dnstwist' `
-        -Category 'ExecutionError' `
+        -Category 'UnexpectedFailure' `
         -Reason 'Unhandled exception in Invoke-DnsTwist' `
         -Remediation 'See Details; rerun with -Verbose for stack.' `
         -Details $sanitised
