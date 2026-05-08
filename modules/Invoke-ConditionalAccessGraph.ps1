@@ -90,7 +90,14 @@ function Get-CaPolicyState {
 
 function Get-CaPolicyDisplayName {
     param ([Parameter(Mandatory)][PSCustomObject] $Policy)
-    if ($Policy.PSObject.Properties['displayName'] -and $Policy.displayName) { return [string]$Policy.displayName }
+    if ($Policy.PSObject.Properties['displayName'] -and $Policy.displayName) {
+        # Scrub the operator-controlled displayName at the point of
+        # extraction so any secret accidentally embedded in a policy name
+        # is redacted before it can flow into the projection, the
+        # finding Title, or the report. Remove-Credentials is a no-op
+        # if Sanitize.ps1 was not loadable.
+        return [string](Remove-Credentials ([string]$Policy.displayName))
+    }
     return ''
 }
 

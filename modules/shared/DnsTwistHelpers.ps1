@@ -9,6 +9,31 @@ $ErrorActionPreference = 'Stop'
     implementation (instead of re-declaring it inline and risking drift).
 #>
 
+function Test-DnsRecordPresent {
+    <#
+    .SYNOPSIS
+        Robust presence check for a JSON-array DNS record property.
+    .DESCRIPTION
+        dnstwist sometimes emits dns_a / dns_mx / dns_ns / dns_aaaa as
+        JSON null; in PowerShell @($null).Count is 1, so a naive
+        @(...).Count -gt 0 check would falsely report the record as
+        present and incorrectly bump severity. Filtering out
+        null / whitespace-only entries before counting makes the helper
+        robust across dnstwist JSON variants. Defined at script scope
+        (rather than inside Get-DnsTwistFinding) so it does not pollute
+        the script scope on every call and so other helpers can reuse it.
+    #>
+    param (
+        [Parameter(Mandatory)] $Record,
+        [Parameter(Mandatory)] [string] $Name
+    )
+    if (-not $Record.PSObject.Properties[$Name]) { return $false }
+    $val = $Record.$Name
+    if ($null -eq $val) { return $false }
+    $items = @($val) | Where-Object { $null -ne $_ -and -not [string]::IsNullOrWhiteSpace([string]$_) }
+    return @($items).Count -gt 0
+}
+
 function Get-DnsTwistFinding {
     <#
     .SYNOPSIS
@@ -39,14 +64,6 @@ function Get-DnsTwistFinding {
     # Robustly check for non-empty DNS record arrays. dnstwist sometimes
     # emits dns_a/dns_mx as JSON null; in PowerShell @($null).Count is 1,
     # so we must filter out null/empty entries before counting.
-    function script:Test-DnsRecordPresent {
-        param ($Record, [string] $Name)
-        if (-not $Record.PSObject.Properties[$Name]) { return $false }
-        $val = $Record.$Name
-        if ($null -eq $val) { return $false }
-        $items = @($val) | Where-Object { $null -ne $_ -and -not [string]::IsNullOrWhiteSpace([string]$_) }
-        return @($items).Count -gt 0
-    }
     $hasA    = Test-DnsRecordPresent -Record $Record -Name 'dns_a'
     $hasMx   = Test-DnsRecordPresent -Record $Record -Name 'dns_mx'
     $hasNs   = Test-DnsRecordPresent -Record $Record -Name 'dns_ns'

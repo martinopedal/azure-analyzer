@@ -89,12 +89,14 @@ function ConvertTo-CaTargetEntity {
                 return [PSCustomObject]@{ EntityId = $c.CanonicalId; EntityType = 'NamedLocation'; Platform = 'Entra' }
             }
             'Group' {
-                # Schema does not yet have a Group EntityType; collapse onto
-                # User with an objectId: prefix so the edge still links
-                # something canonical instead of being dropped. Reports
-                # render the literal CanonicalId so this stays auditable.
+                # Schema does not yet have a first-class Group EntityType, but
+                # the rest of the graph (e.g. Invoke-IdentityGraphExpansion's
+                # MemberOf edges) already represents Entra groups with a
+                # `group:{guid}` target token. Mirror that convention so CA
+                # group edges line up with the existing graph instead of
+                # misclassifying groups as User vertices.
                 $lower = $Value.ToLowerInvariant()
-                return [PSCustomObject]@{ EntityId = "objectId:$lower"; EntityType = 'User'; Platform = 'Entra' }
+                return [PSCustomObject]@{ EntityId = "group:$lower"; EntityType = $null; Platform = 'Entra' }
             }
             'Role' {
                 # Skip role-template IDs until the schema gains a Role

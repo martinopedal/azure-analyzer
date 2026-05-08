@@ -8,7 +8,7 @@
 ![Low](https://img.shields.io/badge/Low-0-a16207)
 ![Info](https://img.shields.io/badge/Info-0-475569)
 ![Posture](https://img.shields.io/badge/Posture-F%20%280%2F100%29-2563eb)
-![Tools](https://img.shields.io/badge/Tools-38-0369a1)
+![Tools](https://img.shields.io/badge/Tools-52-0369a1)
 ![Run](https://img.shields.io/badge/Run-22%20Apr%202026%2007%3A52%20UTC-334155)
 
 > Generated report. For full interactive exploration, open [sample-report-v2-mockup.html](sample-report-v2-mockup.html).
@@ -25,7 +25,7 @@
 
 ## Executive summary
 
-Tenant `contoso-prod` was scanned across 38 tools covering 3 entities in 2 scope(s). Compliance is 0%. Posture grade is **F (0/100)**.
+Tenant `contoso-prod` was scanned across 52 tools covering 3 entities in 2 scope(s). Compliance is 0%. Posture grade is **F (0/100)**.
 
 3 critical, 2 high, 0 medium, 0 low, and 0 info findings are currently non-compliant.
 
