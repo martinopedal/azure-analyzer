@@ -80,9 +80,10 @@ $script:EntityTypes = @(
     'Workflow',
     'Tenant',
     'AdoProject',
-    'KarpenterProvisioner'
+    'KarpenterProvisioner',
+    'ExternalAsset'
 )
-$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC')
+$script:Platforms = @('Azure', 'Entra', 'GitHub', 'ADO', 'AzureDevOps', 'IaC', 'External')
 $script:ConfidenceLevels = @('Confirmed', 'Likely', 'Unconfirmed', 'Unknown')
 $script:ValidationFailures = [System.Collections.Generic.List[PSCustomObject]]::new()
 
@@ -131,7 +132,8 @@ function Get-PlatformForEntityType {
             'Workflow',
             'Tenant',
             'AdoProject',
-            'KarpenterProvisioner'
+            'KarpenterProvisioner',
+            'ExternalAsset'
         )]
         [string] $EntityType
     )
@@ -156,6 +158,7 @@ function Get-PlatformForEntityType {
         'Environment' { 'ADO' }
         'ServiceConnection' { 'ADO' }
         'AdoProject' { 'ADO' }
+        'ExternalAsset' { 'External' }
         default { throw "Unknown EntityType '$EntityType'." }
     }
 }

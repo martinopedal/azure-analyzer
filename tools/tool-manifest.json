@@ -400,6 +400,59 @@
       ]
     },
     {
+      "name": "amass",
+      "displayName": "OWASP Amass (passive subdomain enum)",
+      "source": "amass",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Amass",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Amass.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#00838f",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "amass",
+        "preferredManagers": [
+          "brew",
+          "snap"
+        ],
+        "windows": {
+          "url": "https://github.com/owasp-amass/amass/releases/latest"
+        },
+        "macos": {
+          "brew": "amass"
+        },
+        "linux": {
+          "snap": "amass"
+        }
+      },
+      "upstream": {
+        "repo": "owasp-amass/amass",
+        "releaseApi": "https://api.github.com/repos/owasp-amass/amass/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "comment": "EASM passive subdomain enumeration. Wrapper ships in R2; manifest entry pre-registered so report wiring (R5) sees the entry.",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
       "name": "appinsights",
       "displayName": "Application Insights Performance Signals",
       "source": "appinsights",
@@ -695,6 +748,39 @@
       ]
     },
     {
+      "name": "censys",
+      "displayName": "Censys Search (cert transparency + host scan)",
+      "source": "censys",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Censys",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Censys.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#5c6bc0",
+        "phase": 4
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "EASM commercial: requires CENSYS_API_ID + CENSYS_API_SECRET env vars. Wrapper ships in R3.",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
       "name": "copilot-triage",
       "displayName": "Copilot AI Triage",
       "source": "copilot-triage",
@@ -725,6 +811,46 @@
       },
       "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch.",
       "frameworks": []
+    },
+    {
+      "name": "defender-easm",
+      "displayName": "Microsoft Defender EASM (workspace consumer)",
+      "source": "defender-easm",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-DefenderEasm",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-DefenderEasm.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "WorkspaceName",
+        "ResourceGroupName"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#0078d4",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "comment": "Consumes findings from a provisioned Microsoft Defender EASM workspace. Reader on Microsoft.Easm/workspaces. Wrapper ships in R4.",
+      "frameworks": [
+        "MCSB",
+        "NIST 800-53"
+      ]
     },
     {
       "name": "defender-for-cloud",
@@ -766,6 +892,59 @@
         "Azure CAF",
         "SOC2",
         "PCI-DSS"
+      ]
+    },
+    {
+      "name": "dnstwist",
+      "displayName": "DNSTwist (typosquat / homoglyph detection)",
+      "source": "dnstwist",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-DnsTwist",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-DnsTwist.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ad1457",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "dnstwist",
+        "preferredManagers": [
+          "pipx",
+          "pip",
+          "brew"
+        ],
+        "windows": {
+          "pipx": "dnstwist"
+        },
+        "macos": {
+          "brew": "dnstwist"
+        },
+        "linux": {
+          "pipx": "dnstwist"
+        }
+      },
+      "upstream": {
+        "repo": "elceef/dnstwist",
+        "releaseApi": "https://api.github.com/repos/elceef/dnstwist/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "NIST 800-53"
       ]
     },
     {
@@ -962,6 +1141,58 @@
         "NIST 800-53",
         "SOC2",
         "PCI-DSS"
+      ]
+    },
+    {
+      "name": "httpx",
+      "displayName": "httpx (ProjectDiscovery host probe)",
+      "source": "httpx",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Httpx",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Httpx.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#2e7d32",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "httpx",
+        "preferredManagers": [
+          "brew"
+        ],
+        "windows": {
+          "url": "https://github.com/projectdiscovery/httpx/releases/latest"
+        },
+        "macos": {
+          "brew": "httpx"
+        },
+        "linux": {
+          "url": "https://github.com/projectdiscovery/httpx/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "projectdiscovery/httpx",
+        "releaseApi": "https://api.github.com/repos/projectdiscovery/httpx/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "comment": "EASM passive host probe. Wrapper ships in R2.",
+      "frameworks": [
+        "NIST 800-53"
       ]
     },
     {
@@ -1615,6 +1846,91 @@
       "frameworks": [
         "NIST 800-53",
         "SOC2"
+      ]
+    },
+    {
+      "name": "shodan",
+      "displayName": "Shodan (internet-wide host/service scan)",
+      "source": "shodan",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Shodan",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Shodan.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#d32f2f",
+        "phase": 4
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "EASM commercial: requires SHODAN_API_KEY env var. Wrapper ships in R3.",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "subfinder",
+      "displayName": "Subfinder (ProjectDiscovery passive subdomain enum)",
+      "source": "subfinder",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Subfinder",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Subfinder.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#00695c",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "subfinder",
+        "preferredManagers": [
+          "brew"
+        ],
+        "windows": {
+          "url": "https://github.com/projectdiscovery/subfinder/releases/latest"
+        },
+        "macos": {
+          "brew": "subfinder"
+        },
+        "linux": {
+          "url": "https://github.com/projectdiscovery/subfinder/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "projectdiscovery/subfinder",
+        "releaseApi": "https://api.github.com/repos/projectdiscovery/subfinder/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "comment": "EASM passive subdomain enumeration. Wrapper ships in R2.",
+      "frameworks": [
+        "NIST 800-53"
       ]
     },
     {

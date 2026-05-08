@@ -228,7 +228,8 @@ function ConvertTo-CanonicalEntityId {
             'Workflow',
             'Tenant',
             'AdoProject',
-            'KarpenterProvisioner'
+            'KarpenterProvisioner',
+            'ExternalAsset'
         )]
         [string] $EntityType,
 
@@ -301,6 +302,15 @@ function ConvertTo-CanonicalEntityId {
             "ado://$($segments[0].ToLowerInvariant())/$($segments[1].ToLowerInvariant())"
         }
         'KarpenterProvisioner' { ConvertTo-CanonicalArmId -ArmId $RawId }
+        'ExternalAsset' {
+            # External (internet-discovered) asset that does not map back
+            # to an Azure-owned resource. Canonical form: 'host:<lower-fqdn>'
+            # or 'ip:<ip>'. Anything else is lower-cased and slug-trimmed.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:host):(.+)$') { "host:$($matches[1].ToLowerInvariant().TrimEnd('.'))" }
+            elseif ($raw -match '^(?i:ip):(.+)$') { "ip:$($matches[1].Trim())" }
+            else { $raw.ToLowerInvariant() }
+        }
         'Tenant' {
             # Accept bare GUID or tenant:{guid} form; fall back to slugified string for synthetic IDs
             $raw = $RawId.Trim()
@@ -334,6 +344,7 @@ function ConvertTo-CanonicalEntityId {
         'ServiceConnection' { 'ADO' }
         'AdoProject' { 'ADO' }
         'KarpenterProvisioner' { 'Azure' }
+        'ExternalAsset' { 'External' }
         default { 'Unknown' }
     }
 

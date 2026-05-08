@@ -37,7 +37,15 @@ function Remove-Credentials {
         @{ Pattern = '(?i)([?&])sv=[0-9]{4}-[0-9]{2}-[0-9]{2}'; Replacement = '$1sv=[REDACTED]' },
         @{ Pattern = '(?i)\bsig=[A-Za-z0-9%+/=]{10,}'; Replacement = 'sig=[REDACTED]' },
         @{ Pattern = '(?i)\bclient_secret=[^&\s]+'; Replacement = 'client_secret=[REDACTED]' },
-        @{ Pattern = '(?i)\bSharedAccessSignature=[^;]+'; Replacement = 'SharedAccessSignature=[REDACTED]' }
+        @{ Pattern = '(?i)\bSharedAccessSignature=[^;]+'; Replacement = 'SharedAccessSignature=[REDACTED]' },
+        # Shodan API key (env-var or query-string form). Shodan keys are 32 chars
+        # of [A-Za-z0-9] but we widen the boundary to catch quoted variants.
+        @{ Pattern = '(?i)\bSHODAN_API_KEY\s*=\s*[^\s;,&"'']+'; Replacement = 'SHODAN_API_KEY=[REDACTED]' },
+        @{ Pattern = '(?i)([?&])key=[A-Za-z0-9]{20,}'; Replacement = '$1key=[REDACTED]' },
+        # Censys API ID + secret (env-var form). Both are UUID-shaped on the
+        # vendor side; we redact whatever is on the right of `=` defensively.
+        @{ Pattern = '(?i)\bCENSYS_API_ID\s*=\s*[^\s;,&"'']+'; Replacement = 'CENSYS_API_ID=[REDACTED]' },
+        @{ Pattern = '(?i)\bCENSYS_API_SECRET\s*=\s*[^\s;,&"'']+'; Replacement = 'CENSYS_API_SECRET=[REDACTED]' }
     )
 
     foreach ($rule in $rules) {
