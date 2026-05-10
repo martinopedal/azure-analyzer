@@ -42,8 +42,8 @@ BeforeAll {
             if ($block -match '(?m)^\s+run:[ \t]*\|') { $step['run'] = $block }
             if ($block -match '(?m)^\s+env:[ \t]*$') {
                 $envMap = @{}
-                # scheduled-scan.yml uses conventional uppercase underscore environment keys.
-                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Z0-9_]+):[ \t]*(?<value>[^\r\n]+)$')) {
+                # scheduled-scan.yml uses simple single-line environment values.
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_]+):[ \t]*(?<value>[^\r\n]+)$')) {
                     $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
                 $step['env'] = $envMap
