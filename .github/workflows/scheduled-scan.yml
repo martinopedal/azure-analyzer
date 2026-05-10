@@ -70,17 +70,15 @@ jobs:
             }
           }
           if ($errors.Count -gt 0) {
-            $reason = ($errors -join ' ')
+            $reason = ($errors -join '; ')
             if ($eventName -eq 'schedule') {
               Write-Warning "$reason OIDC federation is not configured; skipping scheduled scan without failing the workflow."
               "configured=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-              "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
               exit 0
             }
             throw "$reason Configure OIDC federation before running the scheduled scan."
           }
           "configured=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "reason=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Azure login (OIDC, no PATs)
         if: steps.scope.outputs.configured == 'true'

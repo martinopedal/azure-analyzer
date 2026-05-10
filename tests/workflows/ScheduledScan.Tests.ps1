@@ -22,8 +22,67 @@ BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
         $script:Workflow = ConvertFrom-Yaml $script:RawYaml
     } else {
-        $json = $script:RawYaml | python3 -c "import json, sys, yaml; print(json.dumps(yaml.safe_load(sys.stdin.read())))"
-        $script:Workflow = $json | ConvertFrom-Json -AsHashtable
+        function Get-StepBlock {
+            param([Parameter(Mandatory)][string] $Name)
+            $escaped = [regex]::Escape($Name)
+            $match = [regex]::Match($script:RawYaml, "(?ms)^      - name: $escaped\s*\n(?<block>.*?)(?=^      - name:|\z)")
+            if (-not $match.Success) { return '' }
+            $match.Groups['block'].Value
+        }
+
+        function ConvertTo-MinimalStep {
+            param([Parameter(Mandatory)][string] $Name)
+            $block = Get-StepBlock -Name $Name
+            $step = [ordered]@{ name = $Name }
+            if ($block -match '(?m)^\s+id:\s*(?<value>\S+)') { $step['id'] = $Matches['value'] }
+            if ($block -match '(?m)^\s+uses:\s*(?<value>\S+)') { $step['uses'] = $Matches['value'] }
+            if ($block -match '(?m)^\s+if:\s*(?<value>.+)$') { $step['if'] = $Matches['value'].Trim() }
+            if ($block -match '(?m)^\s+run:\s*\|') { $step['run'] = $block }
+            if ($block -match '(?m)^\s+env:\s*$') {
+                $envMap = @{}
+                foreach ($m in [regex]::Matches($block, '(?m)^\s{10}(?<key>[A-Z0-9_]+):\s*(?<value>.+)$')) {
+                    $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
+                }
+                $step['env'] = $envMap
+            }
+            if ($block -match '(?m)^\s+with:\s*$') {
+                $withMap = @{}
+                foreach ($m in [regex]::Matches($block, '(?m)^\s{10}(?<key>[A-Za-z0-9_-]+):\s*(?<value>.+)$')) {
+                    $withMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
+                }
+                $step['with'] = $withMap
+            }
+            $step
+        }
+
+        $script:Workflow = @{
+            'on' = @{
+                'schedule' = @(@{ 'cron' = ([regex]::Match($script:RawYaml, "cron:\s*'(?<cron>[^']+)'").Groups['cron'].Value) })
+                'workflow_dispatch' = @{
+                    'inputs' = @{
+                        'include_tools' = @{ 'default' = ([regex]::Match($script:RawYaml, "default:\s*'(?<default>azqr,psrule)'").Groups['default'].Value) }
+                    }
+                }
+            }
+            'permissions' = @{ 'contents' = 'read' }
+            'concurrency' = @{ 'group' = ([regex]::Match($script:RawYaml, '(?m)^\s+group:\s*(?<group>scheduled-scan)$').Groups['group'].Value) }
+            'jobs' = @{
+                'scan' = @{
+                    'permissions' = @{ 'id-token' = 'write'; 'contents' = 'read'; 'actions' = 'read' }
+                    'outputs' = @{ 'new_critical_count' = '${{ steps.diff.outputs.new_critical_count }}' }
+                    'steps' = @(
+                        ConvertTo-MinimalStep -Name 'Validate scope variables'
+                        ConvertTo-MinimalStep -Name 'Azure login (OIDC, no PATs)'
+                        ConvertTo-MinimalStep -Name 'Install required PowerShell modules'
+                        ConvertTo-MinimalStep -Name 'Run azure-analyzer'
+                    )
+                }
+                'report' = @{
+                    'if' = ([regex]::Match($script:RawYaml, "(?m)^\s+if:\s*(?<if>always\(\).*new_critical_count.+)$").Groups['if'].Value.Trim())
+                    'permissions' = @{ 'contents' = 'read'; 'issues' = 'write' }
+                }
+            }
+        }
     }
 
     # YAML 1.1 quirk: the unquoted `on` key parses to boolean True.
