@@ -22,11 +22,21 @@ BeforeAll {
         Import-Module powershell-yaml -ErrorAction Stop
         $script:Workflow = ConvertFrom-Yaml $script:RawYaml
     } else {
+        function Get-RequiredMatchValue {
+            param(
+                [Parameter(Mandatory)][string] $Pattern,
+                [Parameter(Mandatory)][string] $GroupName
+            )
+            $match = [regex]::Match($script:RawYaml, $Pattern)
+            if (-not $match.Success) { throw "scheduled-scan.yml fallback parser could not match pattern: $Pattern" }
+            $match.Groups[$GroupName].Value
+        }
+
         function Get-StepBlock {
             param([Parameter(Mandatory)][string] $Name)
             $escaped = [regex]::Escape($Name)
             # Fallback parser for constrained local environments without powershell-yaml.
-            # It intentionally supports this workflow's uniform step indentation and simple blocks.
+            # It intentionally supports this workflow's uniform step indentation and simple step blocks.
             $match = [regex]::Match($script:RawYaml, "(?ms)^(?<indent>\s*)- name: $escaped\s*\n(?<block>.*?)(?=^\k<indent>- name:|\z)")
             if (-not $match.Success) { return '' }
             $match.Groups['block'].Value
@@ -42,7 +52,7 @@ BeforeAll {
             if ($block -match '(?m)^\s+run:[ \t]*\|') { $step['run'] = $block }
             if ($block -match '(?m)^\s+env:[ \t]*$') {
                 $envMap = @{}
-                # scheduled-scan.yml uses simple single-line environment values.
+                # scheduled-scan.yml uses simple single-line environment values; folded or block scalars are out of scope.
                 foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_]+):[ \t]*(?<value>[^\r\n]+)$')) {
                     $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
@@ -50,6 +60,7 @@ BeforeAll {
             }
             if ($block -match '(?m)^\s+with:[ \t]*$') {
                 $withMap = @{}
+                # scheduled-scan.yml uses simple single-line with values; folded or block scalars are out of scope.
                 foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_-]+):[ \t]*(?<value>[^\r\n]+)$')) {
                     $withMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
@@ -60,15 +71,15 @@ BeforeAll {
 
         $script:Workflow = @{
             'on' = @{
-                'schedule' = @(@{ 'cron' = ([regex]::Match($script:RawYaml, "cron:\s*'(?<cron>[^']+)'").Groups['cron'].Value) })
+                'schedule' = @(@{ 'cron' = (Get-RequiredMatchValue -Pattern "cron:\s*'(?<cron>[^']+)'" -GroupName 'cron') })
                 'workflow_dispatch' = @{
                     'inputs' = @{
-                        'include_tools' = @{ 'default' = ([regex]::Match($script:RawYaml, "default:\s*'(?<default>[^']+)'").Groups['default'].Value) }
+                        'include_tools' = @{ 'default' = (Get-RequiredMatchValue -Pattern "default:\s*'(?<default>[^']+)'" -GroupName 'default') }
                     }
                 }
             }
             'permissions' = @{ 'contents' = 'read' }
-            'concurrency' = @{ 'group' = ([regex]::Match($script:RawYaml, '(?m)^\s+group:\s*(?<group>scheduled-scan)$').Groups['group'].Value) }
+            'concurrency' = @{ 'group' = (Get-RequiredMatchValue -Pattern '(?m)^\s+group:\s*(?<group>[^\r\n]+)$' -GroupName 'group') }
             'jobs' = @{
                 'scan' = @{
                     'permissions' = @{ 'id-token' = 'write'; 'contents' = 'read'; 'actions' = 'read' }
@@ -81,7 +92,7 @@ BeforeAll {
                     )
                 }
                 'report' = @{
-                    'if' = ([regex]::Match($script:RawYaml, "(?m)^\s+if:\s*(?<if>always\(\).*new_critical_count.+)$").Groups['if'].Value.Trim())
+                    'if' = (Get-RequiredMatchValue -Pattern "(?m)^\s+if:\s*(?<if>always\(\)[^\r\n]*new_critical_count[^\r\n]*)$" -GroupName 'if').Trim()
                     'permissions' = @{ 'contents' = 'read'; 'issues' = 'write' }
                 }
             }

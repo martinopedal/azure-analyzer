@@ -69,17 +69,16 @@ jobs:
               $errors += "Missing/invalid: $($scopeVar.Name) (expected GUID)."
             }
           }
+          # GitHub Actions outputs are strings; downstream gates compare to literal 'true'.
           if ($errors.Count -gt 0) {
             $reason = ($errors -join '; ')
             if ($eventName -eq 'schedule') {
               Write-Warning "OIDC configuration incomplete: $reason. Skipping scheduled scan without failing the workflow run."
-              # GitHub Actions outputs are strings; downstream gates compare to literal 'true'.
               "configured=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
               exit 0
             }
             throw "Manual scheduled scan failed: $reason. Configure OIDC federation in repository variables before running workflow_dispatch."
           }
-          # GitHub Actions outputs are strings; downstream gates compare to literal 'true'.
           "configured=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Azure login (OIDC, no PATs)
