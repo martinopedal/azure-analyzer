@@ -26,7 +26,7 @@ BeforeAll {
             param([Parameter(Mandatory)][string] $Name)
             $escaped = [regex]::Escape($Name)
             # Fallback parser for constrained local environments without powershell-yaml.
-            # It intentionally supports this workflow's simple, same-level step blocks.
+            # It intentionally supports this workflow's uniform step indentation and simple blocks.
             $match = [regex]::Match($script:RawYaml, "(?ms)^(?<indent>\s*)- name: $escaped\s*\n(?<block>.*?)(?=^\k<indent>- name:|\z)")
             if (-not $match.Success) { return '' }
             $match.Groups['block'].Value
@@ -42,6 +42,7 @@ BeforeAll {
             if ($block -match '(?m)^\s+run:[ \t]*\|') { $step['run'] = $block }
             if ($block -match '(?m)^\s+env:[ \t]*$') {
                 $envMap = @{}
+                # scheduled-scan.yml uses conventional uppercase underscore environment keys.
                 foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Z0-9_]+):[ \t]*(?<value>[^\r\n]+)$')) {
                     $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
