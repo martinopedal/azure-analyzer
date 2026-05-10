@@ -2,6 +2,8 @@
 
 ### Fixed
 
+- **Scheduled Scan OIDC preflight (#984)**: Scheduled runs now treat missing or malformed `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, or `AZURE_CLIENT_ID` repo variables as "not configured" and skip Azure login/analyzer execution without failing the workflow. Manual `workflow_dispatch` runs still fail fast so explicit operator mistakes remain visible.
+
 - **Pester `flags duration regression` test on `main`**: `tests/wrappers/Invoke-AdoConsumption.Tests.ps1` used hardcoded April 2026 build timestamps. The wrapper bisects builds into first/second halves of the lookback window using `Get-Date` at runtime, so as wall-clock time advanced past the fixture window the long builds drifted into the firstHalf bucket and the `Consumption-DurationRegression` rule stopped firing. Mock build `startTime` / `finishTime` are now computed relative to `(Get-Date).ToUniversalTime()` so the test is deterministic regardless of when CI runs. Unblocks `main` CI (Test (ubuntu/macos/windows) jobs).
 
 - **Timeout standardization (#974)**: Wrapped external CLI invocations in `Invoke-WithTimeout` (300s default) across 9 wrappers: Invoke-Gitleaks, Invoke-Trivy, Invoke-Zizmor, Invoke-Kubescape, Invoke-Powerpipe, Invoke-Prowler (600s), Invoke-Azqr, Invoke-Falco (helm/kubectl), and Invoke-KubeBench (kubectl apply/wait/logs). Enhanced shared `Invoke-WithTimeout` in `Installer.ps1` to return separate `Stdout`/`Stderr` properties alongside combined `Output` for tools that need stream separation (zizmor, powerpipe). Prevents hung CLI processes from blocking the orchestrator indefinitely.

@@ -56,10 +56,29 @@ Describe 'scheduled-scan.yml policy contract' {
     It 'uses azure/login via OIDC (no client-secret input)' {
         $loginStep = $script:Workflow['jobs']['scan']['steps'] | Where-Object { $_['uses'] -and $_['uses'] -like 'azure/login@*' }
         $loginStep | Should -Not -BeNullOrEmpty
+        $loginStep['if'] | Should -Be "steps.scope.outputs.configured == 'true'"
         $loginStep['with'].Keys | Should -Contain 'client-id'
         $loginStep['with'].Keys | Should -Contain 'tenant-id'
         $loginStep['with'].Keys | Should -Not -Contain 'client-secret'
         $loginStep['with'].Keys | Should -Not -Contain 'creds'
+    }
+
+    It 'marks scope validation as an output-producing step' {
+        $scopeStep = $script:Workflow['jobs']['scan']['steps'] | Where-Object { $_['name'] -eq 'Validate scope variables' }
+        $scopeStep | Should -Not -BeNullOrEmpty
+        $scopeStep['id'] | Should -Be 'scope'
+        $scopeStep['run'] | Should -Match 'configured=false'
+        $scopeStep['run'] | Should -Match 'skipping scheduled scan without failing the workflow'
+        $scopeStep['run'] | Should -Match 'github\.event_name'
+    }
+
+    It 'gates Azure-dependent steps on validated scope configuration' {
+        $steps = $script:Workflow['jobs']['scan']['steps']
+        foreach ($stepName in @('Azure login (OIDC, no PATs)', 'Install required PowerShell modules', 'Run azure-analyzer')) {
+            $step = $steps | Where-Object { $_['name'] -eq $stepName }
+            $step | Should -Not -BeNullOrEmpty
+            $step['if'] | Should -Be "steps.scope.outputs.configured == 'true'"
+        }
     }
 
     It 'pins every action by SHA (40 hex chars), never bare @v* tag' {

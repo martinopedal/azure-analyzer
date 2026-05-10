@@ -41,27 +41,44 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Validate scope variables
+        id: scope
         shell: pwsh
         run: |
           $sub = '${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}'
           $tenant = '${{ vars.AZURE_TENANT_ID }}'
           $client = '${{ vars.AZURE_CLIENT_ID }}'
+          $eventName = '${{ github.event_name }}'
           $scopeVars = @(
             [pscustomobject]@{ Name = 'AZURE_SUBSCRIPTION_ID'; Value = $sub }
             [pscustomobject]@{ Name = 'AZURE_TENANT_ID'; Value = $tenant }
             [pscustomobject]@{ Name = 'AZURE_CLIENT_ID'; Value = $client }
           )
           $guidPattern = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          $errors = @()
           foreach ($scopeVar in $scopeVars) {
             if ([string]::IsNullOrWhiteSpace($scopeVar.Value)) {
-              throw "Missing/invalid: $($scopeVar.Name) (empty value). Configure OIDC federation before scheduling."
+              $errors += "Missing/invalid: $($scopeVar.Name) (empty value)."
+              continue
             }
             if ($scopeVar.Value -notmatch $guidPattern) {
-              throw "Missing/invalid: $($scopeVar.Name) (expected GUID)."
+              $errors += "Missing/invalid: $($scopeVar.Name) (expected GUID)."
             }
           }
+          if ($errors.Count -gt 0) {
+            $reason = ($errors -join ' ')
+            if ($eventName -eq 'schedule') {
+              Write-Warning "$reason OIDC federation is not configured; skipping scheduled scan without failing the workflow."
+              "configured=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              exit 0
+            }
+            throw "$reason Configure OIDC federation before running the scheduled scan."
+          }
+          "configured=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "reason=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Azure login (OIDC, no PATs)
+        if: steps.scope.outputs.configured == 'true'
         uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -69,6 +86,7 @@ jobs:
           subscription-id: ${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Install required PowerShell modules
+        if: steps.scope.outputs.configured == 'true'
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           max_attempts: 3
@@ -81,6 +99,7 @@ jobs:
             Install-Module Az.ResourceGraph -RequiredVersion 1.1.0 -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
 
       - name: Run azure-analyzer
+        if: steps.scope.outputs.configured == 'true'
         shell: pwsh
         env:
           AZURE_SUBSCRIPTION_ID: ${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}
