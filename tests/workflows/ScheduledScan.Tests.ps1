@@ -25,6 +25,8 @@ BeforeAll {
         function Get-StepBlock {
             param([Parameter(Mandatory)][string] $Name)
             $escaped = [regex]::Escape($Name)
+            # Fallback parser for constrained local environments without powershell-yaml.
+            # It intentionally supports this workflow's simple, same-level step blocks.
             $match = [regex]::Match($script:RawYaml, "(?ms)^(?<indent>\s*)- name: $escaped\s*\n(?<block>.*?)(?=^\k<indent>- name:|\z)")
             if (-not $match.Success) { return '' }
             $match.Groups['block'].Value
@@ -40,14 +42,14 @@ BeforeAll {
             if ($block -match '(?m)^\s+run:[ \t]*\|') { $step['run'] = $block }
             if ($block -match '(?m)^\s+env:[ \t]*$') {
                 $envMap = @{}
-                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Z0-9_]+):[ \t]*(?<value>.+)$')) {
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Z0-9_]+):[ \t]*(?<value>[^\r\n]+)$')) {
                     $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
                 $step['env'] = $envMap
             }
             if ($block -match '(?m)^\s+with:[ \t]*$') {
                 $withMap = @{}
-                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_-]+):[ \t]*(?<value>.+)$')) {
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_-]+):[ \t]*(?<value>[^\r\n]+)$')) {
                     $withMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
                 $step['with'] = $withMap
