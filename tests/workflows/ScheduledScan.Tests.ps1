@@ -28,7 +28,7 @@ BeforeAll {
                 [Parameter(Mandatory)][string] $GroupName
             )
             $match = [regex]::Match($script:RawYaml, $Pattern)
-            if (-not $match.Success) { throw "scheduled-scan.yml fallback parser could not match pattern: $Pattern" }
+            if (-not $match.Success) { throw "scheduled-scan.yml fallback parser could not match group '$GroupName' with pattern: $Pattern" }
             $match.Groups[$GroupName].Value
         }
 
@@ -37,6 +37,7 @@ BeforeAll {
             $escaped = [regex]::Escape($Name)
             # Fallback parser for constrained local environments without powershell-yaml.
             # It intentionally supports this workflow's uniform step indentation and simple step blocks.
+            # \k<indent> reuses the matched step indentation; the lookahead stops at the next same-level step.
             $match = [regex]::Match($script:RawYaml, "(?ms)^(?<indent>\s*)- name: $escaped\s*\n(?<block>.*?)(?=^\k<indent>- name:|\z)")
             if (-not $match.Success) { return '' }
             $match.Groups['block'].Value
