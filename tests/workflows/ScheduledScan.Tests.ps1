@@ -14,17 +14,26 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 BeforeAll {
-    if (-not (Get-Module -ListAvailable powershell-yaml)) {
-        Install-Module powershell-yaml -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop | Out-Null
-    }
-    Import-Module powershell-yaml -ErrorAction Stop
-
     $script:RepoRoot = Resolve-Path (Join-Path $PSScriptRoot '..' '..')
     $script:WorkflowPath = Join-Path $script:RepoRoot '.github' 'workflows' 'scheduled-scan.yml'
     $script:RawYaml = Get-Content -Raw -Path $script:WorkflowPath
-    $script:Workflow = ConvertFrom-Yaml $script:RawYaml
+
+    if (Get-Module -ListAvailable powershell-yaml) {
+        Import-Module powershell-yaml -ErrorAction Stop
+        $script:Workflow = ConvertFrom-Yaml $script:RawYaml
+    } else {
+        $json = $script:RawYaml | python3 -c "import json, sys, yaml; print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+        $script:Workflow = $json | ConvertFrom-Json -AsHashtable
+    }
+
     # YAML 1.1 quirk: the unquoted `on` key parses to boolean True.
-    $script:OnBlock = if ($script:Workflow.ContainsKey('on')) { $script:Workflow['on'] } else { $script:Workflow[$true] }
+    $script:OnBlock = if ($script:Workflow.ContainsKey('on')) {
+        $script:Workflow['on']
+    } elseif ($script:Workflow.ContainsKey($true)) {
+        $script:Workflow[$true]
+    } else {
+        $script:Workflow['true']
+    }
 }
 
 Describe 'scheduled-scan.yml policy contract' {
