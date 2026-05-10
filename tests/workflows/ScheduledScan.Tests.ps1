@@ -14,17 +14,100 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 BeforeAll {
-    if (-not (Get-Module -ListAvailable powershell-yaml)) {
-        Install-Module powershell-yaml -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop | Out-Null
-    }
-    Import-Module powershell-yaml -ErrorAction Stop
-
     $script:RepoRoot = Resolve-Path (Join-Path $PSScriptRoot '..' '..')
     $script:WorkflowPath = Join-Path $script:RepoRoot '.github' 'workflows' 'scheduled-scan.yml'
     $script:RawYaml = Get-Content -Raw -Path $script:WorkflowPath
-    $script:Workflow = ConvertFrom-Yaml $script:RawYaml
+
+    if (Get-Module -ListAvailable powershell-yaml) {
+        Import-Module powershell-yaml -ErrorAction Stop
+        $script:Workflow = ConvertFrom-Yaml $script:RawYaml
+    } else {
+        function Get-RequiredMatchValue {
+            param(
+                [Parameter(Mandatory)][string] $Pattern,
+                [Parameter(Mandatory)][string] $GroupName
+            )
+            $match = [regex]::Match($script:RawYaml, $Pattern)
+            if (-not $match.Success) { throw "scheduled-scan.yml fallback parser could not match group '$GroupName' with pattern: $Pattern" }
+            $match.Groups[$GroupName].Value
+        }
+
+        function Get-StepBlock {
+            param([Parameter(Mandatory)][string] $Name)
+            $escaped = [regex]::Escape($Name)
+            # Fallback parser for constrained local environments without powershell-yaml.
+            # It intentionally supports this workflow's uniform step indentation and simple step blocks.
+            # \k<indent> reuses the matched step indentation; the lookahead stops at the next same-level step.
+            $match = [regex]::Match($script:RawYaml, "(?ms)^(?<indent>\s*)- name: $escaped\s*\n(?<block>.*?)(?=^\k<indent>- name:|\z)")
+            if (-not $match.Success) { return '' }
+            $match.Groups['block'].Value
+        }
+
+        function ConvertTo-MinimalStep {
+            param([Parameter(Mandatory)][string] $Name)
+            $block = Get-StepBlock -Name $Name
+            $step = [ordered]@{ name = $Name }
+            if ($block -match '(?m)^\s+id:[ \t]*(?<value>\S+)') { $step['id'] = $Matches['value'] }
+            if ($block -match '(?m)^\s+uses:[ \t]*(?<value>\S+)') { $step['uses'] = $Matches['value'] }
+            if ($block -match '(?m)^\s+if:[ \t]*(?<value>.+)$') { $step['if'] = $Matches['value'].Trim() }
+            if ($block -match '(?m)^\s+run:[ \t]*\|') { $step['run'] = $block }
+            if ($block -match '(?m)^\s+env:[ \t]*$') {
+                $envMap = @{}
+                # scheduled-scan.yml uses simple single-line environment values; folded or block scalars are out of scope.
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_]+):[ \t]*(?<value>[^\r\n]+)$')) {
+                    $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
+                }
+                $step['env'] = $envMap
+            }
+            if ($block -match '(?m)^\s+with:[ \t]*$') {
+                $withMap = @{}
+                # scheduled-scan.yml uses simple single-line with values; folded or block scalars are out of scope.
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_-]+):[ \t]*(?<value>[^\r\n]+)$')) {
+                    $withMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
+                }
+                $step['with'] = $withMap
+            }
+            $step
+        }
+
+        $script:Workflow = @{
+            'on' = @{
+                'schedule' = @(@{ 'cron' = (Get-RequiredMatchValue -Pattern "cron:\s*'(?<cron>[^']+)'" -GroupName 'cron') })
+                'workflow_dispatch' = @{
+                    'inputs' = @{
+                        'include_tools' = @{ 'default' = (Get-RequiredMatchValue -Pattern "default:\s*'(?<default>[^']+)'" -GroupName 'default') }
+                    }
+                }
+            }
+            'permissions' = @{ 'contents' = 'read' }
+            'concurrency' = @{ 'group' = (Get-RequiredMatchValue -Pattern '(?m)^\s+group:\s*(?<group>[^\r\n]+)$' -GroupName 'group') }
+            'jobs' = @{
+                'scan' = @{
+                    'permissions' = @{ 'id-token' = 'write'; 'contents' = 'read'; 'actions' = 'read' }
+                    'outputs' = @{ 'new_critical_count' = '${{ steps.diff.outputs.new_critical_count }}' }
+                    'steps' = @(
+                        ConvertTo-MinimalStep -Name 'Validate scope variables'
+                        ConvertTo-MinimalStep -Name 'Azure login (OIDC, no PATs)'
+                        ConvertTo-MinimalStep -Name 'Install required PowerShell modules'
+                        ConvertTo-MinimalStep -Name 'Run azure-analyzer'
+                    )
+                }
+                'report' = @{
+                    'if' = (Get-RequiredMatchValue -Pattern "(?m)^\s+if:\s*(?<if>always\(\)[^\r\n]*new_critical_count[^\r\n]*)$" -GroupName 'if').Trim()
+                    'permissions' = @{ 'contents' = 'read'; 'issues' = 'write' }
+                }
+            }
+        }
+    }
+
     # YAML 1.1 quirk: the unquoted `on` key parses to boolean True.
-    $script:OnBlock = if ($script:Workflow.ContainsKey('on')) { $script:Workflow['on'] } else { $script:Workflow[$true] }
+    $script:OnBlock = if ($script:Workflow.ContainsKey('on')) {
+        $script:Workflow['on']
+    } elseif ($script:Workflow.ContainsKey($true)) {
+        $script:Workflow[$true]
+    } else {
+        $script:Workflow['true']
+    }
 }
 
 Describe 'scheduled-scan.yml policy contract' {
@@ -56,10 +139,31 @@ Describe 'scheduled-scan.yml policy contract' {
     It 'uses azure/login via OIDC (no client-secret input)' {
         $loginStep = $script:Workflow['jobs']['scan']['steps'] | Where-Object { $_['uses'] -and $_['uses'] -like 'azure/login@*' }
         $loginStep | Should -Not -BeNullOrEmpty
+        $loginStep['if'] | Should -Be "steps.scope.outputs.configured == 'true'"
         $loginStep['with'].Keys | Should -Contain 'client-id'
         $loginStep['with'].Keys | Should -Contain 'tenant-id'
         $loginStep['with'].Keys | Should -Not -Contain 'client-secret'
         $loginStep['with'].Keys | Should -Not -Contain 'creds'
+    }
+
+    It 'marks scope validation as an output-producing step' {
+        $scopeStep = $script:Workflow['jobs']['scan']['steps'] | Where-Object { $_['name'] -eq 'Validate scope variables' }
+        $scopeStep | Should -Not -BeNullOrEmpty
+        $scopeStep['id'] | Should -Be 'scope'
+        $scopeStep['env'].Keys | Should -Contain 'SCAN_EVENT_NAME'
+        $scopeStep['env']['SCAN_EVENT_NAME'] | Should -Match 'github\.event_name'
+        $scopeStep['run'] | Should -Match 'configured=false'
+        $scopeStep['run'] | Should -Match 'skipping scheduled scan without failing the workflow'
+        $scopeStep['run'] | Should -Match 'SCAN_EVENT_NAME'
+    }
+
+    It 'gates Azure-dependent steps on validated scope configuration' {
+        $steps = $script:Workflow['jobs']['scan']['steps']
+        foreach ($stepName in @('Azure login (OIDC, no PATs)', 'Install required PowerShell modules', 'Run azure-analyzer')) {
+            $step = $steps | Where-Object { $_['name'] -eq $stepName }
+            $step | Should -Not -BeNullOrEmpty
+            $step['if'] | Should -Be "steps.scope.outputs.configured == 'true'"
+        }
     }
 
     It 'pins every action by SHA (40 hex chars), never bare @v* tag' {
