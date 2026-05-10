@@ -43,11 +43,16 @@ jobs:
       - name: Validate scope variables
         id: scope
         shell: pwsh
+        env:
+          SCAN_SUBSCRIPTION_ID: ${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}
+          SCAN_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          SCAN_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          SCAN_EVENT_NAME: ${{ github.event_name }}
         run: |
-          $sub = '${{ inputs.subscription_id || vars.AZURE_SUBSCRIPTION_ID }}'
-          $tenant = '${{ vars.AZURE_TENANT_ID }}'
-          $client = '${{ vars.AZURE_CLIENT_ID }}'
-          $eventName = '${{ github.event_name }}'
+          $sub = $env:SCAN_SUBSCRIPTION_ID
+          $tenant = $env:SCAN_TENANT_ID
+          $client = $env:SCAN_CLIENT_ID
+          $eventName = $env:SCAN_EVENT_NAME
           $scopeVars = @(
             [pscustomobject]@{ Name = 'AZURE_SUBSCRIPTION_ID'; Value = $sub }
             [pscustomobject]@{ Name = 'AZURE_TENANT_ID'; Value = $tenant }

@@ -67,9 +67,11 @@ Describe 'scheduled-scan.yml policy contract' {
         $scopeStep = $script:Workflow['jobs']['scan']['steps'] | Where-Object { $_['name'] -eq 'Validate scope variables' }
         $scopeStep | Should -Not -BeNullOrEmpty
         $scopeStep['id'] | Should -Be 'scope'
+        $scopeStep['env'].Keys | Should -Contain 'SCAN_EVENT_NAME'
+        $scopeStep['env']['SCAN_EVENT_NAME'] | Should -Match 'github\.event_name'
         $scopeStep['run'] | Should -Match 'configured=false'
         $scopeStep['run'] | Should -Match 'skipping scheduled scan without failing the workflow'
-        $scopeStep['run'] | Should -Match 'github\.event_name'
+        $scopeStep['run'] | Should -Match 'SCAN_EVENT_NAME'
     }
 
     It 'gates Azure-dependent steps on validated scope configuration' {
