@@ -72,11 +72,11 @@ jobs:
           if ($errors.Count -gt 0) {
             $reason = ($errors -join '; ')
             if ($eventName -eq 'schedule') {
-              Write-Warning "$reason OIDC federation is not configured; skipping scheduled scan without failing the workflow."
+              Write-Warning "OIDC configuration incomplete: $reason Skipping scheduled scan without failing the workflow."
               "configured=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
               exit 0
             }
-            throw "$reason Configure OIDC federation before running the scheduled scan."
+            throw "Manual scheduled scan failed: $reason Configure OIDC federation in repository variables before running workflow_dispatch."
           }
           "configured=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 

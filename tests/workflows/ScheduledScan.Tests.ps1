@@ -25,7 +25,7 @@ BeforeAll {
         function Get-StepBlock {
             param([Parameter(Mandatory)][string] $Name)
             $escaped = [regex]::Escape($Name)
-            $match = [regex]::Match($script:RawYaml, "(?ms)^      - name: $escaped\s*\n(?<block>.*?)(?=^      - name:|\z)")
+            $match = [regex]::Match($script:RawYaml, "(?ms)^(?<indent>\s*)- name: $escaped\s*\n(?<block>.*?)(?=^\k<indent>- name:|\z)")
             if (-not $match.Success) { return '' }
             $match.Groups['block'].Value
         }
@@ -34,20 +34,20 @@ BeforeAll {
             param([Parameter(Mandatory)][string] $Name)
             $block = Get-StepBlock -Name $Name
             $step = [ordered]@{ name = $Name }
-            if ($block -match '(?m)^\s+id:\s*(?<value>\S+)') { $step['id'] = $Matches['value'] }
-            if ($block -match '(?m)^\s+uses:\s*(?<value>\S+)') { $step['uses'] = $Matches['value'] }
-            if ($block -match '(?m)^\s+if:\s*(?<value>.+)$') { $step['if'] = $Matches['value'].Trim() }
-            if ($block -match '(?m)^\s+run:\s*\|') { $step['run'] = $block }
-            if ($block -match '(?m)^\s+env:\s*$') {
+            if ($block -match '(?m)^\s+id:[ \t]*(?<value>\S+)') { $step['id'] = $Matches['value'] }
+            if ($block -match '(?m)^\s+uses:[ \t]*(?<value>\S+)') { $step['uses'] = $Matches['value'] }
+            if ($block -match '(?m)^\s+if:[ \t]*(?<value>.+)$') { $step['if'] = $Matches['value'].Trim() }
+            if ($block -match '(?m)^\s+run:[ \t]*\|') { $step['run'] = $block }
+            if ($block -match '(?m)^\s+env:[ \t]*$') {
                 $envMap = @{}
-                foreach ($m in [regex]::Matches($block, '(?m)^\s{10}(?<key>[A-Z0-9_]+):\s*(?<value>.+)$')) {
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Z0-9_]+):[ \t]*(?<value>.+)$')) {
                     $envMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
                 $step['env'] = $envMap
             }
-            if ($block -match '(?m)^\s+with:\s*$') {
+            if ($block -match '(?m)^\s+with:[ \t]*$') {
                 $withMap = @{}
-                foreach ($m in [regex]::Matches($block, '(?m)^\s{10}(?<key>[A-Za-z0-9_-]+):\s*(?<value>.+)$')) {
+                foreach ($m in [regex]::Matches($block, '(?m)^\s+(?<key>[A-Za-z0-9_-]+):[ \t]*(?<value>.+)$')) {
                     $withMap[$m.Groups['key'].Value] = $m.Groups['value'].Value.Trim()
                 }
                 $step['with'] = $withMap
@@ -60,7 +60,7 @@ BeforeAll {
                 'schedule' = @(@{ 'cron' = ([regex]::Match($script:RawYaml, "cron:\s*'(?<cron>[^']+)'").Groups['cron'].Value) })
                 'workflow_dispatch' = @{
                     'inputs' = @{
-                        'include_tools' = @{ 'default' = ([regex]::Match($script:RawYaml, "default:\s*'(?<default>azqr,psrule)'").Groups['default'].Value) }
+                        'include_tools' = @{ 'default' = ([regex]::Match($script:RawYaml, "default:\s*'(?<default>[^']+)'").Groups['default'].Value) }
                     }
                 }
             }
