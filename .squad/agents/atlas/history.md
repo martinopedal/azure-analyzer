@@ -278,6 +278,10 @@ Wrote `.copilot/audits/atlas-manifest-audit-2026-04-23.md` (11.8 KB). Full-boile
 
 Track F PR 1 attempted per Lead plan. Dependency gate (Commit 0) correctly blocked: 3 of 6 required modules missing (EdgeRelations, Select-ReportArchitecture, PolicyCoverageAnalyzer). Hard-stop rule honored: empty commit documenting the blocker, issue comment posted to #1048, no Commit 1, no PR opened. Branch `feat/506-auditor-report-impl` created with 2 commits (gate audit + decision file). Next trigger: upstream tracks merge, re-run from Commit 0.
 
+### 2025-01-13 - Track F dependency gate narrowing (slice 1 unblocked)
+
+Full Track F dependency gate (Commit 0) blocked all implementation (3 missing modules). Narrowed scope after re-analysis: Commits 1-2 have zero functional coupling to missing modules (EdgeRelations, Select-ReportArchitecture, PolicyCoverageAnalyzer). Implemented Resolve-AuditorContext + Get-AuditorExecutiveSummary (pure data transforms, no imports). 4/4 Pester tests green. Commits 3+ remain blocked (filed issue #1056 for Lead triage). Decision file: `.squad/decisions/inbox/atlas-track-f-pr1-slice1-narrowed-2025-01-13T20-54-00Z.md`.
+
 ### 2026-04-24 - FixtureMode implementation (#926)
 
 - Fixture files follow `<toolname>-output.json` naming convention in `tests/fixtures/`. Two exceptions: `bicep-iac` maps to `iac-bicep-output.json` and `terraform-iac` maps to `iac-terraform-output.json`.
