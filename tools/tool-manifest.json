@@ -390,13 +390,66 @@
         "repo": "martinopedal/alz-graph-queries",
         "releaseApi": "https://api.github.com/repos/martinopedal/alz-graph-queries/commits/main",
         "pinType": "sha",
-        "currentPin": "HEAD"
+        "currentPin": "fd04b20a7a67"
       },
       "frameworks": [
         "CIS Azure",
         "NIST 800-53",
         "Azure WAF",
         "Azure CAF"
+      ]
+    },
+    {
+      "name": "amass",
+      "displayName": "OWASP Amass (passive subdomain enum)",
+      "source": "amass",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Amass",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Amass.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#00838f",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "amass",
+        "preferredManagers": [
+          "brew",
+          "snap"
+        ],
+        "windows": {
+          "url": "https://github.com/owasp-amass/amass/releases/latest"
+        },
+        "macos": {
+          "brew": "amass"
+        },
+        "linux": {
+          "snap": "amass"
+        }
+      },
+      "upstream": {
+        "repo": "owasp-amass/amass",
+        "releaseApi": "https://api.github.com/repos/owasp-amass/amass/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "comment": "EASM passive subdomain enumeration. Wrapper ships in R2; manifest entry pre-registered so report wiring (R5) sees the entry.",
+      "frameworks": [
+        "NIST 800-53"
       ]
     },
     {
@@ -480,7 +533,7 @@
         "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
         "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
         "pinType": "sha",
-        "currentPin": "HEAD"
+        "currentPin": "6a90d07a1416"
       },
       "frameworks": [
         "Azure WAF",
@@ -642,6 +695,51 @@
       ]
     },
     {
+      "name": "azurehound",
+      "displayName": "AzureHound (SpecterOps attack-path collector)",
+      "source": "azurehound",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-Azurehound",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Azurehound.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#1565c0",
+        "phase": 2
+      },
+      "install": {
+        "kind": "cli",
+        "command": "azurehound",
+        "preferredManagers": [
+          "brew",
+          "winget"
+        ],
+        "windows": {
+          "url": "https://github.com/SpecterOps/AzureHound/releases/latest"
+        },
+        "macos": {
+          "brew": "azurehound"
+        },
+        "linux": {
+          "url": "https://github.com/SpecterOps/AzureHound/releases/latest"
+        }
+      },
+      "comment": "Graph mapping family. Pre-registered as enabled:false; wrapper ships in R2 (see docs/design/graph-mapping-integration.md).",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
       "name": "bicep-iac",
       "displayName": "Bicep IaC Validation",
       "source": "bicep-iac",
@@ -695,6 +793,110 @@
       ]
     },
     {
+      "name": "bloodhound-ce",
+      "displayName": "BloodHound CE (Neo4j ingest helper)",
+      "source": "bloodhound-ce",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-BloodhoundCe",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-BloodhoundCe.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#0d47a1",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "Graph mapping family. Pre-registered as enabled:false; wrapper ships in R3 (Neo4j ingest of AzureHound JSON).",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "censys",
+      "displayName": "Censys Search (cert transparency + host scan)",
+      "source": "censys",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Censys",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Censys.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#5c6bc0",
+        "phase": 4
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "EASM commercial: requires CENSYS_API_ID + CENSYS_API_SECRET env vars. Wrapper ships in R3.",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "conditional-access-graph",
+      "displayName": "Conditional Access Policy Graph",
+      "source": "conditional-access-graph",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-ConditionalAccessGraph",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ConditionalAccessGraph.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "TenantId",
+        "PreFetchedData"
+      ],
+      "requiredPermissionTier": 2,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#6a1b9a",
+        "phase": 2
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Microsoft.Graph.Authentication",
+          "Microsoft.Graph.Identity.SignIns",
+          "Microsoft.Graph.Identity.DirectoryManagement"
+        ]
+      },
+      "frameworks": [
+        "NIST 800-53",
+        "CIS Controls v8",
+        "SOC2"
+      ]
+    },
+    {
       "name": "copilot-triage",
       "displayName": "Copilot AI Triage",
       "source": "copilot-triage",
@@ -725,6 +927,46 @@
       },
       "comment": "Requires GitHub Copilot SDK token; opt-in via -EnableAiTriage switch.",
       "frameworks": []
+    },
+    {
+      "name": "defender-easm",
+      "displayName": "Microsoft Defender EASM (workspace consumer)",
+      "source": "defender-easm",
+      "provider": "azure",
+      "scope": "subscription",
+      "normalizer": "Normalize-DefenderEasm",
+      "invokeMethod": "script",
+      "type": "enrichment",
+      "script": "modules/Invoke-DefenderEasm.ps1",
+      "requiredParams": [
+        "SubscriptionId"
+      ],
+      "optionalParams": [
+        "WorkspaceName",
+        "ResourceGroupName"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#0078d4",
+        "phase": 4
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Az.Accounts"
+        ]
+      },
+      "comment": "Consumes findings from a provisioned Microsoft Defender EASM workspace. Reader on Microsoft.Easm/workspaces. Wrapper ships in R4.",
+      "frameworks": [
+        "MCSB",
+        "NIST 800-53"
+      ]
     },
     {
       "name": "defender-for-cloud",
@@ -766,6 +1008,94 @@
         "Azure CAF",
         "SOC2",
         "PCI-DSS"
+      ]
+    },
+    {
+      "name": "dnstwist",
+      "displayName": "DNSTwist (typosquat / homoglyph detection)",
+      "source": "dnstwist",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-DnsTwist",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-DnsTwist.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": true,
+      "report": {
+        "color": "#ad1457",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "dnstwist",
+        "preferredManagers": [
+          "pipx",
+          "pip",
+          "brew"
+        ],
+        "windows": {
+          "pipx": "dnstwist"
+        },
+        "macos": {
+          "brew": "dnstwist"
+        },
+        "linux": {
+          "pipx": "dnstwist"
+        }
+      },
+      "upstream": {
+        "repo": "elceef/dnstwist",
+        "releaseApi": "https://api.github.com/repos/elceef/dnstwist/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "entra-permissions-mgmt",
+      "displayName": "Microsoft Entra Permissions Management (RBAC right-sizing)",
+      "source": "entra-permissions-mgmt",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-EntraPermissionsMgmt",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-EntraPermissionsMgmt.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#283593",
+        "phase": 2
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Microsoft.Graph.Authentication"
+        ]
+      },
+      "comment": "Graph mapping family. Pre-registered as enabled:false; wrapper ships in R3 (REST endpoints under entrapermissionsmanagement.microsoft.com).",
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2"
       ]
     },
     {
@@ -855,6 +1185,37 @@
       "frameworks": [
         "Azure WAF",
         "Azure CAF"
+      ]
+    },
+    {
+      "name": "forest-druid",
+      "displayName": "Semperis Forest Druid (commercial, gated)",
+      "source": "forest-druid",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-ForestDruid",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-ForestDruid.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#37474f",
+        "phase": 2
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "Graph mapping family. Commercial; gated on env-var presence. Wrapper ships in R4.",
+      "frameworks": [
+        "NIST 800-53"
       ]
     },
     {
@@ -962,6 +1323,91 @@
         "NIST 800-53",
         "SOC2",
         "PCI-DSS"
+      ]
+    },
+    {
+      "name": "graphrunner",
+      "displayName": "GraphRunner (post-compromise Graph enumeration, passive)",
+      "source": "graphrunner",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-Graphrunner",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Graphrunner.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#4527a0",
+        "phase": 2
+      },
+      "install": {
+        "kind": "gitclone",
+        "repo": "https://github.com/dafthack/GraphRunner.git",
+        "ref": "main"
+      },
+      "comment": "Graph mapping family. Pre-registered as enabled:false; wrapper ships in R2 (passive read-only mode only).",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "httpx",
+      "displayName": "httpx (ProjectDiscovery host probe)",
+      "source": "httpx",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Httpx",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Httpx.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#2e7d32",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "httpx",
+        "preferredManagers": [
+          "brew"
+        ],
+        "windows": {
+          "url": "https://github.com/projectdiscovery/httpx/releases/latest"
+        },
+        "macos": {
+          "brew": "httpx"
+        },
+        "linux": {
+          "url": "https://github.com/projectdiscovery/httpx/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "projectdiscovery/httpx",
+        "releaseApi": "https://api.github.com/repos/projectdiscovery/httpx/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "comment": "EASM passive host probe. Wrapper ships in R2.",
+      "frameworks": [
+        "NIST 800-53"
       ]
     },
     {
@@ -1207,7 +1653,7 @@
         "repo": "kubescape/kubescape",
         "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
         "pinType": "version",
-        "currentPin": "v3"
+        "currentPin": "4.0.8"
       },
       "frameworks": [
         "CIS Azure",
@@ -1293,6 +1739,43 @@
         "pinType": "psmodule-version",
         "currentPin": "latest"
       },
+      "frameworks": [
+        "NIST 800-53",
+        "SOC2",
+        "PCI-DSS"
+      ]
+    },
+    {
+      "name": "pim-graph",
+      "displayName": "PIM Eligibility / Activation Graph",
+      "source": "pim-graph",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-PimGraph",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-PimGraph.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#7b1fa2",
+        "phase": 2
+      },
+      "install": {
+        "kind": "psmodule",
+        "modules": [
+          "Microsoft.Graph.Authentication",
+          "Microsoft.Graph.Identity.Governance"
+        ]
+      },
+      "comment": "Graph mapping family. Pre-registered as enabled:false; wrapper ships in R2.",
       "frameworks": [
         "NIST 800-53",
         "SOC2",
@@ -1482,6 +1965,51 @@
       ]
     },
     {
+      "name": "roadrecon",
+      "displayName": "ROADrecon (Dirk-jan Mollema OSS Entra graph)",
+      "source": "roadrecon",
+      "provider": "graph",
+      "scope": "tenant",
+      "normalizer": "Normalize-Roadrecon",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Roadrecon.ps1",
+      "requiredParams": [],
+      "optionalParams": [],
+      "requiredPermissionTier": 3,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#311b92",
+        "phase": 2
+      },
+      "install": {
+        "kind": "cli",
+        "command": "roadrecon",
+        "preferredManagers": [
+          "pipx",
+          "pip"
+        ],
+        "windows": {
+          "pipx": "roadrecon"
+        },
+        "macos": {
+          "pipx": "roadrecon"
+        },
+        "linux": {
+          "pipx": "roadrecon"
+        }
+      },
+      "comment": "Graph mapping family. Pre-registered as enabled:false; wrapper ships in R2 (requires pre-warmed token cache for unattended runs).",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
       "name": "scorecard",
       "displayName": "OpenSSF Scorecard",
       "source": "scorecard",
@@ -1618,6 +2146,91 @@
       ]
     },
     {
+      "name": "shodan",
+      "displayName": "Shodan (internet-wide host/service scan)",
+      "source": "shodan",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Shodan",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Shodan.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#d32f2f",
+        "phase": 4
+      },
+      "install": {
+        "kind": "none"
+      },
+      "comment": "EASM commercial: requires SHODAN_API_KEY env var. Wrapper ships in R3.",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
+      "name": "subfinder",
+      "displayName": "Subfinder (ProjectDiscovery passive subdomain enum)",
+      "source": "subfinder",
+      "provider": "easm",
+      "scope": "tenant",
+      "normalizer": "Normalize-Subfinder",
+      "invokeMethod": "script",
+      "type": "collector",
+      "script": "modules/Invoke-Subfinder.ps1",
+      "requiredParams": [],
+      "optionalParams": [
+        "SeedFile"
+      ],
+      "requiredPermissionTier": 0,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
+      "enabled": false,
+      "report": {
+        "color": "#00695c",
+        "phase": 4
+      },
+      "install": {
+        "kind": "cli",
+        "command": "subfinder",
+        "preferredManagers": [
+          "brew"
+        ],
+        "windows": {
+          "url": "https://github.com/projectdiscovery/subfinder/releases/latest"
+        },
+        "macos": {
+          "brew": "subfinder"
+        },
+        "linux": {
+          "url": "https://github.com/projectdiscovery/subfinder/releases/latest"
+        }
+      },
+      "upstream": {
+        "repo": "projectdiscovery/subfinder",
+        "releaseApi": "https://api.github.com/repos/projectdiscovery/subfinder/releases/latest",
+        "pinType": "cli-version",
+        "currentPin": "latest"
+      },
+      "comment": "EASM passive subdomain enumeration. Wrapper ships in R2.",
+      "frameworks": [
+        "NIST 800-53"
+      ]
+    },
+    {
       "name": "terraform-iac",
       "displayName": "Terraform IaC Validation",
       "source": "terraform-iac",
@@ -1660,7 +2273,7 @@
         "repo": "hashicorp/terraform",
         "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "1.15.2"
       },
       "frameworks": [
         "CIS Azure",
