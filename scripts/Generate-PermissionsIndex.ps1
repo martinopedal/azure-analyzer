@@ -77,6 +77,7 @@ $providerHeadings = [ordered]@{
     'github'       = 'GitHub'
     'ado'          = 'Azure DevOps'
     'cli'          = 'Local CLI / IaC (no cloud permissions)'
+    'easm'         = 'External Attack Surface (no cloud permissions)'
 }
 
 function Get-ScopeBadge {

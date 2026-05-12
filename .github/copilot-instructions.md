@@ -90,6 +90,7 @@ When the GitHub coding agent (copilot-swe-agent[bot]) opens a draft PR for a `sq
 4. Maintainers **MUST NOT** squash-merge an agent PR until **all Copilot review threads are Resolved**, the 3-model gate is green, the squad reviewer has approved, and the required `Analyze (actions)` check is green.
 5. If the agent is unresponsive for >24h, reassign the issue to a squad member or take it over locally.
 6. Stale agent draft PRs that are superseded by a direct merge MUST be closed with a `--delete-branch` to keep the branch list clean.
+7. **Cross-App thread auto-resolve depends on a one-time repo permission**: `pr-auto-resolve-threads.yml` mints a `azure-analyzer-thread-resolver` GitHub App installation token (secrets `RESOLVE_THREADS_APP_ID` / `RESOLVE_THREADS_PRIVATE_KEY`) so it can resolve review threads authored by other bots (Copilot Code Review). The App MUST be installed on this repository with `pull_requests: write`. Without that scope every Copilot thread on every agent PR has to be resolved by hand, and the "all Copilot review threads Resolved" merge gate above will block indefinitely. Treat the install + permission grant as repo infrastructure, not per-PR work; document any change to it in `PERMISSIONS.md`. See `docs/operations/copilot-thread-resolution.md` for the runbook.
 
 ## Iterate Until Green — Resilience Contract
 
