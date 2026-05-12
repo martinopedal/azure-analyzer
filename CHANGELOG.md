@@ -54,6 +54,24 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.0](https://github.com/martinopedal/azure-analyzer/compare/v1.3.1...v1.4.0) (2026-05-12)
+
+
+### Features
+
+* **easm:** foundation + DNSTwist worked example (R0+R1+R2 partial) ([#1012](https://github.com/martinopedal/azure-analyzer/issues/1012)) ([e5d0bc4](https://github.com/martinopedal/azure-analyzer/commit/e5d0bc4f37dca253a5371d9e2bbc3fa9d1d2f91a))
+
+
+### Chores
+
+* **bicep-iac:** bump upstream pin to 0.43.8 ([#1015](https://github.com/martinopedal/azure-analyzer/issues/1015)) ([8cdf8b3](https://github.com/martinopedal/azure-analyzer/commit/8cdf8b3ab21bb08add2ed7674a0976133aae688b))
+* **maester:** bump upstream pin to 2.1.0 ([#1004](https://github.com/martinopedal/azure-analyzer/issues/1004)) ([22d979e](https://github.com/martinopedal/azure-analyzer/commit/22d979eb61e4216ad986c9e730a1b45127ea9369))
+
+
+### Tests
+
+* add unit tests for RubberDuckChain retry orchestrator ([#1022](https://github.com/martinopedal/azure-analyzer/issues/1022)) ([5ac6e41](https://github.com/martinopedal/azure-analyzer/commit/5ac6e41ab47b4583a9c1b2941e6fe506ae6265e8))
+
 ## [1.3.1](https://github.com/martinopedal/azure-analyzer/compare/v1.3.0...v1.3.1) (2026-05-12)
 
 
