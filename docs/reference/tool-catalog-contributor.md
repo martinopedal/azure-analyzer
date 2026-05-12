@@ -179,7 +179,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.2 | `#5c4ee5` | 7 |
 | `trivy` | cli ("trivy") | aquasecurity/trivy @ latest | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
-| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ latest | `#ad1457` | 3 |
+| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.24.1 | `#ad1457` | 3 |
 
 ## Notes
 
