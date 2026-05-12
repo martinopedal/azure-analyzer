@@ -79,6 +79,24 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.7](https://github.com/martinopedal/azure-analyzer/compare/v1.4.6...v1.4.7) (2026-05-12)
+
+
+### Fixes
+
+* **docs:** drop stranded discussions/1049 broken link ([#1058](https://github.com/martinopedal/azure-analyzer/issues/1058)) ([86963ff](https://github.com/martinopedal/azure-analyzer/commit/86963ff13296da6b12a629bed79aa6279881419f)), closes [#1057](https://github.com/martinopedal/azure-analyzer/issues/1057)
+
+
+### Documentation
+
+* install docs-voice profile and audit recent prose ([#1053](https://github.com/martinopedal/azure-analyzer/issues/1053)) ([8306fc0](https://github.com/martinopedal/azure-analyzer/commit/8306fc0db6b2b4a0214912157c565b0ad6fc239a))
+
+
+### Chores
+
+* **consistency:** wrapper envelope Errors=@() sweep + CliTimeout sanitize fix + CopilotTriage hardening ([#1060](https://github.com/martinopedal/azure-analyzer/issues/1060)) ([c27f0a6](https://github.com/martinopedal/azure-analyzer/commit/c27f0a67402f64cc9e094409c5dfeb99067a88c6))
+* **squad:** log first PSGallery publish (v1.4.5) and GPG fix (PR [#1051](https://github.com/martinopedal/azure-analyzer/issues/1051)) ([#1054](https://github.com/martinopedal/azure-analyzer/issues/1054)) ([1d3002e](https://github.com/martinopedal/azure-analyzer/commit/1d3002eb636768918ca1493df5ed52dabc506eed))
+
 ## [1.4.6](https://github.com/martinopedal/azure-analyzer/compare/v1.4.5...v1.4.6) (2026-05-12)
 
 
