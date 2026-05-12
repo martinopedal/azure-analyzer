@@ -99,6 +99,15 @@ PR #327 squash-merged at 9c6ab7d. All 7 orphans (3 `appinsights-*.json` + 4 `aks
 
 **Authority:** Squad approval pending; recommendation: proceed.
 
+## 2026-05-12 - Track F Kickoff + Docs Voice Directive
+
+**Track F Issue #1048 filed** with full 9-commit implementation plan + dependency gate (commit 0) + LEAN defaults for design questions (citation provenance, PDF rendering, framework pinning). Awaiting Martin go-ahead for PR scope 1 (Schema 2.1 additive parameters).
+
+**Docs voice profile directive** (Martin): neutralize AI language + emoji overuse. Apply anonymized news-fetcher voice profile retroactively to README/CHANGELOG/PERMISSIONS + design docs. No emojis except checkmarks/crosses. Sage in flight on skill operationalization + retroactive audit.
+
+v1.4.5 + v1.4.6 now PSGallery-discoverable (Install-Module -Name AzureAnalyzer). PR #1051 shipped GPG validator fix (lightweight-tag-tolerant). Branch protection verified: linear history enforced, signed commits NOT required.
+
+
 ### Per-file fate
 - `appinsights-slow-requests.json` -> (c) mirrors `` in `Invoke-AppInsights.ps1`
 - `appinsights-dependency-failures.json` -> (c) mirrors ``

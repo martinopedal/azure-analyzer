@@ -437,6 +437,28 @@ New release run [25735618882](https://github.com/martinopedal/azure-analyzer/act
 
 **Status:** Shipped (PR #1051 merged, v1.4.5 live on PSGallery, issue #963 closed).
 
+### Docs voice profile directive — neutralize AI language + emoji overuse (2026-05-12)
+
+**Source:** `.squad/decisions/inbox/copilot-directive-2026-05-12T13-04-28Z.md`
+
+**Directive (user: Martin):**  
+Docs across this repo MUST NOT use AI-sounding language and MUST NOT use emojis other than checkmarks (✓) and crosses (✗). Apply the anonymized voice profile from `C:\git\news-fetcher\src\drafts\voice_profile.md` to all reader-facing docs (README, CHANGELOG, PERMISSIONS, design docs, PR bodies, decision files, agent histories). Strip personal/LinkedIn-specific elements from the profile; reuse prose rules, sentence structure, and clarity patterns.
+
+**Applicability:**
+- Going forward: all new doc/decision/PR writes follow profile + neutrality rules
+- Retroactive: audit recently shipped docs (README, CHANGELOG, PERMISSIONS, design suite) for violations
+
+**Scope definition:**
+- **Apply to:** README.md, CHANGELOG.md, PERMISSIONS.md, `.squad/` decision files, agent history.md, GitHub PR bodies, design docs (`docs/ARCHITECTURE.md`, etc.)
+- **Exclude (internal signals):** `.copilot/` session logs, inline code comments, issue titles (those may need "chore:" prefixes and signal language)
+- **Profile anchor:** Neutral, professional, accessible tone. Short sentences. No "exciting", "amazing", "delightful", "empowering" or similar. Emojis limited to action indicators (checkmarks/crosses only).
+
+**Implementation:**
+- Sage spawn (in flight) to operationalize: skill module definition, retroactive audit pass, violation remediation
+- Sage will deliver decision file upon completion
+
+**Status:** Captured, in-flight operationalization pending (Sage).
+
 ---
 
 ## Governance
