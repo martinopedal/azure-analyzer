@@ -171,7 +171,24 @@ foreach ($tool in $manifest.tools) {
     }
     ($manifestObj | ConvertTo-Json -Depth 20) | Set-Content $ManifestPath -Encoding utf8
 
+    # Regenerate tool catalogs from the updated manifest so they remain in sync.
+    # The catalogs are committed alongside the manifest in a single atomic commit.
+    $catalogScript = Join-Path $RepoRoot 'scripts' 'Generate-ToolCatalog.ps1'
+    try {
+        & pwsh -File $catalogScript -ErrorAction Stop | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Generate-ToolCatalog.ps1 exited with code $LASTEXITCODE"
+        }
+    } catch {
+        Write-Warning "Failed to regenerate tool catalogs: $($_.Exception.Message)"
+        throw
+    }
+
+    $catalogConsumer = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog.md'
+    $catalogContributor = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog-contributor.md'
+
     Invoke-GitCommand -Arguments @('add', $ManifestPath) | Out-Null
+    Invoke-GitCommand -Arguments @('add', $catalogConsumer, $catalogContributor) | Out-Null
     Invoke-GitCommand -Arguments @(
         'commit',
         '-m', "chore($name): bump upstream pin to $($latest.Version)",
@@ -201,6 +218,9 @@ Automated upstream pin bump for **$name**.
 ``````
 $notesExcerpt
 ``````
+
+## Closes
+Closes #1019 (umbrella: weekly tool pin bumps)
 "@
 
     if ($breaking) {
