@@ -184,11 +184,54 @@ foreach ($tool in $manifest.tools) {
         throw
     }
 
-    $catalogConsumer = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog.md'
+    # Regenerate the PERMISSIONS.md index + auto-stub any new per-tool pages so
+    # the docs-check `permissions-pages-fresh` gate passes in the same atomic
+    # commit. Stubs land in docs/reference/permissions/<tool>.md (and mirror to
+    # docs/consumer/permissions/<tool>.md when that legacy dir exists).
+    $permissionsScript = Join-Path $RepoRoot 'scripts' 'Generate-PermissionsIndex.ps1'
+    try {
+        & pwsh -File $permissionsScript -ErrorAction Stop | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Generate-PermissionsIndex.ps1 exited with code $LASTEXITCODE"
+        }
+    } catch {
+        Write-Warning "Failed to regenerate PERMISSIONS index / per-tool stubs: $($_.Exception.Message)"
+        throw
+    }
+
+    # Regenerate the README.md tool-count facts so the user-facing tagline,
+    # feature-list bullet, and Tool catalog summary stay in lockstep with the
+    # manifest. Without this the docs-check `readme-facts-fresh` gate would
+    # fail any time a tool is added or removed.
+    $readmeFactsScript = Join-Path $RepoRoot 'scripts' 'Generate-ReadmeFacts.ps1'
+    try {
+        & pwsh -File $readmeFactsScript -ErrorAction Stop | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Generate-ReadmeFacts.ps1 exited with code $LASTEXITCODE"
+        }
+    } catch {
+        Write-Warning "Failed to regenerate README tool-count facts: $($_.Exception.Message)"
+        throw
+    }
+
+    $catalogConsumer    = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog.md'
     $catalogContributor = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog-contributor.md'
+    $permissionsRoot    = Join-Path $RepoRoot 'PERMISSIONS.md'
+    $permissionsRefDir  = Join-Path $RepoRoot 'docs' 'reference' 'permissions'
+    $permissionsConsDir = Join-Path $RepoRoot 'docs' 'consumer' 'permissions'
+    $readmeRoot         = Join-Path $RepoRoot 'README.md'
 
     Invoke-GitCommand -Arguments @('add', $ManifestPath) | Out-Null
     Invoke-GitCommand -Arguments @('add', $catalogConsumer, $catalogContributor) | Out-Null
+    Invoke-GitCommand -Arguments @('add', $permissionsRoot, $readmeRoot) | Out-Null
+    # Stage every file under the permissions dirs so any newly auto-stubbed
+    # per-tool page lands in the same atomic commit as the manifest bump.
+    if (Test-Path -LiteralPath $permissionsRefDir) {
+        Invoke-GitCommand -Arguments @('add', $permissionsRefDir) | Out-Null
+    }
+    if (Test-Path -LiteralPath $permissionsConsDir) {
+        Invoke-GitCommand -Arguments @('add', $permissionsConsDir) | Out-Null
+    }
     Invoke-GitCommand -Arguments @(
         'commit',
         '-m', "chore($name): bump upstream pin to $($latest.Version)",
