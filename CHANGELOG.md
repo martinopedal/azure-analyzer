@@ -54,6 +54,15 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.1](https://github.com/martinopedal/azure-analyzer/compare/v1.4.0...v1.4.1) (2026-05-12)
+
+
+### Chores
+
+* **prowler:** bump upstream pin to 5.25.3 ([#1017](https://github.com/martinopedal/azure-analyzer/issues/1017)) ([bd894f7](https://github.com/martinopedal/azure-analyzer/commit/bd894f74bdbd58482838ead328c491192bd595c8))
+* **trivy:** bump upstream pin to 0.70.0 ([#998](https://github.com/martinopedal/azure-analyzer/issues/998)) ([6d3974d](https://github.com/martinopedal/azure-analyzer/commit/6d3974d77c3220597d74419b16b7a1703e9c4fc1))
+* **zizmor:** bump upstream pin to 1.24.1 ([#999](https://github.com/martinopedal/azure-analyzer/issues/999)) ([abf1ede](https://github.com/martinopedal/azure-analyzer/commit/abf1edea22389c4281ad2cf41c2b16341d53d97c))
+
 ## [1.4.0](https://github.com/martinopedal/azure-analyzer/compare/v1.3.1...v1.4.0) (2026-05-12)
 
 
