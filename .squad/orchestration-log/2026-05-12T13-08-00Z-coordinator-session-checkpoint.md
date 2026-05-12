@@ -62,4 +62,12 @@ _"Make sure docs do not use AI language or emojis other than crosses and checkma
 
 ---
 
+---
+
+## Late session — lychee follow-up
+
+Coordinator pushed `846aaac` fixing `links (lychee)` 404 on PR #1053 (replaced `/discussions/1049` with `/issues/963` in `.squad/orchestration-log/2026-05-12T13-00-13Z-forge-gpg-fix.md`). PR #1053 still BEHIND, AM=ON, awaiting `Analyze (actions)` to settle.
+
+---
+
 **Next Checkpoint:** Post-Sage decision file; post-Track F scope confirmation

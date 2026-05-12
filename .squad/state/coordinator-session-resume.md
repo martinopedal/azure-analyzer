@@ -1,7 +1,12 @@
-# Coordinator Session Resume State — 2026-05-12 13:08 UTC
+# Coordinator Session Resume State — 2026-05-12 13:24 UTC
 
 ## Last Checkpoint
-2026-05-12T13:08:00Z (ISO UTC)
+2026-05-12T13:24:47Z (ISO UTC)
+
+## Completed This Segment
+
+- Docs voice skill operationalization: IN FLIGHT (Sage) — output landing at `.squad/decisions/inbox/sage-docs-voice-audit-*.md`
+- Lychee broken-link fix: ✅ DONE — PR #1053 corrected (replaced `/discussions/1049` → `/issues/963`); lychee re-queued (run 25737364997 success)
 
 ## Active Background Agents at Checkpoint
 
@@ -18,7 +23,15 @@
 - **Status:** IN FLIGHT — do not prematurely mark complete
 
 ## Open PRs at Checkpoint
-None. All work items are either merged (v1.4.5/v1.4.6 via #1051) or backlog (Track F #1048 issue filed, awaiting implementation go-ahead).
+
+### PR #1053 (Sage docs-voice install + history log)
+- **Branch:** `chore/docs-voice-profile`
+- **HEAD:** `846aaac` (lychee fix commit)
+- **Status:** OPEN, BEHIND, auto-merge ON (SQUASH)
+- **Required check:** `Analyze (actions)` IN_PROGRESS (re-triggered by lychee rerun)
+- **Lychee status:** Re-queued successfully (run 25737364997)
+
+All other work is merged (v1.4.5/v1.4.6 via #1051) or backlog (Track F #1048 issue filed, awaiting implementation go-ahead).
 
 ## Mid-Flight Directives Not Yet Executed
 
@@ -70,19 +83,22 @@ ls -la .squad/state/
 ls -la .squad/decisions/inbox/sage-docs-voice* 
 # If exists: Scribe merges to .squad/decisions.md, deletes inbox file, commits
 
-# 3. List open PRs (expect: empty)
+# 3. Check PR #1053 status
+gh pr view 1053 --json autoMergeRequest,mergeStateStatus,headRefOid
+
+# 4. List open PRs (expect: empty after #1053 merges)
 gh pr list --state open --json number
 
-# 4. Check pending Track F user decision
+# 5. Check pending Track F user decision
 # If Martin approved: open PR vs #1048, start commit 0 dependency gate
 
-# 5. Verify Pester baseline (expect: 1518 passed, 0 failed)
+# 6. Verify Pester baseline (expect: 1518 passed, 0 failed)
 Invoke-Pester -Path .\tests -CI --PassThru | Select-Object -ExpandProperty Summary
 
-# 6. Verify main CI is green
+# 7. Verify main CI is green
 gh run list --workflow "Analyze.yml" --limit 3 --json conclusion
 
-# 7. Audit git state
+# 8. Audit git state
 git status
 git log --oneline -5
 ```
