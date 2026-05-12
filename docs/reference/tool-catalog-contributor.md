@@ -161,7 +161,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `httpx` | cli ("httpx") | projectdiscovery/httpx @ latest | `#2e7d32` | 4 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |
-| `infracost` | cli ("infracost") | infracost/infracost @ latest | `#2e7d32` | 7 |
+| `infracost` | cli ("infracost") | infracost/infracost @ 0.10.44 | `#2e7d32` | 7 |
 | `kube-bench` | none | n/a | `#5e35b1` | 6 |
 | `kubescape` | cli ("kubescape") | kubescape/kubescape @ 4.0.8 | `#7b1fa2` | 6 |
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
