@@ -152,7 +152,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `defender-for-cloud` | psmodule | n/a | `#0078d4` | 4 |
 | `dnstwist` | cli ("dnstwist") | elceef/dnstwist @ latest | `#ad1457` | 4 |
 | `entra-permissions-mgmt` | psmodule | n/a | `#283593` | 2 |
-| `falco` | psmodule | falcosecurity/falco @ 0.42.0 | `#ef6c00` | 6 |
+| `falco` | psmodule | falcosecurity/falco @ 0.43.1 | `#ef6c00` | 6 |
 | `finops` | psmodule | n/a | `#00897b` | 4 |
 | `forest-druid` | none | n/a | `#37474f` | 2 |
 | `gh-actions-billing` | cli ("gh") | n/a | `#8e24aa` | 1 |
