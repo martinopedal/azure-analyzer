@@ -60,6 +60,14 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.3](https://github.com/martinopedal/azure-analyzer/compare/v1.4.2...v1.4.3) (2026-05-12)
+
+
+### Chores
+
+* **deps:** bump actions/create-github-app-token from 2.2.2 to 3.1.1 ([#1001](https://github.com/martinopedal/azure-analyzer/issues/1001)) ([feadfc0](https://github.com/martinopedal/azure-analyzer/commit/feadfc067100990d2faca17866f489d40249b447))
+* **deps:** bump github/codeql-action from 4.35.1 to 4.35.4 ([#1007](https://github.com/martinopedal/azure-analyzer/issues/1007)) ([d6355c2](https://github.com/martinopedal/azure-analyzer/commit/d6355c2fd050bce2cb74634d48b049bd824d020e))
+
 ## [1.4.2](https://github.com/martinopedal/azure-analyzer/compare/v1.4.1...v1.4.2) (2026-05-12)
 
 
