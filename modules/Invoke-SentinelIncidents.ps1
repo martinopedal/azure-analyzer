@@ -78,6 +78,7 @@ $result = [ordered]@{
     Status        = 'Success'
     Message       = ''
     Findings      = @()
+    Errors        = @()
     Subscription  = $subId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }

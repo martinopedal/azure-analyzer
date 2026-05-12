@@ -81,6 +81,7 @@ $result = [ordered]@{
     Message       = ''
     ToolVersion   = ''
     Findings      = @()
+    Errors        = @()
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }
 

@@ -75,13 +75,17 @@ function Invoke-WithTimeout {
             }
         }
 
-        # PowerShell function/alias/cmdlet (test mocks) — call operator fallback
+        # PowerShell function/alias/cmdlet (test mocks) — call operator fallback.
+        # Sanitize the captured output to mirror the real-executable branch, so
+        # tests and callers see consistent credential-scrubbed text regardless
+        # of whether $Command resolves to a real binary or a Pester mock.
         $output = & $Command @Arguments 2>&1 | Out-String
         $lastExit = if (Test-Path variable:LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+        $sanitizedOutput = (& $sanitize $output.Trim())
         return [PSCustomObject]@{
             ExitCode = $lastExit
-            Output   = $output.Trim()
-            Stdout   = $output.Trim()
+            Output   = $sanitizedOutput
+            Stdout   = $sanitizedOutput
             Stderr   = ''
         }
     }

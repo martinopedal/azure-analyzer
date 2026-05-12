@@ -146,6 +146,7 @@ $result = [ordered]@{
     Status        = 'Success'
     Message       = ''
     Findings      = @()
+    Errors        = @()
     Diagnostics   = @()
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')

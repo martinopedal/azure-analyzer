@@ -64,6 +64,7 @@ $result = [ordered]@{
     Message       = ''
     ToolVersion   = ''
     Findings      = @()
+    Errors        = @()
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
 }

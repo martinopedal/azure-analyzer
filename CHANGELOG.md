@@ -1,5 +1,16 @@
 ## Unreleased
 
+### Fixed
+
+- **Wrapper envelope `Errors=@()` consistency sweep**: 13 wrappers (`Invoke-AksKarpenterCost`, `Invoke-AksRightsizing`, `Invoke-AppInsights`, `Invoke-AzureCost`, `Invoke-AzureLoadTesting`, `Invoke-AzureQuotaReports`, `Invoke-DefenderForCloud`, `Invoke-Falco`, `Invoke-FinOpsSignals`, `Invoke-Infracost`, `Invoke-KubeBench`, `Invoke-Kubescape`, `Invoke-SentinelCoverage`, `Invoke-SentinelIncidents`) initialise their v1 envelope via `$result = [ordered]@{ ... }; return [pscustomobject]$result` and were silently emitting `Findings` without the matching `Errors` array. The existing `EnvelopeContract.Tests.ps1` regex (`\[PSCustomObject\]@\{[^}]+\}`) only matched literal `[PSCustomObject]@{...}` blocks and missed the `[ordered]@{}` cast pattern, letting the gap slip through CI. Tightened the test to scan both literal forms with depth-balanced brace matching, then added the missing `Errors = @()` to every affected envelope so downstream normalizers and the orchestrator never see an undefined `Errors` member.
+- **`modules/shared/CliTimeout.ps1` mock-fallback sanitization gap**: When `Invoke-WithTimeout` falls back to invoking a PowerShell function (test-mock path), the captured output bypassed `Remove-Credentials` while the real-executable path sanitized it. A leaked token in mock output could therefore be persisted to disk during test capture or surfaced through wrapper error messages. Both paths now call the same `Remove-Credentials` lambda so sanitization is consistent regardless of which invocation branch is taken.
+- **`Invoke-CopilotTriage.ps1` exception leakage**: The top-level `catch` previously interpolated `$_` directly into the envelope `Message` (`"Unexpected error: $_"`) which embedded raw exception text (including any GitHub PAT, OpenAI key, or org URL the failed subprocess emitted) into a user-facing report field that is rendered in HTML / Markdown / Log Analytics sinks. Replaced with a generic message plus a sanitized `New-FindingError` routed through `New-WrapperEnvelope -FindingErrors`, so the envelope shape stays consistent and any leaked secret is scrubbed before disk-write.
+
+### Added
+
+- **`tests/shared/CliTimeout.Tests.ps1`** (7 tests): Covers the PowerShell-function-fallback path (`ExitCode` + `Output` capture, sanitization of credential-shaped tokens, positional argument forwarding, `LASTEXITCODE` propagation) plus the real `System.Diagnostics.Process` path (clean exit, timeout marker, stdout sanitization). Closes the previously untested mock-fallback branch surfaced by the security fix above.
+- **`tests/shared/RateLimit.Tests.ps1`** (20 tests): Locks the throttle state machine surface area: provider defaults, `Update-RateLimitFromResponse` Retry-After parsing (seconds + HTTP-date), `Get-CurrentRateLimitDelaySeconds` exponential backoff, circuit breaker open / half-open / close transitions, low-quota throttling, and the cross-provider concurrency gate. Prevents silent regressions in the cross-cutting rate-limit infrastructure that every Graph and ADO call relies on.
+
 ### Docs
 
 - docs: install repo-wide docs voice profile and remediate recent prose (#963 follow-up)

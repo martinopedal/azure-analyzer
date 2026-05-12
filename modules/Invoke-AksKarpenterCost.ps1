@@ -132,6 +132,7 @@ $result = [ordered]@{
     Status        = 'Success'
     Message       = ''
     Findings      = @()
+    Errors        = @()
     Subscription  = $SubscriptionId
     Timestamp     = (Get-Date).ToUniversalTime().ToString('o')
     RbacTier      = 'Reader'
