@@ -24,6 +24,8 @@
 
 ### Docs
 
+- **Cross-App review-thread resolver permissions**: Documented the existing `azure-analyzer-thread-resolver` GitHub App in `PERMISSIONS.md` (secrets `RESOLVE_THREADS_APP_ID` / `RESOLVE_THREADS_PRIVATE_KEY`, install scope `pull_requests: write`) and added an explicit bullet to the "Cloud agent PR review contract" in `.github/copilot-instructions.md`. The default `GITHUB_TOKEN` cannot resolve review threads authored by another bot (GraphQL `resolveReviewThread` returns FORBIDDEN on bot-vs-bot), so `pr-auto-resolve-threads.yml` mints an installation token from this App; without the install + `pull_requests: write` grant the auto-resolve workflow no-ops on every Copilot Code Review thread and the "all Copilot threads Resolved" merge gate has to be cleared by hand. No code or workflow change in this entry, only documentation; the App-token plumbing has been live in `pr-auto-resolve-threads.yml` since #843.
+
 - **Agent session contract (CI audit + squad memory)**: Expanded "Always check history before doing work" step in `.github/copilot-instructions.md` to require a mandatory CI audit as the first action of every session: use `list_workflow_runs` + `get_job_logs` (GitHub MCP) to check the last 10 runs on `main` and the working branch, read failed-job logs for any non-success run, and name the failure before touching code. Added explicit **Squad memory** check (verify stored memories against current code; overwrite stale ones via `store_memory` before proceeding). Renamed section to "Always audit CI and check all context before doing work" to reflect the expanded scope.
 
 - **Agent session contract**: Added "Agent session contract — always open a PR, always check history first" section to `.github/copilot-instructions.md`. Every agent session that produces commits MUST call `create_pull_request` (draft OK) and surface the PR URL in the final reply — pushing via `report_progress` alone is no longer sufficient. Agents must also review recent session history, open issues, open PRs, and the copilot instructions before doing work.
@@ -51,6 +53,32 @@ All notable changes to azure-analyzer will be documented here.
 * cover all PR-triggered workflows in auto-approve bot gate ([#858](https://github.com/martinopedal/azure-analyzer/issues/858)) ([0dc2955](https://github.com/martinopedal/azure-analyzer/commit/0dc295585cb59e8cceb2287ed3e62e5f14cef97f))
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
+
+## [1.3.1](https://github.com/martinopedal/azure-analyzer/compare/v1.3.0...v1.3.1) (2026-05-12)
+
+
+### Fixes
+
+* address consistency audit findings (CHANGELOG, wrappers, banner, samples) ([#983](https://github.com/martinopedal/azure-analyzer/issues/983)) ([4292941](https://github.com/martinopedal/azure-analyzer/commit/42929413e7be4a5971884384eefccd8356e60338))
+* **ci:** skip unconfigured scheduled scans ([#1013](https://github.com/martinopedal/azure-analyzer/issues/1013)) ([bc46e70](https://github.com/martinopedal/azure-analyzer/commit/bc46e7063c89a02cad2f8e0acfe0147ffdf2931f))
+* make Invoke-AdoConsumption duration regression test deterministic ([#1011](https://github.com/martinopedal/azure-analyzer/issues/1011)) ([76f317b](https://github.com/martinopedal/azure-analyzer/commit/76f317bb33e7daf5032f20023db2e66edfb6ec43))
+* regenerate tool catalogs in auto-bumper to prevent CI stale-catalog failures ([#1020](https://github.com/martinopedal/azure-analyzer/issues/1020)) ([7681a5a](https://github.com/martinopedal/azure-analyzer/commit/7681a5ac7e5c9bfbbab29a6b47f3330333200ab5))
+
+
+### Documentation
+
+* add agent session contract to copilot-instructions ([#1009](https://github.com/martinopedal/azure-analyzer/issues/1009)) ([ffd817f](https://github.com/martinopedal/azure-analyzer/commit/ffd817f2f3d09fa83af39ec9ef9e01ac43a3061a))
+* mandate CI audit + squad memory in agent session pre-work contract ([#1010](https://github.com/martinopedal/azure-analyzer/issues/1010)) ([80ed7d1](https://github.com/martinopedal/azure-analyzer/commit/80ed7d1c1ddaa95f149f993fdc539810884fb0f2))
+* post-sprint documentation sweep ([#980](https://github.com/martinopedal/azure-analyzer/issues/980)) ([e33a81c](https://github.com/martinopedal/azure-analyzer/commit/e33a81c17cfd35d9802195a11c87799584da0a92))
+
+
+### Chores
+
+* **alz-queries:** bump upstream pin to fd04b20a7a67 ([#985](https://github.com/martinopedal/azure-analyzer/issues/985)) ([49b4a81](https://github.com/martinopedal/azure-analyzer/commit/49b4a81662d64f0905f97be50f7dc5ead5e084cb))
+* **azgovviz:** bump upstream pin to 6a90d07a1416 ([#986](https://github.com/martinopedal/azure-analyzer/issues/986)) ([d45f36f](https://github.com/martinopedal/azure-analyzer/commit/d45f36f7eb33018a628a6bd2699f2aa3b041fe45))
+* **kubescape:** bump upstream pin to 4.0.8 ([#1016](https://github.com/martinopedal/azure-analyzer/issues/1016)) ([62a3d43](https://github.com/martinopedal/azure-analyzer/commit/62a3d43042c8a2ba51796ddedefaf7b0c4c1ff60))
+* **terraform-iac:** bump upstream pin to 1.15.2 ([#1018](https://github.com/martinopedal/azure-analyzer/issues/1018)) ([6d85c8a](https://github.com/martinopedal/azure-analyzer/commit/6d85c8afa74d7bc0926381893431831adac961ac))
+* **wrappers:** standardize timeout handling via Invoke-WithTimeout ([#981](https://github.com/martinopedal/azure-analyzer/issues/981)) ([0a54c3b](https://github.com/martinopedal/azure-analyzer/commit/0a54c3b8abf5c01d1d9f43172459513aa455fa18)), closes [#974](https://github.com/martinopedal/azure-analyzer/issues/974)
 
 ## [1.3.0](https://github.com/martinopedal/azure-analyzer/compare/v1.2.0...v1.3.0) (2026-04-23)
 
