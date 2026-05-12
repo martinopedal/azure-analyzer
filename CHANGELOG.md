@@ -18,6 +18,8 @@
 
 ### Fixed
 
+- **Release workflow lightweight-tag handling (#963)**: `release.yml` no longer requires the release tag to be annotated AND GPG-signed. release-please ships lightweight tags (object type: commit, no PGP signature), so the previous `Validate annotated + signed tag` step rejected every release-please tag and blocked the v1.4.5 PSGallery first-publish (run 25735228356). Replaced with `Validate release tag` which verifies the tag exists, resolves to a real commit, matches the `v<major>.<minor>.<patch>` pattern, and logs whether the tag is lightweight or annotated for transparency. PSGallery does not require GPG-signed tags; provenance is established via the SHA256SUMS + SBOM artifacts and the SHA-pinned release pipeline (Sage Path A).
+
 - **Auto-bumper catalog regeneration**: Update-ToolPins.ps1 now regenerates tool catalogs (docs/reference/tool-catalog.md + tool-catalog-contributor.md) immediately after updating tools/tool-manifest.json, so the catalogs remain in sync with the manifest in the same commit. Previously the catalogs went stale on every pin bump, causing CI failures on tool-catalog-fresh and Generate-ToolCatalog.Tests.ps1. The PR body now references umbrella issue #1019 to satisfy the Closes-link CI check.
 
 - **Scheduled Scan OIDC preflight (#984)**: Scheduled runs now treat missing or malformed `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, or `AZURE_CLIENT_ID` repo variables as "not configured" and skip Azure login/analyzer execution without failing the workflow. Manual `workflow_dispatch` runs still fail fast so explicit operator mistakes remain visible.

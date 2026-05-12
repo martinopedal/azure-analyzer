@@ -82,23 +82,36 @@ jobs:
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Validate annotated + signed tag
+      - name: Validate release tag
         shell: bash
+        # GPG-signed / annotated tags are NOT required (#963 / Sage Path A):
+        # release-please ships lightweight tags (objecttype = commit), and
+        # PSGallery does not require GPG-signed tags. Provenance is established
+        # via the SHA256SUMS + SBOM artifacts and the SHA-pinned release pipeline,
+        # not via tag signatures. We still verify the tag exists, resolves to a
+        # real commit, and matches the v<major>.<minor>.<patch> pattern.
         run: |
           set -euo pipefail
           TAG='${{ steps.version.outputs.tag }}'
-          OBJECT_TYPE="$(git for-each-ref "refs/tags/${TAG}" --format='%(objecttype)')"
-          if [[ "${OBJECT_TYPE}" == "tag" ]]; then
-            TAG_OBJECT_SHA="$(git rev-parse "${TAG}^{tag}")"
-            TAG_CONTENT="$(git cat-file -p "${TAG_OBJECT_SHA}")"
-            if [[ "${TAG_CONTENT}" != *"-----BEGIN PGP SIGNATURE-----"* ]]; then
-              echo "Tag ${TAG} must be GPG-signed (PGP signature block missing)." >&2
-              exit 1
-            fi
-          else
-            echo "Tag ${TAG} must be an annotated tag (object type: ${OBJECT_TYPE:-missing})" >&2
+
+          if ! git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            echo "Tag ${TAG} not found in repository" >&2
             exit 1
           fi
+
+          OBJECT_TYPE="$(git for-each-ref "refs/tags/${TAG}" --format='%(objecttype)')"
+          COMMIT_SHA="$(git rev-parse "${TAG}^{commit}")"
+
+          if [[ -z "${COMMIT_SHA}" ]]; then
+            echo "Tag ${TAG} does not resolve to a commit" >&2
+            exit 1
+          fi
+
+          case "${OBJECT_TYPE}" in
+            commit) echo "Tag ${TAG} is a lightweight tag at ${COMMIT_SHA} (release-please default)" ;;
+            tag)    echo "Tag ${TAG} is an annotated tag at ${COMMIT_SHA}" ;;
+            *)      echo "Tag ${TAG} has unexpected object type '${OBJECT_TYPE}'" >&2; exit 1 ;;
+          esac
 
       - name: Install Pester
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
