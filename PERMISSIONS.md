@@ -188,6 +188,43 @@ azure-analyzer requires no special environment variables to run, but honours a s
 
 None of these flags grant additional permissions -- they purely affect launch-surface and log verbosity.
 
+## PSGallery Publishing
+
+The release pipeline (`.github/workflows/release.yml`) publishes
+`AzureAnalyzer` to the PowerShell Gallery on every annotated, GPG-signed
+`v*.*.*` tag (and on `workflow_dispatch` runs with `publish_to_psgallery=true`).
+Publication uses the `PSGALLERY_API_KEY` repository secret.
+
+| Artifact | Type | Scope | Where it lives |
+|----------|------|-------|----------------|
+| `PSGALLERY_API_KEY` | PowerShell Gallery API key | `Push new packages and package versions` for the `AzureAnalyzer` package id (or its glob, when reserved) | Repository secret `PSGALLERY_API_KEY` (created 2026-04-23) |
+
+Notes:
+
+- The key is consumed only by three release-time steps under
+  `nick-fields/retry@v4.0.0` (with 3 attempts + 10-minute timeout): the
+  `Publish-Module -WhatIf` dry run, the actual `Publish-Module` call, and the
+  smoke-test `Find-Module` / `Save-Module` validation.
+- The key is NEVER read at runtime by any scanner. No tool consumes it; it
+  exists purely for the publish surface.
+- The key is scoped to the `AzureAnalyzer` package id only. PowerShell Gallery
+  API keys can be issued with a glob-restricted scope; use that scope here so a
+  leaked key cannot publish unrelated packages.
+- Rotation: regenerate the key on the PSGallery account, update the
+  `PSGALLERY_API_KEY` repository secret, then run the next `Release` workflow
+  to confirm publish + smoke-test still succeed.
+- The PSGallery package only contains the manifest-listed runtime files
+  (orchestrator, normalizers, report renderers, `tools/tool-manifest.json`).
+  External scanners (azqr, Trivy, Maester, etc.) are NOT bundled; they are
+  fetched on demand by `Install-PrerequisitesFromManifest`. No additional
+  Azure, Microsoft Graph, GitHub, or Azure DevOps scopes are required for the
+  PSGallery publish path.
+- Repo internals (`.copilot/`, `.squad/`, `.github/`, `.vscode/`, `infra/`,
+  `samples/`, `tests/`, `docs/design/`, `docs/consumer/`, `docs/operations/`,
+  release-please plumbing) are excluded from the package by an explicit
+  allowlist in `release.yml` and a defensive guard step asserts they are
+  absent from the staged module on every release.
+
 ## See also
 
 - [`docs/consumer/permissions/README.md`](docs/consumer/permissions/README.md) - per-tool detail folder.

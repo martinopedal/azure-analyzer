@@ -138,6 +138,14 @@ jobs:
           if (Test-Path $releaseStagingRoot) { Remove-Item -Path $releaseStagingRoot -Recurse -Force }
           New-Item -ItemType Directory -Path $moduleRoot -Force | Out-Null
 
+          # PSGallery package allowlist (#963). NOTHING outside this list ships.
+          # Repo-internal directories that MUST stay out of the package:
+          #   .copilot/, .squad/, .github/, .vscode/, infra/, samples/, tests/,
+          #   docs/design/, docs/consumer/, docs/operations/, .release-please-*,
+          #   release-please-config.json, plan.md, *.local.*, secrets, fixtures.
+          # Adding a new top-level item to ship? Add it below AND add it to the
+          # `excluded` list in the "Verify package exclusions" step so the guard
+          # stays meaningful.
           $copyPaths = @(
             'AzureAnalyzer.psd1',
             'AzureAnalyzer.psm1',
@@ -172,6 +180,70 @@ jobs:
 
           "module_root=$moduleRoot" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "zip_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Verify package exclusions (#963)
+        shell: pwsh
+        run: |
+          $moduleRoot = '${{ steps.package.outputs.module_root }}'
+          if (-not (Test-Path $moduleRoot)) {
+            throw "Staging root missing: $moduleRoot"
+          }
+
+          # Defensive guard: even though the package step uses an explicit
+          # allowlist, assert the forbidden directories never landed in the
+          # staged module. Catches accidental Copy-Item drift, symlinks, or
+          # generator bugs that would otherwise leak repo internals into the
+          # PSGallery package.
+          $excluded = @(
+            '.copilot', '.squad', '.github', '.vscode',
+            'infra', 'samples', 'tests',
+            'docs/design', 'docs/consumer', 'docs/operations',
+            '.release-please-manifest.json', 'release-please-config.json',
+            'plan.md'
+          )
+
+          $leaked = @()
+          foreach ($candidate in $excluded) {
+            $probe = Join-Path $moduleRoot $candidate
+            if (Test-Path $probe) {
+              $leaked += $candidate
+            }
+          }
+
+          if ($leaked.Count -gt 0) {
+            $list = ($leaked -join ', ')
+            throw "PSGallery package contains forbidden paths: $list. Update the `$copyPaths allowlist in the package step or this guard, then re-run."
+          }
+
+          # Also verify every path in `$copyPaths` actually made it into the
+          # staging root, so a typo in the package step does not silently ship
+          # an empty package.
+          $required = @(
+            'AzureAnalyzer.psd1',
+            'AzureAnalyzer.psm1',
+            'Invoke-AzureAnalyzer.ps1',
+            'New-HtmlReport.ps1',
+            'New-MdReport.ps1',
+            'modules',
+            'queries',
+            'templates',
+            'scripts',
+            'tools/tool-manifest.json',
+            'LICENSE',
+            'CHANGELOG.md',
+            'README.md'
+          )
+          $missing = @()
+          foreach ($r in $required) {
+            if (-not (Test-Path (Join-Path $moduleRoot $r))) {
+              $missing += $r
+            }
+          }
+          if ($missing.Count -gt 0) {
+            throw "PSGallery package is missing required paths: $($missing -join ', ')"
+          }
+
+          Write-Host "Package exclusion guard OK. Staged module contains only the allowlisted paths."
 
       - name: Generate SBOM
         shell: pwsh
