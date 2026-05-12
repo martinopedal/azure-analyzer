@@ -71,7 +71,36 @@ function Resolve-AuditorContext {
         [string] $PreviousRunPath = '',
         [string] $Tier
     )
-    throw [System.NotImplementedException]::new('Resolve-AuditorContext: skeleton only.')
+    
+    $findings = Get-Content -Path $InputPath -Raw | ConvertFrom-Json
+    $entities = Get-Content -Path $EntitiesPath -Raw | ConvertFrom-Json
+    $manifest = Get-Content -Path $ManifestPath -Raw | ConvertFrom-Json
+    
+    $resolvedTier = if ($manifest.tier) { $manifest.tier } else { $Tier }
+    
+    $frameworks = if ($manifest.profile.auditor.frameworks) {
+        $manifest.profile.auditor.frameworks
+    } else {
+        @('CIS', 'NIST', 'MCSB', 'ISO27001')
+    }
+    
+    $context = @{
+        Findings = $findings
+        Entities = $entities
+        Manifest = $manifest
+        Tier = $resolvedTier
+        Frameworks = $frameworks
+    }
+    
+    if ($TriagePath -and (Test-Path $TriagePath)) {
+        $context.TriageData = Get-Content -Path $TriagePath -Raw | ConvertFrom-Json
+    }
+    
+    if ($PreviousRunPath -and (Test-Path $PreviousRunPath)) {
+        $context.PreviousFindings = Get-Content -Path $PreviousRunPath -Raw | ConvertFrom-Json
+    }
+    
+    return $context
 }
 
 function Get-AuditorExecutiveSummary {
@@ -81,7 +110,80 @@ function Get-AuditorExecutiveSummary {
         [object[]] $PreviousFindings = @(),
         [string[]] $ControlFrameworks = @('CIS','NIST','MCSB','ISO27001')
     )
-    throw [System.NotImplementedException]::new('Get-AuditorExecutiveSummary: skeleton only.')
+    
+    $severityGroups = $Findings | Group-Object -Property Severity
+    $severityCounts = @{}
+    foreach ($group in $severityGroups) {
+        $severityCounts[$group.Name] = $group.Count
+    }
+    
+    $frameworkCoverage = @{}
+    foreach ($framework in $ControlFrameworks) {
+        $totalFindings = $Findings.Count
+        $covered = 0
+        
+        foreach ($finding in $Findings) {
+            if ($finding.ComplianceMappings) {
+                foreach ($mapping in $finding.ComplianceMappings) {
+                    if ($mapping -match "^$framework\s") {
+                        $covered++
+                        break
+                    }
+                }
+            }
+        }
+        
+        $pct = if ($totalFindings -gt 0) {
+            [math]::Round(($covered / $totalFindings) * 100, 1)
+        } else {
+            0
+        }
+        
+        $frameworkCoverage[$framework] = @{
+            covered = $covered
+            total = $totalFindings
+            pct = $pct
+        }
+    }
+    
+    $summary = @{
+        severityCounts = $severityCounts
+        frameworkCoverage = $frameworkCoverage
+        collectedAt = (Get-Date).ToUniversalTime().ToString('o')
+        scope = 'Tenant scope placeholder'
+    }
+    
+    if ($PreviousFindings.Count -gt 0) {
+        $currentIds = $Findings | ForEach-Object { $_.FindingId } | Where-Object { $_ }
+        $previousIds = $PreviousFindings | ForEach-Object { $_.FindingId } | Where-Object { $_ }
+        
+        $added = ($currentIds | Where-Object { $_ -notin $previousIds }).Count
+        $resolved = ($previousIds | Where-Object { $_ -notin $currentIds }).Count
+        
+        $changedSeverity = 0
+        $currentLookup = @{}
+        foreach ($f in $Findings) {
+            if ($f.FindingId) {
+                $currentLookup[$f.FindingId] = $f.Severity
+            }
+        }
+        
+        foreach ($prevFinding in $PreviousFindings) {
+            if ($prevFinding.FindingId -and $currentLookup.ContainsKey($prevFinding.FindingId)) {
+                if ($prevFinding.Severity -ne $currentLookup[$prevFinding.FindingId]) {
+                    $changedSeverity++
+                }
+            }
+        }
+        
+        $summary.diffSummary = @{
+            added = $added
+            resolved = $resolved
+            changedSeverity = $changedSeverity
+        }
+    }
+    
+    return $summary
 }
 
 function Get-AuditorControlDomainSections {
