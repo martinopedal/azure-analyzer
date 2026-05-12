@@ -39,14 +39,26 @@
 
 ## Quickest start
 
-### From PSGallery
+### From PSGallery (once published)
+
+The module manifest, tags, and release pipeline are PSGallery-ready. The first
+release tag (`v*.*.*`) on `main` triggers the `release.yml` `PSGallery publish`
+step, which uploads `AzureAnalyzer.psd1` + `AzureAnalyzer.psm1` (plus the
+manifest-listed runtime files) under the `AzureAnalyzer` package id. Once the
+first publish lands, this is the recommended install path:
 
 ```powershell
-Install-Module AzureAnalyzer -Scope CurrentUser
+Install-Module -Name AzureAnalyzer -Scope CurrentUser
 Import-Module AzureAnalyzer
 Connect-AzAccount -TenantId "<tenant-id>"
 Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"
 ```
+
+PSGallery ships only the orchestrator and report renderers. Every external
+scanner (azqr, PSRule, Maester, Trivy, ...) is a soft dependency and is
+fetched on demand by the manifest-driven installer at first run. See the
+[External tools (soft dependencies)](#external-tools-soft-dependencies)
+section below for the full list of what is installed where.
 
 ### From source checkout
 
@@ -106,6 +118,127 @@ See [docs/reference/tool-catalog.md](docs/reference/tool-catalog.md). The catalo
 See [docs/tool-output-audit.md](docs/tool-output-audit.md) and [docs/tool-output-audit.json](docs/tool-output-audit.json) for per-tool wrapper-vs-normalizer field-coverage entries (audit-first input for #432b FindingRow extension).
 
 </details>
+
+## External tools (soft dependencies)
+
+The PSGallery package ships only the orchestrator wrappers, normalizers, report
+renderers, and `tools/tool-manifest.json`. It does **not** bundle the upstream
+scanners. At first run, `Install-PrerequisitesFromManifest` (in
+`modules/shared/Installer.ps1`) reads the manifest and installs each enabled
+tool through one of four kinds:
+
+| `install.kind` | What it does | Where it lands |
+|----------------|--------------|----------------|
+| `psmodule` | `Install-Module` from PSGallery (with retry + 300s timeout) | User scope module path |
+| `cli` | Allow-listed package manager (`winget` / `brew` / `pipx` / `pip` / `snap`) | Manager-specific install location |
+| `gitclone` | HTTPS-only `git clone` against the host allow-list (`github.com`, `dev.azure.com`, `*.visualstudio.com`, `*.ghe.com`) | `tools/_vendored/<tool>/` |
+| `none` | Pure PowerShell or REST against an existing SDK / CLI; nothing to install | n/a |
+
+Every install path is wrapped in `Invoke-WithInstallRetry` + `Invoke-WithTimeout`
+so a stuck winget / brew session cannot hang the orchestrator. Failures throw
+structured `New-InstallerError` records (with `Category`, `Remediation`, and a
+sanitized `Details` payload) and the affected tool is skipped, not the whole
+run.
+
+To install everything up front instead of lazily on first use:
+
+```powershell
+Invoke-AzureAnalyzer -InstallMissingModules ...
+```
+
+### Tool inventory by provider and scope
+
+The 38 enabled tools (+ 1 opt-in) break down as follows. The full per-tool
+catalog with parameters, frameworks, and required scopes lives in
+[`docs/reference/tool-catalog.md`](docs/reference/tool-catalog.md); permissions
+lives in [`PERMISSIONS.md`](PERMISSIONS.md) and
+[`docs/consumer/permissions/`](docs/consumer/permissions/).
+
+#### Azure (subscription / management group / workspace, Reader baseline)
+
+`psmodule` install kind unless noted.
+
+| Tool | Scope | Install | What it scans |
+|------|-------|---------|---------------|
+| azqr | subscription | cli | Azure Quick Review posture across resource types |
+| psrule | subscription | psmodule | PSRule for Azure rule pack |
+| powerpipe | subscription | cli | Powerpipe compliance benchmarks (CIS, NIST, PCI) |
+| prowler | subscription | cli | Prowler Azure security posture |
+| defender-for-cloud | subscription | psmodule | Defender for Cloud recommendations + secure score |
+| finops | subscription | psmodule | Idle resource detection (FinOps signals) |
+| azure-cost | subscription | psmodule | Azure Consumption API top-N cost hotspots |
+| azure-quota | subscription | cli | Quota and usage reports |
+| appinsights | subscription | psmodule | Application Insights performance signals |
+| loadtesting | subscription | psmodule | Azure Load Testing failed and regressed runs |
+| falco | subscription | psmodule | Falco AKS runtime anomaly detection (helm install opt-in) |
+| kubescape | subscription | cli | Kubescape AKS posture |
+| kube-bench | subscription | none | kube-bench AKS node CIS compliance (kubectl Job) |
+| aks-rightsizing | subscription | psmodule | Container Insights utilization + size recommendations |
+| aks-karpenter-cost | subscription | psmodule | Karpenter consolidation + node utilization (opt-in elevated RBAC) |
+| sentinel-coverage | workspace | psmodule | Microsoft Sentinel coverage and posture |
+| sentinel-incidents | workspace | psmodule | Microsoft Sentinel active incidents |
+| azgovviz | managementGroup | gitclone | AzGovViz tenant governance + policy report |
+| alz-queries | managementGroup | psmodule | ALZ Resource Graph compliance queries (50+) |
+| wara | subscription | psmodule | Well-Architected Reliability Assessment |
+
+#### Microsoft 365 / Microsoft Graph (tenant, Graph read-only scopes)
+
+| Tool | Provider | Install | What it scans |
+|------|----------|---------|---------------|
+| maester | microsoft365 | psmodule | Maester Entra and M365 security baseline |
+| identity-correlator | graph | psmodule | Cross-source identity correlation (Entra + Azure RBAC) |
+| identity-graph-expansion | graph | psmodule | Identity graph expansion (group, role, app assignments) |
+| conditional-access-graph | graph | psmodule | Conditional Access policy graph + 5-rule risk rubric |
+
+Disabled-by-default Graph family (scaffolded for follow-up PRs):
+`azurehound`, `bloodhound-ce`, `roadrecon`, `graphrunner`, `pim-graph`,
+`entra-permissions-mgmt`, `forest-druid`. See
+[`docs/design/graph-mapping-integration.md`](docs/design/graph-mapping-integration.md).
+
+#### GitHub (repository, read-only PAT or unauthenticated)
+
+| Tool | Provider | Install | What it scans |
+|------|----------|---------|---------------|
+| scorecard | github | cli | OpenSSF Scorecard threshold check |
+| gh-actions-billing | github | cli | GitHub Actions minutes + monthly budget governance |
+| gitleaks | cli | cli | gitleaks secrets scanner (cloud-first via `RemoteClone.ps1`) |
+| trivy | cli | cli | Trivy vulnerability scanner (filesystem or repo) |
+| zizmor | cli | cli | zizmor GitHub Actions YAML scanner |
+| bicep-iac | cli | cli | Bicep IaC validation |
+| terraform-iac | cli | cli | Terraform IaC validation |
+| infracost | cli | cli | Infracost IaC cost estimation |
+
+#### Azure DevOps (org / project, read-only PAT)
+
+`install.kind = none` for every ADO tool: pure REST through an existing PAT.
+
+| Tool | Scope | What it scans |
+|------|-------|---------------|
+| ado-pipelines | ado | Pipeline security posture (auth modes, approvals, secrets) |
+| ado-connections | ado | Service connection inventory + auth posture |
+| ado-repos-secrets | ado | Repos secret scanning (gitleaks-driven) |
+| ado-pipeline-correlator | ado | Cross-pipeline run correlator (ties findings to runs) |
+| ado-consumption | ado | Pipeline consumption + monthly budget governance |
+
+#### EASM (tenant, internet-perimeter)
+
+`dnstwist` (cli) ships enabled. The remaining EASM family
+(`amass`, `subfinder`, `httpx`, `shodan`, `censys`, `defender-easm`) is
+scaffolded as `enabled: false` for follow-up PRs. See
+[`docs/design/easm-integration.md`](docs/design/easm-integration.md).
+
+#### Optional, opt-in
+
+| Tool | Trigger | Notes |
+|------|---------|-------|
+| copilot-triage | `-EnableAiTriage` | Routes findings through GitHub Copilot for AI triage; defaults to a 3-model rubberduck consensus, discovers your available models at runtime, applies credential sanitization on prompt + response paths. |
+
+The single source of truth is `tools/tool-manifest.json`. If you want to add or
+toggle a tool, edit the manifest and the catalog, README counts, and
+PERMISSIONS index regenerate automatically through `tools/Update-ToolPins.ps1`
+(weekly bumper) or by running the three generators by hand. See
+[`docs/reference/tool-catalog-contributor.md`](docs/reference/tool-catalog-contributor.md)
+for the contributor view.
 
 <details><summary><b>All parameters and advanced usage</b></summary>
 

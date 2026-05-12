@@ -436,3 +436,52 @@ jobs:
           name: sbom-${{ github.sha }}
           path: output/sbom.json
           retention-days: 30
+
+  validate-module-manifest:
+    name: Validate module manifest (Test-ModuleManifest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # PSGallery readiness gate (#963): catches manifest regressions on every PR,
+    # not just at release time. Runs Test-ModuleManifest against AzureAnalyzer.psd1
+    # so a malformed Author / FunctionsToExport / Tags / LicenseUri / ReleaseNotes
+    # cannot land on main and silently break the next PSGallery publish.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Test-ModuleManifest AzureAnalyzer.psd1
+        shell: pwsh
+        run: |
+          $manifestPath = Join-Path $PWD 'AzureAnalyzer.psd1'
+          if (-not (Test-Path $manifestPath)) {
+            throw "Module manifest not found at $manifestPath"
+          }
+
+          $manifest = Test-ModuleManifest -Path $manifestPath -ErrorAction Stop
+          Write-Host ("Manifest OK: {0} v{1}" -f $manifest.Name, $manifest.Version) -ForegroundColor Green
+
+          # PSGallery requires non-empty Author + Description + LicenseUri +
+          # ProjectUri + at least one tag. Test-ModuleManifest does not enforce
+          # PSGallery-specific fields on its own, so assert them here.
+          $required = @{
+            Author      = $manifest.Author
+            Description = $manifest.Description
+            LicenseUri  = $manifest.LicenseUri
+            ProjectUri  = $manifest.ProjectUri
+          }
+          foreach ($k in $required.Keys) {
+            if ([string]::IsNullOrWhiteSpace([string]$required[$k])) {
+              throw "Manifest field '$k' is empty. PSGallery will reject the package."
+            }
+          }
+
+          if (-not $manifest.Tags -or $manifest.Tags.Count -eq 0) {
+            throw "Manifest has no Tags. PSGallery requires at least one."
+          }
+
+          if (-not $manifest.ExportedFunctions -or $manifest.ExportedFunctions.Count -eq 0) {
+            throw "Manifest exports no functions. Verify FunctionsToExport in AzureAnalyzer.psd1."
+          }
+
+          Write-Host ("Tags: {0}" -f ($manifest.Tags -join ', '))
+          Write-Host ("Exported functions: {0}" -f ($manifest.ExportedFunctions.Keys -join ', '))
