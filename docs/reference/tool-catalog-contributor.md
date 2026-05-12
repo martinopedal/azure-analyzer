@@ -165,21 +165,21 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `kube-bench` | none | n/a | `#5e35b1` | 6 |
 | `kubescape` | cli ("kubescape") | kubescape/kubescape @ 4.0.8 | `#7b1fa2` | 6 |
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
-| `maester` | psmodule | maester365/maester @ latest | `#7b1fa2` | 1 |
+| `maester` | psmodule | maester365/maester @ 2.1.0 | `#7b1fa2` | 1 |
 | `pim-graph` | psmodule | n/a | `#7b1fa2` | 2 |
 | `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ latest | `#455a64` | 1 |
-| `prowler` | cli ("prowler") | prowler-cloud/prowler @ latest | `#1f2937` | 4 |
+| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.25.3 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ latest | `#6a1b9a` | 1 |
 | `roadrecon` | cli ("roadrecon") | n/a | `#311b92` | 2 |
-| `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
+| `scorecard` | cli ("scorecard") | ossf/scorecard @ 5.5.0 | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
 | `shodan` | none | n/a | `#d32f2f` | 4 |
 | `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ latest | `#00695c` | 4 |
 | `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.2 | `#5c4ee5` | 7 |
-| `trivy` | cli ("trivy") | aquasecurity/trivy @ latest | `#00695c` | 3 |
+| `trivy` | cli ("trivy") | aquasecurity/trivy @ 0.70.0 | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
-| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ latest | `#ad1457` | 3 |
+| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.24.1 | `#ad1457` | 3 |
 
 ## Notes
 
