@@ -171,7 +171,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.25.3 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ latest | `#6a1b9a` | 1 |
 | `roadrecon` | cli ("roadrecon") | n/a | `#311b92` | 2 |
-| `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
+| `scorecard` | cli ("scorecard") | ossf/scorecard @ 5.5.0 | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
 | `shodan` | none | n/a | `#d32f2f` | 4 |
