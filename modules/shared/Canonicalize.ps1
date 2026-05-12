@@ -228,7 +228,11 @@ function ConvertTo-CanonicalEntityId {
             'Workflow',
             'Tenant',
             'AdoProject',
-            'KarpenterProvisioner'
+            'KarpenterProvisioner',
+            'ExternalAsset',
+            'ConditionalAccessPolicy',
+            'NamedLocation',
+            'OnPremUser'
         )]
         [string] $EntityType,
 
@@ -301,6 +305,52 @@ function ConvertTo-CanonicalEntityId {
             "ado://$($segments[0].ToLowerInvariant())/$($segments[1].ToLowerInvariant())"
         }
         'KarpenterProvisioner' { ConvertTo-CanonicalArmId -ArmId $RawId }
+        'ExternalAsset' {
+            # External (internet-discovered) asset that does not map back
+            # to an Azure-owned resource. Canonical form: 'host:<lower-fqdn>'
+            # or 'ip:<ip>'. Anything else is lower-cased and slug-trimmed.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:host):(.+)$') { "host:$($matches[1].ToLowerInvariant().TrimEnd('.'))" }
+            elseif ($raw -match '^(?i:ip):(.+)$') { "ip:$($matches[1].Trim())" }
+            else { $raw.ToLowerInvariant() }
+        }
+        'ConditionalAccessPolicy' {
+            # Canonical form: cap:{lowercased-guid}. Accept bare GUID or
+            # cap:{guid}. Other shapes throw.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:cap):(?<id>[0-9a-f-]{36})$') {
+                "cap:$($matches['id'].ToLowerInvariant())"
+            } elseif ($raw -match $script:GuidPattern) {
+                "cap:$($raw.ToLowerInvariant())"
+            } else {
+                throw "ConditionalAccessPolicy IDs must be cap:{guid} or a GUID. Provided: '$RawId'."
+            }
+        }
+        'NamedLocation' {
+            # Canonical form: loc:{lowercased-guid}. Accept bare GUID or
+            # loc:{guid}. Other shapes throw.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:loc):(?<id>[0-9a-f-]{36})$') {
+                "loc:$($matches['id'].ToLowerInvariant())"
+            } elseif ($raw -match $script:GuidPattern) {
+                "loc:$($raw.ToLowerInvariant())"
+            } else {
+                throw "NamedLocation IDs must be loc:{guid} or a GUID. Provided: '$RawId'."
+            }
+        }
+        'OnPremUser' {
+            # On-prem AD shadow of an Entra user. Canonical form:
+            # onprem:user:{sid-lower}. Accept onprem:user:{sid} or a bare
+            # SID-shaped string ('S-1-5-21-...'). Anything else throws.
+            $raw = $RawId.Trim()
+            if ($raw -match '^(?i:onprem:user):(.+)$') {
+                "onprem:user:$($matches[1].ToLowerInvariant())"
+            } elseif ($raw -match '^(?i:S-1-5-21-)') {
+                "onprem:user:$($raw.ToLowerInvariant())"
+            } else {
+                throw "OnPremUser IDs must be onprem:user:{sid} or an AD SID (S-1-5-21-...). Provided: '$RawId'."
+            }
+        }
         'Tenant' {
             # Accept bare GUID or tenant:{guid} form; fall back to slugified string for synthetic IDs
             $raw = $RawId.Trim()
@@ -334,6 +384,10 @@ function ConvertTo-CanonicalEntityId {
         'ServiceConnection' { 'ADO' }
         'AdoProject' { 'ADO' }
         'KarpenterProvisioner' { 'Azure' }
+        'ExternalAsset' { 'External' }
+        'ConditionalAccessPolicy' { 'Entra' }
+        'NamedLocation' { 'Entra' }
+        'OnPremUser' { 'OnPrem' }
         default { 'Unknown' }
     }
 
