@@ -126,7 +126,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
 | `maester` | psmodule | maester365/maester @ latest | `#7b1fa2` | 1 |
 | `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ latest | `#455a64` | 1 |
-| `prowler` | cli ("prowler") | prowler-cloud/prowler @ latest | `#1f2937` | 4 |
+| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.25.3 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ latest | `#6a1b9a` | 1 |
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
