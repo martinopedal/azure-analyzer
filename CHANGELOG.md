@@ -60,6 +60,13 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.4](https://github.com/martinopedal/azure-analyzer/compare/v1.4.3...v1.4.4) (2026-05-12)
+
+
+### Chores
+
+* **deps:** bump googleapis/release-please-action ([#1000](https://github.com/martinopedal/azure-analyzer/issues/1000)) ([f53bf77](https://github.com/martinopedal/azure-analyzer/commit/f53bf77eab3010fc97f5dcd9c29bc8ad5af7d1e1))
+
 ## [1.4.3](https://github.com/martinopedal/azure-analyzer/compare/v1.4.2...v1.4.3) (2026-05-12)
 
 
