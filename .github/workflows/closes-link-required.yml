@@ -40,6 +40,16 @@ jobs:
               core.info(`Skipping closes check - release-please branch '${headRef}' detected.`);
               return;
             }
+            // Defense in depth for the weekly tool-pin bumper (tools/Update-ToolPins.ps1).
+            // The bumper PR body already includes 'Closes #1019' (umbrella), but a
+            // body-edit timing race or a manual rebase that drops the marker would
+            // otherwise spam the daily CI digest. The umbrella issue tracks the
+            // bump cascade as a single unit, so per-PR closes-link enforcement is
+            // redundant on these branches.
+            if (/^chore\/bump-/.test(headRef)) {
+              core.info(`Skipping closes check - tool-pin bumper branch '${headRef}' detected (tracked under umbrella #1019).`);
+              return;
+            }
 
             const author = pr.user?.login ?? '';
             // Trusted bot allow-list (B3 fix from Forge A1 audit): exempt bots

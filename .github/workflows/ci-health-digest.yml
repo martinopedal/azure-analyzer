@@ -93,10 +93,22 @@ jobs:
           }
 
           # 3. Filter: skip the watchdog itself and skip any run already covered.
+          # Also drop bot-managed branch families that have their own remediation
+          # loop and would otherwise dominate the daily digest:
+          #   - chore/bump-*       — weekly tool-pin bumper (umbrella #1019); the
+          #                          next bumper run replaces stale failed PRs, so
+          #                          historical failures here are not human action
+          #                          items.
+          #   - release-please--*  — release-please bot; failures block the release
+          #                          PR's required checks directly, no triage needed.
+          # Real product breakage on main still surfaces because main pushes use a
+          # bare branch name ('main'), not a bot prefix.
+          $botBranchPattern = '^(chore/bump-|release-please--)'
           $untriaged = @()
           foreach ($r in $runs) {
               if ($r.name -eq 'CI failure watchdog' -or $r.name -eq 'CI Health Digest') { continue }
               if ($triagedRunUrls.ContainsKey($r.html_url)) { continue }
+              if ($r.head_branch -and $r.head_branch -match $botBranchPattern) { continue }
               $untriaged += $r
           }
 
