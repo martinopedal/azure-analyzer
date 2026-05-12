@@ -25,15 +25,20 @@ Describe 'CI Pester baseline guard (regression for #471)' {
         $script:CiRaw | Should -Match '\[int\]\$current\.TotalCount\s+-lt\s+\[int\]\$baseline\.TotalCount'
     }
 
-    It 'enforces hardcoded TotalCount floor of 1630 (PR #937 baseline)' {
-        $script:CiRaw | Should -Match '\$MinTotal\s*=\s*1630'
+    It 'enforces hardcoded TotalCount floor of 1680 (PR #1022 baseline)' {
+        # History: 1630 (PR #937) -> 1680 (PR #1022 / #967 added 55 RubberDuckChain tests).
+        # Bump this assertion in lockstep with $MinTotal in ci.yml whenever a PR
+        # legitimately raises the test count; never lower it.
+        $script:CiRaw | Should -Match '\$MinTotal\s*=\s*1680'
         $script:CiRaw | Should -Match '\[int\]\$current\.TotalCount\s+-lt\s+\$MinTotal'
     }
 
-    It 'enforces hardcoded PassedCount floor of 1595 (PR #937 baseline)' {
-        # Lowered from 1602 to 1595 in PR #937 (removed auto-approve-bot-runs.yml
-        # workflow + its 7-test guard file AutoApproveBotRuns.Tests.ps1).
-        $script:CiRaw | Should -Match '\$MinPassed\s*=\s*1595'
+    It 'enforces hardcoded PassedCount floor of 1645 (PR #1022 baseline)' {
+        # History: 1602 (PR #937 original) -> 1595 (PR #937 removed auto-approve-bot-runs.yml
+        # + AutoApproveBotRuns.Tests.ps1) -> 1645 (PR #1022 / #967 added 55 RubberDuckChain tests).
+        # Bump this assertion in lockstep with $MinPassed in ci.yml whenever a PR
+        # legitimately raises the test count; never lower it.
+        $script:CiRaw | Should -Match '\$MinPassed\s*=\s*1645'
         $script:CiRaw | Should -Match '\[int\]\$current\.PassedCount\s+-lt\s+\$MinPassed'
     }
 }
