@@ -167,7 +167,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
 | `maester` | psmodule | maester365/maester @ 2.1.0 | `#7b1fa2` | 1 |
 | `pim-graph` | psmodule | n/a | `#7b1fa2` | 2 |
-| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ latest | `#455a64` | 1 |
+| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ 1.5.1 | `#455a64` | 1 |
 | `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.25.3 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ 1.47.0 | `#6a1b9a` | 1 |
 | `roadrecon` | cli ("roadrecon") | n/a | `#311b92` | 2 |
