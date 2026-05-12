@@ -168,8 +168,9 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `maester` | psmodule | maester365/maester @ 2.1.0 | `#7b1fa2` | 1 |
 | `pim-graph` | psmodule | n/a | `#7b1fa2` | 2 |
 | `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ latest | `#455a64` | 1 |
-| `prowler` | cli ("prowler") | prowler-cloud/prowler @ latest | `#1f2937` | 4 |
+| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.25.3 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ 1.47.0 | `#6a1b9a` | 1 |
+| `roadrecon` | cli ("roadrecon") | n/a | `#311b92` | 2 |
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
