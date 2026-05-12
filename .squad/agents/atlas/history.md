@@ -274,6 +274,10 @@ Wrote `.copilot/audits/atlas-manifest-audit-2026-04-23.md` (11.8 KB). Full-boile
 
 ## Learnings
 
+### 2025-01-13 - Track F dependency gate (hard stop preserved implementation baseline)
+
+Track F PR 1 attempted per Lead plan. Dependency gate (Commit 0) correctly blocked: 3 of 6 required modules missing (EdgeRelations, Select-ReportArchitecture, PolicyCoverageAnalyzer). Hard-stop rule honored: empty commit documenting the blocker, issue comment posted to #1048, no Commit 1, no PR opened. Branch `feat/506-auditor-report-impl` created with 2 commits (gate audit + decision file). Next trigger: upstream tracks merge, re-run from Commit 0.
+
 ### 2026-04-24 - FixtureMode implementation (#926)
 
 - Fixture files follow `<toolname>-output.json` naming convention in `tests/fixtures/`. Two exceptions: `bicep-iac` maps to `iac-bicep-output.json` and `terraform-iac` maps to `iac-terraform-output.json`.
