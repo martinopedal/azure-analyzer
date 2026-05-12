@@ -60,6 +60,27 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.2](https://github.com/martinopedal/azure-analyzer/compare/v1.4.1...v1.4.2) (2026-05-12)
+
+
+### Documentation
+
+* **forge:** log issue [#1040](https://github.com/martinopedal/azure-analyzer/issues/1040) triage outcome and learnings ([#1045](https://github.com/martinopedal/azure-analyzer/issues/1045)) ([bba3277](https://github.com/martinopedal/azure-analyzer/commit/bba327783a50028f8a3fa513e19e72d201900ae6))
+
+
+### Chores
+
+* **ci:** exclude bot-managed bump branches from triage digest (closes [#1040](https://github.com/martinopedal/azure-analyzer/issues/1040)) ([#1044](https://github.com/martinopedal/azure-analyzer/issues/1044)) ([f54f963](https://github.com/martinopedal/azure-analyzer/commit/f54f963c1deddebc16922c76f9ca1460dc7ca7f0))
+* **deps:** bump actions/cache from 4.3.0 to 5.0.5 ([#1002](https://github.com/martinopedal/azure-analyzer/issues/1002)) ([ff4ed53](https://github.com/martinopedal/azure-analyzer/commit/ff4ed53c53c92c860526d27f565b113c5217f47a))
+* **deps:** bump DavidAnson/markdownlint-cli2-action ([#1008](https://github.com/martinopedal/azure-analyzer/issues/1008)) ([654ebd8](https://github.com/martinopedal/azure-analyzer/commit/654ebd83ba58ccf89b606f8e4f117f787a18f528))
+* **docs:** auto-generate permissions stubs + README facts; wire bumper to PERMISSIONS regen ([#1043](https://github.com/martinopedal/azure-analyzer/issues/1043)) ([126619e](https://github.com/martinopedal/azure-analyzer/commit/126619e770b48065ec4978e5abdb0a3eb75a289d)), closes [#1019](https://github.com/martinopedal/azure-analyzer/issues/1019)
+* **falco:** bump upstream pin to 0.43.1 ([#988](https://github.com/martinopedal/azure-analyzer/issues/988)) ([2e849dc](https://github.com/martinopedal/azure-analyzer/commit/2e849dce5f0e7bb519776192854ad29077a33240))
+* **gitleaks:** bump upstream pin to 8.30.1 ([#989](https://github.com/martinopedal/azure-analyzer/issues/989)) ([03360be](https://github.com/martinopedal/azure-analyzer/commit/03360bee9ae2d33d5f45214db323bb4dd950fd5c))
+* **infracost:** bump upstream pin to 0.10.44 ([#990](https://github.com/martinopedal/azure-analyzer/issues/990)) ([4668328](https://github.com/martinopedal/azure-analyzer/commit/46683281e8f2b84c2a663da39b907d4e07be63b7))
+* **powerpipe:** bump upstream pin to 1.5.1 ([#993](https://github.com/martinopedal/azure-analyzer/issues/993)) ([23d09e2](https://github.com/martinopedal/azure-analyzer/commit/23d09e221c037d51c162c190bc1ab26c403fbdc9))
+* **psrule:** bump upstream pin to 1.47.0 ([#995](https://github.com/martinopedal/azure-analyzer/issues/995)) ([4a121c3](https://github.com/martinopedal/azure-analyzer/commit/4a121c38e6be0265481d033a56c299772169ef06))
+* **scorecard:** bump upstream pin to 5.5.0 ([#996](https://github.com/martinopedal/azure-analyzer/issues/996)) ([6cb3bb7](https://github.com/martinopedal/azure-analyzer/commit/6cb3bb736dd8b281889ca636c77de16b98bf7f37))
+
 ## [1.4.1](https://github.com/martinopedal/azure-analyzer/compare/v1.4.0...v1.4.1) (2026-05-12)
 
 
