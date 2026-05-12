@@ -50,6 +50,10 @@ See [docs/contributing/adding-a-tool.md](docs/contributing/adding-a-tool.md) for
 
 AI-assisted contributions are welcome. If you used an AI tool to generate or refactor code, disclose it in the PR description using the pull request template. The maintainer will verify correctness before merging.
 
+## Docs voice
+
+All committed documentation follows `.squad/skills/docs-voice/SKILL.md`: direct openers, concrete examples, no AI-tells (leveraging, furthermore, comprehensive, journey), only ✅ ❌ emojis, no em/en dashes.
+
 ## Commit sign-off
 
 All commits must include a `Signed-off-by` trailer. Use `git commit -s` to add it automatically. This certifies that you wrote the contribution or have the right to submit it under the project license.

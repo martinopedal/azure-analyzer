@@ -231,6 +231,10 @@ The squad coordinator (or the PR author agent, after self-review) marks the PR r
 - Docs are rubber-ducked against actual code before merge
 - No em dashes in any documentation
 
+## Docs voice
+
+All committed documentation follows `.squad/skills/docs-voice/SKILL.md`: direct openers, conclusions before reasoning, concrete examples over abstractions, no AI-tells (leveraging, driving, unlocking, furthermore, moreover, comprehensive, robust, journey), only ✅ ❌ emojis, no em/en dashes. Applies to README, CHANGELOG, PERMISSIONS, design docs, PR bodies, decision files, agent histories.
+
 ## Issue Verification Contract
 
 Every closed issue must survive a re-run of its own repro. The
