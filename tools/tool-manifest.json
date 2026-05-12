@@ -1737,7 +1737,7 @@
         "repo": "maester365/maester",
         "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
         "pinType": "psmodule-version",
-        "currentPin": "latest"
+        "currentPin": "2.1.0"
       },
       "frameworks": [
         "NIST 800-53",
@@ -1903,7 +1903,7 @@
         "repo": "prowler-cloud/prowler",
         "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "5.25.3"
       },
       "frameworks": [
         "CIS Azure",
@@ -2057,7 +2057,7 @@
         "repo": "ossf/scorecard",
         "releaseApi": "https://api.github.com/repos/ossf/scorecard/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "5.5.0"
       },
       "frameworks": [
         "NIST 800-53",
@@ -2329,7 +2329,7 @@
         "repo": "aquasecurity/trivy",
         "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "0.70.0"
       },
       "frameworks": [
         "CIS Azure",
@@ -2430,7 +2430,7 @@
         "repo": "woodruffw/zizmor",
         "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "1.24.1"
       },
       "frameworks": [
         "NIST 800-53",
