@@ -1737,7 +1737,7 @@
         "repo": "maester365/maester",
         "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
         "pinType": "psmodule-version",
-        "currentPin": "latest"
+        "currentPin": "2.1.0"
       },
       "frameworks": [
         "NIST 800-53",
