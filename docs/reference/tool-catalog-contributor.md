@@ -131,7 +131,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ latest | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
-| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ latest | `#5c4ee5` | 7 |
+| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.14.9 | `#5c4ee5` | 7 |
 | `trivy` | cli ("trivy") | aquasecurity/trivy @ latest | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
 | `zizmor` | cli ("zizmor") | woodruffw/zizmor @ latest | `#ad1457` | 3 |
