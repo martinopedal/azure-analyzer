@@ -143,7 +143,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |
 | `azure-quota` | cli ("az") | martinopedal/azure-quota-reports | `#455a64` | 4 |
 | `azurehound` | cli ("azurehound") | n/a | `#1565c0` | 2 |
-| `bicep-iac` | cli ("bicep") | Azure/bicep @ latest | `#0d47a1` | 7 |
+| `bicep-iac` | cli ("bicep") | Azure/bicep @ 0.43.8 | `#0d47a1` | 7 |
 | `bloodhound-ce` | none | n/a | `#0d47a1` | 2 |
 | `censys` | none | n/a | `#5c6bc0` | 4 |
 | `conditional-access-graph` | psmodule | n/a | `#6a1b9a` | 2 |
