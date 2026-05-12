@@ -390,7 +390,7 @@
         "repo": "martinopedal/alz-graph-queries",
         "releaseApi": "https://api.github.com/repos/martinopedal/alz-graph-queries/commits/main",
         "pinType": "sha",
-        "currentPin": "HEAD"
+        "currentPin": "fd04b20a7a67"
       },
       "frameworks": [
         "CIS Azure",

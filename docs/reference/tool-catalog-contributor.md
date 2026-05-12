@@ -105,7 +105,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `aks-karpenter-cost` | psmodule | n/a | `#00695c` | 4 |
 | `aks-rightsizing` | psmodule | n/a | `#2e7d32` | 4 |
-| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ HEAD | `#e65100` | 1 |
+| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ fd04b20a7a67 | `#e65100` | 1 |
 | `appinsights` | psmodule | n/a | `#00838f` | 4 |
 | `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ HEAD | `#00838f` | 1 |
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
