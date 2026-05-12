@@ -200,3 +200,65 @@ Accumulated learnings from prior sessions (summarized 2026-04-22):
 - **Setup required:** Issue #954 documents one-time manual steps to create the GitHub App and install it on the repo.
 - 2026-04-24 — Fixed two Pester blockers on main: (1) SampleDrift entity-bar sort was non-deterministic due to hashtable GetEnumerator() order; added secondary sort by Key + converted heatmap/entity hashtables to [ordered]@{} + fixed ContainsKey→Contains for OrderedDictionary. (2) Backfill-ChangelogCitations .Count on null/scalar under strict mode; wrapped with @(). Documented patterns in .squad/skills/pester-fixture-testing/SKILL.md.
 - 2026-04-25 — ASCII banner redesign (#964, PR #975): Console banner (modules/shared/Banner.ps1) is presentation-only — it does NOT appear in HTML/MD reports, so changes have zero SampleDrift impact. Used pyfiglet Standard font for generating ASCII art. Multi-color via separate Write-Host -ForegroundColor calls per block (Cyan for AZURE, Yellow for ANALYZER). Writer path (StringWriter) is used by the ASCII-only test and must output all blocks + version.
+
+## 2026-05-12 - PR (chore/auto-doc-coverage): auto-coverage trifecta, no human-touched docs gaps
+
+Closing the three remaining "human-touched" gaps in the doc auto-coverage matrix:
+
+1. **README tool-count drift** (was hard-coded "36 + 1 opt-in"; manifest had 38 enabled).
+   New `scripts/Generate-ReadmeFacts.ps1` projects the manifest into three BEGIN/END
+   marker pairs in `README.md` (`tool-count-tagline`, `tool-count-feature-list`,
+   `tool-catalog-summary`). New `readme-facts-fresh` job in `docs-check.yml` enforces
+   freshness on every PR.
+
+2. **`docs/reference/permissions/<tool>.md` missing pages threw**. WRITE mode now
+   auto-creates a TODO stub (`New-PermissionsStub` helper inside
+   `Generate-PermissionsIndex.ps1`). CheckOnly mode is unchanged - still fails on
+   missing pages, so the docs-check `permissions-pages-fresh` invariant stays tight
+   on `main`. Stub H1 is `# {displayName} - Required Permissions` to match the
+   pre-existing per-tool contract test (`^# .* - Required Permissions$`).
+
+3. **Bumper didn't regenerate PERMISSIONS or README**. `tools/Update-ToolPins.ps1`
+   now sequences all three generators (`Generate-ToolCatalog.ps1` ->
+   `Generate-PermissionsIndex.ps1` -> `Generate-ReadmeFacts.ps1`) after the manifest
+   write, and stages every output (catalog files, PERMISSIONS.md, README.md, both
+   permissions dirs) into the same atomic commit.
+
+### Learnings
+
+- **Mirror logic must be guarded by default-path check.** First cut of the stub
+  generator unconditionally mirrored stubs to `docs/consumer/permissions/` whenever
+  it existed, which leaked test fixtures (TestDrive Pages dirs) into the live repo
+  during `Invoke-Pester`. Fix: only mirror when `$PagesDir` resolves to the default
+  `docs/reference/permissions` location. Test fixtures pass a custom `$PagesDir`,
+  so the mirror step is skipped.
+
+- **Pre-existing repo drift between `docs/consumer/permissions/` and
+  `docs/reference/permissions/`**. Both dirs hold the same 45 files; index links
+  point at consumer but the existence check defaults to reference. The generator
+  works around this by writing stubs to both. Real consolidation deferred to a
+  separate PR (touches every link in the rendered index).
+
+- **Sibling generator > fat-script extension.** Considered folding README facts into
+  `Generate-ToolCatalog.ps1`. Rejected: single-responsibility, test isolation, and
+  the docs-check workflow already shows one named job per generator on the PR
+  status check list. A new sibling script costs one extra `pwsh -File` block in the
+  bumper; folding two surfaces into one script would have rewritten the existing
+  catalog tests' contract.
+
+- **H1 contract discovery.** `tests/scripts/Generate-PermissionsIndex.Tests.ps1`
+  enforces `^# .* - Required Permissions$` on every per-tool page. Stubs MUST match
+  this regex on first commit, so the original spec's `# {displayName} - Permissions`
+  heading was wrong. Used `# {displayName} - Required Permissions` instead.
+  Documented in the decision note.
+
+- **Em-dash ban is repo-wide.** Existing test
+  `Generate-ToolCatalog.Tests.ps1::neither catalog contains an em dash` proves it.
+  Both new generators ship with em-dash assertions.
+
+### Decisions logged
+
+- `.squad/decisions/inbox/forge-auto-doc-coverage.md`: chose Option B (sibling
+  generator) over Option A (extend ToolCatalog), H1 deviation from spec to match
+  contract test, mirror to both legacy permission dirs, leave THIRD_PARTY_NOTICES
+  hand-curated.
