@@ -1,0 +1,82 @@
+[
+  {
+    "FindingId": "F-001",
+    "Severity": "Critical",
+    "Title": "Key Vault purge protection disabled",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-prod-01",
+    "ComplianceMappings": ["CIS 2.1.4", "NIST SC-28"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-002",
+    "Severity": "Critical",
+    "Title": "Storage account allows HTTP",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Storage/storageAccounts/stprod01",
+    "ComplianceMappings": ["CIS 3.1", "NIST SC-8"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-003",
+    "Severity": "Critical",
+    "Title": "VM disk encryption not enabled",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+    "ComplianceMappings": ["CIS 7.1", "ISO27001 A.10.1.1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-004",
+    "Severity": "High",
+    "Title": "Network security group allows RDP from internet",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Network/networkSecurityGroups/nsg-prod",
+    "ComplianceMappings": ["CIS 6.1", "NIST AC-4"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-005",
+    "Severity": "High",
+    "Title": "SQL database auditing disabled",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Sql/servers/sql-prod/databases/db-prod",
+    "ComplianceMappings": ["CIS 4.1.1", "MCSB LT-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-006",
+    "Severity": "High",
+    "Title": "App Service authentication not configured",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Web/sites/app-prod",
+    "ComplianceMappings": ["CIS 9.1", "NIST IA-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-007",
+    "Severity": "High",
+    "Title": "Defender for Cloud not enabled",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1", "MCSB LT-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-008",
+    "Severity": "Medium",
+    "Title": "Key Vault soft delete not enabled",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-prod-02",
+    "ComplianceMappings": ["CIS 2.1.3"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-009",
+    "Severity": "Medium",
+    "Title": "Storage account minimum TLS version not 1.2",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Storage/storageAccounts/stprod02",
+    "ComplianceMappings": ["CIS 3.10", "NIST SC-8"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-010",
+    "Severity": "Low",
+    "Title": "Resource group missing required tags",
+    "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test",
+    "ComplianceMappings": null,
+    "Compliant": false
+  }
+]

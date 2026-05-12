@@ -1,0 +1,14 @@
+{
+  "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee": {
+    "entityType": "Tenant",
+    "displayName": "Test Tenant",
+    "properties": {}
+  },
+  "/subscriptions/test-sub": {
+    "entityType": "Subscription",
+    "displayName": "Test Subscription",
+    "properties": {
+      "subscriptionId": "test-sub"
+    }
+  }
+}
