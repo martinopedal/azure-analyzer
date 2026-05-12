@@ -414,6 +414,29 @@ Two-agent arc: Atlas (azure-quota-reports research + 🟢 verdict), Sage (falco 
 
 **Status:** Active — issue filed.
 
+### Forge GPG-signed tag check removed — v1.4.5 PSGallery recovery (2026-05-12)
+
+**Source:** `.squad/decisions/inbox/forge-release-gpg-tag-fix.md`
+
+PR #1049 ("PSGallery publishing readiness #963") shipped manifest rotation + README external-tools section + ci.yml validation + PERMISSIONS docs, but omitted the release.yml validator fix from Sage's Path A brief. First real publish attempt (run [25735228356](https://github.com/martinopedal/azure-analyzer/actions/runs/25735228356)) failed at `Validate annotated + signed tag` — release-please ships lightweight tags (object type `commit`, no PGP signature) so the gate failed deterministically.
+
+**Decision:** Adopt Sage Path A — remove the GPG/annotated requirement. Replacement `Validate release tag` step still verifies tag existence, resolves to commit SHA, validates `v<major>.<minor>.<patch>` format, and logs lightweight vs annotated for transparency. Provenance established via SHA256SUMS + SBOM + SHA-pinned actions.
+
+**Recovery (Option A):**
+1. Delete broken release + lightweight tag
+2. PR #1051 merges fix to main (commit `43873a5`)
+3. Re-create lightweight tag at fixed HEAD
+4. Push tag to trigger release.yml from fixed validator
+
+New release run [25735618882](https://github.com/martinopedal/azure-analyzer/actions/runs/25735618882) green end-to-end. PSGallery smoke test passed. `Find-Module -Name AzureAnalyzer -Repository PSGallery -RequiredVersion 1.4.5` confirms publication 12:55:49 UTC.
+
+**Lessons:**
+- Readiness ≠ CI passing. First real publish is the test.
+- release-please ships lightweight tags forever; no toggle. Either drop the requirement or add app-level GPG signing (overkill for PSGallery).
+- Walk source briefs vs actual diffs during PR review. PR #1049 closed 3/4 work items but left the validator live despite Sage calling it out explicitly.
+
+**Status:** Shipped (PR #1051 merged, v1.4.5 live on PSGallery, issue #963 closed).
+
 ---
 
 ## Governance

@@ -292,3 +292,30 @@ Verdict: pure policy noise. Patched at the source.
 ### Decisions logged
 
 - No separate decision note (architectural choice was straightforward: filter at both layers, no Option A vs Option B trade-off).
+
+## 2026-05-12 - PR #1051 merged + v1.4.5 published to PSGallery (closes #963)
+
+The first PSGallery publish for `AzureAnalyzer` was blocked at the `Validate annotated + signed tag` step in `release.yml` (run [25735228356](https://github.com/martinopedal/azure-analyzer/actions/runs/25735228356)). PR #1049 had shipped the README, exclusion guard, and CI manifest test, but never touched the validate step. release-please ships **lightweight** tags (object type `commit`, no PGP signature) so the gate failed deterministically on every release-please tag.
+
+Patch: replaced the failing step with `Validate release tag` per Sage Path A (PSGallery does not require GPG-signed tags; provenance comes from SHA256SUMS + SBOM + SHA-pinned pipeline). Still verifies the tag exists, resolves to a real commit, matches `v<major>.<minor>.<patch>`, and logs lightweight vs annotated for transparency.
+
+Recovery procedure (Option A — cleanest, no force-pushes):
+
+1. `gh release delete v1.4.5 --cleanup-tag --yes` (delete broken release + lightweight tag)
+2. PR #1051 merges to main → fix lives at `main` HEAD
+3. `git fetch origin --tags --prune --prune-tags` (drop deleted tag locally)
+4. `git tag v1.4.5 origin/main && git push origin v1.4.5` → re-fires `release.yml` from the fixed workflow file
+5. `gh run watch <id> --exit-status` to confirm publish
+
+New release run [25735618882](https://github.com/martinopedal/azure-analyzer/actions/runs/25735618882) green end-to-end. `Find-Module -Name AzureAnalyzer -Repository PSGallery -RequiredVersion 1.4.5` confirms publication 12:55:49 UTC.
+
+### Learnings
+
+- **release-please ships lightweight tags. Forever.** Object type `commit`, no annotation, no PGP signature. Any release validator that demands `[[ object_type == tag ]]` or `-----BEGIN PGP SIGNATURE-----` will fail every single release-please tag. There is no toggle in release-please to flip this; if you want annotated/signed tags you have to either (a) configure GPG signing for the GitHub App that creates the tag, or (b) drop the requirement. PSGallery itself does not require GPG-signed tags, so for our purposes (a) is overkill and (b) is correct.
+- **Local `git tag <name> <commit>` may not produce a lightweight tag.** With `tag.forceSignAnnotated=true` (set in my global git config), bare `git tag v1.4.5 origin/main` errored with `fatal: no tag message?`. Override per-invocation with `git -c tag.gpgSign=false -c tag.forceSignAnnotated=false tag --no-sign <name> <commit>` to force a real lightweight tag. Verify with `git for-each-ref refs/tags/<tag> --format='%(objecttype)'` — must print `commit`, not `tag`.
+- **Always check the failing step inventory against the research brief before declaring readiness shipped.** PR #1049 closed three of four work items but left the GPG validator in place. Sage's Path A explicitly called out the validator as the change needed. Lesson: when shipping a "readiness" PR sourced from a research brief, walk the brief's recommendations one by one against the actual diff; a checklist labelled "PSGallery readiness" must include "no leftover gates that block the first publish". A green CI on a readiness PR is necessary but not sufficient — the readiness must be tested by the next real publish, which is exactly what just bit us.
+- **Recovery via Option A is safe and idempotent.** Delete release + tag, push fix, re-cut tag at the new HEAD. No force-push to a tag (which would race with any cached clone). The CHANGELOG `[1.4.5]` section already on main from release-please stays as-is — no rewrite needed because the version number did not change, only the workflow that publishes it.
+
+### Decisions logged
+
+- `.squad/decisions/inbox/forge-release-gpg-tag-fix.md` written for Scribe.

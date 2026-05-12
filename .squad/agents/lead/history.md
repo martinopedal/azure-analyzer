@@ -141,3 +141,9 @@ User can override in PR review, but implementation can proceed without blocking.
 
 ---
 
+
+## 2026-05-12 - First PSGallery publish complete — AzureAnalyzer now Install-Module discoverable
+
+Issue #963 closed. v1.4.5 published 2026-05-12 12:55:49 UTC. Users can now Install-Module -Name AzureAnalyzer -Repository PSGallery. PR #1051 fix (lightweight-tag-tolerant validator) merged; PR #1052 (v1.4.6 follow-up) auto-merge enabled. AzureAnalyzer is distributable; corporate air-gapped mirrors can now consume via Register-PSRepository.
+
+

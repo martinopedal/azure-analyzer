@@ -264,3 +264,9 @@
 - **Intake:** Recommended 10 PRs (1 P0 = 5min, 4 P1 = ~4 hours total, 5 P2 = backlog). Full prioritized table in audit report.
 - **Verdict:** FULLY COHERENT with actionable gaps (feature-docs omissions, not schema contradictions). Ready for Phase G.
 
+
+## 2026-05-12 - PSGallery first publish validated (v1.4.5 published 12:55:49 UTC)
+
+Path A vindicated: lightweight-tag validator removal (PR #1051) unblocked release.yml. v1.4.5 now discoverable via Find-Module -Name AzureAnalyzer -Repository PSGallery. Issue #963 closed. Forge recovered from PR #1049 omission (GPG validator step) via release delete + tag re-cut (Option A). First real publish is the readiness test, not CI.
+
+
