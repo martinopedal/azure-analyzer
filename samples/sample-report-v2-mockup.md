@@ -8,7 +8,7 @@
 ![Low](https://img.shields.io/badge/Low-0-a16207)
 ![Info](https://img.shields.io/badge/Info-0-475569)
 ![Posture](https://img.shields.io/badge/Posture-F%20%280%2F100%29-2563eb)
-![Tools](https://img.shields.io/badge/Tools-36-0369a1)
+![Tools](https://img.shields.io/badge/Tools-52-0369a1)
 ![Run](https://img.shields.io/badge/Run-22%20Apr%202026%2007%3A52%20UTC-334155)
 
 > Generated report. For full interactive exploration, open [sample-report-v2-mockup.html](sample-report-v2-mockup.html).
@@ -25,7 +25,7 @@
 
 ## Executive summary
 
-Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope(s). Compliance is 0%. Posture grade is **F (0/100)**.
+Tenant `contoso-prod` was scanned across 52 tools covering 3 entities in 2 scope(s). Compliance is 0%. Posture grade is **F (0/100)**.
 
 3 critical, 2 high, 0 medium, 0 low, and 0 info findings are currently non-compliant.
 
@@ -53,6 +53,7 @@ Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope
 | azqr | subscription | 1 | 0% | OK |
 | azure-cost | subscription | 0 | - | _skipped_ |
 | azure-quota | subscription | 0 | - | _skipped_ |
+| defender-easm | subscription | 0 | - | _skipped_ |
 | defender-for-cloud | subscription | 0 | - | _skipped_ |
 | falco | subscription | 0 | - | _skipped_ |
 | finops | subscription | 0 | - | _skipped_ |
@@ -70,9 +71,17 @@ Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
+| azurehound | tenant | 0 | - | _skipped_ |
+| bloodhound-ce | tenant | 0 | - | _skipped_ |
+| conditional-access-graph | tenant | 0 | - | _skipped_ |
+| entra-permissions-mgmt | tenant | 0 | - | _skipped_ |
+| forest-druid | tenant | 0 | - | _skipped_ |
+| graphrunner | tenant | 0 | - | _skipped_ |
 | identity-correlator | tenant | 0 | - | _skipped_ |
 | identity-graph-expansion | tenant | 0 | - | _skipped_ |
 | maester | tenant | 1 | 0% | OK |
+| pim-graph | tenant | 0 | - | _skipped_ |
+| roadrecon | tenant | 0 | - | _skipped_ |
 
 ### GitHub
 
@@ -95,10 +104,16 @@ Tenant `contoso-prod` was scanned across 36 tools covering 3 entities in 2 scope
 
 | Tool | Scope | Findings | Pass % | Status |
 | --- | --- | ---: | ---: | --- |
+| amass | tenant | 0 | - | _skipped_ |
 | bicep-iac | repository | 0 | - | _skipped_ |
+| censys | tenant | 0 | - | _skipped_ |
 | copilot-triage | repository | 0 | - | _skipped_ |
+| dnstwist | tenant | 0 | - | _skipped_ |
 | gitleaks | repository | 1 | 0% | OK |
+| httpx | tenant | 0 | - | _skipped_ |
 | infracost | repository | 0 | - | _skipped_ |
+| shodan | tenant | 0 | - | _skipped_ |
+| subfinder | tenant | 0 | - | _skipped_ |
 | terraform-iac | repository | 0 | - | _skipped_ |
 | trivy | repository | 1 | 0% | OK |
 | zizmor | repository | 0 | - | _skipped_ |
@@ -201,18 +216,29 @@ Top 30 findings from this run. The [interactive HTML report](sample-report-v2-mo
 | aks-karpenter-cost | - | azure |
 | aks-rightsizing | - | azure |
 | alz-queries | - | azure |
+| amass | - | easm |
 | appinsights | - | azure |
 | azgovviz | - | azure |
 | azqr | 2.7.0 | azure |
 | azure-cost | - | azure |
 | azure-quota | - | azure |
+| azurehound | - | graph |
 | bicep-iac | - | cli |
+| bloodhound-ce | - | graph |
+| censys | - | easm |
+| conditional-access-graph | - | graph |
 | copilot-triage | - | cli |
+| defender-easm | - | azure |
 | defender-for-cloud | - | azure |
+| dnstwist | - | easm |
+| entra-permissions-mgmt | - | graph |
 | falco | - | azure |
 | finops | - | azure |
+| forest-druid | - | graph |
 | gh-actions-billing | - | github |
 | gitleaks | - | cli |
+| graphrunner | - | graph |
+| httpx | - | easm |
 | identity-correlator | - | graph |
 | identity-graph-expansion | - | graph |
 | infracost | - | cli |
@@ -220,12 +246,16 @@ Top 30 findings from this run. The [interactive HTML report](sample-report-v2-mo
 | kubescape | v3.1.1 | azure |
 | loadtesting | - | azure |
 | maester | - | microsoft365 |
+| pim-graph | - | graph |
 | powerpipe | - | azure |
 | prowler | - | azure |
 | psrule | 1.40.0 | azure |
+| roadrecon | - | graph |
 | scorecard | - | github |
 | sentinel-coverage | 2024-09-01 | azure |
 | sentinel-incidents | - | azure |
+| shodan | - | easm |
+| subfinder | - | easm |
 | terraform-iac | - | cli |
 | trivy | - | cli |
 | wara | - | azure |

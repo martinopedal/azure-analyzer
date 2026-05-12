@@ -1,8 +1,18 @@
 ## Unreleased
 
+### Added
+
+- **Graph mapping foundation + Conditional Access policy graph worked example**: New design doc `docs/design/graph-mapping-integration.md` lays out a four-family vendor matrix (Azure-native, Entra-native, commercial / industry standard, OSS researched) plus an R0..R8 roadmap. Eight new `provider: "graph"` entries land in `tools/tool-manifest.json`: `azurehound`, `bloodhound-ce`, `entra-permissions-mgmt`, `forest-druid`, `graphrunner`, `pim-graph`, `roadrecon` (all `enabled: false`, scaffolded for follow-up R2..R4 PRs) plus `conditional-access-graph` enabled as the worked example. Schema gains three new entity types (`ConditionalAccessPolicy`, `NamedLocation`, `OnPremUser`), one new platform (`OnPremAdded`), and six new edge relations (`AppliesTo`, `Excludes`, `EligibleFor`, `ActiveAs`, `EffectivePermission`, `OnPremShadow`); `ConvertTo-CanonicalEntityId` learns canonical-id producers for the three new entity types (`cap:{guid}`, `loc:{guid}`, `onprem:user:{sid}`). `Invoke-ConditionalAccessGraph.ps1` collects every CA policy from `/identity/conditionalAccess/policies`, applies a five-rule risk rubric (disabled-covers-privileged, report-only, GA-excluded-from-MFA, oversized break-glass, no-strong-control), and emits a v1 envelope with both findings and a sanitized `Policies` projection. `Normalize-ConditionalAccessGraph.ps1` converts the envelope into v2 `FindingRow` records anchored to the canonical policy entity plus v3 `AppliesTo` / `Excludes` `Edge` records for every targeted user / group / app / named location, filtering out the `All` / `None` / `GuestsOrExternalUsers` Graph sentinels. The wrapper accepts `-PreFetchedData` for fixture / offline runs (consumed by `tests/fixtures/conditional-access-graph-output.json`). New per-tool docs page `docs/reference/permissions/conditional-access-graph.md`. PERMISSIONS index + tool catalog regenerated to include the new family.
+
+- **EASM (External Attack Surface Management) foundation + DNSTwist worked example**: New `provider: "easm"` family in `tools/tool-manifest.json` registers seven EASM tools (DNSTwist enabled; Amass, Subfinder, httpx, Shodan, Censys, Defender EASM scaffolded as `enabled: false` for follow-up PRs). Schema gains a new `ExternalAsset` `EntityType` and `External` `Platform` so internet-discovered assets that do not map back to an Azure-owned resource are surfaced under their own bucket instead of being dropped or mis-anchored. Two new shared modules ship: `modules/shared/EasmSeed.ps1` (`Get-EasmSeed` builds a normalised, hashed seed bundle from operator overrides plus optional ARG / Entra augmentation; rejects malformed or shell-metacharacter input) and `modules/shared/EasmCorrelator.ps1` (`Get-EasmEntityIndex` + `Resolve-EasmEntity` map discovered IPs / FQDNs back to `AzureResource` entities via the existing entity inventory, with case-insensitive exact match only). DNSTwist wrapper (`modules/Invoke-DnsTwist.ps1`) plus normalizer (`modules/normalizers/Normalize-DnsTwist.ps1`) deliver typosquat / homoglyph detection end-to-end through `-FixtureMode`. `Remove-Credentials` learns to scrub `SHODAN_API_KEY`, `CENSYS_API_ID`, and `CENSYS_API_SECRET` env-var assignments. Design doc: `docs/design/easm-integration.md` (R0+R1+R2 partial; remaining R2 / R3 / R4 / R5 / R6 / R7 / R8 phases tracked as follow-up issues).
+
 ### Fixed
 
+- **Auto-bumper catalog regeneration**: Update-ToolPins.ps1 now regenerates tool catalogs (docs/reference/tool-catalog.md + tool-catalog-contributor.md) immediately after updating tools/tool-manifest.json, so the catalogs remain in sync with the manifest in the same commit. Previously the catalogs went stale on every pin bump, causing CI failures on tool-catalog-fresh and Generate-ToolCatalog.Tests.ps1. The PR body now references umbrella issue #1019 to satisfy the Closes-link CI check.
+
 - **Scheduled Scan OIDC preflight (#984)**: Scheduled runs now treat missing or malformed `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, or `AZURE_CLIENT_ID` repo variables as "not configured" and skip Azure login/analyzer execution without failing the workflow. Manual `workflow_dispatch` runs still fail fast so explicit operator mistakes remain visible.
+
+- **EASM PR review feedback (DNSTwist)**: Aligned `Invoke-DnsTwist.ps1` `Invoke-WithTimeout` call with the canonical `modules/shared/CliTimeout.ps1` signature (`-Command`/`-Arguments`/`-TimeoutSec`); the previous `-OperationName`/`-TimeoutSeconds`/`-ScriptBlock` form would have failed with a parameter-binding error in production. The local fallback stub now mirrors the same shape. Extracted `Get-DnsTwistFinding` into `modules/shared/DnsTwistHelpers.ps1` so the wrapper unit test exercises the real implementation instead of an inline duplicate. `Normalize-DnsTwist` now canonicalizes resolved entity IDs via `ConvertTo-CanonicalEntityId` (with safe ExternalAsset fallback) so casing / trailing-dot variants do not multiply entities. Aligned `docs/design/easm-integration.md` manifest table with the actual `tools/tool-manifest.json` (`censys`=`none`, `defender-easm`=`psmodule`). Standardised orchestrator parameter spelling on `-EasmSeedFile` (was `--EasmSeedFile`) across design + permissions docs. Removed em dash from new README EASM entry.
 
 - **Pester `flags duration regression` test on `main`**: `tests/wrappers/Invoke-AdoConsumption.Tests.ps1` used hardcoded April 2026 build timestamps. The wrapper bisects builds into first/second halves of the lookback window using `Get-Date` at runtime, so as wall-clock time advanced past the fixture window the long builds drifted into the firstHalf bucket and the `Consumption-DurationRegression` rule stopped firing. Mock build `startTime` / `finishTime` are now computed relative to `(Get-Date).ToUniversalTime()` so the test is deterministic regardless of when CI runs. Unblocks `main` CI (Test (ubuntu/macos/windows) jobs).
 
@@ -11,6 +21,8 @@
 - **Consistency audit fixes**: Wrapper validation throw→envelope migration for Invoke-Falco, Invoke-Kubescape, Invoke-KubeBench (return `New-WrapperEnvelope` instead of `throw` on KubeconfigPath / KubeAuthMode validation failures). Wrapped AlzQueries JSON parse in envelope-based error path. Fixed README `AZURE_ANALYZER_NO_BANNER` → `AZUREANALYZER_NO_BANNER` to match Banner.ps1. Added v2 mockup links to sample report references. Removed legacy banner line from orchestrator. Deduplicated CHANGELOG Unreleased section (items already shipped in v1.2.0 / v1.3.0).
 
 ### Docs
+
+- **Cross-App review-thread resolver permissions**: Documented the existing `azure-analyzer-thread-resolver` GitHub App in `PERMISSIONS.md` (secrets `RESOLVE_THREADS_APP_ID` / `RESOLVE_THREADS_PRIVATE_KEY`, install scope `pull_requests: write`) and added an explicit bullet to the "Cloud agent PR review contract" in `.github/copilot-instructions.md`. The default `GITHUB_TOKEN` cannot resolve review threads authored by another bot (GraphQL `resolveReviewThread` returns FORBIDDEN on bot-vs-bot), so `pr-auto-resolve-threads.yml` mints an installation token from this App; without the install + `pull_requests: write` grant the auto-resolve workflow no-ops on every Copilot Code Review thread and the "all Copilot threads Resolved" merge gate has to be cleared by hand. No code or workflow change in this entry, only documentation; the App-token plumbing has been live in `pr-auto-resolve-threads.yml` since #843.
 
 - **Agent session contract (CI audit + squad memory)**: Expanded "Always check history before doing work" step in `.github/copilot-instructions.md` to require a mandatory CI audit as the first action of every session: use `list_workflow_runs` + `get_job_logs` (GitHub MCP) to check the last 10 runs on `main` and the working branch, read failed-job logs for any non-success run, and name the failure before touching code. Added explicit **Squad memory** check (verify stored memories against current code; overwrite stale ones via `store_memory` before proceeding). Renamed section to "Always audit CI and check all context before doing work" to reflect the expanded scope.
 
@@ -39,6 +51,32 @@ All notable changes to azure-analyzer will be documented here.
 * cover all PR-triggered workflows in auto-approve bot gate ([#858](https://github.com/martinopedal/azure-analyzer/issues/858)) ([0dc2955](https://github.com/martinopedal/azure-analyzer/commit/0dc295585cb59e8cceb2287ed3e62e5f14cef97f))
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
+
+## [1.3.1](https://github.com/martinopedal/azure-analyzer/compare/v1.3.0...v1.3.1) (2026-05-12)
+
+
+### Fixes
+
+* address consistency audit findings (CHANGELOG, wrappers, banner, samples) ([#983](https://github.com/martinopedal/azure-analyzer/issues/983)) ([4292941](https://github.com/martinopedal/azure-analyzer/commit/42929413e7be4a5971884384eefccd8356e60338))
+* **ci:** skip unconfigured scheduled scans ([#1013](https://github.com/martinopedal/azure-analyzer/issues/1013)) ([bc46e70](https://github.com/martinopedal/azure-analyzer/commit/bc46e7063c89a02cad2f8e0acfe0147ffdf2931f))
+* make Invoke-AdoConsumption duration regression test deterministic ([#1011](https://github.com/martinopedal/azure-analyzer/issues/1011)) ([76f317b](https://github.com/martinopedal/azure-analyzer/commit/76f317bb33e7daf5032f20023db2e66edfb6ec43))
+* regenerate tool catalogs in auto-bumper to prevent CI stale-catalog failures ([#1020](https://github.com/martinopedal/azure-analyzer/issues/1020)) ([7681a5a](https://github.com/martinopedal/azure-analyzer/commit/7681a5ac7e5c9bfbbab29a6b47f3330333200ab5))
+
+
+### Documentation
+
+* add agent session contract to copilot-instructions ([#1009](https://github.com/martinopedal/azure-analyzer/issues/1009)) ([ffd817f](https://github.com/martinopedal/azure-analyzer/commit/ffd817f2f3d09fa83af39ec9ef9e01ac43a3061a))
+* mandate CI audit + squad memory in agent session pre-work contract ([#1010](https://github.com/martinopedal/azure-analyzer/issues/1010)) ([80ed7d1](https://github.com/martinopedal/azure-analyzer/commit/80ed7d1c1ddaa95f149f993fdc539810884fb0f2))
+* post-sprint documentation sweep ([#980](https://github.com/martinopedal/azure-analyzer/issues/980)) ([e33a81c](https://github.com/martinopedal/azure-analyzer/commit/e33a81c17cfd35d9802195a11c87799584da0a92))
+
+
+### Chores
+
+* **alz-queries:** bump upstream pin to fd04b20a7a67 ([#985](https://github.com/martinopedal/azure-analyzer/issues/985)) ([49b4a81](https://github.com/martinopedal/azure-analyzer/commit/49b4a81662d64f0905f97be50f7dc5ead5e084cb))
+* **azgovviz:** bump upstream pin to 6a90d07a1416 ([#986](https://github.com/martinopedal/azure-analyzer/issues/986)) ([d45f36f](https://github.com/martinopedal/azure-analyzer/commit/d45f36f7eb33018a628a6bd2699f2aa3b041fe45))
+* **kubescape:** bump upstream pin to 4.0.8 ([#1016](https://github.com/martinopedal/azure-analyzer/issues/1016)) ([62a3d43](https://github.com/martinopedal/azure-analyzer/commit/62a3d43042c8a2ba51796ddedefaf7b0c4c1ff60))
+* **terraform-iac:** bump upstream pin to 1.15.2 ([#1018](https://github.com/martinopedal/azure-analyzer/issues/1018)) ([6d85c8a](https://github.com/martinopedal/azure-analyzer/commit/6d85c8afa74d7bc0926381893431831adac961ac))
+* **wrappers:** standardize timeout handling via Invoke-WithTimeout ([#981](https://github.com/martinopedal/azure-analyzer/issues/981)) ([0a54c3b](https://github.com/martinopedal/azure-analyzer/commit/0a54c3b8abf5c01d1d9f43172459513aa455fa18)), closes [#974](https://github.com/martinopedal/azure-analyzer/issues/974)
 
 ## [1.3.0](https://github.com/martinopedal/azure-analyzer/compare/v1.2.0...v1.3.0) (2026-04-23)
 
