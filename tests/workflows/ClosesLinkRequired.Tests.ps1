@@ -18,6 +18,11 @@ Describe 'closes-link-required workflow contract' {
         $script:WorkflowText | Should -Match 'release-please--'
     }
 
+    It 'skips weekly tool-pin bumper branches (chore/bump-*)' {
+        $script:WorkflowText | Should -Match 'chore\\/bump-'
+        $script:WorkflowText | Should -Match 'umbrella #1019'
+    }
+
     It 'exempts expected bot authors' {
         foreach ($author in @('release-please[bot]', 'github-actions[bot]', 'dependabot[bot]', 'copilot-swe-agent[bot]', 'copilot-swe-agent', 'Copilot')) {
             $script:WorkflowText | Should -CMatch ([regex]::Escape($author))

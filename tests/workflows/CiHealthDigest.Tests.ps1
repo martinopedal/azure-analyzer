@@ -13,4 +13,14 @@ Describe 'CI Health Digest regression guards' {
         $script:WorkflowRaw | Should -Match 'gh\s+api\s+--paginate\s+--slurp\s+"repos/\$repo/issues/comments\?per_page=100&since=\$since"'
         $script:WorkflowRaw | Should -Match '\[regex\]::Matches\(\$comment\.body,\s*''https://github\\.com/\[\^/\\s\]\+/\[\^/\\s\]\+/actions/runs/\\d\+'''
     }
+
+    It 'filters bot-managed branch families (chore/bump-* and release-please--*) from the digest' {
+        # These bot families have their own remediation loop and would otherwise
+        # dominate the daily digest with stale failures from superseded PRs.
+        # See issue #1040.
+        $script:WorkflowRaw | Should -Match '\$botBranchPattern'
+        $script:WorkflowRaw | Should -Match 'chore/bump-'
+        $script:WorkflowRaw | Should -Match 'release-please--'
+        $script:WorkflowRaw | Should -Match '\$r\.head_branch\s+-and\s+\$r\.head_branch\s+-match\s+\$botBranchPattern'
+    }
 }
