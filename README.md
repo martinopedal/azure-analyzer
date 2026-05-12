@@ -72,7 +72,7 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 ### Without Azure credentials (fixture mode)
 
 ```powershell
-# Run against bundled test fixtures — no Azure login required
+# Run against bundled test fixtures, no Azure login required
 .\Invoke-AzureAnalyzer.ps1 -FixtureMode -OutputPath .\output-fixture
 ```
 
@@ -276,8 +276,8 @@ See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend 
 
 ### CI notes
 
-- **Required status check:** `Analyze (actions)` — the only check enforced in branch protection. PowerShell is not scanned by CodeQL (no supported extractor); Actions scanning covers workflow injection risks.
-- **`Auto-Rebase` and `Rerun-Failed-Checks` skip on non-agent branches:** The `PR Auto-Rebase Conflicts` and `PR Auto-Rerun On Push` workflows only trigger on agent-owned branch prefixes (`squad/`, `copilot/`, `fix/`, `feat/`, `ci/`, `docs/`). If you push from a branch without one of these prefixes, the workflows will show as skipped — this is expected behavior, not a failure.
+- **Required status check:** `Analyze (actions)`, the only check enforced in branch protection. PowerShell is not scanned by CodeQL (no supported extractor); Actions scanning covers workflow injection risks.
+- **`Auto-Rebase` and `Rerun-Failed-Checks` skip on non-agent branches:** The `PR Auto-Rebase Conflicts` and `PR Auto-Rerun On Push` workflows only trigger on agent-owned branch prefixes (`squad/`, `copilot/`, `fix/`, `feat/`, `ci/`, `docs/`). If you push from a branch without one of these prefixes, the workflows will show as skipped. This is expected behavior, not a failure.
 - Manifest hygiene: keep `tools/tool-manifest.json` entries alphabetized by tool `name` (case-insensitive); this is enforced by `tests/manifest/Manifest.Sorted.Tests.ps1`.
 - CodeQL (`Analyze (actions)`) uses a global workflow concurrency queue to reduce GitHub App installation API throttling during PR bursts.
 - Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.

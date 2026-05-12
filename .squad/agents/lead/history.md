@@ -141,3 +141,13 @@ User can override in PR review, but implementation can proceed without blocking.
 
 ---
 
+
+## 2026-05-12 — First PSGallery publish complete — AzureAnalyzer now Install-Module discoverable
+
+Issue #963 closed. v1.4.5 published 2026-05-12 12:55:49 UTC. Users can now Install-Module -Name AzureAnalyzer -Repository PSGallery. PR #1051 fix (lightweight-tag-tolerant validator) merged; PR #1052 (v1.4.6 follow-up) auto-merge enabled. AzureAnalyzer is distributable; corporate air-gapped mirrors can now consume via Register-PSRepository.
+
+Track F kickoff #1048 filed with full 9-commit dependency audit + LEAN defaults for design questions. Awaiting Martin go-ahead for PR scope 1 (Schema 2.1 additive parameters).
+
+Docs voice directive captured: neutralize AI language + emojis (checkmarks/crosses only), apply anonymized news-fetcher voice profile retroactively to README/CHANGELOG/PERMISSIONS. Sage in flight on skill operationalization.
+
+

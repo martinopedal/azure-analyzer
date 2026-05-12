@@ -11,7 +11,7 @@ Closes #
 <!-- Paste relevant Pester / CI output, or note 'N/A (docs only)'. Pester baseline (≥1637 total, ≥1602 passed) must be preserved or extended. -->
 
 ## Verification checklist
-- [ ] No em dashes in any new prose
+- [ ] Docs in this PR follow `.squad/skills/docs-voice/SKILL.md` (no AI-tells, only ✅ ❌ emojis, no em/en dashes)
 - [ ] All output written to disk passes through `Remove-Credentials`
 - [ ] Docs updated (README / CHANGELOG / PERMISSIONS / docs/) per `.github/copilot-instructions.md`
 - [ ] Pester baseline preserved (`Invoke-Pester -Path .\tests -CI` green)

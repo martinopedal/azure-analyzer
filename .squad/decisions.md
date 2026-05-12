@@ -2,7 +2,7 @@
 
 > Entries older than 30 days archived to `decisions-archive.md` (2026-04-21).
 
-## 2026-04-21 — Post-#418 inbox sweep
+## 2026-04-21: Post-#418 inbox sweep
 
 ### Vault-write directive
 **Source:** `.squad/decisions/inbox/copilot-directive-vault-write-2026-04-21T17-00-00Z.md`
@@ -14,17 +14,17 @@ All squad agents write durable cross-repo learnings to `C:\git\memory-vault` (Ob
 Core sections (purpose, quickstart, basic usage) must be crystal-clear and visible without scrolling. Advanced/reference material (tool list, all params, ETL explanation, schema depth) lives in expandable `<details>` blocks (HTML in markdown). No user should need to dig through filler to find "what this tool is" or "how do I run it". Simple operations visible, advanced depth in collapsibles.
 **Status:** approved
 
-### v2 HTML report PR1 — Sage proposal + Iris implementation shipped via #418
+### v2 HTML report PR1: Sage proposal + Iris implementation shipped via #418
 **Source:** `.squad/decisions/inbox/sage-report-ui-v2-redesign.md` + `.squad/decisions/inbox/iris-maester-ui-patterns.md`
 PR #418 shipped v2 HTML report foundations per Sage's research brief: light+dark mode (WCAG AA, system fonts, CSS custom props), semantic landmarks, skip-to-content link, dark-mode toggle (localStorage + prefers-color-scheme), severity icon decorators (color-blind safe), pillar bars, filter chips, responsive grid (≥360px mobile), print stylesheet, prefers-reduced-motion. Framework badge palette ratified: CIS=amber, MITRE=red, EIDSCA=blue. Test suite extended 8→15 cases. Deferred MITRE 12-col heatmap, Impact×Effort matrix, framework table, entity pivot to PR2/PR3. Maester native HTML patterns and Kubescape per-resource remediation codified in squad inbox drops for Sentinel rebuild.
 **Status:** shipped
 
-### Docs restructure — Forge proposal + shipped via #418
+### Docs restructure: Forge proposal + shipped via #418
 **Source:** `.squad/decisions/inbox/forge-docs-restructure-proposal.md` + `.squad/decisions/inbox/forge-docs-restructure-shipped-via-418.md`
 Complete docs restructure per progressive disclosure + crystal clarity principles. New tree: `docs/getting-started/`, `docs/guides/`, `docs/reference/`, `docs/operators/`, `docs/contributing/`, `docs/architecture/`, `docs/decisions/`. Root README.md reshaped to ~50-line visible contract with collapsed sections. New reference pages: `orchestrator-params.md`, `etl-pipeline.md`, `entity-model.md`. All 40+ permission pages moved to `docs/reference/permissions/`. Pester baseline maintained (1501 passed). **Branch confusion lesson:** Forge and Iris shared the same worktree in the same session; commits interleaved on Iris's branch (`feat/v2-html-report-pr1-foundations`). Future fix: parallel agents MUST use distinct `git worktree` or serialize. Despite interleaving, all work landed in #418.
 **Status:** shipped
 
-### Schema 2.2 ETL completions — 8 tools
+### Schema 2.2 ETL completions: 8 tools
 **Source:** `.squad/decisions/inbox/` (cygnus, draco, extra-376, forge-ghactionsbilling, iris-adoreposecrets, lyra, orion, sage-zizmor, vega)
 Identity-correlator (Cygnus, #403), identity-graph (Draco, #404), terraform-iac (Extra, #376), gh-actions-billing (Forge, #366), ado-repos-secrets (Iris, #370), azure-cost (Lyra, #402), alz-queries (Orion, #400), zizmor (Sage, #372), azgovviz (Vega, #401) all upgraded end-to-end. Each wrapper emits Schema 2.2 precursor metadata (Frameworks, Pillar, Impact, Effort, DeepLinkUrl, RemediationSnippets, EvidenceUris, BaselineTags, MitreTactics, MitreTechniques, EntityRefs, ToolVersion); normalizers emit full `New-FindingRow` fields. Fixture-backed tests added. All targeted + full Pester suites green. Baseline preserved: 1501 passed, 0 failed, 5 skipped.
 **Status:** shipped
@@ -34,22 +34,22 @@ Identity-correlator (Cygnus, #403), identity-graph (Draco, #404), terraform-iac 
 Forge audit: README first-screen clear, regenerated tool catalogs + permissions index, schema 2.2 coverage called out, markdown-link-check green, all CI/CodeQL/License badge URLs return 200, LICENSE present. Sage smoke test: fixture pipeline (6 tools, 20 findings, 11 entities) → HTML/MD reports; schema 2.2 rendering verified (Pillar, Frameworks, MITRE, deep links, remediation collapsibles, severity distro match). Hard bug found + fixed: #415 `New-HtmlReport` crashes on null remediation snippets (PropertyNotFoundException). Fixed snippet rendering to skip null, support code + before/after shapes. All Pester green post-fix. Cosmetic gaps (empty MITRE rows on fixtures, "37 tools" framing) deferred post-launch.
 **Status:** shipped
 
-### Launch polish — Atlas sample report regeneration
+### Launch polish: Atlas sample report regeneration
 **Source:** `.squad/decisions/inbox/atlas-launch-sample-polish.md`
 Curated new sample findings dataset (10 tools: azqr, psrule, kubescape, sentinel-coverage, ado-pipeline-correlator, appinsights, finops-signals, ado-consumption, gh-actions-billing, aks-rightsizing). Regenerated `samples/sample-report.html` and `samples/sample-report.md` from schema 2.2 dataset. HTML report improved to show pillar breakdown, tool-color badges (manifest-driven), expanded details for BaselineTags, EntityRefs, ScoreDelta, remediation snippets, MITRE, evidence links, deep links. Markdown report improved with schema 2.2 spotlight table + expandable evidence/remediation. Before: static, legacy framing. After: launch-grade schema 2.2 showcase.
 **Status:** shipped
 
-### IaCFile EntityType — Schema + EntityStore contract (2026-04-21)
+### IaCFile EntityType: Schema + EntityStore contract (2026-04-21)
 **Source:** `.squad/decisions/inbox/sage-iacfile-entitytype.md`
 IaCFile added as first-class entity type for cross-tool IaC file deduplication. Canonical ID format: `iacfile:repo-slug:file-path` (e.g., `iacfile:github.com/org/repo:terraform/main.tf`). Schema.ps1 + Canonicalize.ps1 updated; 7 new unit tests (canonicalization, validation, Platform=IaC mapping, EntityStore dedup contract). Normalizer migration (terraform-iac EntityType=Repository to file-scoped IaCFile) deferred to follow-up. PR #423 merged SHA 5577bd77. Pester 1511->1518 passed, 0 failed.
 **Status:** shipped
 
 ### Sample MD cleanup + generator-path verification (2026-04-21)
 **Source:** `.squad/decisions/inbox/iris-sample-md-cleanup-shipped.md`
-Regenerated `samples/sample-report.html` and `samples/sample-report.md` from curated v2 fixture (11 findings, 9/100 posture). Verified `New-HtmlReport.ps1` and `New-MdReport.ps1` are intentionally at repo root (exported from AzureAnalyzer.psd1) not scripts/ — no move needed. Both samples now render same schema 2.2 dataset. PR #421 merged, branch deleted. Tests green (24/24 reports, 14/14 CI checks).
+Regenerated `samples/sample-report.html` and `samples/sample-report.md` from curated v2 fixture (11 findings, 9/100 posture). Verified `New-HtmlReport.ps1` and `New-MdReport.ps1` are intentionally at repo root (exported from AzureAnalyzer.psd1) not scripts/. No move needed. Both samples now render same schema 2.2 dataset. PR #421 merged, branch deleted. Tests green (24/24 reports, 14/14 CI checks).
 **Status:** shipped
 
-## 2026-04-21 — Round 3 inbox sweep
+## 2026-04-21: Round 3 inbox sweep
 
 ### 2026-04-21: ado-pipelines Schema 2.2 ETL shape
 `ado-pipelines` adopted Schema 2.2 ETL with wrapper emission + `New-FindingRow` normalization. Locked mappings: `Pillar=Security`, RuleId-driven Impact/Effort, deep links by asset type, evidence URIs for asset + audit endpoints, canonical entity ID shape `AdoOrg/AdoProject/AssetType/AssetId`, and baseline tags derived from asset/rule.
@@ -164,9 +164,9 @@ Regenerated `samples/sample-report.html` and `samples/sample-report.md` from cur
 
 ---
 
-## 2026-04-22 — Report UX Redesign + Schema 2.2
+## 2026-04-22: Report UX Redesign + Schema 2.2
 
-Six-agent research arc covering 13 tools. Briefs delivered by Iris (Maester, Kubescape), Atlas (AzGovViz), Sage (azqr, PSRule, Defender, Prowler, Powerpipe), Forge (Trivy, Infracost, Scorecard), Lead (WARA, Sentinel). Sentinel synthesised, shipped locked mockup + Schema 2.2 contract + 15 issues (#299–#313).
+Six-agent research arc covering 13 tools. Briefs delivered by Iris (Maester, Kubescape), Atlas (AzGovViz), Sage (azqr, PSRule, Defender, Prowler, Powerpipe), Forge (Trivy, Infracost, Scorecard), Lead (WARA, Sentinel). Sentinel synthesised, shipped locked mockup + Schema 2.2 contract + 15 issues (#299 to #313).
 
 ### Report Architecture: Single-Scroll with Sticky Anchors (2026-04-22)
 - **Decision:** Unified HTML report uses a single-page scroll with sticky in-page anchor pills (`#overview`, `#coverage`, `#heatmap`, `#risks`, `#findings`, `#entities`). No JS TabStrip.
@@ -197,13 +197,13 @@ Six-agent research arc covering 13 tools. Briefs delivered by Iris (Maester, Kub
 - **Status:** Active
 
 ### Bugs Uncovered in ETL Review (2026-04-22)
-- **PSRule severity hardcode** — `Invoke-PSRule.ps1` sets `Severity = 'Medium'` for every finding. Fix: map `Error→High`, `Warning→Medium`, `Information→Info`. Issue #301.
-- **Scorecard severity inversion** — Score `-1` (errored) → `High` (should be `Info`); score `0` (true failure) → `High` (should be `Critical`). Issue #313.
-- **WARA ImpactedResources truncation** — Only `[0]` taken; N-1 resources lost. Breaks effort axis. Issue #308.
-- **WARA Remediation/LearnMoreUrl aliasing** — Both set to same URL; remediation text lost. Issue #308.
-- **Defender missing regulatoryCompliance API** — No CIS/NIST/PCI/ISO framework tags collected. Issue #302.
-- **azqr field-projection gap** — Raw JSON dump; no `RecommendationId`, `Impact`, or Pillar extracted. Issue #300.
-- **Status:** Tracked — each assigned to its per-tool issue
+- **PSRule severity hardcode**: `Invoke-PSRule.ps1` sets `Severity = 'Medium'` for every finding. Fix: map `Error to High`, `Warning to Medium`, `Information to Info`. Issue #301.
+- **Scorecard severity inversion**: Score `-1` (errored) to `High` (should be `Info`); score `0` (true failure) to `High` (should be `Critical`). Issue #313.
+- **WARA ImpactedResources truncation**: Only `[0]` taken; N-1 resources lost. Breaks effort axis. Issue #308.
+- **WARA Remediation/LearnMoreUrl aliasing**: Both set to same URL; remediation text lost. Issue #308.
+- **Defender missing regulatoryCompliance API**: No CIS/NIST/PCI/ISO framework tags collected. Issue #302.
+- **azqr field-projection gap**: Raw JSON dump; no `RecommendationId`, `Impact`, or Pillar extracted. Issue #300.
+- **Status:** Tracked, each assigned to its per-tool issue
 
 ### Per-Tool ETL Gap Summary (2026-04-22)
 
@@ -212,10 +212,10 @@ Condensed from 6 deep-dive briefs. Each tool's critical dropped fields and the t
 #### Maester (Issue #305)
 | Dropped field | Target slot |
 |---|---|
-| `Tags` (Block.Tag + Test.Tag — EIDSCA/CIS/MITRE/eIDAS2/NIST) | `Frameworks[]` (first-class) |
+| `Tags` (Block.Tag + Test.Tag, EIDSCA/CIS/MITRE/eIDAS2/NIST) | `Frameworks[]` (first-class) |
 | `TestId` (e.g. `EIDSCA.AF01`) | `RuleId` (first-class) |
 | `TestDescription` (markdown) | `Properties.Description` (container) |
-| `TestRemediation` (markdown with portal links) | `Remediation` (first-class — stop blanking it) |
+| `TestRemediation` (markdown with portal links) | `Remediation` (first-class, stop blanking it) |
 | `HelpUrl` (parsed from `See https://...`) | `LearnMoreUrl` (first-class — stop blanking it) |
 | `Result = Investigate / Error` (squashed to Compliant=true) | `Properties.ResultState` + `MissingDimensions[]` |
 | `Duration`, `ScriptBlock`, `MgContext`, module version | `Properties` bag + `RunContexts` sidecar |
@@ -413,6 +413,51 @@ Two-agent arc: Atlas (azure-quota-reports research + 🟢 verdict), Sage (falco 
 - **Remediation:** Add `helm` and `kubectl` to the install block prerequisites list with optional/conditional markers if they're only needed for `-InstallFalco`.
 
 **Status:** Active — issue filed.
+
+### Forge GPG-signed tag check removed — v1.4.5 PSGallery recovery (2026-05-12)
+
+**Source:** `.squad/decisions/inbox/forge-release-gpg-tag-fix.md`
+
+PR #1049 ("PSGallery publishing readiness #963") shipped manifest rotation + README external-tools section + ci.yml validation + PERMISSIONS docs, but omitted the release.yml validator fix from Sage's Path A brief. First real publish attempt (run [25735228356](https://github.com/martinopedal/azure-analyzer/actions/runs/25735228356)) failed at `Validate annotated + signed tag` — release-please ships lightweight tags (object type `commit`, no PGP signature) so the gate failed deterministically.
+
+**Decision:** Adopt Sage Path A — remove the GPG/annotated requirement. Replacement `Validate release tag` step still verifies tag existence, resolves to commit SHA, validates `v<major>.<minor>.<patch>` format, and logs lightweight vs annotated for transparency. Provenance established via SHA256SUMS + SBOM + SHA-pinned actions.
+
+**Recovery (Option A):**
+1. Delete broken release + lightweight tag
+2. PR #1051 merges fix to main (commit `43873a5`)
+3. Re-create lightweight tag at fixed HEAD
+4. Push tag to trigger release.yml from fixed validator
+
+New release run [25735618882](https://github.com/martinopedal/azure-analyzer/actions/runs/25735618882) green end-to-end. PSGallery smoke test passed. `Find-Module -Name AzureAnalyzer -Repository PSGallery -RequiredVersion 1.4.5` confirms publication 12:55:49 UTC.
+
+**Lessons:**
+- Readiness ≠ CI passing. First real publish is the test.
+- release-please ships lightweight tags forever; no toggle. Either drop the requirement or add app-level GPG signing (overkill for PSGallery).
+- Walk source briefs vs actual diffs during PR review. PR #1049 closed 3/4 work items but left the validator live despite Sage calling it out explicitly.
+
+**Status:** Shipped (PR #1051 merged, v1.4.5 live on PSGallery, issue #963 closed).
+
+### Docs voice profile directive — neutralize AI language + emoji overuse (2026-05-12)
+
+**Source:** `.squad/decisions/inbox/copilot-directive-2026-05-12T13-04-28Z.md`
+
+**Directive (user: Martin):**  
+Docs across this repo MUST NOT use AI-sounding language and MUST NOT use emojis other than checkmarks (✓) and crosses (✗). Apply the anonymized voice profile from `C:\git\news-fetcher\src\drafts\voice_profile.md` to all reader-facing docs (README, CHANGELOG, PERMISSIONS, design docs, PR bodies, decision files, agent histories). Strip personal/LinkedIn-specific elements from the profile; reuse prose rules, sentence structure, and clarity patterns.
+
+**Applicability:**
+- Going forward: all new doc/decision/PR writes follow profile + neutrality rules
+- Retroactive: audit recently shipped docs (README, CHANGELOG, PERMISSIONS, design suite) for violations
+
+**Scope definition:**
+- **Apply to:** README.md, CHANGELOG.md, PERMISSIONS.md, `.squad/` decision files, agent history.md, GitHub PR bodies, design docs (`docs/ARCHITECTURE.md`, etc.)
+- **Exclude (internal signals):** `.copilot/` session logs, inline code comments, issue titles (those may need "chore:" prefixes and signal language)
+- **Profile anchor:** Neutral, professional, accessible tone. Short sentences. No "exciting", "amazing", "delightful", "empowering" or similar. Emojis limited to action indicators (checkmarks/crosses only).
+
+**Implementation:**
+- Sage spawn (in flight) to operationalize: skill module definition, retroactive audit pass, violation remediation
+- Sage will deliver decision file upon completion
+
+**Status:** Captured, in-flight operationalization pending (Sage).
 
 ---
 

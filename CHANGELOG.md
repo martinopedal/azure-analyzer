@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Docs
+
+- docs: install repo-wide docs voice profile and remediate recent prose (#963 follow-up)
+
 ### Added
 
 - **PSGallery publishing readiness (#963)**: Documented the 38 enabled (+ 1 opt-in) external tools in `README.md` under a new "External tools (soft dependencies)" section grouped by provider (Azure, Microsoft Graph / M365, GitHub, ADO, EASM) so consumers can see at a glance what the PSGallery package does and does NOT bundle. Added a defensive "Verify package exclusions (#963)" step to `.github/workflows/release.yml` that asserts repo internals (`.copilot`, `.squad`, `.github`, `.vscode`, `infra`, `samples`, `tests`, `docs/design`, `docs/consumer`, `docs/operations`, `.release-please-manifest.json`, `release-please-config.json`, `plan.md`) are absent from the staged module before publish, and that every required allowlisted path is present so a typo in the package step cannot ship an empty package. Added a new `validate-module-manifest` job to `.github/workflows/ci.yml` that runs `Test-ModuleManifest -Path AzureAnalyzer.psd1` plus PSGallery-specific field assertions (Author, Description, LicenseUri, ProjectUri, Tags, ExportedFunctions) on every PR, catching manifest regressions before they reach the release tag. Documented the `PSGALLERY_API_KEY` scope (`Push new packages and package versions` for the `AzureAnalyzer` glob) in a new "PSGallery Publishing" section of `PERMISSIONS.md`. Reframed the README "From PSGallery" install snippet as "once published" so the snippet is accurate ahead of the first publish. The next annotated `v*.*.*` tag will trigger the existing publish + smoke-test steps in `release.yml` (lines 245-287) and land `AzureAnalyzer` on PSGallery.
@@ -38,7 +42,7 @@
 
 - **Agent session contract (CI audit + squad memory)**: Expanded "Always check history before doing work" step in `.github/copilot-instructions.md` to require a mandatory CI audit as the first action of every session: use `list_workflow_runs` + `get_job_logs` (GitHub MCP) to check the last 10 runs on `main` and the working branch, read failed-job logs for any non-success run, and name the failure before touching code. Added explicit **Squad memory** check (verify stored memories against current code; overwrite stale ones via `store_memory` before proceeding). Renamed section to "Always audit CI and check all context before doing work" to reflect the expanded scope.
 
-- **Agent session contract**: Added "Agent session contract — always open a PR, always check history first" section to `.github/copilot-instructions.md`. Every agent session that produces commits MUST call `create_pull_request` (draft OK) and surface the PR URL in the final reply — pushing via `report_progress` alone is no longer sufficient. Agents must also review recent session history, open issues, open PRs, and the copilot instructions before doing work.
+- **Agent session contract**: Added "Agent session contract: always open a PR, always check history first" section to `.github/copilot-instructions.md`. Every agent session that produces commits MUST call `create_pull_request` (draft OK) and surface the PR URL in the final reply. Pushing via `report_progress` alone is no longer sufficient. Agents must also review recent session history, open issues, open PRs, and the copilot instructions before doing work.
 
 - **Post-sprint documentation sweep**: Removed maintenance window banner from README. Added ASCII startup banner code block. Reorganized README to lead with consumer-facing content (what the tool does, quickstart, sample reports, features) and moved contributor/testing/CI notes to a Contributing section at the end. Documented that `Auto-Rebase` and `Rerun-Failed-Checks` workflows skip on non-agent branches (expected behavior). Regenerated sample HTML and Markdown reports against current renderers.
 
@@ -207,14 +211,14 @@ All notable changes to azure-analyzer will be documented here.
 
 ### Documentation
 
-* coherence sweep — truthful baseline + CHANGELOG dedup + tool catalog regen ([#917](https://github.com/martinopedal/azure-analyzer/issues/917)) ([680638b](https://github.com/martinopedal/azure-analyzer/commit/680638b73718ebbc2e4c82fd3fd907df75d0749e))
+* coherence sweep, truthful baseline + CHANGELOG dedup + tool catalog regen ([#917](https://github.com/martinopedal/azure-analyzer/issues/917)) ([680638b](https://github.com/martinopedal/azure-analyzer/commit/680638b73718ebbc2e4c82fd3fd907df75d0749e))
 * **squad:** document watchdog advisory-filter implementation ([#948](https://github.com/martinopedal/azure-analyzer/issues/948)) ([1c900c9](https://github.com/martinopedal/azure-analyzer/commit/1c900c94a86bd103f498d7021b875c71e51c1ae3))
 
 
 ### Chores
 
 * remove dead auto-approve-bot-runs.yml workflow ([#937](https://github.com/martinopedal/azure-analyzer/issues/937)) ([66271bd](https://github.com/martinopedal/azure-analyzer/commit/66271bd45734ab980f97aeb6d7c4373c73f82b21))
-* **squad:** checkpoint session 16 — CI stabilization sprint ([#953](https://github.com/martinopedal/azure-analyzer/issues/953)) ([24fe78c](https://github.com/martinopedal/azure-analyzer/commit/24fe78c3d99dd0a8c5fd3d5bad684c3e37428914))
+* **squad:** checkpoint session 16, CI stabilization sprint ([#953](https://github.com/martinopedal/azure-analyzer/issues/953)) ([24fe78c](https://github.com/martinopedal/azure-analyzer/commit/24fe78c3d99dd0a8c5fd3d5bad684c3e37428914))
 
 
 ### CI

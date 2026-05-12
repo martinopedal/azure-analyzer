@@ -39,6 +39,37 @@
 - Powerpipe KPI card spec captured: `240x96px min`, 12px uppercase label / 36px value / 12px delta arrow.
 - Brief v3 written to `.squad/decisions/inbox/sage-report-ux-references.md` (now 25KB+, three sections: original Part B v2 + Part B+ deep-dive + cross-refs to Iris/Atlas briefs).
 
+### 2026-05-12: Docs-voice profile install and audit (PR #1053)
+
+Installed `.squad/skills/docs-voice/SKILL.md` as the canonical repo docs voice profile. Anonymized from the news-fetcher LinkedIn writer profile, stripped all personal/LinkedIn/operational metadata and engagement metrics. Kept voice patterns (direct openers, conclusions before reasoning, concrete examples, pragmatic over theoretical, critique with empathy, accountability over deflection, banned phrase/structure lists). Added docs-specific rules (emoji policy, code blocks, headings, PR/CHANGELOG/decision formats).
+
+**Anonymization deltas:**
+- Stripped: Martin Opedal references, LinkedIn hashtags/mentions/ARTICLE cards, golden hour, posting cadence, URL strip rules, signpost phrases, 800-1500 char length, phone-written roughness, profile metadata, engagement metrics, patterns 1-5 framework, anchor examples, algorithm rules
+- Kept: direct/concrete/pragmatic patterns, banned phrase list (leveraging, driving, unlocking, furthermore, moreover, comprehensive, robust, journey), banned structural patterns (question-then-self-answer, forced analogies, bold-heading-explanation lists, tricolons), no em/en dashes, vary structure, specifics over abstractions
+- Added: emoji policy (only ✅ ❌), code blocks with language hints, heading/bullet rules, PR/CHANGELOG/decision formats
+
+**Audit method:**
+- Grep for em/en dashes (`—` U+2014, `–` U+2013) in README, CHANGELOG, PERMISSIONS, decisions.md, PR template
+- Grep for banned AI-tell phrases (leveraging, driving, unlocking, comprehensive, robust, journey, furthermore, moreover, additionally)
+- Manual review of structural patterns (no question-then-self-answer, no forced analogies, no tricolon openers found)
+
+**Remediation patterns:**
+- Em-dashes to comma, period, colon, or "and" depending on context (28 occurrences across 3 files)
+- Arrow symbols (`→`) to "to" (4 occurrences in decisions.md severity mapping bullets)
+- En-dash ranges (`#299–#313`) to "to" (`#299 to #313`)
+- No AI-tell phrases found in audited files (existing prose was already direct and concrete)
+
+**Wiring:**
+- `.copilot/copilot-instructions.md`: new "Docs voice" section after "Documentation Rules"
+- `.github/PULL_REQUEST_TEMPLATE.md`: checklist item updated to reference skill
+- `CONTRIBUTING.md`: new "Docs voice" section before "Commit sign-off"
+- `.squad/routing.md`: new "Skill-aware routing" section pointing to docs-voice
+- `.squad/agents/{atlas,forge,iris,lead,sage,sentinel}/charter.md`: appended "## Docs voice" section to each
+
+**Skill confidence:** `low` (first observation). Proposed bump to `medium` after next agent (Forge or Atlas) applies the skill to a design doc or PR body successfully without rework.
+
+**Follow-up:** Retroactive scope covered PR #1049 (PSGallery readiness) and #1051. Design docs under `docs/design/` were not modified in those PRs per CHANGELOG review. Future work: extend audit to `docs/design/track-f-auditor-redesign.md` if touched recently. Commented on PRs #1049 and #1051 with audit note and follow-up link.
+
 ### 2026-04-21 - Report UX v4: ETL gaps end-to-end (azqr/PSRule/Defender/Prowler/Powerpipe)
 - Read actual code at: `modules/Invoke-{Azqr,PSRule,DefenderForCloud}.ps1`, all three normalizers, `Schema.ps1` (v2.1), `EntityStore.ps1`.
 - **PSRule wrapper bug found**: `Invoke-PSRule.ps1` hardcodes `Severity = 'Medium'` for every finding (line ~75) — every PSRule finding renders as Medium in the report regardless of actual rule level. Trivial fix, big signal improvement.
@@ -263,4 +294,10 @@
   - ✓ BANNER READY: Phase G can remove maintenance banner when v1.1.2 ships (board clear, CI stable, no blockers)
 - **Intake:** Recommended 10 PRs (1 P0 = 5min, 4 P1 = ~4 hours total, 5 P2 = backlog). Full prioritized table in audit report.
 - **Verdict:** FULLY COHERENT with actionable gaps (feature-docs omissions, not schema contradictions). Ready for Phase G.
+
+
+## 2026-05-12 - PSGallery first publish validated (v1.4.5 published 12:55:49 UTC)
+
+Path A vindicated: lightweight-tag validator removal (PR #1051) unblocked release.yml. v1.4.5 now discoverable via Find-Module -Name AzureAnalyzer -Repository PSGallery. Issue #963 closed. Forge recovered from PR #1049 omission (GPG validator step) via release delete + tag re-cut (Option A). First real publish is the readiness test, not CI.
+
 
