@@ -111,7 +111,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |
 | `azure-quota` | cli ("az") | martinopedal/azure-quota-reports | `#455a64` | 4 |
-| `bicep-iac` | cli ("bicep") | Azure/bicep @ latest | `#0d47a1` | 7 |
+| `bicep-iac` | cli ("bicep") | Azure/bicep @ 0.42.1 | `#0d47a1` | 7 |
 | `copilot-triage` | none | n/a | `#6a1b9a` | 8 |
 | `defender-for-cloud` | psmodule | n/a | `#0078d4` | 4 |
 | `falco` | psmodule | falcosecurity/falco @ 0.42.0 | `#ef6c00` | 6 |
