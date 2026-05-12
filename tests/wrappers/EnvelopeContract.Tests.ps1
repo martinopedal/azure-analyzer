@@ -75,13 +75,26 @@ Describe 'Per-wrapper envelope contract' -Tag 'AllowsWarning' {
         It 'every PSCustomObject envelope with Findings also has Errors field' {
             $path = Join-Path $script:WrapperRoot $_
             $text = Get-Content -LiteralPath $path -Raw
-            $blocks = [regex]::Matches($text, '\[PSCustomObject\]@\{[^}]+\}')
             $missing = @()
-            foreach ($block in $blocks) {
-                $bt = $block.Value
-                if ($bt -match 'Findings\s*=' -and $bt -notmatch 'Errors\s*=') {
-                    $ln = ($text.Substring(0, $block.Index) -split "`n").Count
-                    $missing += $ln
+            # Inspect both [PSCustomObject]@{...} literals AND [ordered]@{...} blocks
+            # (the latter are typically cast to [pscustomobject] at return time but
+            # otherwise dodge the original regex). Use a depth-balanced scan to
+            # tolerate nested braces inside the envelope literal.
+            foreach ($pattern in @('\[PSCustomObject\]@\{', '\[ordered\]@\{')) {
+                foreach ($open in [regex]::Matches($text, $pattern)) {
+                    $start = $open.Index + $open.Length
+                    $depth = 1
+                    $i = $start
+                    while ($i -lt $text.Length -and $depth -gt 0) {
+                        $c = $text[$i]
+                        if ($c -eq '{') { $depth++ } elseif ($c -eq '}') { $depth-- }
+                        $i++
+                    }
+                    $bt = $text.Substring($open.Index, $i - $open.Index)
+                    if ($bt -match 'Findings\s*=' -and $bt -notmatch 'Errors\s*=') {
+                        $ln = ($text.Substring(0, $open.Index) -split "`n").Count
+                        $missing += $ln
+                    }
                 }
             }
             $missing.Count | Should -Be 0 -Because "$_ has envelope(s) at line(s) $($missing -join ', ') with Findings but no Errors"

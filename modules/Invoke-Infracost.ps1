@@ -429,6 +429,7 @@ try {
             DiffMonthlyCost     = [math]::Round($summaryDiffMonthlyCost, 2)
         }
         Findings      = @($findings)
+        Errors        = @()
     }
 } catch {
     Write-Warning "Infracost scan failed: $(Remove-Credentials -Text ([string]$_.Exception.Message))"

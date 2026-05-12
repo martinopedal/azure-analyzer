@@ -95,6 +95,18 @@ try {
     Write-Host "AI triage complete — enriched findings written to $OutputPath" -ForegroundColor Green
     return $triage
 } catch {
-    Write-Warning "AI triage: unexpected error — $_. Skipping."
-    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message "Unexpected error: $_"
+    # Keep PR-author-visible Message generic to avoid leaking exception text
+    # (paths, resource IDs, partial command lines). Sanitize and write the full
+    # detail to the warning stream / Errors envelope where it belongs.
+    $details = Remove-Credentials ([string]$_)
+    Write-Warning "AI triage: unexpected error. Skipping. $details"
+    $err = [PSCustomObject]@{
+        Source       = 'wrapper:copilot-triage'
+        Category     = 'UnexpectedFailure'
+        Reason       = 'Unexpected error during AI triage subprocess'
+        Remediation  = 'Re-run with -Verbose; inspect Python script logs for the underlying cause.'
+        Details      = $details
+        TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
+    }
+    return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message 'Unexpected error during AI triage' -FindingErrors @($err)
 }
