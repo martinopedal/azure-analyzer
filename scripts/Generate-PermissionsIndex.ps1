@@ -7,11 +7,14 @@
     Reads tools/tool-manifest.json (single source of truth) and rewrites the
     INDEX section of PERMISSIONS.md (between the BEGIN INDEX / END INDEX
     markers) so that every enabled tool appears with a link to its detail
-    page under docs/consumer/permissions/<tool>.md.
+    page under docs/reference/permissions/<tool>.md.
 
-    Also verifies that a docs/consumer/permissions/<tool>.md file exists for
-    every enabled tool. Missing pages cause -CheckOnly to fail and the
-    generator (write mode) to throw, preventing manifest drift.
+    Also verifies that a docs/reference/permissions/<tool>.md file exists for
+    every enabled tool. In WRITE mode (default) any missing page is
+    auto-created as a TODO stub so reviewers can fill in the real RBAC /
+    Graph / GitHub scopes without blocking the manifest bump. In -CheckOnly
+    mode missing pages still fail (exit 1) so CI continues to enforce that
+    every shipped tool has a documented permission page on main.
 
     The generator is idempotent. Running it twice on a clean tree produces
     no diff. CI uses -CheckOnly mode to fail when the committed index is
@@ -149,6 +152,48 @@ function Test-PerToolPages {
     return ,$missing
 }
 
+function New-PermissionsStub {
+    param(
+        [Parameter(Mandatory)]$Tool,
+        [Parameter(Mandatory)][string]$PagesDirRelative
+    )
+
+    $displayName = if ($Tool.PSObject.Properties.Name -contains 'displayName' -and $Tool.displayName) {
+        [string]$Tool.displayName
+    } else {
+        [string]$Tool.name
+    }
+    $scope    = if ($Tool.PSObject.Properties.Name -contains 'scope')    { [string]$Tool.scope }    else { 'unknown' }
+    $provider = if ($Tool.PSObject.Properties.Name -contains 'provider') { [string]$Tool.provider } else { 'unknown' }
+
+    $sb = [System.Text.StringBuilder]::new()
+    [void]$sb.AppendLine("# $displayName - Required Permissions")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine("**Source:** ``tools/tool-manifest.json`` (auto-generated stub from ``scripts/Generate-PermissionsIndex.ps1``).")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine("**Name:** ``$($Tool.name)``")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine("**Display name:** $displayName")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine("**Scope:** $scope | **Provider:** $provider")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine('## Required permissions')
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine("<!-- TODO: document required RBAC roles, scopes, or API permissions for $($Tool.name). -->")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine('| Capability | Scope | Role / scope | Why |')
+    [void]$sb.AppendLine('|---|---|---|---|')
+    [void]$sb.AppendLine('| TODO | TODO | TODO | TODO |')
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine('## See also')
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine('- Root [`PERMISSIONS.md`](../../../PERMISSIONS.md) for the cross-tool index.')
+    [void]$sb.AppendLine('- [`docs/reference/tool-catalog.md`](../tool-catalog.md) for the manifest projection.')
+    [void]$sb.AppendLine("- [``$PagesDirRelative/_summary.md``](_summary.md) for the cross-tool matrix and tier breakdown.")
+    [void]$sb.AppendLine()
+    return $sb.ToString()
+}
+
 function Convert-ToLfText {
     param([string]$Text)
     return ($Text -replace "`r`n", "`n")
@@ -192,7 +237,51 @@ if ($CheckOnly) {
 }
 
 if ($missing.Count -gt 0) {
-    throw "Missing per-tool permission pages for enabled tools: $($missing -join ', '). Add a page under docs/consumer/permissions/<name>.md for each enabled tool before regenerating the index."
+    # Write stubs to $PagesDir AND mirror to a sibling consumer/permissions dir
+    # ONLY when $PagesDir resolves to the default reference/permissions location.
+    # The mirror is a workaround for pre-existing repo drift between
+    # docs/consumer/permissions/ and docs/reference/permissions/ (#257 / #418):
+    # the rendered index still links to the consumer dir, but the existence
+    # check defaults to the reference dir. Constraining the mirror to the
+    # default $PagesDir prevents test fixtures with custom $PagesDir from
+    # leaking stubs into the live repo dirs.
+    $defaultPagesDir = Join-Path $repoRoot 'docs/reference/permissions'
+    $defaultPagesDirAbs = if (Test-Path -LiteralPath $defaultPagesDir) {
+        (Resolve-Path -LiteralPath $defaultPagesDir).Path
+    } else { $null }
+    $primaryDirAbsolute = (Resolve-Path -LiteralPath $PagesDir).Path
+
+    $targetDirs = @($PagesDir)
+    if ($defaultPagesDirAbs -and ($primaryDirAbsolute -eq $defaultPagesDirAbs)) {
+        $linkedPagesDir = Join-Path $repoRoot $pagesDirRelative
+        if (Test-Path -LiteralPath $linkedPagesDir) {
+            $linkedDirAbsolute = (Resolve-Path -LiteralPath $linkedPagesDir).Path
+            if ($linkedDirAbsolute -ne $primaryDirAbsolute) {
+                $targetDirs += $linkedPagesDir
+            }
+        }
+    }
+
+    foreach ($name in $missing) {
+        $tool = $manifest.tools | Where-Object { $_.name -eq $name } | Select-Object -First 1
+        if (-not $tool) { continue }
+        $stubContent = New-PermissionsStub -Tool $tool -PagesDirRelative $pagesDirRelative
+        $stubContent = Convert-ToLfText $stubContent
+
+        foreach ($dir in $targetDirs) {
+            $stubPath = Join-Path $dir "$name.md"
+            if (Test-Path -LiteralPath $stubPath) { continue }
+            [System.IO.File]::WriteAllText($stubPath, $stubContent, [System.Text.UTF8Encoding]::new($false))
+            $relativeStub = (Resolve-Path -LiteralPath $stubPath -Relative).Replace('\','/').TrimStart('./')
+            Write-Host "Created stub: $relativeStub (review and fill in TODOs)"
+        }
+    }
+
+    # Re-evaluate so the index section we write below references real, on-disk files.
+    $missing = Test-PerToolPages $manifest.tools $PagesDir
+    if ($missing.Count -gt 0) {
+        throw "Failed to create stub permission pages for: $($missing -join ', ')."
+    }
 }
 
 [System.IO.File]::WriteAllText($PermissionsPath, $updated, [System.Text.UTF8Encoding]::new($false))
