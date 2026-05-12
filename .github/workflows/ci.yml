@@ -133,8 +133,10 @@ jobs:
           # which can quietly accept a long downward staircase. The floor is the absolute lower bound
           # below which CI must fail regardless of what the previous main artifact says.
           # Bump these numbers in the same PR that legitimately raises the count; never lower them.
-          $MinTotal  = 1630
-          $MinPassed = 1595
+          # PR #1022 (#967): added 55 RubberDuckChain.Tests.ps1 cases.
+          #                  New baseline:  1685 total / 1650 passed / 0 failed / 35 skipped on Windows.
+          $MinTotal  = 1680
+          $MinPassed = 1645
           if ([int]$current.TotalCount -lt $MinTotal) {
             Write-Error "Pester TotalCount $($current.TotalCount) is below hardcoded floor $MinTotal. If tests were intentionally removed, lower the floor in .github/workflows/ci.yml in the same PR and document the removal."
             exit 1
