@@ -196,3 +196,24 @@ jobs:
             Write-Host "::error::Run 'pwsh -File scripts/Generate-PermissionsIndex.ps1' and commit the result."
             exit 1
           }
+
+  readme-facts-fresh:
+    name: README facts fresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Verify README.md tool-count facts match manifest
+        shell: pwsh
+        run: |
+          pwsh -File scripts/Generate-ReadmeFacts.ps1 -CheckOnly
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::group::README facts manifest projection diff"
+            pwsh -File scripts/Generate-ReadmeFacts.ps1
+            git --no-pager diff -- README.md
+            Write-Host "::endgroup::"
+            Write-Host "::error::README.md auto-managed sections (tool-count-tagline / tool-count-feature-list / tool-catalog-summary) are stale relative to tools/tool-manifest.json."
+            Write-Host "::error::Run 'pwsh -File scripts/Generate-ReadmeFacts.ps1' and commit the result."
+            exit 1
+          }
