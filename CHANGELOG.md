@@ -64,6 +64,13 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.4.6](https://github.com/martinopedal/azure-analyzer/compare/v1.4.5...v1.4.6) (2026-05-12)
+
+
+### Fixes
+
+* **release:** drop GPG-signed tag requirement (release-please ships lightweight tags) ([#963](https://github.com/martinopedal/azure-analyzer/issues/963)) ([#1051](https://github.com/martinopedal/azure-analyzer/issues/1051)) ([43873a5](https://github.com/martinopedal/azure-analyzer/commit/43873a50599b558ec89b1e6380a385d31b238808))
+
 ## [1.4.5](https://github.com/martinopedal/azure-analyzer/compare/v1.4.4...v1.4.5) (2026-05-12)
 
 
