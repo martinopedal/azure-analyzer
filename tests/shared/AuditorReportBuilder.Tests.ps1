@@ -10,6 +10,7 @@ Describe 'AuditorReportBuilder' -Tag 'Unit' {
         $resultsPath = Join-Path $fixtureDir 'results.json'
         $entitiesPath = Join-Path $fixtureDir 'entities.json'
         $manifestPath = Join-Path $fixtureDir 'report-manifest.json'
+        $triagePath = Join-Path $fixtureDir 'triage.json'
     }
     
     Context 'Resolve-AuditorContext' {
@@ -269,6 +270,44 @@ Describe 'AuditorReportBuilder' -Tag 'Unit' {
             $csvContent = Get-Content $csvPath -Raw
             
             $csvContent | Should -Not -Match 'secret123' -Because 'Remove-Credentials should redact the password'
+        }
+    }
+    
+    Context 'Get-AuditorTriageAnnotations' {
+        BeforeAll {
+            $findings = Get-Content -Path $resultsPath -Raw | ConvertFrom-Json
+        }
+        
+        It 'joins triage verdicts when present' {
+            $result = Get-AuditorTriageAnnotations -Findings $findings -TriagePath $triagePath
+            
+            $result.TriagePresent | Should -Be $true
+            $result.AnnotatedFindings.Count | Should -Be $findings.Count
+            
+            $withVerdict = @($result.AnnotatedFindings | Where-Object { $null -ne $_.Verdict })
+            $withoutVerdict = @($result.AnnotatedFindings | Where-Object { $null -eq $_.Verdict })
+            
+            $withVerdict.Count | Should -Be 5
+            $withoutVerdict.Count | Should -Be ($findings.Count - 5)
+        }
+        
+        It 'degrades gracefully when triage.json missing' {
+            $result = Get-AuditorTriageAnnotations -Findings $findings -TriagePath ''
+            
+            $result.TriagePresent | Should -Be $false
+            $result.AnnotatedFindings.Count | Should -Be $findings.Count
+            
+            { Get-AuditorTriageAnnotations -Findings $findings -TriagePath $null } | Should -Not -Throw
+            { Get-AuditorTriageAnnotations -Findings $findings -TriagePath 'nonexistent.json' } | Should -Not -Throw
+        }
+        
+        It 'includes suggested suppression when Track E provides it' {
+            $result = Get-AuditorTriageAnnotations -Findings $findings -TriagePath $triagePath
+            
+            $findingWithSuppression = $result.AnnotatedFindings | Where-Object { $_.FindingId -eq 'F-005' } | Select-Object -First 1
+            
+            $findingWithSuppression | Should -Not -BeNullOrEmpty
+            $findingWithSuppression.SuggestedSuppression | Should -Be 'false_positive'
         }
     }
 }
