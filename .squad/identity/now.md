@@ -1,30 +1,32 @@
 # Current Focus — azure-analyzer
 
-## Last session: 2026-05-13T10:39Z (Inbox flush post #1085 #1086)
+## Last session: 2026-05-13T12:00Z (Track F #506 complete + v1.6.0 ship)
 
 ## Where we are
-Two PRs merged. Repo is on `main @ 94f5801` (post #1086).
 
-- **PR #1085** — release-please v1.5.2 release cycle. **MERGED.**
-- **PR #1086** — Issue #1056 triage (Option B: consume renderers directly). **MERGED.**
+✅ **Track F complete.** Epic #506 closed via PR #1096 (Commit 9). Auditor Mode production-ready.
+
+✅ **v1.6.0 shipped.** release-please PR #1087 merged; tag published; artifacts live.
+
+✅ **All tests green.** 3087→3122 passed (35 tests added, 0 regressions). Hotfix (PR #1097) cleared all 10 parameter validation failures.
+
+**Repo status:** main @ f247700 (post-hotfix merge).
 
 ## Open issues (priority order)
 
-1. **#1056** — CLOSED by PR #1086 verdict (Option B: helper modules are naming mismatches, not gaps). Track F slices 2–9 unblocked. Mapper: EdgeRelations → Schema.ps1; Select-ReportArchitecture → ReportManifest.ps1; PolicyCoverageAnalyzer → Policy/AlzMatcher.ps1 + PolicyEnforcementRenderer.ps1.
+1. **#1098** — FILED (enhancement, `squad:atlas`). Tier 2 sql.js embedding for Auditor Mode evidence export.
 
-2. **#506** — Track F epic (now actionable). Slice 2+ can proceed against as-built renderer layout.
+2. **#1056** — CLOSED. Track F helper modules verdict (Option B: no new modules needed).
 
-3. **#1084** — CI digest (Forge, historical noise). Medium priority.
-
-4. **#1065** — `LiveTool` gitleaks smoke test flake (pre-existing). Lowest priority.
+3. **#506** — CLOSED. Track F epic.
 
 ## Next work (priority order)
 
-1. **Atlas** — Pick up Track F slice 2 (control-domain sections). Consume `Schema.ps1` `New-FindingRow` ComplianceMappings directly. Refs #506.
+1. **Atlas** — Track F Commit 11 (enhancements): Blast radius renderer (`ConvertTo-AuditorResilienceHtml`), remediation appendix renderer (`ConvertTo-AuditorRemediationAppendixHtml`). Refs #1098.
 
-2. **Forge** — Audit #1084 CI digest, dedupe historical entries from real failures.
+2. **Atlas or Auditor builder owner** — Tier 2 sql.js embedding (Auditor Mode evidence database).
 
-3. **Forge or Coordinator** — Investigate #1065 gitleaks flake (lowest priority, pre-existing).
+3. **Squad housekeeping** — Inbox consolidation + history summarization (ongoing).
 
 ## Key files / context
 
