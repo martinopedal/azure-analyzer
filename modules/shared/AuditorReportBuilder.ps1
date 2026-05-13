@@ -895,6 +895,9 @@ function Write-AuditorRenderTier {
 </html>
 "@
     
+    if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+        $htmlContent = Remove-Credentials -Text $htmlContent
+    }
     Set-Content -Path $htmlPath -Value $htmlContent -Encoding UTF8 -NoNewline:$false
     
     $mdContent = @"
@@ -912,6 +915,9 @@ Total findings: $($findings.Count)
         $mdContent += "- **$($f.FindingId)** [$($f.Severity)] $($f.Title)`n"
     }
     
+    if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+        $mdContent = Remove-Credentials -Text $mdContent
+    }
     Set-Content -Path $mdPath -Value $mdContent -Encoding UTF8 -NoNewline:$false
     
     return @{

@@ -285,4 +285,47 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
             }
         }
     }
+    
+    Context 'Test 39 - RISK-3 Regression: Credential leak in HTML/MD report sinks' {
+        # FAIL-FIRST PROOF: With Remove-Credentials wrapping at AuditorReportBuilder.ps1:898+915
+        # commented out, this test fails (raw ghp_* token leaks into audit-report.html / .md).
+        # With the wrapping in place, the redaction marker appears instead.
+        It 'Should redact GitHub PAT injected via finding Title in both HTML and MD outputs' {
+            $tokenLeak = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+            $marker = '[GITHUB-PAT-REDACTED]'
+            
+            $tempDir = Join-Path $TestDrive 'risk3-fixture'
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            $tempResults = Join-Path $tempDir 'results.json'
+            $tempEntities = Join-Path $tempDir 'entities.json'
+            $tempManifest = Join-Path $tempDir 'report-manifest.json'
+            $tempOutDir = Join-Path $TestDrive 'risk3-output'
+            New-Item -ItemType Directory -Path $tempOutDir -Force | Out-Null
+            
+            $poisonedFinding = $script:results[0].PSObject.Copy()
+            $poisonedFinding.Title = "Leaked credential in scan output: $tokenLeak"
+            @($poisonedFinding) | ConvertTo-Json -Depth 20 | Set-Content -Path $tempResults -Encoding UTF8
+            $script:entities | ConvertTo-Json -Depth 20 | Set-Content -Path $tempEntities -Encoding UTF8
+            $script:manifest | ConvertTo-Json -Depth 20 | Set-Content -Path $tempManifest -Encoding UTF8
+            
+            Build-AuditorReport -InputPath $tempResults `
+                                -EntitiesPath $tempEntities `
+                                -ManifestPath $tempManifest `
+                                -OutputDirectory $tempOutDir `
+                                -Tier 'PureJson'
+            
+            $htmlPath = Join-Path $tempOutDir 'audit-report.html'
+            $mdPath = Join-Path $tempOutDir 'audit-report.md'
+            $htmlPath | Should -Exist
+            $mdPath | Should -Exist
+            
+            $htmlContent = Get-Content $htmlPath -Raw
+            $mdContent = Get-Content $mdPath -Raw
+            
+            $htmlContent | Should -Not -Match ([regex]::Escape($tokenLeak)) -Because 'HTML sink must pipe through Remove-Credentials'
+            $mdContent | Should -Not -Match ([regex]::Escape($tokenLeak)) -Because 'MD sink must pipe through Remove-Credentials'
+            $htmlContent | Should -Match ([regex]::Escape($marker)) -Because 'Sanitize.ps1 replaces ghp_* with [GITHUB-PAT-REDACTED]'
+            $mdContent | Should -Match ([regex]::Escape($marker)) -Because 'Sanitize.ps1 replaces ghp_* with [GITHUB-PAT-REDACTED]'
+        }
+    }
 }
