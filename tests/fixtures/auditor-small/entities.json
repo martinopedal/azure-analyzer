@@ -10,5 +10,155 @@
     "properties": {
       "subscriptionId": "test-sub"
     }
-  }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-02": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-02",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 72.3
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Sql/servers/sql-prod": {
+    "entityType": "AzureResource",
+    "displayName": "sql-prod",
+    "properties": {
+      "resourceType": "Microsoft.Sql/servers",
+      "blastRadiusScore": 91.4
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Network/virtualNetworks/vnet-prod": {
+    "entityType": "AzureResource",
+    "displayName": "vnet-prod",
+    "properties": {
+      "resourceType": "Microsoft.Network/virtualNetworks",
+      "blastRadiusScore": 78.9
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/disks/disk-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "disk-prod-01",
+    "properties": {
+      "resourceType": "Microsoft.Compute/disks",
+      "blastRadiusScore": 60.2
+    }
+  },
+  "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Network/publicIPAddresses/pip-prod": {
+    "entityType": "AzureResource",
+    "displayName": "pip-prod",
+    "properties": {
+      "resourceType": "Microsoft.Network/publicIPAddresses",
+      "blastRadiusScore": 45.6
+    }
+  },
+  "edges": [
+    {
+      "source": "appId:11111111-1111-1111-1111-111111111111",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+      "relation": "HasFederatedCredential",
+      "metadata": { "attackPathCriticality": "High" }
+    },
+    {
+      "source": "appId:11111111-1111-1111-1111-111111111111",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-prod-01",
+      "relation": "HasFederatedCredential",
+      "metadata": { "attackPathCriticality": "Critical" }
+    },
+    {
+      "source": "user:22222222-2222-2222-2222-222222222222",
+      "target": "/subscriptions/test-sub",
+      "relation": "HasRoleOn",
+      "metadata": { "attackPathCriticality": "High" }
+    },
+    {
+      "source": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Web/sites/app-prod",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Sql/servers/sql-prod",
+      "relation": "UsesSecret",
+      "metadata": { "attackPathCriticality": "Medium" }
+    },
+    {
+      "source": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-prod-01",
+      "relation": "AuthenticatesAs",
+      "metadata": { "attackPathCriticality": "High" }
+    },
+    {
+      "source": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Sql/servers/sql-prod",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Storage/storageAccounts/stprod01",
+      "relation": "DependsOn",
+      "metadata": {}
+    },
+    {
+      "source": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Network/virtualNetworks/vnet-prod",
+      "relation": "DependsOn",
+      "metadata": {}
+    },
+    {
+      "source": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+      "target": "/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod-02",
+      "relation": "FailsOverTo",
+      "metadata": {}
+    }
+  ],
+  "policyGaps": [
+    {
+      "policyId": "1f3afdf9-d0c9-4c3d-847f-89da613e70a8",
+      "displayName": "Deploy SQL Auditing to SQL servers",
+      "scope": "/subscriptions/test-sub",
+      "gap": "missing"
+    },
+    {
+      "policyId": "a451c1ef-c6ca-483d-87ed-f49761e3ffb5",
+      "displayName": "Audit virtual machines without disaster recovery configured",
+      "scope": "/subscriptions/test-sub",
+      "gap": "missing"
+    },
+    {
+      "policyId": "47a6b606-51aa-4496-8bb7-64b11cf66adc",
+      "displayName": "Azure Key Vault should have purge protection enabled",
+      "scope": "/subscriptions/test-sub",
+      "gap": "missing"
+    }
+  ]
 }
