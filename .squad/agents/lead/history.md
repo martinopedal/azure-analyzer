@@ -154,4 +154,10 @@ Docs voice directive captured: neutralize AI language + emojis (checkmarks/cross
 
 Issue #963 closed. v1.4.5 published 2026-05-12 12:55:49 UTC. Users can now Install-Module -Name AzureAnalyzer -Repository PSGallery. PR #1051 fix (lightweight-tag-tolerant validator) merged; PR #1052 (v1.4.6 follow-up) auto-merge enabled. AzureAnalyzer is distributable; corporate air-gapped mirrors can now consume via Register-PSRepository.
 
+### 2026-05-13 - Track F helper modules gap triage (#1056), Option B
 
+- **Verdict:** Option B (consume renderer outputs directly, do not extract standalone helpers).
+- **Why:** The three "missing" modules (`EdgeRelations.ps1`, `Select-ReportArchitecture.ps1`, `PolicyCoverageAnalyzer.ps1`) are a naming mismatch, not a functionality gap. EdgeRelations enum is in Schema.ps1 (line 38, `Get-EdgeRelations` at line 670). `Select-ReportArchitecture` is in ReportManifest.ps1 (line 101). Policy coverage logic is in `modules/shared/Policy/AlzMatcher.ps1` + `PolicyEnforcementRenderer.ps1`. No code duplication worth extracting.
+- **Pattern for future triage:** When a multi-track plan references modules that were never separately broken out, check (1) whether the function exists under a different file path, (2) whether cross-consumer duplication exceeds ~20 lines, (3) whether test isolation improves with extraction. If all three are "no," choose plan-refactor over module-extraction. File-name assumptions in plans are stale faster than function signatures.
+- **Decision file:** `.squad/decisions/inbox/lead-1056-trackf-helper-modules.md`
+- **Unblocks:** Track F slices 2-9 (refs #506, #1048). Atlas owns implementation.
