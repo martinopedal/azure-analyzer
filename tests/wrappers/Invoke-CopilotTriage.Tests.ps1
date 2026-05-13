@@ -3,117 +3,81 @@
 
 <#
 .SYNOPSIS
-    Tests for Python triage subprocess timeout wrapper in modules/Invoke-CopilotTriage.ps1.
+    Architecture + structural guardrails for the legacy Copilot triage wrapper.
+
 .DESCRIPTION
-    Validates that the Python triage subprocess invocation is wrapped with Invoke-WithTimeout
-    and emits TimeoutExceeded errors when the subprocess exceeds 300s.
+    `modules/Invoke-CopilotTriage.ps1` is a deliberately orphaned wrapper:
+    the orchestrator wires Copilot AI triage to the sanitizing PowerShell
+    module at `modules/shared/Triage/Invoke-CopilotTriage.ps1` instead, and
+    the manifest registers `copilot-triage` with `enabled: false` and the
+    same shared/Triage script path. See `.copilot/audits/atlas-manifest-audit-2026-04-23.md`.
+
+    Behavioural timeout coverage for the supported execution path lives in
+    `tests/shared/Triage/Invoke-CopilotTriage.Timeout.Tests.ps1` (dot-source
+    pattern, exercises `Invoke-WithTimeout` mocks against in-scope functions).
+
+    The legacy wrapper is still file-resident because external scripts could
+    invoke it directly. These tests assert two contracts:
+
+      1. The legacy script keeps its `Invoke-WithTimeout` fallback stub +
+         lazy-load gate so any future direct invocation continues to enjoy
+         CliTimeout protection without breaking Pester mocks.
+
+      2. The orchestrator + manifest never re-introduce a wire from
+         production code into the legacy wrapper (would silently bypass
+         `Remove-Credentials` sanitization — round-2 triage bottom-fix).
 #>
 
 BeforeAll {
-    $script:RepoRoot    = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
-    $script:ModulePath  = Join-Path $script:RepoRoot 'modules\Invoke-CopilotTriage.ps1'
-    $script:SharedDir   = Join-Path $script:RepoRoot 'modules\shared'
-    
-    # Pre-load shared dependencies so mocks work
-    . (Join-Path $script:SharedDir 'Sanitize.ps1')
-    . (Join-Path $script:SharedDir 'CliTimeout.ps1')
+    $script:RepoRoot         = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+    $script:LegacyModulePath = Join-Path $script:RepoRoot 'modules\Invoke-CopilotTriage.ps1'
+    $script:LiveModulePath   = Join-Path $script:RepoRoot 'modules\shared\Triage\Invoke-CopilotTriage.ps1'
+    $script:OrchestratorPath = Join-Path $script:RepoRoot 'Invoke-AzureAnalyzer.ps1'
+    $script:ManifestPath     = Join-Path $script:RepoRoot 'tools\tool-manifest.json'
 }
 
-Describe 'Invoke-CopilotTriage Python subprocess timeout wrapper' -Tag 'AllowsWarning' {
-    Context 'Python subprocess timeout handling' {
-        It 'emits TimeoutExceeded error when Python subprocess exceeds 300s' {
-            Mock Invoke-WithTimeout {
-                param($Command, $Arguments, $TimeoutSec)
-                if ($Command -match 'python' -and $TimeoutSec -eq 300) {
-                    return [PSCustomObject]@{
-                        ExitCode = -1
-                        Output   = 'Timed out after 300 seconds'
-                    }
-                }
-                throw "Unexpected Invoke-WithTimeout call: $Command"
-            }
-            Mock Test-Path { $true }
-            Mock Get-Content { '{}' }
-            Mock ConvertFrom-Json { [PSCustomObject]@{} }
-            
-            $env:COPILOT_GITHUB_TOKEN = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-            try {
-                $result = & $script:ModulePath -InputPath 'input.json' -OutputPath 'output.json'
-                $result.Status | Should -Be 'Failed'
-                $result.Message | Should -Match 'timed out'
-                $result.Errors[0].Category | Should -Be 'TimeoutExceeded'
-                $result.Errors[0].Reason | Should -Match 'Python triage subprocess timed out after 300 seconds'
-            } finally {
-                Remove-Item env:COPILOT_GITHUB_TOKEN -ErrorAction SilentlyContinue
-            }
+Describe 'Invoke-CopilotTriage architectural + structural guardrails' -Tag 'AllowsWarning' {
+    Context 'Orphaned-by-design contract (legacy wrapper not orchestrated)' {
+        It 'orchestrator wires AI triage to the sanitizing shared/Triage module, not the legacy wrapper' {
+            $orchestrator = Get-Content -LiteralPath $script:OrchestratorPath -Raw
+            $orchestrator | Should -Match "shared['\\/]+Triage['\\/]+Invoke-CopilotTriage\.ps1"
+            # The legacy path must NOT appear as an executable wire-in. Allow comment lines that document the deprecation.
+            $executableMatches = Select-String -Path $script:OrchestratorPath -Pattern 'modules[\\/]+Invoke-CopilotTriage\.ps1' |
+                Where-Object { $_.Line -notmatch '^\s*#' }
+            $executableMatches | Should -BeNullOrEmpty -Because 'legacy wrapper bypassed Remove-Credentials and must not be re-introduced as an execution path (round-2 triage bottom-fix).'
         }
 
-        It 'uses 300s timeout for Python subprocess (standard CLI timeout)' {
-            Mock Invoke-WithTimeout {
-                param($Command, $Arguments, $TimeoutSec)
-                $global:timeoutCaptured = $TimeoutSec
-                return [PSCustomObject]@{
-                    ExitCode = 0
-                    Output   = ''
-                }
-            }
-            Mock Test-Path { $true }
-            Mock Get-Content { '{}' }
-            Mock ConvertFrom-Json { [PSCustomObject]@{} }
-            
-            $env:COPILOT_GITHUB_TOKEN = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-            try {
-                $null = & $script:ModulePath -InputPath 'input.json' -OutputPath 'output.json'
-                $global:timeoutCaptured | Should -Be 300
-            } finally {
-                Remove-Item env:COPILOT_GITHUB_TOKEN -ErrorAction SilentlyContinue
-                Remove-Variable timeoutCaptured -Scope Global -ErrorAction SilentlyContinue
-            }
-        }
-
-        It 'returns successful envelope when Python subprocess completes within timeout' {
-            Mock Invoke-WithTimeout {
-                param($Command, $Arguments, $TimeoutSec)
-                return [PSCustomObject]@{
-                    ExitCode = 0
-                    Output   = 'Triage complete'
-                }
-            }
-            Mock Test-Path {
-                param($Path)
-                if ($Path -match 'output\.json') { return $true }
-                return $true
-            }
-            Mock Get-Content {
-                param($Path)
-                if ($Path -match 'output\.json') {
-                    return '{"SchemaVersion":"1.0","Findings":[]}'
-                }
-                return '{}'
-            }
-            Mock ConvertFrom-Json {
-                param([Parameter(ValueFromPipeline)]$InputObject)
-                if ($InputObject -match 'SchemaVersion') {
-                    return [PSCustomObject]@{ SchemaVersion='1.0'; Findings=@() }
-                }
-                return [PSCustomObject]@{}
-            }
-            
-            $env:COPILOT_GITHUB_TOKEN = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-            try {
-                $result = & $script:ModulePath -InputPath 'input.json' -OutputPath 'output.json'
-                $result.SchemaVersion | Should -Be '1.0'
-            } finally {
-                Remove-Item env:COPILOT_GITHUB_TOKEN -ErrorAction SilentlyContinue
-            }
+        It 'tool manifest registers copilot-triage against the shared/Triage script path with enabled=false' {
+            $manifest = Get-Content -LiteralPath $script:ManifestPath -Raw | ConvertFrom-Json
+            $entry = $manifest.tools | Where-Object { $_.name -eq 'copilot-triage' }
+            $entry            | Should -Not -BeNullOrEmpty
+            $entry.script     | Should -Match 'shared[\\/]+Triage[\\/]+Invoke-CopilotTriage\.ps1'
+            $entry.enabled    | Should -BeFalse -Because 'AI triage is opt-in via -EnableAiTriage and ships disabled.'
         }
     }
 
-    Context 'Fallback stub compatibility' {
-        It 'wrapper includes Invoke-WithTimeout fallback stub for test compatibility' {
-            $content = Get-Content -LiteralPath $script:ModulePath -Raw
-            $content | Should -Match 'function Invoke-WithTimeout'
-            $content | Should -Match 'if \(-not \(Get-Command Invoke-WithTimeout'
+    Context 'Legacy wrapper still hardens its Python subprocess timeout (defensive depth)' {
+        It 'wraps the Python subprocess invocation with Invoke-WithTimeout -TimeoutSec 300' {
+            $content = Get-Content -LiteralPath $script:LegacyModulePath -Raw
+            $content | Should -Match 'Invoke-WithTimeout\s+-Command\s+\$py\s+-Arguments\s+\$args\s+-TimeoutSec\s+300'
+        }
+
+        It 'emits a TimeoutExceeded finding error when the Python subprocess exits with -1' {
+            $content = Get-Content -LiteralPath $script:LegacyModulePath -Raw
+            $content | Should -Match 'if\s*\(\s*\$result\.ExitCode\s+-eq\s+-1\s*\)'
+            $content | Should -Match "-Category\s+'TimeoutExceeded'"
+            $content | Should -Match 'Python\s+triage\s+subprocess\s+timed\s+out'
+        }
+
+        It 'returns a Failed-status envelope (not Skipped) on subprocess timeout' {
+            $content = Get-Content -LiteralPath $script:LegacyModulePath -Raw
+            $content | Should -Match "-Status\s+'Failed'\s+-Message\s+'Python\s+subprocess\s+timed\s+out'"
+        }
+
+        It 'includes the Invoke-WithTimeout fallback stub + Get-Command lazy-load gate so Pester mocks are not shadowed' {
+            $content = Get-Content -LiteralPath $script:LegacyModulePath -Raw
+            $content | Should -Match 'function\s+Invoke-WithTimeout'
+            $content | Should -Match 'if\s*\(-not\s*\(Get-Command\s+Invoke-WithTimeout'
         }
     }
 }
