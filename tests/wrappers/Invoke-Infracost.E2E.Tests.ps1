@@ -26,6 +26,12 @@ BeforeAll {
     $script:TerraformSrc = Get-Content -Path (Join-Path $script:FixtureDir 'main.tf') -Raw
 }
 
+AfterAll {
+    Remove-Item Function:\global:Invoke-WithRetry  -ErrorAction SilentlyContinue
+    Remove-Item Function:\global:Invoke-WithTimeout -ErrorAction SilentlyContinue
+    Remove-Variable -Name InfracostBreakdownE2EJson -Scope Global -ErrorAction SilentlyContinue
+}
+
 Describe 'Invoke-Infracost: E2E wrapper -> normalizer (#664)' {
 
     BeforeAll {
@@ -67,12 +73,6 @@ Describe 'Invoke-Infracost: E2E wrapper -> normalizer (#664)' {
             }
 
             $script:Result = & $script:Wrapper -Path $script:ScanPath
-        }
-
-        AfterAll {
-            Remove-Item Function:\global:Invoke-WithRetry  -ErrorAction SilentlyContinue
-            Remove-Item Function:\global:Invoke-WithTimeout -ErrorAction SilentlyContinue
-            Remove-Variable -Name InfracostBreakdownE2EJson -Scope Global -ErrorAction SilentlyContinue
         }
 
         It 'returns a v1 envelope with Source = infracost and SchemaVersion 1.0' {
@@ -125,12 +125,6 @@ Describe 'Invoke-Infracost: E2E wrapper -> normalizer (#664)' {
 
             $envelope = & $script:Wrapper -Path $script:ScanPath
             $script:Rows = @(Normalize-Infracost -ToolResult $envelope)
-        }
-
-        AfterAll {
-            Remove-Item Function:\global:Invoke-WithRetry  -ErrorAction SilentlyContinue
-            Remove-Item Function:\global:Invoke-WithTimeout -ErrorAction SilentlyContinue
-            Remove-Variable -Name InfracostBreakdownE2EJson -Scope Global -ErrorAction SilentlyContinue
         }
 
         It 'produces at least one v2 FindingRow' {

@@ -296,3 +296,12 @@ Full Track F dependency gate (Commit 0) blocked all implementation (3 missing mo
 - `New-WrapperEnvelope` (PR #950) uses `-Source` parameter (not `-ToolName`). Fallback stubs must match this signature exactly.
 - In shared environments, `git checkout` from other sessions can silently switch branches between tool calls. Commit and push atomically after changes to prevent loss.
 
+### 2026-05-13 - RemoteClone shared infrastructure refactor (PR #1069)
+
+- RemoteClone.ps1 had bespoke retry loop (3 attempts, exponential backoff, transient pattern checks) and manual timeout handling (Process.WaitForExit with kill). Replaced with Invoke-WithRetry and Invoke-WithTimeout (from Retry.ps1 / CliTimeout.ps1).
+- Default timeout increased from 120s to 300s to match repo convention (300s standard for external CLI calls per copilot-instructions.md).
+- Retry behavior preserved via $TransientMessagePatterns from Invoke-WithRetry (429, 503, timeout patterns already covered).
+- Added 5 test cases for retry behavior: transient 503 retries, non-transient "not found" does not retry, timeout pattern retries, timeout parameter passthrough (default 300s + custom).
+- All 29 RemoteClone tests pass (21 pre-existing + 8 new in refactor). Full Pester suite deferred to CI (takes >4 min locally).
+- Shared module imports at top of RemoteClone.ps1 use relative path pattern: `$script:sharedRoot = Split-Path $PSCommandPath -Parent; . (Join-Path $script:sharedRoot 'Retry.ps1')` — matches the ADO wrapper pattern (type A from #907 learnings).
+
