@@ -444,7 +444,60 @@ function Get-AuditorTriageAnnotations {
         [Parameter(Mandatory)] [object[]] $Findings,
         [string] $TriagePath = ''
     )
-    throw [System.NotImplementedException]::new('Get-AuditorTriageAnnotations: requires Track E (#433/#466).')
+    
+    if ([string]::IsNullOrWhiteSpace($TriagePath) -or -not (Test-Path $TriagePath)) {
+        return @{
+            AnnotatedFindings = @($Findings)
+            TriagePresent = $false
+        }
+    }
+    
+    $triageData = Get-Content -Path $TriagePath -Raw | ConvertFrom-Json
+    $triageByFindingId = @{}
+    
+    foreach ($verdict in $triageData) {
+        if ($null -eq $verdict) { continue }
+        $findingId = if ($verdict.PSObject.Properties['FindingId']) { [string]$verdict.FindingId } else { '' }
+        if (-not [string]::IsNullOrWhiteSpace($findingId)) {
+            $triageByFindingId[$findingId] = $verdict
+        }
+    }
+    
+    $annotatedFindings = @()
+    foreach ($finding in $Findings) {
+        if ($null -eq $finding) { continue }
+        
+        $findingId = if ($finding.PSObject.Properties['FindingId']) { [string]$finding.FindingId } else { '' }
+        
+        $annotated = [PSCustomObject]@{}
+        foreach ($prop in $finding.PSObject.Properties) {
+            $annotated | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $prop.Value
+        }
+        
+        if (-not [string]::IsNullOrWhiteSpace($findingId) -and $triageByFindingId.ContainsKey($findingId)) {
+            $verdict = $triageByFindingId[$findingId]
+            
+            $verdictValue = if ($verdict.PSObject.Properties['Verdict']) { [string]$verdict.Verdict } else { $null }
+            $rationaleValue = if ($verdict.PSObject.Properties['Rationale']) { [string]$verdict.Rationale } else { $null }
+            
+            $annotated | Add-Member -MemberType NoteProperty -Name 'Verdict' -Value $verdictValue -Force
+            $annotated | Add-Member -MemberType NoteProperty -Name 'Rationale' -Value $rationaleValue -Force
+            
+            if ($verdict.PSObject.Properties['SuggestedSuppression']) {
+                $annotated | Add-Member -MemberType NoteProperty -Name 'SuggestedSuppression' -Value ([string]$verdict.SuggestedSuppression) -Force
+            }
+        } else {
+            $annotated | Add-Member -MemberType NoteProperty -Name 'Verdict' -Value $null -Force
+            $annotated | Add-Member -MemberType NoteProperty -Name 'Rationale' -Value $null -Force
+        }
+        
+        $annotatedFindings += $annotated
+    }
+    
+    return @{
+        AnnotatedFindings = @($annotatedFindings)
+        TriagePresent = $true
+    }
 }
 
 function Get-AuditorRemediationAppendix {

@@ -1,0 +1,28 @@
+[
+  {
+    "FindingId": "F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  }
+]
