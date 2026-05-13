@@ -186,4 +186,94 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
             }
         }
     }
+    
+    Context 'Test 36 - BUG-1 Regression: Triage Key Mismatch' {
+        It 'Should use AnnotatedFindings key after triage (not Findings)' {
+            Build-AuditorReport -InputPath $resultsPath `
+                                -EntitiesPath $entitiesPath `
+                                -ManifestPath $manifestPath `
+                                -TriagePath $triagePath `
+                                -OutputDirectory $testOutputDir `
+                                -Tier 'PureJson'
+            
+            $htmlPath = Join-Path $testOutputDir 'audit-report.html'
+            $htmlContent = Get-Content $htmlPath -Raw
+            
+            # Remediation appendix should be non-empty after triage
+            # (If the bug is present, findings become null after triage step)
+            $htmlContent | Should -MatchExactly '<table'
+            $htmlContent | Should -MatchExactly 'Finding ID'
+            
+            # Evidence export should contain data rows (not just headers)
+            $csvPath = Join-Path $testOutputDir 'audit-evidence' 'findings.csv'
+            $csvPath | Should -Exist
+            $csvContent = Get-Content $csvPath -Raw
+            $csvLines = $csvContent -split "`n" | Where-Object { $_.Trim() -ne '' }
+            $csvLines.Count | Should -BeGreaterThan 1  # Header + at least 1 data row
+            
+            # HTML should contain actual finding IDs (not ghost row from @($null))
+            $htmlContent | Should -MatchExactly 'F-\d+-F-001'
+        }
+    }
+    
+    Context 'Test 37 - RISK-1 Regression: HTML Encoding' {
+        It 'Should HTML-encode finding fields to prevent injection' {
+            $maliciousTitle = '<script>alert(1)</script>'
+            $testFinding = [pscustomobject]@{
+                FindingId = 'F-XSS-001'
+                Severity = 'Critical'
+                Title = $maliciousTitle
+                EntityId = '/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Compute/virtualMachines/vm-prod'
+            }
+            
+            $tempDir = Join-Path $TestDrive 'xss-test'
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            
+            $tempResultsPath = Join-Path $tempDir 'results.json'
+            @($testFinding) | ConvertTo-Json | Set-Content $tempResultsPath
+            
+            $tempEntitiesPath = Join-Path $tempDir 'entities.json'
+            '[]' | Set-Content $tempEntitiesPath
+            
+            Build-AuditorReport -InputPath $tempResultsPath `
+                                -EntitiesPath $tempEntitiesPath `
+                                -ManifestPath $manifestPath `
+                                -OutputDirectory $tempDir `
+                                -Tier 'PureJson'
+            
+            $htmlPath = Join-Path $tempDir 'audit-report.html'
+            $htmlContent = Get-Content $htmlPath -Raw
+            
+            # Verify script tag is encoded (not raw)
+            $htmlContent | Should -MatchExactly '&lt;script&gt;'
+            $htmlContent | Should -Not -MatchExactly '<script>alert\(1\)</script>'
+        }
+    }
+    
+    Context 'Test 38 - RISK-2 Regression: Profile ValidateSet' {
+        It 'Should reject invalid -Profile values' {
+            Import-Module "$PSScriptRoot\..\..\AzureAnalyzer.psd1" -Force -ErrorAction Stop
+            try {
+                { Invoke-AzureAnalyzer -Profile 'InvalidValue' -ErrorAction Stop } |
+                    Should -Throw -ExpectedMessage '*Cannot validate*'
+            } finally {
+                Remove-Module AzureAnalyzer -Force -ErrorAction SilentlyContinue
+            }
+        }
+        
+        It 'Should accept valid -Profile values' {
+            # Verify orchestrator script has ValidateSet
+            $paramMetadata = (Get-Command "$PSScriptRoot\..\..\Invoke-AzureAnalyzer.ps1").Parameters['Profile']
+            $paramMetadata.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] } | Should -Not -BeNullOrEmpty
+            
+            # Verify module wrapper also has ValidateSet
+            Import-Module "$PSScriptRoot\..\..\AzureAnalyzer.psd1" -Force -ErrorAction Stop
+            try {
+                $wrapperMetadata = (Get-Command Invoke-AzureAnalyzer).Parameters['Profile']
+                $wrapperMetadata.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] } | Should -Not -BeNullOrEmpty
+            } finally {
+                Remove-Module AzureAnalyzer -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 }

@@ -140,7 +140,8 @@ function Invoke-AzureAnalyzer {
         [switch] $NoBanner,
         [switch] $FixtureMode,
         [string] $FixturePath,
-        [string] $Profile
+        [ValidateSet('Default','Auditor')]
+        [string] $Profile = 'Default'
     )
 
     $scriptPath = Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1'

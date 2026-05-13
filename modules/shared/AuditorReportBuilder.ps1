@@ -117,7 +117,7 @@ function Build-AuditorReport {
         $annotated = Get-AuditorTriageAnnotations `
             -Findings $context.Findings `
             -TriagePath $TriagePath
-        $context['Findings'] = $annotated.Findings
+        $context['Findings'] = $annotated.AnnotatedFindings
         $context['TriagePresent'] = $annotated.TriagePresent
     } catch {
         $sectionErrors += "Get-AuditorTriageAnnotations failed: $_"
@@ -350,7 +350,9 @@ function ConvertTo-AuditorControlDomainSectionsHtml {
         [void]$html.AppendLine('<tbody>')
         
         foreach ($section in ($fwGroup.Group | Sort-Object ControlId)) {
-            [void]$html.AppendLine("<tr><td>$($section.ControlId)</td><td>$($section.FindingCount)</td></tr>")
+            $encodedControlId = ConvertTo-AuditorHtmlSafe $section.ControlId
+            $encodedCount = ConvertTo-AuditorHtmlSafe $section.FindingCount
+            [void]$html.AppendLine("<tr><td>$encodedControlId</td><td>$encodedCount</td></tr>")
         }
         
         [void]$html.AppendLine('</tbody></table>')
@@ -722,6 +724,26 @@ function Get-AuditorEvidenceExport {
     }
 }
 
+function ConvertTo-AuditorHtmlSafe {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)] [string] $Text
+    )
+    
+    process {
+        if ([string]::IsNullOrEmpty($Text)) {
+            return ''
+        }
+        
+        # Manual HTML entity encoding (defense-in-depth)
+        $Text -replace '&', '&amp;' `
+              -replace '<', '&lt;' `
+              -replace '>', '&gt;' `
+              -replace '"', '&quot;' `
+              -replace "'", '&#39;'
+    }
+}
+
 function Write-AuditorRenderTier {
     [CmdletBinding()]
     param(
@@ -818,10 +840,10 @@ function Write-AuditorRenderTier {
             }
             $htmlContent += @"
             <tr>
-                <td>$($f.FindingId)</td>
-                <td class="$sevClass">$($f.Severity)</td>
-                <td>$($f.Title)</td>
-                <td>$($f.EntityId)</td>
+                <td>$(ConvertTo-AuditorHtmlSafe $f.FindingId)</td>
+                <td class="$sevClass">$(ConvertTo-AuditorHtmlSafe $f.Severity)</td>
+                <td>$(ConvertTo-AuditorHtmlSafe $f.Title)</td>
+                <td>$(ConvertTo-AuditorHtmlSafe $f.EntityId)</td>
             </tr>
 "@
         }
@@ -839,7 +861,9 @@ function Write-AuditorRenderTier {
         <ul>
 "@
         foreach ($f in $findings) {
-            $htmlContent += "            <li><a href='#finding-$($f.FindingId)'>$($f.Title)</a></li>`n"
+            $encodedId = ConvertTo-AuditorHtmlSafe $f.FindingId
+            $encodedTitle = ConvertTo-AuditorHtmlSafe $f.Title
+            $htmlContent += "            <li><a href='#finding-$encodedId'>$encodedTitle</a></li>`n"
         }
         $htmlContent += @"
         </ul>
