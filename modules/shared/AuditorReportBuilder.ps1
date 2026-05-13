@@ -190,9 +190,101 @@ function Get-AuditorControlDomainSections {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)] [object[]] $Findings,
-        [Parameter(Mandatory)] [string[]] $Frameworks
+        [string[]] $Frameworks = @('CIS','NIST','MCSB','ISO27001')
     )
-    throw [System.NotImplementedException]::new('Get-AuditorControlDomainSections: skeleton only.')
+    
+    $sections = @()
+    
+    foreach ($framework in $Frameworks) {
+        $controlGroups = @{}
+        
+        foreach ($finding in $Findings) {
+            $mappings = if ($finding.PSObject.Properties['ComplianceMappings']) { $finding.ComplianceMappings } else { $null }
+            if (-not $mappings) { continue }
+            
+            foreach ($mapping in $mappings) {
+                if ([string]::IsNullOrWhiteSpace($mapping)) { continue }
+                
+                $mappingStr = [string]$mapping
+                if ($mappingStr -match "^$framework\s+(.+)$") {
+                    $controlId = $Matches[1].Trim()
+                    
+                    if (-not $controlGroups.ContainsKey($controlId)) {
+                        $controlGroups[$controlId] = @()
+                    }
+                    $controlGroups[$controlId] += $finding
+                }
+            }
+        }
+        
+        foreach ($controlId in ($controlGroups.Keys | Sort-Object)) {
+            $findingsList = $controlGroups[$controlId]
+            $sections += [PSCustomObject]@{
+                Framework = $framework
+                ControlId = $controlId
+                FindingCount = $findingsList.Count
+                Findings = @($findingsList)
+            }
+        }
+    }
+    
+    return $sections
+}
+
+function ConvertTo-AuditorControlDomainSectionsHtml {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [object[]] $Sections
+    )
+    
+    $html = New-Object System.Text.StringBuilder
+    [void]$html.AppendLine('<div class="control-domain-sections">')
+    
+    $groupedByFramework = $Sections | Group-Object -Property Framework
+    
+    foreach ($fwGroup in $groupedByFramework) {
+        [void]$html.AppendLine("<h3>$($fwGroup.Name)</h3>")
+        [void]$html.AppendLine('<table class="control-domain-table">')
+        [void]$html.AppendLine('<thead><tr><th>Control ID</th><th>Finding Count</th></tr></thead>')
+        [void]$html.AppendLine('<tbody>')
+        
+        foreach ($section in ($fwGroup.Group | Sort-Object ControlId)) {
+            [void]$html.AppendLine("<tr><td>$($section.ControlId)</td><td>$($section.FindingCount)</td></tr>")
+        }
+        
+        [void]$html.AppendLine('</tbody></table>')
+    }
+    
+    [void]$html.AppendLine('</div>')
+    return $html.ToString()
+}
+
+function ConvertTo-AuditorControlDomainSectionsMd {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [object[]] $Sections
+    )
+    
+    $md = New-Object System.Text.StringBuilder
+    [void]$md.AppendLine('## Control Domain Sections')
+    [void]$md.AppendLine()
+    
+    $groupedByFramework = $Sections | Group-Object -Property Framework
+    
+    foreach ($fwGroup in $groupedByFramework) {
+        [void]$md.AppendLine("### $($fwGroup.Name)")
+        [void]$md.AppendLine()
+        [void]$md.AppendLine('| Control ID | Finding Count |')
+        [void]$md.AppendLine('|------------|---------------|')
+        
+        foreach ($section in ($fwGroup.Group | Sort-Object ControlId)) {
+            [void]$md.AppendLine("| $($section.ControlId) | $($section.FindingCount) |")
+        }
+        
+        [void]$md.AppendLine()
+    }
+    
+    return $md.ToString()
 }
 
 function Get-AuditorAttackPathSection {

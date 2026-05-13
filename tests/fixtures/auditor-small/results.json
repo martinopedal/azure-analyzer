@@ -78,5 +78,181 @@
     "EntityId": "/subscriptions/test-sub/resourceGroups/rg-test",
     "ComplianceMappings": null,
     "Compliant": false
+  },
+  {
+    "FindingId": "F-011",
+    "Severity": "High",
+    "Title": "MFA not enabled for privileged accounts",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-012",
+    "Severity": "High",
+    "Title": "Conditional access policy not configured",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-013",
+    "Severity": "High",
+    "Title": "Security defaults disabled",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-014",
+    "Severity": "Critical",
+    "Title": "Legacy authentication protocols enabled",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-015",
+    "Severity": "High",
+    "Title": "Password expiration policy not configured",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-016",
+    "Severity": "Medium",
+    "Title": "Guest user access not restricted",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-017",
+    "Severity": "High",
+    "Title": "Privileged role assignments not time-limited",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-018",
+    "Severity": "Medium",
+    "Title": "Account lockout threshold not configured",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1", "NIST AC-2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-018A",
+    "Severity": "Medium",
+    "Title": "Self-service password reset not enabled",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-018B",
+    "Severity": "Low",
+    "Title": "Password complexity requirements not enforced",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["CIS 2.1.1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-019",
+    "Severity": "High",
+    "Title": "Logging and monitoring insufficient for privileged operations",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-020",
+    "Severity": "High",
+    "Title": "Security contact email not configured",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-021",
+    "Severity": "High",
+    "Title": "Alert notifications not enabled for critical events",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-022",
+    "Severity": "Medium",
+    "Title": "Incident response plan not documented",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-023",
+    "Severity": "Medium",
+    "Title": "Security information and event management not integrated",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-024",
+    "Severity": "Medium",
+    "Title": "Automated incident response not configured",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-025",
+    "Severity": "High",
+    "Title": "Security posture management gaps identified",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["MCSB IM-1"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-026",
+    "Severity": "High",
+    "Title": "Access control policy documentation missing",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["ISO27001 A.9.2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-027",
+    "Severity": "Medium",
+    "Title": "User access review process not established",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["ISO27001 A.9.2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-028",
+    "Severity": "Medium",
+    "Title": "Privileged account management procedures incomplete",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["ISO27001 A.9.2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-029",
+    "Severity": "Low",
+    "Title": "Access provisioning workflow not documented",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["ISO27001 A.9.2"],
+    "Compliant": false
+  },
+  {
+    "FindingId": "F-030",
+    "Severity": "Low",
+    "Title": "Access termination process requires improvement",
+    "EntityId": "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "ComplianceMappings": ["ISO27001 A.9.2"],
+    "Compliant": false
   }
 ]
