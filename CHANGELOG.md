@@ -10,6 +10,12 @@
 - **RISK-1:** Auditor HTML renderer now HTML-encodes finding fields (defense-in-depth against malicious finding content).
 - **RISK-2:** `Invoke-AzureAnalyzer.psm1` wrapper now validates `-Profile` values via `[ValidateSet('Default','Auditor')]`.
 
+### Added
+
+- **PSGallery post-publish E2E verification**: Replaced the shallow PSGallery smoke test (Find-Module + Save-Module + Test-ModuleManifest) with a full 8-check E2E gate running as a separate `psgallery_e2e` job on a cross-platform matrix (ubuntu-latest + windows-latest). Checks: (1) Install-Module with retry for PSGallery indexing lag, (2) Import-Module, (3) exported commands match manifest, (4) version match, (5) PSGallery metadata fields populated, (6) ReleaseNotes URI references repository, (7) functional smoke via Get-Help, (8) PSScriptAnalyzer Error-severity gate. Fails the release workflow if any check fails.
+
+### Fixed
+
 - **Track F Commit 10 HOTFIX**: Repaired 4 parameter/compatibility bugs blocking CI after Commit 9 merge: (1) added `-Profile` parameter to module wrapper (`AzureAnalyzer.psm1`) to match `Invoke-AzureAnalyzer.ps1`, (2) fixed `AuditorParity.Tests.ps1` to use tier architecture names (`'PureJson'`, `'EmbeddedSqlite'`) instead of integers, (3) corrected citation test fixture field names (`Source`/`RulePin` instead of `SourceTool`/`SourceToolVersion`), (4) replaced Windows-only `$env:TEMP` with cross-platform `[System.IO.Path]::GetTempPath()` in profile tests. Round 2: Fixed 4 test-side bugs (hashtable→PSCustomObject in Test 33 citation fixture, regex syntax in Test 34a, singleton `.Count` property in Test 35a/35b) and relaxed Test 32 assertions to match skeleton HTML renderer coverage only; marked Test 34b (Tier 2 sql.js embedding) as `-Pending` with follow-up issue #1098. Round 3: Relaxed Test 35 XLSX assertions to treat XLSX exports as optional (conditional on ImportExcel module availability in CI).
 
 ### Added
