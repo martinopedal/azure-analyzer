@@ -179,7 +179,9 @@ param (
     [int] $ViewerPort = 4280,
     [switch] $NoBanner,
     [switch] $FixtureMode,
-    [string] $FixturePath
+    [string] $FixturePath,
+    [ValidateSet('Default','Auditor')]
+    [string] $Profile = 'Default'
 )
 
 if ($Help) {
@@ -194,7 +196,7 @@ $ErrorActionPreference = 'Stop'
 # Dot-source shared modules
 # ---------------------------------------------------------------------------
 $sharedDir = Join-Path $PSScriptRoot 'modules' 'shared'
-foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'Errors', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams', 'Banner')) {
+foreach ($sharedModule in @('Sanitize', 'Mask', 'Schema', 'Canonicalize', 'EntityStore', 'WorkerPool', 'Checkpoint', 'Installer', 'Errors', 'MissingTool', 'RemoteClone', 'FrameworkMapper', 'Retry', 'RunHistory', 'ReportDelta', 'Compare-EntitySnapshots', 'ScanState', 'MultiTenantOrchestrator', 'ReportManifest', 'PromptForMandatoryParams', 'Banner', 'AuditorReportBuilder')) {
     $sharedPath = Join-Path $sharedDir "$sharedModule.ps1"
     if (Test-Path $sharedPath) { . $sharedPath }
 }
@@ -2016,6 +2018,44 @@ try {
     & "$PSScriptRoot\New-MdReport.ps1" -InputPath $outputFile -OutputPath $mdReport @triageArg @mdBaselineArg @trendArg @portfolioArg
 } catch {
     Write-Warning (Remove-Credentials "Markdown report generation failed: $_")
+}
+
+# ---------------------------------------------------------------------------
+# Generate auditor report if -Profile Auditor
+# ---------------------------------------------------------------------------
+if ($Profile -eq 'Auditor') {
+    try {
+        if (Get-Command Build-AuditorReport -ErrorAction SilentlyContinue) {
+            $auditorArgs = @{
+                InputPath = $outputFile
+                EntitiesPath = $entitiesFile
+                ManifestPath = $manifestFile
+                OutputDirectory = $OutputPath
+                PassThru = $true
+            }
+            if ($triage) {
+                $auditorArgs['TriagePath'] = $triage
+            }
+            
+            $auditorResult = Build-AuditorReport @auditorArgs
+            
+            if ($auditorResult.SectionErrors.Count -gt 0) {
+                Write-Warning "Auditor report generated with section errors:"
+                foreach ($err in $auditorResult.SectionErrors) {
+                    Write-Warning (Remove-Credentials "  $err")
+                }
+            }
+            
+            Write-Host "[OK] Auditor report: $($auditorResult.HtmlPath)"
+            if ($auditorResult.EvidencePath) {
+                Write-Host "[OK] Evidence export: $($auditorResult.EvidencePath)"
+            }
+        } else {
+            Write-Warning "Build-AuditorReport not available. Install Track F module."
+        }
+    } catch {
+        Write-Warning (Remove-Credentials "Auditor report generation failed: $_")
+    }
 }
 
 # ---------------------------------------------------------------------------

@@ -706,6 +706,12 @@ $trendHtml = if (@($Trend).Count -ge 2) {
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 
+$auditChip = ''
+$auditReportPath = Join-Path (Split-Path $OutputPath -Parent) 'audit-report.html'
+if (Test-Path $auditReportPath) {
+    $auditChip = "<a href='audit-report.html'>Audit view</a>"
+}
+
 $html = @"
 <!DOCTYPE html>
 <html lang='en' data-theme='light'>
@@ -842,7 +848,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <button class='theme-btn' id='themeBtn' title='Toggle theme' aria-label='Toggle dark mode'>🌓</button>
   </div>
 </header>
-<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#triage'>Triage</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a></div></nav>
+<nav class='sub' aria-label='Section'><div class='sub-row'><a href='#overview' class='active'>Overview</a><a href='#triage'>Triage</a><a href='#coverage'>Tool coverage</a><a href='#heatmap'>Heatmap</a><a href='#risks'>Top risks</a><a href='#findings'>Findings</a><a href='#entities'>Entities</a>$auditChip</div></nav>
 <main id='main'>
 <section class='sec' id='overview'>
   <h2>Overview <span class='badge'>executive summary</span></h2>
