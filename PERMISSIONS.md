@@ -29,6 +29,7 @@ Resilience map renderer implementation (Track B #429 follow-up) is report-layer 
 Wrapper consistency convergence (CON-003/CON-004 error-model and `SupportsShouldProcess` hardening) is contract-level behavior and introduces no new Azure, Graph, GitHub, or Azure DevOps scopes.
 Microsoft Sentinel onboarding/probe hardening from issue #529 remains read-only and continues to require only existing Reader + Log Analytics read permissions documented below.
 Scheduled Scan OIDC preflight hardening changes CI behavior only: scheduled runs now skip analyzer execution when `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, or `AZURE_CLIENT_ID` repo variables are absent or malformed. This introduces no new Azure, Graph, GitHub, or Azure DevOps permissions.
+Auditor report builder (Track F #506 `audit-report.html` / `audit-report.md` / `audit-evidence/*`) is report-layer transformation only and reuses existing findings and entity data without introducing new Azure, Microsoft Graph, GitHub, or Azure DevOps permissions.
 
 ## Permission domains at a glance
 

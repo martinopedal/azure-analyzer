@@ -342,3 +342,11 @@ Implemented Build-AuditorReport orchestrator + wired into Invoke-AzureAnalyzer.p
 ## 2026-05-13 14:20:00 - Track F Commit 8 (PR #TBD)
 
 Extended New-ReportManifest with -Profile and -Sections parameters to support auditor-driven report manifests. When -Profile Auditor, appends Profile block with Name='auditor', Sections array, and filtered Degradations (Declared Degradation Contract: every degradation MUST reference a real section ID). Added 4 new tests (total 18 ReportManifest tests). Cumulative: 31 tests (24 AuditorReportBuilder + 3 orchestrator + 4 ReportManifest extensions), all passing. Decision drop: atlas-trackf-commit8-manifest-profile-2026-05-13.md. Lesson: PowerShell Set-Content with -NoNewline preserves line endings when using -Raw input; avoided line-ending flips from Commit 7 by using string replacement instead of edit tool.
+
+- **PR #1095 (Track F Commit 8)**: Extended `New-ReportManifest` with `-Profile` and `-Sections` parameters. Declared Degradation Contract enforced. 4 tests added (cumulative 31). Merged at commit f8c836c.
+
+## 2026-05-13 14:45:00 - Track F Commit 9 (PR #1096)
+
+EPIC-CLOSING COMMIT. Added 4 parity tests (32-35) validating 10 canonical auditor questions, citation credential scrubbing, HTML self-containment at Tier 1/2, and audit-evidence directory generation. Created `tests/fixtures/auditor-jumbo` fixture (1600 findings). Updated README.md (Auditor Mode section), PERMISSIONS.md (Track F note), CHANGELOG.md (Track F entry). Uses `Closes #506` (NOT `Refs #506`) to close the epic. Decision drop: atlas-trackf-commit9-2026-05-13T14-45-00.md. Cumulative: 35 tests (24 AuditorReportBuilder + 3 orchestrator + 4 ReportManifest + 4 parity), all passing. Lesson: Verified line endings preserved on BOTH commits using `git diff --cached -w`.
+
+- **PR #1096 (Track F Commit 9)**: EPIC-CLOSING. 4 parity tests + auditor-jumbo fixture (1600 findings) + user-facing docs (README/PERMISSIONS/CHANGELOG). Closes #506. Merged at commit [TBD].

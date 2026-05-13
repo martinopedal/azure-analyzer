@@ -1,0 +1,1302 @@
+[
+  {
+    "FindingId": "F-1-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-1-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-1-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-1-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-1-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-2-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-2-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-2-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-2-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-2-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-3-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-3-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-3-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-3-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-3-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-4-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-4-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-4-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-4-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-4-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-5-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-5-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-5-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-5-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-5-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-6-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-6-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-6-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-6-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-6-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-7-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-7-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-7-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-7-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-7-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-8-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-8-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-8-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-8-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-8-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-9-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-9-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-9-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-9-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-9-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-10-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-10-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-10-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-10-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-10-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-11-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-11-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-11-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-11-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-11-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-12-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-12-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-12-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-12-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-12-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-13-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-13-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-13-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-13-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-13-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-14-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-14-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-14-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-14-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-14-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-15-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-15-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-15-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-15-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-15-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-16-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-16-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-16-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-16-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-16-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-17-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-17-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-17-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-17-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-17-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-18-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-18-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-18-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-18-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-18-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-19-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-19-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-19-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-19-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-19-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-20-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-20-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-20-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-20-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-20-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-21-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-21-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-21-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-21-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-21-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-22-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-22-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-22-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-22-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-22-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-23-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-23-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-23-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-23-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-23-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-24-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-24-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-24-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-24-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-24-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-25-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-25-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-25-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-25-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-25-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-26-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-26-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-26-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-26-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-26-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-27-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-27-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-27-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-27-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-27-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-28-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-28-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-28-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-28-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-28-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-29-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-29-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-29-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-29-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-29-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-30-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-30-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-30-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-30-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-30-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-31-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-31-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-31-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-31-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-31-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-32-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-32-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-32-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-32-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-32-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-33-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-33-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-33-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-33-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-33-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-34-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-34-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-34-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-34-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-34-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-35-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-35-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-35-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-35-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-35-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-36-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-36-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-36-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-36-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-36-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-37-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-37-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-37-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-37-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-37-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-38-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-38-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-38-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-38-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-38-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-39-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-39-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-39-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-39-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-39-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-40-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-40-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-40-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-40-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-40-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-41-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-41-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-41-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-41-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-41-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-42-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-42-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-42-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-42-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-42-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-43-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-43-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-43-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-43-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-43-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-44-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-44-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-44-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-44-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-44-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-45-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-45-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-45-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-45-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-45-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-46-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-46-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-46-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-46-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-46-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-47-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-47-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-47-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-47-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-47-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-48-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-48-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-48-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-48-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-48-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-49-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-49-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-49-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-49-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-49-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  },
+  {
+    "FindingId": "F-50-F-001",
+    "Verdict": "confirmed",
+    "Rationale": "Key Vault purge protection is a critical security control to prevent permanent data loss."
+  },
+  {
+    "FindingId": "F-50-F-002",
+    "Verdict": "confirmed",
+    "Rationale": "HTTP access to storage accounts exposes data in transit to interception."
+  },
+  {
+    "FindingId": "F-50-F-005",
+    "Verdict": "false_positive",
+    "Rationale": "SQL auditing is enabled at the server level, not the database level. This finding is a duplicate.",
+    "SuggestedSuppression": "false_positive"
+  },
+  {
+    "FindingId": "F-50-F-007",
+    "Verdict": "confirmed",
+    "Rationale": "Microsoft Defender for Cloud provides essential threat detection and security posture management."
+  },
+  {
+    "FindingId": "F-50-F-011",
+    "Verdict": "confirmed",
+    "Rationale": "Multi-factor authentication is mandatory for privileged accounts to prevent credential theft attacks."
+  }
+]
