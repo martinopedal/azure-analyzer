@@ -26,17 +26,22 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
     Context 'Test 32 - 10 Canonical Auditor Questions (Question Parity)' {
         It 'Should answer all 10 canonical auditor questions at Tier 1 (skeleton coverage only)' {
             # Build auditor report at Tier 1
-            Build-AuditorReport -InputPath $resultsPath `
-                                -EntitiesPath $entitiesPath `
-                                -ManifestPath $manifestPath `
-                                -TriagePath $triagePath `
-                                -OutputDirectory $testOutputDir `
-                                -Tier 'PureJson'
+            $report = Build-AuditorReport -InputPath $resultsPath `
+                                          -EntitiesPath $entitiesPath `
+                                          -ManifestPath $manifestPath `
+                                          -TriagePath $triagePath `
+                                          -OutputDirectory $testOutputDir `
+                                          -Tier 'PureJson' `
+                                          -PassThru
             
             $htmlPath = Join-Path $testOutputDir 'audit-report.html'
             $htmlPath | Should -Exist
             
             $htmlContent = Get-Content $htmlPath -Raw
+            
+            # SENTINEL-001: Verify findings are non-null after triage step (catches BUG-1 class)
+            # Triage step must preserve findings; null indicates hashtable key mismatch
+            $htmlContent | Should -Not -Match '<td>\s*</td>\s*<td>\s*</td>\s*<td>\s*</td>\s*<td>\s*</td>' -Because 'ghost null rows indicate broken data flow from triage step'
             
             # Q1: What are the 10 most severe findings?
             # Skeleton emits findings table with ID, Severity, Title, Entity
@@ -150,6 +155,11 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
             $csvFiles = @(Get-ChildItem $evidenceDir -Filter '*.csv')
             $csvFiles.Count | Should -BeGreaterThan 0
             
+            # SENTINEL-002: Assert exact expected row count (fixture has 1600 findings)
+            $csvContent = Get-Content $csvFiles[0] -Raw
+            $csvLines = $csvContent -split "`n" | Where-Object { $_.Trim() -ne '' }
+            $csvLines.Count | Should -Be 1601 -Because 'fixture has 1600 findings + 1 header; fewer rows indicate data loss in triage/evidence pipeline'
+            
             $jsonFiles = @(Get-ChildItem $evidenceDir -Filter '*.json')
             $jsonFiles.Count | Should -BeGreaterThan 0
             
@@ -160,7 +170,6 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
             # but don't fail the test if missing in CI
             
             # Verify CSV sanitization (no credentials leaked)
-            $csvContent = Get-Content $csvFiles[0] -Raw
             $csvContent | Should -Not -MatchExactly 'P@ssw0rd|password=|apikey=|Bearer '
         }
 
@@ -274,6 +283,49 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
             } finally {
                 Remove-Module AzureAnalyzer -Force -ErrorAction SilentlyContinue
             }
+        }
+    }
+    
+    Context 'Test 39 - RISK-3 Regression: Credential leak in HTML/MD report sinks' {
+        # FAIL-FIRST PROOF: With Remove-Credentials wrapping at AuditorReportBuilder.ps1:898+915
+        # commented out, this test fails (raw ghp_* token leaks into audit-report.html / .md).
+        # With the wrapping in place, the redaction marker appears instead.
+        It 'Should redact GitHub PAT injected via finding Title in both HTML and MD outputs' {
+            $tokenLeak = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+            $marker = '[GITHUB-PAT-REDACTED]'
+            
+            $tempDir = Join-Path $TestDrive 'risk3-fixture'
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            $tempResults = Join-Path $tempDir 'results.json'
+            $tempEntities = Join-Path $tempDir 'entities.json'
+            $tempManifest = Join-Path $tempDir 'report-manifest.json'
+            $tempOutDir = Join-Path $TestDrive 'risk3-output'
+            New-Item -ItemType Directory -Path $tempOutDir -Force | Out-Null
+            
+            $poisonedFinding = $script:results[0].PSObject.Copy()
+            $poisonedFinding.Title = "Leaked credential in scan output: $tokenLeak"
+            @($poisonedFinding) | ConvertTo-Json -Depth 20 | Set-Content -Path $tempResults -Encoding UTF8
+            $script:entities | ConvertTo-Json -Depth 20 | Set-Content -Path $tempEntities -Encoding UTF8
+            $script:manifest | ConvertTo-Json -Depth 20 | Set-Content -Path $tempManifest -Encoding UTF8
+            
+            Build-AuditorReport -InputPath $tempResults `
+                                -EntitiesPath $tempEntities `
+                                -ManifestPath $tempManifest `
+                                -OutputDirectory $tempOutDir `
+                                -Tier 'PureJson'
+            
+            $htmlPath = Join-Path $tempOutDir 'audit-report.html'
+            $mdPath = Join-Path $tempOutDir 'audit-report.md'
+            $htmlPath | Should -Exist
+            $mdPath | Should -Exist
+            
+            $htmlContent = Get-Content $htmlPath -Raw
+            $mdContent = Get-Content $mdPath -Raw
+            
+            $htmlContent | Should -Not -Match ([regex]::Escape($tokenLeak)) -Because 'HTML sink must pipe through Remove-Credentials'
+            $mdContent | Should -Not -Match ([regex]::Escape($tokenLeak)) -Because 'MD sink must pipe through Remove-Credentials'
+            $htmlContent | Should -Match ([regex]::Escape($marker)) -Because 'Sanitize.ps1 replaces ghp_* with [GITHUB-PAT-REDACTED]'
+            $mdContent | Should -Match ([regex]::Escape($marker)) -Because 'Sanitize.ps1 replaces ghp_* with [GITHUB-PAT-REDACTED]'
         }
     }
 }
