@@ -5,6 +5,23 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..' 'Sanitize.ps1')
 . (Join-Path $PSScriptRoot '..' 'Schema.ps1')
 . (Join-Path $PSScriptRoot '..' 'Retry.ps1')
+. (Join-Path $PSScriptRoot '..' 'CliTimeout.ps1')
+
+# Inline Invoke-WithTimeout fallback stub for test-compatible operation
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        [PSCustomObject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = Remove-Credentials $output
+        }
+    }
+}
 
 # Schema version for the structured triage output object.
 $script:TriageSchemaVersion = '1.0'
@@ -122,8 +139,15 @@ function Get-AvailableModelsFromCopilotPlan {
     $statusText = ''
     if ([string]::IsNullOrWhiteSpace($resolvedTier)) {
         try {
-            $statusText = (& gh copilot status 2>$null | Out-String)
-            if ($LASTEXITCODE -ne 0) {
+            $result = Invoke-WithTimeout -Command 'gh' -Arguments @('copilot', 'status') -TimeoutSec 30
+            if ($result.ExitCode -eq -1) {
+                throw (New-TriageError -Category 'TimeoutExceeded' `
+                    -Reason 'gh copilot status timed out after 30 seconds.' `
+                    -Remediation 'Check network connectivity or provide -CopilotTier explicitly.')
+            }
+            if ($result.ExitCode -eq 0) {
+                $statusText = $result.Output
+            } else {
                 $statusText = ''
             }
         } catch {
@@ -147,8 +171,14 @@ function Get-AvailableModelsFromCopilotPlan {
     $listJson = ''
     $discoveryError = ''
     try {
-        $listJson = (& gh copilot models list --json id 2>$null | Out-String)
-        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($listJson)) {
+        $result = Invoke-WithTimeout -Command 'gh' -Arguments @('copilot', 'models', 'list', '--json', 'id') -TimeoutSec 60
+        if ($result.ExitCode -eq -1) {
+            throw (New-TriageError -Category 'TimeoutExceeded' `
+                -Reason 'gh copilot models list timed out after 60 seconds.' `
+                -Remediation 'Check network connectivity or GitHub CLI status.')
+        }
+        if ($result.ExitCode -eq 0 -and -not [string]::IsNullOrWhiteSpace($result.Output)) {
+            $listJson = $result.Output
             foreach ($m in @($listJson | ConvertFrom-Json -Depth 5)) {
                 if ($m -and $m.PSObject.Properties['id']) {
                     $id = [string]$m.id
