@@ -382,6 +382,9 @@ Describe 'Invoke-IdentityGraphExpansion large fixture correctness' {
         $memberEdges.Count | Should -Be 1000
 
         # Fixture-mode has no live Graph calls; processing should be fast.
-        $elapsed.TotalSeconds | Should -BeLessThan 30
+        # Threshold tuned for slowest CI runner observed (Windows GH-hosted).
+        # 60s gives generous headroom for 1000-edge fixture processing while
+        # still catching genuine O(n^2) regressions in edge expansion.
+        $elapsed.TotalSeconds | Should -BeLessThan 60
     }
 }
