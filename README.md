@@ -283,3 +283,9 @@ See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend 
 - Workflow hotfix-debt contract: every `.github/workflows/*.yml` `continue-on-error: true` directive must carry an inline tracking marker comment (`# tracked: martinopedal/azure-analyzer#604 - hotfix-debt`) immediately above it.
 - Markdown Check hardening: the `links (lychee)` job scopes PR runs to changed Markdown files (scheduled/manual runs still scan the full corpus), clears `.lycheecache` between retry attempts, and passes `GITHUB_TOKEN` to reduce transient GitHub/rate-limit flakes.
 - Scheduled Scan requires OIDC repo variables (`AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`). Scheduled runs skip analyzer execution without going red when these variables are not configured; manual dispatch still fails fast on missing or malformed values.
+
+<details><summary><b>Maintainer notes</b></summary>
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full CI workflow and squad infrastructure (maintainer-only) documentation. The [docs/contributor/](docs/contributor/README.md) directory covers contributor setup and development workflows. The `.squad/` and `.copilot/skills/` subtrees contain AI team coordination state and are excluded from archive downloads. They are not part of the shipped tool.
+
+</details>

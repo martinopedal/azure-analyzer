@@ -8,6 +8,12 @@ BeforeAll {
     $script:Wrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Infracost.ps1'
 }
 
+AfterAll {
+    Remove-Item Function:\global:Invoke-WithRetry  -ErrorAction SilentlyContinue
+    Remove-Item Function:\global:Invoke-WithTimeout -ErrorAction SilentlyContinue
+    Remove-Variable -Name InfracostBreakdownJson -Scope Global -ErrorAction SilentlyContinue
+}
+
 Describe 'Invoke-Infracost: SEC-001 sanitize raw JSON output before write' {
     Context 'when CLI returns JSON containing a secret-shaped string' {
         BeforeAll {
@@ -68,12 +74,6 @@ Describe 'Invoke-Infracost: SEC-001 sanitize raw JSON output before write' {
 
             $script:result = & $script:Wrapper -Path $scanPath
             $script:breakdownPath = Join-Path $scanPath 'infracost-breakdown.json'
-        }
-
-        AfterAll {
-            Remove-Item function:\global:Invoke-WithRetry -ErrorAction SilentlyContinue
-            Remove-Item function:\global:Invoke-WithTimeout -ErrorAction SilentlyContinue
-            Remove-Variable -Name InfracostBreakdownJson -Scope Global -ErrorAction SilentlyContinue
         }
 
         It 'wrote the breakdown JSON to disk' {
