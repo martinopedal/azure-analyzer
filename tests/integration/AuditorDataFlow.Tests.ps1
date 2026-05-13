@@ -60,7 +60,8 @@ Describe 'Auditor Data Flow End-to-End' -Tag 'Integration' {
             # Each finding ID must appear at least once
             $findingIds = $script:fixtureFindings | Select-Object -First 5 -ExpandProperty FindingId
             foreach ($id in $findingIds) {
-                $htmlContent | Should -Match [regex]::Escape($id) -Because "finding $id must render in HTML if data flow is intact"
+                $escapedId = [regex]::Escape($id)
+                $htmlContent | Should -Match $escapedId -Because "finding $id must render in HTML if data flow is intact"
             }
             
             # Hand-off 3: Markdown renderer must receive non-null findings
@@ -69,7 +70,8 @@ Describe 'Auditor Data Flow End-to-End' -Tag 'Integration' {
             
             $mdContent = Get-Content $mdPath -Raw
             foreach ($id in $findingIds) {
-                $mdContent | Should -Match [regex]::Escape($id) -Because "finding $id must render in Markdown if data flow is intact"
+                $escapedId = [regex]::Escape($id)
+                $mdContent | Should -Match $escapedId -Because "finding $id must render in Markdown if data flow is intact"
             }
         }
         
