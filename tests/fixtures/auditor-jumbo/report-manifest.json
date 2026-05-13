@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "tier": "EmbeddedSqlite",
+  "profile": {
+    "auditor": {
+      "frameworks": [
+        "CIS",
+        "NIST",
+        "MCSB",
+        "ISO27001"
+      ],
+      "citationStyle": "workpaper"
+    }
+  },
+  "report": {
+    "generatedAt": "2026-05-12T20:00:00Z",
+    "toolVersions": {
+      "azqr": "1.5.0"
+    }
+  }
+}

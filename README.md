@@ -78,6 +78,33 @@ Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>"  # outputs to output/, 
 
 Produces real `results.json`, `entities.json`, HTML and Markdown reports from fixture data in `tests/fixtures/`. Useful for contributors, CI pipelines, and demo environments without cloud credentials. Use `-FixturePath <dir>` to supply custom fixtures.
 
+
+### Auditor Mode
+
+Generate control-centric compliance reports with evidence-grade citations and framework coverage:
+
+```powershell
+# Run with Auditor profile
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>" -Profile Auditor
+
+# Outputs:
+#   output/audit-report.html      - Auditor-focused HTML with control-domain sections
+#   output/audit-report.md         - Markdown audit report variant
+#   output/audit-evidence/*.csv    - Evidence exports (CSV, JSON, XLSX)
+#   output/audit-evidence/*.json
+#   output/audit-evidence/*.xlsx
+```
+
+Auditor mode produces:
+- Executive summary with scope, methodology, and severity distribution
+- Control-domain sections grouped by framework (CIS, NIST, MCSB, ISO 27001)
+- Attack-path and blast-radius analysis from Track A/B data
+- Policy coverage vs. ALZ reference gaps
+- Remediation appendix grouped by finding type
+- Evidence exports sanitized of all credentials
+
+See [docs/design/track-f-auditor-redesign.md](docs/design/track-f-auditor-redesign.md) for the full design.
+
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
 
 <details open><summary><b>Feature highlights</b></summary>

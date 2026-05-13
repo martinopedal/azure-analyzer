@@ -1,0 +1,2077 @@
+{
+  "/subscriptions/sub-1/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-10",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-42",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-11",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-4",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-26",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-46",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-24",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-13",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-6": {
+    "displayName": "Subscription 6",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-6"
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-16",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-50",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-47",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-43",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-48",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-26",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-40",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-3",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-11",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-35",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-39",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-32",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-39",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-29",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-22",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-12",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-32",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-7",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-29",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-50",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-21",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-42",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-8",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-20",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-45",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-40",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-38",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-30",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-3",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "tenant:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee": {
+    "entityType": "Tenant",
+    "displayName": "Test Tenant",
+    "properties": {}
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-42",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-26",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-50",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-21",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-38",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-5",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-10",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-1",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-37",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-32",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-48",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-17",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-15",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-16",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-13",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-34",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-19",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-0": {
+    "displayName": "Subscription 0",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-0"
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-8",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-14",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-24",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-6",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-28",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-40",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-47",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-35",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-41",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-3",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-14",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-12",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3": {
+    "displayName": "Subscription 3",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-3"
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-48",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-6",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-16",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-33",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-31",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-37",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-45",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-19",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-40",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-43",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-31",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-25",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-48",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-44",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-30",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-2": {
+    "displayName": "Subscription 2",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-2"
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-40",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-15",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-16",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-23",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-1",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-39",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-30",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-20",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-6",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-4",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-30",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-12",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-34",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-1",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-7",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-17",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-42",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-3",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-8",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-21",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-9",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-50",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-38",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-37",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-1",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-46",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-36",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-4",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-14",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-22",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-26",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-41",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-50",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-42",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-4",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-4",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-25",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-23",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-41",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-34",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-8": {
+    "displayName": "Subscription 8",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-8"
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-16",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-9",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-46",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-44",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-45",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-9": {
+    "displayName": "Subscription 9",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-9"
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-31",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-19",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-7",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-44",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-43",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-39",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-41",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-29",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-24",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-49",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-39",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-15",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-33",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-23",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-31",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-29",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-14",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-24",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-33",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-34",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-13",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-21",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-28",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-33",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-36",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-29",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-11",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-22",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-35",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-36",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-10",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-14",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-32",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-24",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-5": {
+    "displayName": "Subscription 5",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-5"
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-27",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-7",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-13",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-15",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-33",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-23",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-49",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-10",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-9",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-35",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-30",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-19",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-17",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-4/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-20",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-5",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-20",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-20",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-46",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-49",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-27",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-12",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-35",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-48",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-3",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-32",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-37",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-3/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-34",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-11",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-7": {
+    "displayName": "Subscription 7",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-7"
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-49",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-13",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-38",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-22",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-8",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-6",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-27",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-28",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-43",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-18",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-43",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-12",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-6/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-31",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-49",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-19",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-45",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-2/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-8",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-0/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-46",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-11",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-0/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-36",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-17",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-27",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-4": {
+    "displayName": "Subscription 4",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-4"
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-2/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-18",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-41",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-3/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-9",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-27",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-25",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-47",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-45",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-2",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-3/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-44",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-28",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-28",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-37",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-18",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-2/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-18",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-38",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-47",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-2",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-10",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-1/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-2",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-4/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-25",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-1/providers/Microsoft.Storage/storageAccounts/stprod01": {
+    "entityType": "AzureResource",
+    "displayName": "stprod01-2",
+    "properties": {
+      "resourceType": "Microsoft.Storage/storageAccounts",
+      "blastRadiusScore": 88.7
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-4/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-5",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-6",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-3/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-9",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-17",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-3/resourceGroups/rg-2/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-18",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-1": {
+    "displayName": "Subscription 1",
+    "entityType": "Subscription",
+    "properties": {
+      "subscriptionId": "sub-1"
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-2",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-9/resourceGroups/rg-1/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-47",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-5/resourceGroups/rg-0/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-26",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-5",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-1/resourceGroups/rg-1/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-7",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-21",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-25",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-7/resourceGroups/rg-0/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-36",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-4/providers/Microsoft.Web/sites/app-prod": {
+    "entityType": "AzureResource",
+    "displayName": "app-prod-5",
+    "properties": {
+      "resourceType": "Microsoft.Web/sites",
+      "blastRadiusScore": 55.3
+    }
+  },
+  "/subscriptions/sub-8/resourceGroups/rg-3/providers/Microsoft.Network/networkSecurityGroups/nsg-prod": {
+    "entityType": "AzureResource",
+    "displayName": "nsg-prod-44",
+    "properties": {
+      "resourceType": "Microsoft.Network/networkSecurityGroups",
+      "blastRadiusScore": 65.8
+    }
+  },
+  "/subscriptions/sub-0/resourceGroups/rg-0/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-1",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-1/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-22",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-2/resourceGroups/rg-4/providers/Microsoft.KeyVault/vaults/kv-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "kv-prod-01-15",
+    "properties": {
+      "resourceType": "Microsoft.KeyVault/vaults",
+      "blastRadiusScore": 95.2
+    }
+  },
+  "/subscriptions/sub-4/resourceGroups/rg-2/providers/Microsoft.Compute/virtualMachines/vm-prod-01": {
+    "entityType": "AzureResource",
+    "displayName": "vm-prod-01-23",
+    "properties": {
+      "resourceType": "Microsoft.Compute/virtualMachines",
+      "blastRadiusScore": 85.5
+    }
+  }
+}
