@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Changed
+- **Test rigor:** Strengthened auditor-profile Pester coverage to catch the BUG-1 class (silent null from hashtable key mismatch). Added end-to-end data-flow test (`AuditorDataFlow.Tests.ps1`) asserting non-null/non-empty at every hand-off in `Build-AuditorReport`. Hardened existing parity tests (Test 32, Test 35) with paired upstream-data assertions and ghost-row rejection checks.
+
+
 ### Fixed
 
 - **BUG-1 (HIGH):** `Build-AuditorReport` was reading the wrong return key from `Get-AuditorTriageAnnotations`, nulling findings after triage and producing empty remediation/evidence/HTML sections in `-Profile Auditor` reports. Fixed in `AuditorReportBuilder.ps1:120` (#1102).
