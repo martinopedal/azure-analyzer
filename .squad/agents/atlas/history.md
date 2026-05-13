@@ -305,3 +305,21 @@ Full Track F dependency gate (Commit 0) blocked all implementation (3 missing mo
 - All 29 RemoteClone tests pass (21 pre-existing + 8 new in refactor). Full Pester suite deferred to CI (takes >4 min locally).
 - Shared module imports at top of RemoteClone.ps1 use relative path pattern: `$script:sharedRoot = Split-Path $PSCommandPath -Parent; . (Join-Path $script:sharedRoot 'Retry.ps1')` — matches the ADO wrapper pattern (type A from #907 learnings).
 
+### 2026-05-13 — #1056 triage verdict (Option B: consume renderers directly)
+
+**Cross-agent notification:** Issue #1056 triage complete (Lead spawn, PR #1086 merged).
+
+**Verdict:** The three "phantom" helper modules referenced in Track F plan are naming mismatches, not functionality gaps:
+- **EdgeRelations** — Enum in `modules/shared/Schema.ps1` (lines 38–66), public getter `Get-EdgeRelations` (line 670). Both AttackPathRenderer and ResilienceMapRenderer read it directly. No standalone file needed.
+- **Select-ReportArchitecture** — Function in `modules/shared/ReportManifest.ps1` (line 101). Already consumed by Invoke-AzureAnalyzer (line 1642) and Viewer.ps1 (line 129).
+- **PolicyCoverageAnalyzer** — Never scoped as standalone. Policy coverage is `modules/shared/Policy/AlzMatcher.ps1` (ALZ fuzzy-match) + `modules/shared/Policy/PolicyEnforcementRenderer.ps1` (Cytoscape graph).
+
+**Consequence:** Track F slices 2–9 now unblocked. Consume renderer + schema outputs directly per decision matrix in PR #1086. No new module extraction PRs needed.
+
+**Mapping for Slice 2+:**
+- Slice 2 (control-domain sections) → `Schema.ps1` `New-FindingRow` ComplianceMappings
+- Slice 3 (attack-path / resilience / policy) → AttackPathRenderer / ResilienceMapRenderer / Policy/* outputs
+- Slices 4–9 → No coupling to the three phantom modules
+
+**Status:** Unblocked. Proceed with Track F slice 2 implementation against as-built renderer layout.
+

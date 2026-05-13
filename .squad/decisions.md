@@ -461,6 +461,47 @@ Docs across this repo MUST NOT use AI-sounding language and MUST NOT use emojis 
 
 ---
 
+## 2026-05-13: #1056 Track F helper modules triage + v1.5.2 release
+
+### Track F helper modules (Option B): Consume renderers directly
+
+**Source:** `.squad/decisions/inbox/lead-1056-trackf-helper-modules.md` (merged from PR #1086)
+
+Lead verdict on issue #1056. Three "phantom" helper modules referenced in Track F plan are naming mismatches, not actual gaps:
+
+1. **EdgeRelations** — Not a missing module. Enum lives in `modules/shared/Schema.ps1` (lines 38–66), exposed via `Get-EdgeRelations` (line 670). Both AttackPathRenderer.ps1 (line 105) and ResilienceMapRenderer.ps1 (line 125) read the canonical values directly.
+
+2. **Select-ReportArchitecture** — Not a missing module. Function lives in `modules/shared/ReportManifest.ps1` (line 101). Already consumed by `Invoke-AzureAnalyzer.ps1` (line 1642) and `modules/shared/Viewer.ps1` (line 129).
+
+3. **PolicyCoverageAnalyzer** — Never scoped as standalone. Policy gap analysis is covered by `modules/shared/Policy/AlzMatcher.ps1` (ALZ hierarchy fuzzy-match) and `modules/shared/Policy/PolicyEnforcementRenderer.ps1` (Cytoscape graph from policy edges). `Get-AuditorPolicyCoverageSection` consumes these directly.
+
+**Consequences:** Track F slices 2–9 unblocked immediately (no new module PRs needed). Lead plan commits 3–9 updated to consume Schema.ps1, ReportManifest.ps1, and Policy/* directly. Atlas owns slice 2+ implementation per decision matrix in #1086.
+
+**Status:** Approved (PR #1086 merged, decision landed on main 2026-05-13).
+
+### v1.5.2 release via release-please (2026-05-13)
+
+**Source:** Automated release-please workflow post-commit on main
+
+Release v1.5.1 → v1.5.2 changelog auto-generated, tag published, PSGallery pushed via GitHub Actions release.yml. `Find-Module AzureAnalyzer -Repository PSGallery -RequiredVersion 1.5.2` confirms live publication.
+
+**Status:** Shipped
+
+### Atlas Track F orphan inbox entries — consolidated (2026-05-13)
+
+**Source:** `.squad/decisions/inbox/atlas-track-f-pr1-slice1-2025-01-13T18-05-00Z.md` + `.squad/decisions/inbox/atlas-track-f-pr1-slice1-narrowed-2025-01-13T20-54-00Z.md`
+
+Two Atlas entries from PR #1066 (Track F slices 0–1) dependency gate and narrowing decision. Consolidated into this log entry for context:
+
+- **Gate v1 (2025-01-13T18:05Z):** Full Track F dependency gate blocked on 3 missing modules. Atlas correctly flagged hard blockers.
+- **Gate narrowing (2025-01-13T20:54Z):** Slices 1–2 (Resolve-AuditorContext + Get-AuditorExecutiveSummary) have zero coupling to missing modules. Unblocked, filed #1056 for Lead triage. Commits 1–2 implemented + tested in PR #1066. Commits 3+ remain blocked pending #1056 resolution.
+
+These entries are now superseded by #1056 verdict (Option B). PR #1066 merged with narrowed scope. Remaining implementation (Commits 3–9) now unblocked against as-built renderer layout.
+
+**Status:** Superseded — decisions consolidated, PR #1066 merged.
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus
