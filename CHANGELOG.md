@@ -102,6 +102,14 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.7.2](https://github.com/martinopedal/azure-analyzer/compare/v1.7.1...v1.7.2) (2026-05-13)
+
+
+### Fixes
+
+* **tests:** add AfterEach env restore to LiveTool.StateIsolation guard ([#1119](https://github.com/martinopedal/azure-analyzer/issues/1119)) ([aa9b85f](https://github.com/martinopedal/azure-analyzer/commit/aa9b85f060a9037dfca3cc7cb414c2e41cdabfb0))
+* **tests:** nest BeforeAll/AfterEach inside Describe (Pester 5 root-scope) ([#1121](https://github.com/martinopedal/azure-analyzer/issues/1121)) ([f0d8c25](https://github.com/martinopedal/azure-analyzer/commit/f0d8c25deb0dae8ff844afaa40b50bfa6364f518))
+
 ## [1.7.1](https://github.com/martinopedal/azure-analyzer/compare/v1.7.0...v1.7.1) (2026-05-13)
 
 
