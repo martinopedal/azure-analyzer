@@ -79,6 +79,18 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.5.0](https://github.com/martinopedal/azure-analyzer/compare/v1.4.7...v1.5.0) (2026-05-13)
+
+
+### Features
+
+* **track-f:** commits 0-1 -- narrowed dep gate + auditor context + exec summary (refs [#1048](https://github.com/martinopedal/azure-analyzer/issues/1048), [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) [re-open of [#1057](https://github.com/martinopedal/azure-analyzer/issues/1057)] ([#1066](https://github.com/martinopedal/azure-analyzer/issues/1066)) ([e0aefe0](https://github.com/martinopedal/azure-analyzer/commit/e0aefe0d0d6da9b67c5cba43329ad7bb8a37829e))
+
+
+### Chores
+
+* **squad:** refresh identity/now.md to post-[#1066](https://github.com/martinopedal/azure-analyzer/issues/1066) state ([#1068](https://github.com/martinopedal/azure-analyzer/issues/1068)) ([8891d98](https://github.com/martinopedal/azure-analyzer/commit/8891d98619a2559e088f59e9673770b44c5d7c9c))
+
 ## [1.4.7](https://github.com/martinopedal/azure-analyzer/compare/v1.4.6...v1.4.7) (2026-05-12)
 
 
