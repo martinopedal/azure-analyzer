@@ -15,9 +15,21 @@ BeforeAll {
     $script:ScorecardWrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Scorecard.ps1'
 
     . (Join-Path $script:RepoRoot 'tests' '_helpers' 'Capture-WrapperHostOutput.ps1')
+
+    # Defensive isolation: save PWD in case prior tests left us in a different directory
+    $script:OriginalLocation = Get-Location
 }
 
 Describe 'Wrapper live-tool smoke suite' -Tag 'LiveTool' {
+    BeforeEach {
+        # Reset leaked state from prior tests (see #1065)
+        # - $LASTEXITCODE carry-over from tests that check it without cleanup (e.g., FixtureMode.Tests.ps1:23, Help.Tests.ps1:9)
+        # - GITLEAKS_*/GIT_* env vars if any wrapper test leaked them
+        # - Working directory drift if prior tests used Set-Location without Pop-Location
+        $global:LASTEXITCODE = 0
+        Get-ChildItem Env:GITLEAKS_* -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
+        Set-Location $script:OriginalLocation
+    }
     It 'runs Invoke-Gitleaks with the real CLI binary' -Skip:(-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
         $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("live-gitleaks-" + [guid]::NewGuid().ToString('N'))
         $repoPath = Join-Path $tempRoot 'repo'
