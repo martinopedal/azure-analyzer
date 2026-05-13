@@ -258,7 +258,12 @@ function New-ReportManifest {
         [object[]] $AutoUpgrades = @(),
         [object] $Timings = [pscustomobject]@{},
         [object[]] $Features = @(),
-        [object] $Policy = $null
+        [object] $Policy = $null,
+
+        [ValidateSet('Default', 'Auditor')]
+        [string] $Profile = 'Default',
+
+        [object[]] $Sections = @()
     )
 
     $degradations = @(
@@ -284,6 +289,26 @@ function New-ReportManifest {
         Features            = @($Features)
         Degradations        = @($degradations)
         Policy              = if ($Policy) { $Policy } else { $null }
+    }
+
+    if ($Profile -eq 'Auditor') {
+        $sectionIds = @($Sections | ForEach-Object {
+            if ($_.PSObject.Properties['Id']) { $_.Id }
+            elseif ($_.PSObject.Properties['id']) { $_.id }
+        })
+
+        $profileDegradations = @($degradations | Where-Object {
+            $featureId = if ($_.PSObject.Properties['name']) { $_.name } else { $null }
+            $featureId -and $sectionIds -contains $featureId
+        })
+
+        $profileBlock = [pscustomobject]@{
+            Name         = 'auditor'
+            Sections     = @($Sections)
+            Degradations = @($profileDegradations)
+        }
+
+        $manifest | Add-Member -NotePropertyName 'Profile' -NotePropertyValue $profileBlock
     }
 
     $json = $manifest | ConvertTo-Json -Depth 30
