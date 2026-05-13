@@ -19,7 +19,7 @@ BeforeAll {
     . (Join-Path $script:SharedDir 'CliTimeout.ps1')
 }
 
-Describe 'Invoke-CopilotTriage Python subprocess timeout wrapper' {
+Describe 'Invoke-CopilotTriage Python subprocess timeout wrapper' -Tag 'AllowsWarning' {
     Context 'Python subprocess timeout handling' {
         It 'emits TimeoutExceeded error when Python subprocess exceeds 300s' {
             Mock Invoke-WithTimeout {
