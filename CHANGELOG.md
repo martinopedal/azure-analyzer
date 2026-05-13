@@ -102,6 +102,14 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.7.3](https://github.com/martinopedal/azure-analyzer/compare/v1.7.2...v1.7.3) (2026-05-13)
+
+
+### Chores
+
+* **squad:** flush session state for v1.7.1 -&gt; v1.7.2 stabilization ([#1123](https://github.com/martinopedal/azure-analyzer/issues/1123)) ([844d17e](https://github.com/martinopedal/azure-analyzer/commit/844d17e3a048f9bcd0b45c0dab9d4a0f47047702))
+* **squad:** flush v1.7.2 validation audit (Atlas + Sentinel GREEN, 3 AMBER → [#1125](https://github.com/martinopedal/azure-analyzer/issues/1125) [#1126](https://github.com/martinopedal/azure-analyzer/issues/1126) [#1127](https://github.com/martinopedal/azure-analyzer/issues/1127)) ([#1128](https://github.com/martinopedal/azure-analyzer/issues/1128)) ([68ed7c7](https://github.com/martinopedal/azure-analyzer/commit/68ed7c7b26da2d81d966a5e4c7964a9c6af4fe13))
+
 ## [1.7.2](https://github.com/martinopedal/azure-analyzer/compare/v1.7.1...v1.7.2) (2026-05-13)
 
 
