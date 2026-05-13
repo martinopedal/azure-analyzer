@@ -19,9 +19,14 @@ $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 
-# Bootstrap Invoke-WithTimeout for CLI timeout protection
-$cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
-if (Test-Path $cliTimeoutPath) { . $cliTimeoutPath }
+# Bootstrap Invoke-WithTimeout for CLI timeout protection.
+# Lazy-load pattern (matches modules/shared/RemoteClone.ps1): we do NOT dot-source
+# CliTimeout.ps1 at module top, because that would shadow Pester `Mock Invoke-WithTimeout`
+# calls in tests (the dot-source binds the real implementation into this script's scope,
+# taking precedence over outer-scope mocks). Instead the real implementation is loaded
+# just-in-time inside the try block, only when no command of that name is already in scope
+# (i.e. no test mock active).
+$script:invokeWithTimeoutIsFallback = $false
 if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
     function Invoke-WithTimeout {
         param (
@@ -35,6 +40,7 @@ if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
             Output   = Remove-Credentials $output
         }
     }
+    $script:invokeWithTimeoutIsFallback = $true
 }
 
 $errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
@@ -112,6 +118,16 @@ Write-Host '    will be sent to GitHub Copilot services for AI analysis.' -Foreg
 Write-Host ''
 Write-Host 'Running AI triage enrichment...' -ForegroundColor Magenta
 try {
+    # Lazy-load real Invoke-WithTimeout (CliTimeout.ps1) only if we have just our own
+    # fallback in scope; never dot-source over an active Pester mock.
+    if ($script:invokeWithTimeoutIsFallback) {
+        $cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+        if (Test-Path $cliTimeoutPath) {
+            . $cliTimeoutPath
+            $script:invokeWithTimeoutIsFallback = $false
+        }
+    }
+
     $args = @($scriptPath, '--input', $InputPath, '--output', $OutputPath)
     $result = Invoke-WithTimeout -Command $py -Arguments $args -TimeoutSec 300
     
