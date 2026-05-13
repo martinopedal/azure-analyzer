@@ -1,0 +1,981 @@
+Pester v5.7.1
+
+Starting discovery in 239 files.
+Discovery found 3158 tests in 8.01s.
+Running tests.
+
+Running tests from 'C:\git\azure-analyzer\tests\_Bootstrap.Tests.ps1'
+Describing Test suite bootstrap
+  [+] exports AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1 for the run
+ 86ms (55ms|31ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\Invoke-AzureAnalyzer.Help.Tests.ps1'
+Describing Invoke-AzureAnalyzer -Help
+  [+] exits 0 and prints help when -Help is passed
+ 580ms (577ms|3ms)
+  [+] documents -AlzReferenceMode in help output
+ 707ms (707ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\Invoke-AzureAnalyzer.IdentityGraphExpansion.Integration.Tests.ps1'
+Describing Orchestrator correlator dispatch — envelope contract (#187 B1)
+  [+] unwraps envelope.Findings (3 findings -> 3 dispatched, not 1)
+ 37ms (25ms|11ms)
+  [+] preserves legacy flat array contract (Invoke-IdentityCorrelation style)
+ 10ms (8ms|1ms)
+  [+] does NOT misclassify a single finding row that lacks Status/Edges markers
+ 9ms (8ms|1ms)
+  [+] detects envelope when only Findings + Edges present (no Status)
+ 22ms (20ms|2ms)
+ Context Pre-fix dispatch reproduction (proves the bug was real)
+   [+] old @(envelope) dispatch produces 1 garbage row instead of N findings
+ 23ms (14ms|9ms)
+
+Describing Orchestrator correlator dispatch — real end-to-end (#187 F5 plan rev2)
+    _     ______   _ ____  _____
+   / \   |__  / | | |  _ \| ____|
+  / _ \    / /| | | | |_) |  _|
+ / ___ \  / /_| |_| |  _ <| |___
+/_/   \_\/____|\___|_| \_\_____|
+    _    _   _    _    _  __   ____________ ____
+   / \  | \ | |  / \  | | \ \ / /__  / ____|  _ \
+  / _ \ |  \| | / _ \ | |  \ V /  / /|  _| | |_) |
+ / ___ \| |\  |/ ___ \| |___| |  / /_| |___|  _ <
+/_/   \_\_| \_/_/   \_\_____|_| /____|_____|_| \_\
+                                          v1.6.1
+
+No tools to run.
+
+[correlator] Running Identity Graph Expansion...
+  identity-graph-expansion: 3 correlation finding(s)
+HTML report written to: C:\git\azure-analyzer\output-test\identity-graph-dispatch\report.html
+Markdown report written to: C:\git\azure-analyzer\output-test\identity-graph-dispatch\report.md
+Wrote dashboard: C:\git\azure-analyzer\output-test\identity-graph-dispatch\dashboard.html
+
+=== Summary ===
+  Total findings: 3
+  Non-compliant — Critical: 0  High: 3  Medium: 0  Low: 0
+  Output: C:\git\azure-analyzer\output-test\identity-graph-dispatch\results.json
+  Entities: C:\git\azure-analyzer\output-test\identity-graph-dispatch\entities.json
+  Portfolio: C:\git\azure-analyzer\output-test\identity-graph-dispatch\portfolio.json
+  [+] persists envelope.Findings to results.json (3 findings, not 1 garbage row)
+ 4.26s (4.24s|15ms)
+  [+] persists wrapper-self-added edges to entities.json (no double-add)
+ 13ms (11ms|2ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\Invoke-AzureAnalyzer.MgPath.Tests.ps1'
+Describing Invoke-AzureAnalyzer management-group path backfill
+    _     ______   _ ____  _____
+   / \   |__  / | | |  _ \| ____|
+  / _ \    / /| | | | |_) |  _|
+ / ___ \  / /_| |_| |  _ <| |___
+/_/   \_\/____|\___|_| \_\_____|
+    _    _   _    _    _  __   ____________ ____
+   / \  | \ | |  / \  | | \ \ / /__  / ____|  _ \
+  / _ \ |  \| | / _ \ | |  \ V /  / /|  _| | |_) |
+ / ___ \| |\  |/ ___ \| |___| |  / /_| |___|  _ <
+/_/   \_\_| \_/_/   \_\_____|_| /____|_____|_| \_\
+                                          v1.6.1
+Discovered 1 subscription(s) under management group 'connectivity'
+
+Running 1 tool spec(s) across 1 tool(s): azqr
+  azqr: 1 findings
+HTML report written to: C:\git\azure-analyzer\output-test\mg-path\report.html
+Markdown report written to: C:\git\azure-analyzer\output-test\mg-path\report.md
+Wrote dashboard: C:\git\azure-analyzer\output-test\mg-path\dashboard.html
+
+=== Summary ===
+  Total findings: 1
+  Non-compliant — Critical: 0  High: 1  Medium: 0  Low: 0
+  Output: C:\git\azure-analyzer\output-test\mg-path\results.json
+  Entities: C:\git\azure-analyzer\output-test\mg-path\entities.json
+  Portfolio: C:\git\azure-analyzer\output-test\mg-path\portfolio.json
+  [+] preserves repeated management-group display names when stamping findings during an MG scan
+ 2.88s (2.88s|2ms)
+    _     ______   _ ____  _____
+   / \   |__  / | | |  _ \| ____|
+  / _ \    / /| | | | |_) |  _|
+ / ___ \  / /_| |_| |  _ <| |___
+/_/   \_\/____|\___|_| \_\_____|
+    _    _   _    _    _  __   ____________ ____
+   / \  | \ | |  / \  | | \ \ / /__  / ____|  _ \
+  / _ \ |  \| | / _ \ | |  \ V /  / /|  _| | |_) |
+ / ___ \| |\  |/ ___ \| |___| |  / /_| |___|  _ <
+/_/   \_\_| \_/_/   \_\_____|_| /____|_____|_| \_\
+                                          v1.6.1
+Discovered 2 subscription(s) under management group 'connectivity'
+
+Running 2 tool spec(s) across 1 tool(s): azqr
+  azqr: 2 findings
+HTML report written to: C:\git\azure-analyzer\output-test\mg-outside-subtree\report.html
+Markdown report written to: C:\git\azure-analyzer\output-test\mg-outside-subtree\report.md
+Wrote dashboard: C:\git\azure-analyzer\output-test\mg-outside-subtree\dashboard.html
+
+=== Summary ===
+  Total findings: 2
+  Non-compliant — Critical: 0  High: 2  Medium: 0  Low: 0
+  Output: C:\git\azure-analyzer\output-test\mg-outside-subtree\results.json
+  Entities: C:\git\azure-analyzer\output-test\mg-outside-subtree\entities.json
+  Portfolio: C:\git\azure-analyzer\output-test\mg-outside-subtree\portfolio.json
+  [+] does not attribute an out-of-subtree explicit subscription to the requested management-group rollup
+ 2.82s (2.82s|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\azure-function\Run-Function.Tests.ps1'
+Describing Invoke-FunctionScan: input validation
+  [+] throws when subscriptionId is missing
+ 84ms (82ms|2ms)
+  [+] throws when subscriptionId is not a GUID
+ 79ms (78ms|1ms)
+  [+] throws when tenantId is provided but malformed
+ 24ms (24ms|0ms)
+  [+] rejects tools that are not on the allow-list
+ 29ms (28ms|0ms)
+  [+] accepts allow-listed tools as a CSV string
+ 39ms (39ms|0ms)
+
+Describing Invoke-FunctionScan: sink wiring
+  [+] skips the sink cleanly when DCE_ENDPOINT is empty
+ 57ms (55ms|1ms)
+  [+] invokes the sink when DCE_ENDPOINT and DCR_IMMUTABLE_ID are set
+ 76ms (75ms|0ms)
+[function] Log Analytics sink upload failed: transient 503 from monitor.azure.com
+  [+] does not fail the run when the sink throws (matches orchestrator -SinkLogAnalytics behavior)
+ 56ms (56ms|0ms)
+  [+] sanitizes credential-bearing orchestrator errors through Remove-Credentials
+ 127ms (127ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\ci\TranscriptHygiene.Tests.ps1'
+Describing CI transcript hygiene (category 12 ratchet)
+  [!] emits zero tool/auth/cap WARNING lines during wrapper tests
+ 2ms (0ms|2ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\ADO-Wrappers.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-connections\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-connections\report.md
+Describing E2E: ado-connections wrapper (#653)
+  [+] produces results.json with ado-connections source
+ 9ms (8ms|1ms)
+  [+] produces entities.json with v3.1 envelope
+ 9ms (9ms|1ms)
+  [+] entities include ServiceConnection entity types
+ 7ms (6ms|0ms)
+  [+] HTML report renders with ADO connection content
+ 10ms (9ms|0ms)
+  [+] MD report renders
+ 6ms (6ms|1ms)
+  [+] credential scrub removes planted secrets
+ 18ms (17ms|1ms)
+  [+] all severity values are from the five-level enum
+ 6ms (5ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-pipelines\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-pipelines\report.md
+
+Describing E2E: ado-pipelines wrapper (#654)
+  [+] produces results.json with ado-pipelines source
+ 11ms (8ms|3ms)
+  [+] produces entities.json spanning Pipeline, VariableGroup, Environment types
+ 5ms (5ms|0ms)
+  [+] HTML report includes pipeline categories
+ 8ms (7ms|1ms)
+  [+] credential scrub removes planted secrets
+ 25ms (25ms|0ms)
+  [+] all severity values are from the five-level enum
+ 9ms (8ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-consumption\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-consumption\report.md
+
+Describing E2E: ado-consumption wrapper (#655)
+  [+] produces results.json with ado-consumption source
+ 13ms (10ms|3ms)
+  [+] produces entities.json with AdoProject entity types
+ 8ms (7ms|1ms)
+  [+] HTML report renders cost findings
+ 13ms (12ms|1ms)
+  [+] credential scrub removes planted secrets
+ 10ms (10ms|0ms)
+  [+] all severity values are from the five-level enum
+ 5ms (4ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-repos-secrets\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-repos-secrets\report.md
+
+Describing E2E: ado-repos-secrets wrapper (#656)
+  [+] produces results.json with ado-repos-secrets source
+ 8ms (5ms|3ms)
+  [+] produces entities.json with Repository entity types
+ 6ms (5ms|1ms)
+  [+] HTML report renders secret findings
+ 6ms (5ms|1ms)
+  [+] MD report renders
+ 3ms (3ms|0ms)
+  [+] credential scrub removes planted secrets
+ 10ms (9ms|1ms)
+  [+] all severity values are from the five-level enum
+ 5ms (4ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-pipeline-correlator\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-pipeline-correlator\report.md
+
+Describing E2E: ado-pipeline-correlator wrapper (#657)
+  [+] produces results.json with ado-pipeline-correlator source
+ 5ms (4ms|1ms)
+  [+] produces entities.json with Pipeline entity types
+ 5ms (4ms|0ms)
+  [+] HTML report renders correlator findings
+ 5ms (4ms|0ms)
+  [+] credential scrub removes planted secrets
+ 33ms (32ms|0ms)
+  [+] all severity values are from the five-level enum
+ 5ms (5ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-combined\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\7e90d553-66e4-4c96-aae6-ae99af687c82\ado-combined\report.md
+
+Describing E2E: combined ADO surface (all five tools)
+  [+] results.json contains findings from all five ADO tools
+ 7ms (5ms|2ms)
+  [+] combined finding count matches sum of individual fixtures
+ 4ms (3ms|0ms)
+  [+] entities.json covers diverse ADO entity types
+ 6ms (5ms|0ms)
+  [+] HTML report includes all five tool names
+ 16ms (16ms|0ms)
+  [+] credential scrub removes planted secrets from combined output
+ 10ms (9ms|0ms)
+  [+] all severity values across combined output are valid
+ 7ms (6ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Batch1-AzureGovernance.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\azqr\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\azqr\report.md
+Describing E2E batch 1 (#745): azqr
+  [+] produces results.json with expected source and at least one finding
+ 6ms (5ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 9ms (8ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 8ms (5ms|3ms)
+  [+] all severity values are from the five-level enum
+ 6ms (6ms|1ms)
+  [+] HTML report renders with the tool source name
+ 11ms (11ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 11ms (11ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\defender-for-cloud\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\defender-for-cloud\report.md
+
+Describing E2E batch 1 (#745): defender-for-cloud
+  [+] produces results.json with expected source and at least one finding
+ 7ms (5ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 8ms (7ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 5ms (4ms|1ms)
+  [+] HTML report renders with the tool source name
+ 9ms (8ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (2ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 18ms (18ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\prowler\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\prowler\report.md
+
+Describing E2E batch 1 (#745): prowler
+  [+] produces results.json with expected source and at least one finding
+ 4ms (3ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 3ms (3ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (2ms|0ms)
+  [+] all severity values are from the five-level enum
+ 2ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 6ms (6ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (1ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 9ms (9ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\finops\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\finops\report.md
+
+Describing E2E batch 1 (#745): finops
+  [+] produces results.json with expected source and at least one finding
+ 6ms (5ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 8ms (7ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 10ms (9ms|1ms)
+  [+] HTML report renders with the tool source name
+ 13ms (12ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 8ms (8ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\azure-cost\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\2a717add-b554-41d9-a873-69c19252743c\azure-cost\report.md
+
+Describing E2E batch 1 (#745): azure-cost
+  [+] produces results.json with expected source and at least one finding
+ 5ms (3ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (3ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (2ms|0ms)
+  [+] all severity values are from the five-level enum
+ 3ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 7ms (6ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (2ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 17ms (17ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Batch2-AzureObservability.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\appinsights\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\appinsights\report.md
+Describing E2E batch 2 (#745): appinsights
+  [+] produces results.json with expected source and at least one finding
+ 5ms (4ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 5ms (4ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 4ms (4ms|0ms)
+  [+] HTML report renders with the tool source name
+ 9ms (8ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (3ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 9ms (9ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\loadtesting\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\loadtesting\report.md
+
+Describing E2E batch 2 (#745): loadtesting
+  [+] produces results.json with expected source and at least one finding
+ 10ms (6ms|4ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 7ms (7ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 3ms (3ms|0ms)
+  [+] HTML report renders with the tool source name
+ 14ms (13ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (2ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 10ms (9ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\azure-quota\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\azure-quota\report.md
+
+Describing E2E batch 2 (#745): azure-quota
+  [+] produces results.json with expected source and at least one finding
+ 4ms (3ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (3ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 4ms (3ms|1ms)
+  [+] all severity values are from the five-level enum
+ 3ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 6ms (6ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (2ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 12ms (12ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\sentinel-incidents\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\sentinel-incidents\report.md
+
+Describing E2E batch 2 (#745): sentinel-incidents
+  [+] produces results.json with expected source and at least one finding
+ 8ms (5ms|3ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 8ms (7ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 6ms (5ms|1ms)
+  [+] all severity values are from the five-level enum
+ 3ms (3ms|0ms)
+  [+] HTML report renders with the tool source name
+ 7ms (7ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (2ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 8ms (7ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\sentinel-coverage\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\e7a83561-dfce-40e1-bbf2-f234574160d4\sentinel-coverage\report.md
+
+Describing E2E batch 2 (#745): sentinel-coverage
+  [+] produces results.json with expected source and at least one finding
+ 6ms (4ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 6ms (5ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 4ms (4ms|1ms)
+  [+] HTML report renders with the tool source name
+ 9ms (8ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (2ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 8ms (8ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Batch3-AzureGovernanceQueries.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\aks-rightsizing\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\aks-rightsizing\report.md
+Describing E2E batch 3 (#745): aks-rightsizing
+  [+] produces results.json with expected source and at least one finding
+ 6ms (4ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 5ms (5ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 7ms (7ms|0ms)
+  [+] all severity values are from the five-level enum
+ 6ms (6ms|1ms)
+  [+] HTML report renders with the tool source name
+ 11ms (10ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 6ms (5ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 13ms (12ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\aks-karpenter-cost\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\aks-karpenter-cost\report.md
+
+Describing E2E batch 3 (#745): aks-karpenter-cost
+  [+] produces results.json with expected source and at least one finding
+ 6ms (4ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (4ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (2ms|0ms)
+  [+] all severity values are from the five-level enum
+ 3ms (3ms|0ms)
+  [+] HTML report renders with the tool source name
+ 7ms (7ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (2ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 9ms (8ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\psrule\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\psrule\report.md
+
+Describing E2E batch 3 (#745): psrule
+  [+] produces results.json with expected source and at least one finding
+ 8ms (6ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 5ms (5ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 4ms (3ms|1ms)
+  [+] all severity values are from the five-level enum
+ 4ms (3ms|1ms)
+  [+] HTML report renders with the tool source name
+ 12ms (11ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 14ms (13ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\powerpipe\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\powerpipe\report.md
+
+Describing E2E batch 3 (#745): powerpipe
+  [+] produces results.json with expected source and at least one finding
+ 4ms (3ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 3ms (3ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (2ms|0ms)
+  [+] all severity values are from the five-level enum
+ 2ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 5ms (5ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (4ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 28ms (28ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\alz-queries\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\bdcb5975-8429-415c-97bc-d3f647fcfc30\alz-queries\report.md
+
+Describing E2E batch 3 (#745): alz-queries
+  [+] produces results.json with expected source and at least one finding
+ 4ms (2ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (3ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 4ms (4ms|0ms)
+  [+] all severity values are from the five-level enum
+ 2ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 7ms (7ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (1ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 26ms (26ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Batch4-RepoScanners.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\scorecard\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\scorecard\report.md
+Describing E2E batch 4 (#745): scorecard
+  [+] produces results.json with expected source and at least one finding
+ 12ms (11ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 9ms (8ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 4ms (4ms|0ms)
+  [+] all severity values are from the five-level enum
+ 6ms (5ms|1ms)
+  [+] HTML report renders with the tool source name
+ 8ms (8ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 11ms (11ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\gitleaks\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\gitleaks\report.md
+
+Describing E2E batch 4 (#745): gitleaks
+  [+] produces results.json with expected source and at least one finding
+ 4ms (3ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 4ms (3ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 2ms (2ms|0ms)
+  [+] all severity values are from the five-level enum
+ 2ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 6ms (5ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (2ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 8ms (7ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\trivy\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\trivy\report.md
+
+Describing E2E batch 4 (#745): trivy
+  [+] produces results.json with expected source and at least one finding
+ 5ms (4ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 6ms (5ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 4ms (3ms|1ms)
+  [+] all severity values are from the five-level enum
+ 6ms (5ms|1ms)
+  [+] HTML report renders with the tool source name
+ 8ms (7ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 5ms (2ms|3ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 11ms (11ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\zizmor\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\zizmor\report.md
+
+Describing E2E batch 4 (#745): zizmor
+  [+] produces results.json with expected source and at least one finding
+ 4ms (3ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 6ms (6ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (3ms|0ms)
+  [+] all severity values are from the five-level enum
+ 3ms (2ms|1ms)
+  [+] HTML report renders with the tool source name
+ 6ms (6ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 3ms (2ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 10ms (9ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\kubescape\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\kubescape\report.md
+
+Describing E2E batch 4 (#745): kubescape
+  [+] produces results.json with expected source and at least one finding
+ 5ms (3ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 5ms (3ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (2ms|0ms)
+  [+] all severity values are from the five-level enum
+ 3ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 7ms (6ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (1ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 14ms (13ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\kube-bench\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\kube-bench\report.md
+
+Describing E2E batch 4 (#745): kube-bench
+  [+] produces results.json with expected source and at least one finding
+ 5ms (3ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 3ms (3ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (2ms|1ms)
+  [+] all severity values are from the five-level enum
+ 2ms (2ms|0ms)
+  [+] HTML report renders with the tool source name
+ 7ms (6ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 23ms (23ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\falco\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\d7dae421-8028-422f-a398-91aa544fa058\falco\report.md
+
+Describing E2E batch 4 (#745): falco
+  [+] produces results.json with expected source and at least one finding
+ 5ms (4ms|1ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 6ms (5ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 8ms (7ms|1ms)
+  [+] all severity values are from the five-level enum
+ 6ms (5ms|1ms)
+  [+] HTML report renders with the tool source name
+ 7ms (7ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (1ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 7ms (6ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Batch5-IdentityAndGovernance.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\identity-correlator\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\identity-correlator\report.md
+Describing E2E batch 5 (#745): identity-correlator
+  [+] produces results.json with expected source and at least one finding
+ 6ms (5ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 5ms (5ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 8ms (7ms|1ms)
+  [+] all severity values are from the five-level enum
+ 7ms (6ms|1ms)
+  [+] HTML report renders with the tool source name
+ 13ms (13ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 5ms (4ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 13ms (12ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\identity-graph-expansion\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\identity-graph-expansion\report.md
+
+Describing E2E batch 5 (#745): identity-graph-expansion
+  [+] produces results.json with expected source and at least one finding
+ 6ms (4ms|2ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (3ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 3ms (3ms|0ms)
+  [+] all severity values are from the five-level enum
+ 3ms (3ms|1ms)
+  [+] HTML report renders with the tool source name
+ 6ms (6ms|0ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (2ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 9ms (8ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\maester\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\maester\report.md
+
+Describing E2E batch 5 (#745): maester
+  [+] produces results.json with expected source and at least one finding
+ 9ms (6ms|3ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 7ms (6ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 9ms (8ms|1ms)
+  [+] HTML report renders with the tool source name
+ 15ms (14ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 32ms (30ms|2ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\gh-actions-billing\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\gh-actions-billing\report.md
+
+Describing E2E batch 5 (#745): gh-actions-billing
+  [+] produces results.json with expected source and at least one finding
+ 4ms (3ms|1ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (4ms|0ms)
+  [+] all entities use a valid EntityType enum value
+ 5ms (3ms|3ms)
+  [+] all severity values are from the five-level enum
+ 3ms (3ms|1ms)
+  [+] HTML report renders with the tool source name
+ 8ms (7ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 7ms (6ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 17ms (17ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\azgovviz\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\azgovviz\report.md
+
+Describing E2E batch 5 (#745): azgovviz
+  [+] produces results.json with expected source and at least one finding
+ 7ms (5ms|3ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 4ms (3ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 6ms (5ms|1ms)
+  [+] all severity values are from the five-level enum
+ 4ms (3ms|1ms)
+  [+] HTML report renders with the tool source name
+ 10ms (9ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 2ms (2ms|0ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 12ms (11ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\wara\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\deb6c3d6-d791-4adc-b932-5e826c567d18\wara\report.md
+
+Describing E2E batch 5 (#745): wara
+  [+] produces results.json with expected source and at least one finding
+ 14ms (11ms|3ms)
+  [+] produces entities.json with v3.1 envelope and entities
+ 7ms (6ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 6ms (5ms|1ms)
+  [+] all severity values are from the five-level enum
+ 6ms (5ms|1ms)
+  [+] HTML report renders with the tool source name
+ 13ms (12ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 18ms (17ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Batch6-IaC.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\59eda226-1498-4f56-821c-51f2473d1ec0\bicep-iac\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\59eda226-1498-4f56-821c-51f2473d1ec0\bicep-iac\report.md
+Describing E2E batch 6 (#663/#664/#665): bicep-iac
+  [+] produces results.json with expected source and at least one finding
+ 8ms (6ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 9ms (8ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 4ms (4ms|1ms)
+  [+] all severity values are from the five-level enum
+ 8ms (7ms|1ms)
+  [+] HTML report renders with the tool source name
+ 10ms (9ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 9ms (8ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\59eda226-1498-4f56-821c-51f2473d1ec0\infracost\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\59eda226-1498-4f56-821c-51f2473d1ec0\infracost\report.md
+
+Describing E2E batch 6 (#663/#664/#665): infracost
+  [+] produces results.json with expected source and at least one finding
+ 9ms (7ms|1ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 7ms (6ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 6ms (5ms|1ms)
+  [+] all severity values are from the five-level enum
+ 6ms (5ms|1ms)
+  [+] HTML report renders with the tool source name
+ 13ms (12ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 11ms (11ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\59eda226-1498-4f56-821c-51f2473d1ec0\terraform-iac\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\59eda226-1498-4f56-821c-51f2473d1ec0\terraform-iac\report.md
+
+Describing E2E batch 6 (#663/#664/#665): terraform-iac
+  [+] produces results.json with expected source and at least one finding
+ 7ms (5ms|2ms)
+  [+] produces entities.json with v3.1 envelope and Repository entities
+ 8ms (7ms|1ms)
+  [+] all entities use a valid EntityType enum value
+ 6ms (5ms|1ms)
+  [+] all severity values are from the five-level enum
+ 5ms (5ms|1ms)
+  [+] HTML report renders with the tool source name
+ 15ms (14ms|1ms)
+  [+] Markdown report renders with non-empty content
+ 4ms (3ms|1ms)
+  [+] credential scrub removes planted secrets from every artifact
+ 15ms (15ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\Invoke-AzureAnalyzer.E2E.Tests.ps1'
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\8eb865bd-517b-47dd-8039-f89f217edad7\azure\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\8eb865bd-517b-47dd-8039-f89f217edad7\azure\report.md
+Describing E2E: Invoke-AzureAnalyzer
+ Context Azure subscription surface (mocked ARG)
+   [+] produces results.json with a schema version (v1-compatible findings)
+ 7ms (5ms|2ms)
+   [+] produces entities.json with v3.1 envelope
+ 9ms (9ms|1ms)
+   [+] HTML report renders for small fixture (Tier 1 PureJson)
+ 9ms (7ms|1ms)
+   [+] MD report renders for small fixture
+ 4ms (3ms|0ms)
+   [+] scrubs planted ghp_*/xoxb-*/AKIA*/pat-* from all outputs
+ 16ms (16ms|1ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\8eb865bd-517b-47dd-8039-f89f217edad7\github\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\8eb865bd-517b-47dd-8039-f89f217edad7\github\report.md
+ Context GitHub repo surface (-RepoUrl, mocked clone)
+   [+] scans a mock repo and emits findings for each repo slug
+ 8ms (7ms|2ms)
+   [+] respects host allow-list (Invoke-RemoteRepoClone rejects example.com)
+ 43ms (42ms|0ms)
+   [+] scrubs token from a planted .git/config fixture (Remove-Credentials)
+ 51ms (50ms|1ms)
+   [+] produces valid v3 entities.json with Repository entities
+ 8ms (8ms|1ms)
+   [+] HTML report includes GitHub findings
+ 6ms (6ms|0ms)
+HTML report written to: C:\Users\martinopedal\AppData\Local\Temp\8eb865bd-517b-47dd-8039-f89f217edad7\tenant\report.html
+Markdown report written to: C:\Users\martinopedal\AppData\Local\Temp\8eb865bd-517b-47dd-8039-f89f217edad7\tenant\report.md
+ Context Tenant / Management Group surface (mocked)
+   [+] enumerates tenant with Tenant entity type
+ 10ms (9ms|2ms)
+   [+] enumerates management group tree
+ 9ms (8ms|1ms)
+   [+] produces results.json spanning multiple subscriptions
+ 9ms (8ms|1ms)
+   [+] canonicalizes entity IDs (tenant:{guid}, ARM resource IDs lowercased)
+ 10ms (10ms|1ms)
+   [+] credential scrub applies to tenant surface output
+ 20ms (19ms|1ms)
+ Context Tier selection (multi-axis Select-ReportArchitecture)
+   [+] selects Tier 1 (PureJson) for small dataset (10 findings)
+ 10ms (4ms|6ms)
+   [+] selects Tier 2 (EmbeddedSqlite) for 10k findings
+ 4ms (3ms|1ms)
+   [+] selects Tier 3 (SidecarSqlite) for 100k findings
+ 3ms (3ms|1ms)
+ Context Cross-cutting invariants
+   [+] Remove-Credentials redacts ghp_/xoxb-/JWT/OpenAI planted strings
+ 6ms (5ms|1ms)
+   [+] Test-RemoteRepoUrl enforces HTTPS-only and the host allow-list
+ 6ms (5ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\e2e\WrapperCoverageParity.Tests.ps1'
+Describing E2E wrapper coverage parity tracker
+  [+] tracks every enabled tool in tool-manifest.json
+ 9ms (8ms|2ms)
+  [+] uses contiguous E2E IDs aligned to entry count
+ 8ms (7ms|1ms)
+  [+] has unique tool entries (one row per enabled tool)
+ 4ms (3ms|1ms)
+  [+] has unique tool names in tool-manifest.json
+ 5ms (4ms|1ms)
+  [+] uses valid status values for each tracked tool
+ 16ms (16ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\fixtures\Generate-SyntheticFixture.Tests.ps1'
+Describing Generate-SyntheticFixture (#435)
+  [+] creates the three artefacts and reports counts
+ 123ms (122ms|1ms)
+  [+] produces byte-identical output for the same seed
+ 242ms (241ms|1ms)
+  [+] produces different output for different seeds
+ 250ms (249ms|1ms)
+  [+] rejects negative finding counts
+ 13ms (12ms|0ms)
+ Context committed phase0 fixtures
+   [+] ships a small fixture that parses cleanly
+ 8ms (7ms|1ms)
+   [+] ships an edge-heavy fixture for tier-picker stress tests
+ 5ms (5ms|0ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\hooks\PreCommit.Tests.ps1'
+Describing Pre-commit Hook
+  [+] Hook script exists
+ 6ms (5ms|1ms)
+  [+] Hook script has shebang
+ 4ms (3ms|1ms)
+  [+] Hook defines Test-ToolInstalled function
+ 4ms (3ms|0ms)
+  [+] Hook defines Get-StagedWorkflowFiles function
+ 4ms (4ms|1ms)
+  [+] Hook defines Invoke-Gitleaks function
+ 5ms (4ms|0ms)
+  [+] Hook defines Invoke-Zizmor function
+ 6ms (5ms|1ms)
+  [+] Hook checks for .gitleaks.toml config
+ 6ms (5ms|1ms)
+  [+] Hook uses --staged --redact flags for gitleaks
+ 6ms (5ms|1ms)
+  [+] Hook filters workflow files with regex
+ 5ms (4ms|1ms)
+  [+] Hook exits with non-zero on failure
+ 4ms (3ms|0ms)
+
+Describing Install-PreCommitHook Script
+  [+] Installer script exists
+ 3ms (2ms|1ms)
+  [+] Installer has shebang
+ 3ms (3ms|0ms)
+  [+] Installer validates git repository
+ 3ms (3ms|0ms)
+  [+] Installer handles Windows and Unix differently
+ 4ms (4ms|0ms)
+  [+] Installer makes hook executable on Unix
+ 4ms (4ms|1ms)
+  [+] Installer is idempotent (removes existing hook)
+ 5ms (4ms|1ms)
+  [+] Installer uses git-compatible hook wrapper (not batch syntax)
+ 5ms (4ms|1ms)
+  [+] Installer provides install instructions
+ 4ms (4ms|1ms)
+
+Describing Hook Behavior (Mocked)
+  [+] Exits 0 when no tools are installed and no checks run
+ 5ms (4ms|1ms)
+  [+] Detects workflow files by pattern
+ 4ms (3ms|0ms)
+  [+] Workflow diff filter includes renamed files
+ 3ms (3ms|0ms)
+  [+] Gitleaks function signature is correct
+ 17ms (6ms|11ms)
+  [+] Zizmor function accepts file array
+ 6ms (6ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\integration\AuditorParity.Tests.ps1'
+Describing Auditor Parity Tests
+ Context Test 32 - 10 Canonical Auditor Questions (Question Parity)
+   [+] Should answer all 10 canonical auditor questions at Tier 1 (skeleton coverage only)
+ 6.43s (6.43s|3ms)
+ Context Test 33 - Citation Credentials Round-trip
+   [+] Should sanitize credentials in citations while preserving structure
+ 24ms (22ms|1ms)
+ Context Test 34 - HTML Self-contained at Tier 1/2
+   [+] Should produce self-contained HTML at Tier 1 with inline CSS and no external dependencies
+ 5.35s (5.34s|1ms)
+   [!] Should produce HTML at Tier 2 with embedded SQLite but no external server
+ 0ms (0ms|0ms)
+ Context Test 35 - Audit-evidence Directory Generated
+   [+] Should generate audit-evidence directory with CSV, JSON, and XLSX exports
+ 4.63s (4.62s|1ms)
+   [+] Should sanitize credentials in all evidence export formats
+ 178ms (178ms|1ms)
+
+Running tests from 'C:\git\azure-analyzer\tests\integration\EntryPointSmoke.Tests.ps1'
+Describing Entry-point smoke (psm1 wrapper) - regression guard for #473
+  [+] AzureAnalyzer.psm1 imports without errors and exports public functions
+ 1.26s (1.26s|1ms)
+    _     ______   _ ____  _____
+   / \   |__  / | | |  _ \| ____|
+  / _ \    / /| | | | |_) |  _|
+ / ___ \  / /_| |_| |  _ <| |___
+/_/   \_\/____|\___|_| \_\_____|
+    _    _   _    _    _  __   ____________ ____
+   / \  | \ | |  / \  | | \ \ / /__  / ____|  _ \
+  / _ \ |  \| | / _ \ | |  \ V /  / /|  _| | |_) |
+ / ___ \| |\  |/ ___ \| |___| |  / /_| |___|  _ <
+/_/   \_\_| \_/_/   \_\_____|_| /____|_____|_| \_\
+                                          v1.6.1
+
+[prereq] Checking prerequisites (manifest-driven)...
+
+[prereq] 1 tool(s) still missing: Azure Quick Review (azqr)

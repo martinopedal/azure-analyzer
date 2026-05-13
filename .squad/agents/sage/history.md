@@ -300,4 +300,20 @@ Installed `.squad/skills/docs-voice/SKILL.md` as the canonical repo docs voice p
 
 Path A vindicated: lightweight-tag validator removal (PR #1051) unblocked release.yml. v1.4.5 now discoverable via Find-Module -Name AzureAnalyzer -Repository PSGallery. Issue #963 closed. Forge recovered from PR #1049 omission (GPG validator step) via release delete + tag re-cut (Option A). First real publish is the readiness test, not CI.
 
+### 2026-05-13 - Full consistency + test-rigor audit (post-BUG-1)
+
+Seven-stream audit across the whole codebase (excluding auditor profile, which Sentinel covers). Key findings:
+
+- **BUG-1 class is systemic in report tests.** 13 of 15 flagged false-pass patterns are in `tests/reports/New-HtmlReport.Tests.ps1`, all following the same shape: `Should -Match` on rendered output with no upstream data null-guard. The HTML renderer tests are the most exposed surface in the codebase for silent null-swallowing.
+- **Ratchet regex has a typed-exception blind spot.** `WrapperConsistencyRatchet.Tests.ps1` catches `throw "..."` / `throw '...'` but misses `throw [System.Exception]::new(...)` and `throw [RuntimeException]::new(...)`. Two wrappers exploit this (one intentionally, one not): `Invoke-AzureQuotaReports.ps1` (5 raw throws) and `Invoke-DnsTwist.ps1` (1).
+- **AuditorReportBuilder HTML/MD sinks unsanitized.** Lines 898/891 write raw content without `Remove-Credentials`. CSV/JSON/XLSX path partially sanitized (string-only props).
+- **17 of 38 enabled tools lack wrapper + normalizer tests.** Normalizer code is exemplary (all 38 use `New-FindingRow`, all use canonical severity/entity enums), but test coverage is spotty.
+- **Pester `Test` job is not a required CI check.** The actual test gate runs but isn't enforced in branch protection. Same for `docs-check`.
+- **NoUnexpectedWarnings baseline grandfathers 35 of 37 wrapper tests** (tied to #770 but effectively unenforced).
+- **CON-002 has 3 wrappers using `Repository` as canonical instead of `RepoPath`.** CON-001, CON-003 (within ratchet detection), CON-004 are clean.
+- **All generated docs are fresh.** Generators have `-CheckOnly` and `docs-check.yml` runs them.
+- **1 unregistered wrapper:** `Invoke-CopilotTriage.ps1` has no manifest entry.
+
+Deliverable: `.squad/decisions/inbox/sage-full-consistency-audit.md` (12 follow-up issues recommended, prioritized by risk).
+
 

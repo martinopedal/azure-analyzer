@@ -323,3 +323,6 @@ New release run [25735618882](https://github.com/martinopedal/azure-analyzer/act
 ### Decisions logged
 
 - `.squad/decisions/inbox/forge-release-gpg-tag-fix.md` written for Scribe.
+## 2026-05-13 — Timeout wrappers for triage subprocess (#1061, #1063)
+
+Wrapped Python triage subprocess and gh copilot CLI calls with Invoke-WithTimeout. Python subprocess gets 300s (standard CLI timeout), gh copilot status gets 30s (interactive), gh copilot models list gets 60s. All timeouts emit structured TimeoutExceeded errors. Added 10 test cases across two test files. Follows shared pattern from #974 with inline fallback stub for test compatibility.
