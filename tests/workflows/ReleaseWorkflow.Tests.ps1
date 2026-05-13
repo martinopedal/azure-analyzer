@@ -26,8 +26,10 @@ Describe 'Release automation workflow contract' {
         $workflow | Should -Match 'output/sbom\.json'
         $workflow | Should -Match 'SHA256SUMS\.txt'
         $workflow | Should -Match 'Publish-Module.+-WhatIf'
-        $workflow | Should -Match '\$null = Find-Module'
-        $workflow | Should -Match 'Save-Module -Name \$moduleName'
+        # E2E job verifies the published module via Install-Module + Import-Module
+        $workflow | Should -Match 'Install-Module -Name \$moduleName'
+        $workflow | Should -Match 'Import-Module \$moduleName'
+        $workflow | Should -Match 'Invoke-ScriptAnalyzer'
     }
 
     It 'includes release-please manifest config and psd1 anchor' {
