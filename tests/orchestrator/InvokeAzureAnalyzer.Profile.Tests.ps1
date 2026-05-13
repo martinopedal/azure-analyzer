@@ -3,7 +3,7 @@ BeforeAll {
     $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     $sharedDir = Join-Path $repoRoot 'modules' 'shared'
     $fixtureDir = Join-Path $PSScriptRoot '..' 'fixtures' 'auditor-small'
-    $tempOutputDir = Join-Path $env:TEMP "aa-profile-test-$(Get-Date -Format 'yyyyMMddHHmmss')"
+    $tempOutputDir = Join-Path ([System.IO.Path]::GetTempPath()) "aa-profile-test-$(Get-Date -Format 'yyyyMMddHHmmss')"
     
     . (Join-Path $sharedDir 'Sanitize.ps1')
     . (Join-Path $sharedDir 'AuditorReportBuilder.ps1')
