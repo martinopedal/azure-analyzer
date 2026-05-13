@@ -80,6 +80,25 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.5.1](https://github.com/martinopedal/azure-analyzer/compare/v1.5.0...v1.5.1) (2026-05-13)
+
+
+### Fixes
+
+* **tests:** isolate Infracost mock state to AfterAll (closes [#1065](https://github.com/martinopedal/azure-analyzer/issues/1065)) ([#1074](https://github.com/martinopedal/azure-analyzer/issues/1074)) ([546cb1f](https://github.com/martinopedal/azure-analyzer/commit/546cb1fd11ecca326cd655c88f839eb68e06d2ea))
+* **triage:** wrap Python subprocess + gh copilot CLI in Invoke-WithTimeout ([#1061](https://github.com/martinopedal/azure-analyzer/issues/1061), [#1063](https://github.com/martinopedal/azure-analyzer/issues/1063)) ([#1082](https://github.com/martinopedal/azure-analyzer/issues/1082)) ([bcda0e0](https://github.com/martinopedal/azure-analyzer/commit/bcda0e06c24e7a221485c2c633d42c0d9127e876))
+
+
+### Chores
+
+* **archive:** export-ignore .copilot/skills and .copilot/audits + maintainer pointer in README ([#1080](https://github.com/martinopedal/azure-analyzer/issues/1080)) ([fab9fb7](https://github.com/martinopedal/azure-analyzer/commit/fab9fb7f4bc191c03f3817560cc1f24305e7bf6a))
+
+
+### Refactors
+
+* **pr-gate:** wrap PR review-gate external calls in Invoke-WithRetry ([#1070](https://github.com/martinopedal/azure-analyzer/issues/1070)) ([cb2c180](https://github.com/martinopedal/azure-analyzer/commit/cb2c180a8cc1ef55fb2944e2a773ce48c3b5bf7b))
+* **shared:** RemoteClone uses Invoke-WithRetry and Invoke-WithTimeout ([#1069](https://github.com/martinopedal/azure-analyzer/issues/1069)) ([427a85a](https://github.com/martinopedal/azure-analyzer/commit/427a85a0653f89e15da3b90c644ef74fbc4b0921))
+
 ## [1.5.0](https://github.com/martinopedal/azure-analyzer/compare/v1.4.7...v1.5.0) (2026-05-13)
 
 
