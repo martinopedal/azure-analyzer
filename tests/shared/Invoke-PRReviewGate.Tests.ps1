@@ -315,4 +315,54 @@ Describe 'Invoke-PRReviewGate shared helper' {
             $feedback.LineComments[1].Reviewer | Should -Be 'unknown-reviewer'
         }
     }
+
+    Context 'Invoke-WithRetry integration' {
+        BeforeEach {
+            $script:callCount = 0
+        }
+
+        It 'retries transient 503 Service Unavailable on first attempt and succeeds on second' {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)] $Arguments)
+                $joined = [string]($Arguments -join ' ')
+                $script:callCount++
+                if ($joined -match '/pulls/999/reviews') {
+                    if ($script:callCount -eq 1) {
+                        $global:LASTEXITCODE = 1
+                        Write-Error "gh: 503 Service Unavailable" -ErrorAction Stop
+                    } else {
+                        $global:LASTEXITCODE = 0
+                        return '[[{ "id": 9999, "state": "APPROVED", "body": "lgtm", "submitted_at": "2026-05-13T12:00:00Z", "commit_id": "abc", "user": { "login": "reviewer" } }]]'
+                    }
+                }
+                if ($joined -match '/pulls/999/comments') {
+                    return '[]'
+                }
+                throw "Unexpected gh call: $joined"
+            }
+            . $script:ModulePath
+
+            $feedback = Get-PRReviewFeedback -PRNumber 999 -Repo 'martinopedal/azure-analyzer'
+            $feedback.Reviews.Count | Should -Be 1
+            $feedback.Reviews[0].Reviewer | Should -Be 'reviewer'
+            $script:callCount | Should -BeGreaterThan 1
+        }
+
+        It 'does not retry non-transient 401 Unauthorized and fails immediately' {
+            function global:gh {
+                param([Parameter(ValueFromRemainingArguments = $true)] $Arguments)
+                $joined = [string]($Arguments -join ' ')
+                $script:callCount++
+                if ($joined -match '/pulls/998/reviews') {
+                    $global:LASTEXITCODE = 1
+                    Write-Error "gh: HTTP 401: Unauthorized" -ErrorAction Stop
+                }
+                throw "Unexpected gh call: $joined"
+            }
+            . $script:ModulePath
+
+            { Get-PRReviewFeedback -PRNumber 998 -Repo 'martinopedal/azure-analyzer' } | Should -Throw
+            $script:callCount | Should -Be 1
+        }
+    }
 }
