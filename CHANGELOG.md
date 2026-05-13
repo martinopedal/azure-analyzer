@@ -88,6 +88,35 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.6.0](https://github.com/martinopedal/azure-analyzer/compare/v1.5.2...v1.6.0) (2026-05-13)
+
+
+### Features
+
+* **report:** Track F Commit 2 - control-domain section grouping (Refs [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1089](https://github.com/martinopedal/azure-analyzer/issues/1089)) ([80df985](https://github.com/martinopedal/azure-analyzer/commit/80df9856477cbc3cbfafc7e1670907c2e0b45fdc))
+* **report:** Track F Commit 3 - attack-path, resilience, policy-coverage (Refs [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1090](https://github.com/martinopedal/azure-analyzer/issues/1090)) ([65c7f2b](https://github.com/martinopedal/azure-analyzer/commit/65c7f2b21aec51134662a7643f192ed8d8b4bf9c))
+* **report:** Track F Commit 4 - remediation appendix + evidence export (Refs [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1091](https://github.com/martinopedal/azure-analyzer/issues/1091)) ([b82bbc8](https://github.com/martinopedal/azure-analyzer/commit/b82bbc83244f6abf5deef759490b2112651420f0))
+* **report:** Track F Commit 5 - LLM triage annotations (Refs [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1092](https://github.com/martinopedal/azure-analyzer/issues/1092)) ([2dcbbb2](https://github.com/martinopedal/azure-analyzer/commit/2dcbbb2b06de18bc9dd455d4e8e2a517b996ed86))
+* **report:** Track F Commit 6 - tier-aware rendering + citation helper ([#1093](https://github.com/martinopedal/azure-analyzer/issues/1093)) ([bdf84e4](https://github.com/martinopedal/azure-analyzer/commit/bdf84e44a956147cc461221714a2af55613bf4bb))
+* **report:** Track F Commit 7 - auditor profile wiring + nav chip (Refs [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1094](https://github.com/martinopedal/azure-analyzer/issues/1094)) ([baecd58](https://github.com/martinopedal/azure-analyzer/commit/baecd588a52a036f97e0f98f742b69be1c237a5c))
+* **report:** Track F Commit 8 - report-manifest auditor profile extension (Refs [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1095](https://github.com/martinopedal/azure-analyzer/issues/1095)) ([f8c836c](https://github.com/martinopedal/azure-analyzer/commit/f8c836c047b4f5173eaabb2af876d65cc8c9edd5))
+
+
+### Fixes
+
+* **test:** Track F Commit 10 HOTFIX - repair 4 parameter bugs blocking CI ([#1097](https://github.com/martinopedal/azure-analyzer/issues/1097)) ([f247700](https://github.com/martinopedal/azure-analyzer/commit/f24770099555d671150c93c85ae9e048ab1fdae8))
+
+
+### Chores
+
+* **squad:** flush inbox + refresh now.md post [#1085](https://github.com/martinopedal/azure-analyzer/issues/1085) [#1086](https://github.com/martinopedal/azure-analyzer/issues/1086) ([#1088](https://github.com/martinopedal/azure-analyzer/issues/1088)) ([5840d0d](https://github.com/martinopedal/azure-analyzer/commit/5840d0d9fbd8750900099f2a00e6b41f75d5f242)), closes [#1056](https://github.com/martinopedal/azure-analyzer/issues/1056)
+* **squad:** triage [#1056](https://github.com/martinopedal/azure-analyzer/issues/1056) -- Option B, consume renderers directly ([#1086](https://github.com/martinopedal/azure-analyzer/issues/1086)) ([94f5801](https://github.com/martinopedal/azure-analyzer/commit/94f5801f31ca8753984e3dc8b3c72beb57d04c0c))
+
+
+### Tests
+
+* **report:** Track F Commit 9 - parity tests + docs (Closes [#506](https://github.com/martinopedal/azure-analyzer/issues/506)) ([#1096](https://github.com/martinopedal/azure-analyzer/issues/1096)) ([6d73f24](https://github.com/martinopedal/azure-analyzer/commit/6d73f243000b5be9e20e53170515af264bb9e18e))
+
 ## [1.5.2](https://github.com/martinopedal/azure-analyzer/compare/v1.5.1...v1.5.2) (2026-05-13)
 
 
