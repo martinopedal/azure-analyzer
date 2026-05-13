@@ -335,6 +335,10 @@ Full Track F dependency gate (Commit 0) blocked all implementation (3 missing mo
 - **2026-05-13** - Track F Commit 6: tier-aware rendering + citation helper (24/24 tests green, print stylesheet + workpaper-ready citations)
 
 
-## 2026-05-13 13:48:14 - Track F Commit 7 (PR #TBD)
+## 2026-05-13 13:48:14 - Track F Commit 7 (PR #1094)
 
 Implemented Build-AuditorReport orchestrator + wired into Invoke-AzureAnalyzer.ps1 via -Profile parameter + added Audit view nav chip to New-HtmlReport.ps1. Created 3 orchestrator tests (Build-AuditorReport integration + nav chip injection positive/negative). Cumulative: 27 tests (24 AuditorReportBuilder + 3 orchestrator), all passing. Decision drop: atlas-trackf-commit7-2026-05-13T13-48-05.md. Lesson: Pester scriptblock assignment doesn't propagate to outer scope - use direct assignment.
+
+## 2026-05-13 14:20:00 - Track F Commit 8 (PR #TBD)
+
+Extended New-ReportManifest with -Profile and -Sections parameters to support auditor-driven report manifests. When -Profile Auditor, appends Profile block with Name='auditor', Sections array, and filtered Degradations (Declared Degradation Contract: every degradation MUST reference a real section ID). Added 4 new tests (total 18 ReportManifest tests). Cumulative: 31 tests (24 AuditorReportBuilder + 3 orchestrator + 4 ReportManifest extensions), all passing. Decision drop: atlas-trackf-commit8-manifest-profile-2026-05-13.md. Lesson: PowerShell Set-Content with -NoNewline preserves line endings when using -Raw input; avoided line-ending flips from Commit 7 by using string replacement instead of edit tool.
