@@ -26,12 +26,6 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Import shared infrastructure
-$script:sharedRoot = Split-Path $PSCommandPath -Parent
-. (Join-Path $script:sharedRoot 'Retry.ps1')
-. (Join-Path $script:sharedRoot 'CliTimeout.ps1')
-. (Join-Path $script:sharedRoot 'Sanitize.ps1')
-
 $script:RemoteCloneAllowedHosts = @(
     'github.com',
     'api.github.com',
@@ -154,6 +148,12 @@ function Invoke-RemoteRepoClone {
         [string] $Branch,
         [int] $TimeoutSec = 300
     )
+
+    # Lazy-load shared infrastructure to avoid shadowing test mocks
+    $script:sharedRoot = Split-Path $PSCommandPath -Parent
+    . (Join-Path $script:sharedRoot 'Retry.ps1')
+    . (Join-Path $script:sharedRoot 'CliTimeout.ps1')
+    . (Join-Path $script:sharedRoot 'Sanitize.ps1')
 
     if (-not (Test-RemoteRepoUrl -Url $RepoUrl)) {
         Write-Warning "[remote-clone] Refusing to clone from non-HTTPS or disallowed host URL. Allowed: github.com, dev.azure.com, *.visualstudio.com, *.ghe.com."
