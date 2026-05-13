@@ -452,7 +452,62 @@ function Get-AuditorRemediationAppendix {
     param(
         [Parameter(Mandatory)] [object[]] $Findings
     )
-    throw [System.NotImplementedException]::new('Get-AuditorRemediationAppendix: skeleton only.')
+    
+    $sanitizePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'shared' 'Sanitize.ps1'
+    if (Test-Path $sanitizePath) { . $sanitizePath }
+    
+    $remediationGroups = @{}
+    
+    foreach ($finding in $Findings) {
+        if ($null -eq $finding) { continue }
+        
+        $remediation = if ($finding.PSObject.Properties['Remediation']) { [string]$finding.Remediation } else { '' }
+        
+        if ([string]::IsNullOrWhiteSpace($remediation)) { continue }
+        
+        if (-not $remediationGroups.ContainsKey($remediation)) {
+            $remediationGroups[$remediation] = @()
+        }
+        $remediationGroups[$remediation] += $finding
+    }
+    
+    $severityWeights = @{
+        'Critical' = 4
+        'High' = 3
+        'Medium' = 2
+        'Low' = 1
+        'Info' = 0
+    }
+    
+    $groups = @()
+    foreach ($key in $remediationGroups.Keys) {
+        $groupFindings = $remediationGroups[$key]
+        $maxWeight = 0
+        $maxSeverity = 'Info'
+        
+        foreach ($f in $groupFindings) {
+            $sev = if ($f.PSObject.Properties['Severity']) { [string]$f.Severity } else { 'Info' }
+            $weight = if ($severityWeights.ContainsKey($sev)) { $severityWeights[$sev] } else { 0 }
+            if ($weight -gt $maxWeight) {
+                $maxWeight = $weight
+                $maxSeverity = $sev
+            }
+        }
+        
+        $groups += [PSCustomObject]@{
+            RemediationText = $key
+            Findings = @($groupFindings)
+            TotalCount = $groupFindings.Count
+            MaxSeverity = $maxSeverity
+            Weight = $maxWeight
+        }
+    }
+    
+    $sortedGroups = @($groups | Sort-Object -Property Weight -Descending)
+    
+    return @{
+        RemediationGroups = $sortedGroups
+    }
 }
 
 function Get-AuditorEvidenceExport {
@@ -462,7 +517,55 @@ function Get-AuditorEvidenceExport {
         [Parameter(Mandatory)] [string]   $OutputDirectory,
         [string[]] $Formats = @('csv','json')
     )
-    throw [System.NotImplementedException]::new('Get-AuditorEvidenceExport: skeleton only.')
+    
+    $sanitizePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'shared' 'Sanitize.ps1'
+    if (Test-Path $sanitizePath) { . $sanitizePath }
+    
+    $evidenceDir = Join-Path $OutputDirectory 'audit-evidence'
+    if (-not (Test-Path $evidenceDir)) {
+        New-Item -Path $evidenceDir -ItemType Directory -Force | Out-Null
+    }
+    
+    $sanitizedFindings = @()
+    foreach ($finding in $Findings) {
+        if ($null -eq $finding) { continue }
+        
+        $sanitizedFinding = [PSCustomObject]@{}
+        foreach ($prop in $finding.PSObject.Properties) {
+            $value = $prop.Value
+            if ($value -is [string]) {
+                $sanitizedFinding | Add-Member -MemberType NoteProperty -Name $prop.Name -Value (Remove-Credentials -Text $value)
+            } else {
+                $sanitizedFinding | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $value
+            }
+        }
+        $sanitizedFindings += $sanitizedFinding
+    }
+    
+    $exportedFiles = @()
+    
+    $csvPath = Join-Path $evidenceDir 'findings.csv'
+    $sanitizedFindings | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+    $exportedFiles += $csvPath
+    
+    $jsonPath = Join-Path $evidenceDir 'findings.json'
+    $sanitizedFindings | ConvertTo-Json -Depth 10 | Out-File -FilePath $jsonPath -Encoding UTF8
+    $exportedFiles += $jsonPath
+    
+    $importExcelAvailable = $null -ne (Get-Module -ListAvailable -Name ImportExcel)
+    if ($importExcelAvailable) {
+        $xlsxPath = Join-Path $evidenceDir 'findings.xlsx'
+        try {
+            $sanitizedFindings | Export-Excel -Path $xlsxPath -AutoSize -TableName 'Findings' -WorksheetName 'Findings' -ErrorAction Stop
+            $exportedFiles += $xlsxPath
+        } catch {
+            Write-Warning "ImportExcel module available but export failed: $_"
+        }
+    }
+    
+    return @{
+        ExportedFiles = @($exportedFiles)
+    }
 }
 
 function Write-AuditorRenderTier {

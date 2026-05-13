@@ -171,4 +171,104 @@ Describe 'AuditorReportBuilder' -Tag 'Unit' {
             $section.AzAdvertizerLinks[0] | Should -Match 'azadvertizer\.net'
         }
     }
+    
+    Context 'Get-AuditorRemediationAppendix' {
+        It 'groups by exact Remediation text' {
+            $testFindings = @(
+                [PSCustomObject]@{ FindingId = 'F1'; Severity = 'High'; Remediation = 'Enable MFA' }
+                [PSCustomObject]@{ FindingId = 'F2'; Severity = 'High'; Remediation = 'Enable MFA' }
+                [PSCustomObject]@{ FindingId = 'F3'; Severity = 'High'; Remediation = 'Enable MFA' }
+                [PSCustomObject]@{ FindingId = 'F4'; Severity = 'Medium'; Remediation = 'Enable auditing' }
+                [PSCustomObject]@{ FindingId = 'F5'; Severity = 'Medium'; Remediation = 'Enable auditing' }
+                [PSCustomObject]@{ FindingId = 'F6'; Severity = 'Low'; Remediation = 'Add tags' }
+                [PSCustomObject]@{ FindingId = 'F7'; Severity = 'Low'; Remediation = 'Add tags' }
+                [PSCustomObject]@{ FindingId = 'F8'; Severity = 'Low'; Remediation = 'Add tags' }
+                [PSCustomObject]@{ FindingId = 'F9'; Severity = 'Low'; Remediation = 'Add tags' }
+                [PSCustomObject]@{ FindingId = 'F10'; Severity = 'High'; Remediation = 'Enable MFA' }
+                [PSCustomObject]@{ FindingId = 'F11'; Severity = 'High'; Remediation = 'Enable MFA' }
+                [PSCustomObject]@{ FindingId = 'F12'; Severity = 'High'; Remediation = 'Enable MFA' }
+                [PSCustomObject]@{ FindingId = 'F13'; Severity = 'Medium'; Remediation = 'Enable auditing' }
+                [PSCustomObject]@{ FindingId = 'F14'; Severity = 'Medium'; Remediation = 'Enable auditing' }
+                [PSCustomObject]@{ FindingId = 'F15'; Severity = 'Medium'; Remediation = 'Enable auditing' }
+            )
+            
+            $result = Get-AuditorRemediationAppendix -Findings $testFindings
+            
+            $result.RemediationGroups.Count | Should -Be 3
+            ($result.RemediationGroups | Where-Object { $_.RemediationText -eq 'Enable MFA' }).TotalCount | Should -Be 6
+            ($result.RemediationGroups | Where-Object { $_.RemediationText -eq 'Enable auditing' }).TotalCount | Should -Be 5
+            ($result.RemediationGroups | Where-Object { $_.RemediationText -eq 'Add tags' }).TotalCount | Should -Be 4
+        }
+        
+        It 'orders by severity weight descending' {
+            $testFindings = @(
+                [PSCustomObject]@{ FindingId = 'F1'; Severity = 'Low'; Remediation = 'Fix low' }
+                [PSCustomObject]@{ FindingId = 'F2'; Severity = 'Critical'; Remediation = 'Fix critical' }
+                [PSCustomObject]@{ FindingId = 'F3'; Severity = 'Medium'; Remediation = 'Fix medium' }
+            )
+            
+            $result = Get-AuditorRemediationAppendix -Findings $testFindings
+            
+            $result.RemediationGroups.Count | Should -Be 3
+            $result.RemediationGroups[0].MaxSeverity | Should -Be 'Critical'
+            $result.RemediationGroups[1].MaxSeverity | Should -Be 'Medium'
+            $result.RemediationGroups[2].MaxSeverity | Should -Be 'Low'
+        }
+    }
+    
+    Context 'Get-AuditorEvidenceExport' {
+        BeforeAll {
+            $testFindings = @(
+                [PSCustomObject]@{ FindingId = 'F1'; Severity = 'High'; Title = 'Test finding 1' }
+                [PSCustomObject]@{ FindingId = 'F2'; Severity = 'Medium'; Title = 'Test finding 2' }
+                [PSCustomObject]@{ FindingId = 'F3'; Severity = 'Low'; Title = 'Test finding 3' }
+                [PSCustomObject]@{ FindingId = 'F4'; Severity = 'High'; Title = 'Test finding 4' }
+                [PSCustomObject]@{ FindingId = 'F5'; Severity = 'Critical'; Title = 'Test finding 5' }
+            )
+        }
+        
+        It 'writes CSV and JSON always' {
+            $result = Get-AuditorEvidenceExport -Findings $testFindings -OutputDirectory $TestDrive
+            
+            $csvPath = Join-Path $TestDrive 'audit-evidence' 'findings.csv'
+            $jsonPath = Join-Path $TestDrive 'audit-evidence' 'findings.json'
+            
+            Test-Path $csvPath | Should -Be $true
+            Test-Path $jsonPath | Should -Be $true
+            $result.ExportedFiles | Should -Contain $csvPath
+            $result.ExportedFiles | Should -Contain $jsonPath
+        }
+        
+        It 'writes XLSX only when ImportExcel present' {
+            $importExcelPresent = $null -ne (Get-Module -ListAvailable -Name ImportExcel)
+            
+            $result = Get-AuditorEvidenceExport -Findings $testFindings -OutputDirectory $TestDrive
+            
+            $xlsxPath = Join-Path $TestDrive 'audit-evidence' 'findings.xlsx'
+            
+            if ($importExcelPresent) {
+                $result.ExportedFiles | Should -Contain $xlsxPath -Because 'ImportExcel module is available'
+            } else {
+                $result.ExportedFiles | Should -Not -Contain $xlsxPath -Because 'ImportExcel module is not available'
+            }
+        }
+        
+        It 'sanitizes output via Remove-Credentials' {
+            $unsafeFindings = @(
+                [PSCustomObject]@{ 
+                    FindingId = 'F1'; 
+                    Severity = 'High'; 
+                    Title = 'Exposed secret'; 
+                    Details = 'Connection string contains password=secret123 and key=abc'
+                }
+            )
+            
+            $result = Get-AuditorEvidenceExport -Findings $unsafeFindings -OutputDirectory $TestDrive
+            
+            $csvPath = Join-Path $TestDrive 'audit-evidence' 'findings.csv'
+            $csvContent = Get-Content $csvPath -Raw
+            
+            $csvContent | Should -Not -Match 'secret123' -Because 'Remove-Credentials should redact the password'
+        }
+    }
 }
