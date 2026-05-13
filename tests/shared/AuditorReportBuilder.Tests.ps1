@@ -310,4 +310,73 @@ Describe 'AuditorReportBuilder' -Tag 'Unit' {
             $findingWithSuppression.SuggestedSuppression | Should -Be 'false_positive'
         }
     }
+    
+    Context 'Write-AuditorRenderTier' {
+        BeforeAll {
+            $context = Resolve-AuditorContext -InputPath $resultsPath -EntitiesPath $entitiesPath -ManifestPath $manifestPath
+        }
+        
+        It 'produces HTML and MD files' {
+            $result = Write-AuditorRenderTier -Context $context -OutputDirectory $TestDrive -Tier 'EmbeddedSqlite'
+            
+            $htmlPath = Join-Path $TestDrive 'audit-report.html'
+            $mdPath = Join-Path $TestDrive 'audit-report.md'
+            
+            Test-Path $htmlPath | Should -Be $true
+            Test-Path $mdPath | Should -Be $true
+            $result.HtmlPath | Should -Be $htmlPath
+            $result.MdPath | Should -Be $mdPath
+            $result.RenderingMode | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'tier-aware rendering mode' {
+            $resultTier1 = Write-AuditorRenderTier -Context $context -OutputDirectory (Join-Path $TestDrive 'tier1') -Tier 'PureJson'
+            $resultTier4 = Write-AuditorRenderTier -Context $context -OutputDirectory (Join-Path $TestDrive 'tier4') -Tier 'PodeViewer'
+            
+            $htmlTier1 = Get-Content $resultTier1.HtmlPath -Raw
+            $htmlTier4 = Get-Content $resultTier4.HtmlPath -Raw
+            
+            $htmlTier1 | Should -Match '<table'
+            $htmlTier4 | Should -Match '<a href'
+            $htmlTier4 | Should -Match 'kpi-grid'
+            
+            $resultTier1.RenderingMode | Should -Be 'Tier1Full'
+            $resultTier4.RenderingMode | Should -Be 'Tier4KPIs'
+        }
+    }
+    
+    Context 'New-AuditorCitation' {
+        It 'produces single-line workpaper-ready string' {
+            $finding = [PSCustomObject]@{
+                Source = 'azsk'
+                RulePin = '1.2.3'
+                Id = 'F-123'
+                Title = 'Insecure NSG'
+                CanonicalId = '/subscriptions/test-sub/resourceGroups/rg/providers/Microsoft.Network/networkSecurityGroups/nsg-foo'
+                Severity = 'High'
+                CollectedAtUtc = '2025-01-01T00:00:00Z'
+            }
+            
+            $citation = New-AuditorCitation -Finding $finding
+            
+            $citation | Should -Match '\[azsk 1\.2\.3\]'
+            $citation | Should -Match 'F-123: Insecure NSG'
+            $citation | Should -Match 'Severity: High'
+            $citation | Should -Not -Match "`n"
+        }
+        
+        It 'sanitizes credentials via Remove-Credentials' {
+            $finding = [PSCustomObject]@{
+                Id = 'F-SECRET'
+                Title = 'Exposed connection string with password=secret123 in code'
+                Severity = 'Critical'
+                EntityId = '/subscriptions/test-sub/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/st01'
+            }
+            
+            $citation = New-AuditorCitation -Finding $finding
+            
+            $citation | Should -Not -Match 'secret123'
+            $citation | Should -Match '\[REDACTED\]'
+        }
+    }
 }
