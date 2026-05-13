@@ -22,9 +22,19 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$retryPath = Join-Path $PSScriptRoot 'Retry.ps1'
+if (Test-Path $retryPath) { . $retryPath }
 . (Join-Path $PSScriptRoot 'Sanitize.ps1')
 $errorsPath = Join-Path $PSScriptRoot 'Errors.ps1'
 if (Test-Path $errorsPath) { . $errorsPath }
+
+# Inline test-compat fallback for Invoke-WithRetry
+if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
+    function Invoke-WithRetry {
+        param ([scriptblock]$ScriptBlock, [int]$MaxAttempts = 3, [string]$OperationName = 'operation')
+        & $ScriptBlock
+    }
+}
 
 function New-RepoTempFile {
     [CmdletBinding()]
@@ -69,14 +79,13 @@ function Invoke-GhApiPaged {
         [string] $Endpoint
     )
 
-    $stdoutPath = New-RepoTempFile -Prefix 'gh-api-out'
-    $stderrPath = New-RepoTempFile -Prefix 'gh-api-err'
-    $maxRetries = 3
-    $lastError = ''
-    $text = ''
+    Invoke-WithRetry -ScriptBlock {
+        $stdoutPath = New-RepoTempFile -Prefix 'gh-api-out'
+        $stderrPath = New-RepoTempFile -Prefix 'gh-api-err'
+        $lastError = ''
+        $text = ''
 
-    try {
-        for ($attempt = 0; $attempt -lt $maxRetries; $attempt++) {
+        try {
             # `gh` can be mocked as a PowerShell function in tests. In that case,
             # LASTEXITCODE is not updated and may retain a stale non-zero value
             # from an earlier native command (observed on ubuntu-latest). Reset
@@ -89,71 +98,64 @@ function Invoke-GhApiPaged {
                 $exitCode = [int]$exitCodeVar.Value
             }
 
-            if ($exitCode -eq 0) {
-                break
+            if ($exitCode -ne 0) {
+                $stderrText = ''
+                if (Test-Path $stderrPath) {
+                    $stderrText = Get-Content -Path $stderrPath -Raw
+                }
+
+                $lastError = Remove-Credentials $stderrText
+
+                throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                    -Category 'UnexpectedFailure' `
+                    -Reason "gh api $Endpoint failed." `
+                    -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and rate limits.' `
+                    -Details $lastError))
             }
 
-            $stderrText = ''
-            if (Test-Path $stderrPath) {
-                $stderrText = Get-Content -Path $stderrPath -Raw
+            if (Test-Path $stdoutPath) {
+                $text = Get-Content -Path $stdoutPath -Raw
             }
 
-            $lastError = Remove-Credentials $stderrText
-            $isRetryable = $lastError -match '(?i)(429|rate limit|503|timeout|temporar)'
-            if ($isRetryable -and $attempt -lt ($maxRetries - 1)) {
-                Start-Sleep -Seconds ([math]::Pow(2, $attempt))
-                continue
+            if ([string]::IsNullOrWhiteSpace($text) -and -not [string]::IsNullOrWhiteSpace($lastError)) {
+                throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                    -Category 'UnexpectedFailure' `
+                    -Reason "gh api $Endpoint failed (empty stdout)." `
+                    -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and rate limits.' `
+                    -Details $lastError))
             }
 
-            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
-                -Category 'UnexpectedFailure' `
-                -Reason "gh api $Endpoint failed." `
-                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and rate limits.' `
-                -Details $lastError))
+            # NOTE: Do NOT run Remove-Credentials on raw JSON text here.
+            # Greedy regex patterns (e.g. Password=[^;]+) can match inside
+            # diff_hunk string values and consume past the closing JSON quote,
+            # producing "Unterminated string" parse errors. Individual fields
+            # are sanitized after parsing in Get-PRReviewFeedback instead.
+            if ([string]::IsNullOrWhiteSpace($text)) {
+                return @()
+            }
+
+            try {
+                $pages = @($text | ConvertFrom-Json -ErrorAction Stop)
+            } catch {
+                # Fallback: strip diff_hunk values that may contain characters
+                # breaking JSON structure, then retry parsing.
+                $stripped = [regex]::Replace($text, '"diff_hunk"\s*:\s*"(?:[^"\\]|\\.)*"', '"diff_hunk":""')
+                $pages = @($stripped | ConvertFrom-Json -ErrorAction Stop)
+            }
+
+            $items = [System.Collections.Generic.List[object]]::new()
+            foreach ($page in $pages) {
+                foreach ($item in @($page)) {
+                    $items.Add($item)
+                }
+            }
+
+            return @($items)
+        } finally {
+            Remove-Item -Path $stdoutPath -ErrorAction SilentlyContinue
+            Remove-Item -Path $stderrPath -ErrorAction SilentlyContinue
         }
-
-        if (Test-Path $stdoutPath) {
-            $text = Get-Content -Path $stdoutPath -Raw
-        }
-    } finally {
-        Remove-Item -Path $stdoutPath -ErrorAction SilentlyContinue
-        Remove-Item -Path $stderrPath -ErrorAction SilentlyContinue
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($lastError) -and [string]::IsNullOrWhiteSpace($text)) {
-        throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
-            -Category 'UnexpectedFailure' `
-            -Reason "gh api $Endpoint failed (empty stdout)." `
-            -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and rate limits.' `
-            -Details $lastError))
-    }
-
-    # NOTE: Do NOT run Remove-Credentials on raw JSON text here.
-    # Greedy regex patterns (e.g. Password=[^;]+) can match inside
-    # diff_hunk string values and consume past the closing JSON quote,
-    # producing "Unterminated string" parse errors. Individual fields
-    # are sanitized after parsing in Get-PRReviewFeedback instead.
-    if ([string]::IsNullOrWhiteSpace($text)) {
-        return @()
-    }
-
-    try {
-        $pages = @($text | ConvertFrom-Json -ErrorAction Stop)
-    } catch {
-        # Fallback: strip diff_hunk values that may contain characters
-        # breaking JSON structure, then retry parsing.
-        $stripped = [regex]::Replace($text, '"diff_hunk"\s*:\s*"(?:[^"\\]|\\.)*"', '"diff_hunk":""')
-        $pages = @($stripped | ConvertFrom-Json -ErrorAction Stop)
-    }
-
-    $items = [System.Collections.Generic.List[object]]::new()
-    foreach ($page in $pages) {
-        foreach ($item in @($page)) {
-            $items.Add($item)
-        }
-    }
-
-    @($items)
+    } -MaxAttempts 3
 }
 
 function Get-PRReviewFeedback {
@@ -633,26 +635,23 @@ _Updated in place on each review event — see PR timeline for full history._
     }
 
     # Look for existing gate comment to update in place (prevents email noise on re-runs)
-    $existingId = $null
-    try {
+    $existingId = Invoke-WithRetry -ScriptBlock {
         $commentsJson = & gh api "repos/$Repo/issues/$PRNumber/comments" --paginate 2> $null
         if ($LASTEXITCODE -eq 0 -and $commentsJson) {
             $existing = $commentsJson | ConvertFrom-Json
             $match = @($existing | Where-Object { $_.body -and $_.body.Contains($marker) } | Select-Object -First 1)
             if ($match.Count -gt 0) {
-                $existingId = [string]$match[0].id
+                return [string]$match[0].id
             }
         }
-    } catch {
-        Write-Verbose "Could not list existing comments, will post new: $_"
-    }
+        return $null
+    } -MaxAttempts 3
 
     $bodyFilePath = New-RepoTempFile -Prefix 'pr-review-comment'
     $stderrPath = New-RepoTempFile -Prefix 'pr-review-comment-err'
-    $maxRetries = 3
     try {
         Set-Content -Path $bodyFilePath -Value $safeBody -Encoding utf8
-        for ($attempt = 0; $attempt -lt $maxRetries; $attempt++) {
+        Invoke-WithRetry -ScriptBlock {
             # See Invoke-GhApiPaged: reset LASTEXITCODE so function-mocked `gh`
             # in Pester does not inherit a stale non-zero from a prior native call.
             $global:LASTEXITCODE = 0
@@ -667,26 +666,19 @@ _Updated in place on each review event — see PR timeline for full history._
                 $exitCode = [int]$exitCodeVar.Value
             }
 
-            if ($exitCode -eq 0) {
-                break
-            }
+            if ($exitCode -ne 0) {
+                $errorText = ''
+                if (Test-Path $stderrPath) {
+                    $errorText = Remove-Credentials (Get-Content -Path $stderrPath -Raw)
+                }
 
-            $errorText = ''
-            if (Test-Path $stderrPath) {
-                $errorText = Remove-Credentials (Get-Content -Path $stderrPath -Raw)
+                throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
+                    -Category 'UnexpectedFailure' `
+                    -Reason 'gh pr comment failed.' `
+                    -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and PR access.' `
+                    -Details $errorText))
             }
-            $retryable = $errorText -match '(?i)(429|rate limit|503|timeout|temporar)'
-            if ($retryable -and $attempt -lt ($maxRetries - 1)) {
-                Start-Sleep -Seconds ([math]::Pow(2, $attempt))
-                continue
-            }
-
-            throw (Format-FindingErrorMessage (New-FindingError -Source 'shared:Invoke-PRReviewGate' `
-                -Category 'UnexpectedFailure' `
-                -Reason 'gh pr comment failed.' `
-                -Remediation 'Inspect gh stderr (sanitized in Details) and verify the GH_TOKEN scope and PR access.' `
-                -Details $errorText))
-        }
+        } -MaxAttempts 3
     } finally {
         Remove-Item -Path $bodyFilePath -ErrorAction SilentlyContinue
         Remove-Item -Path $stderrPath -ErrorAction SilentlyContinue
