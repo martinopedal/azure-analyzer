@@ -289,3 +289,9 @@ See [docs/contributing/](docs/contributing/README.md) to add a new tool, extend 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full CI workflow and squad infrastructure (maintainer-only) documentation. The [docs/contributor/](docs/contributor/README.md) directory covers contributor setup and development workflows. The `.squad/` and `.copilot/skills/` subtrees contain AI team coordination state and are excluded from archive downloads. They are not part of the shipped tool.
 
 </details>
+
+<details><summary><b>Maintainer notes</b></summary>
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full CI workflow and squad infrastructure (maintainer-only) documentation. The [docs/contributor/](docs/contributor/README.md) directory covers contributor setup and development workflows. The `.squad/` and `.copilot/skills/` subtrees contain AI team coordination state and are excluded from archive downloads. They are not part of the shipped tool.
+
+</details>
