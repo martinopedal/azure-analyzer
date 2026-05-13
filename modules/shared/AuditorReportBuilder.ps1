@@ -630,7 +630,170 @@ function Write-AuditorRenderTier {
         [ValidateSet('PureJson','EmbeddedSqlite','SidecarSqlite','PodeViewer')]
         [string] $Tier
     )
-    throw [System.NotImplementedException]::new('Write-AuditorRenderTier: requires Track V (#430) tier contract.')
+    
+    if (-not (Test-Path $OutputDirectory)) {
+        New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
+    }
+    
+    $tierNumber = switch ($Tier) {
+        'PureJson' { 1 }
+        'EmbeddedSqlite' { 2 }
+        'SidecarSqlite' { 3 }
+        'PodeViewer' { 4 }
+        default { 1 }
+    }
+    
+    $renderingMode = switch ($tierNumber) {
+        1 { 'Tier1Full' }
+        2 { 'Tier2Full' }
+        3 { 'Tier3Headline' }
+        4 { 'Tier4KPIs' }
+        default { 'Tier1Full' }
+    }
+    
+    $findings = if ($Context.ContainsKey('Findings')) { @($Context.Findings) } else { @() }
+    $summary = if ($Context.ContainsKey('Summary')) { $Context.Summary } else { $null }
+    
+    $htmlPath = Join-Path $OutputDirectory 'audit-report.html'
+    $mdPath = Join-Path $OutputDirectory 'audit-report.md'
+    
+    $htmlContent = @"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Analyzer Audit Report</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 2em; line-height: 1.6; }
+        h1, h2, h3 { color: #0078d4; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .critical { color: #d13438; font-weight: bold; }
+        .high { color: #ff8c00; font-weight: bold; }
+        .medium { color: #fcd116; font-weight: bold; }
+        .low { color: #107c10; }
+        .info { color: #0078d4; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1em; margin: 1em 0; }
+        .kpi-tile { border: 1px solid #ddd; padding: 1em; background: #f9f9f9; }
+        .kpi-value { font-size: 2em; font-weight: bold; color: #0078d4; }
+        @media print {
+            body { margin: 1cm; }
+            .no-print { display: none; }
+            table { page-break-inside: avoid; }
+            h1, h2, h3 { page-break-after: avoid; }
+        }
+    </style>
+</head>
+<body>
+"@
+
+    if ($tierNumber -le 2) {
+        $htmlContent += @"
+    <h1>Azure Analyzer Audit Report</h1>
+    <h2>Executive Summary</h2>
+    <p>Total findings: $($findings.Count)</p>
+    
+    <h2>Findings</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Finding ID</th>
+                <th>Severity</th>
+                <th>Title</th>
+                <th>Entity ID</th>
+            </tr>
+        </thead>
+        <tbody>
+"@
+        foreach ($f in $findings) {
+            $sevClass = switch ($f.Severity) {
+                'Critical' { 'critical' }
+                'High' { 'high' }
+                'Medium' { 'medium' }
+                'Low' { 'low' }
+                default { 'info' }
+            }
+            $htmlContent += @"
+            <tr>
+                <td>$($f.FindingId)</td>
+                <td class="$sevClass">$($f.Severity)</td>
+                <td>$($f.Title)</td>
+                <td>$($f.EntityId)</td>
+            </tr>
+"@
+        }
+        $htmlContent += @"
+        </tbody>
+    </table>
+"@
+    } elseif ($tierNumber -eq 3) {
+        $htmlContent += @"
+    <h1>Azure Analyzer Audit Report - Executive View</h1>
+    <h2>Key Findings Summary</h2>
+    <p>Total findings: $($findings.Count)</p>
+    <details>
+        <summary>View detailed findings (click to expand)</summary>
+        <ul>
+"@
+        foreach ($f in $findings) {
+            $htmlContent += "            <li><a href='#finding-$($f.FindingId)'>$($f.Title)</a></li>`n"
+        }
+        $htmlContent += @"
+        </ul>
+    </details>
+"@
+    } else {
+        $htmlContent += @"
+    <h1>Azure Analyzer Audit Report - KPI Dashboard</h1>
+    <div class="kpi-grid">
+        <div class="kpi-tile">
+            <div class="kpi-value">$($findings.Count)</div>
+            <div>Total Findings</div>
+        </div>
+        <div class="kpi-tile">
+            <div class="kpi-value">$(($findings | Where-Object { $_.Severity -eq 'Critical' }).Count)</div>
+            <div>Critical</div>
+        </div>
+        <div class="kpi-tile">
+            <div class="kpi-value">$(($findings | Where-Object { $_.Severity -eq 'High' }).Count)</div>
+            <div>High</div>
+        </div>
+    </div>
+    <p><a href="/viewer/findings">View detailed findings</a></p>
+"@
+    }
+    
+    $htmlContent += @"
+</body>
+</html>
+"@
+    
+    Set-Content -Path $htmlPath -Value $htmlContent -Encoding UTF8 -NoNewline:$false
+    
+    $mdContent = @"
+# Azure Analyzer Audit Report
+
+## Summary
+
+Total findings: $($findings.Count)
+
+## Findings
+
+"@
+    
+    foreach ($f in $findings) {
+        $mdContent += "- **$($f.FindingId)** [$($f.Severity)] $($f.Title)`n"
+    }
+    
+    Set-Content -Path $mdPath -Value $mdContent -Encoding UTF8 -NoNewline:$false
+    
+    return @{
+        HtmlPath = $htmlPath
+        MdPath = $mdPath
+        RenderingMode = $renderingMode
+    }
 }
 
 function New-AuditorCitation {
@@ -639,5 +802,64 @@ function New-AuditorCitation {
         [Parameter(Mandatory)] [object] $Finding,
         [ValidateSet('inline','footnote','workpaper')] [string] $Style = 'workpaper'
     )
-    throw [System.NotImplementedException]::new('New-AuditorCitation: skeleton only.')
+    
+    $sanitizePath = Join-Path (Split-Path $PSScriptRoot -Parent) 'shared' 'Sanitize.ps1'
+    if (Test-Path $sanitizePath) { . $sanitizePath }
+    
+    $segments = @()
+    
+    $source = if ($Finding.PSObject.Properties['Source']) { [string]$Finding.Source } else { '' }
+    $rulePin = if ($Finding.PSObject.Properties['RulePin']) { [string]$Finding.RulePin } else { '' }
+    
+    if (-not [string]::IsNullOrWhiteSpace($source)) {
+        if (-not [string]::IsNullOrWhiteSpace($rulePin)) {
+            $segments += "[$source $rulePin]"
+        } else {
+            $segments += "[$source]"
+        }
+    }
+    
+    $id = if ($Finding.PSObject.Properties['Id']) { [string]$Finding.Id } else { '' }
+    $title = if ($Finding.PSObject.Properties['Title']) { ([string]$Finding.Title).Replace("`n", ' ').Replace("`r", ' ') } else { '' }
+    
+    if (-not [string]::IsNullOrWhiteSpace($id) -and -not [string]::IsNullOrWhiteSpace($title)) {
+        $segments += "$id`: $title."
+    } elseif (-not [string]::IsNullOrWhiteSpace($id)) {
+        $segments += "$id."
+    } elseif (-not [string]::IsNullOrWhiteSpace($title)) {
+        $segments += "$title."
+    }
+    
+    $canonicalId = if ($Finding.PSObject.Properties['CanonicalId']) { [string]$Finding.CanonicalId } elseif ($Finding.PSObject.Properties['EntityId']) { [string]$Finding.EntityId } else { '' }
+    if (-not [string]::IsNullOrWhiteSpace($canonicalId)) {
+        $segments += "Resource: $canonicalId."
+    }
+    
+    $severity = if ($Finding.PSObject.Properties['Severity']) { [string]$Finding.Severity } else { '' }
+    if (-not [string]::IsNullOrWhiteSpace($severity)) {
+        $segments += "Severity: $severity."
+    }
+    
+    $collectedAt = if ($Finding.PSObject.Properties['CollectedAtUtc']) { [string]$Finding.CollectedAtUtc } elseif ($Finding.PSObject.Properties['CollectedAt']) { [string]$Finding.CollectedAt } else { '' }
+    if (-not [string]::IsNullOrWhiteSpace($collectedAt)) {
+        $segments += "Collected $collectedAt."
+    }
+    
+    $ruleUrl = if ($Finding.PSObject.Properties['RuleUrl']) { [string]$Finding.RuleUrl } else { '' }
+    if (-not [string]::IsNullOrWhiteSpace($ruleUrl)) {
+        $segments += "Rule: $ruleUrl."
+    }
+    
+    $docsUrl = if ($Finding.PSObject.Properties['DocsUrl']) { [string]$Finding.DocsUrl } else { '' }
+    if (-not [string]::IsNullOrWhiteSpace($docsUrl)) {
+        $segments += "Docs: $docsUrl."
+    }
+    
+    $citation = [string]::Join(' ', @($segments | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }))
+    
+    if (Get-Command Remove-Credentials -ErrorAction SilentlyContinue) {
+        $citation = Remove-Credentials -Text $citation
+    }
+    
+    return $citation
 }

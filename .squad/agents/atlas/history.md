@@ -331,3 +331,6 @@ Full Track F dependency gate (Commit 0) blocked all implementation (3 missing mo
 - **2026-05-13** - PR #1091 - Track F Commit 4: remediation appendix + evidence export (17/17 tests green, credential scrubbing confirmed)
 
 - **2026-05-13** - PR #1092 - Track F Commit 5: LLM triage annotations (20/20 tests green, optional Track E consumer)
+
+- **2026-05-13** - Track F Commit 6: tier-aware rendering + citation helper (24/24 tests green, print stylesheet + workpaper-ready citations)
+
