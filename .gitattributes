@@ -12,3 +12,9 @@
 .github/workflows/ci-failure-analysis.yml export-ignore
 .github/workflows/auto-label-issues.yml export-ignore
 .github/agents/ export-ignore
+
+# .copilot/ subtrees that are squad coordination state (not user-facing tool)
+.copilot/skills/ export-ignore
+.copilot/skills/** export-ignore
+.copilot/audits/ export-ignore
+.copilot/audits/** export-ignore

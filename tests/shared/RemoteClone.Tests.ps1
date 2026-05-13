@@ -125,3 +125,112 @@ Describe 'Resolve-RemoteRepoToken' {
         Resolve-RemoteRepoToken -Url 'https://github.com/a/b' | Should -Be ''
     }
 }
+
+Describe 'Invoke-RemoteRepoClone retry behavior' {
+    BeforeAll {
+        . (Join-Path $script:RepoRoot 'modules' 'shared' 'CliTimeout.ps1')
+    }
+
+    It 'retries transient git clone failures (503)' {
+        $script:attempts = 0
+        Mock Invoke-WithTimeout {
+            $script:attempts++
+            if ($script:attempts -lt 2) {
+                return [PSCustomObject]@{
+                    ExitCode = 128
+                    Output   = 'fatal: unable to access repository: 503 Service Unavailable'
+                    Stdout   = ''
+                    Stderr   = 'fatal: unable to access repository: 503 Service Unavailable'
+                }
+            }
+            return [PSCustomObject]@{
+                ExitCode = 0
+                Output   = 'Cloning into...'
+                Stdout   = 'Cloning into...'
+                Stderr   = ''
+            }
+        }
+
+        $result = Invoke-RemoteRepoClone -RepoUrl 'https://github.com/test/repo' -TimeoutSec 60
+        $result | Should -Not -BeNullOrEmpty
+        $script:attempts | Should -Be 2
+    }
+
+    It 'does not retry non-transient failures (repository not found)' {
+        $script:attempts = 0
+        Mock Invoke-WithTimeout {
+            $script:attempts++
+            return [PSCustomObject]@{
+                ExitCode = 128
+                Output   = 'fatal: repository not found'
+                Stdout   = ''
+                Stderr   = 'fatal: repository not found'
+            }
+        }
+
+        $result = Invoke-RemoteRepoClone -RepoUrl 'https://github.com/test/nonexistent' -TimeoutSec 60 -WarningAction SilentlyContinue
+        $result | Should -BeNullOrEmpty
+        $script:attempts | Should -Be 1
+    }
+
+    It 'retries on timeout error pattern' {
+        $script:attempts = 0
+        Mock Invoke-WithTimeout {
+            $script:attempts++
+            if ($script:attempts -lt 2) {
+                return [PSCustomObject]@{
+                    ExitCode = 128
+                    Output   = 'fatal: unable to access repository: connection timed out'
+                    Stdout   = ''
+                    Stderr   = 'fatal: unable to access repository: connection timed out'
+                }
+            }
+            return [PSCustomObject]@{
+                ExitCode = 0
+                Output   = 'Cloning into...'
+                Stdout   = 'Cloning into...'
+                Stderr   = ''
+            }
+        }
+
+        $result = Invoke-RemoteRepoClone -RepoUrl 'https://github.com/test/repo' -TimeoutSec 60
+        $result | Should -Not -BeNullOrEmpty
+        $script:attempts | Should -Be 2
+    }
+
+    It 'passes timeout to Invoke-WithTimeout (default 300s)' {
+        $capturedTimeout = 0
+        Mock Invoke-WithTimeout {
+            param($Command, $Arguments, $TimeoutSec)
+            $script:capturedTimeout = $TimeoutSec
+            return [PSCustomObject]@{
+                ExitCode = 0
+                Output   = 'Cloning into...'
+                Stdout   = 'Cloning into...'
+                Stderr   = ''
+            }
+        }
+
+        $result = Invoke-RemoteRepoClone -RepoUrl 'https://github.com/test/repo'
+        $result | Should -Not -BeNullOrEmpty
+        $script:capturedTimeout | Should -Be 300
+    }
+
+    It 'passes custom timeout to Invoke-WithTimeout' {
+        $capturedTimeout = 0
+        Mock Invoke-WithTimeout {
+            param($Command, $Arguments, $TimeoutSec)
+            $script:capturedTimeout = $TimeoutSec
+            return [PSCustomObject]@{
+                ExitCode = 0
+                Output   = 'Cloning into...'
+                Stdout   = 'Cloning into...'
+                Stderr   = ''
+            }
+        }
+
+        $result = Invoke-RemoteRepoClone -RepoUrl 'https://github.com/test/repo' -TimeoutSec 120
+        $result | Should -Not -BeNullOrEmpty
+        $script:capturedTimeout | Should -Be 120
+    }
+}

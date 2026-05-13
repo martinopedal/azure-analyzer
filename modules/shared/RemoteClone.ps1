@@ -26,6 +26,12 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Import shared infrastructure
+$script:sharedRoot = Split-Path $PSCommandPath -Parent
+. (Join-Path $script:sharedRoot 'Retry.ps1')
+. (Join-Path $script:sharedRoot 'CliTimeout.ps1')
+. (Join-Path $script:sharedRoot 'Sanitize.ps1')
+
 $script:RemoteCloneAllowedHosts = @(
     'github.com',
     'api.github.com',
@@ -146,7 +152,7 @@ function Invoke-RemoteRepoClone {
         [Parameter(Mandatory)][string] $RepoUrl,
         [string] $Token,
         [string] $Branch,
-        [int] $TimeoutSec = 120
+        [int] $TimeoutSec = 300
     )
 
     if (-not (Test-RemoteRepoUrl -Url $RepoUrl)) {
@@ -178,57 +184,13 @@ function Invoke-RemoteRepoClone {
     $gitArgs += @($authUrl, $tempRoot)
 
     try {
-        $attempt = 0
-        $maxAttempts = 3
-        $ok = $false
-        $lastErr = ''
-        while ($attempt -lt $maxAttempts -and -not $ok) {
-            $attempt++
-            $psi = [System.Diagnostics.ProcessStartInfo]::new()
-            $psi.FileName = 'git'
-            foreach ($a in $gitArgs) { $psi.ArgumentList.Add($a) }
-            $psi.RedirectStandardOutput = $true
-            $psi.RedirectStandardError  = $true
-            $psi.UseShellExecute = $false
-            # Belt-and-braces: prevent git from prompting interactively.
-            $psi.Environment['GIT_TERMINAL_PROMPT'] = '0'
-
-            $proc = [System.Diagnostics.Process]::new()
-            $proc.StartInfo = $psi
-            $null = $proc.Start()
-            $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
-            $stderrTask = $proc.StandardError.ReadToEndAsync()
-
-            if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
-                try { $proc.Kill($true) } catch {
-                    Write-Verbose ("RemoteClone: git Process.Kill after timeout failed (process likely already exited). Reason: {0}" -f $_.Exception.Message)
-                }
-                $lastErr = "Timed out after $TimeoutSec seconds"
-            } else {
-                $stderr = $stderrTask.Result
-                $stdout = $stdoutTask.Result
-                $combined = Remove-Credentials (($stdout + "`n" + $stderr).Trim())
-                if ($proc.ExitCode -eq 0) { $ok = $true; break }
-                $lastErr = $combined
-
-                $low = $combined.ToLowerInvariant()
-                $transient = (
-                    $low -match '\b429\b' -or $low -match '\b503\b' -or
-                    $low -match 'timed out' -or $low -match 'timeout' -or
-                    $low -match 'could not resolve host' -or
-                    $low -match 'temporary failure'
-                )
-                if (-not $transient) { break }
+        $cloneResult = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 2 -MaxDelaySeconds 20 -ScriptBlock {
+            $timeoutResult = Invoke-WithTimeout -Command 'git' -Arguments $gitArgs -TimeoutSec $TimeoutSec
+            if ($timeoutResult.ExitCode -ne 0) {
+                $sanitized = Remove-Credentials $timeoutResult.Output
+                throw [System.Exception]::new("git clone failed: $sanitized")
             }
-            if (-not $ok -and $attempt -lt $maxAttempts) {
-                Start-Sleep -Seconds ([Math]::Min(20, 2 * [Math]::Pow(2, $attempt - 1)))
-            }
-        }
-
-        if (-not $ok) {
-            Write-Warning (Remove-Credentials "[remote-clone] git clone failed for $RepoUrl after $attempt attempt(s): $lastErr")
-            & $cleanup
-            return $null
+            return $timeoutResult
         }
 
         # Scrub credentials out of the cloned .git/config so downstream
