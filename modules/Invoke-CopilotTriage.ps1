@@ -19,6 +19,44 @@ $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 
+# Bootstrap Invoke-WithTimeout for CLI timeout protection.
+# Lazy-load pattern (matches modules/shared/RemoteClone.ps1): we do NOT dot-source
+# CliTimeout.ps1 at module top, because that would shadow Pester `Mock Invoke-WithTimeout`
+# calls in tests (the dot-source binds the real implementation into this script's scope,
+# taking precedence over outer-scope mocks). Instead the real implementation is loaded
+# just-in-time inside the try block, only when no command of that name is already in scope
+# (i.e. no test mock active).
+$script:invokeWithTimeoutIsFallback = $false
+if (-not (Get-Command Invoke-WithTimeout -ErrorAction SilentlyContinue)) {
+    function Invoke-WithTimeout {
+        param (
+            [Parameter(Mandatory)][string]$Command,
+            [Parameter(Mandatory)][string[]]$Arguments,
+            [int]$TimeoutSec = 300
+        )
+        $output = & $Command @Arguments 2>&1 | Out-String
+        [PSCustomObject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = Remove-Credentials $output
+        }
+    }
+    $script:invokeWithTimeoutIsFallback = $true
+}
+
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details; TimestampUtc=(Get-Date).ToUniversalTime().ToString('o') } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage {
+        param([Parameter(Mandatory)]$FindingError)
+        $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason
+        if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }
+        return $line
+    }
+}
+
 # --- Check 1: Python 3.10+ ---
 $py = $null
 try {
@@ -80,11 +118,39 @@ Write-Host '    will be sent to GitHub Copilot services for AI analysis.' -Foreg
 Write-Host ''
 Write-Host 'Running AI triage enrichment...' -ForegroundColor Magenta
 try {
-    & $py $scriptPath --input $InputPath --output $OutputPath 2>&1 | ForEach-Object {
-        Write-Host "  $_" -ForegroundColor DarkGray
+    # Lazy-load real Invoke-WithTimeout (CliTimeout.ps1) only if we have just our own
+    # fallback in scope; never dot-source over an active Pester mock.
+    if ($script:invokeWithTimeoutIsFallback) {
+        $cliTimeoutPath = Join-Path $PSScriptRoot 'shared' 'CliTimeout.ps1'
+        if (Test-Path $cliTimeoutPath) {
+            . $cliTimeoutPath
+            $script:invokeWithTimeoutIsFallback = $false
+        }
     }
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "AI triage: Python script exited with code $LASTEXITCODE. Skipping."
+
+    $args = @($scriptPath, '--input', $InputPath, '--output', $OutputPath)
+    $result = Invoke-WithTimeout -Command $py -Arguments $args -TimeoutSec 300
+    
+    if ($result.ExitCode -eq -1) {
+        Write-Warning 'AI triage: Python subprocess timed out after 300s. Skipping.'
+        $err = New-FindingError -Source 'wrapper:copilot-triage' `
+            -Category 'TimeoutExceeded' `
+            -Reason 'Python triage subprocess timed out after 300 seconds.' `
+            -Remediation 'Reduce finding count or check for network issues; re-run with -Verbose for detail.' `
+            -Details (Remove-Credentials $result.Output)
+        return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message 'Python subprocess timed out' -FindingErrors @($err)
+    }
+    
+    if (-not [string]::IsNullOrWhiteSpace($result.Output)) {
+        $result.Output -split "`n" | ForEach-Object {
+            if (-not [string]::IsNullOrWhiteSpace($_)) {
+                Write-Host "  $_" -ForegroundColor DarkGray
+            }
+        }
+    }
+    
+    if ($result.ExitCode -ne 0) {
+        Write-Warning "AI triage: Python script exited with code $($result.ExitCode). Skipping."
         return New-WrapperEnvelope -Source 'copilot-triage' -Status 'Failed' -Message "Python script exited with non-zero"
     }
     if (-not (Test-Path $OutputPath)) {
