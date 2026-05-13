@@ -57,8 +57,109 @@ function Build-AuditorReport {
         [ValidateSet('inline','footnote','workpaper')] [string] $CitationStyle = 'workpaper',
         [switch]   $PassThru
     )
-    throw [System.NotImplementedException]::new(
-        'Build-AuditorReport: Track F is design-only until Tracks A-E + V land. See docs/design/track-f-auditor-redesign.md.')
+    
+    $sectionErrors = @()
+    
+    try {
+        $context = Resolve-AuditorContext `
+            -InputPath $InputPath `
+            -EntitiesPath $EntitiesPath `
+            -ManifestPath $ManifestPath `
+            -TriagePath $TriagePath `
+            -PreviousRunPath $PreviousRunPath `
+            -Tier $Tier
+    } catch {
+        $sectionErrors += "Resolve-AuditorContext failed: $_"
+        throw
+    }
+    
+    try {
+        $summary = Get-AuditorExecutiveSummary `
+            -Findings $context.Findings `
+            -PreviousFindings $context.PreviousFindings `
+            -ControlFrameworks $ControlFrameworks
+        $context['Summary'] = $summary
+    } catch {
+        $sectionErrors += "Get-AuditorExecutiveSummary failed: $_"
+    }
+    
+    try {
+        $controlSections = Get-AuditorControlDomainSections `
+            -Findings $context.Findings `
+            -Frameworks $ControlFrameworks
+        $context['ControlDomainSections'] = $controlSections
+    } catch {
+        $sectionErrors += "Get-AuditorControlDomainSections failed: $_"
+    }
+    
+    try {
+        $attackPath = Get-AuditorAttackPathSection -Entities $context.Entities -Tier $context.Tier
+        $context['AttackPathSection'] = $attackPath
+    } catch {
+        $sectionErrors += "Get-AuditorAttackPathSection failed: $_"
+    }
+    
+    try {
+        $resilience = Get-AuditorResilienceSection -Entities $context.Entities -Tier $context.Tier
+        $context['ResilienceSection'] = $resilience
+    } catch {
+        $sectionErrors += "Get-AuditorResilienceSection failed: $_"
+    }
+    
+    try {
+        $policyCoverage = Get-AuditorPolicyCoverageSection -Entities $context.Entities -Tier $context.Tier
+        $context['PolicyCoverageSection'] = $policyCoverage
+    } catch {
+        $sectionErrors += "Get-AuditorPolicyCoverageSection failed: $_"
+    }
+    
+    try {
+        $annotated = Get-AuditorTriageAnnotations `
+            -Findings $context.Findings `
+            -TriagePath $TriagePath
+        $context['Findings'] = $annotated.Findings
+        $context['TriagePresent'] = $annotated.TriagePresent
+    } catch {
+        $sectionErrors += "Get-AuditorTriageAnnotations failed: $_"
+    }
+    
+    try {
+        $remediation = Get-AuditorRemediationAppendix -Findings $context.Findings
+        $context['RemediationAppendix'] = $remediation
+    } catch {
+        $sectionErrors += "Get-AuditorRemediationAppendix failed: $_"
+    }
+    
+    $evidencePath = $null
+    try {
+        $evidence = Get-AuditorEvidenceExport `
+            -Findings $context.Findings `
+            -OutputDirectory $OutputDirectory
+        $evidencePath = $evidence.ExportPath
+    } catch {
+        $sectionErrors += "Get-AuditorEvidenceExport failed: $_"
+    }
+    
+    try {
+        $null = Write-AuditorRenderTier `
+            -Context $context `
+            -OutputDirectory $OutputDirectory `
+            -Tier $context.Tier
+    } catch {
+        $sectionErrors += "Write-AuditorRenderTier failed: $_"
+    }
+    
+    $result = @{
+        HtmlPath = Join-Path $OutputDirectory 'audit-report.html'
+        MdPath = Join-Path $OutputDirectory 'audit-report.md'
+        EvidencePath = $evidencePath
+        Manifest = $context.Manifest
+        SectionErrors = $sectionErrors
+    }
+    
+    if ($PassThru) {
+        return $result
+    }
 }
 
 function Resolve-AuditorContext {
