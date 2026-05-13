@@ -110,6 +110,31 @@ No code changes in this phase. Pester baseline unchanged at 1349 passed / 5 skip
 ## 2026-04-21 - #297 ExecDashboard design-token harmonization (PR #342, merged 50bb48c)
 
 - Replaced ExecDashboard CSS with the shared design-token system locked in samples/sample-report.html: --crit/--high/--med/--low/--info/--pass severity palette, surface/border/text tokens, radii, shadows, font stack.
+
+## 2026-05-13 - v1.7.1 → v1.7.2 Stabilization: Test Rigor Audit
+
+**Session:** v1.7.2 stabilization after v1.7.1 release failure (Pester 5 scope violation on Linux/macOS).
+
+**Task:** Comprehensive pre-release test rigor audit across all 39 test files in `tests/`.
+
+**Results:**
+- **RED findings:** 0 (no actively-breaking patterns detected)
+- **AMBER findings:** 3
+  - (A1) `AttackPath.Tests.ps1:83` — perf threshold 250ms too tight → recommend raising to 500–1000ms or platform-guarding
+  - (A2) `IdentityGraphExpansion.Tests.ps1:385` — 30s threshold reasonable but slow runners can breach → raise to 60s or document scale
+  - (A3) `setup.ps1:26` — `$env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS` set with no cleanup → can leak downstream → move to test-runner `BeforeAll` or document global scope
+- **GREEN findings:** 5 (all acceptable patterns)
+  - `-Pending` tests (outstanding work, correct Pester mechanism)
+  - `-Skip:(-not (Get-Command ...))` guards (best practice for optional dependencies)
+  - Subprocess `Set-Location` (isolated, safe)
+  - Mocked `Start-Sleep` (zero-cost)
+  - Real `Start-Sleep` in CliTimeout.Tests.ps1 (test subject, not hot-path)
+
+**Verdict:** No blockers for release. A1/A2/A3 categorized and moved to backlog.
+
+**Output:** `.squad/decisions/inbox/sentinel-flaky-test-audit.md` + issue #1116 filed with comprehensive findings.
+
+**Key learning:** Pester 5 ALL lifecycle blocks (`BeforeAll`, `BeforeEach`, `AfterEach`, `AfterAll`) MUST be inside Describe blocks. Root-scope placement fails validation on Linux/macOS.
 - Added full [data-theme=dark] variant with persistent localStorage('aa-theme') toggle in the header (matches main report).
 - Mirrored the .fw-* framework badge palette (CIS/NIST/MITRE/EIDSCA/eIDAS/SOC/ISO/MCSB/CAF/WAF/CISA/ORCA/default) into the framework gap table.
 - Added top KPI severity strip (kpi-tile primitive) matching main report's .sev-strip.
