@@ -5,44 +5,35 @@
 ## Where we are
 Two-arc cleanup landed. Repo is on `main @ e0aefe0` (post #1066).
 
-- **PR #1060** — Wrapper envelope `Errors=@()` consistency sweep (13 wrappers),
-  EnvelopeContract regex tightened, `CliTimeout` sanitization gap closed,
-  `CopilotTriage` exception hardening, +28 new tests. **MERGED.**
-- **PR #1055** — release-please 1.4.7. **MERGED**, tag `v1.4.7` published.
-- **PR #1057 → #1066** — Track F slice 1 (narrowed dep gate + auditor context
-  + executive summary). #1057 was inadvertently closed in a race with the
-  release-please cascade; rebased clean and re-opened as **#1066**, admin-merged
-  as `e0aefe0`. **MERGED.**
-- **#1059** consistency-sweep tracking issue auto-closed.
+- **PR #1080** — Archive hygiene (output-review* cleanup). **MERGED.**
+- **PR #1074** — Infracost mock isolation. **MERGED.**
+- **PR #1069** — RemoteClone retry/timeout wrapper. **MERGED.**
+- **PR #1082** — Triage subprocess timeouts, closes #1061+#1063. **MERGED.**
+  - Pivot: Orphaned CopilotTriage guarded via defensive-depth structural assertions.
+- **PR #1070** — PR-gate Invoke-WithRetry, closes #1062. **MERGED.**
+  - Pivot: Stranded RemoteClone bugfix surgical cherry-pick reset from origin/main.
+- **PR #1077** — release-please v1.5.1. **MERGED**, tag `v1.5.1` published, PSGallery live.
 
-## Open follow-ups (squad label, none blocking)
+## Open follow-ups (cascade complete; next session)
 - **#1056** — Track F supporting modules (EdgeRelations, Select-ReportArchitecture,
   PolicyCoverageAnalyzer) referenced by Lead's plan but never landed. Blocks
-  Track F slices 2-9. Lead's triage outstanding.
-- **#1061** — wrap Python triage subprocess with `Invoke-WithTimeout`.
-- **#1062** — wrap PR review-gate external calls in `Invoke-WithRetry`.
-- **#1063** — wrap `gh copilot` CLI calls in `Invoke-WithTimeout`.
-- **#1064** — refactor `RemoteClone.ps1` to use `Invoke-WithRetry` +
-  `Invoke-WithTimeout`.
-- **#1065** — `LiveTool` gitleaks smoke test fails only inside full Pester suite
-  (state leak from a prior test). Pre-existing flake, not introduced by recent
-  arcs.
-- **#506** / **#1048** — Track F driver tickets (slice 1 done in #1066, rest
-  blocked on #1056).
+  Track F slices 2-9. Lead's triage outstanding. **BLOCKING next session.**
+- **#1061, #1062, #1063** — CLOSED by v1.5.1 cascade.
+- **#1064** — RemoteClone baseline now in place (#1069); review for further hardening
+  (logging, backoff curves, etc.). Second-priority.
+- **#1065** — `LiveTool` gitleaks smoke test flake. Pre-existing; lowest priority.
+- **#506** / **#1048** — Track F driver tickets (infrastructure blocker awaiting #1056).
 
 ## Next work (priority order)
-1. Triage **#1056** (Lead) so Track F slices 2-9 can resume.
-2. Pick off **#1061** + **#1063** together (both are 1-line `Invoke-WithTimeout`
-   wrap-ups; coordinator inline, no agent spawn needed).
-3. Then **#1062** (multiple call-sites, route to Atlas).
-4. Then **#1064** (RemoteClone refactor, route to Atlas).
-5. **#1065** is lowest priority — investigate state leak when convenient.
+1. **Triage #1056** (Lead) — infrastructure blocker for Track F slices 2-9.
+2. **Harden #1064** (Atlas or Coordinator) — RemoteClone baseline now live; review logging/backoff.
+3. **Investigate #1065** (Forge or Coordinator) — gitleaks flake (lowest priority, pre-existing).
 
 ## Check these on catch-up
 1. `gh pr list --state open` — should be 0 squad PRs.
-2. `gh issue list --label squad --state open` — should be #1056, #1061-#1065,
-   plus driver tickets #506 #1048.
-3. `git log --oneline -5` — top should be `e0aefe0 (PR #1066)`.
+2. `gh issue list --label squad --state open` — should be #1056, #1064, #1065,
+   plus driver tickets #506 #1048. (#1061, #1062, #1063 closed by v1.5.1.)
+3. `git log --oneline -5` — top should be `9eab64a (PR #1077: release-please v1.5.1)`.
 
 ## Key files / context
 - `.copilot/copilot-instructions.md` + `.github/copilot-instructions.md` —
