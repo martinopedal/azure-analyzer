@@ -102,6 +102,28 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.7.0](https://github.com/martinopedal/azure-analyzer/compare/v1.6.1...v1.7.0) (2026-05-13)
+
+
+### Features
+
+* **release:** expand PSGallery smoke to full 8-check E2E gate ([#1104](https://github.com/martinopedal/azure-analyzer/issues/1104)) ([df9588f](https://github.com/martinopedal/azure-analyzer/commit/df9588f402af87ca5214452c593159c505bb0f11))
+
+
+### Fixes
+
+* AuditorReportBuilder triage key + HTML encoding + Profile ValidateSet ([#1102](https://github.com/martinopedal/azure-analyzer/issues/1102)) ([#1105](https://github.com/martinopedal/azure-analyzer/issues/1105)) ([7650907](https://github.com/martinopedal/azure-analyzer/commit/76509071163a51e44a7dbd0a0e643f8eec4ec53e))
+
+
+### Documentation
+
+* **squad:** Track F post-ship review -- 1 BUG, 2 RISKs ([#1101](https://github.com/martinopedal/azure-analyzer/issues/1101)) ([3841722](https://github.com/martinopedal/azure-analyzer/commit/3841722c92cf7b2ba2049d260cd2bafc3ede1472))
+
+
+### Tests
+
+* systemic rigor for auditor data flow (catches BUG-1 class) ([#1110](https://github.com/martinopedal/azure-analyzer/issues/1110)) ([6bddfa3](https://github.com/martinopedal/azure-analyzer/commit/6bddfa33ef094c2e30808230b0cd32441632261c))
+
 ## [1.6.1](https://github.com/martinopedal/azure-analyzer/compare/v1.6.0...v1.6.1) (2026-05-13)
 
 
