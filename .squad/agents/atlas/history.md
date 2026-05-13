@@ -349,4 +349,11 @@ Extended New-ReportManifest with -Profile and -Sections parameters to support au
 
 EPIC-CLOSING COMMIT. Added 4 parity tests (32-35) validating 10 canonical auditor questions, citation credential scrubbing, HTML self-containment at Tier 1/2, and audit-evidence directory generation. Created `tests/fixtures/auditor-jumbo` fixture (1600 findings). Updated README.md (Auditor Mode section), PERMISSIONS.md (Track F note), CHANGELOG.md (Track F entry). Uses `Closes #506` (NOT `Refs #506`) to close the epic. Decision drop: atlas-trackf-commit9-2026-05-13T14-45-00.md. Cumulative: 35 tests (24 AuditorReportBuilder + 3 orchestrator + 4 ReportManifest + 4 parity), all passing. Lesson: Verified line endings preserved on BOTH commits using `git diff --cached -w`.
 
-- **PR #1096 (Track F Commit 9)**: EPIC-CLOSING. 4 parity tests + auditor-jumbo fixture (1600 findings) + user-facing docs (README/PERMISSIONS/CHANGELOG). Closes #506. Merged at commit [TBD].
+- **PR #1096 (Track F Commit 9)**: EPIC-CLOSING. 4 parity tests + auditor-jumbo fixture (1600 findings) + user-facing docs (README/PERMISSIONS/CHANGELOG). Closes #506. Merged at commit 6d73f24 WITH 10 CI FAILURES (aspirational tests + 4 parameter bugs).
+
+## 2026-05-13 15:33:00 - Track F Commit 10 HOTFIX (PR #1097)
+
+Emergency hotfix for 4 parameter/compatibility bugs from Commit 9 blocking release-please PR #1087: (1) added `-Profile` parameter to `AzureAnalyzer.psm1` wrapper, (2) fixed `AuditorParity.Tests.ps1` to use tier names (`'PureJson'`, `'EmbeddedSqlite'`) instead of integers, (3) corrected citation test fixture field names (`Source`/`RulePin` instead of `SourceTool`/`SourceToolVersion`), (4) replaced Windows-only `$env:TEMP` with cross-platform `[System.IO.Path]::GetTempPath()` in profile tests. Resolves 9/10 parameter validation failures. **6 AuditorParity content assertion failures remain** (HTML renderer doesn't call converter functions — requires Track F Commit 11). Decision drop: atlas-trackf-commit10-hotfix-2026-05-13T15-33-00.md.
+
+- **PR #1097 (Track F Commit 10 HOTFIX)**: 4 parameter bug fixes. Branch: `squad/atlas-trackf-commit10-hotfix`. Merged at commit [TBD].
+

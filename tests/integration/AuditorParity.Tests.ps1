@@ -31,7 +31,7 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
                                 -ManifestPath $manifestPath `
                                 -TriagePath $triagePath `
                                 -OutputDirectory $testOutputDir `
-                                -Tier 1
+                                -Tier 'PureJson'
             
             $htmlPath = Join-Path $testOutputDir 'audit-report.html'
             $htmlPath | Should -Exist
@@ -82,13 +82,13 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
         It 'Should sanitize credentials in citations while preserving structure' {
             $testFindings = @(
                 @{
-                    FindingId = 'F-TEST-001'
+                    Id = 'F-TEST-001'
                     Title = 'Credentials exposed in connection string'
                     Severity = 'Critical'
                     EntityId = '/subscriptions/test-sub/resourceGroups/rg-test/providers/Microsoft.Sql/servers/sql-prod'
-                    SourceTool = 'azqr'
-                    SourceToolVersion = '1.5.0'
-                    Timestamp = '2026-05-01T08:00:00Z'
+                    Source = 'azqr'
+                    RulePin = '1.5.0'
+                    CollectedAtUtc = '2026-05-01T08:00:00Z'
                     Evidence = 'Connection string: Server=tcp:sql-prod.database.windows.net;User ID=admin;Password=P@ssw0rd123;'
                 }
             )
@@ -117,7 +117,7 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
                                 -ManifestPath $manifestPath `
                                 -TriagePath $triagePath `
                                 -OutputDirectory $testOutputDir `
-                                -Tier 1
+                                -Tier 'PureJson'
             
             $htmlPath = Join-Path $testOutputDir 'audit-report.html'
             $htmlContent = Get-Content $htmlPath -Raw
@@ -139,7 +139,7 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
                                 -ManifestPath $manifestPath `
                                 -TriagePath $triagePath `
                                 -OutputDirectory $testOutputDir `
-                                -Tier 2
+                                -Tier 'EmbeddedSqlite'
             
             $htmlPath = Join-Path $testOutputDir 'audit-report.html'
             $htmlContent = Get-Content $htmlPath -Raw
@@ -159,7 +159,7 @@ Describe 'Auditor Parity Tests' -Tag 'Integration' {
                                 -ManifestPath $manifestPath `
                                 -TriagePath $triagePath `
                                 -OutputDirectory $testOutputDir `
-                                -Tier 1
+                                -Tier 'PureJson'
             
             $evidenceDir = Join-Path $testOutputDir 'audit-evidence'
             $evidenceDir | Should -Exist

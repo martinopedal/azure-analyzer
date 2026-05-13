@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fixed
+
+- **Track F Commit 10 HOTFIX**: Repaired 4 parameter/compatibility bugs blocking CI after Commit 9 merge: (1) added `-Profile` parameter to module wrapper (`AzureAnalyzer.psm1`) to match `Invoke-AzureAnalyzer.ps1`, (2) fixed `AuditorParity.Tests.ps1` to use tier architecture names (`'PureJson'`, `'EmbeddedSqlite'`) instead of integers, (3) corrected citation test fixture field names (`Source`/`RulePin` instead of `SourceTool`/`SourceToolVersion`), (4) replaced Windows-only `$env:TEMP` with cross-platform `[System.IO.Path]::GetTempPath()` in profile tests.
+
 ### Added
 
 - **Auditor-driven report builder (Track F #506)**: New `-Profile Auditor` parameter on `Invoke-AzureAnalyzer.ps1` generates control-centric compliance reports with evidence-grade citations and framework coverage. Produces `audit-report.html`, `audit-report.md`, and `audit-evidence/*.{csv,json,xlsx}` exports. Includes executive summary, control-domain sections grouped by framework (CIS, NIST, MCSB, ISO 27001), attack-path and blast-radius analysis (Track A/B), policy coverage vs. ALZ reference gaps (Track C), remediation appendix, and optional LLM triage annotations (Track E). All evidence exports sanitized via `Remove-Credentials`. Tier-aware rendering (Tier 1-4) with declared degradations in `report-manifest.json`. New `tests/integration/AuditorParity.Tests.ps1` (4 tests) validates 10 canonical auditor questions (parity contract), citation credential scrubbing, self-contained HTML at Tier 1/2, and audit-evidence directory generation. Fixture: `tests/fixtures/auditor-jumbo` (1600 findings for integration testing). Design doc: `docs/design/track-f-auditor-redesign.md`.
