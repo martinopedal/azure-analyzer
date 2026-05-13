@@ -19,6 +19,23 @@ BeforeAll {
     $script:RepoRoot = Resolve-Path (Join-Path $script:Here '..' '..')
     $script:GitleaksWrapper = Join-Path $script:RepoRoot 'modules' 'Invoke-Gitleaks.ps1'
     . (Join-Path $script:RepoRoot 'tests' '_helpers' 'Capture-WrapperHostOutput.ps1')
+
+    # Snapshot env vars this file deliberately mutates so AfterEach can restore
+    # the prior value (or remove the var if it was unset). Required by the
+    # test isolation guard in tests/shared/TestIsolation.Tests.ps1 (#746).
+    $script:_OrigGitleaksReportPath = if (Test-Path Env:GITLEAKS_REPORT_PATH) { $env:GITLEAKS_REPORT_PATH } else { $null }
+    $script:_OrigLastExitCode = $global:LASTEXITCODE
+}
+
+AfterEach {
+    # Restore $env:GITLEAKS_REPORT_PATH to its pre-test state.
+    if ($null -eq $script:_OrigGitleaksReportPath) {
+        Remove-Item Env:GITLEAKS_REPORT_PATH -ErrorAction SilentlyContinue
+    } else {
+        $env:GITLEAKS_REPORT_PATH = $script:_OrigGitleaksReportPath
+    }
+    # Restore $LASTEXITCODE so subsequent test files don't inherit our pollution.
+    $global:LASTEXITCODE = $script:_OrigLastExitCode
 }
 
 Describe 'LiveTool state isolation guard (#1065 regression)' -Tag 'LiveTool' {
