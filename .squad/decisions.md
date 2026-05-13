@@ -84,6 +84,18 @@ Regenerated `samples/sample-report.html` and `samples/sample-report.md` from cur
 ### 2026-04-21: maester Schema 2.2 ETL
 `maester` preserved one-test-to-one-finding semantics while adding frameworks/baseline tags from test tags, MITRE pass-through, `Pillar=Security`, docs deep links, evidence URIs, remediation snippet extraction, canonicalized tenant/entity refs, and module-version stamping.
 
+## Workflow & Process
+
+### Workflow Simplification Directive (2026-05-13)
+- **Decision:** Effective immediately for v1.7.0 and beyond. Streamline agent session workflow to reduce context overhead and accelerate routine iteration while maintaining safety and quality gates.
+- **Rationale:** Multi-agent dispatch, 3-model gates, Comment Triage Loops, and Reviewer Rejection Lockout proved high-overhead for routine work. Core safety gates (CI green, fail-first tests, security invariants) are sufficient and more durable than analytical critique loops.
+- **Changes:**
+  - **Dropped:** Multi-agent dispatch for routine solo work, 3-model gates per PR, Comment Triage Loop on every Copilot thread, Reviewer Rejection Lockout for routine work.
+  - **Kept (non-negotiable):** CI green as merge gate, fail-first regression tests for every bug fix, security invariants (Remove-Credentials, Schema, HTTPS-only, host allow-list, 300s timeout), Pester baseline enforcement.
+  - **Duck only when stuck or before high-blast-radius changes:** Swift haiku (not Opus extra-high), brief focused reasoning, document blockers in PR sticky comment + mirror squad issue.
+  - **Bug detection preference:** Fail-first regression tests over analytical critique loops. Tests are durable, critiques ephemeral.
+- **Status:** Active (approved by martinopedal)
+
 ## Active Decisions
 
 ### Canonical Entity IDsin Test Fixtures (2026-04-18)
