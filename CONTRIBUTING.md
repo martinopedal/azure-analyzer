@@ -95,4 +95,4 @@ Set `SQUAD_WATCH_CI=1` to opt into the local polling helper (`tools/Watch-Github
 
 To run markdown link checks locally for full-corpus parity: `lychee --config .lychee.toml './**/*.md'`
 
-The `.squad/` directory contains AI team infrastructure for automated triage and development. It is **not** part of the tool itself and is excluded from archive downloads. The `.copilot/skills/` and `.copilot/audits/` subtrees are likewise excluded, as they contain squad coordination state, not user-facing tool documentation.
+The `.squad/` directory contains AI team infrastructure for automated triage and development. It is **not** part of the tool itself and is excluded from archive downloads. The `.copilot/skills/` and `.copilot/audits/` subtrees are likewise excluded, as they contain squad coordination state, not user-facing tool documentation. The `.copilot/skills/` and `.copilot/audits/` subtrees are likewise excluded, as they contain squad coordination state, not user-facing tool documentation.
