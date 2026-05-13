@@ -75,7 +75,10 @@ Describe 'Auditor Data Flow End-to-End' -Tag 'Integration' {
             $annotated = Get-AuditorTriageAnnotations -Findings $findings -TriagePath $script:triagePath
             
             # Assert: Return value has AnnotatedFindings key
-            $annotated.PSObject.Properties.Name | Should -Contain 'AnnotatedFindings' -Because 'Get-AuditorTriageAnnotations contract specifies this key'
+            # NOTE: Get-AuditorTriageAnnotations returns [hashtable]; use .Keys (or .ContainsKey),
+            # not .PSObject.Properties.Name (which enumerates hashtable reflection properties, not entries).
+            $annotated | Should -BeOfType [hashtable] -Because 'contract returns hashtable, not PSCustomObject'
+            $annotated.ContainsKey('AnnotatedFindings') | Should -BeTrue -Because 'Get-AuditorTriageAnnotations contract specifies this key'
             $annotated.AnnotatedFindings | Should -Not -BeNullOrEmpty -Because 'triage must return annotated findings array'
             $annotated.AnnotatedFindings.Count | Should -Be $findings.Count -Because 'triage preserves all findings'
             
