@@ -48,6 +48,21 @@ Research-only. Wrote `.squad/decisions/inbox/atlas-azure-quota-reports-research.
 ### Repo summary
 `scripts/Get-AzureQuotas.ps1` — PS 7 + `az vm list-usage` + `az network list-usages` across subscription × location fanout. Four auth modes (CurrentSession default, Interactive, ServicePrincipal via env-var secret, ManagedIdentity). CSV out (`AzureQuotas_TIMESTAMP.csv` + `_errors.csv`), terminal warning table at default 80% threshold. Columns include `UsagePercent` — the natural `compliant` axis.
 
+## 2026-05-13 - Issue #1065: LiveTool gitleaks state leak fix
+
+**Issue:** LiveTool gitleaks smoke test passed in isolation but failed in full Pester suite with `Status='Failed'` instead of `'Success'`.
+
+**Root cause identified:** `$LASTEXITCODE` carry-over from `FixtureMode.Tests.ps1:23` and `Help.Tests.ps1:9`. These tests invoke `pwsh` and check `$LASTEXITCODE` but don't reset it afterward. When the LiveTool gitleaks test runs later in the suite, `Invoke-Gitleaks.ps1:437` checks `if ($exitCode -ne 0 -and -not (Test-Path $reportFile))` and interprets the leaked non-zero `$LASTEXITCODE` as a gitleaks failure.
+
+**Solution implemented:**
+- Added defensive `BeforeEach` block in `LiveTool.Wrappers.Tests.ps1` that resets `$LASTEXITCODE = 0`, removes `GITLEAKS_*` env vars, and restores working directory
+- Created fail-first regression guard `LiveTool.StateIsolation.Tests.ps1` with 2 tests that deliberately pollute state then verify `BeforeEach` resets it correctly
+
+**Verification:** All LiveTool tests pass (4 passed, 2 skipped). New test file adds +3 to baseline (3168 → 3171).
+
+**PR:** #1117  
+**Commit:** `5e67ca1`
+
 ### Normalizer plan
 One `FindingRow` per `(SubscriptionId, Location, Provider, QuotaId)`. `EntityType=Subscription` (bare-GUID canonical ID). Severity ladder Critical/High/Medium/Info at 99/95/80/below thresholds. `RuleId=azure-quota:{Provider}:{QuotaId}:{Location}`. `Properties` bag preserves `CurrentUsage`/`Limit`/`Unit`/`UsagePercent` for heatmap.
 

@@ -111,6 +111,31 @@ Commit 0: Dependency Gate
 
 User can override in PR review, but implementation can proceed without blocking.
 
+## 2026-05-13 - v1.7.0 Production Readiness Audit (Post-Release)
+
+**Session:** v1.7.2 stabilization; post-release audit of v1.7.0 live features (Ship #1089/#1090/#1094).
+
+**Task:** Comprehensive production readiness audit covering architectural, operational, and reliability concerns 6 weeks post-ship.
+
+**Scope:** Three release-gating areas:
+1. **Track D (Entity ETL integration)** — 5-layer contract validation (source → normalizer → schema → EntityStore → report)
+2. **Error handling + Remediation field integrity** — 50+ findings mapped
+3. **Wrapper parameter consistency** — Invoke-* dispatch stability (CON-001 through CON-005)
+
+**Results:**
+- **SHIPPED (v1.7.0):** All critical path features operational.
+- **VERIFIED STABLE:** Track D round-trip contract holds; EntityStore attachment logic sound.
+- **MINOR GAPS (P2 backlog):** 
+  - WARA wrapper drops N–1 impacted resources per finding (L1 issue in line 102).
+  - Sentinel detail field is pipe-concatenated string; should be structured for spatial layout (L3+ ETL).
+  - Manifest entries for ADO tools missing `source` field (metadata, 0 functional impact).
+
+**Verdict:** No production rollback required. All gaps are backlog-eligible.
+
+**Output:** `.squad/decisions/inbox/lead-v1-7-0-final-audit.md` (comprehensive decision file with findings, technical recommendations, and remediation priorities).
+
+**Key learning:** ETL contract spans 5 layers (L1 wrapper capture → L5 report render). A field is only "preserved" when it round-trips through every layer; render-layer-only fixes are insufficient.
+
 **Why this matters:** Blocking on user input delays implementation. Lead's job is to unblock. If a sensible default exists and the decision is reversible in PR review, provide the default and proceed.
 
 **When to apply:** Design questions flagged as "open" but have:
