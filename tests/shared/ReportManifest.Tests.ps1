@@ -153,3 +153,64 @@ Describe 'New-ReportManifest serialization' {
         $roundTrip.Policy.azAdvertizer.catalogVintage | Should -Be '2026-04-23'
     }
 }
+
+Describe 'New-ReportManifest -Profile Auditor' {
+    It 'appends Profile block when -Profile Auditor' {
+        $path = Join-Path $TestDrive 'manifest-auditor.json'
+        $sections = @(
+            [pscustomobject]@{ Id = 'ExecutiveSummary'; Title = 'Executive Summary'; renderingMode = 'full' },
+            [pscustomobject]@{ Id = 'ControlDomains'; Title = 'Control Domains'; renderingMode = 'summary' }
+        )
+        $features = @(
+            [pscustomobject]@{ name = 'ExecutiveSummary'; renderingMode = 'full'; tier1Mode = 'full' },
+            [pscustomobject]@{ name = 'ControlDomains'; renderingMode = 'summary'; tier1Mode = 'interactive' }
+        )
+
+        $manifest = New-ReportManifest -Path $path -SelectedTier 'PureJson' -Profile 'Auditor' -Sections $sections -Features $features
+
+        $manifest.PSObject.Properties['Profile'] | Should -Not -BeNullOrEmpty
+        $manifest.Profile.Name | Should -Be 'auditor'
+        @($manifest.Profile.Sections).Count | Should -Be 2
+        $manifest.Profile.Sections[0].Id | Should -Be 'ExecutiveSummary'
+    }
+
+    It 'every section in Profile has renderingMode property' {
+        $path = Join-Path $TestDrive 'manifest-auditor-modes.json'
+        $sections = @(
+            [pscustomobject]@{ Id = 'Summary'; Title = 'Summary'; renderingMode = 'full' },
+            [pscustomobject]@{ Id = 'Findings'; Title = 'Findings'; renderingMode = 'interactive' }
+        )
+
+        $manifest = New-ReportManifest -Path $path -SelectedTier 'PureJson' -Profile 'Auditor' -Sections $sections
+
+        foreach ($section in $manifest.Profile.Sections) {
+            $section.PSObject.Properties['renderingMode'] | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    It 'every Profile.Degradations entry references a real section id (Declared Degradation Contract)' {
+        $path = Join-Path $TestDrive 'manifest-auditor-degradations.json'
+        $sections = @(
+            [pscustomobject]@{ Id = 'GraphCanvas'; Title = 'Graph Canvas'; renderingMode = 'summary' }
+        )
+        $features = @(
+            [pscustomobject]@{ name = 'GraphCanvas'; renderingMode = 'summary'; tier1Mode = 'interactive' }
+        )
+
+        $manifest = New-ReportManifest -Path $path -SelectedTier 'PureJson' -Profile 'Auditor' -Sections $sections -Features $features
+
+        $sectionIds = @($manifest.Profile.Sections | ForEach-Object { $_.Id })
+        foreach ($degradation in $manifest.Profile.Degradations) {
+            $featureName = $degradation.name
+            $sectionIds | Should -Contain $featureName
+        }
+    }
+
+    It 'does not append Profile block when -Profile Default' {
+        $path = Join-Path $TestDrive 'manifest-default.json'
+
+        $manifest = New-ReportManifest -Path $path -SelectedTier 'PureJson' -Profile 'Default'
+
+        $manifest.PSObject.Properties['Profile'] | Should -BeNullOrEmpty
+    }
+}
