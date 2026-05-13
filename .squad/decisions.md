@@ -502,6 +502,79 @@ These entries are now superseded by #1056 verdict (Option B). PR #1066 merged wi
 
 ---
 
+## 2026-05-13: Track F Complete + v1.6.0 Ship
+
+### Track F Commits 5–9: Feature Complete (PRs #1092–#1096)
+
+**Source:** `.squad/decisions/inbox/atlas-trackf-commit{5,6,7,8,9}-*.md`
+
+Atlas shipped Track F commits 5–9 across 5 PRs merged 2026-05-13T13:27–14:45Z. 
+
+**Commits:**
+
+1. **Commit 5** (PR #1092): LLM Triage Annotations (`Get-AuditorTriageAnnotations`). Graceful degradation on missing triage.json. Schema assumed from Track E plan spec.
+
+2. **Commit 6** (PR #1093): Citation deduplication (`Get-AuditorCitationCredentials`, `Get-UniqueAuditorCitations`). Canonical field names (`Source`, `RulePin`).
+
+3. **Commit 7** (PR #1094): Control-Domain HTML rendering (3 converter functions, 24 controls across CIS, EIDSCA, MITRE AAF control families).
+
+4. **Commit 8** (PR #1095): Manifest Profile support (`-Profile` parameter for `Invoke-AzureAnalyzer`, profile-scoped report filtering).
+
+5. **Commit 9** (PR #1096, epic-closing): Parity tests (4 tests validating 10 canonical auditor questions Q1–Q10), auditor-jumbo fixture (1600 findings), user documentation (README Auditor Mode section, PERMISSIONS Track F note, CHANGELOG Added entry).
+
+**Tests added:** 35 cumulative (3087→3122 passed, 0 regressions).
+
+**Key decisions:**
+
+- Tier names canonical: `'PureJson'`, `'EmbeddedSqlite'`, `'SidecarSqlite'`, `'PodeViewer'` (not integers)
+- Graceful degradation: missing triage/citation files return original data (no throw)
+- Aspirational tests acceptable as future work markers
+- Documentation batch in Commit 9 (epic-closing commit uses `Closes #506`, not `Refs`)
+
+**Status:** Shipped, epic #506 closed.
+
+### Track F Commit 10: Hotfix (PR #1097)
+
+**Source:** `.squad/decisions/inbox/atlas-trackf-commit10-hotfix-*.md`
+
+Track F Commit 9 triggered 10 CI failures (macOS/Linux: 10 failed; Windows: 7 failed). Root causes: 4 parameter/compatibility bugs.
+
+**Bugs fixed:**
+
+1. Module wrapper missing `-Profile` parameter (added to `AzureAnalyzer.psm1`)
+2. Tier parameter mismatch in `AuditorParity.Tests.ps1` (used integers 1,2; corrected to string names)
+3. Citation test fixture schema mismatch (`SourceTool`/`SourceToolVersion` → canonical `Source`/`RulePin`)
+4. Cross-platform tempdir API (`$env:TEMP` null on Linux/macOS → `[System.IO.Path]::GetTempPath()`)
+
+**Iterations:** 3 rounds (parameter + tier + fixture + cross-platform).
+
+**Result:** 10→0 failures; CI gate cleared; release-please PR #1087 unblocked.
+
+**Key decision:** Use `[System.IO.Path]::GetTempPath()` consistently for cross-platform tempdir compatibility.
+
+**Status:** Shipped (PR #1097 merged).
+
+### v1.6.0 Release
+
+**Source:** `.squad/decisions/inbox/` (release-please coordination entry)
+
+PR #1087 (release-please branch) merged 2026-05-13T16:00Z post-hotfix. Tag v1.6.0 published; GitHub Release + artifacts live.
+
+**Included:** Track F complete feature (Auditor Mode), 35 tests, user documentation, hotfix.
+
+**Outcome:** Track F epic #506 shipped with v1.6.0.
+
+**Status:** Shipped.
+
+### Lessons Learned
+
+- **Tier naming:** Committed to string names (not integers) for clarity
+- **Graceful degradation:** External data (triage, citations) should degrade, not fail
+- **Aspirational tests:** Acceptable as placeholders for future renderer work (marked with specific deferred section comment)
+- **Cross-platform APIs:** Always use BCL for path/temp/env operations, never `$env:*` variables
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

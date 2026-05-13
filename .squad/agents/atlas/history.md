@@ -355,5 +355,37 @@ EPIC-CLOSING COMMIT. Added 4 parity tests (32-35) validating 10 canonical audito
 
 Emergency hotfix for 4 parameter/compatibility bugs from Commit 9 blocking release-please PR #1087: (1) added `-Profile` parameter to `AzureAnalyzer.psm1` wrapper, (2) fixed `AuditorParity.Tests.ps1` to use tier names (`'PureJson'`, `'EmbeddedSqlite'`) instead of integers, (3) corrected citation test fixture field names (`Source`/`RulePin` instead of `SourceTool`/`SourceToolVersion`), (4) replaced Windows-only `$env:TEMP` with cross-platform `[System.IO.Path]::GetTempPath()` in profile tests. Resolves 9/10 parameter validation failures. **6 AuditorParity content assertion failures remain** (HTML renderer doesn't call converter functions — requires Track F Commit 11). Decision drop: atlas-trackf-commit10-hotfix-2026-05-13T15-33-00.md.
 
-- **PR #1097 (Track F Commit 10 HOTFIX)**: 4 parameter bug fixes. Branch: `squad/atlas-trackf-commit10-hotfix`. Merged at commit [TBD].
+- **PR #1097 (Track F Commit 10 HOTFIX)**: 4 parameter bug fixes. Branch: `squad/atlas-trackf-commit10-hotfix`. Merged at commit f247700.
+
+## Key Lessons (Track F Implementation)
+
+### Lesson 1: Line Endings Preservation
+**Issue:** PowerShell string operations and Git edits can flip line endings (CRLF ↔ LF). Track F commits ship PowerShell source files with LF-only per repo standard.
+
+**Solution:** Use `git diff --cached -w` (whitespace-ignoring flag) to verify line-ending preservation pre-commit. When editing via tool, use `-Raw` + `-NoNewline` pattern (Set-Content -Raw -NoNewline preserves input encoding). Confirmed working on commits 5–9.
+
+**Impact:** Prevents CI gate failures on cross-platform line-ending normalization.
+
+---
+
+### Lesson 2: Hashtable vs. PSCustomObject in Nested Structures
+**Issue:** `@{}` (hashtable) vs. `[PSCustomObject]@{}` (PSCustomObject) behave differently in nested JSON serialization and deep-cloning. Track F uses both for annotation/citation aggregation.
+
+**Decision:** Use PSCustomObject consistently for data structures emitted from `Get-*` functions (auditor output shapes). Reserve hashtables for internal mutable maps (index tables, lookup caches). Mixed types in nested structures cause serialization bugs.
+
+**Example:** `Get-UniqueAuditorCitations` uses hashtable for internal `$citationIndex` (mutable, fast lookup) but returns array of PSCustomObjects (JSON-compatible).
+
+**Impact:** Fixes JSON round-trip bugs in Track E triage integration.
+
+---
+
+### Lesson 3: Singleton vs. Array Return Consistency
+**Issue:** PowerShell's implicit `@()` flattening and single-item array unwrapping cause Pester test assertions to fail unexpectedly. E.g., `$result[0]` becomes `$result` when count=1, breaking `[0]` indexing.
+
+**Solution:** Always enforce return type consistency. If function contract says "returns array", wrap scalars: `@($scalar)`. If scalar, never wrap. Document in function comment block. Use `@()` explicit wrapping in edge cases (empty results, single annotations).
+
+**Example:** `Get-AuditorExecutiveSummary` returns array of severity-bucket objects even if only 1 bucket present.
+
+**Impact:** Pester tests now correctly validate single-item collections without brittle index assumptions.
+
 
