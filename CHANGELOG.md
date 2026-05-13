@@ -2,7 +2,7 @@
 
 ### Fixed
 
-- **Track F Commit 10 HOTFIX**: Repaired 4 parameter/compatibility bugs blocking CI after Commit 9 merge: (1) added `-Profile` parameter to module wrapper (`AzureAnalyzer.psm1`) to match `Invoke-AzureAnalyzer.ps1`, (2) fixed `AuditorParity.Tests.ps1` to use tier architecture names (`'PureJson'`, `'EmbeddedSqlite'`) instead of integers, (3) corrected citation test fixture field names (`Source`/`RulePin` instead of `SourceTool`/`SourceToolVersion`), (4) replaced Windows-only `$env:TEMP` with cross-platform `[System.IO.Path]::GetTempPath()` in profile tests.
+- **Track F Commit 10 HOTFIX**: Repaired 4 parameter/compatibility bugs blocking CI after Commit 9 merge: (1) added `-Profile` parameter to module wrapper (`AzureAnalyzer.psm1`) to match `Invoke-AzureAnalyzer.ps1`, (2) fixed `AuditorParity.Tests.ps1` to use tier architecture names (`'PureJson'`, `'EmbeddedSqlite'`) instead of integers, (3) corrected citation test fixture field names (`Source`/`RulePin` instead of `SourceTool`/`SourceToolVersion`), (4) replaced Windows-only `$env:TEMP` with cross-platform `[System.IO.Path]::GetTempPath()` in profile tests. Round 2: Fixed 4 test-side bugs (hashtable→PSCustomObject in Test 33 citation fixture, regex syntax in Test 34a, singleton `.Count` property in Test 35a/35b) and relaxed Test 32 assertions to match skeleton HTML renderer coverage only; marked Test 34b (Tier 2 sql.js embedding) as `-Pending` with follow-up issue #1098.
 
 ### Added
 
