@@ -293,7 +293,54 @@ function Get-AuditorAttackPathSection {
         [Parameter(Mandatory)] [object] $Entities,
         [Parameter(Mandatory)] [string] $Tier
     )
-    throw [System.NotImplementedException]::new('Get-AuditorAttackPathSection: requires Track A (#428).')
+    
+    $attackPathEdges = @()
+    $criticalPaths = 0
+    
+    if ($Entities.PSObject.Properties['edges']) {
+        $attackPathRelations = @('HasFederatedCredential', 'AuthenticatesAs', 'UsesSecret', 'HasRoleOn', 'DeploysTo', 'TriggeredBy')
+        
+        foreach ($edge in $Entities.edges) {
+            if ($null -eq $edge) { continue }
+            $relation = if ($edge.PSObject.Properties['relation']) { [string]$edge.relation } else { '' }
+            
+            if ($relation -in $attackPathRelations) {
+                $attackPathEdges += $edge
+                
+                $criticality = ''
+                if ($edge.PSObject.Properties['metadata'] -and $edge.metadata.PSObject.Properties['attackPathCriticality']) {
+                    $criticality = [string]$edge.metadata.attackPathCriticality
+                }
+                if ($criticality -ieq 'Critical') {
+                    $criticalPaths++
+                }
+            }
+        }
+    }
+    
+    $renderingMode = switch ($Tier) {
+        'PureJson' { 'inline' }
+        'EmbeddedSqlite' { 'inline' }
+        'SidecarSqlite' { 'paginated' }
+        'PodeViewer' { 'deepLink' }
+        default { 'inline' }
+    }
+    
+    $result = @{
+        RenderingMode = $renderingMode
+        TotalPaths = $attackPathEdges.Count
+        CriticalPaths = $criticalPaths
+        HtmlSnippet = $null
+        DeepLinkUrl = $null
+    }
+    
+    if ($renderingMode -eq 'deepLink') {
+        $result.DeepLinkUrl = '/viewer/attack-paths'
+    } elseif ($renderingMode -eq 'inline' -and $attackPathEdges.Count -gt 0) {
+        $result.HtmlSnippet = "<div class='attack-path-graph'><p>Cytoscape graph placeholder: $($attackPathEdges.Count) attack paths</p></div>"
+    }
+    
+    return $result
 }
 
 function Get-AuditorResilienceSection {
@@ -302,7 +349,45 @@ function Get-AuditorResilienceSection {
         [Parameter(Mandatory)] [object] $Entities,
         [Parameter(Mandatory)] [string] $Tier
     )
-    throw [System.NotImplementedException]::new('Get-AuditorResilienceSection: requires Track B (#429).')
+    
+    $resourcesWithScores = @()
+    $totalEntities = 0
+    
+    foreach ($key in $Entities.PSObject.Properties.Name) {
+        $entity = $Entities.$key
+        if ($null -eq $entity) { continue }
+        if ($key -eq 'edges' -or $key -eq 'policyGaps') { continue }
+        
+        $totalEntities++
+        
+        if ($entity.PSObject.Properties['properties'] -and 
+            $entity.properties.PSObject.Properties['blastRadiusScore']) {
+            $score = [double]$entity.properties.blastRadiusScore
+            $displayName = if ($entity.PSObject.Properties['displayName']) { [string]$entity.displayName } else { $key }
+            
+            $resourcesWithScores += [PSCustomObject]@{
+                EntityId = $key
+                DisplayName = $displayName
+                BlastRadiusScore = $score
+            }
+        }
+    }
+    
+    $topResources = @($resourcesWithScores | Sort-Object -Property BlastRadiusScore -Descending | Select-Object -First 10)
+    
+    $renderingMode = switch ($Tier) {
+        'PureJson' { 'inline' }
+        'EmbeddedSqlite' { 'inline' }
+        'SidecarSqlite' { 'paginated' }
+        'PodeViewer' { 'deepLink' }
+        default { 'inline' }
+    }
+    
+    return @{
+        RenderingMode = $renderingMode
+        TopResources = $topResources
+        TotalEntities = $totalEntities
+    }
 }
 
 function Get-AuditorPolicyCoverageSection {
@@ -311,7 +396,46 @@ function Get-AuditorPolicyCoverageSection {
         [Parameter(Mandatory)] [object] $Entities,
         [Parameter(Mandatory)] [object[]] $Findings
     )
-    throw [System.NotImplementedException]::new('Get-AuditorPolicyCoverageSection: requires Track C (#431).')
+    
+    $assignedCount = 0
+    $missingCount = 0
+    $gapSuggestions = @()
+    $azAdvertizerLinks = @()
+    
+    if ($Entities.PSObject.Properties['policyGaps']) {
+        $gaps = @($Entities.policyGaps)
+        $missingCount = $gaps.Count
+        
+        foreach ($gap in $gaps) {
+            if ($null -eq $gap) { continue }
+            
+            $policyId = if ($gap.PSObject.Properties['policyId']) { [string]$gap.policyId } else { '' }
+            $displayName = if ($gap.PSObject.Properties['displayName']) { [string]$gap.displayName } else { 'Unknown Policy' }
+            $scope = if ($gap.PSObject.Properties['scope']) { [string]$gap.scope } else { '' }
+            
+            if (-not [string]::IsNullOrWhiteSpace($policyId)) {
+                $gapSuggestions += [PSCustomObject]@{
+                    PolicyId = $policyId
+                    DisplayName = $displayName
+                    Scope = $scope
+                }
+                
+                $azAdvertizerLinks += "https://www.azadvertizer.net/azpolicyadvertizer/$policyId.html"
+            }
+        }
+    }
+    
+    $totalFindings = @($Findings).Count
+    if ($totalFindings -gt 0 -and $missingCount -lt $totalFindings) {
+        $assignedCount = $totalFindings - $missingCount
+    }
+    
+    return @{
+        AssignedCount = $assignedCount
+        MissingCount = $missingCount
+        GapSuggestions = @($gapSuggestions)
+        AzAdvertizerLinks = @($azAdvertizerLinks)
+    }
 }
 
 function Get-AuditorTriageAnnotations {

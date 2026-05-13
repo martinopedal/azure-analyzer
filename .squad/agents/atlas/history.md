@@ -325,3 +325,5 @@ Full Track F dependency gate (Commit 0) blocked all implementation (3 missing mo
 
 
 - **2026-05-13** - PR #1089 - Track F Commit 2: control-domain section grouping + render helpers (7/7 tests green)
+
+- **2026-05-13** - PR #1090 - Track F Commit 3: attack-path, resilience, policy-coverage sections (12/12 tests green)

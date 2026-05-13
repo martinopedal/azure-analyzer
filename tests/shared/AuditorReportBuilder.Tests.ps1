@@ -111,4 +111,64 @@ Describe 'AuditorReportBuilder' -Tag 'Unit' {
             $html | Should -Match '2\.1\.1'
         }
     }
+    
+    Context 'Get-AuditorAttackPathSection' {
+        BeforeAll {
+            $entities = Get-Content -Path $entitiesPath -Raw | ConvertFrom-Json
+        }
+        
+        It 'returns attack-path count from entities.json' {
+            $section = Get-AuditorAttackPathSection -Entities $entities -Tier 'EmbeddedSqlite'
+            
+            $section.TotalPaths | Should -Be 5
+            $section.CriticalPaths | Should -BeGreaterOrEqual 0
+        }
+        
+        It 'tier-aware rendering mode' {
+            $sectionTier1 = Get-AuditorAttackPathSection -Entities $entities -Tier 'PureJson'
+            $sectionTier4 = Get-AuditorAttackPathSection -Entities $entities -Tier 'PodeViewer'
+            
+            $sectionTier1.RenderingMode | Should -Be 'inline'
+            $sectionTier4.RenderingMode | Should -Be 'deepLink'
+        }
+    }
+    
+    Context 'Get-AuditorResilienceSection' {
+        BeforeAll {
+            $entities = Get-Content -Path $entitiesPath -Raw | ConvertFrom-Json
+        }
+        
+        It 'computes top 10 resources by blast-radius' {
+            $section = Get-AuditorResilienceSection -Entities $entities -Tier 'EmbeddedSqlite'
+            
+            $section.TopResources.Count | Should -BeLessOrEqual 10
+            $section.TopResources.Count | Should -BeGreaterThan 0
+            
+            $first = $section.TopResources[0]
+            $last = $section.TopResources[-1]
+            $first.BlastRadiusScore | Should -BeGreaterOrEqual $last.BlastRadiusScore
+        }
+    }
+    
+    Context 'Get-AuditorPolicyCoverageSection' {
+        BeforeAll {
+            $entities = Get-Content -Path $entitiesPath -Raw | ConvertFrom-Json
+            $findings = Get-Content -Path $resultsPath -Raw | ConvertFrom-Json
+        }
+        
+        It 'identifies missing policies' {
+            $section = Get-AuditorPolicyCoverageSection -Entities $entities -Findings $findings
+            
+            $section.MissingCount | Should -BeGreaterThan 0
+            @($section.GapSuggestions).Count | Should -BeGreaterThan 0
+            $section.GapSuggestions.Count | Should -Be $section.MissingCount
+        }
+        
+        It 'includes AzAdvertizer deep links' {
+            $section = Get-AuditorPolicyCoverageSection -Entities $entities -Findings $findings
+            
+            $section.AzAdvertizerLinks.Count | Should -BeGreaterThan 0
+            $section.AzAdvertizerLinks[0] | Should -Match 'azadvertizer\.net'
+        }
+    }
 }
