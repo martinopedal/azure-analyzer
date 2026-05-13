@@ -18,9 +18,3 @@
 .copilot/skills/** export-ignore
 .copilot/audits/ export-ignore
 .copilot/audits/** export-ignore
-
-# .copilot/ subtrees that are squad coordination state (not user-facing tool)
-.copilot/skills/ export-ignore
-.copilot/skills/** export-ignore
-.copilot/audits/ export-ignore
-.copilot/audits/** export-ignore
