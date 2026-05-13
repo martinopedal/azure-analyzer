@@ -102,6 +102,20 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.7.1](https://github.com/martinopedal/azure-analyzer/compare/v1.7.0...v1.7.1) (2026-05-13)
+
+
+### Fixes
+
+* **tests:** isolate LiveTool gitleaks smoke from leaked state ([#1065](https://github.com/martinopedal/azure-analyzer/issues/1065)) ([#1117](https://github.com/martinopedal/azure-analyzer/issues/1117)) ([b2a5047](https://github.com/martinopedal/azure-analyzer/commit/b2a50478ff9b119548a0052b12312f3150c847ae))
+* **tests:** raise AttackPath Tier 2 perf budget 250ms -&gt; 1500ms (cross-OS flake) ([#1114](https://github.com/martinopedal/azure-analyzer/issues/1114)) ([57a1b6c](https://github.com/martinopedal/azure-analyzer/commit/57a1b6cbc78ef332e670fddfbf081213ca2ee906))
+* **tests:** raise IdentityGraphExpansion fixture perf budget 30s -&gt; 60s ([#1118](https://github.com/martinopedal/azure-analyzer/issues/1118)) ([57e832d](https://github.com/martinopedal/azure-analyzer/commit/57e832d11ae584d6fbd2c96c64c21a37d40fe49b))
+
+
+### Chores
+
+* **squad:** flush session state for v1.7.0 ship + workflow simplification ([#1112](https://github.com/martinopedal/azure-analyzer/issues/1112)) ([5c92b75](https://github.com/martinopedal/azure-analyzer/commit/5c92b75262028ef78d85f8af49cb1eddf628043c))
+
 ## [1.7.0](https://github.com/martinopedal/azure-analyzer/compare/v1.6.1...v1.7.0) (2026-05-13)
 
 
