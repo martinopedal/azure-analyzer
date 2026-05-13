@@ -63,4 +63,6 @@ How to decide who handles what.
 
 For tasks requiring specific patterns or conventions, check `.squad/skills/` first:
 - **docs-voice**: all committed markdown (README, CHANGELOG, PERMISSIONS, design docs, PR bodies, decision files, agent histories)
+- **release-validation**: ANY request matching "is it clean?" / "all green?" / "no errors?" / "validate the release" / "do a full audit" / "are docs in sync?" / "do we still simulate / mock?" / pre-tag, pre-walk-away gate. The skill encodes 8 patterns (A docs freshness, B static mock leakage, C runtime simulation, D Pester full, E CI green, F backlog triage, G PSGallery+GH release parity, H security invariants) plus the standing logging contract — every step writes its result to `.squad/decisions/inbox/{persona}-{domain}-{date}.md`. Read it FIRST before spawning audit agents.
+- **doc-audit-checklist**: consumer-vs-contributor doc restructure planning (different from release-validation Pattern A — that's freshness, this is layout)
 

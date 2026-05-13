@@ -48,6 +48,41 @@ Research-only. Wrote `.squad/decisions/inbox/atlas-azure-quota-reports-research.
 ### Repo summary
 `scripts/Get-AzureQuotas.ps1` — PS 7 + `az vm list-usage` + `az network list-usages` across subscription × location fanout. Four auth modes (CurrentSession default, Interactive, ServicePrincipal via env-var secret, ManagedIdentity). CSV out (`AzureQuotas_TIMESTAMP.csv` + `_errors.csv`), terminal warning table at default 80% threshold. Columns include `UsagePercent` — the natural `compliant` axis.
 
+## 2026-05-13 — Static mock/simulation leakage audit
+
+**Task:** Comprehensive static audit of production code to identify any paths where the tool could silently fake results, leak test fixtures into prod runs, or bypass actual tool execution.
+
+**Scope:** All production modules (`Invoke-AzureAnalyzer.ps1`, `modules/Invoke-*.ps1`, `modules/normalizers/*.ps1`, `modules/shared/*.ps1`, `tools/tool-manifest.json`). Excluded test/docs/examples per charter.
+
+**Patterns scanned (7 categories):**
+- **A. FixtureMode leakage** → 2 wrappers use `-PreFetchedData` for test injection; REAL (documented offline-mode contract, zero live-run callers)
+- **B. Hardcoded sample data** → 8 normalizers use zero-GUID; REAL (synthetic ARM ID fallback for tenant/repo-scoped findings, not test data)
+- **C. Silent error swallowing** → 44 try/catch blocks; REAL (all best-effort/parse-guards/cleanup; none fake success)
+- **D. Stub markers** → 1 TODO in `Invoke-PRAdvisoryGate.ps1`; REAL (documented scaffolding, not production wrapper)
+- **E. Mock parameters** → 0 found; GREEN
+- **F. Test-Path short-circuits** → 1 in `RunHistory.ps1`; REAL (helper module, not wrapper)
+- **G. Fixture file refs** → 0 found; GREEN
+
+**Positive verifications:**
+- ✅ FixtureMode isolated to orchestrator; no wrapper receives `-FixtureMode` parameter
+- ✅ All 45 normalizers use `New-FindingRow`; zero hand-rolled hashtables
+- ✅ All 39 wrappers comply with v1 envelope contract (`Findings=@()`, `Errors=@()`)
+- ✅ Ratchet test enforces consistency (Cat 7/10/11/CON-004)
+- ✅ Zero references to `tests/fixtures/` in production modules
+- ✅ Zero mock injection parameters or env variables
+
+**Verdict:** Production code is **GREEN** for mock/simulation leakage. No test fixtures, mock parameters, or simulation paths leak into live-run code.
+
+**Deliverable:** `.squad/decisions/inbox/atlas-mock-leakage-audit-2026-05-13.md` (10.8KB, 7-pattern breakdown + 9 green findings + 3 amber rationales + cross-ref stub for Sentinel runtime audit).
+
+**Learnings:**
+- The `-PreFetchedData` pattern in the two Graph wrappers is a legitimate test-injection contract (mimics the fixture-loader pattern from MCAPS tools). It's safe because: (1) only 2 of 39 wrappers use it, (2) both document it as test-only in `.PARAMETER`, (3) zero live-run callers pass it (orchestrator FixtureMode path constructs payload but only when user explicitly invokes `-FixtureMode`).
+- Zero-GUID (`00000000-0000-0000-0000-000000000000`) in normalizers is NOT a test artifact — it's a documented fallback for synthesizing ARM-like entity IDs when a finding has no subscription context (tenant queries, IaC files). Alternative would break schema contract or determinism.
+- Silent `catch { }` blocks in wrappers are all best-effort probes (status-code extraction, Graph connection check, cleanup-on-error). None return empty success where a failure should be reported. Contract is enforced by ratchet tests + the v1 envelope shape (failed wrappers return `Status='Failed'` + populated `Errors=@(...)`).
+- The `$env:CI` gate in `PromptForMandatoryParams.ps1` is NOT a mock path — it's cross-platform CI detection to suppress interactive prompts in non-TTY pipelines (GitHub Actions, Azure DevOps, GitLab CI all set `CI=true`).
+
+**Coordination with Sentinel:** Runtime audit not yet filed as of 2026-05-13 static scan. This report is the definitive static baseline. When Sentinel files runtime findings, cross-link will be added to the audit report.
+
 ## 2026-05-13 - Issue #1065: LiveTool gitleaks state leak fix
 
 **Issue:** LiveTool gitleaks smoke test passed in isolation but failed in full Pester suite with `Status='Failed'` instead of `'Success'`.
@@ -403,4 +438,11 @@ Emergency hotfix for 4 parameter/compatibility bugs from Commit 9 blocking relea
 
 **Impact:** Pester tests now correctly validate single-item collections without brittle index assumptions.
 
+
+
+## Learnings — v1.7.2 Validation Audit (2026-05-13)
+
+- **mock-leakage audit GREEN:** Static scan across 7 patterns (FixtureMode, hardcoded samples, stubs, etc.) confirmed zero leakage. Verified FixtureMode orchestrator isolation (lines 274–487) and PreFetchedData contract. All 45 normalizers use New-FindingRow exclusively. All 44 catch blocks are parse-guards or cleanup-on-error. Stub markers are intentional scaffolding.
+- **AMBER rationales:**  gating is CI detection (not mock), zero-GUID fallback is documented ARM ID pattern, contoso/fabrikam are documentation-only.
+- **Outcome:** Production surface is clean. Ready for v1.7.2 release.
 

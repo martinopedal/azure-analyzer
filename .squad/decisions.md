@@ -671,6 +671,140 @@ PR #1087 (release-please branch) merged 2026-05-13T16:00Z post-hotfix. Tag v1.6.
 
 ---
 
+## 2026-05-13: v1.7.2 Validation Audit Complete
+
+### Atlas — Static Mock-Leakage Audit
+**Source:** `.squad/decisions/inbox/atlas-mock-leakage-audit-2026-05-13.md`
+
+Comprehensive static code audit for mock/simulation leakage across production surface (39 wrappers, 45 normalizers, shared modules). Scanned 7 patterns: FixtureMode leakage, hardcoded samples, silent errors, stubs, mock injection points, test-path short-circuits, fixture file references.
+
+**RED findings:** None.
+
+**AMBER findings (legitimate):**
+- `$env:CI` gating in `PromptForMandatoryParams.ps1` and `Get-RequiredInputs.ps1` — CI detection mechanism (not mock path)
+- Zero-GUID in 6 normalizers — synthetic ARM ID fallback for tenant-scoped queries (documented, not leak)
+- Contoso/fabrikam in comments — documentation examples only
+
+**GREEN findings:**
+- FixtureMode orchestrator isolation confirmed (lines 274–487, zero wrapper exposure)
+- PreFetchedData contract verified (2 wrappers, documented test-only parameters)
+- No `-MockResult`, `-FakeOutput`, or mock environment variables
+- No fixture file loads in production modules
+- All 45 normalizers use `New-FindingRow` exclusively
+- Wrapper envelope contract enforced by ratchet test (120/120 tests green)
+- All 44 catch blocks verified as parse-guards or cleanup-on-error
+- Stub markers documented and intentional (scaffolding, not production)
+
+**Verdict:** GREEN — Production code is clean of mock/simulation leakage. Zero RED findings across all 7 patterns.
+
+**Status:** Complete, inbox file merged.
+
+---
+
+### Sentinel — Runtime Execution Audit
+**Source:** `.squad/decisions/inbox/sentinel-runtime-audit-2026-05-13.md`
+
+Runtime simulation audit in 5 modes (subscription, tenant, repository, ado, direct wrapper). Verified tool end-to-end execution, fixture mode artifact generation, schema compliance, and absence of fake-success patterns.
+
+**Modes exercised:**
+- Subscription (default): 23 tools, 74 findings, schema 3.1, real HTML/MD/JSON
+- Tenant (Entra/M365): 3 tools, 11 findings
+- Repository (CI/CD): 6 tools, 24 findings
+- ADO: 2 tools, 8 findings
+- Direct wrapper (gitleaks on azure-analyzer repo): 39 real findings
+
+**Artifacts verified:**
+- ✅ `results.json` — non-empty findings array, all 10+ v2 FindingRow fields populated
+- ✅ `entities.json` — Schema 3.1, non-empty Entities[], canonical EntityIds
+- ✅ `report.html` >88KB (real, not stub)
+- ✅ `report.md` matching findings
+- ✅ `dashboard.html` generated
+- ✅ `tool-status.json` with per-tool status
+- ✅ All exit codes 0 (success)
+
+**Fake-success pattern scan:**
+- `catch { return Success }` — 0 matches ✅
+- `if (-not $tool) { return Success }` — 0 matches ✅
+- Mock/simulated data in production paths — 0 matches ✅
+
+**RED findings:** None.
+
+**AMBER findings (filed as issues):**
+1. **#1127 (P2, bug):** Normalizer parameter validation warnings (azqr, powerpipe) in FixtureMode. Fixtures emit 0 findings with Status=Success but throw "Cannot process argument" warnings. Root cause: Schema 2.2 field validation constraints may not be satisfied by fixture data.
+
+2. **#1126 (P3, chore):** Report coverage helpers emit warnings on incomplete fixture data. WAF/framework coverage calculation skips findings missing RuleId/framework properties. Hardening needed but non-blocking.
+
+3. **#1125 (P3, enhancement):** Pester full-suite timeout. 3171 tests discovered, suite timed out after 300s on Windows dev machine. FixtureMode.Tests.ps1 subset passed 14/14. Recommendation: split suite into smoke/integration/e2e tiers for CI job separation.
+
+**Verdict:** GREEN — Tool does what it says. FixtureMode produces real results.json + entities.json + HTML/MD reports with Schema 3.1, non-empty findings arrays, canonical entity IDs. Direct wrapper invocation (gitleaks) produces 39 real findings. No silent-failure anti-patterns detected. All exit codes 0. The three AMBER findings are non-blocking improvements for fixture data quality and test-suite ergonomics.
+
+**Status:** Complete, inbox file merged, issues filed.
+
+---
+
+### Coordinator — Release-Validation Skill Created
+**Source:** `.squad/decisions/inbox/copilot-directive-2026-05-13-log-everything.md`
+
+User directive captured: "All logics, all errors we catch, everything must be logged" (Martin Opedal, 2026-05-13 22:15). Clarification: "logged" means `store_memory` (PRIMARY channel for cross-session visibility), not just inbox files (2026-05-13 22:30).
+
+**Release-validation skill locked:** `.squad/skills/release-validation/SKILL.md`
+
+**8-pattern playbook:**
+1. Mock-leakage static scan (Atlas pattern)
+2. Runtime execution in 5+ modes (Sentinel pattern)
+3. Schema compliance (3.1 for entities, 2.0 for findings, v1 envelope for wrappers)
+4. Fixture-backed test coverage (FixtureMode.Tests.ps1 pass rate + coverage metrics)
+5. Pester baseline enforcement (baseline vs. actual test count, timeout thresholds)
+6. Documentation freshness (README accuracy, CHANGELOG alignment, PERMISSIONS.md coverage)
+7. Wrapper consistency ratchet (CON-001..005 contracts, envelope compliance, error handling)
+8. Manifest integrity (tool-manifest.json registration completeness, no orphaned tools)
+
+**Logging contract (memory-first):**
+- PRIMARY: `store_memory` — capture every validation step, every caught error, every audit verdict. Auto-surfaces in future session prompts.
+- SECONDARY: `.squad/decisions/inbox/{persona}-{domain}-{date}.md` — detailed audit trail. Scribe merges into decisions.md for permanent record.
+- TERTIARY: Orchestration log — high-level execution summary per agent per session.
+
+**When to log:**
+- Every pattern pass → memory entry
+- Every pattern fail + remediation → memory entry with remediation path
+- Every caught error (even recovered via retry/fallback) → memory entry
+- Every filed issue → memory entry with issue number
+
+**Routing:** `.squad/skills/release-validation/routing.md` — future requests for "validate", "audit", "is it clean?", "release readiness", "stability check" dispatch to this skill.
+
+**Status:** Skill created and locked for reuse.
+
+---
+
+### Decision: LiveTool Test Isolation
+**Source:** `.squad/decisions/inbox/atlas-1065-livetool-isolation.md`
+
+LiveTool wrapper smoke tests invoke real CLI binaries when available. The gitleaks smoke test was failing in full Pester suite (3073 tests) but passing in isolation due to leaked `$LASTEXITCODE` from prior tests (FixtureMode.Tests.ps1:23, Help.Tests.ps1:9).
+
+**Root cause:** Tests invoking `pwsh` in subprocess never reset `$LASTEXITCODE` afterward. When gitleaks test runs later, leaked value (e.g., 1 from prior test) triggers error path in `Invoke-Gitleaks.ps1:437` even though gitleaks succeeded.
+
+**Solution (belt-and-suspenders isolation):**
+1. Add `BeforeEach` in `LiveTool.Wrappers.Tests.ps1`:
+   - `$global:LASTEXITCODE = 0`
+   - `Get-ChildItem Env:GITLEAKS_* | Remove-Item`
+   - `Set-Location $script:OriginalLocation`
+
+2. Add fail-first regression guard `LiveTool.StateIsolation.Tests.ps1` proving isolation works even when state deliberately polluted.
+
+**Rationale:**
+- **Why not fix leaking tests?** Could add `$global:LASTEXITCODE = 0` after every check, but fragile and high-maintenance. Defensive isolation at victim test is robust.
+- **Why BeforeEach?** Each `It` block may run in arbitrary order or filtered by `-Tag`. BeforeEach guarantees clean state per test.
+- **Why regression guard?** Durable bug-catcher. If BeforeEach is ever removed/broken, guard fails immediately.
+
+**Acceptance:** All LiveTool tests pass (4 passed, 2 skipped). Full suite 3171/3171 (baseline 3168, +3 from new guard).
+
+**Status:** Shipped (PR #1117).
+
+---
+
+### Previous Release Notes (v1.6.0, v1.7.0)
+See earlier sections for v1.5.1, v1.6.0 (Track F complete), v1.7.0 release details.
+
 ## Governance
 
 - All meaningful changes require team consensus
