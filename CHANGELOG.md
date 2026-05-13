@@ -80,6 +80,13 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.5.2](https://github.com/martinopedal/azure-analyzer/compare/v1.5.1...v1.5.2) (2026-05-13)
+
+
+### Chores
+
+* **squad:** flush session state after v1.5.1 cascade ([#1083](https://github.com/martinopedal/azure-analyzer/issues/1083)) ([a0b543c](https://github.com/martinopedal/azure-analyzer/commit/a0b543cfd542c611ea4256e12d239253ee046170))
+
 ## [1.5.1](https://github.com/martinopedal/azure-analyzer/compare/v1.5.0...v1.5.1) (2026-05-13)
 
 
