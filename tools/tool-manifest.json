@@ -445,7 +445,7 @@
         "repo": "owasp-amass/amass",
         "releaseApi": "https://api.github.com/repos/owasp-amass/amass/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "5.1.1"
       },
       "comment": "EASM passive subdomain enumeration. Wrapper ships in R2; manifest entry pre-registered so report wiring (R5) sees the entry.",
       "frameworks": [
