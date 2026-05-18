@@ -176,7 +176,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
 | `shodan` | none | n/a | `#d32f2f` | 4 |
 | `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ latest | `#00695c` | 4 |
-| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.2 | `#5c4ee5` | 7 |
+| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.3 | `#5c4ee5` | 7 |
 | `trivy` | cli ("trivy") | aquasecurity/trivy @ 0.70.0 | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
 | `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.24.1 | `#ad1457` | 3 |
