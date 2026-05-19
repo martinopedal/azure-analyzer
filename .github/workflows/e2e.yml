@@ -21,12 +21,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Preflight (Windows): probe Pool W-pub for the Windows leg of the matrix.
+  # See martinopedal/personal-runners-infra/docs/WINDOWS-PREFLIGHT.md.
+  # ---------------------------------------------------------------------------
+  preflight-windows:
+    uses: martinopedal/personal-runners-infra/.github/workflows/runner-preflight.yml@main
+    with:
+      os: windows
+      desired_label: alz-w-pub
+      min_online: 1
+
   e2e:
+    needs: [preflight-windows]
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: >-
+      ${{ matrix.os == 'windows-latest'
+          && fromJSON(needs.preflight-windows.outputs.runner_label)
+          || matrix.os }}
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
