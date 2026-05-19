@@ -27,7 +27,7 @@ concurrency:
 jobs:
   enumerate:
     name: Enumerate conflicting agent PRs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 10
     outputs:
       prs: ${{ steps.list.outputs.prs }}
@@ -83,7 +83,7 @@ jobs:
     name: "Auto-rebase PR #${{ matrix.pr.number }}"
     needs: enumerate
     if: needs.enumerate.outputs.count != '0' && needs.enumerate.outputs.count != ''
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 20
     strategy:
       fail-fast: false

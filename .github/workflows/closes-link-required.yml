@@ -16,7 +16,7 @@ concurrency:
 jobs:
   closes-link:
     name: Closes/Fixes link required
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 5
     steps:
       - name: Verify PR body has Closes/Fixes link or N/A justification

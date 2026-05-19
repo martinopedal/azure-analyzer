@@ -37,7 +37,7 @@ jobs:
     if: >-
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     # The default GITHUB_TOKEN only needs read access -- write scope is
     # carried by the GitHub App installation token minted in the
     # `app-token` step (pull_requests:write granted at install time).

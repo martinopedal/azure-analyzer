@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   bump:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 15
     steps:
       # App token so PRs created by Update-ToolPins.ps1 are authored by the

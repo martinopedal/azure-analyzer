@@ -26,7 +26,7 @@ jobs:
       (github.event_name == 'pull_request_review' &&
       (github.event.review.state == 'CHANGES_REQUESTED' ||
       (github.event.review.user.login == 'copilot-pull-request-reviewer[bot]' && github.event.review.state != 'APPROVED')))
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 10
     steps:
       - name: Checkout

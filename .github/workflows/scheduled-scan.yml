@@ -28,7 +28,7 @@ concurrency:
 jobs:
   scan:
     name: Run azure-analyzer
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 60
     permissions:
       id-token: write   # OIDC federated token to Azure
@@ -261,7 +261,7 @@ jobs:
     name: Report critical findings
     needs: scan
     if: always() && needs.scan.outputs.new_critical_count != '' && needs.scan.outputs.new_critical_count != '0'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 10
     permissions:
       contents: read
