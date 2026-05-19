@@ -345,18 +345,35 @@ jobs:
             Publish-Module -Path '${{ steps.package.outputs.module_root }}' -NuGetApiKey $env:PSGALLERY_API_KEY -Repository PSGallery
 
   # ---------------------------------------------------------------------------
+  # Preflight (Windows): probe Pool W-pub for the Windows leg of the
+  # psgallery_e2e matrix below. See
+  # martinopedal/personal-runners-infra/docs/WINDOWS-PREFLIGHT.md.
+  # Runs in parallel with `publish` to avoid serial latency.
+  # ---------------------------------------------------------------------------
+  preflight-windows:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    uses: martinopedal/personal-runners-infra/.github/workflows/runner-preflight.yml@main
+    with:
+      os: windows
+      desired_label: alz-w-pub
+      min_online: 1
+
+  # ---------------------------------------------------------------------------
   # PSGallery post-publish E2E verification (cross-platform matrix)
   # Replaces the former inline smoke step with a full 8-check gate.
   # ---------------------------------------------------------------------------
   psgallery_e2e:
     name: PSGallery E2E (${{ matrix.os }})
-    needs: publish
+    needs: [publish, preflight-windows]
     if: needs.publish.result == 'success'
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: >-
+      ${{ matrix.os == 'windows-latest'
+          && fromJSON(needs.preflight-windows.outputs.runner_label)
+          || matrix.os }}
     timeout-minutes: 15
     steps:
       - name: Install module from PSGallery

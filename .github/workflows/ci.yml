@@ -16,9 +16,30 @@ permissions:
   actions: read
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Preflight (Windows): probe Pool W-pub. If >= 1 W-pub runner is online,
+  # the Windows leg of the matrix below runs on [self-hosted, alz-w-pub];
+  # otherwise it falls back to windows-latest. See
+  # martinopedal/personal-runners-infra/docs/WINDOWS-PREFLIGHT.md for details.
+  # ---------------------------------------------------------------------------
+  preflight-windows:
+    uses: martinopedal/personal-runners-infra/.github/workflows/runner-preflight.yml@main
+    with:
+      os: windows
+      desired_label: alz-w-pub
+      min_online: 1
+
   test:
     name: Test
-    runs-on: ${{ matrix.os }}
+    needs: [preflight-windows]
+    # Cross-OS dispatch:
+    #   windows-latest -> preflight-windows output (self-hosted or fallback)
+    #   ubuntu-latest  -> literal (no P1 preflight wired here yet)
+    #   macos-latest   -> literal (no self-hosted macOS pool)
+    runs-on: >-
+      ${{ matrix.os == 'windows-latest'
+          && fromJSON(needs.preflight-windows.outputs.runner_label)
+          || matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
