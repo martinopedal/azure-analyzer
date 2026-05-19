@@ -25,7 +25,7 @@ jobs:
     # Skip drafts (Copilot review is requested when PR is marked ready) and fork PRs
     # (no write token under pull_request_target, cannot request reviewers anyway).
     if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 5
     steps:
       # no-retry: github-script wraps Octokit which already retries 5xx + 429.

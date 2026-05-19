@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   label:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 5
     steps:
       # no-retry: single addLabels REST call. github-script ships its own Octokit

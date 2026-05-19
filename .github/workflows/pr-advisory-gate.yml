@@ -42,7 +42,7 @@ jobs:
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
       && github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal, linux, x64]
     timeout-minutes: 5
     # justified: gate is non-blocking by design (advisory only, see #109).
     # Job-level continue-on-error ensures any uncaught failure inside the
