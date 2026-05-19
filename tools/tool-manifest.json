@@ -2273,7 +2273,7 @@
         "repo": "hashicorp/terraform",
         "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "1.15.2"
+        "currentPin": "1.15.3"
       },
       "frameworks": [
         "CIS Azure",
