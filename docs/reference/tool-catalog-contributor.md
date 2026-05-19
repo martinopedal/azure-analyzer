@@ -158,7 +158,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `gh-actions-billing` | cli ("gh") | n/a | `#8e24aa` | 1 |
 | `gitleaks` | cli ("gitleaks") | gitleaks/gitleaks @ 8.30.1 | `#c62828` | 3 |
 | `graphrunner` | gitclone ("https://github.com/dafthack/GraphRunner.git") | n/a | `#4527a0` | 2 |
-| `httpx` | cli ("httpx") | projectdiscovery/httpx @ latest | `#2e7d32` | 4 |
+| `httpx` | cli ("httpx") | projectdiscovery/httpx @ 1.9.0 | `#2e7d32` | 4 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |
 | `infracost` | cli ("infracost") | infracost/infracost @ 0.10.44 | `#2e7d32` | 7 |
