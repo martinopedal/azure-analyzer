@@ -26,9 +26,17 @@ jobs:
       (github.event_name == 'pull_request_review' &&
       (github.event.review.state == 'CHANGES_REQUESTED' ||
       (github.event.review.user.login == 'copilot-pull-request-reviewer[bot]' && github.event.review.state != 'APPROVED')))
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 

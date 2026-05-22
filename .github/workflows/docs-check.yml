@@ -16,9 +16,17 @@ permissions:
 jobs:
   docs-required:
     name: Documentation update check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # no-retry: read-only paginate of pulls.listFiles via github-script.
@@ -161,9 +169,17 @@ jobs:
 
   tool-catalog-fresh:
     name: Tool catalog fresh
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Verify tool catalog is in sync with manifest
@@ -182,9 +198,17 @@ jobs:
 
   permissions-pages-fresh:
     name: Permissions pages fresh
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Verify PERMISSIONS.md index + per-tool pages match manifest
@@ -199,9 +223,17 @@ jobs:
 
   readme-facts-fresh:
     name: README facts fresh
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Verify README.md tool-count facts match manifest

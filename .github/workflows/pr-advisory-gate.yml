@@ -42,7 +42,7 @@ jobs:
       github.event.pull_request != null
       && github.event.pull_request.head.repo.full_name == github.repository
       && github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     # justified: gate is non-blocking by design (advisory only, see #109).
     # Job-level continue-on-error ensures any uncaught failure inside the
@@ -52,6 +52,14 @@ jobs:
     # tracked: martinopedal/azure-analyzer#604 - hotfix-debt
     continue-on-error: true
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - name: Checkout base ref (trusted gate script)
         # No `ref:` -> checks out the base SHA for pull_request_target events,
         # so we run the trusted base-ref copy of Invoke-PRAdvisoryGate.ps1,

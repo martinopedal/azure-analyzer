@@ -25,9 +25,17 @@ jobs:
     # Skip drafts (Copilot review is requested when PR is marked ready) and fork PRs
     # (no write token under pull_request_target, cannot request reviewers anyway).
     if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       # no-retry: github-script wraps Octokit which already retries 5xx + 429.
       # The reviewer-request is idempotent (POST returns 422 if already requested
       # -- caught by try/catch -> warning) and the policy comment is gated by

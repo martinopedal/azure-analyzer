@@ -31,9 +31,17 @@ concurrency:
 jobs:
   lint:
     name: lint (markdownlint-cli2)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: DavidAnson/markdownlint-cli2-action@ded1f9488f68a970bc66ea5619e13e9b52e601cd # v23.2.0
         with:
@@ -43,9 +51,17 @@ jobs:
 
   links:
     name: links (lychee)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
@@ -139,9 +155,17 @@ jobs:
 
   em-dash:
     name: em-dash policy
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0

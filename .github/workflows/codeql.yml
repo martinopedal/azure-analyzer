@@ -26,7 +26,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     permissions:
       security-events: write
@@ -45,6 +45,14 @@ jobs:
     # retry the upload up to 3x with backoff. No `run:` blocks perform
     # external network I/O beyond the backoff sleep.
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       # Pre-flight: CodeQL analyze hits the GitHub API installation-scoped
       # rate-limit bucket (shared across every workflow in the repo). On

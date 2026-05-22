@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   rerun-failed-checks:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     # Branch filter: only fire on agent-pushed branches. Manual dispatch
     # bypasses the filter so a maintainer can recover any PR.
@@ -43,6 +43,14 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'ci/') ||
       startsWith(github.event.pull_request.head.ref, 'feat/')
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - name: Wait for initial check runs to register
         run: sleep 30
 

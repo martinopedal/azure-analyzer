@@ -51,7 +51,7 @@ permissions:
 
 jobs:
   triage-failure:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     # Concurrency:
     # Constant group key is safe because the triage step is hash-idempotent
@@ -62,6 +62,14 @@ jobs:
       group: ci-failure-watchdog
       cancel-in-progress: false
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       # Retry-aware: individual gh calls are wrapped with gh_with_retry()
@@ -256,7 +264,7 @@ jobs:
   # if triage-failure is skipped. Posts a sticky issue if any past-7-day
   # watchdog run had jobs_count == 0 and conclusion == failure.
   self-health-check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     if: always()
     permissions:
@@ -264,6 +272,14 @@ jobs:
       actions: read
       contents: read
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       # no-retry: sticky-issue maintenance (create / comment / close) keyed off a
       # daily-bounded gh api query. A blind retry could open duplicate stickies
       # if the first attempt succeeded after the runner timed out. Daily schedule

@@ -27,12 +27,20 @@ concurrency:
 jobs:
   enumerate:
     name: Enumerate conflicting agent PRs
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 10
     outputs:
       prs: ${{ steps.list.outputs.prs }}
       count: ${{ steps.list.outputs.count }}
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       # App token so rebase pushes bypass the GITHUB_TOKEN anti-recursion
       # guard and re-trigger downstream CI on the rebased commit. Also
       # bypasses the first-time-contributor approval gate. See #938.
@@ -83,7 +91,7 @@ jobs:
     name: "Auto-rebase PR #${{ matrix.pr.number }}"
     needs: enumerate
     if: needs.enumerate.outputs.count != '0' && needs.enumerate.outputs.count != ''
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LABELS_LINUX || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -93,6 +101,14 @@ jobs:
       group: auto-rebase-pr-${{ matrix.pr.number }}
       cancel-in-progress: true
     steps:
+      - name: Runner provenance
+        shell: bash
+        run: |
+          if [[ "${RUNNER_NAME}" == "GitHub Actions"* ]]; then
+            echo "::warning::⚠️ FALLBACK — running on GitHub-hosted runner (self-hosted pool unavailable)"
+          else
+            echo "✅ self-hosted: ${RUNNER_NAME}"
+          fi
       # App token so rebase force-pushes bypass the GITHUB_TOKEN
       # anti-recursion guard and re-trigger downstream CI on the rebased
       # commit. Also avoids the first-time-contributor approval gate on
