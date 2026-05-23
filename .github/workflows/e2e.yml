@@ -29,7 +29,7 @@ jobs:
     uses: martinopedal/personal-runners-infra/.github/workflows/runner-preflight.yml@main
     with:
       os: windows
-      desired_label: alz-w-pub
+      desired_label: personal-windows
       min_online: 1
 
   e2e:
