@@ -359,8 +359,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: >-
-      ${{ matrix.os == 'ubuntu-latest'
-          && fromJSON('["self-hosted","alz-p1"]')
+      ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","alz-p1"]'))
+          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","personal-windows"]'))
           || matrix.os }}
     timeout-minutes: 15
     steps:
