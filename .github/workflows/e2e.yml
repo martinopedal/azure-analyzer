@@ -25,22 +25,14 @@ jobs:
   # Preflight (Windows): probe Pool W-pub for the Windows leg of the matrix.
   # See martinopedal/personal-runners-infra/docs/WINDOWS-PREFLIGHT.md.
   # ---------------------------------------------------------------------------
-  preflight-windows:
-    uses: martinopedal/personal-runners-infra/.github/workflows/runner-preflight.yml@main
-    with:
-      os: windows
-      desired_label: personal-windows
-      min_online: 1
-
   e2e:
-    needs: [preflight-windows]
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: >-
-      ${{ matrix.os == 'windows-latest'
-          && fromJSON(needs.preflight-windows.outputs.runner_label)
+      ${{ matrix.os == 'ubuntu-latest'
+          && fromJSON('["self-hosted","alz-p1"]')
           || matrix.os }}
     timeout-minutes: 8
     steps:
