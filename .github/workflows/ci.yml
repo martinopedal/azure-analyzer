@@ -18,14 +18,14 @@ permissions:
 jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
-  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, alz-p1])
+  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, personal-linux])
   #   windows-latest -> VMSS Pool W-pub ([self-hosted, personal-windows])
   #   macos-latest   -> literal (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------
   test:
     name: Test
     runs-on: >-
-      ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","alz-p1"]'))
+      ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","personal-linux"]'))
           || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","personal-windows"]'))
           || matrix.os }}
     timeout-minutes: 45
@@ -210,7 +210,7 @@ jobs:
 
   live-tool-tests:
     name: LiveTool wrappers (non-blocking)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 30
     # Non-blocking by design: live binaries add early integration signal without gating merges.
     # tracked: martinopedal/azure-analyzer#604
@@ -328,7 +328,7 @@ jobs:
 
   verify-install-manifest:
     name: Verify install manifest
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -397,7 +397,7 @@ jobs:
 
   generate-sbom:
     name: Generate SBOM (dry run)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -448,7 +448,7 @@ jobs:
 
   validate-module-manifest:
     name: Validate module manifest (Test-ModuleManifest)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 10
     # PSGallery readiness gate (#963): catches manifest regressions on every PR,
     # not just at release time. Runs Test-ModuleManifest against AzureAnalyzer.psd1
