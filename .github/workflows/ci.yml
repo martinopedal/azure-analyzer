@@ -19,14 +19,14 @@ jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
   #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, personal-linux])
-  #   windows-latest -> VMSS Pool W-pub ([self-hosted, personal-windows])
+  #   windows-latest -> VMSS Pool W-pub ([self-hosted, personal-win])
   #   macos-latest   -> literal (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------
   test:
     name: Test
     runs-on: >-
       ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","personal-linux"]'))
-          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","personal-windows"]'))
+          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","personal-win"]'))
           || matrix.os }}
     timeout-minutes: 45
     strategy:
