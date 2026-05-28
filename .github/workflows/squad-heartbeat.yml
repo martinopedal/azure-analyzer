@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   heartbeat:
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -70,13 +70,13 @@ jobs:
               core.info('No triage results — board is clear');
               return;
             }
-            
+
             const results = JSON.parse(fs.readFileSync(path, 'utf8'));
             if (results.length === 0) {
               core.info('📋 Board is clear — Ralph found no untriaged issues');
               return;
             }
-            
+
             // In-place comment upsert via HTML marker (#113) — re-runs update the
             // same comment instead of spamming new ones.
             const marker = '<!-- squad-heartbeat -->';
@@ -134,7 +134,7 @@ jobs:
                 core.warning(`Failed to triage #${decision.issueNumber}: ${e.message}`);
               }
             }
-            
+
             core.info(`🔄 Ralph triaged ${results.length} issue(s)`);
 
       # Copilot auto-assign step (uses PAT if available)

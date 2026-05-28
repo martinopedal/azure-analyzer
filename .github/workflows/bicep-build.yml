@@ -23,7 +23,7 @@ permissions:
 jobs:
   bicep-build:
     name: Bicep build smoke test
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 15
     steps:
       - name: Checkout

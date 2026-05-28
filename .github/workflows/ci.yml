@@ -18,14 +18,14 @@ permissions:
 jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
-  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, alz-p1])
+  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, personal-linux])
   #   windows-latest -> VMSS Pool W-pub ([self-hosted, personal-windows])
   #   macos-latest   -> literal (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------
   test:
     name: Test
     runs-on: >-
-      ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","alz-p1"]'))
+      ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","personal-linux"]'))
           || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","personal-windows"]'))
           || matrix.os }}
     timeout-minutes: 45
@@ -210,7 +210,7 @@ jobs:
 
   live-tool-tests:
     name: LiveTool wrappers (non-blocking)
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 30
     # Non-blocking by design: live binaries add early integration signal without gating merges.
     # tracked: martinopedal/azure-analyzer#604
@@ -328,7 +328,7 @@ jobs:
 
   verify-install-manifest:
     name: Verify install manifest
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -339,18 +339,18 @@ jobs:
         run: |
           Write-Host "Validating tools/install-manifest.json schema..." -ForegroundColor Yellow
           $manifest = Get-Content tools/install-manifest.json -Raw | ConvertFrom-Json
-          
+
           # Basic schema validation
           if (-not $manifest.schemaVersion) {
             Write-Error "Missing schemaVersion in install-manifest.json"
             exit 1
           }
-          
+
           if (-not $manifest.tools) {
             Write-Error "Missing tools array in install-manifest.json"
             exit 1
           }
-          
+
           foreach ($tool in $manifest.tools) {
             if (-not $tool.name) {
               Write-Error "Tool missing name: $($tool | ConvertTo-Json -Compress)"
@@ -365,39 +365,39 @@ jobs:
               exit 1
             }
           }
-          
+
           Write-Host "✓ Install manifest schema valid" -ForegroundColor Green
 
       - name: Verify SHA-256 implementation
         shell: pwsh
         run: |
           Write-Host "Testing SHA-256 verification functions..." -ForegroundColor Yellow
-          
+
           # Source the installer module
           . ./modules/shared/Installer.ps1
-          
+
           # Create a test file with known content (cross-platform temp path)
           $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
           $testFile = Join-Path $tempDir 'test-hash.txt'
           'test content for hash verification' | Set-Content -Path $testFile -NoNewline
-          
+
           # Compute hash (known SHA-256 of the above string)
           $actualHash = Get-FileHash256 -Path $testFile
           $expectedHash = 'a7c96262c21db9a06fd49e307d694fd29b6e6b58d1f3f6d9f3e6c4e0c7f3f6e9'
-          
+
           Write-Host "Computed hash: $actualHash" -ForegroundColor Cyan
-          
+
           if ($actualHash -notmatch '^[a-f0-9]{64}$') {
             Write-Error "Hash output format invalid: $actualHash"
             exit 1
           }
-          
+
           Remove-Item $testFile
           Write-Host "✓ SHA-256 verification functions working" -ForegroundColor Green
 
   generate-sbom:
     name: Generate SBOM (dry run)
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -407,35 +407,35 @@ jobs:
         shell: pwsh
         run: |
           ./tools/Generate-SBOM.ps1 -Verbose
-          
+
           if (-not (Test-Path output/sbom.json)) {
             Write-Error "SBOM generation failed - output/sbom.json not created"
             exit 1
           }
-          
+
           # Validate SBOM structure
           $sbom = Get-Content output/sbom.json -Raw | ConvertFrom-Json
-          
+
           if ($sbom.bomFormat -ne 'CycloneDX') {
             Write-Error "Invalid SBOM format: expected CycloneDX, got $($sbom.bomFormat)"
             exit 1
           }
-          
+
           if ($sbom.specVersion -ne '1.5') {
             Write-Error "Invalid SBOM spec version: expected 1.5, got $($sbom.specVersion)"
             exit 1
           }
-          
+
           if (-not $sbom.metadata.component) {
             Write-Error "SBOM missing metadata.component"
             exit 1
           }
-          
+
           if ($sbom.metadata.component.name -ne 'azure-analyzer') {
             Write-Error "SBOM root component name incorrect"
             exit 1
           }
-          
+
           $componentCount = $sbom.components.Count
           Write-Host "✓ SBOM generated with $componentCount components" -ForegroundColor Green
 
@@ -448,7 +448,7 @@ jobs:
 
   validate-module-manifest:
     name: Validate module manifest (Test-ModuleManifest)
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 10
     # PSGallery readiness gate (#963): catches manifest regressions on every PR,
     # not just at release time. Runs Test-ModuleManifest against AzureAnalyzer.psd1

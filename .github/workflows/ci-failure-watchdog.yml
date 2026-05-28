@@ -51,7 +51,7 @@ permissions:
 
 jobs:
   triage-failure:
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 10
     # Concurrency:
     # Constant group key is safe because the triage step is hash-idempotent
@@ -127,7 +127,7 @@ jobs:
             RUN_ID="$(jq -r '.id' <<<"$run")"
             RUN_URL="$(jq -r '.html_url' <<<"$run")"
             EVENT_NAME="$(jq -r '.event' <<<"$run")"
-            
+
             # Skip if workflow is not in the allow-list
             if ! printf '%s\n' "${watchlist[@]}" | grep -Fxq "$WORKFLOW_NAME"; then
               continue
@@ -256,7 +256,7 @@ jobs:
   # if triage-failure is skipped. Posts a sticky issue if any past-7-day
   # watchdog run had jobs_count == 0 and conclusion == failure.
   self-health-check:
-    runs-on: [self-hosted, personal, priv, linux]
+    runs-on: [self-hosted, personal-linux]
     timeout-minutes: 5
     if: always()
     permissions:
