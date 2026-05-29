@@ -18,7 +18,7 @@ permissions:
 jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
-  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, personal-linux])
+  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, public-linux])
   #   windows-latest -> VMSS Pool W-pub ([self-hosted, personal-win])
   #   macos-latest   -> literal (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------

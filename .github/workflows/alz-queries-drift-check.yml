@@ -15,7 +15,7 @@ concurrency:
 jobs:
   drift-check:
     name: Detect ALZ query drift
-    runs-on: [self-hosted, personal-linux]
+    runs-on: [self-hosted, public-linux]
     timeout-minutes: 15
     steps:
       - name: Checkout
