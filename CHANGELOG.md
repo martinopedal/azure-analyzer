@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- **ci(release):** PSGallery E2E Windows leg pointed at the private-VNet `personal-win` pool that this public repo is not enrolled in. Would fail to acquire a runner on release tags. Corrected to `public-win` matching the verified pool enrollment from #1161.
 - **BUG-1 (HIGH):** `Build-AuditorReport` was reading the wrong return key from `Get-AuditorTriageAnnotations`, nulling findings after triage and producing empty remediation/evidence/HTML sections in `-Profile Auditor` reports. Fixed in `AuditorReportBuilder.ps1:120` (#1102).
 - **RISK-1:** Auditor HTML renderer now HTML-encodes finding fields (defense-in-depth against malicious finding content).
 - **RISK-2:** `Invoke-AzureAnalyzer.psm1` wrapper now validates `-Profile` values via `[ValidateSet('Default','Auditor')]`.

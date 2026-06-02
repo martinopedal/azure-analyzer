@@ -19,7 +19,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
   #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, public-linux])
-  #   windows-latest -> VMSS Pool W-pub ([self-hosted, personal-win])
+  #   windows-latest -> VMSS Pool W-pub ([self-hosted, public-win])
   #   macos-latest   -> literal (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------
   test:
