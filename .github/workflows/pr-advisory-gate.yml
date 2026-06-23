@@ -56,7 +56,7 @@ jobs:
         # No `ref:` -> checks out the base SHA for pull_request_target events,
         # so we run the trusted base-ref copy of Invoke-PRAdvisoryGate.ps1,
         # never the PR head's (potentially malicious) version.
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       - name: Install PowerShell
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0

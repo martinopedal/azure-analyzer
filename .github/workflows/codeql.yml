@@ -45,7 +45,7 @@ jobs:
     # retry the upload up to 3x with backoff. No `run:` blocks perform
     # external network I/O beyond the backoff sleep.
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
       # Pre-flight: CodeQL analyze hits the GitHub API installation-scoped
       # rate-limit bucket (shared across every workflow in the repo). On
       # high-traffic days we see "API rate limit exceeded for installation"

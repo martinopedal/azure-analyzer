@@ -62,7 +62,7 @@ jobs:
       group: ci-failure-watchdog
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
 
       # Retry-aware: individual gh calls are wrapped with gh_with_retry()
       # (exponential backoff, 3 attempts). The 24h coalesce window pre-checks
