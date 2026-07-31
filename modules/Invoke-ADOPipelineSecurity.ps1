@@ -488,11 +488,15 @@ function Test-IsServiceConnectionProperty {
 function Add-ServiceConnectionRefs {
     param (
         [object] $Node,
-        [System.Collections.Generic.HashSet[string]] $Results
+        [System.Collections.Generic.HashSet[string]] $Results,
+        [int] $Depth = 0
     )
 
     if ($null -eq $Node) { return }
     if ($Node -is [string]) { return }
+    # Bound recursion: pipeline/release definition objects can be deeply nested or
+    # contain cyclic references, which otherwise causes a call-depth overflow.
+    if ($Depth -gt 64) { return }
 
     $properties = @()
     if ($Node -is [System.Collections.IDictionary]) {
@@ -525,13 +529,13 @@ function Add-ServiceConnectionRefs {
         if ($null -eq $propValue -or $propValue -is [string]) { continue }
         if ($propValue -is [System.Collections.IEnumerable] -and -not ($propValue -is [string])) {
             foreach ($item in $propValue) {
-                Add-ServiceConnectionRefs -Node $item -Results $Results
+                Add-ServiceConnectionRefs -Node $item -Results $Results -Depth ($Depth + 1)
             }
             continue
         }
 
         if ($propValue -is [System.Collections.IDictionary] -or @($propValue.PSObject.Properties).Count -gt 0) {
-            Add-ServiceConnectionRefs -Node $propValue -Results $Results
+            Add-ServiceConnectionRefs -Node $propValue -Results $Results -Depth ($Depth + 1)
         }
     }
 }

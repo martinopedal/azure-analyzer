@@ -1457,11 +1457,13 @@ foreach ($corrDef in $correlators) {
         }
         $corrToolResult = $null
         if ($corrName -eq 'ado-pipeline-correlator') {
-            . $corrScript
             if (-not $AdoOrg) {
                 $toolStatus.Add([PSCustomObject]@{ Tool = $corrName; Status = 'Skipped'; Message = 'No -AdoOrg provided'; Findings = 0 })
                 continue
             }
+            # NB: do NOT dot-source this script -- it is a param-driven script with a
+            # mandatory -AdoOrg, so dot-sourcing executes its param block with no args
+            # and fails in NonInteractive mode. It is invoked directly via & below.
             $corrParams = @{
                 AdoOrg              = $AdoOrg
                 SecretsFindingsPath = (Join-Path $OutputPath 'ado-repos-secrets-findings.json')

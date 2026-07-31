@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fixed
+
+- **ADO pipeline-security recursion overflow and correlator dot-source prompt (#1217):** `Add-ServiceConnectionRefs` in `Invoke-ADOPipelineSecurity.ps1` now carries a `-Depth` parameter and stops at depth 64 so deeply nested or cyclic pipeline/release definition objects no longer cause a call-depth overflow that aborts the scan. In `Invoke-AzureAnalyzer.ps1` the `ado-pipeline-correlator` script is no longer dot-sourced before its `-AdoOrg` guard (dot-sourcing ran its `param` block with no arguments and prompted for/failed on the mandatory `-AdoOrg` in non-interactive runs); it is invoked directly only when `-AdoOrg` is supplied.
+
 ### Changed
 - **Test rigor:** Strengthened auditor-profile Pester coverage to catch the BUG-1 class (silent null from hashtable key mismatch). Added end-to-end data-flow test (`AuditorDataFlow.Tests.ps1`) asserting non-null/non-empty at every hand-off in `Build-AuditorReport`. Hardened existing parity tests (Test 32, Test 35) with paired upstream-data assertions and ghost-row rejection checks.
 
