@@ -20,6 +20,7 @@
 
 ### Added
 
+- **WARA APRL catalog enrichment (#1224):** Added `modules/shared/AprlCatalog.ps1` with a pure, offline `Merge-WaraAprlMetadata` that recovers `Title`, `Severity`, `Detail` and `LearnMoreUrl` for WARA findings the workbook-metadata join previously left as `Unknown`, by joining the finding's APRL recommendation GUID (`RecommendationId`, or the first `::` segment of `Id`) to the APRL recommendation catalog. Only findings that are still `Unknown` are touched, so existing metadata is never clobbered. `Get-WaraAprlCatalog` is a best-effort, HTTPS-only, offline-safe loader (returns `$null` on any failure), and `Invoke-WARA.ps1` runs the enrichment as a non-fatal post-processing pass, so there is no hard network dependency. Covered by `tests/shared/AprlCatalog.Tests.ps1`.
 - **PSGallery post-publish E2E verification**: Replaced the shallow PSGallery smoke test (Find-Module + Save-Module + Test-ModuleManifest) with a full 8-check E2E gate running as a separate `psgallery_e2e` job on a cross-platform matrix (ubuntu-latest + windows-latest). Checks: (1) Install-Module with retry for PSGallery indexing lag, (2) Import-Module, (3) exported commands match manifest, (4) version match, (5) PSGallery metadata fields populated, (6) ReleaseNotes URI references repository, (7) functional smoke via Get-Help, (8) PSScriptAnalyzer Error-severity gate. Fails the release workflow if any check fails.
 
 ### Fixed

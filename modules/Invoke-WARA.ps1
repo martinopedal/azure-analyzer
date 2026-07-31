@@ -45,6 +45,8 @@ if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue))
 if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
     function Invoke-WithRetry { param([Parameter(Mandatory)][scriptblock]$ScriptBlock,[int]$MaxAttempts=1,[int]$InitialDelaySeconds=0,[string[]]$TransientMessagePatterns=@()) return & $ScriptBlock }
 }
+$aprlCatalogPath = Join-Path $PSScriptRoot 'shared' 'AprlCatalog.ps1'
+if (Test-Path $aprlCatalogPath) { . $aprlCatalogPath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
     function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
@@ -421,6 +423,27 @@ foreach ($rec in $recommendations) {
             PotentialBenefit = $potentialBenefit
             ToolVersion      = $toolVersion
         })
+    }
+}
+
+# Best-effort APRL catalog enrichment: recover Title/Severity/Detail/LearnMore
+# for findings the workbook-metadata join left as 'Unknown'. Non-fatal and
+# offline-safe: a missing catalog leaves findings unchanged.
+if ($findings.Count -gt 0 -and (Get-Command Merge-WaraAprlMetadata -ErrorAction SilentlyContinue)) {
+    try {
+        $needsEnrichment = @($findings | Where-Object {
+                $t = [string]$_.Title
+                [string]::IsNullOrWhiteSpace($t) -or $t -eq 'Unknown'
+            })
+        if ($needsEnrichment.Count -gt 0) {
+            $catalogCache = Join-Path ([System.IO.Path]::GetTempPath()) 'wara-aprl-catalog.json'
+            $aprlCatalog = Get-WaraAprlCatalog -Path $catalogCache
+            if ($aprlCatalog) {
+                $null = Merge-WaraAprlMetadata -Findings $findings -Catalog $aprlCatalog
+            }
+        }
+    } catch {
+        Write-Verbose "APRL catalog enrichment skipped: $([string]$_)"
     }
 }
 
