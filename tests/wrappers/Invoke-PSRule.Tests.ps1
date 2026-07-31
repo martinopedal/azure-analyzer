@@ -69,12 +69,21 @@ Describe 'Invoke-PSRule: success mapping' {
             }
             return $null
         }
+        # Subscription mode exports resources via Export-AzRuleData after switching
+        # the Az context. These commands may not be loaded in the test session, so
+        # define global stubs (same pattern as Invoke-PSRule above) to exercise the path.
+        function global:Export-AzRuleData { param($Subscription, $OutputPath, $Tenant, $ErrorAction, $WarningAction) }
+        function global:Set-AzContext { param($Subscription, $Tenant, $ErrorAction, $WarningAction) }
+        function global:Get-AzContext { [PSCustomObject]@{ Tenant = [PSCustomObject]@{ Id = '00000000-0000-0000-0000-0000000000aa' } } }
         $script:Result = & $script:Wrapper -SubscriptionId '00000000-0000-0000-0000-000000000001'
     }
 
     AfterAll {
         if (Test-Path Function:\global:Invoke-PSRule) {
             Remove-Item Function:\global:Invoke-PSRule -ErrorAction SilentlyContinue
+        }
+        foreach ($fn in 'Export-AzRuleData', 'Set-AzContext', 'Get-AzContext') {
+            if (Test-Path "Function:\global:$fn") { Remove-Item "Function:\global:$fn" -ErrorAction SilentlyContinue }
         }
         Remove-Variable -Name RawResults -Scope Global -ErrorAction SilentlyContinue
     }
