@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- **azqr Windows install (#1227):** The winget package id in `tools/tool-manifest.json` was `azure-quick-review.azqr`, which no longer resolves (`winget show` reports "No package found"), so the manifest-driven installer silently skipped azqr on Windows and scans returned nothing. Updated to the current published id `Microsoft.Azure.QuickReview` (moniker `azqr`, publisher Microsoft Corporation).
 - **ci(release):** PSGallery E2E Windows leg pointed at the private-VNet `personal-win` pool that this public repo is not enrolled in. Would fail to acquire a runner on release tags. Corrected to `public-win` matching the verified pool enrollment from #1161.
 - **BUG-1 (HIGH):** `Build-AuditorReport` was reading the wrong return key from `Get-AuditorTriageAnnotations`, nulling findings after triage and producing empty remediation/evidence/HTML sections in `-Profile Auditor` reports. Fixed in `AuditorReportBuilder.ps1:120` (#1102).
 - **RISK-1:** Auditor HTML renderer now HTML-encodes finding fields (defense-in-depth against malicious finding content).
