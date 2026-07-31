@@ -150,21 +150,60 @@ if (-not (Test-Path $OutputPath)) {
 
 # Run collector
 $subArg = "/subscriptions/$SubscriptionId"
-try {
-    Push-Location $OutputPath
-    Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Stop
-    if (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue) {
-        Start-WARAAnalyzer -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Stop
+$collectorJson = $null
+# Azure Advisor occasionally returns a transient GatewayTimeout, which surfaces inside
+# the WARA module as "Cannot bind argument to parameter 'AdvisorMetadata' because it is null".
+# Retry the collector a few times before giving up so a single flaky API call doesn't lose
+# the whole subscription's reliability data.
+$maxAttempts = 3
+$collectorError = $null
+for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    $collectorError = $null
+    try {
+        Push-Location $OutputPath
+        # Collector: tolerate per-resource "No recommendation found" errors so a single
+        # unmapped resource type does not abort collection for the whole subscription.
+        Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Continue
+        Pop-Location
+    } catch {
+        Pop-Location
+        $collectorError = $_
     }
-    Pop-Location
-} catch {
-    Pop-Location
-    Write-Warning "WARA collector failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @(); Errors = @() }
+    # Success if a collector JSON was produced this run, regardless of non-fatal noise.
+    $producedJson = Get-ChildItem -Path $OutputPath -Filter 'WARA*File*.json' -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($producedJson) { break }
+    if ($attempt -lt $maxAttempts) {
+        $delay = 15 * $attempt
+        Write-Warning "WARA collector attempt $attempt/$maxAttempts produced no output$( if ($collectorError) { ": $(Remove-Credentials -Text ([string]$collectorError))" }). Retrying in ${delay}s (transient Advisor timeout?)..."
+        Start-Sleep -Seconds $delay
+    }
+}
+if ($collectorError -and -not (Get-ChildItem -Path $OutputPath -Filter 'WARA*File*.json' -ErrorAction SilentlyContinue)) {
+    Write-Warning "WARA collector failed after $maxAttempts attempts: $(Remove-Credentials -Text ([string]$collectorError)). Returning empty result."
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$collectorError)); Findings = @(); Errors = @() }
 }
 
-# Find the newest JSON output file
-$jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA_File_*.json" |
+# Locate the collector JSON (WARA module emits 'WARA-File-*.json' with dashes;
+# older builds used 'WARA_File_*.json' — accept both).
+$collectorJson = Get-ChildItem -Path $OutputPath -Filter 'WARA*File*.json' |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object -First 1
+
+# Analyzer (v1.x): takes -JSONFile (the collector output), NOT -TenantID/-SubscriptionIds.
+if ($collectorJson -and (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue)) {
+    try {
+        Push-Location $OutputPath
+        Start-WARAAnalyzer -JSONFile $collectorJson.FullName -ErrorAction Stop
+        Pop-Location
+    } catch {
+        Pop-Location
+        Write-Warning "WARA analyzer step failed (collector data retained): $(Remove-Credentials -Text ([string]$_))"
+    }
+}
+
+# Find the newest JSON output file (collector output, dash or underscore variant)
+$jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA*File*.json" |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
 
@@ -188,11 +227,37 @@ $workbookMetadata = if ($xlsxFile) { Get-WaraWorkbookMetadata -WorkbookPath $xls
 
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-$recommendations = $raw.Recommendations ?? ($raw.PSObject.Properties.Value | Where-Object { $_ -is [array] } | Select-Object -First 1)
+$recommendations = if ($raw.PSObject.Properties['Recommendations'] -and $raw.Recommendations) {
+    $raw.Recommendations
+} else {
+    # WARA collector v2.x exposes reliability findings across two arrays:
+    #   - 'impactedResources' : APRL query results (per-resource; no impact level in JSON)
+    #   - 'advisory'          : Azure Advisor results (per-resource; carries Impact + Description)
+    # Merge both so the assessment includes Advisor's real severities and descriptions.
+    $combined = [System.Collections.Generic.List[object]]::new()
+    if ($raw.PSObject.Properties['impactedResources'] -and $raw.impactedResources) {
+        foreach ($r in @($raw.impactedResources)) { $combined.Add($r) }
+    }
+    if ($raw.PSObject.Properties['advisory'] -and $raw.advisory) {
+        foreach ($r in @($raw.advisory)) { $combined.Add($r) }
+    }
+    if ($combined.Count -eq 0) {
+        # Generic fallback: first non-empty array property. Iterate the Properties collection
+        # directly — piping $raw.PSObject.Properties.Value unrolls nested arrays so a
+        # Where-Object { $_ -is [array] } filter never matches the array as a whole.
+        foreach ($p in $raw.PSObject.Properties) {
+            if ($p.Value -is [System.Array] -and @($p.Value).Count -gt 0) {
+                foreach ($r in @($p.Value)) { $combined.Add($r) }
+                break
+            }
+        }
+    }
+    $combined
+}
 foreach ($rec in $recommendations) {
     $recommendationId = [string](Get-WaraPropertyValue -Object $rec -Names @('RecommendationId', 'GUID', 'Id'))
     if ([string]::IsNullOrWhiteSpace($recommendationId)) { $recommendationId = [guid]::NewGuid().ToString() }
-    $title = [string](Get-WaraPropertyValue -Object $rec -Names @('Recommendation', 'Title'))
+    $title = [string](Get-WaraPropertyValue -Object $rec -Names @('Recommendation', 'Title', 'Description'))
     if ([string]::IsNullOrWhiteSpace($title)) { $title = 'Unknown' }
 
     $metadata = $null
@@ -203,7 +268,11 @@ foreach ($rec in $recommendations) {
         }
     }
 
-    $impactedResources = @($rec.ImpactedResources)
+    $impactedResources = if ($rec.PSObject.Properties['ImpactedResources'] -and $rec.ImpactedResources) {
+        @($rec.ImpactedResources)
+    } else {
+        @()
+    }
     if (-not $impactedResources -or $impactedResources.Count -eq 0) {
         $fallbackResourceId = [string](Get-WaraPropertyValue -Object $rec -Names @('ResourceId', 'Id'))
         if (-not [string]::IsNullOrWhiteSpace($fallbackResourceId)) {
