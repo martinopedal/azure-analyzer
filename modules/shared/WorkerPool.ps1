@@ -89,6 +89,64 @@ function Invoke-ParallelTools {
 
     $defaultSemaphore = [System.Threading.SemaphoreSlim]::new($DefaultConcurrency, $DefaultConcurrency)
 
+    # Serial path: when MaxParallel<=1, execute in the CURRENT runspace (not
+    # ForEach-Object -Parallel). Child parallel runspaces do not reliably
+    # autoload modules (Test-Path/Invoke-PSRule/Get-Mg* "not recognized") in
+    # some PowerShell 7.x environments; running in-process avoids that entirely.
+    if ($MaxParallel -le 1) {
+        # StrictMode-safe property read: tool specs may omit optional members
+        # (Scope, Provider, Arguments), and Set-StrictMode -Version Latest throws
+        # on a missing property rather than returning $null.
+        $getProp = {
+            param($obj, $name)
+            if ($obj -and $obj.PSObject.Properties[$name]) { $obj.PSObject.Properties[$name].Value } else { $null }
+        }
+        $serialResults = foreach ($tool in $ToolSpecs) {
+            $toolName = (& $getProp $tool 'Name') ?? (& $getProp $tool 'Tool') ?? (& $getProp $tool 'Source') ?? 'unknown'
+            $provider = (& $getProp $tool 'Provider') ?? 'Default'
+            $scope = (& $getProp $tool 'Scope') ?? ''
+            $scriptBlock = & $getProp $tool 'ScriptBlock'
+            $toolArguments = & $getProp $tool 'Arguments'
+            $startTime = Get-Date
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            $status = 'Success'
+            $errorMessage = ''
+            $output = $null
+            try {
+                if ($scriptBlock -is [scriptblock]) {
+                    if ($toolArguments -is [hashtable]) {
+                        $output = & $scriptBlock @toolArguments
+                    } elseif ($toolArguments -is [object[]]) {
+                        $output = & $scriptBlock @toolArguments
+                    } elseif ($null -ne $toolArguments) {
+                        $output = & $scriptBlock $toolArguments
+                    } else {
+                        $output = & $scriptBlock
+                    }
+                } else {
+                    throw "Tool '$toolName' does not provide a ScriptBlock."
+                }
+            } catch {
+                $status = 'Failed'
+                $errorMessage = ($_ | Out-String).Trim()
+            } finally {
+                $stopwatch.Stop()
+            }
+            [PSCustomObject]@{
+                Tool       = $toolName
+                Provider   = $provider
+                Scope      = $scope
+                Status     = $status
+                StartTime  = $startTime
+                EndTime    = Get-Date
+                DurationMs = [int]$stopwatch.ElapsedMilliseconds
+                Result     = $output
+                Error      = $errorMessage
+            }
+        }
+        return @($serialResults)
+    }
+
     $results = $ToolSpecs | ForEach-Object -Parallel {
         $providerSemaphores = $using:providerSemaphores
         $defaultSemaphoreLocal = $using:defaultSemaphore

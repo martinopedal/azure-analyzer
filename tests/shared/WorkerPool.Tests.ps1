@@ -56,4 +56,30 @@ Describe 'Invoke-ParallelTools' {
         ($results | Where-Object { $_.Tool -eq 'good-tool' }).Status | Should -Be 'Success'
         ($results | Where-Object { $_.Tool -eq 'bad-tool' }).Status | Should -Be 'Failed'
     }
+
+    It 'runs serially in-process when MaxParallel is 1 (module-autoload race workaround)' {
+        # In the serial path the scriptblock executes in the CURRENT runspace, so a
+        # function defined here is visible to it. Under ForEach-Object -Parallel it would
+        # not be, which is exactly the autoload race this path exists to avoid.
+        function Get-LocalRunspaceMarker { 'in-process' }
+        $tools = @(
+            [PSCustomObject]@{
+                Name        = 'serial-a'
+                Provider    = 'CLI'
+                ScriptBlock = { Get-LocalRunspaceMarker }
+                Arguments   = $null
+            },
+            [PSCustomObject]@{
+                Name        = 'serial-b'
+                Provider    = 'CLI'
+                ScriptBlock = { throw 'boom' }
+                Arguments   = $null
+            }
+        )
+        $results = Invoke-ParallelTools -ToolSpecs $tools -MaxParallel 1
+        @($results).Count | Should -Be 2
+        ($results | Where-Object { $_.Tool -eq 'serial-a' }).Status | Should -Be 'Success'
+        ($results | Where-Object { $_.Tool -eq 'serial-a' }).Result | Should -Be 'in-process'
+        ($results | Where-Object { $_.Tool -eq 'serial-b' }).Status | Should -Be 'Failed'
+    }
 }

@@ -1274,7 +1274,15 @@ if ($toolSpecs.Count -gt 0) {
     $specCount = $toolSpecs.Count
     $toolNames = @($toolMetaMap.Values | ForEach-Object { $_.name } | Select-Object -Unique)
     Write-Host "`nRunning $specCount tool spec(s) across $($toolNames.Count) tool(s): $($toolNames -join ', ')" -ForegroundColor Yellow
-    $parallelResults = Invoke-ParallelTools -ToolSpecs @($toolSpecs)
+    # Opt-in serialization/throttle override to avoid runspace module-autoload races
+    # in some environments (set AZURE_ANALYZER_MAX_PARALLEL=1 for fully serial). Default unchanged.
+    $maxParallelOverride = 0
+    if ($env:AZURE_ANALYZER_MAX_PARALLEL -and [int]::TryParse($env:AZURE_ANALYZER_MAX_PARALLEL, [ref]$maxParallelOverride) -and $maxParallelOverride -gt 0) {
+        Write-Host "  (worker pool throttled to MaxParallel=$maxParallelOverride via AZURE_ANALYZER_MAX_PARALLEL)" -ForegroundColor DarkGray
+        $parallelResults = Invoke-ParallelTools -ToolSpecs @($toolSpecs) -MaxParallel $maxParallelOverride
+    } else {
+        $parallelResults = Invoke-ParallelTools -ToolSpecs @($toolSpecs)
+    }
 } else {
     Write-Host "`nNo tools to run." -ForegroundColor DarkGray
 }
