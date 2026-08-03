@@ -2223,7 +2223,7 @@
         "repo": "projectdiscovery/subfinder",
         "releaseApi": "https://api.github.com/repos/projectdiscovery/subfinder/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "2.14.0"
       },
       "comment": "EASM passive subdomain enumeration. Wrapper ships in R2.",
       "frameworks": [
