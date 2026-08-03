@@ -1832,7 +1832,7 @@
         "repo": "turbot/powerpipe",
         "releaseApi": "https://api.github.com/repos/turbot/powerpipe/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "1.5.1"
+        "currentPin": "1.5.2"
       },
       "frameworks": [
         "CIS Azure",
