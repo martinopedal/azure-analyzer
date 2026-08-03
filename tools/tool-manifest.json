@@ -1544,7 +1544,7 @@
         "repo": "infracost/infracost",
         "releaseApi": "https://api.github.com/repos/infracost/infracost/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.10.44"
+        "currentPin": "0.10.45"
       },
       "frameworks": [
         "Azure CAF"
