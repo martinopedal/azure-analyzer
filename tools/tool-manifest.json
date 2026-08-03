@@ -1057,7 +1057,7 @@
         "repo": "elceef/dnstwist",
         "releaseApi": "https://api.github.com/repos/elceef/dnstwist/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "20250130"
       },
       "frameworks": [
         "NIST 800-53"
