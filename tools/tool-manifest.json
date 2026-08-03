@@ -533,7 +533,7 @@
         "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
         "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
         "pinType": "sha",
-        "currentPin": "6a90d07a1416"
+        "currentPin": "11b4206b2c9e"
       },
       "frameworks": [
         "Azure WAF",

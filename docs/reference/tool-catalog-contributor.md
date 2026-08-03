@@ -138,7 +138,7 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `alz-queries` | psmodule | martinopedal/alz-graph-queries @ fd04b20a7a67 | `#e65100` | 1 |
 | `amass` | cli ("amass") | owasp-amass/amass @ latest | `#00838f` | 4 |
 | `appinsights` | psmodule | n/a | `#00838f` | 4 |
-| `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ 6a90d07a1416 | `#00838f` | 1 |
+| `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ 11b4206b2c9e | `#00838f` | 1 |
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |
 | `azure-quota` | cli ("az") | martinopedal/azure-quota-reports | `#455a64` | 4 |
