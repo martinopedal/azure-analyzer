@@ -81,7 +81,12 @@ jobs:
             # exports. Because the runner is chosen by fork status, this only
             # ever went red on same-repo branches. Guarded so it is a no-op
             # wherever the modules are already present.
-            foreach ($m in @('Az.Accounts', 'Az.ResourceGraph')) {
+            #
+            # Az.Monitor is here because Pester's Mock requires the real
+            # command to exist: Invoke-FinOpsSignals tests mock Get-AzMetric,
+            # which lives in Az.Monitor and is not covered by the two core
+            # modules above.
+            foreach ($m in @('Az.Accounts', 'Az.ResourceGraph', 'Az.Monitor')) {
               if (Get-Module -Name $m -ListAvailable -ErrorAction SilentlyContinue) {
                 Write-Host "$m already available."
                 continue
