@@ -72,6 +72,7 @@ function Convert-PSRuleLevelToSeverity {
 function Get-PSRuleAnnotationValue {
     param (
         [Parameter(Mandatory)]
+        [AllowNull()]
         [object] $Annotations,
         [Parameter(Mandatory)]
         [string[]] $KeyHints
@@ -128,24 +129,36 @@ try {
         $invokeParams['InputPath'] = $Path
     } else {
         Write-Verbose "Exporting Azure resource data for subscription: $SubscriptionId"
-        # PSRule.Rules.Azure cannot scan a live subscription directly; resources
-        # must first be exported to JSON (Export-AzRuleData), then scanned by path.
-        # Pass -Tenant so Export-AzRuleData's context filtering ignores any stale
-        # foreign-tenant Az contexts in the shared session (a context with a null
-        # Subscription otherwise throws "Failed to filter contexts ... property 'Id'").
+        # PSRule.Rules.Azure cannot scan a live subscription directly. Resources must first be
+        # exported to JSON by Export-AzRuleData and then scanned by path. Previously this branch
+        # passed no InputPath at all, so every subscription scan silently returned nothing.
         $exportPath = Join-Path ([System.IO.Path]::GetTempPath()) ("psrule-" + $SubscriptionId)
         if (Test-Path $exportPath) { Remove-Item (Join-Path $exportPath '*') -Force -Recurse -ErrorAction SilentlyContinue }
         else { $null = New-Item -ItemType Directory -Path $exportPath -Force }
         $exportParams = @{ Subscription = $SubscriptionId; OutputPath = $exportPath; ErrorAction = 'Stop' }
-        $ctxTenant = (Get-AzContext -ErrorAction SilentlyContinue).Tenant.Id
-        if ($ctxTenant) { $exportParams['Tenant'] = $ctxTenant }
-        # Export-AzRuleData scopes to the ACTIVE Az context, not the -Subscription
-        # parameter alone; without switching context first it silently exports 0
-        # resources for any subscription other than the currently-selected one.
-        try { $null = Set-AzContext -Subscription $SubscriptionId -Tenant $ctxTenant -ErrorAction Stop -WarningAction SilentlyContinue }
-        catch { Write-Verbose "Set-AzContext to $SubscriptionId failed: $_" }
+
+        # Scope the export to the tenant that owns the TARGET subscription. Taking the tenant
+        # from the current context instead would pin every scan to whichever tenant happened to
+        # be active and export nothing for subscriptions in any other tenant. The Az context is
+        # process-wide, and Invoke-ParallelTools runs Azure tools concurrently, so this wrapper
+        # must not call Set-AzContext: switching the active subscription here would change it
+        # underneath every other tool running at the same time.
+        $targetSub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction SilentlyContinue
+        if ($targetSub -and $targetSub.PSObject.Properties['TenantId'] -and $targetSub.TenantId) {
+            $exportParams['Tenant'] = [string]$targetSub.TenantId
+        }
+
         $null = Export-AzRuleData @exportParams -WarningAction SilentlyContinue
-        Write-Verbose "Running PSRule on exported data: $exportPath"
+
+        # Export-AzRuleData returns quietly when no Az context matches the requested
+        # subscription, so an empty output directory is the only available signal. Fail loudly
+        # instead of scanning an empty folder and reporting a clean, empty result.
+        $exportedFiles = @(Get-ChildItem -Path $exportPath -Filter '*.json' -File -ErrorAction SilentlyContinue)
+        if ($exportedFiles.Count -eq 0) {
+            throw "Export-AzRuleData produced no resource data for subscription '$SubscriptionId'. Confirm the signed-in account has an Az context for this subscription (Connect-AzAccount) and at least Reader access to it."
+        }
+
+        Write-Verbose "Running PSRule on $($exportedFiles.Count) exported file(s) in: $exportPath"
         $invokeParams['InputPath'] = (Join-Path $exportPath '*.json')
         $invokeParams['Option'] = @{ 'Configuration.AZURE_SUBSCRIPTION_ID' = $SubscriptionId }
     }
