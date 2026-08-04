@@ -235,9 +235,9 @@ Disabled-by-default Graph family (scaffolded for follow-up PRs):
 | terraform-iac | cli | cli | Terraform IaC validation |
 | infracost | cli | cli | Infracost IaC cost estimation |
 
-#### Azure DevOps (org / project, read-only PAT)
+#### Azure DevOps (org / project, read-only PAT or Entra token)
 
-`install.kind = none` for every ADO tool: pure REST through an existing PAT.
+`install.kind = none` for every ADO tool: pure REST through an existing credential. All five wrappers accept **either** a classic PAT **or** a Microsoft Entra access token issued for the Azure DevOps resource `499b84ac-1321-427f-aa17-267ca6975798`, supplied through `-AdoPat` / `-AdoPatToken` or `ADO_PAT_TOKEN` / `AZURE_DEVOPS_EXT_PAT` / `AZ_DEVOPS_PAT`. The Entra path unblocks tenants where PAT creation is disabled by policy; note the token is typically valid for only ~1 hour. See [docs/consumer/ado-auth.md](docs/consumer/ado-auth.md).
 
 | Tool | Scope | What it scans |
 |------|-------|---------------|
