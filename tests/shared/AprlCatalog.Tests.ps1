@@ -185,4 +185,119 @@ Describe 'AprlCatalog' {
             $path | Should -Match 'wara-aprl-catalog\.json$'
         }
     }
+
+    Context 'ConvertTo-AprlCategoryName' {
+        It 'expands the published PascalCase control values' {
+            ConvertTo-AprlCategoryName 'HighAvailability' | Should -Be 'High Availability'
+            ConvertTo-AprlCategoryName 'DisasterRecovery' | Should -Be 'Disaster Recovery'
+            ConvertTo-AprlCategoryName 'MonitoringAndAlerting' | Should -Be 'Monitoring and Alerting'
+            ConvertTo-AprlCategoryName 'ServiceUpgradeAndRetirement' | Should -Be 'Service Upgrade and Retirement'
+            ConvertTo-AprlCategoryName 'OtherBestPractices' | Should -Be 'Other Best Practices'
+            ConvertTo-AprlCategoryName 'BusinessContinuity' | Should -Be 'Business Continuity'
+            ConvertTo-AprlCategoryName 'Scalability' | Should -Be 'Scalability'
+            ConvertTo-AprlCategoryName 'Security' | Should -Be 'Security'
+        }
+
+        It 'is case-insensitive' {
+            ConvertTo-AprlCategoryName 'highavailability' | Should -Be 'High Availability'
+            ConvertTo-AprlCategoryName 'HIGHAVAILABILITY' | Should -Be 'High Availability'
+        }
+
+        It 'falls back to a PascalCase split for controls APRL adds later' {
+            ConvertTo-AprlCategoryName 'FutureControlName' | Should -Be 'Future Control Name'
+            ConvertTo-AprlCategoryName 'BackupAndRestore' | Should -Be 'Backup and Restore'
+        }
+
+        It 'returns empty for null or blank input' {
+            ConvertTo-AprlCategoryName '' | Should -Be ''
+            ConvertTo-AprlCategoryName '   ' | Should -Be ''
+            ConvertTo-AprlCategoryName $null | Should -Be ''
+        }
+    }
+
+    Context 'Merge-WaraAprlMetadata: category enrichment (#1228)' {
+        BeforeEach {
+            $script:catalog = ConvertTo-WaraAprlCatalog -Records @(
+                [pscustomobject]@{
+                    aprlGuid              = 'aaaa1111-2222-3333-4444-555566667777'
+                    description           = 'Use availability zones'
+                    recommendationImpact  = 'High'
+                    recommendationControl = 'HighAvailability'
+                    longDescription       = 'Spread instances across zones.'
+                }
+            )
+        }
+
+        It 'applies the category to a finding that already has a good title' {
+            # The pre-#1228 pass skipped any finding whose Title was not
+            # 'Unknown', so a well-formed finding never received a category.
+            $finding = [pscustomobject]@{
+                Title            = 'Use availability zones'
+                RecommendationId = 'aaaa1111-2222-3333-4444-555566667777'
+                Category         = 'Reliability'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.Category | Should -Be 'High Availability'
+        }
+
+        It 'applies the category to an Unknown finding as well' {
+            $finding = [pscustomobject]@{
+                Title            = 'Unknown'
+                RecommendationId = 'aaaa1111-2222-3333-4444-555566667777'
+                Category         = 'Reliability'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.Category | Should -Be 'High Availability'
+            $finding.Title | Should -Be 'Use availability zones'
+        }
+
+        It 'does not clobber a real category supplied by the collector' {
+            $finding = [pscustomobject]@{
+                Title            = 'Use availability zones'
+                RecommendationId = 'aaaa1111-2222-3333-4444-555566667777'
+                Category         = 'Operator supplied'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.Category | Should -Be 'Operator supplied'
+        }
+
+        It 'fills a category when the finding has none at all' {
+            $finding = [pscustomobject]@{
+                Title            = 'Use availability zones'
+                RecommendationId = 'aaaa1111-2222-3333-4444-555566667777'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.Category | Should -Be 'High Availability'
+        }
+
+        It 'records the raw control token for stable machine grouping' {
+            $finding = [pscustomobject]@{
+                Title            = 'Use availability zones'
+                RecommendationId = 'aaaa1111-2222-3333-4444-555566667777'
+                Category         = 'Reliability'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.AprlControl | Should -Be 'HighAvailability'
+        }
+
+        It 'leaves findings with no catalog match untouched' {
+            $finding = [pscustomobject]@{
+                Title            = 'Something else'
+                RecommendationId = '99999999-9999-9999-9999-999999999999'
+                Category         = 'Reliability'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.Category | Should -Be 'Reliability'
+        }
+
+        It 'still resolves the GUID from the Id prefix' {
+            $finding = [pscustomobject]@{
+                Title    = 'Use availability zones'
+                Id       = 'aaaa1111-2222-3333-4444-555566667777::/subscriptions/x/rg/y'
+                Category = 'Reliability'
+            }
+            $null = Merge-WaraAprlMetadata -Findings @($finding) -Catalog $script:catalog
+            $finding.Category | Should -Be 'High Availability'
+        }
+    }
 }

@@ -63,6 +63,40 @@ function ConvertTo-AprlSeverity {
     }
 }
 
+function ConvertTo-AprlCategoryName {
+    <#
+    .SYNOPSIS
+        Converts an APRL recommendationControl value into a display category.
+    .DESCRIPTION
+        APRL publishes the control as a PascalCase token ('HighAvailability',
+        'MonitoringAndAlerting'). Reports render this value directly as a
+        grouping label via Get-Domain, so it is expanded to readable words
+        here rather than in the renderer.
+
+        The nine values published today are mapped explicitly so the wording
+        is stable and reviewable. Anything else falls back to a PascalCase
+        split, because APRL adds controls over time and an unknown control
+        should still group sensibly instead of being dropped.
+    #>
+    param([string] $Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
+    $trimmed = $Value.Trim()
+    switch ($trimmed.ToLowerInvariant()) {
+        'highavailability'            { return 'High Availability' }
+        'disasterrecovery'            { return 'Disaster Recovery' }
+        'monitoringandalerting'       { return 'Monitoring and Alerting' }
+        'scalability'                 { return 'Scalability' }
+        'otherbestpractices'          { return 'Other Best Practices' }
+        'businesscontinuity'          { return 'Business Continuity' }
+        'serviceupgradeandretirement' { return 'Service Upgrade and Retirement' }
+        'personalized'                { return 'Personalized' }
+        'security'                    { return 'Security' }
+    }
+    # Fallback: split PascalCase, then lower-case conjunctions for readability.
+    $split = [regex]::Replace($trimmed, '(?<=[a-z0-9])(?=[A-Z])', ' ')
+    return ($split -replace '\bAnd\b', 'and')
+}
+
 function Test-AprlSafeUrl {
     <#
     .SYNOPSIS
@@ -207,12 +241,27 @@ function Get-WaraAprlCatalog {
 function Merge-WaraAprlMetadata {
     <#
     .SYNOPSIS
-        Backfills Title/Severity/Detail/LearnMoreUrl on WARA findings from the APRL catalog.
+        Backfills Title/Severity/Detail/LearnMoreUrl and Category on WARA findings.
     .DESCRIPTION
-        Pure and offline. Only findings whose Title is empty or 'Unknown' are
-        touched, so existing good metadata is never clobbered. The APRL GUID is
-        read from RecommendationId, falling back to the first '::' segment of Id.
-        Returns the same findings collection for convenience.
+        Pure and offline. Title/Severity/Detail/LearnMoreUrl are only written
+        when the finding's Title is empty or 'Unknown', so existing good
+        metadata is never clobbered.
+
+        Category is deliberately handled differently: it is applied to every
+        finding with a catalog match, not just the broken ones. Category drives
+        report grouping (New-HtmlReport Get-Domain falls back to Category when
+        Pillar is empty, which is the normal case for WARA because APRL control
+        names do not map onto WAF pillar names). Enriching only the 'Unknown'
+        findings would leave most findings in the flat default bucket and the
+        rollup would stay useless, which is the whole point of the change.
+
+        The existing Category is preserved unless it is empty or the synthetic
+        'Reliability' default that Invoke-WARA stamps when the collector
+        supplies no category of its own. 'Reliability' is never a real APRL
+        control value, so treating it as "unset" is unambiguous.
+
+        The APRL GUID is read from RecommendationId, falling back to the first
+        '::' segment of Id. Returns the same findings collection for convenience.
     #>
     [CmdletBinding()]
     param(
@@ -225,10 +274,8 @@ function Merge-WaraAprlMetadata {
     foreach ($finding in @($Findings)) {
         if ($null -eq $finding) { continue }
 
-        $title = [string](Get-AprlPropertyValue -Object $finding -Names @('Title'))
-        $needsEnrichment = [string]::IsNullOrWhiteSpace($title) -or $title -eq 'Unknown'
-        if (-not $needsEnrichment) { continue }
-
+        # Resolved before the Title gate because category enrichment below
+        # applies to every matched finding, not only the ones missing a title.
         $guid = [string](Get-AprlPropertyValue -Object $finding -Names @('RecommendationId'))
         if ([string]::IsNullOrWhiteSpace($guid)) {
             $idValue = [string](Get-AprlPropertyValue -Object $finding -Names @('Id'))
@@ -239,6 +286,24 @@ function Merge-WaraAprlMetadata {
         $key = $guid.Trim().ToLowerInvariant()
         if (-not $Catalog.ContainsKey($key)) { continue }
         $record = $Catalog[$key]
+
+        $catalogControl = [string](Get-AprlPropertyValue -Object $record -Names @('recommendationControl', 'category', 'recommendationCategory'))
+        if (-not [string]::IsNullOrWhiteSpace($catalogControl)) {
+            $categoryName = ConvertTo-AprlCategoryName $catalogControl
+            if (-not [string]::IsNullOrWhiteSpace($categoryName)) {
+                $existingCategory = [string](Get-AprlPropertyValue -Object $finding -Names @('Category'))
+                if ([string]::IsNullOrWhiteSpace($existingCategory) -or $existingCategory -eq 'Reliability') {
+                    Set-AprlFindingProperty -Finding $finding -Name 'Category' -Value $categoryName
+                }
+                # Raw token kept alongside the display name so downstream
+                # rollups can group on a stable key rather than prose.
+                Set-AprlFindingProperty -Finding $finding -Name 'AprlControl' -Value $catalogControl
+            }
+        }
+
+        $title = [string](Get-AprlPropertyValue -Object $finding -Names @('Title'))
+        $needsEnrichment = [string]::IsNullOrWhiteSpace($title) -or $title -eq 'Unknown'
+        if (-not $needsEnrichment) { continue }
 
         $catalogTitle = [string](Get-AprlPropertyValue -Object $record -Names @('description', 'title', 'recommendationTitle'))
         if (-not [string]::IsNullOrWhiteSpace($catalogTitle)) {

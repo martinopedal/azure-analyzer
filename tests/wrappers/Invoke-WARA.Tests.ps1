@@ -266,3 +266,21 @@ AfterAll {
     }
     Remove-Item Env:AZURE_ANALYZER_TEST_PRIOR_SUPPRESS -ErrorAction SilentlyContinue
 }
+
+Describe 'Invoke-WARA: APRL enrichment gate (#1228)' {
+    BeforeAll {
+        $script:WaraSource = Get-Content -Path (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..\..')) 'modules\Invoke-WARA.ps1') -Raw
+    }
+
+    It 'calls the APRL merge whenever there are findings' {
+        $script:WaraSource | Should -Match 'if \(\$findings\.Count -gt 0 -and \(Get-Command Merge-WaraAprlMetadata'
+        $script:WaraSource | Should -Match 'Merge-WaraAprlMetadata -Findings \$findings -Catalog \$aprlCatalog'
+    }
+
+    It 'does not re-introduce a Title-based pre-gate around the merge' {
+        # Enrichment now stamps the APRL control as the report Category on every
+        # matched finding, so gating the whole block on a missing/Unknown Title
+        # would make the category rollup inert for healthy runs.
+        $script:WaraSource | Should -Not -Match '\$needsEnrichment\s*=\s*@\(\$findings'
+    }
+}

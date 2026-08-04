@@ -427,20 +427,18 @@ foreach ($rec in $recommendations) {
 }
 
 # Best-effort APRL catalog enrichment: recover Title/Severity/Detail/LearnMore
-# for findings the workbook-metadata join left as 'Unknown'. Non-fatal and
-# offline-safe: a missing catalog leaves findings unchanged.
+# for findings the workbook-metadata join left as 'Unknown', and stamp the APRL
+# recommendation control as the report Category on every matched finding.
+# Non-fatal and offline-safe: a missing catalog leaves findings unchanged.
+# The catalog is consulted whenever there are findings (not only when a Title is
+# missing) because category enrichment applies to well-formed findings too;
+# Get-WaraAprlCatalog is cache-backed, so this does not add a fetch per run.
 if ($findings.Count -gt 0 -and (Get-Command Merge-WaraAprlMetadata -ErrorAction SilentlyContinue)) {
     try {
-        $needsEnrichment = @($findings | Where-Object {
-                $t = [string]$_.Title
-                [string]::IsNullOrWhiteSpace($t) -or $t -eq 'Unknown'
-            })
-        if ($needsEnrichment.Count -gt 0) {
-            $catalogCache = if (Get-Command Get-AprlDefaultCachePath -ErrorAction SilentlyContinue) { Get-AprlDefaultCachePath } else { Join-Path ([System.IO.Path]::GetTempPath()) 'wara-aprl-catalog.json' }
-            $aprlCatalog = Get-WaraAprlCatalog -Path $catalogCache
-            if ($aprlCatalog) {
-                $null = Merge-WaraAprlMetadata -Findings $findings -Catalog $aprlCatalog
-            }
+        $catalogCache = if (Get-Command Get-AprlDefaultCachePath -ErrorAction SilentlyContinue) { Get-AprlDefaultCachePath } else { Join-Path ([System.IO.Path]::GetTempPath()) 'wara-aprl-catalog.json' }
+        $aprlCatalog = Get-WaraAprlCatalog -Path $catalogCache
+        if ($aprlCatalog) {
+            $null = Merge-WaraAprlMetadata -Findings $findings -Catalog $aprlCatalog
         }
     } catch {
         Write-Verbose "APRL catalog enrichment skipped: $([string]$_)"
