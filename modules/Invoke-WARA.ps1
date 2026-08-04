@@ -436,7 +436,7 @@ if ($findings.Count -gt 0 -and (Get-Command Merge-WaraAprlMetadata -ErrorAction 
                 [string]::IsNullOrWhiteSpace($t) -or $t -eq 'Unknown'
             })
         if ($needsEnrichment.Count -gt 0) {
-            $catalogCache = Join-Path ([System.IO.Path]::GetTempPath()) 'wara-aprl-catalog.json'
+            $catalogCache = if (Get-Command Get-AprlDefaultCachePath -ErrorAction SilentlyContinue) { Get-AprlDefaultCachePath } else { Join-Path ([System.IO.Path]::GetTempPath()) 'wara-aprl-catalog.json' }
             $aprlCatalog = Get-WaraAprlCatalog -Path $catalogCache
             if ($aprlCatalog) {
                 $null = Merge-WaraAprlMetadata -Findings $findings -Catalog $aprlCatalog

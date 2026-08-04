@@ -54,11 +54,49 @@ function ConvertTo-AprlSeverity {
     param([string] $Value)
     if ([string]::IsNullOrWhiteSpace($Value)) { return '' }
     switch -Regex ($Value.Trim().ToLowerInvariant()) {
-        '^(high|critical)$' { return 'High' }
+        '^crit'             { return 'Critical' }
+        '^high$'            { return 'High' }
         '^med'              { return 'Medium' }
         '^low$'             { return 'Low' }
-        default             { return (($Value.Substring(0, 1).ToUpperInvariant()) + $Value.Substring(1)) }
+        '^info'             { return 'Info' }
+        default             { return 'Medium' }
     }
+}
+
+function Test-AprlSafeUrl {
+    <#
+    .SYNOPSIS
+        Returns $true only for absolute HTTPS URLs.
+    .DESCRIPTION
+        Catalog-sourced links are rendered into the HTML report as clickable
+        <a href='...'> targets. The report HTML-encodes the value, which stops
+        attribute breakout but does NOT stop a hostile scheme: 'javascript:...'
+        contains no encodable characters and stays live on click. Enforcing the
+        repo's HTTPS-only invariant at ingest is the reliable place to stop it.
+    #>
+    param([string] $Url)
+    if ([string]::IsNullOrWhiteSpace($Url)) { return $false }
+    $uri = $null
+    if (-not [System.Uri]::TryCreate($Url.Trim(), [System.UriKind]::Absolute, [ref]$uri)) { return $false }
+    return ($uri.Scheme -eq 'https')
+}
+
+function Get-AprlDefaultCachePath {
+    <#
+    .SYNOPSIS
+        User-scoped cache path for the APRL catalog.
+    .DESCRIPTION
+        Deliberately NOT the shared temp directory. Other temp files in this repo
+        are write-then-read within a single run and carry a random GUID in the
+        name; this cache is the opposite - a stable, predictable path that a
+        later run reads back and trusts. On Linux/macOS the shared temp dir is
+        world-writable, so a predictable name there lets any local user
+        pre-create the file and choose the titles, details and links that land
+        in the report. LocalApplicationData is user-scoped and removes that.
+    #>
+    $root = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)
+    if ([string]::IsNullOrWhiteSpace($root)) { $root = [System.IO.Path]::GetTempPath() }
+    return (Join-Path (Join-Path $root 'azure-analyzer') 'wara-aprl-catalog.json')
 }
 
 function Get-AprlLearnMoreUrl {
@@ -66,12 +104,20 @@ function Get-AprlLearnMoreUrl {
     if ($null -eq $Record) { return '' }
     $link = Get-AprlPropertyValue -Object $Record -Names @('learnMoreLink', 'learnMoreUrl', 'learnMore')
     if ($null -eq $link) { return '' }
-    if ($link -is [string]) { return $link }
-    $first = @($link) | Select-Object -First 1
-    if ($null -eq $first) { return '' }
-    if ($first -is [string]) { return $first }
-    $url = Get-AprlPropertyValue -Object $first -Names @('url', 'href', 'link')
-    return [string]$url
+    $candidate = ''
+    if ($link -is [string]) {
+        $candidate = $link
+    } else {
+        $first = @($link) | Select-Object -First 1
+        if ($null -eq $first) { return '' }
+        if ($first -is [string]) {
+            $candidate = $first
+        } else {
+            $candidate = [string](Get-AprlPropertyValue -Object $first -Names @('url', 'href', 'link'))
+        }
+    }
+    if (-not (Test-AprlSafeUrl $candidate)) { return '' }
+    return $candidate.Trim()
 }
 
 function ConvertTo-WaraAprlCatalog {
@@ -100,29 +146,57 @@ function Get-WaraAprlCatalog {
     .DESCRIPTION
         Best-effort and offline-safe. Returns a GUID-keyed hashtable, or $null if
         no catalog could be loaded. Only HTTPS URLs are fetched.
+
+        The cache is treated as valid only while it is younger than MaxAgeHours.
+        APRL publishes new recommendation GUIDs continuously, so an unbounded
+        cache would permanently fail to resolve every GUID added after the first
+        successful fetch - the enrichment would silently rot instead of failing.
+        A stale cache is still kept as a fallback: if the refresh fetch fails we
+        prefer stale metadata over no metadata.
     #>
     [CmdletBinding()]
     param(
         [string] $Path,
         [string] $Url = 'https://azure.github.io/WARA-Build/objects/recommendations.json',
+        [int] $MaxAgeHours = 168,
         [switch] $Refresh
     )
 
     $records = $null
+    $staleRecords = $null
 
     if ($Path -and (Test-Path $Path) -and -not $Refresh) {
-        try { $records = Get-Content -Path $Path -Raw | ConvertFrom-Json } catch { $records = $null }
+        try {
+            $cached = Get-Content -Path $Path -Raw | ConvertFrom-Json
+            $ageHours = ([DateTime]::UtcNow - (Get-Item -LiteralPath $Path).LastWriteTimeUtc).TotalHours
+            if ($MaxAgeHours -le 0 -or $ageHours -le $MaxAgeHours) {
+                $records = $cached
+            } else {
+                $staleRecords = $cached
+                Write-Verbose ("APRL catalog cache is {0:N0}h old (max {1}h); refreshing." -f $ageHours, $MaxAgeHours)
+            }
+        } catch { $records = $null }
     }
 
     if ($null -eq $records -and -not [string]::IsNullOrWhiteSpace($Url)) {
         if ($Url -notmatch '^https://') { return $null }
         try {
-            $records = Invoke-RestMethod -Uri $Url -Method Get -TimeoutSec 30 -ErrorAction Stop
+            $fetch = { Invoke-RestMethod -Uri $Url -Method Get -TimeoutSec 30 -ErrorAction Stop }
+            if (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue) {
+                $records = Invoke-WithRetry -ScriptBlock $fetch -MaxAttempts 3 -InitialDelaySeconds 2
+            } else {
+                $records = & $fetch
+            }
             if ($Path) {
-                try { $records | ConvertTo-Json -Depth 12 | Set-Content -Path $Path -Encoding UTF8 } catch { Write-Verbose "APRL catalog cache write skipped: $([string]$_)" }
+                try {
+                    $parent = Split-Path -Parent $Path
+                    if ($parent -and -not (Test-Path $parent)) { $null = New-Item -ItemType Directory -Path $parent -Force }
+                    $records | ConvertTo-Json -Depth 12 | Set-Content -Path $Path -Encoding UTF8
+                } catch { Write-Verbose "APRL catalog cache write skipped: $([string]$_)" }
             }
         } catch {
-            return $null
+            Write-Verbose "APRL catalog fetch failed: $([string]$_)"
+            $records = $staleRecords
         }
     }
 
