@@ -282,6 +282,7 @@ azure-analyzer honours a small set of opt-in environment variables for CI / quie
 - `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` -- silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
 - `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) -- tells wrappers they were launched by the orchestrator, not standalone.
 - `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) -- comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.
+- `AZURE_ANALYZER_MAX_PARALLEL=<n>` -- caps the worker-pool throttle. Unset (default) uses the sum of the per-provider concurrency limits. Set it to `1` to run every tool serially **in the current runspace**, which is the diagnostic escape hatch for environments where `ForEach-Object -Parallel` child runspaces fail to autoload a module and a wrapper reports `Invoke-PSRule` or `Get-Mg*` as "not recognized" (#1218). Serial runs are slower but produce an identical result shape. Values below `1` or non-numeric values are ignored.
 
 </details>
 

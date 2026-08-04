@@ -82,4 +82,55 @@ Describe 'Invoke-ParallelTools' {
         ($results | Where-Object { $_.Tool -eq 'serial-a' }).Result | Should -Be 'in-process'
         ($results | Where-Object { $_.Tool -eq 'serial-b' }).Status | Should -Be 'Failed'
     }
+
+    It 'serial and parallel paths emit an identical result-object contract' {
+        # The serial path mirrors the parallel result object by hand, so the two
+        # shapes can drift silently. Downstream the orchestrator reads Tool,
+        # Status, Result and Error off both, and a missing member would surface
+        # as a StrictMode failure mid-scan rather than here. Pin the contract.
+        $spec = {
+            param($name)
+            [PSCustomObject]@{
+                Name        = $name
+                Provider    = 'CLI'
+                Scope       = 'subscription'
+                ScriptBlock = { 'ok' }
+                Arguments   = $null
+            }
+        }
+
+        $serial = @(Invoke-ParallelTools -ToolSpecs @((& $spec 'parity')) -MaxParallel 1)
+        $parallel = @(Invoke-ParallelTools -ToolSpecs @((& $spec 'parity')) -MaxParallel 2)
+
+        $serialProps = @($serial[0].PSObject.Properties.Name | Sort-Object)
+        $parallelProps = @($parallel[0].PSObject.Properties.Name | Sort-Object)
+
+        $serialProps | Should -Be $parallelProps
+        $serialProps | Should -Be @('DurationMs', 'EndTime', 'Error', 'Provider', 'Result', 'Scope', 'StartTime', 'Status', 'Tool')
+
+        # and the values agree for the members the orchestrator actually reads
+        $serial[0].Tool     | Should -Be $parallel[0].Tool
+        $serial[0].Provider | Should -Be $parallel[0].Provider
+        $serial[0].Scope    | Should -Be $parallel[0].Scope
+        $serial[0].Status   | Should -Be $parallel[0].Status
+        $serial[0].Result   | Should -Be $parallel[0].Result
+    }
+
+    It 'serial path tolerates tool specs that omit optional members under StrictMode' {
+        # Set-StrictMode -Version Latest is active in the current runspace but does
+        # NOT propagate into ForEach-Object -Parallel child runspaces, so the serial
+        # path needs explicit PSObject.Properties reads where the parallel path can
+        # get away with $tool.Scope on a missing member.
+        Set-StrictMode -Version Latest
+        $minimal = [PSCustomObject]@{
+            Name        = 'minimal'
+            ScriptBlock = { 'fine' }
+        }
+        $results = @(Invoke-ParallelTools -ToolSpecs @($minimal) -MaxParallel 1)
+        $results.Count | Should -Be 1
+        $results[0].Status   | Should -Be 'Success'
+        $results[0].Result   | Should -Be 'fine'
+        $results[0].Provider | Should -Be 'Default'
+        $results[0].Scope    | Should -Be ''
+    }
 }
