@@ -32,6 +32,19 @@ $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+$retryPath = Join-Path $PSScriptRoot 'shared' 'Retry.ps1'
+if (Test-Path $retryPath) { . $retryPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage { param([Parameter(Mandatory)]$FindingError) $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason; if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }; return $line }
+}
+if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
+    function Invoke-WithRetry { param([Parameter(Mandatory)][scriptblock]$ScriptBlock,[int]$MaxAttempts=1,[int]$InitialDelaySeconds=0,[string[]]$TransientMessagePatterns=@()) return & $ScriptBlock }
+}
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
     function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
@@ -74,6 +87,29 @@ function New-WaraKey {
     $key = [string]$Value
     if ([string]::IsNullOrWhiteSpace($key)) { return '' }
     return $key.Trim().ToLowerInvariant()
+}
+
+function Get-WaraFreshArtifact {
+    <#
+    .SYNOPSIS
+        Return the newest file matching Filter that was produced by the current run.
+    .DESCRIPTION
+        output/ is never cleaned between runs, so an artifact left behind by an earlier
+        successful scan is otherwise indistinguishable from one the collector just wrote.
+        Known holds the FullName -> LastWriteTimeUtc of every file that existed before the
+        run started; an artifact counts as fresh when it is absent from that snapshot or
+        its timestamp has moved, which also covers the collector overwriting the same
+        filename when it runs twice within the same minute.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory)] [string] $Filter,
+        [Parameter(Mandatory)] [hashtable] $Known
+    )
+    return Get-ChildItem -Path $Path -Filter $Filter -File -ErrorAction SilentlyContinue |
+        Where-Object { -not $Known.ContainsKey($_.FullName) -or $Known[$_.FullName] -ne $_.LastWriteTimeUtc } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
 }
 
 function Get-WaraWorkbookMetadata {
@@ -150,67 +186,76 @@ if (-not (Test-Path $OutputPath)) {
 
 # Run collector
 $subArg = "/subscriptions/$SubscriptionId"
-$collectorJson = $null
-# Azure Advisor occasionally returns a transient GatewayTimeout, which surfaces inside
-# the WARA module as "Cannot bind argument to parameter 'AdvisorMetadata' because it is null".
-# Retry the collector a few times before giving up so a single flaky API call doesn't lose
-# the whole subscription's reliability data.
-$maxAttempts = 3
+
+# Snapshot what is already on disk before the collector runs. See Get-WaraFreshArtifact:
+# without this, a stale WARA-File-*.json from an earlier scan makes a total collector
+# failure look like a success and last run's findings get re-reported as current.
+$knownArtifacts = @{}
+foreach ($existing in @(Get-ChildItem -Path $OutputPath -File -ErrorAction SilentlyContinue)) {
+    $knownArtifacts[$existing.FullName] = $existing.LastWriteTimeUtc
+}
+
+# Azure Advisor occasionally returns a transient GatewayTimeout, which surfaces inside the
+# WARA module as "Cannot bind argument to parameter 'AdvisorMetadata' because it is null".
+# That string matches none of the shared transient patterns, so the retry conditions are
+# passed explicitly. A collector run that produces no file is also retried: the collector
+# writes its JSON even when a subscription has no impacted resources, so a missing file
+# means the run failed rather than that there was nothing to report.
 $collectorError = $null
-for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
-    $collectorError = $null
-    try {
+$collectorJson = $null
+try {
+    $collectorJson = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 15 -TransientMessagePatterns @(
+        'AdvisorMetadata', 'produced no collector output',
+        '\b429\b', '\b503\b', '\b504\b', '\b408\b',
+        'throttl', 'rate limit', 'timed out', 'timeout',
+        'service unavailable', 'temporarily unavailable', 'connection reset'
+    ) -ScriptBlock {
         Push-Location $OutputPath
-        # Collector: tolerate per-resource "No recommendation found" errors so a single
-        # unmapped resource type does not abort collection for the whole subscription.
-        Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Continue
-        Pop-Location
-    } catch {
-        Pop-Location
-        $collectorError = $_
-    }
-    # Success if a collector JSON was produced this run, regardless of non-fatal noise.
-    $producedJson = Get-ChildItem -Path $OutputPath -Filter 'WARA*File*.json' -ErrorAction SilentlyContinue |
-        Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if ($producedJson) { break }
-    if ($attempt -lt $maxAttempts) {
-        $delay = 15 * $attempt
-        Write-Warning "WARA collector attempt $attempt/$maxAttempts produced no output$( if ($collectorError) { ": $(Remove-Credentials -Text ([string]$collectorError))" }). Retrying in ${delay}s (transient Advisor timeout?)..."
-        Start-Sleep -Seconds $delay
+        try {
+            # Tolerate per-resource "No recommendation found" errors so a single unmapped
+            # resource type does not abort collection for the whole subscription.
+            Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Continue
+        }
+        finally {
+            Pop-Location
+        }
+        $fresh = Get-WaraFreshArtifact -Path $OutputPath -Filter 'WARA*File*.json' -Known $knownArtifacts
+        if (-not $fresh) {
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:wara' `
+                -Category 'TransientFailure' `
+                -Reason "Start-WARACollector produced no collector output for subscription '$SubscriptionId'." `
+                -Remediation 'Re-run the scan. If it keeps failing, run Start-WARACollector directly to see the underlying Azure Advisor or Resource Graph error.'))
+        }
+        return $fresh
     }
 }
-if ($collectorError -and -not (Get-ChildItem -Path $OutputPath -Filter 'WARA*File*.json' -ErrorAction SilentlyContinue)) {
-    Write-Warning "WARA collector failed after $maxAttempts attempts: $(Remove-Credentials -Text ([string]$collectorError)). Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$collectorError)); Findings = @(); Errors = @() }
+catch {
+    $collectorError = $_
 }
 
-# Locate the collector JSON (WARA module emits 'WARA-File-*.json' with dashes;
-# older builds used 'WARA_File_*.json' — accept both).
-$collectorJson = Get-ChildItem -Path $OutputPath -Filter 'WARA*File*.json' |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
+if (-not $collectorJson) {
+    $message = if ($collectorError) { Remove-Credentials -Text ([string]$collectorError) } else { 'No output JSON produced' }
+    Write-Warning "WARA collector failed: $message. Returning empty result."
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = $message; Findings = @(); Errors = @() }
+}
 
-# Analyzer (v1.x): takes -JSONFile (the collector output), NOT -TenantID/-SubscriptionIds.
-if ($collectorJson -and (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue)) {
+# Analyzer (v1.x) takes -JSONFile (the collector output), not -TenantID/-SubscriptionIds.
+if (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue) {
     try {
         Push-Location $OutputPath
-        Start-WARAAnalyzer -JSONFile $collectorJson.FullName -ErrorAction Stop
-        Pop-Location
+        try {
+            Start-WARAAnalyzer -JSONFile $collectorJson.FullName -ErrorAction Stop
+        }
+        finally {
+            Pop-Location
+        }
     } catch {
-        Pop-Location
         Write-Warning "WARA analyzer step failed (collector data retained): $(Remove-Credentials -Text ([string]$_))"
     }
 }
 
-# Find the newest JSON output file (collector output, dash or underscore variant)
-$jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA*File*.json" |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
-
-if (-not $jsonFile) {
-    Write-Warning "WARA collector ran but no output JSON found in $OutputPath."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @(); Errors = @() }
-}
+$jsonFile = $collectorJson
 
 # Parse findings
 try {
@@ -220,9 +265,7 @@ try {
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @(); Errors = @() }
 }
 
-$xlsxFile = Get-ChildItem -Path $OutputPath -Filter "Expert-Analysis-*.xlsx" |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
+$xlsxFile = Get-WaraFreshArtifact -Path $OutputPath -Filter 'Expert-Analysis-*.xlsx' -Known $knownArtifacts
 $workbookMetadata = if ($xlsxFile) { Get-WaraWorkbookMetadata -WorkbookPath $xlsxFile.FullName } else { @{} }
 
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -243,7 +286,7 @@ $recommendations = if ($raw.PSObject.Properties['Recommendations'] -and $raw.Rec
     }
     if ($combined.Count -eq 0) {
         # Generic fallback: first non-empty array property. Iterate the Properties collection
-        # directly — piping $raw.PSObject.Properties.Value unrolls nested arrays so a
+        # directly. Piping $raw.PSObject.Properties.Value unrolls nested arrays so a
         # Where-Object { $_ -is [array] } filter never matches the array as a whole.
         foreach ($p in $raw.PSObject.Properties) {
             if ($p.Value -is [System.Array] -and @($p.Value).Count -gt 0) {
