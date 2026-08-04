@@ -69,6 +69,16 @@
       auto  — (default) pick the most recent snapshot from $OutputPath\snapshots\ automatically.
       none  — suppress baseline comparison entirely.
     The explicit -PreviousRun parameter always wins over -BaselineMode when both are supplied.
+.PARAMETER SuppressionFile
+    Path to a JSON suppression list of reviewed false-positive or accepted-risk
+    findings. Matching findings are marked Suppressed and excluded from the
+    actionable counts and the default report views, but are always retained in
+    results.json and entities.json so the decision stays auditable.
+
+    Entries are matched on a stable FindingKey (source + rule/title + entity),
+    not on the per-run finding Id, which is not stable across runs. A malformed
+    file is a hard error rather than a silent no-op, because scanning without
+    the suppressions the operator asked for would misreport the risk posture.
 .PARAMETER CompareTo
     Path to a previous run output directory containing entities.json.
     When provided, the orchestrator writes drift-report.json and drift-report.md
@@ -140,6 +150,7 @@ param (
     [Nullable[datetime]] $Since,
     [ValidateSet('auto','none')]
     [string] $BaselineMode = 'auto',
+    [string] $SuppressionFile,
     [switch] $InstallFalco,
     [switch] $UninstallFalco,
     [ValidateRange(1, 60)]
@@ -214,6 +225,35 @@ if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
 # any other Write-Host output so it appears at the top of the console run.
 if (Get-Command Write-AzureAnalyzerBanner -ErrorAction SilentlyContinue) {
     Write-AzureAnalyzerBanner -NoBanner:$NoBanner
+}
+
+# ---------------------------------------------------------------------------
+# Suppression list (#1229). Loaded here, before any scanning, so a malformed
+# file fails in seconds instead of after a full tenant scan. A bad list is a
+# hard error: continuing without the suppressions the operator asked for would
+# report a risk posture that does not match their triage decisions.
+# ---------------------------------------------------------------------------
+$script:SuppressionEntries = @{}
+$script:SuppressionSummary = $null
+if (-not [string]::IsNullOrWhiteSpace($SuppressionFile)) {
+    if (-not (Get-Command Import-SuppressionList -ErrorAction SilentlyContinue)) {
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'MissingDependency' `
+            -Reason 'Import-SuppressionList is not available.' `
+            -Remediation 'Verify modules/shared/Suppression.ps1 exists and re-import AzureAnalyzer.'))
+    }
+    $suppressionList = Import-SuppressionList -Path $SuppressionFile
+    if ($suppressionList.Errors.Count -gt 0) {
+        throw (Format-FindingErrorMessage (New-FindingError -Source 'orchestrator' `
+            -Category 'InvalidParameter' `
+            -Reason "Suppression file could not be used: $($suppressionList.Errors -join ' ')" `
+            -Remediation 'Every entry needs a reason, and either a 16-character hex key or source + entityId + ruleId/title.'))
+    }
+    $script:SuppressionEntries = $suppressionList.Entries
+    Write-Host "  Suppression list: $($script:SuppressionEntries.Count) active entr$(if ($script:SuppressionEntries.Count -eq 1) { 'y' } else { 'ies' })" -ForegroundColor DarkGray
+    foreach ($expired in @($suppressionList.Expired)) {
+        Write-Warning "Suppression entry ignored, past its expiry: $expired"
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -1364,6 +1404,25 @@ foreach ($wr in $parallelResults) {
         }
     }
 
+    # Suppression marking (#1229). Runs before the EntityStore feed and the v1
+    # flattening so both outputs carry the flag. Findings are marked, never
+    # dropped: the raw data keeps them so a suppression stays auditable and can
+    # be reversed without re-running the scan. FindingKey is stamped on every
+    # finding, matched or not, so a report can offer "suppress this" against a
+    # key that is guaranteed to match next run.
+    if ($v3Findings.Count -gt 0 -and (Get-Command Set-FindingSuppression -ErrorAction SilentlyContinue)) {
+        try {
+            $suppressionResult = Set-FindingSuppression -Findings $v3Findings -Entries $script:SuppressionEntries
+            if ($null -eq $script:SuppressionSummary) {
+                $script:SuppressionSummary = [pscustomobject]@{ Total = 0; Suppressed = 0 }
+            }
+            $script:SuppressionSummary.Total += $suppressionResult.Total
+            $script:SuppressionSummary.Suppressed += $suppressionResult.Suppressed
+        } catch {
+            Write-Warning (Remove-Credentials "Suppression marking failed for $toolName : $_")
+        }
+    }
+
     # Feed v3 findings into EntityStore
     foreach ($finding in $v3Findings) {
         if (-not $finding) { continue }
@@ -1433,6 +1492,9 @@ foreach ($wr in $parallelResults) {
             MissingDimensions = if ($f.PSObject.Properties['MissingDimensions']) { $f.MissingDimensions } else { @() }
             Frameworks   = if ($f.PSObject.Properties['Frameworks']   -and $f.Frameworks)   { $f.Frameworks }   else { @() }
             Controls     = if ($f.PSObject.Properties['Controls']     -and $f.Controls)     { $f.Controls }     else { @() }
+            FindingKey   = if ($f.PSObject.Properties['FindingKey']) { $f.FindingKey } else { '' }
+            Suppressed   = if ($f.PSObject.Properties['Suppressed']) { [bool]$f.Suppressed } else { $false }
+            SuppressionReason = if ($f.PSObject.Properties['SuppressionReason']) { $f.SuppressionReason } else { '' }
         })
     }
 }
@@ -2092,14 +2154,19 @@ try {
     Write-Warning (Remove-Credentials "Executive dashboard generation failed: $_")
 }
 
-$critical = @($allResults | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant }).Count
-$high     = @($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant }).Count
-$medium   = @($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant }).Count
-$low      = @($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant }).Count
+$critical = @($allResults | Where-Object { $_.Severity -eq 'Critical' -and -not $_.Compliant -and -not $_.Suppressed }).Count
+$high     = @($allResults | Where-Object { $_.Severity -eq 'High' -and -not $_.Compliant -and -not $_.Suppressed }).Count
+$medium   = @($allResults | Where-Object { $_.Severity -eq 'Medium' -and -not $_.Compliant -and -not $_.Suppressed }).Count
+$low      = @($allResults | Where-Object { $_.Severity -eq 'Low' -and -not $_.Compliant -and -not $_.Suppressed }).Count
 
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 Write-Host "  Total findings: $($allResults.Count)"
 Write-Host "  Non-compliant — Critical: $critical  High: $high  Medium: $medium  Low: $low" -ForegroundColor Yellow
+# Suppressed findings are reported explicitly rather than just disappearing
+# from the counts, so a shrinking number is never mistaken for real progress.
+if ($script:SuppressionSummary -and $script:SuppressionSummary.Suppressed -gt 0) {
+    Write-Host "  Suppressed: $($script:SuppressionSummary.Suppressed) finding(s) excluded from the counts above" -ForegroundColor DarkGray
+}
 Write-Host "  Output: $outputFile" -ForegroundColor Green
 if (Test-Path $entitiesFile) {
     Write-Host "  Entities: $entitiesFile" -ForegroundColor Green
