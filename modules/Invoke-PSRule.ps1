@@ -34,6 +34,14 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage { param([Parameter(Mandatory)]$FindingError) $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason; if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }; return $line }
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -155,7 +163,11 @@ try {
         # instead of scanning an empty folder and reporting a clean, empty result.
         $exportedFiles = @(Get-ChildItem -Path $exportPath -Filter '*.json' -File -ErrorAction SilentlyContinue)
         if ($exportedFiles.Count -eq 0) {
-            throw "Export-AzRuleData produced no resource data for subscription '$SubscriptionId'. Confirm the signed-in account has an Az context for this subscription (Connect-AzAccount) and at least Reader access to it."
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:psrule' `
+                -Category 'NotFound' `
+                -Reason "Export-AzRuleData produced no resource data for subscription '$SubscriptionId'." `
+                -Remediation 'Confirm the signed-in account has an Az context for this subscription (Connect-AzAccount) and at least Reader access to it.'))
         }
 
         Write-Verbose "Running PSRule on $($exportedFiles.Count) exported file(s) in: $exportPath"
