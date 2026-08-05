@@ -191,6 +191,17 @@ $rawFindings = @(Get-Content $InputPath -Raw | ConvertFrom-Json -ErrorAction Sto
 if ($rawFindings.Count -eq 1 -and $rawFindings[0] -and $rawFindings[0].PSObject.Properties['Findings']) {
     $rawFindings = @($rawFindings[0].Findings)
 }
+# Suppression (#1229): filtered once at intake so every downstream rollup,
+# chart and table inherits the exclusion. The rows stay in results.json; the
+# count is rendered in the summary so the reduction is never silent.
+$suppressedCount = @($rawFindings | Where-Object { $_.PSObject.Properties['Suppressed'] -and $_.Suppressed -eq $true }).Count
+if ($suppressedCount -gt 0) {
+    $rawFindings = @($rawFindings | Where-Object { -not ($_.PSObject.Properties['Suppressed'] -and $_.Suppressed -eq $true) })
+}
+$suppressedNoteHtml = ''
+if ($suppressedCount -gt 0) {
+    $suppressedNoteHtml = "<p style='color:var(--txtm)'><strong>$suppressedCount finding(s)</strong> matched the suppression list and are excluded from every figure on this page. They remain in <code>results.json</code>.</p>`n      "
+}
 
 $entities = @()
 $entitiesPath = Join-Path (Split-Path $InputPath -Parent) 'entities.json'
@@ -856,7 +867,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <div class='card'>
       <p><strong>Run summary</strong>: scanned <strong>$total findings</strong> across <strong>$(@($manifestTools).Count) tools</strong> and <strong>$entityCount entities</strong>. Overall compliance is <strong>$compliantPct%</strong>.</p>
       <p>Critical and High findings are prioritized in top risks. Schema 2.2 fields render when present and are skipped when absent.</p>
-      <h3 style='margin:14px 0 10px'>Pillar breakdown (non-pass)</h3>
+      $suppressedNoteHtml<h3 style='margin:14px 0 10px'>Pillar breakdown (non-pass)</h3>
       <div style='display:flex;flex-direction:column;gap:6px'>$pillarSummaryHtml</div>
     </div>
     <div class='card'><h3 style='margin-bottom:10px'>Top recommendations</h3><div id='topRecs'>$topRecsHtml</div></div>

@@ -360,7 +360,6 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: >-
       ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","public-linux"]'))
-          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","public-win"]'))
           || matrix.os }}
     timeout-minutes: 15
     steps:
