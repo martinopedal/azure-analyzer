@@ -114,9 +114,38 @@ over `source|rule|entity` (lowercase, trimmed), computed by `Get-FindingKey` in
 marks exported from the browser and suppression applied at scan time are always
 consistent. No second identity scheme exists in the interactive layer.
 
-## Design note: issue 1231
+## Payload optimisation: string interning (#1231)
 
-Issue 1231 ("shrink interactive report payload via stable hashed finding id") is the
-direct follow-up. The current implementation emits finding identity as `data-fk`
-per row, which is ready for the deduplication pass 1231 will add. No redesign is
-needed; 1231 is a tightening of the payload format, not a rewrite of the triage layer.
+Repeated strings (`data-rule`, `data-entity`, `data-sub`, `data-tool`, `data-status`)
+are interned into a compact lookup table so the HTML payload grows linearly with the
+number of unique values, not with the total finding count.
+
+**How it works**
+
+`New-HtmlReport.ps1` builds five string tables during row generation. Each `<tr>` row
+receives a small integer index instead of the full string:
+
+```html
+<!-- static (before): ~200 bytes of repeated strings per row -->
+<tr data-rule="AZR-001 Rule Title Here" data-sub="/subscriptions/00000000-..." ...>
+
+<!-- interactive (after): a few bytes per row -->
+<tr data-rule="0" data-sub="1" ...>
+```
+
+The lookup table is emitted once as `window._T = {R:[...], E:[...], S:[...], TL:[...], ST:[...]}`.
+A resolver helper `_dv(el, key)` dereferences through these tables at runtime.
+All existing filter, sort, CSV export, and suppression JSON export functions use `_dv`
+automatically (the post-process step patches the IIFE before the file is written).
+
+**Coverage**
+
+All five string attributes are interned. `data-severity` (always a 4-5 char constant)
+and `data-id` / `data-fk` (per-row unique identifiers) are not interned.
+
+**No virtualisation in this release**
+
+DOM paging/virtualisation was considered but deferred; it would require a larger
+restructure and carries more risk. The string interning alone delivers the bulk of the
+saving for the typical case (many findings sharing a small set of rules and
+subscriptions). Virtualisation remains an open improvement.

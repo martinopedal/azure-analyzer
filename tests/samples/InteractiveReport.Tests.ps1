@@ -95,6 +95,48 @@ Describe 'interactive HTML report' {
         $script:interactiveContent | Should -Match "colspan='7'"
         $script:staticContent     | Should -Not -Match "colspan='7'"
     }
+
+
+
+    # Payload shrink tests (#1231)
+    It 'interactive mode emits window._T lookup table' {
+        $script:interactiveContent | Should -Match 'window\._T='
+    }
+
+    It 'interactive mode emits _dv resolver function' {
+        $script:interactiveContent | Should -Match 'function _dv'
+    }
+
+    It 'interactive mode uses integer indices in data-rule attributes' {
+        # data-rule should be a small integer, not a verbatim rule string
+        $script:interactiveContent | Should -Match "data-rule='[0-9]+'"
+        $script:staticContent     | Should -Not -Match "data-rule='[0-9]'" `
+            -Because 'static mode must not use integer indices'
+    }
+
+    It 'interactive mode uses integer indices in data-sub attributes' {
+        $script:interactiveContent | Should -Match "data-sub='[0-9]+'"
+    }
+
+    It 'interactive mode interns rule strings into lookup table (T.R array populated)' {
+        # T.R array should contain at least one rule string entry
+        $script:interactiveContent | Should -Match 'window\._T=\{R:\["'
+        # data-rule attributes should be numeric indices, not full verbatim strings
+        $ruleAttrs = [regex]::Matches($script:interactiveContent, "data-rule='([^']+)'")
+        $ruleAttrs.Count | Should -BeGreaterThan 0
+        # Every data-rule value should be a non-negative integer
+        foreach ($m in $ruleAttrs) {
+            $m.Groups[1].Value | Should -Match '^\d+$' -Because "data-rule should be an integer index when -Interactive"
+        }
+    }
+
+    It 'interactive mode IIFE resolves attributes via _dv()' {
+        $script:interactiveContent | Should -Match '_dv\('
+    }
+
+    It 'interactive mode removes direct r.dataset.rule from IIFE' {
+        $script:interactiveContent | Should -Not -Match 'r\.dataset\.rule'
+    }
 }
 
 AfterAll {

@@ -465,6 +465,14 @@ $pillarSummaryHtml = if ($pillarSummary.Count -eq 0) {
     }) -join "`n"
 }
 
+# String intern tables for interactive payload shrink (#1231)
+# Only populated when -Interactive; empty on static path (zero overhead)
+$__ruleIdx = @{}; $__ruleArr = [System.Collections.Generic.List[string]]::new()
+$__entityIdx = @{}; $__entityArr = [System.Collections.Generic.List[string]]::new()
+$__subIdx = @{}; $__subArr = [System.Collections.Generic.List[string]]::new()
+$__toolIdx = @{}; $__toolArr = [System.Collections.Generic.List[string]]::new()
+$__statusIdx = @{}; $__statusArr = [System.Collections.Generic.List[string]]::new()
+
 # Findings rows (server-rendered)
 $findingRows = New-Object System.Collections.Generic.List[string]
 foreach ($row in $normalized) {
@@ -480,6 +488,19 @@ foreach ($row in $normalized) {
     $dataFk = if ($Interactive -and -not [string]::IsNullOrWhiteSpace($row.FindingKey)) { " data-fk='$(HE $row.FindingKey)'" } else { '' }
     $triagedTd = if ($Interactive) { "`n  <td><button class='fp-btn btn' aria-pressed='false' title='Mark as false positive'>Mark FP</button></td>" } else { '' }
     $colspanN = if ($Interactive) { '7' } else { '6' }
+    # Intern repeated attribute strings into index tables when interactive (#1231)
+    if ($Interactive) {
+        foreach ($__e in @(
+            @($__ruleIdx,   $__ruleArr,   [string]$row.RuleKey),
+            @($__entityIdx, $__entityArr, [string]$row.Entity),
+            @($__subIdx,    $__subArr,    [string]$row.Subscription),
+            @($__toolIdx,   $__toolArr,   [string]$row.Tool),
+            @($__statusIdx, $__statusArr, [string]$row.Status)
+        )) { if (-not $__e[0].ContainsKey($__e[2])) { $__e[0][$__e[2]] = $__e[1].Count; $__e[1].Add($__e[2]) } }
+        $trDataAttrs = " data-rule='$($__ruleIdx[[string]$row.RuleKey])' data-entity='$($__entityIdx[[string]$row.Entity])' data-sub='$($__subIdx[[string]$row.Subscription])' data-tool='$($__toolIdx[[string]$row.Tool])' data-status='$($__statusIdx[[string]$row.Status])'"
+    } else {
+        $trDataAttrs = " data-rule='$(HE $row.RuleKey)' data-entity='$(HE $row.Entity)' data-sub='$(HE $row.Subscription)' data-tool='$(HE $row.Tool)' data-status='$(HE $row.Status)'"
+    }
 
     $evidenceLinks = if ($evidenceUris.Count -gt 0) {
         ($evidenceUris | Where-Object { $_ } | ForEach-Object { "<a href='$(HE $_)' target='_blank' rel='noopener noreferrer'>Evidence link</a>" }) -join ''
@@ -552,7 +573,7 @@ foreach ($row in $normalized) {
     if ($links.Count -eq 0) { $links.Add("<span class='tool-chip'>No links provided</span>") }
 
     $findingRows.Add(@"
-<tr class='row s-$($row.SeverityKey)' data-id='$rowId' data-severity='$($row.SeverityKey)' data-rule='$(HE $row.RuleKey)' data-entity='$(HE $row.Entity)' data-sub='$(HE $row.Subscription)' data-tool='$(HE $row.Tool)' data-status='$(HE $row.Status)'$dataFk>
+<tr class='row s-$($row.SeverityKey)' data-id='$rowId' data-severity='$($row.SeverityKey)'$trDataAttrs$dataFk>
   <td><span class='pill sev-$($row.SeverityKey)'>$(HE $row.Severity)</span></td>
   <td><div style='font-weight:600'><span class='rule-id'>$(HE $row.RuleKey)</span>$(HE $row.Title)</div><div style='font-size:11.5px;margin-top:3px'>$frameworkBadges <span class='faint' style='margin-left:6px'>$(HE $row.Domain)</span></div></td>
   <td><div class='mono' style='font-size:12px'>$(HE $row.Entity)</div><div class='faint' style='font-size:11px'>$(HE $row.EntityType) · $(HE $row.ResourceGroup)</div></td>
@@ -733,6 +754,7 @@ $interactiveCss = ''
 $interactiveToolbarHtml = ''
 $interactiveTheadHtml = ''
 $interactiveFooterScript = ''
+$interactivePreamble = ''
 if ($Interactive) {
     $origCrit = [int]$sevCount['crit']
     $origHigh = [int]$sevCount['high']
@@ -816,6 +838,18 @@ document.getElementById('importFpJson')?.addEventListener('change',function(){
   };rdr.readAsText(file);this.value='';
 });
 })();
+</script>
+"@
+    # Lookup table preamble: emits window._T and _dv() resolver; injected before the main IIFE (#1231)
+    $__ruleJson   = ($__ruleArr.ToArray()   | ForEach-Object { ConvertTo-Json $_ -Compress }) -join ','
+    $__entityJson = ($__entityArr.ToArray() | ForEach-Object { ConvertTo-Json $_ -Compress }) -join ','
+    $__subJson    = ($__subArr.ToArray()    | ForEach-Object { ConvertTo-Json $_ -Compress }) -join ','
+    $__toolJson   = ($__toolArr.ToArray()   | ForEach-Object { ConvertTo-Json $_ -Compress }) -join ','
+    $__statusJson = ($__statusArr.ToArray() | ForEach-Object { ConvertTo-Json $_ -Compress }) -join ','
+    $interactivePreamble = @"
+<script>
+window._T={R:[$($__ruleJson)],E:[$($__entityJson)],S:[$($__subJson)],TL:[$($__toolJson)],ST:[$($__statusJson)]};
+function _dv(el,k){var t=window._T;if(!t)return el.dataset[k]||'';var v=el.dataset[k];var m={rule:t.R,entity:t.E,sub:t.S,tool:t.TL,status:t.ST};return(m[k]&&m[k][+v])!=null?(m[k][+v]):v||'';}
 </script>
 "@
 }
@@ -1025,7 +1059,7 @@ $($findingRows -join "`n")
     <div class='foot-actions'><button class='btn' onclick='window.print()'>Print</button><a class='btn' href='#overview'>Top</a></div>
   </div>
 </footer>
-<script type='application/json' id='hmModel'>$hmJson</script>
+$interactivePreamble<script type='application/json' id='hmModel'>$hmJson</script>
 <script>
 (function(){
 'use strict';
@@ -1164,6 +1198,12 @@ renderHeatmap();
 $interactiveFooterScript</body>
 </html>
 "@
+
+if ($Interactive) {
+    # Patch all .dataset.{rule,entity,sub,tool,status} reads to resolve via _dv() (#1231)
+    # Makes filter, sort, and export functions work correctly with interned integer indices.
+    $html = $html -replace '([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\.dataset\.(rule|entity|sub|tool|status)\b', '_dv($1,''$2'')'
+}
 
 $sanitizedHtml = Remove-Credentials $html
 Set-Content -Path $OutputPath -Value $sanitizedHtml -Encoding UTF8
