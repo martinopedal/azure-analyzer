@@ -22,20 +22,15 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Preflight (Windows): probe Pool W-pub for the Windows leg of the matrix.
-  # See martinopedal/personal-runners-infra/docs/WINDOWS-PREFLIGHT.md.
+  # All OSes use GitHub-hosted runners. This repo is public; GitHub-hosted
+  # runners are free and unlimited.
   # ---------------------------------------------------------------------------
   e2e:
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-    runs-on: >-
-      ${{ github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name != github.repository &&
-          matrix.os
-          || (matrix.os == 'ubuntu-latest' && fromJSON('["self-hosted","public-linux"]'))
-          || matrix.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
