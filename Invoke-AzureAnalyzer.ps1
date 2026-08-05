@@ -120,6 +120,7 @@ param (
     [string[]] $IncludeTools,
     [string[]] $ExcludeTools,
     [switch] $NonInteractive,
+    [switch] $InteractiveReport,
     [switch] $SkipPrereqCheck,
     [switch] $InstallMissingModules,
     [string] $InstallConfigPath,
@@ -2081,9 +2082,10 @@ try {
 # ---------------------------------------------------------------------------
 $htmlReport = Join-Path $OutputPath 'report.html'
 $mdReport   = Join-Path $OutputPath 'report.md'
+$interactiveReportArg = if ($InteractiveReport) { @{ Interactive = $true } } else { @{} }
 
 try {
-    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg @trendArg @portfolioArg
+    & "$PSScriptRoot\New-HtmlReport.ps1" -InputPath $outputFile -OutputPath $htmlReport @triageArg @prevRunArg @trendArg @portfolioArg @interactiveReportArg
 } catch {
     Write-Warning (Remove-Credentials "HTML report generation failed: $_")
 }

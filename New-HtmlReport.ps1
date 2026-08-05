@@ -49,7 +49,8 @@ param(
     [string] $PreviousRun = '',
     [object] $Portfolio,
     [object[]] $Trend = @(),
-    [int] $TopRecommendationsCount = 10
+    [int] $TopRecommendationsCount = 10,
+    [switch] $Interactive
 )
 
 Set-StrictMode -Version Latest
@@ -59,6 +60,12 @@ $sanitizePath = Join-Path $PSScriptRoot 'modules' 'shared' 'Sanitize.ps1'
 if (Test-Path $sanitizePath) { . $sanitizePath }
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
+}
+
+$suppressionPath = Join-Path $PSScriptRoot 'modules' 'shared' 'Suppression.ps1'
+if (Test-Path $suppressionPath) { . $suppressionPath }
+if (-not (Get-Command Get-FindingKey -ErrorAction SilentlyContinue)) {
+    function Get-FindingKey { param([Parameter(Mandatory,ValueFromPipeline)][object]$Finding) process { return '' } }
 }
 
 if (-not (Test-Path $InputPath)) {
@@ -291,6 +298,7 @@ $normalized = foreach ($f in $rawFindings) {
         EntityRefs = if ($f.PSObject.Properties['EntityRefs']) { @($f.EntityRefs) } else { @() }
         ScoreDelta = if ($f.PSObject.Properties['ScoreDelta']) { $f.ScoreDelta } else { $null }
         ToolVersion = if ($f.PSObject.Properties['ToolVersion']) { [string]$f.ToolVersion } else { '' }
+        FindingKey = if ($Interactive) { Get-FindingKey $f } else { '' }
     }
 }
 
@@ -469,6 +477,9 @@ foreach ($row in $normalized) {
     $mitreTechniques = @($row.MitreTechniques)
     $baselineTags = @($row.BaselineTags)
     $entityRefs = @($row.EntityRefs)
+    $dataFk = if ($Interactive -and -not [string]::IsNullOrWhiteSpace($row.FindingKey)) { " data-fk='$(HE $row.FindingKey)'" } else { '' }
+    $triagedTd = if ($Interactive) { "`n  <td><button class='fp-btn btn' aria-pressed='false' title='Mark as false positive'>Mark FP</button></td>" } else { '' }
+    $colspanN = if ($Interactive) { '7' } else { '6' }
 
     $evidenceLinks = if ($evidenceUris.Count -gt 0) {
         ($evidenceUris | Where-Object { $_ } | ForEach-Object { "<a href='$(HE $_)' target='_blank' rel='noopener noreferrer'>Evidence link</a>" }) -join ''
@@ -541,16 +552,16 @@ foreach ($row in $normalized) {
     if ($links.Count -eq 0) { $links.Add("<span class='tool-chip'>No links provided</span>") }
 
     $findingRows.Add(@"
-<tr class='row s-$($row.SeverityKey)' data-id='$rowId' data-severity='$($row.SeverityKey)' data-rule='$(HE $row.RuleKey)' data-entity='$(HE $row.Entity)' data-sub='$(HE $row.Subscription)' data-tool='$(HE $row.Tool)' data-status='$(HE $row.Status)'>
+<tr class='row s-$($row.SeverityKey)' data-id='$rowId' data-severity='$($row.SeverityKey)' data-rule='$(HE $row.RuleKey)' data-entity='$(HE $row.Entity)' data-sub='$(HE $row.Subscription)' data-tool='$(HE $row.Tool)' data-status='$(HE $row.Status)'$dataFk>
   <td><span class='pill sev-$($row.SeverityKey)'>$(HE $row.Severity)</span></td>
   <td><div style='font-weight:600'><span class='rule-id'>$(HE $row.RuleKey)</span>$(HE $row.Title)</div><div style='font-size:11.5px;margin-top:3px'>$frameworkBadges <span class='faint' style='margin-left:6px'>$(HE $row.Domain)</span></div></td>
   <td><div class='mono' style='font-size:12px'>$(HE $row.Entity)</div><div class='faint' style='font-size:11px'>$(HE $row.EntityType) · $(HE $row.ResourceGroup)</div></td>
   <td>$(HE $row.Subscription)</td>
   <td><span class='tool-chip'$toolChipStyle>$(HE $row.SourceLabel)</span></td>
-  <td><span class='pill $statusClass'>$(HE $row.Status)</span></td>
+  <td><span class='pill $statusClass'>$(HE $row.Status)</span></td>$triagedTd
 </tr>
 <tr class='expand' data-parent-id='$rowId' hidden>
-  <td colspan='6'><div class='ev-grid'>
+  <td colspan='$colspanN'><div class='ev-grid'>
     <div class='ev'>
       <h4>Description</h4>
       <p>$(HE $row.Detail)</p>
@@ -717,6 +728,98 @@ $trendHtml = if (@($Trend).Count -ge 2) {
 
 $date = Get-Date -Format 'yyyy-MM-dd HH:mm UTC'
 
+# Interactive triage layer additions (empty strings produce byte-identical static output)
+$interactiveCss = ''
+$interactiveToolbarHtml = ''
+$interactiveTheadHtml = ''
+$interactiveFooterScript = ''
+if ($Interactive) {
+    $origCrit = [int]$sevCount['crit']
+    $origHigh = [int]$sevCount['high']
+    $origMed  = [int]$sevCount['med']
+    $origLow  = [int]$sevCount['low']
+    $origInfo = [int]$sevCount['info']
+    $interactiveCss = @'
+/* Interactive triage layer */
+.fp-filter{display:flex;gap:4px;align-items:center;background:var(--surf2);padding:3px;border-radius:8px;border:1px solid var(--bord)}
+.fp-filter button{padding:4px 9px;border-radius:5px;font-size:12px;font-weight:600;color:var(--txtm)}.fp-filter button.on{background:var(--surf);color:var(--txt);box-shadow:var(--shadow)}
+.fp-btn{padding:3px 8px;border:1px solid var(--bord);border-radius:4px;font-size:11px;background:var(--surf2);color:var(--txtm);cursor:pointer;white-space:nowrap}
+.fp-btn:hover{background:var(--med);color:#fff;border-color:var(--med)}
+tr.row.fp-marked>td{background:var(--surf2);opacity:.6}
+tr.row.fp-marked>td:first-child{border-left-color:var(--txtf)!important}
+html.fp-hide tr.row.fp-marked{display:none!important}
+html.fp-hide tr.row.fp-marked+tr.expand{display:none!important}
+html.fp-only tr.row:not(.fp-marked){display:none!important}
+html.fp-only tr.row:not(.fp-marked)+tr.expand{display:none!important}
+'@
+    $interactiveToolbarHtml = "<div class='fp-filter' role='group' aria-label='False-positive filter' id='fpFilter'><span style='font-size:12px;color:var(--txtf)'>FP:</span><button data-fp='all' class='on' aria-pressed='false'>All</button><button data-fp='hide' aria-pressed='false'>Hide FP</button><button data-fp='only' aria-pressed='false'>Only FP</button></div><span id='fpCountInfo' style='font-size:12px;color:var(--txtm)'></span><button class='btn' id='exportFpJson'>Export suppression JSON</button><button class='btn' id='exportFpCsv'>Export CSV (with FP)</button><label class='btn' for='importFpJson' style='cursor:pointer'>Import suppression JSON</label><input type='file' id='importFpJson' accept='.json' style='display:none' aria-label='Import suppression JSON'>"
+    $interactiveTheadHtml = "<th>Triage</th>"
+    $interactiveFooterScript = @"
+<script>
+(function(){
+'use strict';
+const STORE_KEY='aa-triage-v1-'+location.pathname;
+const ORIG={crit:$origCrit,high:$origHigh,med:$origMed,low:$origLow,info:$origInfo};
+let fpState={};
+function loadFp(){try{const s=localStorage.getItem(STORE_KEY);if(s)fpState=JSON.parse(s);}catch(e){}}
+function saveFp(){try{localStorage.setItem(STORE_KEY,JSON.stringify(fpState));}catch(e){}}
+function isFp(fk){return fk&&!!fpState[fk];}
+function setFp(fk,val){if(!fk)return;if(val){fpState[fk]=true;}else{delete fpState[fk];}saveFp();}
+function updateRow(fk){
+  document.querySelectorAll("tr.row[data-fk='"+fk+"']").forEach(r=>{
+    r.classList.toggle('fp-marked',!!isFp(fk));
+    const b=r.querySelector('.fp-btn');if(b){b.textContent=isFp(fk)?'Unmark FP':'Mark FP';b.setAttribute('aria-pressed',String(!!isFp(fk)));}
+  });
+}
+function updateCounts(){
+  const bySev={crit:0,high:0,med:0,low:0,info:0};
+  document.querySelectorAll('tr.row[data-fk]').forEach(r=>{const fk=r.dataset.fk;if(isFp(fk)){bySev[r.dataset.severity]=(bySev[r.dataset.severity]||0)+1;}});
+  ['crit','high','med','low','info'].forEach(s=>{
+    const el=document.querySelector('.sev-cnt.sev-'+s+' .n');
+    if(el){const orig=ORIG[s]||0;const adj=orig-(bySev[s]||0);el.textContent=adj+(orig>adj?' ('+orig+')':'');}
+  });
+  const n=Object.keys(fpState).length;const info=document.getElementById('fpCountInfo');if(info){info.textContent=n>0?n+' marked FP':'';}
+}
+let fpMode='all';
+function applyFpFilter(){document.documentElement.classList.toggle('fp-hide',fpMode==='hide');document.documentElement.classList.toggle('fp-only',fpMode==='only');}
+loadFp();
+document.querySelectorAll('tr.row[data-fk]').forEach(r=>{
+  const fk=r.dataset.fk;if(!fk)return;
+  if(isFp(fk))r.classList.add('fp-marked');
+  const b=r.querySelector('.fp-btn');
+  if(b){b.setAttribute('aria-pressed',String(!!isFp(fk)));b.textContent=isFp(fk)?'Unmark FP':'Mark FP';b.addEventListener('click',e=>{e.stopPropagation();setFp(fk,!isFp(fk));updateRow(fk);updateCounts();});}
+});
+updateCounts();applyFpFilter();
+const fpEl=document.getElementById('fpFilter');
+if(fpEl){fpEl.querySelectorAll('button[data-fp]').forEach(b=>{b.addEventListener('click',()=>{fpEl.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');fpMode=b.dataset.fp;applyFpFilter();});});}
+document.getElementById('exportFpJson')?.addEventListener('click',()=>{
+  const ts=new Date().toISOString();const sup=[];
+  document.querySelectorAll('tr.row[data-fk]').forEach(r=>{const fk=r.dataset.fk;if(!isFp(fk))return;sup.push({key:fk,reason:'Marked false-positive in interactive report ('+ts+')',source:r.dataset.tool||'',title:r.dataset.rule||''});});
+  const doc={schemaVersion:'1.0',suppressions:sup};
+  const blob=new Blob([JSON.stringify(doc,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='suppression.json';a.click();
+});
+document.getElementById('exportFpCsv')?.addEventListener('click',()=>{
+  const hdr=['severity','rule','entity','subscription','tool','status','false_positive'];const rows=[hdr.join(',')];
+  document.querySelectorAll('tr.row[data-fk]').forEach(r=>{
+    if(r.style.display==='none')return;
+    rows.push([r.dataset.severity,r.dataset.rule,r.dataset.entity,r.dataset.sub,r.dataset.tool,r.dataset.status,isFp(r.dataset.fk)?'true':'false'].map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(','));
+  });
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='findings-triage.csv';a.click();
+});
+document.getElementById('importFpJson')?.addEventListener('change',function(){
+  const file=this.files[0];if(!file)return;
+  const rdr=new FileReader();
+  rdr.onload=function(e){
+    try{const doc=JSON.parse(e.target.result);if(!doc.suppressions){alert('Invalid suppression file: missing suppressions array.');return;}doc.suppressions.forEach(s=>{if(s.key)fpState[s.key]=true;});saveFp();document.querySelectorAll('tr.row[data-fk]').forEach(r=>{const fk=r.dataset.fk;r.classList.toggle('fp-marked',!!isFp(fk));const b=r.querySelector('.fp-btn');if(b){b.textContent=isFp(fk)?'Unmark FP':'Mark FP';b.setAttribute('aria-pressed',String(!!isFp(fk)));}});updateCounts();applyFpFilter();}catch(err){alert('Could not parse suppression file: '+err.message);}
+  };rdr.readAsText(file);this.value='';
+});
+})();
+</script>
+"@
+}
+
 $auditChip = ''
 $auditReportPath = Join-Path (Split-Path $OutputPath -Parent) 'audit-report.html'
 if (Test-Path $auditReportPath) {
@@ -839,7 +942,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 /* Print stylesheet */
 @media print{header,nav,.theme-btn,.skip,.fnd-toolbar,.filt-bar{display:none!important}body{background:#fff;color:#000}.card{box-shadow:none;page-break-inside:avoid}.fnd-table tr.expand{display:table-row!important}a::after{content:" (" attr(href) ")"}}
-</style>
+$interactiveCss</style>
 </head>
 <body>
 <a href='#main' class='skip'>Skip to main content</a>
@@ -898,10 +1001,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <select id='fndTool' aria-label='Tool'><option value=''>All tools</option></select>
     <select id='fndSub' aria-label='Subscription'><option value=''>All subscriptions</option></select>
     <select id='fndStatus' aria-label='Status'><option value=''>All statuses</option><option value='Fail'>Fail</option><option value='Pass'>Pass</option><option value='Warning'>Warning</option></select>
-    <button class='btn' id='exportCsv'>Export CSV</button>
+    <button class='btn' id='exportCsv'>Export CSV</button>$interactiveToolbarHtml
   </div>
   <table class='fnd-table' id='fndTable'>
-    <thead><tr><th data-sort='severity' class='sorted'>Sev <span class='arr'>▾</span></th><th data-sort='rule'>Rule <span class='arr'>▾</span></th><th data-sort='entity'>Entity <span class='arr'>▾</span></th><th data-sort='sub'>Subscription <span class='arr'>▾</span></th><th data-sort='tool'>Tool <span class='arr'>▾</span></th><th data-sort='status'>Status <span class='arr'>▾</span></th></tr></thead>
+    <thead><tr><th data-sort='severity' class='sorted'>Sev <span class='arr'>▾</span></th><th data-sort='rule'>Rule <span class='arr'>▾</span></th><th data-sort='entity'>Entity <span class='arr'>▾</span></th><th data-sort='sub'>Subscription <span class='arr'>▾</span></th><th data-sort='tool'>Tool <span class='arr'>▾</span></th><th data-sort='status'>Status <span class='arr'>▾</span></th>$interactiveTheadHtml</tr></thead>
     <tbody id='fndBody'>
 $($findingRows -join "`n")
     </tbody>
@@ -1058,7 +1161,7 @@ applyFilters();
 renderHeatmap();
 })();
 </script>
-</body>
+$interactiveFooterScript</body>
 </html>
 "@
 

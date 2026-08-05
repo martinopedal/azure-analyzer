@@ -139,6 +139,33 @@ The `key` form uses the machine-generated SHA-256 hash (first 16 hex chars) over
 
 See [docs/consumer/suppression-list.md](docs/consumer/suppression-list.md) for the full reference.
 
+### Interactive triage report
+
+Pass `-InteractiveReport` to turn the static HTML output into a live triage surface:
+
+```powershell
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>" -InteractiveReport
+```
+
+Or generate interactively from an existing results file:
+
+```powershell
+.\New-HtmlReport.ps1 -InputPath output\results.json -OutputPath output\report-interactive.html -Interactive
+```
+
+The interactive layer adds:
+
+- **Mark as false positive** - one click per row, persisted to `localStorage` so marks survive a page reload without any server.
+- **FP filter** - All / Hide FP / Only FP buttons control row visibility.
+- **Live severity counts** - header counts adjust as you mark, showing adjusted and original side-by-side.
+- **Export suppression JSON** - one-click download of a `suppression.json` compatible with `-SuppressionFile`. Drop it next to your next scan and re-run; zero hand-editing required.
+- **Export CSV (with FP)** - appends a `false_positive` column to the standard findings CSV.
+- **Import suppression JSON** - restore marks from a file, enabling cross-machine handoff.
+
+When `-Interactive` / `-InteractiveReport` is not set, the renderer produces byte-identical output to the existing static renderer, so existing automation and sample-drift tests are unaffected.
+
+See [docs/consumer/interactive-report.md](docs/consumer/interactive-report.md) for the full reference and the export-to-suppression-file round trip.
+
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
 
 <details open><summary><b>Feature highlights</b></summary>
@@ -152,6 +179,7 @@ See [docs/consumer/suppression-list.md](docs/consumer/suppression-list.md) for t
 - **Policy enforcement track (Track C)**: ALZ hierarchy fuzzy-match scoring (Round 2 weights), vendored AzAdvertizer + ALZ catalog lookups, AzGovViz policy-edge emission (`PolicyAssignedTo`, `PolicyEnforces`, `ExemptedFrom`, `InheritsFrom`), and policy metadata in `report-manifest.json` (`policy.alz.mode`). Use `-AlzReferenceMode {Auto|Force|Off}` to control ALZ suggestion activation.
 - **Read-only everywhere**. No write permissions on any cloud. See [PERMISSIONS.md](PERMISSIONS.md) for exact scopes.
 - **HTML and Markdown reports** with executive summary, top recommendations, heatmap, framework coverage matrix, filtering, and CSV export.
+- **Interactive triage report** (`-InteractiveReport`): mark false positives in-browser, filter by FP status, live-adjust severity counts, export a suppression JSON that feeds directly into `-SuppressionFile` on the next scan.
 - **Manifest-driven installer**: Run with `-InstallMissingModules` to auto-fetch prerequisites (PSGallery modules, allow-listed package managers, HTTPS-only git clones).
 - **Hardened Log Analytics sink errors**: sink failures now use structured `New-FindingError` messages with mandatory remediation and credential-safe details, and sink raw-throw regressions are ratcheted in tests.
 - **Uniform correlator dispatch**: `identity-correlator` now uses a thin `Invoke-*` wrapper entrypoint while keeping correlation logic in shared modules.
