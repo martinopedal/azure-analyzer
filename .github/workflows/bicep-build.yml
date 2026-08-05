@@ -23,7 +23,7 @@ permissions:
 jobs:
   bicep-build:
     name: Bicep build smoke test
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout
