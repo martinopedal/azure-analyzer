@@ -19,8 +19,8 @@ jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
   #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, public-linux])
-  #   windows-latest -> VMSS Pool W-pub ([self-hosted, public-win])
-  #   macos-latest   -> literal (no self-hosted macOS pool)
+  #   windows-latest -> GitHub-hosted (public repo, free minutes)
+  #   macos-latest   -> GitHub-hosted (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------
   test:
     name: Test
@@ -29,7 +29,6 @@ jobs:
           github.event.pull_request.head.repo.full_name != github.repository &&
           matrix.os
           || (matrix.os == 'ubuntu-latest' && fromJSON('["self-hosted","public-linux"]'))
-          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","public-win"]'))
           || matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -74,7 +73,7 @@ jobs:
           shell: pwsh
           command: |
             # GitHub-hosted images ship the Az bundle, but the self-hosted
-            # public-linux/public-win pools do not. AzureAnalyzer.psm1 warns on
+            # public-linux pool does not. AzureAnalyzer.psm1 warns on
             # missing Az.Accounts/Az.ResourceGraph, and that warning lands on
             # the output stream ahead of real return values, which breaks
             # ~96 wrapper tests that mock Az cmdlets or assert exact module
