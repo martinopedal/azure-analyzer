@@ -27,7 +27,7 @@ concurrency:
 jobs:
   enumerate:
     name: Enumerate conflicting agent PRs
-    runs-on: [self-hosted, public-linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     # Skip fork PRs: App secrets are empty on forks and write permissions are
     # silently downgraded by GitHub. The workflow is meaningless for fork PRs
@@ -91,7 +91,7 @@ jobs:
     name: "Auto-rebase PR #${{ matrix.pr.number }}"
     needs: enumerate
     if: needs.enumerate.outputs.count != '0' && needs.enumerate.outputs.count != ''
-    runs-on: [self-hosted, public-linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
