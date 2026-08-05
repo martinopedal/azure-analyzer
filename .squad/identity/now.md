@@ -1,46 +1,48 @@
-# Current Focus — azure-analyzer
+# Current Focus - azure-analyzer
 
-## Last session: 2026-05-13T12:00Z (Track F #506 complete + v1.6.0 ship)
+## Last session: 2026-08-05T14:00Z (Windows Runner Migration & Native Suppression List)
 
 ## Where we are
 
-✅ **Track F complete.** Epic #506 closed via PR #1096 (Commit 9). Auditor Mode production-ready.
+✅ **Windows CI restored.** Issue #1173 closed via PR #1250 (e09ad611). Switched windows-latest from dead public-win self-hosted VMSS pool to GitHub-hosted runners. First green Windows CI validation in 2 months. Zero Windows regressions found.
 
-✅ **v1.6.0 shipped.** release-please PR #1087 merged; tag published; artifacts live.
+✅ **Native false-positive suppression list shipped.** Issue #1229 closed via PR #1251 (4704a3c). Shipped modules/shared/Suppression.ps1, unit tests, and docs. Fixed live production bug where missing finding properties caused PropertyNotFoundException under Set-StrictMode -Version Latest.
 
-✅ **All tests green.** 3087→3122 passed (35 tests added, 0 regressions). Hotfix (PR #1097) cleared all 10 parameter validation failures.
+✅ **Tool-pin PR backlog deduped.** Consolidated 48 stacked tool-pin PRs down to 16 unique tools. Closed 31 superseded PRs with --delete-branch and forced branch updates on open keepers against fixed workflows.
 
-**Repo status:** main @ f247700 (post-hotfix merge).
+🔄 **In flight:** Background worktrees active for #1230 and #1225.
+
+**Repo status:** main @ 4704a3c.
 
 ## Open issues (priority order)
 
-1. **#1098** — FILED (enhancement, `squad:atlas`). Tier 2 sql.js embedding for Auditor Mode evidence export.
+1. **#1230** - IN FLIGHT (Forge, background worktree azure-analyzer-1230).
 
-2. **#1056** — CLOSED. Track F helper modules verdict (Option B: no new modules needed).
+2. **#1225** - IN FLIGHT (Forge, background worktree azure-analyzer-1225).
 
-3. **#506** — CLOSED. Track F epic.
+3. **#1231** - QUEUED (depends on #1230).
 
 ## Next work (priority order)
 
-1. **Atlas** — Track F Commit 11 (enhancements): Blast radius renderer (`ConvertTo-AuditorResilienceHtml`), remediation appendix renderer (`ConvertTo-AuditorRemediationAppendixHtml`). Refs #1098.
+1. Complete #1230 and #1225 in-flight streams.
 
-2. **Atlas or Auditor builder owner** — Tier 2 sql.js embedding (Auditor Mode evidence database).
+2. Execute #1231 upon completion of #1230.
 
-3. **Squad housekeeping** — Inbox consolidation + history summarization (ongoing).
+3. Process 16 remaining tool-pin PR updates.
 
 ## Key files / context
 
-- `.copilot/copilot-instructions.md` + `.github/copilot-instructions.md` — re-read at start of every session.
-- `.squad/ceremonies.md` — Comment Triage Loop (rubber-duck 3-model gate).
-- `tools/tool-manifest.json` — single source of truth for tool registration.
+- .copilot/copilot-instructions.md + .github/copilot-instructions.md - re-read at start of every session.
+- .squad/ceremonies.md - Comment Triage Loop (rubber-duck 3-model gate).
+- tools/tool-manifest.json - single source of truth for tool registration.
 
 ## Directives in effect
 
-- Always squash-merge with `--delete-branch`.
+- Always squash-merge with --delete-branch.
 - Co-authored-by: Copilot trailer on every commit.
 - Avoid em/en dashes in markdown (em-dash check enforces).
 - LF-only line endings in PowerShell files.
-- Every PR body needs `Closes #N` reference.
-- `Invoke-WithRetry` for REST, `Invoke-WithTimeout` for CLI (300s default).
-- Branch protection: only `Analyze (actions)` required. 0 reviewers. Admin merge is policy-compliant.
-- Self-authored agent PRs: use `gh pr merge --admin --squash --delete-branch` (squad-reviewer approval still required per cloud-agent contract; for solo maintainer this is coordinator's reasoned acceptance after CI green).
+- Every PR body needs Closes #N reference.
+- Invoke-WithRetry for REST, Invoke-WithTimeout for CLI (300s default).
+- Branch protection: only Analyze (actions) required. 0 reviewers. Admin merge is policy-compliant.
+- Self-authored agent PRs: use gh pr merge --admin --squash --delete-branch (squad-reviewer approval still required per cloud-agent contract; for solo maintainer this is coordinator's reasoned acceptance after CI green).
