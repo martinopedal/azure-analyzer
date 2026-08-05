@@ -37,11 +37,16 @@ jobs:
     # bypasses the filter so a maintainer can recover any PR.
     if: >
       github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.pull_request.head.ref, 'squad/') ||
-      startsWith(github.event.pull_request.head.ref, 'copilot/') ||
-      startsWith(github.event.pull_request.head.ref, 'fix/') ||
-      startsWith(github.event.pull_request.head.ref, 'ci/') ||
-      startsWith(github.event.pull_request.head.ref, 'feat/')
+      (
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        (
+          startsWith(github.event.pull_request.head.ref, 'squad/') ||
+          startsWith(github.event.pull_request.head.ref, 'copilot/') ||
+          startsWith(github.event.pull_request.head.ref, 'fix/') ||
+          startsWith(github.event.pull_request.head.ref, 'ci/') ||
+          startsWith(github.event.pull_request.head.ref, 'feat/')
+        )
+      )
     steps:
       - name: Wait for initial check runs to register
         run: sleep 30
