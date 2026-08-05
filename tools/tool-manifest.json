@@ -589,7 +589,7 @@
           "brew"
         ],
         "windows": {
-          "winget": "azure-quick-review.azqr"
+          "winget": "Microsoft.Azure.QuickReview"
         },
         "macos": {
           "brew": "azure/azqr/azqr"
