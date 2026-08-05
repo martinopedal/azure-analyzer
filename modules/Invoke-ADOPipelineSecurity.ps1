@@ -51,6 +51,12 @@ foreach ($inputName in @(
     $null = $script:ServiceConnectionInputNames.Add($inputName)
 }
 
+# Backstop for Add-ServiceConnectionRefs. The value-type guard in that function removes the
+# known cause of runaway recursion, so this limit should never be reached; if it is, we report
+# it rather than truncating silently, because a skipped subtree means missed findings.
+$script:ServiceConnectionMaxDepth = 128
+$script:ServiceConnectionDepthExceeded = $false
+
 function Resolve-AdoPat {
     param ([string] $Explicit)
     if ($Explicit) { return $Explicit }
@@ -485,14 +491,51 @@ function Test-IsServiceConnectionProperty {
     return $false
 }
 
+function Add-ServiceConnectionCandidate {
+    param (
+        [object] $Value,
+        [System.Collections.Generic.HashSet[string]] $Results
+    )
+
+    if ($null -eq $Value) { return }
+
+    if ($Value -is [string]) {
+        $candidate = $Value.Trim()
+        if ($candidate -and $candidate.Length -le 200) {
+            $null = $Results.Add($candidate)
+        }
+        return
+    }
+
+    # A matched property may hold a list of connections. These must be unwrapped here rather
+    # than left to the traversal, which returns immediately for string nodes and would drop them.
+    if ($Value -isnot [System.Collections.IDictionary] -and $Value -is [System.Collections.IEnumerable]) {
+        foreach ($item in $Value) {
+            Add-ServiceConnectionCandidate -Value $item -Results $Results
+        }
+        return
+    }
+
+    if ($Value.PSObject.Properties['name'] -and $Value.name) {
+        $null = $Results.Add([string]$Value.name)
+    } elseif ($Value.PSObject.Properties['id'] -and $Value.id) {
+        $null = $Results.Add([string]$Value.id)
+    }
+}
+
 function Add-ServiceConnectionRefs {
     param (
         [object] $Node,
-        [System.Collections.Generic.HashSet[string]] $Results
+        [System.Collections.Generic.HashSet[string]] $Results,
+        [int] $Depth = 0
     )
 
     if ($null -eq $Node) { return }
     if ($Node -is [string]) { return }
+    if ($Depth -gt $script:ServiceConnectionMaxDepth) {
+        $script:ServiceConnectionDepthExceeded = $true
+        return
+    }
 
     $properties = @()
     if ($Node -is [System.Collections.IDictionary]) {
@@ -508,30 +551,25 @@ function Add-ServiceConnectionRefs {
         $propValue = $property.Value
 
         if (Test-IsServiceConnectionProperty -Name $propName -Value $propValue) {
-            if ($propValue -is [string]) {
-                $candidate = $propValue.Trim()
-                if ($candidate -and $candidate.Length -le 200) {
-                    $null = $Results.Add($candidate)
-                }
-            } elseif ($null -ne $propValue) {
-                if ($propValue.PSObject.Properties['name'] -and $propValue.name) {
-                    $null = $Results.Add([string]$propValue.name)
-                } elseif ($propValue.PSObject.Properties['id'] -and $propValue.id) {
-                    $null = $Results.Add([string]$propValue.id)
-                }
-            }
+            Add-ServiceConnectionCandidate -Value $propValue -Results $Results
         }
 
         if ($null -eq $propValue -or $propValue -is [string]) { continue }
+
+        # ConvertFrom-Json materialises ISO-8601 strings as [datetime], whose .Date property
+        # returns another [datetime]. Recursing into one walks createdDate.Date.Date.Date...
+        # until PowerShell's call-depth limit. No value type (datetime, timespan, enum, guid,
+        # numeric) can contain a service connection reference, so none is worth descending into.
+        if ($propValue -is [System.ValueType]) { continue }
         if ($propValue -is [System.Collections.IEnumerable] -and -not ($propValue -is [string])) {
             foreach ($item in $propValue) {
-                Add-ServiceConnectionRefs -Node $item -Results $Results
+                Add-ServiceConnectionRefs -Node $item -Results $Results -Depth ($Depth + 1)
             }
             continue
         }
 
         if ($propValue -is [System.Collections.IDictionary] -or @($propValue.PSObject.Properties).Count -gt 0) {
-            Add-ServiceConnectionRefs -Node $propValue -Results $Results
+            Add-ServiceConnectionRefs -Node $propValue -Results $Results -Depth ($Depth + 1)
         }
     }
 }
@@ -540,7 +578,11 @@ function Get-ServiceConnectionReferences {
     param ([object] $Node)
 
     $results = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $script:ServiceConnectionDepthExceeded = $false
     Add-ServiceConnectionRefs -Node $Node -Results $results
+    if ($script:ServiceConnectionDepthExceeded) {
+        Write-Warning "Get-ServiceConnectionReferences: traversal hit the depth limit of $script:ServiceConnectionMaxDepth. Part of the definition was not inspected, so some service connection references may be missing."
+    }
     return @($results | Sort-Object)
 }
 
