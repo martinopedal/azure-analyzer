@@ -124,6 +124,13 @@ function Normalize-WARA {
         if ($baselineTags.Count -eq 0 -and $finding.PSObject.Properties['ServiceCategory'] -and $finding.ServiceCategory) {
             $baselineTags = @("service-category:$([string]$finding.ServiceCategory)")
         }
+        # Appended after the ServiceCategory fallback above so that adding an
+        # APRL control tag can never suppress it (the fallback only fires when
+        # BaselineTags is still empty).
+        $aprlControl = Get-Text -Object $finding -Names @('AprlControl')
+        if (-not [string]::IsNullOrWhiteSpace($aprlControl)) {
+            $baselineTags = @($baselineTags) + "aprl-control:$aprlControl"
+        }
 
         $entityRefs = @()
         if ($finding.PSObject.Properties['EntityRefs'] -and $finding.EntityRefs) {
