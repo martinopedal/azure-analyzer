@@ -142,6 +142,14 @@ $findings = @(Get-Content -Path $InputPath -Raw | ConvertFrom-Json -ErrorAction 
 if ($findings.Count -eq 1 -and $findings[0] -and $findings[0].PSObject.Properties['Findings']) {
     $findings = @($findings[0].Findings)
 }
+# Suppression (#1229): reviewed false positives and accepted risk are filtered
+# out once, here, so every downstream count and section inherits the exclusion.
+# The rows stay in results.json; only this default view drops them, and the
+# count is reported below so the reduction is never silent.
+$suppressedCount = @($findings | Where-Object { $_.PSObject.Properties['Suppressed'] -and $_.Suppressed -eq $true }).Count
+if ($suppressedCount -gt 0) {
+    $findings = @($findings | Where-Object { -not ($_.PSObject.Properties['Suppressed'] -and $_.Suppressed -eq $true) })
+}
 $runDir = Split-Path $InputPath -Parent
 
 $entities = @()
@@ -289,6 +297,10 @@ if ($nonCompliant.Count -gt 0) {
     $lines.Add("$critical critical, $high high, $medium medium, $low low, and $info info findings are currently non-compliant.")
 } else {
     $lines.Add('No non-compliant findings were detected in this run.')
+}
+if ($suppressedCount -gt 0) {
+    $lines.Add('')
+    $lines.Add("$suppressedCount finding(s) matched the suppression list and are excluded from the figures above. They remain in ``results.json``.")
 }
 $lines.Add('')
 
