@@ -105,6 +105,40 @@ Auditor mode produces:
 
 See [docs/design/track-f-auditor-redesign.md](docs/design/track-f-auditor-redesign.md) for the full design.
 
+### Suppression list (false-positive / accepted-risk)
+
+Mark findings you have already reviewed so they stop appearing in counts and reports:
+
+```powershell
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>" -SuppressionFile .\suppressions.json
+```
+
+Suppressed findings are excluded from severity counts and from the HTML and Markdown report views. They remain in `results.json` so the audit trail is intact; the report renders a visible count so the reduction is never silent. Unused keys are surfaced so a list that silently stops matching is detected immediately.
+
+Each entry requires a `reason`. An `expires` field is optional; expired entries are reported and ignored, never silently applied. A malformed file is a hard error: scanning without requested suppressions misreports risk posture.
+
+Two entry forms are accepted:
+
+```json
+[
+  {
+    "key": "a1b2c3d4e5f60718",
+    "reason": "Accepted risk: dev subscription, no customer data"
+  },
+  {
+    "source": "azqr",
+    "ruleId": "aks-004",
+    "entityId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dev/providers/Microsoft.ContainerService/managedClusters/aks-dev",
+    "reason": "Dev cluster, public API server accepted by architecture decision",
+    "expires": "2027-01-01"
+  }
+]
+```
+
+The `key` form uses the machine-generated SHA-256 hash (first 16 hex chars) over `source|rule|entity`. The triple form (`source`/`ruleId`/`entityId`) is human-readable and passes PR review without opaque hashes. Both route through the same hash function so they cannot drift.
+
+See [docs/consumer/suppression-list.md](docs/consumer/suppression-list.md) for the full reference.
+
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
 
 <details open><summary><b>Feature highlights</b></summary>
@@ -235,9 +269,9 @@ Disabled-by-default Graph family (scaffolded for follow-up PRs):
 | terraform-iac | cli | cli | Terraform IaC validation |
 | infracost | cli | cli | Infracost IaC cost estimation |
 
-#### Azure DevOps (org / project, read-only PAT)
+#### Azure DevOps (org / project, read-only PAT or Entra token)
 
-`install.kind = none` for every ADO tool: pure REST through an existing PAT.
+`install.kind = none` for every ADO tool: pure REST through an existing credential. All five wrappers accept **either** a classic PAT **or** a Microsoft Entra access token issued for the Azure DevOps resource `499b84ac-1321-427f-aa17-267ca6975798`, supplied through `-AdoPat` / `-AdoPatToken` or `ADO_PAT_TOKEN` / `AZURE_DEVOPS_EXT_PAT` / `AZ_DEVOPS_PAT`. The Entra path unblocks tenants where PAT creation is disabled by policy; note the token is typically valid for only ~1 hour. See [docs/consumer/ado-auth.md](docs/consumer/ado-auth.md).
 
 | Tool | Scope | What it scans |
 |------|-------|---------------|
@@ -282,6 +316,7 @@ azure-analyzer honours a small set of opt-in environment variables for CI / quie
 - `AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS=1` -- silence `<tool> is not installed. Skipping...` notices from every wrapper. Routes through `Write-Verbose` instead. Belt-and-suspenders kill-switch for noisy CI / Pester transcripts (#472). Truthy values: `1`, `true`, `yes`, `on` (case-insensitive).
 - `AZURE_ANALYZER_ORCHESTRATED=1` (set automatically by `Invoke-AzureAnalyzer.ps1`) -- tells wrappers they were launched by the orchestrator, not standalone.
 - `AZURE_ANALYZER_EXPLICIT_TOOLS=trivy,gitleaks,...` (set automatically) -- comma-separated CSV of tools the user named via `-IncludeTools`. Empty when no filter was passed.
+- `AZURE_ANALYZER_MAX_PARALLEL=<n>` -- caps the worker-pool throttle. Unset (default) uses the sum of the per-provider concurrency limits. Set it to `1` to run every tool serially **in the current runspace**, which is the diagnostic escape hatch for environments where `ForEach-Object -Parallel` child runspaces fail to autoload a module and a wrapper reports `Invoke-PSRule` or `Get-Mg*` as "not recognized" (#1218). Serial runs are slower but produce an identical result shape. Values below `1` or non-numeric values are ignored.
 
 </details>
 
