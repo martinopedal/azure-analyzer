@@ -31,8 +31,10 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: >-
-      ${{ (matrix.os == 'ubuntu-latest'  && fromJSON('["self-hosted","alz-p1"]'))
-          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","personal-windows"]'))
+      ${{ github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name != github.repository &&
+          matrix.os
+          || (matrix.os == 'ubuntu-latest' && fromJSON('["self-hosted","public-linux"]'))
           || matrix.os }}
     timeout-minutes: 8
     steps:
