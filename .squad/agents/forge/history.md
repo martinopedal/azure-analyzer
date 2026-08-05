@@ -55,3 +55,28 @@ None found. `Test (windows-latest)` went green immediately after the dispatch fi
 - Az module install step (self-hosted public-linux needs this; GitHub-hosted ships Az bundle): ci.yml around line 67
 ### 2026-08-05 - Team Update
 - **Team Update (2026-08-05):** Windows CI restored on GitHub-hosted runners (PR #1250 / #1173). Native false-positive suppression list shipped (PR #1251 / #1229). Backlog of 48 tool-pin PRs deduped down to 16 keepers.
+
+
+### 2026-08-05 - Linux runner migration (PR #1256)
+
+Task: Migrate all remaining public-linux self-hosted references to GitHub-hosted runners.
+
+Context: The public-linux pool reached 0 registered runners. 47 workflow runs queued indefinitely. Three PRs (#1252, #1254, #1255) blocked. This completed the work started by #1250 (Windows side).
+
+Result: PR #1256. --admin merge required (chicken-and-egg: no runner to run required check until this lands).
+
+## Learnings
+
+### Runner topology (post-2026-08-05 full migration)
+
+The self-hosted pool is fully deregistered (0 runners). This repo is now 100% GitHub-hosted.
+- ubuntu-latest -> GitHub-hosted (free on public repos)
+- windows-latest -> GitHub-hosted
+- macos-latest -> GitHub-hosted
+
+Three runner patterns that accumulated and were removed:
+1. Pattern A - plain array: runs-on: [self-hosted, public-linux] - single-job workflows
+2. Pattern B - fork-PR ternary resolving to the pool on same-repo branches
+3. Pattern C - multi-line matrix dispatch in ci.yml, e2e.yml, release.yml
+
+Never reintroduce self-hosted runner references without first verifying the pool has active runners.
