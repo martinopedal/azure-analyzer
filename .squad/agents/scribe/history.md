@@ -45,3 +45,5 @@ Owned the closeout PR for the 5-PR consumer-first documentation restructure.
 - Em-dash sweep clean. `.squad/decisions/inbox/` retained via `.gitkeep`.
 
 **Lesson:** `git mv` does not expand globs on Windows PowerShell; iterate per-file with `Get-ChildItem | ForEach-Object` to avoid `fatal: bad source`.
+### 2026-08-05 - Team Update
+- **Team Update (2026-08-05):** Windows CI restored on GitHub-hosted runners (PR #1250 / #1173). Native false-positive suppression list shipped (PR #1251 / #1229). Backlog of 48 tool-pin PRs deduped down to 16 keepers.
