@@ -1,1 +1,192 @@
-#Requires -Version 7.4\n<#\n.SYNOPSIS\n    Azure Analyzer PowerShell Module - Root module script.\n.DESCRIPTION\n    Loads shared helper functions and root-level public entry scripts.\n    The public commands are exposed via wrapper functions that invoke the\n    scripts (Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1, New-MdReport.ps1).\n    \n    This is a local module for convenience; use after Import-Module ./AzureAnalyzer.psd1\n    in the cloned repository.\n#>\n\nSet-StrictMode -Version Latest\n\n# Get the module root path\n$ModuleRoot = $PSScriptRoot\n\n# Dot-source shared helper modules only\n# Wrapper/normalizer/report scripts are invoked by the orchestrator and not loaded at import time\n$sharedModulePath = Join-Path $ModuleRoot 'modules\shared'\n# Sort by FullName so load order is deterministic across OSes/filesystems.\n# This pins the #529 security invariant: if two shared files define the same\n# function, the winner must be predictable (Errors.ps1 wins over Schema.ps1\n# alphabetically). FunctionCollision.ps1 still fails-closed on duplicates.\nGet-ChildItem -Path $sharedModulePath -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue |\n    Sort-Object -Property FullName |\n    ForEach-Object { . $_.FullName }\n\n# Import public functions from root level\n# These are exported in the manifest as FunctionsToExport\n$publicFunctions = @(\n    'Invoke-AzureAnalyzer',\n    'New-HtmlReport',\n    'New-MdReport'\n)\n\nfunction Invoke-ModuleScript {\n    [CmdletBinding()]\n    param(\n        [Parameter(Mandatory)]\n        [string] $ScriptPath,\n\n        [Parameter(ValueFromRemainingArguments = $true)]\n        [object[]] $Arguments\n    )\n\n    if (-not (Test-Path $ScriptPath)) {\n        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {\n            throw (Format-FindingErrorMessage (New-FindingError -Source 'AzureAnalyzer.psm1' `\n                -Category 'NotFound' `\n                -Reason "Required script not found: $ScriptPath" `\n                -Remediation 'Reinstall the AzureAnalyzer module or restore the missing script from source control.'))\n        }\n        throw "Required script not found: $ScriptPath"\n    }\n\n    & $ScriptPath @Arguments\n}\n\nfunction Invoke-AzureAnalyzer {\n    [CmdletBinding()]\n    param(\n        [Parameter(ParameterSetName = 'Help')]\n        [switch] $Help,\n        [string] $SubscriptionId,\n        [string] $ManagementGroupId,\n        [string] $TenantId,\n        [string] $OutputPath = (Join-Path $ModuleRoot 'output'),\n        [string[]] $IncludeTools,\n        [string[]] $ExcludeTools,\n        [switch] $NonInteractive,\n        [switch] $InteractiveReport,\n        [switch] $SkipPrereqCheck,\n        [switch] $InstallMissingModules,\n        [string] $InstallConfigPath,\n        [switch] $Recurse,\n        [string] $Repository,\n        [string] $GitHubHost = 'github.com',\n        [string] $RepoPath,\n        [Alias('AdoOrganization')]\n        [string] $AdoOrg,\n        [string] $AdoProject,\n        [Alias('AdoPatToken')]\n        [string] $AdoPat,\n        [string] $GitleaksConfigPath,\n        [string] $AdoOrganizationUrl,\n        [string] $AdoServerUrl,\n        [string] $AdoRepoUrl,\n        [ValidateRange(0, 10)]\n        [int] $ScorecardThreshold = 7,\n        [string] $ScanPath,\n        [ValidateSet('fs', 'repo')]\n        [string] $ScanType,\n        [ValidateSet('CIS', 'NIST', 'PCI')]\n        [string] $Framework,\n        [string] $PreviousRun,\n        [string] $CompareTo,\n        [switch] $CompareToPrevious,\n        [switch] $Incremental,\n        [Nullable[datetime]] $Since,\n        [ValidateSet('auto', 'none')]\n        [string] $BaselineMode = 'auto',\n        [switch] $InstallFalco,\n        [switch] $UninstallFalco,\n        [ValidateRange(1, 60)]\n        [int] $FalcoCaptureMinutes = 5,\n        [string] $KubeconfigPath,\n        [string] $KubeContext,\n        [string] $KubescapeNamespace = '',\n        [string] $FalcoNamespace = 'falco',\n        [string] $KubeBenchNamespace = 'kube-system',\n        [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]\n        [string] $KubeAuthMode = 'Default',\n        [string] $KubeloginServerId,\n        [string] $KubeloginClientId,\n        [string] $KubeloginTenantId,\n        [string] $WorkloadIdentityClientId,\n        [string] $WorkloadIdentityTenantId,\n        [string] $WorkloadIdentityServiceAccountToken,\n        [string] $SentinelWorkspaceId,\n        [ValidateRange(1, 365)]\n        [int] $SentinelLookbackDays = 30,\n        [switch] $EnableAiTriage,\n        [ValidateSet('Pro', 'Business', 'Enterprise')]\n        [string] $CopilotTier,\n        [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]\n        [string] $TriageModel = 'Auto',\n        [switch] $SingleModel,\n        [ValidateSet('Auto','Force','Off')]\n        [string] $AlzReferenceMode = 'Auto',\n        [switch] $SinkLogAnalytics,\n        [string] $LogAnalyticsConfig,\n        [ValidateRange(1, 365)]\n        [int] $HistoryRetention = 30,\n        [string] $TenantConfig,\n        [string[]] $Tenants,\n        [switch] $Show,\n        [ValidateRange(1, 65535)]\n        [int] $ViewerPort = 4280,\n        [switch] $NoBanner,\n        [switch] $FixtureMode,\n        [string] $FixturePath,\n        [ValidateSet('Default','Auditor')]\n        [string] $Profile = 'Default',\n        [string] $SuppressionFile\n    )\n\n    $scriptPath = Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1'\n    if (-not (Test-Path $scriptPath)) {\n        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {\n            throw (Format-FindingErrorMessage (New-FindingError -Source 'AzureAnalyzer.psm1' `\n                -Category 'NotFound' `\n                -Reason "Required script not found: $scriptPath" `\n                -Remediation 'Reinstall the AzureAnalyzer module or restore Invoke-AzureAnalyzer.ps1 from source control.'))\n        }\n        throw "Required script not found: $scriptPath"\n    }\n\n    & $scriptPath @PSBoundParameters\n}\n\nfunction New-HtmlReport {\n    [CmdletBinding()]\n    param(\n        [Parameter(ValueFromRemainingArguments = $true)]\n        [object[]] $Arguments\n    )\n\n    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'New-HtmlReport.ps1') @Arguments\n}\n\nfunction New-MdReport {\n    [CmdletBinding()]\n    param(\n        [Parameter(ValueFromRemainingArguments = $true)]\n        [object[]] $Arguments\n    )\n\n    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'New-MdReport.ps1') @Arguments\n}\n\n# Warn if core required modules are missing\n$coreRequired = @('Az.Accounts', 'Az.ResourceGraph')\nforeach ($moduleName in $coreRequired) {\n    if (-not (Get-Module -Name $moduleName -ListAvailable -ErrorAction SilentlyContinue)) {\n        Write-Warning "Core module '$moduleName' not found. Install with: Install-Module $moduleName -Scope CurrentUser"\n    }\n}\n\n# Export public functions\nExport-ModuleMember -Function $publicFunctions\n
+#Requires -Version 7.4
+<#
+.SYNOPSIS
+    Azure Analyzer PowerShell Module - Root module script.
+.DESCRIPTION
+    Loads shared helper functions and root-level public entry scripts.
+    The public commands are exposed via wrapper functions that invoke the
+    scripts (Invoke-AzureAnalyzer.ps1, New-HtmlReport.ps1, New-MdReport.ps1).
+    
+    This is a local module for convenience; use after Import-Module ./AzureAnalyzer.psd1
+    in the cloned repository.
+#>
+
+Set-StrictMode -Version Latest
+
+# Get the module root path
+$ModuleRoot = $PSScriptRoot
+
+# Dot-source shared helper modules only
+# Wrapper/normalizer/report scripts are invoked by the orchestrator and not loaded at import time
+$sharedModulePath = Join-Path $ModuleRoot 'modules\shared'
+# Sort by FullName so load order is deterministic across OSes/filesystems.
+# This pins the #529 security invariant: if two shared files define the same
+# function, the winner must be predictable (Errors.ps1 wins over Schema.ps1
+# alphabetically). FunctionCollision.ps1 still fails-closed on duplicates.
+Get-ChildItem -Path $sharedModulePath -Filter '*.ps1' -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object -Property FullName |
+    ForEach-Object { . $_.FullName }
+
+# Import public functions from root level
+# These are exported in the manifest as FunctionsToExport
+$publicFunctions = @(
+    'Invoke-AzureAnalyzer',
+    'New-HtmlReport',
+    'New-MdReport'
+)
+
+function Invoke-ModuleScript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $ScriptPath,
+
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    if (-not (Test-Path $ScriptPath)) {
+        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'AzureAnalyzer.psm1' `
+                -Category 'NotFound' `
+                -Reason "Required script not found: $ScriptPath" `
+                -Remediation 'Reinstall the AzureAnalyzer module or restore the missing script from source control.'))
+        }
+        throw "Required script not found: $ScriptPath"
+    }
+
+    & $ScriptPath @Arguments
+}
+
+function Invoke-AzureAnalyzer {
+    [CmdletBinding()]
+    param(
+        [Parameter(ParameterSetName = 'Help')]
+        [switch] $Help,
+        [string] $SubscriptionId,
+        [string] $ManagementGroupId,
+        [string] $TenantId,
+        [string] $OutputPath = (Join-Path $ModuleRoot 'output'),
+        [string[]] $IncludeTools,
+        [string[]] $ExcludeTools,
+        [switch] $NonInteractive,
+        [switch] $InteractiveReport,
+        [switch] $SkipPrereqCheck,
+        [switch] $InstallMissingModules,
+        [string] $InstallConfigPath,
+        [switch] $Recurse,
+        [string] $Repository,
+        [string] $GitHubHost = 'github.com',
+        [string] $RepoPath,
+        [Alias('AdoOrganization')]
+        [string] $AdoOrg,
+        [string] $AdoProject,
+        [Alias('AdoPatToken')]
+        [string] $AdoPat,
+        [string] $GitleaksConfigPath,
+        [string] $AdoOrganizationUrl,
+        [string] $AdoServerUrl,
+        [string] $AdoRepoUrl,
+        [ValidateRange(0, 10)]
+        [int] $ScorecardThreshold = 7,
+        [string] $ScanPath,
+        [ValidateSet('fs', 'repo')]
+        [string] $ScanType,
+        [ValidateSet('CIS', 'NIST', 'PCI')]
+        [string] $Framework,
+        [string] $PreviousRun,
+        [string] $CompareTo,
+        [switch] $CompareToPrevious,
+        [switch] $Incremental,
+        [Nullable[datetime]] $Since,
+        [ValidateSet('auto', 'none')]
+        [string] $BaselineMode = 'auto',
+        [switch] $InstallFalco,
+        [switch] $UninstallFalco,
+        [ValidateRange(1, 60)]
+        [int] $FalcoCaptureMinutes = 5,
+        [string] $KubeconfigPath,
+        [string] $KubeContext,
+        [string] $KubescapeNamespace = '',
+        [string] $FalcoNamespace = 'falco',
+        [string] $KubeBenchNamespace = 'kube-system',
+        [ValidateSet('Default', 'Kubelogin', 'WorkloadIdentity')]
+        [string] $KubeAuthMode = 'Default',
+        [string] $KubeloginServerId,
+        [string] $KubeloginClientId,
+        [string] $KubeloginTenantId,
+        [string] $WorkloadIdentityClientId,
+        [string] $WorkloadIdentityTenantId,
+        [string] $WorkloadIdentityServiceAccountToken,
+        [string] $SentinelWorkspaceId,
+        [ValidateRange(1, 365)]
+        [int] $SentinelLookbackDays = 30,
+        [switch] $EnableAiTriage,
+        [ValidateSet('Pro', 'Business', 'Enterprise')]
+        [string] $CopilotTier,
+        [ValidatePattern('^(?i)(Auto|Explicit:.+)$')]
+        [string] $TriageModel = 'Auto',
+        [switch] $SingleModel,
+        [ValidateSet('Auto','Force','Off')]
+        [string] $AlzReferenceMode = 'Auto',
+        [switch] $SinkLogAnalytics,
+        [string] $LogAnalyticsConfig,
+        [ValidateRange(1, 365)]
+        [int] $HistoryRetention = 30,
+        [string] $TenantConfig,
+        [string[]] $Tenants,
+        [switch] $Show,
+        [ValidateRange(1, 65535)]
+        [int] $ViewerPort = 4280,
+        [switch] $NoBanner,
+        [switch] $FixtureMode,
+        [string] $FixturePath,
+        [ValidateSet('Default','Auditor')]
+        [string] $Profile = 'Default',
+        [string] $SuppressionFile
+    )
+
+    $scriptPath = Join-Path $ModuleRoot 'Invoke-AzureAnalyzer.ps1'
+    if (-not (Test-Path $scriptPath)) {
+        if (Get-Command -Name New-FindingError -ErrorAction SilentlyContinue) {
+            throw (Format-FindingErrorMessage (New-FindingError -Source 'AzureAnalyzer.psm1' `
+                -Category 'NotFound' `
+                -Reason "Required script not found: $scriptPath" `
+                -Remediation 'Reinstall the AzureAnalyzer module or restore Invoke-AzureAnalyzer.ps1 from source control.'))
+        }
+        throw "Required script not found: $scriptPath"
+    }
+
+    & $scriptPath @PSBoundParameters
+}
+
+function New-HtmlReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'New-HtmlReport.ps1') @Arguments
+}
+
+function New-MdReport {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]] $Arguments
+    )
+
+    Invoke-ModuleScript -ScriptPath (Join-Path $ModuleRoot 'New-MdReport.ps1') @Arguments
+}
+
+# Warn if core required modules are missing
+$coreRequired = @('Az.Accounts', 'Az.ResourceGraph')
+foreach ($moduleName in $coreRequired) {
+    if (-not (Get-Module -Name $moduleName -ListAvailable -ErrorAction SilentlyContinue)) {
+        Write-Warning "Core module '$moduleName' not found. Install with: Install-Module $moduleName -Scope CurrentUser"
+    }
+}
+
+# Export public functions
+Export-ModuleMember -Function $publicFunctions
