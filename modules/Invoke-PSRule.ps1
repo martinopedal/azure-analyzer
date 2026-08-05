@@ -34,6 +34,14 @@ if (Test-Path $missingToolPath) { . $missingToolPath }
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage { param([Parameter(Mandatory)]$FindingError) $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason; if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }; return $line }
+}
 if (-not (Get-Command Remove-Credentials -ErrorAction SilentlyContinue)) {
     function Remove-Credentials { param([string]$Text) return $Text }
 }
@@ -72,6 +80,7 @@ function Convert-PSRuleLevelToSeverity {
 function Get-PSRuleAnnotationValue {
     param (
         [Parameter(Mandatory)]
+        [AllowNull()]
         [object] $Annotations,
         [Parameter(Mandatory)]
         [string[]] $KeyHints
@@ -127,7 +136,42 @@ try {
         Write-Verbose "Running PSRule on path: $Path"
         $invokeParams['InputPath'] = $Path
     } else {
-        Write-Verbose "Running PSRule for subscription: $SubscriptionId"
+        Write-Verbose "Exporting Azure resource data for subscription: $SubscriptionId"
+        # PSRule.Rules.Azure cannot scan a live subscription directly. Resources must first be
+        # exported to JSON by Export-AzRuleData and then scanned by path. Previously this branch
+        # passed no InputPath at all, so every subscription scan silently returned nothing.
+        $exportPath = Join-Path ([System.IO.Path]::GetTempPath()) ("psrule-" + $SubscriptionId)
+        if (Test-Path $exportPath) { Remove-Item (Join-Path $exportPath '*') -Force -Recurse -ErrorAction SilentlyContinue }
+        else { $null = New-Item -ItemType Directory -Path $exportPath -Force }
+        $exportParams = @{ Subscription = $SubscriptionId; OutputPath = $exportPath; ErrorAction = 'Stop' }
+
+        # Scope the export to the tenant that owns the TARGET subscription. Taking the tenant
+        # from the current context instead would pin every scan to whichever tenant happened to
+        # be active and export nothing for subscriptions in any other tenant. The Az context is
+        # process-wide, and Invoke-ParallelTools runs Azure tools concurrently, so this wrapper
+        # must not call Set-AzContext: switching the active subscription here would change it
+        # underneath every other tool running at the same time.
+        $targetSub = Get-AzSubscription -SubscriptionId $SubscriptionId -ErrorAction SilentlyContinue
+        if ($targetSub -and $targetSub.PSObject.Properties['TenantId'] -and $targetSub.TenantId) {
+            $exportParams['Tenant'] = [string]$targetSub.TenantId
+        }
+
+        $null = Export-AzRuleData @exportParams -WarningAction SilentlyContinue
+
+        # Export-AzRuleData returns quietly when no Az context matches the requested
+        # subscription, so an empty output directory is the only available signal. Fail loudly
+        # instead of scanning an empty folder and reporting a clean, empty result.
+        $exportedFiles = @(Get-ChildItem -Path $exportPath -Filter '*.json' -File -ErrorAction SilentlyContinue)
+        if ($exportedFiles.Count -eq 0) {
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:psrule' `
+                -Category 'NotFound' `
+                -Reason "Export-AzRuleData produced no resource data for subscription '$SubscriptionId'." `
+                -Remediation 'Confirm the signed-in account has an Az context for this subscription (Connect-AzAccount) and at least Reader access to it.'))
+        }
+
+        Write-Verbose "Running PSRule on $($exportedFiles.Count) exported file(s) in: $exportPath"
+        $invokeParams['InputPath'] = (Join-Path $exportPath '*.json')
         $invokeParams['Option'] = @{ 'Configuration.AZURE_SUBSCRIPTION_ID' = $SubscriptionId }
     }
 
@@ -183,6 +227,21 @@ try {
         $level = if ($_.PSObject.Properties['Level'] -and $_.Level) { [string]$_.Level } else { 'Warning' }
         $severity = if ($isCompliant) { 'Info' } else { Convert-PSRuleLevelToSeverity -Level $level }
 
+        $resourceArmId = ''
+        $targetObj = if ($_.PSObject.Properties['TargetObject']) { $_.TargetObject } else { $null }
+        if ($targetObj) {
+            foreach ($propName in @('id', 'Id', 'resourceId', 'ResourceId')) {
+                if ($targetObj.PSObject.Properties[$propName]) {
+                    $candStr = [string]$targetObj.PSObject.Properties[$propName].Value
+                    if ($candStr -match '^/subscriptions/') { $resourceArmId = $candStr; break }
+                }
+            }
+        }
+        $targetName = if ($_.PSObject.Properties['TargetName']) { [string]$_.TargetName } else { '' }
+        if (-not $resourceArmId -and $targetName -match '^/subscriptions/') {
+            $resourceArmId = $targetName
+        }
+
         [PSCustomObject]@{
             Source         = 'psrule'
             Title          = $title
@@ -191,7 +250,7 @@ try {
             Compliant      = $isCompliant
             Severity       = $severity
             Detail         = $detail
-            ResourceId     = if ($_.TargetName -match '^/subscriptions/') { $_.TargetName } else { '' }
+            ResourceId     = $resourceArmId
             LearnMoreUrl   = $learnUrl
             DeepLinkUrl    = $deepLinkUrl
             Remediation    = $remediation
