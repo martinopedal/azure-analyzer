@@ -26,7 +26,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       security-events: write
