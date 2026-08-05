@@ -17,19 +17,15 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Cross-OS dispatch:
-  #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, public-linux])
-  #   windows-latest -> GitHub-hosted (public repo, free minutes)
-  #   macos-latest   -> GitHub-hosted (no self-hosted macOS pool)
+  # Cross-OS dispatch - all three OSes use GitHub-hosted runners.
+  # This repo is public, so GitHub-hosted runners are free and unlimited.
+  #   ubuntu-latest  -> GitHub-hosted
+  #   windows-latest -> GitHub-hosted
+  #   macos-latest   -> GitHub-hosted
   # ---------------------------------------------------------------------------
   test:
     name: Test
-    runs-on: >-
-      ${{ github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name != github.repository &&
-          matrix.os
-          || (matrix.os == 'ubuntu-latest' && fromJSON('["self-hosted","public-linux"]'))
-          || matrix.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -72,14 +68,12 @@ jobs:
           retry_on: error
           shell: pwsh
           command: |
-            # GitHub-hosted images ship the Az bundle, but the self-hosted
-            # public-linux pool does not. AzureAnalyzer.psm1 warns on
+            # GitHub-hosted images ship the Az bundle. AzureAnalyzer.psm1 warns on
             # missing Az.Accounts/Az.ResourceGraph, and that warning lands on
             # the output stream ahead of real return values, which breaks
             # ~96 wrapper tests that mock Az cmdlets or assert exact module
-            # exports. Because the runner is chosen by fork status, this only
-            # ever went red on same-repo branches. Guarded so it is a no-op
-            # wherever the modules are already present.
+            # exports. Guarded so it is a no-op wherever the modules are
+            # already present.
             #
             # Az.Monitor is here because Pester's Mock requires the real
             # command to exist: Invoke-FinOpsSignals tests mock Get-AzMetric,
@@ -243,7 +237,7 @@ jobs:
 
   live-tool-tests:
     name: LiveTool wrappers (non-blocking)
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     # Non-blocking by design: live binaries add early integration signal without gating merges.
     # tracked: martinopedal/azure-analyzer#604
@@ -361,7 +355,7 @@ jobs:
 
   verify-install-manifest:
     name: Verify install manifest
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -430,7 +424,7 @@ jobs:
 
   generate-sbom:
     name: Generate SBOM (dry run)
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -481,7 +475,7 @@ jobs:
 
   validate-module-manifest:
     name: Validate module manifest (Test-ModuleManifest)
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     # PSGallery readiness gate (#963): catches manifest regressions on every PR,
     # not just at release time. Runs Test-ModuleManifest against AzureAnalyzer.psd1

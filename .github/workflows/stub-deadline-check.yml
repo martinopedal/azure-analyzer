@@ -16,7 +16,7 @@ permissions:
 jobs:
   check-stub-deadline:
     name: Check redirect stub deadline
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || fromJSON('["self-hosted","public-linux"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout

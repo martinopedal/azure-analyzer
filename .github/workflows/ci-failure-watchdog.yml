@@ -51,7 +51,7 @@ permissions:
 
 jobs:
   triage-failure:
-    runs-on: [self-hosted, public-linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     # Concurrency:
     # Constant group key is safe because the triage step is hash-idempotent
@@ -256,7 +256,7 @@ jobs:
   # if triage-failure is skipped. Posts a sticky issue if any past-7-day
   # watchdog run had jobs_count == 0 and conclusion == failure.
   self-health-check:
-    runs-on: [self-hosted, public-linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
     permissions:

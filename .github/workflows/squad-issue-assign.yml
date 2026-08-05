@@ -16,7 +16,7 @@ jobs:
   assign-work:
     # Only trigger on squad:{member} labels (not the base "squad" label)
     if: startsWith(github.event.label.name, 'squad:')
-    runs-on: [self-hosted, public-linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
