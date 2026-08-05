@@ -5,12 +5,23 @@
 
 .DESCRIPTION
     Reads tools/tool-manifest.json; for each tool with an `upstream` block,
-    queries the releaseApi, compares against `currentPin`, and (on change)
-    creates a branch + commit + PR bumping the pin. Breaking-change heuristic
-    in release notes triggers `needs-copilot-iteration` label + @copilot mention
-    in the PR body.
+    queries the releaseApi and compares against `currentPin`. ALL changed pins
+    are collected first, then applied together in a single branch + commit + PR.
+    One batched PR per run, not one PR per tool. Branch name is stable and
+    predictable: chore/bump-tool-pins-<yyyyMMdd>. The chore/bump- prefix
+    preserves the closes-link-required.yml exemption.
 
-    One PR per tool. Uses `gh` CLI — expects GH_TOKEN in env.
+    Breaking-change heuristic (`$BreakingPatterns`) is applied across the batch;
+    if ANY tool trips it, the single PR receives the `needs-copilot-iteration`
+    label and an @copilot mention that lists every tripped tool.
+
+    After all pin writes the script invokes Generate-ToolCatalog.ps1,
+    Generate-PermissionsIndex.ps1 and Generate-ReadmeFacts.ps1 so the batched
+    PR never fails the tool-catalog-fresh, permissions-pages-fresh or
+    readme-facts-fresh CI jobs.
+
+    Idempotent: a re-run with no upstream changes exits cleanly without touching
+    git. Uses `gh` CLI -- expects GH_TOKEN in env.
 #>
 [CmdletBinding()]
 param(
@@ -134,6 +145,9 @@ function Get-OpenPullRequestForBranch {
 $manifestJson = Get-Content $ManifestPath -Raw
 $manifest = $manifestJson | ConvertFrom-Json -AsHashtable
 
+# --- Phase 1: collect all changes (no git ops yet) ---
+$bumps = [System.Collections.Generic.List[hashtable]]::new()
+
 foreach ($tool in $manifest.tools) {
     if (-not ($tool.ContainsKey('upstream')) -or -not $tool.upstream) { continue }
     $name = $tool.name
@@ -142,168 +156,198 @@ foreach ($tool in $manifest.tools) {
     try {
         $latest = Get-UpstreamVersion -Upstream $tool.upstream
     } catch {
-        Write-Warning "${name}: upstream check failed — $($_.Exception.Message)"
+        Write-Warning "${name}: upstream check failed -- $($_.Exception.Message)"
         continue
     }
 
     $current = $tool.upstream.currentPin
-    if ($current -eq $latest.Version -or $current -eq 'latest' -and $latest.Version -notmatch '^\d') {
-        Write-Host "   $name : already at $current"
-        continue
-    }
     if ($current -eq $latest.Version) {
         Write-Host "   $name : up to date ($current)"
         continue
     }
+    if ($current -eq 'latest' -and $latest.Version -notmatch '^\d') {
+        Write-Host "   $name : already at $current"
+        continue
+    }
 
     Write-Host "   $name : $current -> $($latest.Version)"
+    $bumps.Add(@{
+        Name       = $name
+        OldPin     = $current
+        NewPin     = $latest.Version
+        Notes      = $latest.Notes
+        Url        = $latest.Url
+        Breaking   = (Test-BreakingChange -Notes $latest.Notes)
+    })
+}
 
-    if ($DryRun) { continue }
+if ($bumps.Count -eq 0) {
+    Write-Host "No pin changes found. Nothing to do."
+    exit 0
+}
 
-    $branch = "chore/bump-$name-$($latest.Version -replace '[^a-zA-Z0-9._-]','-')"
-    $branchState = Initialize-ToolUpdateBranch -Branch $branch
+if ($DryRun) {
+    Write-Host "[DryRun] Would bump $($bumps.Count) tool(s):"
+    $bumps | ForEach-Object { Write-Host "  $($_.Name): $($_.OldPin) -> $($_.NewPin)" }
+    exit 0
+}
 
-    # Update currentPin in the manifest using the same JSON ordering.
-    $manifestRaw = Get-Content $ManifestPath -Raw
-    $manifestObj = $manifestRaw | ConvertFrom-Json
+# --- Phase 2: single branch + commit + PR ---
+$date   = (Get-Date -Format 'yyyyMMdd')
+$branch = "chore/bump-tool-pins-$date"
+
+$branchState = Initialize-ToolUpdateBranch -Branch $branch
+
+# Apply all pin changes to the manifest on this branch
+$manifestObj = (Get-Content $ManifestPath -Raw) | ConvertFrom-Json
+foreach ($b in $bumps) {
     foreach ($t in $manifestObj.tools) {
-        if ($t.name -eq $name) { $t.upstream.currentPin = $latest.Version }
+        if ($t.name -eq $b.Name) { $t.upstream.currentPin = $b.NewPin }
     }
-    ($manifestObj | ConvertTo-Json -Depth 20) | Set-Content $ManifestPath -Encoding utf8
+}
+$newJson = $manifestObj | ConvertTo-Json -Depth 20
+# Preserve original EOL (LF) and no trailing newline to match repo convention
+$newJson = $newJson -replace "`r`n", "`n"
+$origBytes = [IO.File]::ReadAllBytes($ManifestPath)
+$origHasTrailingNewline = ($origBytes[-1] -eq 10)
+if (-not $origHasTrailingNewline) { $newJson = $newJson.TrimEnd() }
+[IO.File]::WriteAllText($ManifestPath, $newJson)
 
-    # Regenerate tool catalogs from the updated manifest so they remain in sync.
-    # The catalogs are committed alongside the manifest in a single atomic commit.
-    $catalogScript = Join-Path $RepoRoot 'scripts' 'Generate-ToolCatalog.ps1'
-    try {
-        & pwsh -File $catalogScript -ErrorAction Stop | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Generate-ToolCatalog.ps1 exited with code $LASTEXITCODE"
-        }
-    } catch {
-        Write-Warning "Failed to regenerate tool catalogs: $($_.Exception.Message)"
-        throw
-    }
+# Regenerate derived docs
+$catalogScript    = Join-Path $RepoRoot 'scripts' 'Generate-ToolCatalog.ps1'
+$permissionsScript = Join-Path $RepoRoot 'scripts' 'Generate-PermissionsIndex.ps1'
+$readmeFactsScript = Join-Path $RepoRoot 'scripts' 'Generate-ReadmeFacts.ps1'
 
-    # Regenerate the PERMISSIONS.md index + auto-stub any new per-tool pages so
-    # the docs-check `permissions-pages-fresh` gate passes in the same atomic
-    # commit. Stubs land in docs/reference/permissions/<tool>.md (and mirror to
-    # docs/consumer/permissions/<tool>.md when that legacy dir exists).
-    $permissionsScript = Join-Path $RepoRoot 'scripts' 'Generate-PermissionsIndex.ps1'
-    try {
-        & pwsh -File $permissionsScript -ErrorAction Stop | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Generate-PermissionsIndex.ps1 exited with code $LASTEXITCODE"
-        }
-    } catch {
-        Write-Warning "Failed to regenerate PERMISSIONS index / per-tool stubs: $($_.Exception.Message)"
-        throw
-    }
+try {
+    & pwsh -File $catalogScript -ErrorAction Stop | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Generate-ToolCatalog.ps1 exited $LASTEXITCODE" }
+} catch {
+    Write-Warning "Failed to regenerate tool catalogs: $($_.Exception.Message)"
+    throw
+}
 
-    # Regenerate the README.md tool-count facts so the user-facing tagline,
-    # feature-list bullet, and Tool catalog summary stay in lockstep with the
-    # manifest. Without this the docs-check `readme-facts-fresh` gate would
-    # fail any time a tool is added or removed.
-    $readmeFactsScript = Join-Path $RepoRoot 'scripts' 'Generate-ReadmeFacts.ps1'
-    try {
-        & pwsh -File $readmeFactsScript -ErrorAction Stop | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Generate-ReadmeFacts.ps1 exited with code $LASTEXITCODE"
-        }
-    } catch {
-        Write-Warning "Failed to regenerate README tool-count facts: $($_.Exception.Message)"
-        throw
-    }
+try {
+    & pwsh -File $permissionsScript -ErrorAction Stop | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Generate-PermissionsIndex.ps1 exited $LASTEXITCODE" }
+} catch {
+    Write-Warning "Failed to regenerate PERMISSIONS index: $($_.Exception.Message)"
+    throw
+}
 
-    $catalogConsumer    = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog.md'
-    $catalogContributor = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog-contributor.md'
-    $permissionsRoot    = Join-Path $RepoRoot 'PERMISSIONS.md'
-    $permissionsRefDir  = Join-Path $RepoRoot 'docs' 'reference' 'permissions'
-    $permissionsConsDir = Join-Path $RepoRoot 'docs' 'consumer' 'permissions'
-    $readmeRoot         = Join-Path $RepoRoot 'README.md'
+try {
+    & pwsh -File $readmeFactsScript -ErrorAction Stop | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Generate-ReadmeFacts.ps1 exited $LASTEXITCODE" }
+} catch {
+    Write-Warning "Failed to regenerate README facts: $($_.Exception.Message)"
+    throw
+}
 
-    Invoke-GitCommand -Arguments @('add', $ManifestPath) | Out-Null
-    Invoke-GitCommand -Arguments @('add', $catalogConsumer, $catalogContributor) | Out-Null
-    Invoke-GitCommand -Arguments @('add', $permissionsRoot, $readmeRoot) | Out-Null
-    # Stage every file under the permissions dirs so any newly auto-stubbed
-    # per-tool page lands in the same atomic commit as the manifest bump.
-    if (Test-Path -LiteralPath $permissionsRefDir) {
-        Invoke-GitCommand -Arguments @('add', $permissionsRefDir) | Out-Null
-    }
-    if (Test-Path -LiteralPath $permissionsConsDir) {
-        Invoke-GitCommand -Arguments @('add', $permissionsConsDir) | Out-Null
-    }
-    Invoke-GitCommand -Arguments @(
-        'commit',
-        '-m', "chore($name): bump upstream pin to $($latest.Version)",
-        '-m', "Previous pin: $current`nNew pin: $($latest.Version)`nRelease: $($latest.Url)",
-        '-m', 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'
-    ) | Out-Null
+# Stage everything
+$catalogConsumer    = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog.md'
+$catalogContributor = Join-Path $RepoRoot 'docs' 'reference' 'tool-catalog-contributor.md'
+$permissionsRoot    = Join-Path $RepoRoot 'PERMISSIONS.md'
+$permissionsRefDir  = Join-Path $RepoRoot 'docs' 'reference' 'permissions'
+$permissionsConsDir = Join-Path $RepoRoot 'docs' 'consumer' 'permissions'
+$readmeRoot         = Join-Path $RepoRoot 'README.md'
 
-    if ($branchState.RemoteBranchExists) {
-        Invoke-GitCommand -Arguments @('push', '--force-with-lease', '-u', 'origin', $branch) | Out-Null
-    } else {
-        Invoke-GitCommand -Arguments @('push', '-u', 'origin', $branch) | Out-Null
-    }
+Invoke-GitCommand -Arguments @('add', $ManifestPath) | Out-Null
+Invoke-GitCommand -Arguments @('add', $catalogConsumer, $catalogContributor) | Out-Null
+Invoke-GitCommand -Arguments @('add', $permissionsRoot, $readmeRoot) | Out-Null
+if (Test-Path -LiteralPath $permissionsRefDir) {
+    Invoke-GitCommand -Arguments @('add', $permissionsRefDir) | Out-Null
+}
+if (Test-Path -LiteralPath $permissionsConsDir) {
+    Invoke-GitCommand -Arguments @('add', $permissionsConsDir) | Out-Null
+}
 
-    $breaking = Test-BreakingChange -Notes $latest.Notes
-    $notesExcerpt = if ($latest.Notes) { ($latest.Notes -split "`n" | Select-Object -First 20) -join "`n" } else { '(no release notes)' }
+$pinLines = ($bumps | ForEach-Object { "$($_.Name): $($_.OldPin) -> $($_.NewPin)" }) -join "`n"
+Invoke-GitCommand -Arguments @(
+    'commit',
+    '-m', "chore(deps): batch $($bumps.Count) wrapped-tool pin bumps ($date)",
+    '-m', $pinLines,
+    '-m', 'Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'
+) | Out-Null
 
-    $body = @"
-Automated upstream pin bump for **$name**.
+if ($branchState.RemoteBranchExists) {
+    Invoke-GitCommand -Arguments @('push', '--force-with-lease', '-u', 'origin', $branch) | Out-Null
+} else {
+    Invoke-GitCommand -Arguments @('push', '-u', 'origin', $branch) | Out-Null
+}
 
-| Field | Value |
-|---|---|
-| Previous pin | ``$current`` |
-| New pin | ``$($latest.Version)`` |
-| Upstream release | $($latest.Url) |
-
-### Release notes (excerpt)
-``````
-$notesExcerpt
-``````
-
-## Closes
-Closes #1019 (umbrella: weekly tool pin bumps)
+# Build PR body
+$tableRows = $bumps | ForEach-Object {
+    "| $($_.Name) | ``$($_.OldPin)`` | ``$($_.NewPin)`` | $($_.Url) |"
+}
+$tableStr = @"
+| Tool | Old pin | New pin | Upstream release |
+|------|---------|---------|-----------------|
+$($tableRows -join "`n")
 "@
 
-    if ($breaking) {
-        $wrapperPath = "modules/Invoke-$((Get-Culture).TextInfo.ToTitleCase($name) -replace '-','').ps1"
-        $normPath    = "modules/normalizers/Normalize-$((Get-Culture).TextInfo.ToTitleCase($name) -replace '-','').ps1"
-        $body += @"
+$anyBreaking = $bumps | Where-Object { $_.Breaking }
+$breakingNote = ''
+if ($anyBreaking) {
+    $tripped = ($anyBreaking | ForEach-Object { "- **$($_.Name)**" }) -join "`n"
+    $breakingNote = @"
 
 ---
 
 > [!WARNING]
-> Breaking-change heuristic matched in the release notes.
-> @copilot please review ``$wrapperPath`` and ``$normPath`` and update flags / output parsing as needed.
+> Breaking-change heuristic matched for the following tools. @copilot please
+> review their wrappers and normalizers and update flags or output parsing as
+> needed.
+>
+$tripped
 "@
-    }
-
-    $labels = @('squad', 'enhancement', 'tool-auto-update')
-    if ($breaking) { $labels += 'needs-copilot-iteration' }
-
-    $tmp = New-TemporaryFile
-    Set-Content -Path $tmp -Value $body -Encoding utf8
-    $prTitle = "chore($name): bump upstream pin to $($latest.Version)"
-    $existingPr = Get-OpenPullRequestForBranch -Branch $branch
-    if ($existingPr) {
-        gh pr edit $existingPr `
-            --title $prTitle `
-            --body-file $tmp | Out-Null
-        foreach ($label in $labels) {
-            gh pr edit $existingPr --add-label $label | Out-Null
-        }
-    } else {
-        gh pr create `
-            --title $prTitle `
-            --body-file $tmp `
-            --label ($labels -join ',') `
-            --head $branch `
-            --base main | Out-Null
-    }
-    Remove-Item $tmp
-
-    Invoke-GitCommand -Arguments @('checkout', 'main') | Out-Null
 }
 
-Write-Host "Done."
+$body = @"
+Automated weekly pin bump -- $($bumps.Count) tool(s) updated.
+
+N/A -- batched dependency maintenance; no single linked issue.
+
+## Pin changes
+
+$tableStr
+$breakingNote
+
+## Superseded PRs
+
+These per-tool PRs are superseded by this batch and should be closed once CI
+is green here (maintainer decides):
+
+<!-- superseded list populated by automation; update as needed -->
+
+---
+*Generated by `tools/Update-ToolPins.ps1` on $date.*
+"@
+
+$labels = @('squad', 'enhancement', 'tool-auto-update')
+if ($anyBreaking) { $labels += 'needs-copilot-iteration' }
+
+$tmp = New-TemporaryFile
+Set-Content -Path $tmp -Value $body -Encoding utf8
+
+$prTitle = "chore(deps): batch $($bumps.Count) wrapped-tool pin bumps ($date)"
+$existingPr = Get-OpenPullRequestForBranch -Branch $branch
+if ($existingPr) {
+    & gh api -X PATCH "repos/martinopedal/azure-analyzer/pulls/$existingPr" `
+        --field title=$prTitle `
+        --field body="$(Get-Content $tmp -Raw)" | Out-Null
+    foreach ($label in $labels) {
+        gh pr edit $existingPr --add-label $label 2>$null | Out-Null
+    }
+    Write-Host "Updated PR #$existingPr"
+} else {
+    $prUrl = gh pr create `
+        --title $prTitle `
+        --body-file $tmp `
+        --label ($labels -join ',') `
+        --head $branch `
+        --base main
+    Write-Host "Created PR: $prUrl"
+}
+Remove-Item $tmp
+
+Invoke-GitCommand -Arguments @('checkout', 'main') | Out-Null
+Write-Host "Done. $($bumps.Count) tool(s) bumped on branch $branch."
