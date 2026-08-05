@@ -80,3 +80,12 @@ Three runner patterns that accumulated and were removed:
 3. Pattern C - multi-line matrix dispatch in ci.yml, e2e.yml, release.yml
 
 Never reintroduce self-hosted runner references without first verifying the pool has active runners.
+
+
+## Learnings (2026-08-05 - batch-tool-pins session)
+
+**merge-tree conflict-detection technique:** Running git merge-tree origin/main pr/A pr/B before merging reveals whether two branches conflict. Run it across all adjacent pairs of stacked PRs to build a conflict map before committing to a merge strategy. This was the empirical test that proved the 48-PR wall was non-viable sequentially.
+
+**generated-docs-are-the-conflict-surface:** When a generated file (docs/reference/tool-catalog-contributor.md) is committed alongside source changes, it becomes the conflict surface for concurrent PRs, not the source file. The source (tool-manifest.json) had 50+ lines between each change and auto-merged cleanly; the generated doc had all 16 changes in lines 138-182 with four adjacent-line pairs that conflicted. Solution: batch all changes into one PR so there is only one set of generated docs to commit.
+
+**batching fix pattern:** Refactor a per-item loop that does branch+commit+PR inside the loop into two phases: (1) collect all changes, (2) create one branch, apply all changes, run generators once, open one PR. This is the canonical pattern for any tool that auto-bumps dependencies weekly.
