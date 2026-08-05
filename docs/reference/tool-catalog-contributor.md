@@ -135,51 +135,51 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `ado-repos-secrets` | none | n/a | `#ad1457` | 2 |
 | `aks-karpenter-cost` | psmodule | n/a | `#00695c` | 4 |
 | `aks-rightsizing` | psmodule | n/a | `#2e7d32` | 4 |
-| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ fd04b20a7a67 | `#e65100` | 1 |
-| `amass` | cli ("amass") | owasp-amass/amass @ latest | `#00838f` | 4 |
+| `alz-queries` | psmodule | martinopedal/alz-graph-queries @ 58867cb377b4 | `#e65100` | 1 |
+| `amass` | cli ("amass") | owasp-amass/amass @ 5.1.1 | `#00838f` | 4 |
 | `appinsights` | psmodule | n/a | `#00838f` | 4 |
-| `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ 6a90d07a1416 | `#00838f` | 1 |
+| `azgovviz` | gitclone ("https://github.com/JulianHayward/Azure-MG-Sub-Governance-Reporting") | JulianHayward/Azure-MG-Sub-Governance-Reporting @ 11b4206b2c9e | `#00838f` | 1 |
 | `azqr` | cli ("azqr") | Azure/azqr @ latest | `#1565c0` | 1 |
 | `azure-cost` | psmodule | n/a | `#388e3c` | 4 |
 | `azure-quota` | cli ("az") | martinopedal/azure-quota-reports | `#455a64` | 4 |
 | `azurehound` | cli ("azurehound") | n/a | `#1565c0` | 2 |
-| `bicep-iac` | cli ("bicep") | Azure/bicep @ 0.43.8 | `#0d47a1` | 7 |
+| `bicep-iac` | cli ("bicep") | Azure/bicep @ 0.46.1 | `#0d47a1` | 7 |
 | `bloodhound-ce` | none | n/a | `#0d47a1` | 2 |
 | `censys` | none | n/a | `#5c6bc0` | 4 |
 | `conditional-access-graph` | psmodule | n/a | `#6a1b9a` | 2 |
 | `copilot-triage` | none | n/a | `#6a1b9a` | 8 |
 | `defender-easm` | psmodule | n/a | `#0078d4` | 4 |
 | `defender-for-cloud` | psmodule | n/a | `#0078d4` | 4 |
-| `dnstwist` | cli ("dnstwist") | elceef/dnstwist @ latest | `#ad1457` | 4 |
+| `dnstwist` | cli ("dnstwist") | elceef/dnstwist @ 20250130 | `#ad1457` | 4 |
 | `entra-permissions-mgmt` | psmodule | n/a | `#283593` | 2 |
-| `falco` | psmodule | falcosecurity/falco @ 0.43.1 | `#ef6c00` | 6 |
+| `falco` | psmodule | falcosecurity/falco @ 0.44.1 | `#ef6c00` | 6 |
 | `finops` | psmodule | n/a | `#00897b` | 4 |
 | `forest-druid` | none | n/a | `#37474f` | 2 |
 | `gh-actions-billing` | cli ("gh") | n/a | `#8e24aa` | 1 |
 | `gitleaks` | cli ("gitleaks") | gitleaks/gitleaks @ 8.30.1 | `#c62828` | 3 |
 | `graphrunner` | gitclone ("https://github.com/dafthack/GraphRunner.git") | n/a | `#4527a0` | 2 |
-| `httpx` | cli ("httpx") | projectdiscovery/httpx @ latest | `#2e7d32` | 4 |
+| `httpx` | cli ("httpx") | projectdiscovery/httpx @ 1.10.0 | `#2e7d32` | 4 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |
-| `infracost` | cli ("infracost") | infracost/infracost @ 0.10.44 | `#2e7d32` | 7 |
+| `infracost` | cli ("infracost") | infracost/infracost @ 0.10.45 | `#2e7d32` | 7 |
 | `kube-bench` | none | n/a | `#5e35b1` | 6 |
-| `kubescape` | cli ("kubescape") | kubescape/kubescape @ 4.0.8 | `#7b1fa2` | 6 |
+| `kubescape` | cli ("kubescape") | kubescape/kubescape @ 4.0.11 | `#7b1fa2` | 6 |
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
-| `maester` | psmodule | maester365/maester @ 2.1.0 | `#7b1fa2` | 1 |
+| `maester` | psmodule | maester365/maester @ 2.2.0 | `#7b1fa2` | 1 |
 | `pim-graph` | psmodule | n/a | `#7b1fa2` | 2 |
-| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ 1.5.1 | `#455a64` | 1 |
-| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.25.3 | `#1f2937` | 4 |
+| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ 1.5.2 | `#455a64` | 1 |
+| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.36.0 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ 1.47.0 | `#6a1b9a` | 1 |
 | `roadrecon` | cli ("roadrecon") | n/a | `#311b92` | 2 |
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ 5.5.0 | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
 | `shodan` | none | n/a | `#d32f2f` | 4 |
-| `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ latest | `#00695c` | 4 |
-| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.2 | `#5c4ee5` | 7 |
-| `trivy` | cli ("trivy") | aquasecurity/trivy @ 0.70.0 | `#00695c` | 3 |
+| `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ 2.14.0 | `#00695c` | 4 |
+| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.8 | `#5c4ee5` | 7 |
+| `trivy` | cli ("trivy") | aquasecurity/trivy @ 0.72.0 | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
-| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.24.1 | `#ad1457` | 3 |
+| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.29.0 | `#ad1457` | 3 |
 
 ## Notes
 

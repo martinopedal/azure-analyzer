@@ -390,7 +390,7 @@
         "repo": "martinopedal/alz-graph-queries",
         "releaseApi": "https://api.github.com/repos/martinopedal/alz-graph-queries/commits/main",
         "pinType": "sha",
-        "currentPin": "fd04b20a7a67"
+        "currentPin": "58867cb377b4"
       },
       "frameworks": [
         "CIS Azure",
@@ -445,7 +445,7 @@
         "repo": "owasp-amass/amass",
         "releaseApi": "https://api.github.com/repos/owasp-amass/amass/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "5.1.1"
       },
       "comment": "EASM passive subdomain enumeration. Wrapper ships in R2; manifest entry pre-registered so report wiring (R5) sees the entry.",
       "frameworks": [
@@ -533,7 +533,7 @@
         "repo": "JulianHayward/Azure-MG-Sub-Governance-Reporting",
         "releaseApi": "https://api.github.com/repos/JulianHayward/Azure-MG-Sub-Governance-Reporting/commits/master",
         "pinType": "sha",
-        "currentPin": "6a90d07a1416"
+        "currentPin": "11b4206b2c9e"
       },
       "frameworks": [
         "Azure WAF",
@@ -783,7 +783,7 @@
         "repo": "Azure/bicep",
         "releaseApi": "https://api.github.com/repos/Azure/bicep/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.43.8"
+        "currentPin": "0.46.1"
       },
       "frameworks": [
         "CIS Azure",
@@ -1057,7 +1057,7 @@
         "repo": "elceef/dnstwist",
         "releaseApi": "https://api.github.com/repos/elceef/dnstwist/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "20250130"
       },
       "frameworks": [
         "NIST 800-53"
@@ -1139,7 +1139,7 @@
         "repo": "falcosecurity/falco",
         "releaseApi": "https://api.github.com/repos/falcosecurity/falco/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.43.1"
+        "currentPin": "0.44.1"
       },
       "frameworks": [
         "CIS Azure",
@@ -1403,7 +1403,7 @@
         "repo": "projectdiscovery/httpx",
         "releaseApi": "https://api.github.com/repos/projectdiscovery/httpx/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "1.10.0"
       },
       "comment": "EASM passive host probe. Wrapper ships in R2.",
       "frameworks": [
@@ -1544,7 +1544,7 @@
         "repo": "infracost/infracost",
         "releaseApi": "https://api.github.com/repos/infracost/infracost/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.10.44"
+        "currentPin": "0.10.45"
       },
       "frameworks": [
         "Azure CAF"
@@ -1653,7 +1653,7 @@
         "repo": "kubescape/kubescape",
         "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
         "pinType": "version",
-        "currentPin": "4.0.8"
+        "currentPin": "4.0.11"
       },
       "frameworks": [
         "CIS Azure",
@@ -1737,7 +1737,7 @@
         "repo": "maester365/maester",
         "releaseApi": "https://api.github.com/repos/maester365/maester/releases/latest",
         "pinType": "psmodule-version",
-        "currentPin": "2.1.0"
+        "currentPin": "2.2.0"
       },
       "frameworks": [
         "NIST 800-53",
@@ -1832,7 +1832,7 @@
         "repo": "turbot/powerpipe",
         "releaseApi": "https://api.github.com/repos/turbot/powerpipe/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "1.5.1"
+        "currentPin": "1.5.2"
       },
       "frameworks": [
         "CIS Azure",
@@ -1903,7 +1903,7 @@
         "repo": "prowler-cloud/prowler",
         "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "5.25.3"
+        "currentPin": "5.36.0"
       },
       "frameworks": [
         "CIS Azure",
@@ -2223,7 +2223,7 @@
         "repo": "projectdiscovery/subfinder",
         "releaseApi": "https://api.github.com/repos/projectdiscovery/subfinder/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "latest"
+        "currentPin": "2.14.0"
       },
       "comment": "EASM passive subdomain enumeration. Wrapper ships in R2.",
       "frameworks": [
@@ -2273,7 +2273,7 @@
         "repo": "hashicorp/terraform",
         "releaseApi": "https://api.github.com/repos/hashicorp/terraform/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "1.15.2"
+        "currentPin": "1.15.8"
       },
       "frameworks": [
         "CIS Azure",
@@ -2329,7 +2329,7 @@
         "repo": "aquasecurity/trivy",
         "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.70.0"
+        "currentPin": "0.72.0"
       },
       "frameworks": [
         "CIS Azure",
@@ -2430,7 +2430,7 @@
         "repo": "woodruffw/zizmor",
         "releaseApi": "https://api.github.com/repos/woodruffw/zizmor/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "1.24.1"
+        "currentPin": "1.29.0"
       },
       "frameworks": [
         "NIST 800-53",
