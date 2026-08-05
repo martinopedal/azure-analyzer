@@ -1,216 +1,31 @@
 # Project Context
 
 - **Owner:** martinopedal
-- **Project:** ALZ Additional Graph Queries - Security aggregation and unified recommendation engine
-- **Stack:** PowerShell, JSON, azqr (Azure Quick Review), CSV/HTML report generation
-- **Created:** 2026-04-14
+- **Project:** azure-analyzer - Security Analyst & Recommendation Engine
+- **Stack:** PowerShell, Pester, JSON, Security Scanners (Gitleaks, Trivy, Zizmor, Scorecard, Maester)
+- **Created:** 2026-04-15
 
-## Notes
+## Core Context
 
-- **2024-12-19:** PII audit scheduled for future sprint (Scribe session tracking)
+- **Security Invariants:** All outbound calls HTTPS-only. Host allow-list enforced for clones. Output sanitized via Remove-Credentials. 300s process execution timeout.
+- **Pester & StrictMode:** Under Set-StrictMode -Version Latest, accessing non-existent properties on PSCustomObject or Hashtable throws PropertyNotFoundException. Always stamp expected fields (FindingKey, Suppressed, SuppressionReason) across all code paths.
+- **Pester 5 Lifecycle Rules:** All lifecycle blocks (BeforeAll, AfterEach, etc.) MUST be inside Describe blocks - never at script root.
+- **Test Isolation:** Reset $LASTEXITCODE in inally or AfterAll when testing non-zero exits to avoid leaking into downstream tests.
 
-## Learnings
+## Recent History
 
-<!-- Append new learnings below. Each entry is something lasting about the project. -->
-- **2026-04-17:** 3-model PR consensus is now formalized as Claude premium + GPT codex + Goldeneye prompt-bundle triage, with merged consensus/disputed findings and deterministic verdict precedence (`CHANGES_REQUESTED` beats `COMMENTED` beats `APPROVED`).
-- **2026-04-17:** Reviewer Rejection Lockout is mechanically enforced in the PR review gate helper by rejecting any replacement owner equal to the PR author and always recording lockout + replacement in the consensus document.
-- **2026-04-17:** PR review ingestion relies on GitHub Pull Request Reviews API (`/pulls/{n}/reviews`) plus line comments API (`/pulls/{n}/comments`) with paginated/slurped JSON parsing and retryable error handling for rate limits.
-- **2026-04-18 (Issue #100):** Error sanitization audit - grep pattern that caught all unsanitized writes: `Exception\.Message|Error\.Message|\.Message` with manual review of each hit. Zero false positives from `Write-Verbose` or `Write-Warning` (console streams, not disk). Key boundary: wrap at error-capture time (in catch block), not at every write-site, to ensure consistency. Test fixtures for SAS URI, bearer token, connection string, and multi-secret scenarios validate disk-write paths. Pattern established: `Message = (Remove-Credentials $_.Exception.Message)` or `Message = "Context: $(Remove-Credentials $_.Exception.Message)"` for interpolated strings.
-- **2026-05-13 (BUG-1 Test Rigor):** PowerShell's silent-null behavior (hashtable key mismatch returns `$null`, `@($null)` creates array with 1 element, `$null.Property` returns empty string) enables false-pass tests. Test 32 passed despite BUG-1 because regex matched unrelated page content. Fix: always pair `Should -Match` with upstream `Should -Not -BeNullOrEmpty`. Reject ghost rows explicitly (`Should -Not -Match '<td></td>'`). Test data flow at EVERY hand-off (triage → evidence → renderer). Added `AuditorDataFlow.Tests.ps1` end-to-end test + hardened Test 32/35. Class documented in `.squad/skills/false-pass-test-patterns/SKILL.md`.
-- **2026-04-20T14:04:33Z:** Consumer-first restructure cleanup landed as PR #253, not #248, because GitHub PR #248 had already been used by a completion-record follow-up. When a plan hardcodes a future PR number in this repo, verify the live number space before baking it into changelog text or PR sequencing assumptions.
-- **2026-04-20T14:04:33Z:** Final docs hygiene work can expose repo-wide em dashes in historical changelog and proposal pages. A single `rg -- "-" README.md CHANGELOG.md docs/` sweep plus a deliberate markdown-only replacement pass is a clean way to close the stream without touching code paths.
-- **2026-04-20T23:26:17Z (Issue #227):** Top recommendations impact scoring constants are now explicitly fixed in report logic as Critical=10, High=5, Medium=2, Low=1, Info=0.1 with formula impact = severity_weight x occurrence_count x resource_breadth. Keep these constants tunable through New-HtmlReport -TopRecommendationsCount and future weight parameterization work.
+### 2026-05-13 - v1.7.2 Validation Audit
+- Exercised 5 execution modes (subscription, tenant, repository, ADO, direct wrapper). Verified tool execution produces real esults.json + ntities.json with Schema 3.1.
+- Scanned 44 fake-success patterns (0 matches). Direct wrapper invocation verified.
+- Added LiveTool.StateIsolation.Tests.ps1 regression guard.
 
-- **2026-04-22 (Sentinel UX Research):** Audited New-HtmlReport.ps1 (2073 lines) for HTML report UX uplift. Already implemented: Summary tab (exec dashboard embed), Findings tab with collapsible Tool->Category->Rule->Finding tree, Resources tab (entity-centric), donut chart, severity pill cards, severity strip with click-to-filter, per-source horizontal bars, tool coverage badges (active/failed/excluded/skipped), severity heatmap (ResourceGroup x Severity, click-to-filter), framework x tool coverage matrix (click-to-filter), Top recommendations by impact (azqr-style), priority stack (top critical/high), trend sparkline (SVG inline), delta vs previous run (New/Resolved/Unchanged badges), global filter bar (text + sev + source + framework dropdowns), CSV export, sortable tables, persisted tree expansion (localStorage). Manifest has 34 tools, only ~17 emit findings in sample. samples/sample-report.html IS a real generated artifact (36KB) but is NOT linked from README or docs/.
-- **2026-04-22:** Schema gaps identified for HTML enrichment - FindingRow has no remediationUrl (LearnMoreUrl is closest), no MITRE TTP tagging, no per-rule risk score weight, no validation status (Pending/Accepted-Risk/Remediated). Edges enum has 5 relation types (GuestOf/MemberOf/HasRoleOn/OwnsAppRegistration/ConsentedTo) - blast-radius graph viz is feasible from existing EntityStore Edges export. EntityStore exposes Sources[], CostTrend, Correlations, MonthlyCost - mostly unused in HTML beyond Resources tab table.
+### 2026-08-05 - Native False-Positive Suppression List (#1229)
+- **Suppression Key:** SHA-256 over source|rule|entity, first 16 hex chars, lowercased and trimmed. FindingRow.Id was rejected because 37 normalizers fallback to random GUIDs.
+- **Marked, Not Dropped:** Suppressed findings remain in esults.json. Only severity counts and default report views exclude them, showing a visible suppressed count.
+- **StrictMode Fix:** Fixed production bug at Invoke-AzureAnalyzer.ps1:1633 where correlator findings block omitted FindingKey/Suppressed/SuppressionReason, throwing PropertyNotFoundException under Set-StrictMode -Version Latest.
+- **Files Shipped:** modules/shared/Suppression.ps1 (356 lines), 	ests/shared/Suppression.Tests.ps1 (26 tests), docs/consumer/suppression-list.md. PR #1251 merged at 4704a3c. Issue #1229 closed. Credited @haflidif in CHANGELOG.
 
-## 2026-04-22 — Report redesign mockup shipped
-
-- Wrote `samples/sample-report-redesign.html` (~55 KB single file, no CDNs, vanilla JS, inline SVG).
-- Sections: sticky exec header (score donut, sev strip, KPIs) → subnav → Overview (summary + 5-sev trend strip + top-5 recs) → Tool coverage (17 tools grouped by provider, collapsible, stacked-sev bar + pass% per tile) → Heatmap (3-toggle: Control-Domain×Sub default per Sage, Sev×RG, Framework×Sub) → Top 10 risks → Findings table (search + 5-sev pill filter + tool/sub/status selects + sortable cols + click-to-expand evidence/remediation + CSV export) → Entities (typed bars + identity blast-radius graph teaser exercising Edges) → Footer (tool versions, print, top).
-- 5-sev color tokens with WCAG-AA contrast on white; full `[data-theme=dark]` variant; toggle persists via `localStorage('aa-theme')`.
-- Deterministic mocked dataset: 30 rule templates × 2-10 occurrences ≈ 220 findings, generated client-side with seeded PRNG so the file stays small.
-- `node --check` on the extracted `<script>` passes.
-
-## 2026-04-22 - Phase 2: canonical sample reports + docs links
-
-- Overwrote `samples/sample-report.html` with the redesign (54.7 KB, single-file, dark mode, sortable findings, heat map, coverage grid, top risks).
-- Created `samples/sample-report.md` as the GFM twin: shields.io severity badges, anchor TOC, tool coverage tables grouped by provider, heat map as emoji table, top 10 risks, top 30 findings (with note that HTML has full 222), entity inventory, collapsible tool versions.
-- README: added 'What does the output look like?' section linking both samples between elevator pitch and Install.
-- `docs/consumer/README.md`: cross-link to both samples at top of the list.
-- CHANGELOG: `Changed` entry under Unreleased.
-- Em-dash sweep: 7 occurrences scrubbed from HTML visible text; MD authored em-dash-free.
-
-## Phase 3 (deferred): generator alignment with mockup
-
-Date: 2026-04-21
-
-- Pester baseline captured: 1349 passed / 0 failed / 5 skipped (1354 total).
-- Surveyed targets: New-HtmlReport.ps1 (2073 lines, mature CSS/JS at L1233-2060, exercised by 1349 passing tests asserting selectors/IDs), New-MdReport.ps1 (454 lines), New-ExecDashboard.ps1 (58 lines).
-- Decision: a correct, mockup-faithful rewrite plus coordinated test updates is multi-day scope. Shipping it half-done would either break the 1349 baseline or drift from the spec, both of which violate the Iterate Until Green contract.
-- Filed follow-up issues (all labelled squad,enhancement):
-  - #295 feat: align New-HtmlReport.ps1 with samples/sample-report.html design spec
-  - #296 feat: align New-MdReport.ps1 with samples/sample-report.md design spec
-  - #297 feat: harmonize New-ExecDashboard.ps1 with new report design tokens
-  - #298 feat: replace identity blast-radius SVG teaser with real interactive graph
-- CHANGELOG entry under [Unreleased] now references all four issues.
-- Spec is locked in samples/sample-report.html and samples/sample-report.md from Phase 2; subsequent PRs implement against that spec.
-
-
-## Phase 4 - 2026-04-21 - Research integration
-
-Read the four landed research drops (Atlas AzGovViz, Iris Maester, Sage outside-in, Lead Azure-portal). Wrote synthesis to .squad/decisions/inbox/sentinel-mockup-integration-2026-04-21.md.
-
-Decision: Atlas's TabStrip-vs-scroll verdict ratifies the v1 mockup. Single-page scroll + sticky in-page anchor pills, no JS tabs. Reasoning preserved in the decision drop. No refactor of samples/sample-report.html IA needed.
-
-Mockup edits applied:
-- Added .fw-* CSS palette (Iris #3.4) with WCAG-AA hex values for CIS / NIST / MITRE / EIDSCA / eIDAS2 / SOC / ISO / MCSB / CAF / WAF / CISA / ORCA.
-- Added fwBadges() / ruleIdOf() / docUrlOf() helpers in inline JS.
-- Findings table row now leads with monospaced rule-ID chip and renders frameworks as colored chips instead of plain text.
-- Tool column uses .tool-chip styling.
-- Expanded row now follows Iris #3.3 contract: Why this matters / Evidence / Compliance frameworks / Remediation / Entity / Links (docs + copy ID + source rule-ID).
-- MD twin gained "How to read a row" mini-guide with shields.io badges and a Rule-ID + Frameworks column in the top-30 table.
-
-Validations: node --check pass on extracted JS, em-dash sweep 0/0/0 on touched files, Pester baseline unchanged at 1349/1354 (no generator code modified).
-
-Outstanding work is on the four open issues (#295 / #296 / #297 / #298), not on Sentinel. The mockup remains the locked design spec for that work.
-
-## 2026-04-21 - Phase 5: ETL lifecycle scope (Schema 2.2 plan + 14 follow-up issues)
-
-User directive: "if something is dropped, ensure it's reflected in the entire tool lifecycle, not just in a report". Renderer must not fabricate placeholders for fields that wrappers drop.
-
-Synthesised the consolidated Schema 2.2 superset across all five squad briefs (Sage Part B++ / Iris Maester+Kubescape / Atlas AzGovViz / Lead WARA+Sentinel / Forge Trivy+Infracost+Scorecard) and locked it in `.squad/decisions/inbox/sentinel-schema-2.2-deltas-2026-04-21.md`.
-
-Reconciled the user's suggested field names to the codebase conventions: `HelpUrl` -> existing `LearnMoreUrl` (no duplicate), `FrameworkTags` -> structured `Frameworks` `[hashtable[]]`, `RemediationSnippet` -> plural `RemediationSnippets`, `EvidenceUrls` -> `EvidenceUris` (URI casing).
-
-Filed 15 GitHub issues, all with `squad,enhancement` labels:
-- #299 umbrella Schema 2.2 additive bump (blocks the per-tool issues)
-- #300-#313 one issue per tool (azqr / PSRule / Defender / Prowler / Powerpipe / Maester / Kubescape / AzGovViz / WARA / Sentinel-Incidents / Sentinel-Coverage / Trivy / Infracost / OpenSSF Scorecard) -- each cites the brief section it derives from, lists the wrapper+normalizer files, and depends on #299.
-
-Renderer rewrites #295/#296 are explicitly NOT blocked: they consume new fields conditionally and degrade gracefully when absent.
-
-CHANGELOG `[Unreleased]` updated with a third Changed entry referencing #299-#313.
-
-No code changes in this phase. Pester baseline unchanged at 1349 passed / 5 skipped / 1354 total.
-
-### 2026-04-22 - Report UX arc complete — all briefs merged, Schema 2.2 locked
-
-- All 6 upstream briefs + 3 Sentinel drops merged to `decisions.md` by Scribe. Inbox cleared.
-- Architecture decision ratified: single-page scroll + sticky anchor pills. No TabStrip.
-- Schema 2.2 contract is the canonical reference: 13 new optional fields, all backward-compatible.
-- 15 issues filed (#299 umbrella + #295-#298 generators + #300-#313 per-tool ETL fixes).
-- Renderer graceful-degradation contract locked: render when present, omit when absent, never fabricate, never parse from string blobs.
-
-### 2026-04-21 - Issue #340 scheduled-scan scope validation hardening
-
-- Fixed `.github/workflows/scheduled-scan.yml` step **Validate scope variables** to use `[pscustomobject]` entries (`Name`, `Value`) rather than nested arrays that PowerShell flattens.
-- Empty repo variable values now fail with explicit `Missing/invalid: <NAME>` errors instead of string index exceptions.
-- GUID validation now runs against `.Value` with clear `Missing/invalid: <NAME> (expected GUID)` messaging for malformed values.
-- Validation run: `Invoke-Pester -Path .\tests -CI` passed at baseline `1369 passed / 0 failed / 5 skipped`.
-## 2026-04-21 - #297 ExecDashboard design-token harmonization (PR #342, merged 50bb48c)
-
-- Replaced ExecDashboard CSS with the shared design-token system locked in samples/sample-report.html: --crit/--high/--med/--low/--info/--pass severity palette, surface/border/text tokens, radii, shadows, font stack.
-
-## 2026-05-13 - v1.7.1 → v1.7.2 Stabilization: Test Rigor Audit
-
-**Session:** v1.7.2 stabilization after v1.7.1 release failure (Pester 5 scope violation on Linux/macOS).
-
-**Task:** Comprehensive pre-release test rigor audit across all 39 test files in `tests/`.
-
-**Results:**
-- **RED findings:** 0 (no actively-breaking patterns detected)
-- **AMBER findings:** 3
-  - (A1) `AttackPath.Tests.ps1:83` — perf threshold 250ms too tight → recommend raising to 500–1000ms or platform-guarding
-  - (A2) `IdentityGraphExpansion.Tests.ps1:385` — 30s threshold reasonable but slow runners can breach → raise to 60s or document scale
-  - (A3) `setup.ps1:26` — `$env:AZURE_ANALYZER_SUPPRESS_TOOL_MISSING_WARNINGS` set with no cleanup → can leak downstream → move to test-runner `BeforeAll` or document global scope
-- **GREEN findings:** 5 (all acceptable patterns)
-  - `-Pending` tests (outstanding work, correct Pester mechanism)
-  - `-Skip:(-not (Get-Command ...))` guards (best practice for optional dependencies)
-  - Subprocess `Set-Location` (isolated, safe)
-  - Mocked `Start-Sleep` (zero-cost)
-  - Real `Start-Sleep` in CliTimeout.Tests.ps1 (test subject, not hot-path)
-
-**Verdict:** No blockers for release. A1/A2/A3 categorized and moved to backlog.
-
-**Output:** `.squad/decisions/inbox/sentinel-flaky-test-audit.md` + issue #1116 filed with comprehensive findings.
-
-**Key learning:** Pester 5 ALL lifecycle blocks (`BeforeAll`, `BeforeEach`, `AfterEach`, `AfterAll`) MUST be inside Describe blocks. Root-scope placement fails validation on Linux/macOS.
-- Added full [data-theme=dark] variant with persistent localStorage('aa-theme') toggle in the header (matches main report).
-- Mirrored the .fw-* framework badge palette (CIS/NIST/MITRE/EIDSCA/eIDAS/SOC/ISO/MCSB/CAF/WAF/CISA/ORCA/default) into the framework gap table.
-- Added top KPI severity strip (kpi-tile primitive) matching main report's .sev-strip.
-- Schema 2.2 (#299) conditional consumption: new Get-FrameworkKindsFromFindings helper renders an aggregate 'Frameworks evaluated' chip strip ONLY when wrappers emit the optional Frameworks[] field; legacy Schema <= 2.1 callers omit the strip entirely. No fabrication, no string parsing - the renderer-graceful-degradation contract holds.
-- Class-name back-compat preserved (sev-*, sub-*, waf-*, cov-*, tool-*) so the 1369-test baseline stayed green; only the underlying tokens moved.
-- Output remains a single self-contained HTML file (no external assets) and is sanitized through Remove-Credentials.
-- Files: modules/shared/ExecDashboardRender.ps1 (CSS rewrite + KPI strip + framework strip + theme toggle), CHANGELOG.md.
-- Validations: Pester 1369/1369 green locally; all PR checks (CI win/mac/ubuntu, CodeQL, Analyze actions, advisory-gate, Docs Check, markdown-link, SBOM, Permissions, install manifest, Tool catalog, redirect stub) green; Copilot review thread queue = empty (no comments produced).
-- Worktree removed; branch squad/297-exec-dashboard deleted.
-
-### 2026-04-22 — ETL Sprint Schema 2.2 Launch Complete
-
-**Sprint Summary:** 30 PRs merged (zero open). Schema 2.2 locked across 20+ normalizers. Pester 1495+ tests (1369 baseline → +126 extensions). HTML report null-crash regression fix #416 shipped launch-eve. All squad briefs merged to decisions.md. 15 follow-up ETL issues filed (#300–#313). Launch GO for 08:00 CET 2026-04-22.
-
-### 2026-04-23 — Security Invariant Audit (READ-ONLY)
-
-**Audit mandate:** Verify 14 security invariants from `.copilot/copilot-instructions.md` are upheld across the codebase. Zero code edits; deliverable is audit report + two low-priority findings logged.
-
-**Audit Coverage:**
-1. HTTPS-only ✅ PASS (loopback + SVG namespace exceptions safe)
-2. Host allow-list ✅ PASS (github.com, dev.azure.com, *.visualstudio.com, *.ghe.com enforced in RemoteClone.ps1)
-3. Allow-listed package managers ✅ PASS ({winget, brew, pipx, pip, snap})
-4. Package-name regex ✅ PASS (^[A-Za-z0-9]...[0-127] chars; injection-safe)
-5. 300s timeout ⚠ P2 (4 wrappers bypass; internal timeouts sufficient but not unified)
-6. Token scrubbing post-clone ✅ PASS (.git/config cleared after clone in RemoteClone.ps1:236–247)
-7. Remove-Credentials on disk ✅ PASS (consistent before Out-File / Set-Content)
-8. Greedy-regex (PR #876 follow-up) ✅ PASS (patterns credential-targeted; no JSON corruption risk)
-9. ConvertTo-CanonicalEntityId ✅ PASS (normalizers use consistently; no raw GUIDs)
-10. Workflow expression injection ✅ PASS (gh CLI used; no direct ${{ github.event.* }} in run: blocks)
-11. ConvertFrom-Json on untrusted ✅ PASS (try/catch + -Depth limits enforced)
-12. Rich-error categories ⚠ P3 (56 bare throws in utils; preconditions acceptable)
-13. Empty-catch exemptions ✅ PASS (Canonicalize fallback pattern documented)
-14. Findings prioritized ✅ PASS (2 findings issued with PR titles + RCA below)
-
-**Findings Summary:**
-- **F1 (P2):** Invoke-Powerpipe/WARA/CopilotTriage/PRReviewGate bypass Invoke-WithTimeout wrapper (internal timeouts exist; consistency improvement only). PR title: `chore: standardize timeout wrappers to use Invoke-WithTimeout`.
-- **F2 (P3):** 56 bare `throw "string"` in utility modules (Canonicalize.ps1, AksDiscovery.ps1, IaCAdapters.ps1, etc.). These are precondition failures (non-data), acceptable per code-quality standard. PR title: `docs: add rich-error guidelines for utility modules`.
-
-**Verdict:** 14/14 invariants PASS. No security gaps. All 2 findings are low-risk, non-blocking improvements.
-
-**Audit Deliverable:** `.copilot/audits/sentinel-security-audit-2026-04-23.md` (16.7 KB, ~500 lines, citations included).
-
-### 2026-05-13 — Runtime Audit (v1.7.2 Stabilization)
-
-**Audit mandate:** "Does the tool actually work when you run it?" — full code audit with actual execution or simulation to verify no silent stubs, empty arrays masquerading as success, or simulated success returns.
-
-**Modes exercised:** 5 (subscription, tenant, repository, ado, direct gitleaks wrapper on live repo)
-
-**Results:**
-- **RED findings:** 0 (no blocking defects)
-- **AMBER findings:** 3
-  - A1 (P2): azqr + powerpipe normalizers fail with parameter validation error in FixtureMode (0 findings returned, not processing fixtures)
-  - A2 (P3): WAF/framework coverage warnings when fixture data lacks RuleId/framework properties
-  - A3 (P3): Full Pester suite (3171 tests) timed out after 300s on Windows (FixtureMode.Tests.ps1 subset passed 14/14)
-- **GREEN findings:** 10
-  - ✅ No catch→Success anti-patterns
-  - ✅ No missing-tool→empty-array-success patterns
-  - ✅ No TODO/mock/simulated placeholders in production code
-  - ✅ Real wrapper execution confirmed (gitleaks: 39 findings on azure-analyzer repo, Status=Success)
-  - ✅ Schema 3.1 compliance (all modes produced entities.json with canonical EntityIds)
-  - ✅ FindingRow field population (all 10+ v2 fields present, no empty strings where values expected)
-  - ✅ HTML reports >88KB, real content (not empty-state placeholders)
-  - ✅ Exit codes 0 across all modes
-  - ✅ FixtureMode integration test baseline: 14/14 passed
-  - ✅ Shared infrastructure usage verified (RemoteClone, Sanitize, Retry, EntityStore)
-
-**Verdict:** GREEN. Tool works end-to-end. FixtureMode produces real results.json + entities.json + HTML/MD reports with Schema 3.1, non-empty findings, canonical entity IDs. Direct wrapper invocation produces real findings. No silent-failure patterns. All AMBER findings are fixture/test-suite improvements, not runtime bugs.
-
-**Audit Deliverable:** `.squad/decisions/inbox/sentinel-runtime-audit-2026-05-13.md` (comprehensive report with execution logs, grep results, 25 output files validated)
-
-**Key Learning:** FixtureMode is the fastest smoke-test gate for PR checks — credential-free, 15s runtime, exercises full normalizer + report pipeline. The 14/14 pass rate confirms end-to-end health. Recommend adding to CI if not already present.
-
-## Learnings — v1.7.2 Validation Audit (2026-05-13)
-
-- **runtime validation GREEN:** Exercised 5 modes (subscription, tenant, repository, ado, direct wrapper). Verified tool end-to-end execution produces real results.json + entities.json with Schema 3.1, HTML/MD reports, dashboard. Scanned 44 fake-success patterns (0 matches). Direct wrapper invocation (gitleaks) verified with 39 real findings. All exit codes 0.
-- **AMBER findings (issues filed):** #1127 (P2, normalizer Schema 2.2 validation), #1126 (P3, report coverage hardening), #1125 (P3, Pester suite timing). Non-blocking improvements.
-- **Pester baseline:** 3171 tests, 300s timeout. Full suite passes. LiveTool isolation regression guard added (PR #1117) to prevent leaky LASTEXITCODE.
-- **Outcome:** FixtureMode produces real artifacts. Tool is ready for v1.7.2 release.
-
+### 2026-08-05 - Team Update
+- Windows CI restored on GitHub-hosted runners (PR #1250 / #1173).
+- Native false-positive suppression list shipped (PR #1251 / #1229).
+- Backlog of 48 tool-pin PRs deduped down to 16 keepers.
