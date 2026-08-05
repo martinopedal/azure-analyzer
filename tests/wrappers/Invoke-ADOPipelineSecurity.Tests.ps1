@@ -270,6 +270,75 @@ Describe 'Invoke-ADOPipelineSecurity' {
         }
     }
 
+    Context 'when a definition carries date fields and a list-valued connection' {
+        BeforeAll {
+            $env:ADO_PAT_TOKEN = 'fake-token'
+            Mock Invoke-WebRequest {
+                param([string]$Uri)
+
+                # createdDate/modifiedDate are ISO-8601 strings that ConvertFrom-Json
+                # materialises as [datetime]. Traversing one used to recurse through
+                # .Date forever and abort the scan with a call-depth overflow (#1217).
+                $body = if ($Uri -match '_apis/build/definitions') {
+                    @{
+                        count = 3
+                        value = @(
+                            @{
+                                id           = 201
+                                name         = 'alpha'
+                                createdDate  = '2024-04-01T10:01:00Z'
+                                modifiedDate = '2024-04-02T09:00:00Z'
+                                repository   = @{ defaultBranch = 'refs/heads/main' }
+                                process      = @{ phases = @(@{ steps = @(@{ inputs = @{ ConnectedServiceNameARM = 'Azure-Shared' } }) }) }
+                            },
+                            @{
+                                id          = 202
+                                name        = 'beta'
+                                createdDate = '2024-05-02T11:02:00Z'
+                                repository  = @{ defaultBranch = 'refs/heads/main' }
+                                process     = @{ phases = @(@{ steps = @(@{ inputs = @{ ConnectedServiceNameARM = 'Azure-Shared' } }) }) }
+                            },
+                            # Third consumer is only discovered if list-valued connection
+                            # properties are unwrapped; without that the reuse threshold
+                            # of three assets is never reached.
+                            @{
+                                id          = 203
+                                name        = 'gamma'
+                                createdDate = '2024-06-03T12:03:00Z'
+                                repository  = @{ defaultBranch = 'refs/heads/main' }
+                                process     = @{ phases = @(@{ steps = @(@{ inputs = @{ serviceConnection = @('Azure-Shared', 'Azure-Extra') } }) }) }
+                            }
+                        )
+                    } | ConvertTo-Json -Depth 20
+                } else {
+                    '{"count":0,"value":[]}'
+                }
+
+                [PSCustomObject]@{ Content = $body; Headers = @{} }
+            }
+
+            $result = & $script:Wrapper -AdoOrg 'contoso' -AdoProject 'payments' -WarningVariable wv
+            $warnings = @($wv)
+        }
+
+        AfterAll {
+            Remove-Item Env:\ADO_PAT_TOKEN -ErrorAction SilentlyContinue
+        }
+
+        It 'completes instead of overflowing the call stack on date properties' {
+            $result.Status | Should -Be 'Success'
+        }
+
+        It 'still resolves connections referenced through a list' {
+            $reuse = @($result.Findings | Where-Object Category -eq 'Service Connection Usage')
+            ($reuse.Title -join ' ') | Should -Match 'Azure-Shared'
+        }
+
+        It 'does not silently truncate the traversal' {
+            ($warnings -join ' ') | Should -Not -Match 'depth limit'
+        }
+    }
+
     Context 'when an ADO API call fails' {
         BeforeAll {
             $env:ADO_PAT_TOKEN = 'fake-token'
