@@ -19,8 +19,8 @@ jobs:
   # ---------------------------------------------------------------------------
   # Cross-OS dispatch:
   #   ubuntu-latest  -> ACA Pool P1 ([self-hosted, public-linux])
-  #   windows-latest -> VMSS Pool W-pub ([self-hosted, public-win])
-  #   macos-latest   -> literal (no self-hosted macOS pool)
+  #   windows-latest -> GitHub-hosted (public repo, free minutes)
+  #   macos-latest   -> GitHub-hosted (no self-hosted macOS pool)
   # ---------------------------------------------------------------------------
   test:
     name: Test
@@ -29,7 +29,6 @@ jobs:
           github.event.pull_request.head.repo.full_name != github.repository &&
           matrix.os
           || (matrix.os == 'ubuntu-latest' && fromJSON('["self-hosted","public-linux"]'))
-          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","public-win"]'))
           || matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -62,6 +61,37 @@ jobs:
             $have = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -eq $pinned }
             if (-not $have) {
               Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck -RequiredVersion $pinned
+            }
+
+      - name: Install core Az modules if missing
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          retry_wait_seconds: 30
+          retry_on: error
+          shell: pwsh
+          command: |
+            # GitHub-hosted images ship the Az bundle, but the self-hosted
+            # public-linux pool does not. AzureAnalyzer.psm1 warns on
+            # missing Az.Accounts/Az.ResourceGraph, and that warning lands on
+            # the output stream ahead of real return values, which breaks
+            # ~96 wrapper tests that mock Az cmdlets or assert exact module
+            # exports. Because the runner is chosen by fork status, this only
+            # ever went red on same-repo branches. Guarded so it is a no-op
+            # wherever the modules are already present.
+            #
+            # Az.Monitor is here because Pester's Mock requires the real
+            # command to exist: Invoke-FinOpsSignals tests mock Get-AzMetric,
+            # which lives in Az.Monitor and is not covered by the two core
+            # modules above.
+            foreach ($m in @('Az.Accounts', 'Az.ResourceGraph', 'Az.Monitor')) {
+              if (Get-Module -Name $m -ListAvailable -ErrorAction SilentlyContinue) {
+                Write-Host "$m already available."
+                continue
+              }
+              Write-Host "Installing $m ..."
+              Install-Module $m -Scope CurrentUser -Force -AllowClobber -Repository PSGallery
             }
 
       - name: Run Pester tests

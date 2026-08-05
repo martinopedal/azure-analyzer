@@ -67,10 +67,17 @@ jobs:
             "https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz" \
             -o lychee.tgz
           mkdir -p .lychee-bin && tar -xzf lychee.tgz -C .lychee-bin
-          sudo install -m 0755 .lychee-bin/lychee /usr/local/bin/lychee
+          # Self-hosted runners here run with the "no new privileges" flag set,
+          # so `sudo install ... /usr/local/bin` exits 1. Stage the binary in a
+          # runner-local bin instead; no elevation, same result on both runner
+          # types. GITHUB_PATH only affects later steps, so the version check
+          # below uses the full path.
+          mkdir -p "$RUNNER_TEMP/bin"
+          install -m 0755 .lychee-bin/lychee "$RUNNER_TEMP/bin/lychee"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           rm -rf .lychee-bin lychee.tgz
           mkdir -p lychee
-          lychee --version
+          "$RUNNER_TEMP/bin/lychee" --version
 
       - name: Resolve markdown scope for lychee
         id: lychee-scope
@@ -146,8 +153,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install ripgrep
-        run: sudo apt-get update -y && sudo apt-get install -y ripgrep
+      - name: Install ripgrep (no elevation required)
+        env:
+          RIPGREP_VERSION: 15.2.0
+        run: |
+          set -euo pipefail
+          if command -v rg >/dev/null 2>&1; then
+            echo "ripgrep already present: $(rg --version | head -n1)"
+            exit 0
+          fi
+          # Self-hosted runners here run with the "no new privileges" flag set,
+          # so sudo/apt-get is unavailable and `sudo apt-get install ripgrep`
+          # exits 1 before the gate ever runs. Install the static musl build
+          # into a runner-local bin instead, which needs no elevation and works
+          # identically on GitHub-hosted and self-hosted runners.
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl --retry 3 --retry-delay 5 -fsSL \
+            "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            -o "$RUNNER_TEMP/rg.tgz"
+          tar -xzf "$RUNNER_TEMP/rg.tgz" -C "$RUNNER_TEMP" \
+            "ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl/rg"
+          install -m 0755 "$RUNNER_TEMP/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl/rg" "$RUNNER_TEMP/bin/rg"
+          # GITHUB_PATH only affects later steps, so verify via the full path.
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/rg" --version | head -n1
 
       # PR mode: only block on em-dashes introduced by this PR. Avoids
       # back-pressure on the existing em-dash backlog (tracked separately).
