@@ -1651,6 +1651,9 @@ foreach ($corrDef in $correlators) {
                 Confidence   = if ($f.PSObject.Properties['Confidence']) { $f.Confidence } else { '' }
                 EvidenceCount = if ($f.PSObject.Properties['EvidenceCount']) { $f.EvidenceCount } else { 0 }
                 MissingDimensions = if ($f.PSObject.Properties['MissingDimensions']) { $f.MissingDimensions } else { @() }
+                FindingKey   = if ($f.PSObject.Properties['FindingKey']) { $f.FindingKey } else { '' }
+                Suppressed   = if ($f.PSObject.Properties['Suppressed']) { [bool]$f.Suppressed } else { $false }
+                SuppressionReason = if ($f.PSObject.Properties['SuppressionReason']) { $f.SuppressionReason } else { '' }
             })
         }
 

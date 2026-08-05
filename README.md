@@ -105,6 +105,40 @@ Auditor mode produces:
 
 See [docs/design/track-f-auditor-redesign.md](docs/design/track-f-auditor-redesign.md) for the full design.
 
+### Suppression list (false-positive / accepted-risk)
+
+Mark findings you have already reviewed so they stop appearing in counts and reports:
+
+```powershell
+Invoke-AzureAnalyzer -SubscriptionId "<subscription-id>" -SuppressionFile .\suppressions.json
+```
+
+Suppressed findings are excluded from severity counts and from the HTML and Markdown report views. They remain in `results.json` so the audit trail is intact; the report renders a visible count so the reduction is never silent. Unused keys are surfaced so a list that silently stops matching is detected immediately.
+
+Each entry requires a `reason`. An `expires` field is optional; expired entries are reported and ignored, never silently applied. A malformed file is a hard error: scanning without requested suppressions misreports risk posture.
+
+Two entry forms are accepted:
+
+```json
+[
+  {
+    "key": "a1b2c3d4e5f60718",
+    "reason": "Accepted risk: dev subscription, no customer data"
+  },
+  {
+    "source": "azqr",
+    "ruleId": "aks-004",
+    "entityId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-dev/providers/Microsoft.ContainerService/managedClusters/aks-dev",
+    "reason": "Dev cluster, public API server accepted by architecture decision",
+    "expires": "2027-01-01"
+  }
+]
+```
+
+The `key` form uses the machine-generated SHA-256 hash (first 16 hex chars) over `source|rule|entity`. The triple form (`source`/`ruleId`/`entityId`) is human-readable and passes PR review without opaque hashes. Both route through the same hash function so they cannot drift.
+
+See [docs/consumer/suppression-list.md](docs/consumer/suppression-list.md) for the full reference.
+
 **[See docs/getting-started for installation, first run, and common scenarios &rarr;](docs/getting-started/)**
 
 <details open><summary><b>Feature highlights</b></summary>
