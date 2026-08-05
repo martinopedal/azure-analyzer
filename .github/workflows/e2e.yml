@@ -35,7 +35,6 @@ jobs:
           github.event.pull_request.head.repo.full_name != github.repository &&
           matrix.os
           || (matrix.os == 'ubuntu-latest' && fromJSON('["self-hosted","public-linux"]'))
-          || (matrix.os == 'windows-latest' && fromJSON('["self-hosted","public-win"]'))
           || matrix.os }}
     timeout-minutes: 8
     steps:

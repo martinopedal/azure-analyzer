@@ -153,6 +153,64 @@ Describe 'Normalize-WARA' {
         }
     }
 
+    Context 'APRL control tag (#1228)' {
+        It 'emits an aprl-control baseline tag when the wrapper enriched the finding' {
+            $toolResult = [pscustomobject]@{
+                Tool     = 'wara'
+                Status   = 'Success'
+                Findings = @(
+                    [pscustomobject]@{
+                        Title       = 'Use availability zones'
+                        Severity    = 'High'
+                        ResourceId  = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1'
+                        Category    = 'High Availability'
+                        AprlControl = 'HighAvailability'
+                    }
+                )
+            }
+            $rows = Normalize-WARA -ToolResult $toolResult
+            $rows[0].BaselineTags | Should -Contain 'aprl-control:HighAvailability'
+            $rows[0].Category | Should -Be 'High Availability'
+        }
+
+        It 'does not suppress the service-category fallback when adding the control tag' {
+            # The ServiceCategory fallback only fires while BaselineTags is
+            # still empty, so the control tag has to be appended after it.
+            $toolResult = [pscustomobject]@{
+                Tool     = 'wara'
+                Status   = 'Success'
+                Findings = @(
+                    [pscustomobject]@{
+                        Title           = 'Use availability zones'
+                        Severity        = 'High'
+                        ResourceId      = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1'
+                        ServiceCategory = 'compute'
+                        AprlControl     = 'HighAvailability'
+                    }
+                )
+            }
+            $rows = Normalize-WARA -ToolResult $toolResult
+            $rows[0].BaselineTags | Should -Contain 'service-category:compute'
+            $rows[0].BaselineTags | Should -Contain 'aprl-control:HighAvailability'
+        }
+
+        It 'emits no control tag when the finding was never enriched' {
+            $toolResult = [pscustomobject]@{
+                Tool     = 'wara'
+                Status   = 'Success'
+                Findings = @(
+                    [pscustomobject]@{
+                        Title      = 'Use availability zones'
+                        Severity   = 'High'
+                        ResourceId = '/subscriptions/11111111-1111-1111-1111-111111111111/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1'
+                    }
+                )
+            }
+            $rows = Normalize-WARA -ToolResult $toolResult
+            @($rows[0].BaselineTags) | Where-Object { $_ -like 'aprl-control:*' } | Should -BeNullOrEmpty
+        }
+    }
+
     Context 'pillar enumeration coverage' {
         It 'normalizes all 5 WAF pillars' {
             $allPillarsInput = [PSCustomObject]@{

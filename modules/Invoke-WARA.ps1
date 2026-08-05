@@ -32,6 +32,21 @@ $missingToolPath = Join-Path $PSScriptRoot 'shared' 'MissingTool.ps1'
 if (Test-Path $missingToolPath) { . $missingToolPath }
 $envelopePath = Join-Path $PSScriptRoot 'shared' 'New-WrapperEnvelope.ps1'
 if (Test-Path $envelopePath) { . $envelopePath }
+$errorsPath = Join-Path $PSScriptRoot 'shared' 'Errors.ps1'
+if (Test-Path $errorsPath) { . $errorsPath }
+$retryPath = Join-Path $PSScriptRoot 'shared' 'Retry.ps1'
+if (Test-Path $retryPath) { . $retryPath }
+if (-not (Get-Command New-FindingError -ErrorAction SilentlyContinue)) {
+    function New-FindingError { param([string]$Source,[string]$Category,[string]$Reason,[string]$Remediation,[string]$Details) return [pscustomobject]@{ Source=$Source; Category=$Category; Reason=$Reason; Remediation=$Remediation; Details=$Details } }
+}
+if (-not (Get-Command Format-FindingErrorMessage -ErrorAction SilentlyContinue)) {
+    function Format-FindingErrorMessage { param([Parameter(Mandatory)]$FindingError) $line = "[{0}] {1}: {2}" -f $FindingError.Source, $FindingError.Category, $FindingError.Reason; if ($FindingError.Remediation) { $line += " Action: $($FindingError.Remediation)" }; return $line }
+}
+if (-not (Get-Command Invoke-WithRetry -ErrorAction SilentlyContinue)) {
+    function Invoke-WithRetry { param([Parameter(Mandatory)][scriptblock]$ScriptBlock,[int]$MaxAttempts=1,[int]$InitialDelaySeconds=0,[string[]]$TransientMessagePatterns=@()) return & $ScriptBlock }
+}
+$aprlCatalogPath = Join-Path $PSScriptRoot 'shared' 'AprlCatalog.ps1'
+if (Test-Path $aprlCatalogPath) { . $aprlCatalogPath }
 if (-not (Get-Command New-WrapperEnvelope -ErrorAction SilentlyContinue)) { function New-WrapperEnvelope { param([string]$Source,[string]$Status='Failed',[string]$Message='',[object[]]$FindingErrors=@()) return [PSCustomObject]@{ Source=$Source; SchemaVersion='1.0'; Status=$Status; Message=$Message; Findings=@(); Errors=@($FindingErrors) } } }
 if (-not (Get-Command Write-MissingToolNotice -ErrorAction SilentlyContinue)) {
     function Write-MissingToolNotice { param([string]$Tool, [string]$Message) Write-Warning $Message }
@@ -74,6 +89,29 @@ function New-WaraKey {
     $key = [string]$Value
     if ([string]::IsNullOrWhiteSpace($key)) { return '' }
     return $key.Trim().ToLowerInvariant()
+}
+
+function Get-WaraFreshArtifact {
+    <#
+    .SYNOPSIS
+        Return the newest file matching Filter that was produced by the current run.
+    .DESCRIPTION
+        output/ is never cleaned between runs, so an artifact left behind by an earlier
+        successful scan is otherwise indistinguishable from one the collector just wrote.
+        Known holds the FullName -> LastWriteTimeUtc of every file that existed before the
+        run started; an artifact counts as fresh when it is absent from that snapshot or
+        its timestamp has moved, which also covers the collector overwriting the same
+        filename when it runs twice within the same minute.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory)] [string] $Filter,
+        [Parameter(Mandatory)] [hashtable] $Known
+    )
+    return Get-ChildItem -Path $Path -Filter $Filter -File -ErrorAction SilentlyContinue |
+        Where-Object { -not $Known.ContainsKey($_.FullName) -or $Known[$_.FullName] -ne $_.LastWriteTimeUtc } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
 }
 
 function Get-WaraWorkbookMetadata {
@@ -150,28 +188,76 @@ if (-not (Test-Path $OutputPath)) {
 
 # Run collector
 $subArg = "/subscriptions/$SubscriptionId"
+
+# Snapshot what is already on disk before the collector runs. See Get-WaraFreshArtifact:
+# without this, a stale WARA-File-*.json from an earlier scan makes a total collector
+# failure look like a success and last run's findings get re-reported as current.
+$knownArtifacts = @{}
+foreach ($existing in @(Get-ChildItem -Path $OutputPath -File -ErrorAction SilentlyContinue)) {
+    $knownArtifacts[$existing.FullName] = $existing.LastWriteTimeUtc
+}
+
+# Azure Advisor occasionally returns a transient GatewayTimeout, which surfaces inside the
+# WARA module as "Cannot bind argument to parameter 'AdvisorMetadata' because it is null".
+# That string matches none of the shared transient patterns, so the retry conditions are
+# passed explicitly. A collector run that produces no file is also retried: the collector
+# writes its JSON even when a subscription has no impacted resources, so a missing file
+# means the run failed rather than that there was nothing to report.
+$collectorError = $null
+$collectorJson = $null
 try {
-    Push-Location $OutputPath
-    Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Stop
-    if (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue) {
-        Start-WARAAnalyzer -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Stop
+    $collectorJson = Invoke-WithRetry -MaxAttempts 3 -InitialDelaySeconds 15 -TransientMessagePatterns @(
+        'AdvisorMetadata', 'produced no collector output',
+        '\b429\b', '\b503\b', '\b504\b', '\b408\b',
+        'throttl', 'rate limit', 'timed out', 'timeout',
+        'service unavailable', 'temporarily unavailable', 'connection reset'
+    ) -ScriptBlock {
+        Push-Location $OutputPath
+        try {
+            # Tolerate per-resource "No recommendation found" errors so a single unmapped
+            # resource type does not abort collection for the whole subscription.
+            Start-WARACollector -TenantID $TenantId -SubscriptionIds $subArg -ErrorAction Continue
+        }
+        finally {
+            Pop-Location
+        }
+        $fresh = Get-WaraFreshArtifact -Path $OutputPath -Filter 'WARA*File*.json' -Known $knownArtifacts
+        if (-not $fresh) {
+            throw (Format-FindingErrorMessage (New-FindingError `
+                -Source 'wrapper:wara' `
+                -Category 'TransientFailure' `
+                -Reason "Start-WARACollector produced no collector output for subscription '$SubscriptionId'." `
+                -Remediation 'Re-run the scan. If it keeps failing, run Start-WARACollector directly to see the underlying Azure Advisor or Resource Graph error.'))
+        }
+        return $fresh
     }
-    Pop-Location
-} catch {
-    Pop-Location
-    Write-Warning "WARA collector failed: $(Remove-Credentials -Text ([string]$_)). Returning empty result."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text ([string]$_)); Findings = @(); Errors = @() }
+}
+catch {
+    $collectorError = $_
 }
 
-# Find the newest JSON output file
-$jsonFile = Get-ChildItem -Path $OutputPath -Filter "WARA_File_*.json" |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
-
-if (-not $jsonFile) {
-    Write-Warning "WARA collector ran but no output JSON found in $OutputPath."
-    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = 'No output JSON produced'; Findings = @(); Errors = @() }
+if (-not $collectorJson) {
+    $message = if ($collectorError) { Remove-Credentials -Text ([string]$collectorError) } else { 'No output JSON produced' }
+    Write-Warning "WARA collector failed: $message. Returning empty result."
+    return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = $message; Findings = @(); Errors = @() }
 }
+
+# Analyzer (v1.x) takes -JSONFile (the collector output), not -TenantID/-SubscriptionIds.
+if (Get-Command Start-WARAAnalyzer -ErrorAction SilentlyContinue) {
+    try {
+        Push-Location $OutputPath
+        try {
+            Start-WARAAnalyzer -JSONFile $collectorJson.FullName -ErrorAction Stop
+        }
+        finally {
+            Pop-Location
+        }
+    } catch {
+        Write-Warning "WARA analyzer step failed (collector data retained): $(Remove-Credentials -Text ([string]$_))"
+    }
+}
+
+$jsonFile = $collectorJson
 
 # Parse findings
 try {
@@ -181,18 +267,42 @@ try {
     return [PSCustomObject]@{ SchemaVersion = '1.0'; Source = 'wara'; Status = 'Failed'; Message = (Remove-Credentials -Text "JSON parse error: $([string]$_)"); Findings = @(); Errors = @() }
 }
 
-$xlsxFile = Get-ChildItem -Path $OutputPath -Filter "Expert-Analysis-*.xlsx" |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
+$xlsxFile = Get-WaraFreshArtifact -Path $OutputPath -Filter 'Expert-Analysis-*.xlsx' -Known $knownArtifacts
 $workbookMetadata = if ($xlsxFile) { Get-WaraWorkbookMetadata -WorkbookPath $xlsxFile.FullName } else { @{} }
 
 $findings = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-$recommendations = $raw.Recommendations ?? ($raw.PSObject.Properties.Value | Where-Object { $_ -is [array] } | Select-Object -First 1)
+$recommendations = if ($raw.PSObject.Properties['Recommendations'] -and $raw.Recommendations) {
+    $raw.Recommendations
+} else {
+    # WARA collector v2.x exposes reliability findings across two arrays:
+    #   - 'impactedResources' : APRL query results (per-resource; no impact level in JSON)
+    #   - 'advisory'          : Azure Advisor results (per-resource; carries Impact + Description)
+    # Merge both so the assessment includes Advisor's real severities and descriptions.
+    $combined = [System.Collections.Generic.List[object]]::new()
+    if ($raw.PSObject.Properties['impactedResources'] -and $raw.impactedResources) {
+        foreach ($r in @($raw.impactedResources)) { $combined.Add($r) }
+    }
+    if ($raw.PSObject.Properties['advisory'] -and $raw.advisory) {
+        foreach ($r in @($raw.advisory)) { $combined.Add($r) }
+    }
+    if ($combined.Count -eq 0) {
+        # Generic fallback: first non-empty array property. Iterate the Properties collection
+        # directly. Piping $raw.PSObject.Properties.Value unrolls nested arrays so a
+        # Where-Object { $_ -is [array] } filter never matches the array as a whole.
+        foreach ($p in $raw.PSObject.Properties) {
+            if ($p.Value -is [System.Array] -and @($p.Value).Count -gt 0) {
+                foreach ($r in @($p.Value)) { $combined.Add($r) }
+                break
+            }
+        }
+    }
+    $combined
+}
 foreach ($rec in $recommendations) {
     $recommendationId = [string](Get-WaraPropertyValue -Object $rec -Names @('RecommendationId', 'GUID', 'Id'))
     if ([string]::IsNullOrWhiteSpace($recommendationId)) { $recommendationId = [guid]::NewGuid().ToString() }
-    $title = [string](Get-WaraPropertyValue -Object $rec -Names @('Recommendation', 'Title'))
+    $title = [string](Get-WaraPropertyValue -Object $rec -Names @('Recommendation', 'Title', 'Description'))
     if ([string]::IsNullOrWhiteSpace($title)) { $title = 'Unknown' }
 
     $metadata = $null
@@ -203,7 +313,11 @@ foreach ($rec in $recommendations) {
         }
     }
 
-    $impactedResources = @($rec.ImpactedResources)
+    $impactedResources = if ($rec.PSObject.Properties['ImpactedResources'] -and $rec.ImpactedResources) {
+        @($rec.ImpactedResources)
+    } else {
+        @()
+    }
     if (-not $impactedResources -or $impactedResources.Count -eq 0) {
         $fallbackResourceId = [string](Get-WaraPropertyValue -Object $rec -Names @('ResourceId', 'Id'))
         if (-not [string]::IsNullOrWhiteSpace($fallbackResourceId)) {
@@ -309,6 +423,25 @@ foreach ($rec in $recommendations) {
             PotentialBenefit = $potentialBenefit
             ToolVersion      = $toolVersion
         })
+    }
+}
+
+# Best-effort APRL catalog enrichment: recover Title/Severity/Detail/LearnMore
+# for findings the workbook-metadata join left as 'Unknown', and stamp the APRL
+# recommendation control as the report Category on every matched finding.
+# Non-fatal and offline-safe: a missing catalog leaves findings unchanged.
+# The catalog is consulted whenever there are findings (not only when a Title is
+# missing) because category enrichment applies to well-formed findings too;
+# Get-WaraAprlCatalog is cache-backed, so this does not add a fetch per run.
+if ($findings.Count -gt 0 -and (Get-Command Merge-WaraAprlMetadata -ErrorAction SilentlyContinue)) {
+    try {
+        $catalogCache = if (Get-Command Get-AprlDefaultCachePath -ErrorAction SilentlyContinue) { Get-AprlDefaultCachePath } else { Join-Path ([System.IO.Path]::GetTempPath()) 'wara-aprl-catalog.json' }
+        $aprlCatalog = Get-WaraAprlCatalog -Path $catalogCache
+        if ($aprlCatalog) {
+            $null = Merge-WaraAprlMetadata -Findings $findings -Catalog $aprlCatalog
+        }
+    } catch {
+        Write-Verbose "APRL catalog enrichment skipped: $([string]$_)"
     }
 }
 
