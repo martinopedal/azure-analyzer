@@ -135,6 +135,65 @@ All notable changes to azure-analyzer will be documented here.
 * pin New-FindingError single-definition contract ([#821](https://github.com/martinopedal/azure-analyzer/issues/821)) ([17087bd](https://github.com/martinopedal/azure-analyzer/commit/17087bdf42835e25ae554824947930d532ab4776))
 
 
+## [1.8.0](https://github.com/martinopedal/azure-analyzer/compare/v1.7.2...v1.8.0) (2026-08-06)
+
+
+### Features
+
+* interactive single-file HTML report (-Interactive) ([#1230](https://github.com/martinopedal/azure-analyzer/issues/1230)) ([#1252](https://github.com/martinopedal/azure-analyzer/issues/1252)) ([7981f49](https://github.com/martinopedal/azure-analyzer/commit/7981f496a54eb7e2c70767eabaf5e0e368e95726))
+* recover WARA 'Unknown' APRL titles via recommendation-catalog join ([#1233](https://github.com/martinopedal/azure-analyzer/issues/1233)) ([a849dd1](https://github.com/martinopedal/azure-analyzer/commit/a849dd186cae4799cdd04386ea73471e942b2240))
+* **suppression:** ship native false-positive suppression list ([#1229](https://github.com/martinopedal/azure-analyzer/issues/1229)) ([#1251](https://github.com/martinopedal/azure-analyzer/issues/1251)) ([4704a3c](https://github.com/martinopedal/azure-analyzer/commit/4704a3c86fd7665814ec81e53b1d134d8c4dfab8))
+* **wara:** group findings by APRL recommendation control ([#1248](https://github.com/martinopedal/azure-analyzer/issues/1248)) ([26213a0](https://github.com/martinopedal/azure-analyzer/commit/26213a00f10ff5508809b0fc8195b9504414af69))
+* **worker-pool:** restore parallelism via InitialSessionState-provisioned runspaces ([#1225](https://github.com/martinopedal/azure-analyzer/issues/1225)) ([#1255](https://github.com/martinopedal/azure-analyzer/issues/1255)) ([9d86955](https://github.com/martinopedal/azure-analyzer/commit/9d86955dc6452fb2af046a64637fa0948fa81379))
+
+
+### Fixes
+
+* ADO pipeline-security recursion overflow and correlator dot-source prompt ([#1221](https://github.com/martinopedal/azure-analyzer/issues/1221)) ([b575f90](https://github.com/martinopedal/azure-analyzer/commit/b575f90331e866692b57562d233c2c32177d5561))
+* **ci:** add fork-PR guards to pr-auto-rebase, issue-resolution-verify, and pr-auto-rerun-on-push ([#1253](https://github.com/martinopedal/azure-analyzer/issues/1253)) ([7677bb4](https://github.com/martinopedal/azure-analyzer/commit/7677bb46a90f500d177d1cae4a8f2028c2617722))
+* **ci:** align runner labels with repo trust boundary ([#1162](https://github.com/martinopedal/azure-analyzer/issues/1162)) ([796ee9f](https://github.com/martinopedal/azure-analyzer/commit/796ee9f3ddcd9913a402fa39fb8d1fa6f3725af1))
+* **ci:** correct release PSGallery-E2E Windows runner label ([#1171](https://github.com/martinopedal/azure-analyzer/issues/1171)) ([b320427](https://github.com/martinopedal/azure-analyzer/commit/b320427295bf023183aea607817f46e6ad9b2ee4))
+* **ci:** make Test and Markdown Check jobs work on self-hosted runners ([#1247](https://github.com/martinopedal/azure-analyzer/issues/1247)) ([3492f1e](https://github.com/martinopedal/azure-analyzer/commit/3492f1ecec6fbf35f42ebc010d6daa3dbe2da87f))
+* **ci:** move windows-latest to GitHub-hosted runners ([#1173](https://github.com/martinopedal/azure-analyzer/issues/1173)) ([#1250](https://github.com/martinopedal/azure-analyzer/issues/1250)) ([e09ad61](https://github.com/martinopedal/azure-analyzer/commit/e09ad611d02cc92f7492ab8588e1542d96ed48cc))
+* correct azqr Windows winget id in tool-manifest.json ([#1232](https://github.com/martinopedal/azure-analyzer/issues/1232)) ([bb12715](https://github.com/martinopedal/azure-analyzer/commit/bb12715ca6907de2dbd673c1fb1fe17dc1fbb420)), closes [#1227](https://github.com/martinopedal/azure-analyzer/issues/1227)
+* parallel worker pool can lose findings via runspace module-autoload race ([#1222](https://github.com/martinopedal/azure-analyzer/issues/1222)) ([e3f53b3](https://github.com/martinopedal/azure-analyzer/commit/e3f53b3f59b1afd7ead99af8545403f9d64efea5))
+* preflight desired_label personal-windows (Pool P2 label split) ([#1148](https://github.com/martinopedal/azure-analyzer/issues/1148)) ([7297037](https://github.com/martinopedal/azure-analyzer/commit/72970373323d2b2e0773c9c6f002a6033ec172eb))
+* PSRule subscription scan exports 0 resources and drops ResourceId ([#1219](https://github.com/martinopedal/azure-analyzer/issues/1219)) ([031b372](https://github.com/martinopedal/azure-analyzer/commit/031b37262791f822c1f02fe0452488597a0cafe1))
+* **runners:** canonicalize labels to canon 2-label personal-linux ([#1160](https://github.com/martinopedal/azure-analyzer/issues/1160)) ([e0d984c](https://github.com/martinopedal/azure-analyzer/commit/e0d984cd0e28e489fd0bad9caf25d17bdad46519))
+* WARA wrapper loses findings (analyzer -JSONFile, glob, StrictMode nulls, Advisor timeout) ([#1220](https://github.com/martinopedal/azure-analyzer/issues/1220)) ([c4b96c9](https://github.com/martinopedal/azure-analyzer/commit/c4b96c99570f2189ea4a8b31324c2bfc0c314014))
+
+
+### Performance
+
+* intern repeated string attributes in interactive report payload ([#1231](https://github.com/martinopedal/azure-analyzer/issues/1231)) ([#1257](https://github.com/martinopedal/azure-analyzer/issues/1257)) ([2d4059e](https://github.com/martinopedal/azure-analyzer/commit/2d4059ebdb03080ed0560e46a339eafd599946bc))
+
+
+### Documentation
+
+* document Entra access token auth for ADO wrappers ([#1226](https://github.com/martinopedal/azure-analyzer/issues/1226)) ([#1245](https://github.com/martinopedal/azure-analyzer/issues/1245)) ([bb7d80f](https://github.com/martinopedal/azure-analyzer/commit/bb7d80f77b4701979c716e0fbbcecbc22312832b))
+* **squad:** log CI restoration session and merge 6 inbox decisions ([9260eff](https://github.com/martinopedal/azure-analyzer/commit/9260effb1c544b22e7aa3f4661bc49456bb4c52f))
+* **squad:** log Windows runner migration, suppression list ship, and session state ([20182b7](https://github.com/martinopedal/azure-analyzer/commit/20182b753a3f9038c7664669d92354f646619abd))
+
+
+### Chores
+
+* **deps:** batch 16 wrapped-tool pin bumps + fix Update-ToolPins batching ([#1254](https://github.com/martinopedal/azure-analyzer/issues/1254)) ([4aae149](https://github.com/martinopedal/azure-analyzer/commit/4aae1499f936cc9dcd9a0e59edfd762f31efeb89))
+* **deps:** bump actions/checkout from 6.0.2 to 7.0.0 ([#1190](https://github.com/martinopedal/azure-analyzer/issues/1190)) ([6faead2](https://github.com/martinopedal/azure-analyzer/commit/6faead283f181ddb2767907b41a92cacaf0aeff7))
+* **deps:** bump actions/create-github-app-token from 3.1.1 to 3.2.0 ([#1142](https://github.com/martinopedal/azure-analyzer/issues/1142)) ([cbc6023](https://github.com/martinopedal/azure-analyzer/commit/cbc602315277ec9cbd5b569326a9ba824de50238))
+* **deps:** bump github/codeql-action from 4.35.4 to 4.36.2 ([#1179](https://github.com/martinopedal/azure-analyzer/issues/1179)) ([13a5571](https://github.com/martinopedal/azure-analyzer/commit/13a5571f7054777d949459159ad99120f83ce98b))
+* **deps:** bump googleapis/release-please-action from 4.4.1 to 5.0.0 ([#1141](https://github.com/martinopedal/azure-analyzer/issues/1141)) ([16190c9](https://github.com/martinopedal/azure-analyzer/commit/16190c92554a8cc8c49583a7323f34a75eda6ef9))
+* **deps:** bump softprops/action-gh-release from 3.0.0 to 3.0.1 ([#1191](https://github.com/martinopedal/azure-analyzer/issues/1191)) ([ca3721e](https://github.com/martinopedal/azure-analyzer/commit/ca3721e22fcc9fff2fe1efd81d495bd57c0dda84))
+* **squad:** flush session state for v1.7.1 -&gt; v1.7.2 stabilization ([#1123](https://github.com/martinopedal/azure-analyzer/issues/1123)) ([844d17e](https://github.com/martinopedal/azure-analyzer/commit/844d17e3a048f9bcd0b45c0dab9d4a0f47047702))
+* **squad:** flush v1.7.2 validation audit (Atlas + Sentinel GREEN, 3 AMBER → [#1125](https://github.com/martinopedal/azure-analyzer/issues/1125) [#1126](https://github.com/martinopedal/azure-analyzer/issues/1126) [#1127](https://github.com/martinopedal/azure-analyzer/issues/1127)) ([#1128](https://github.com/martinopedal/azure-analyzer/issues/1128)) ([68ed7c7](https://github.com/martinopedal/azure-analyzer/commit/68ed7c7b26da2d81d966a5e4c7964a9c6af4fe13))
+
+
+### CI
+
+* gate fork PRs off self-hosted runners ([#1161](https://github.com/martinopedal/azure-analyzer/issues/1161)) ([2db31b4](https://github.com/martinopedal/azure-analyzer/commit/2db31b4deabe5e53cc70fb2b9230006f0d15436f))
+* migrate all workflows to GitHub-hosted runners (P0 unblock) ([#1256](https://github.com/martinopedal/azure-analyzer/issues/1256)) ([697652e](https://github.com/martinopedal/azure-analyzer/commit/697652ef76e108449b5a59aa2d29c99717eac8b0))
+* migrate Windows matrix legs to runner-preflight pattern (Pool W-pub) ([#1143](https://github.com/martinopedal/azure-analyzer/issues/1143)) ([163c250](https://github.com/martinopedal/azure-analyzer/commit/163c2503a49fcbcf0e378b79f1265ae2f554f8eb))
+* route Linux to ACA Pool P1, drop preflight-windows ([#1151](https://github.com/martinopedal/azure-analyzer/issues/1151)) ([74051c5](https://github.com/martinopedal/azure-analyzer/commit/74051c532047c235bc4abf8eee1b64ebaa00d251))
+
 ## [1.7.2](https://github.com/martinopedal/azure-analyzer/compare/v1.7.1...v1.7.2) (2026-05-13)
 
 
