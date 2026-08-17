@@ -1653,7 +1653,7 @@
         "repo": "kubescape/kubescape",
         "releaseApi": "https://api.github.com/repos/kubescape/kubescape/releases/latest",
         "pinType": "version",
-        "currentPin": "4.0.11"
+        "currentPin": "4.0.12"
       },
       "frameworks": [
         "CIS Azure",
@@ -1832,7 +1832,7 @@
         "repo": "turbot/powerpipe",
         "releaseApi": "https://api.github.com/repos/turbot/powerpipe/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "1.5.2"
+        "currentPin": "1.5.3"
       },
       "frameworks": [
         "CIS Azure",
@@ -1903,7 +1903,7 @@
         "repo": "prowler-cloud/prowler",
         "releaseApi": "https://api.github.com/repos/prowler-cloud/prowler/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "5.36.0"
+        "currentPin": "5.39.0"
       },
       "frameworks": [
         "CIS Azure",
@@ -2223,7 +2223,7 @@
         "repo": "projectdiscovery/subfinder",
         "releaseApi": "https://api.github.com/repos/projectdiscovery/subfinder/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "2.14.0"
+        "currentPin": "2.15.0"
       },
       "comment": "EASM passive subdomain enumeration. Wrapper ships in R2.",
       "frameworks": [
@@ -2329,7 +2329,7 @@
         "repo": "aquasecurity/trivy",
         "releaseApi": "https://api.github.com/repos/aquasecurity/trivy/releases/latest",
         "pinType": "cli-version",
-        "currentPin": "0.72.0"
+        "currentPin": "0.74.0"
       },
       "frameworks": [
         "CIS Azure",
