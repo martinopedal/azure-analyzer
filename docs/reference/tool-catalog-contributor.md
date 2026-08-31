@@ -158,28 +158,28 @@ Full manifest projection: every wired tool with normalizer, invocation, install,
 | `gh-actions-billing` | cli ("gh") | n/a | `#8e24aa` | 1 |
 | `gitleaks` | cli ("gitleaks") | gitleaks/gitleaks @ 8.30.1 | `#c62828` | 3 |
 | `graphrunner` | gitclone ("https://github.com/dafthack/GraphRunner.git") | n/a | `#4527a0` | 2 |
-| `httpx` | cli ("httpx") | projectdiscovery/httpx @ 1.10.0 | `#2e7d32` | 4 |
+| `httpx` | cli ("httpx") | projectdiscovery/httpx @ 1.11.0 | `#2e7d32` | 4 |
 | `identity-correlator` | psmodule | n/a | `#5e35b1` | 2 |
 | `identity-graph-expansion` | psmodule | n/a | `#283593` | 2 |
 | `infracost` | cli ("infracost") | infracost/infracost @ 0.10.45 | `#2e7d32` | 7 |
 | `kube-bench` | none | n/a | `#5e35b1` | 6 |
-| `kubescape` | cli ("kubescape") | kubescape/kubescape @ 4.0.11 | `#7b1fa2` | 6 |
+| `kubescape` | cli ("kubescape") | kubescape/kubescape @ 4.0.12 | `#7b1fa2` | 6 |
 | `loadtesting` | psmodule | n/a | `#00695c` | 4 |
 | `maester` | psmodule | maester365/maester @ 2.2.0 | `#7b1fa2` | 1 |
 | `pim-graph` | psmodule | n/a | `#7b1fa2` | 2 |
-| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ 1.5.2 | `#455a64` | 1 |
-| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.36.0 | `#1f2937` | 4 |
+| `powerpipe` | cli ("powerpipe") | turbot/powerpipe @ 1.5.3 | `#455a64` | 1 |
+| `prowler` | cli ("prowler") | prowler-cloud/prowler @ 5.40.0 | `#1f2937` | 4 |
 | `psrule` | psmodule | microsoft/PSRule.Rules.Azure @ 1.47.0 | `#6a1b9a` | 1 |
 | `roadrecon` | cli ("roadrecon") | n/a | `#311b92` | 2 |
 | `scorecard` | cli ("scorecard") | ossf/scorecard @ 5.5.0 | `#ff6f00` | 1 |
 | `sentinel-coverage` | psmodule | n/a | `#3949ab` | 4 |
 | `sentinel-incidents` | psmodule | n/a | `#0078d4` | 4 |
 | `shodan` | none | n/a | `#d32f2f` | 4 |
-| `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ 2.14.0 | `#00695c` | 4 |
-| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.15.8 | `#5c4ee5` | 7 |
-| `trivy` | cli ("trivy") | aquasecurity/trivy @ 0.72.0 | `#00695c` | 3 |
+| `subfinder` | cli ("subfinder") | projectdiscovery/subfinder @ 2.16.0 | `#00695c` | 4 |
+| `terraform-iac` | cli ("terraform") | hashicorp/terraform @ 1.16.0 | `#5c4ee5` | 7 |
+| `trivy` | cli ("trivy") | aquasecurity/trivy @ 0.74.0 | `#00695c` | 3 |
 | `wara` | psmodule | Azure/Azure-Proactive-Resiliency-Library-v2 @ latest | `#2e7d32` | 1 |
-| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.29.0 | `#ad1457` | 3 |
+| `zizmor` | cli ("zizmor") | woodruffw/zizmor @ 1.30.0 | `#ad1457` | 3 |
 
 ## Notes
 
